@@ -835,8 +835,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     [Theory]
     [InlineData("dispatch", 0, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout", TenantCommandAuditState.AuditDelayed)]
     [InlineData("status", 1, 1, "Tenants.Lifecycle.UnableToVerify.StatusTimeout", TenantCommandAuditState.AuditDelayed)]
-    // A timed-out proof read is a projection read: the audit dimension keeps what the Completed status established.
-    [InlineData("proof", 1, 2, "Tenants.Lifecycle.UnableToVerify.ProofRead", TenantCommandAuditState.AuditPending)]
+    // A timed-out proof read is a projection read, so the audit dimension never turns unavailable. The terminal
+    // outcome releases the attempt, though, so the pending record nothing will advance any more is delayed.
+    [InlineData("proof", 1, 2, "Tenants.Lifecycle.UnableToVerify.ProofRead", TenantCommandAuditState.AuditDelayed)]
     public void Attempt_deadline_terminalizes_and_releases_activity_for_never_completing_io(
         string stage,
         int expectedStatusCalls,
@@ -905,7 +906,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State
             .ShouldBe(TenantCommandLifecycleState.UnableToVerify));
         cut.Instance.Snapshot.SafeMessageKey.ShouldBe(expectedSafeMessageKey);
-        // Dispatch and status timeouts delay the audit record; an unverifiable proof read leaves it unavailable.
+        // Dispatch, status, and proof-read deadlines all end the attempt without proof, so its audit record is delayed.
         cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
         activity.ShouldBe([true, false]);
         gateway.DisableSubmissions.ShouldBe(1);
@@ -1609,7 +1610,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
     }
 
     [Fact]
-    public void Retained_attempt_without_projection_provider_keeps_its_pending_audit_record()
+    public void Retained_attempt_without_projection_provider_reports_its_released_audit_record_delayed()
     {
         var gateway = new StubTenantCommandGateway
         {
@@ -1632,13 +1633,17 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(component => component.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready));
 
-        // No proof reader is a provenance failure, not a failed audit read: the stored events keep their pending
-        // audit record while the command itself is unverified.
+        // No proof reader is a provenance failure, not a failed audit read, so the audit state never turns
+        // unavailable. The unverified lifecycle outcome is terminal, though: the attempt is released, nothing will
+        // advance its pending audit record any more, and the record is reported delayed rather than pending forever.
         cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
             .Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.ProofRead"), TimeSpan.FromSeconds(5));
         TenantLifecycleCommandSnapshot snapshot = cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot;
         snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        snapshot.RetainsAttempt.ShouldBeFalse();
+        snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-lifecycle-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("delayed"), TimeSpan.FromSeconds(5));
     }
 
     [Fact]

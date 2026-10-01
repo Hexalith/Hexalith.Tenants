@@ -949,7 +949,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_it_and_never_exhaust_the_retry_limit()
+    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_it_then_run_their_own_and_never_exhaust_the_retry_limit()
     {
         TaskCompletionSource<TenantCommandStatusResult> releaseLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
         StubTenantCommandGateway gateway = new()
@@ -988,7 +988,9 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         await nudge.WaitAsync(TimeSpan.FromSeconds(5));
         cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
         cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
-        gateway.GetStatusCallCount.ShouldBe(1);
+        // The nudge's lookup started before the click, so the merged click runs one lookup of its own after it:
+        // a click is never counted as a retry that no lookup served. Three clicks while it waited are one request.
+        cut.WaitForAssertion(() => gateway.GetStatusCallCount.ShouldBe(2), TimeSpan.FromSeconds(5));
         gateway.RemoveConfigurationCallCount.ShouldBe(1);
     }
 

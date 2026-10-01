@@ -177,7 +177,7 @@
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         Source="remove-member"
                                         OwnerRefreshIncludesAuditAuthority="true"
-                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusAsync) : default(EventCallback))"
+                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshFromAuditControlAsync) : default(EventCallback))"
                                         OnContinueReadOnly="ContinueReadOnlyAsync"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
@@ -510,6 +510,20 @@
                                      UnavailableReason="@AuditReadUnavailableReason"
                                      IsAvailable="@AuditReadAvailable" />;
 
+    // The shared control's Refresh can resolve the audit state to NotStarted, which unmounts the control and its
+    // focused Refresh button; focus then moves to the lifecycle section instead of falling back to the document body.
+    private async Task RefreshFromAuditControlAsync()
+    {
+        await RefreshStatusAsync().ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!ShouldRenderAuditEntryPoint)
+            {
+                _focusLifecyclePending = true;
+            }
+        }).ConfigureAwait(false);
+    }
+
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
@@ -645,6 +659,21 @@
             _focusLifecyclePending = true;
         }
     }
+
+    // A refused retry keeps the failed attempt it retried: that identity may already have reached the server, so
+    // its status stays unknown and the next submit must reuse it rather than mint a new ULID for a removal that
+    // may already have happened.
+    private static TenantRemoveMemberCommandSnapshot RefuseRetry(
+        string reason,
+        TenantRemoveMemberCommandSnapshot retriedAttempt)
+        => retriedAttempt with
+        {
+            SafeMessage = reason,
+            SafeMessageKey = null,
+            AuditState = TenantCommandAuditStates.Unverifiable,
+            FocusTarget = TenantCommandFocusTarget.Submit,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
 
     private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
     {
@@ -802,6 +831,7 @@
             && Equals(_snapshot.Intent, request)
                 ? _snapshot.MessageId
                 : null;
+        TenantRemoveMemberCommandSnapshot retriedAttempt = _snapshot;
         _snapshot = _snapshot.RequestSent(
             ResolveCurrentProjectionVersion(),
             baselinePostconditionMet: !TargetIsVisibleMember,
@@ -816,22 +846,21 @@
         {
             _isSubmitting = false;
 
-            // Blocked() builds a fresh record, which would drop the Intent, MessageId, CorrelationId and
-            // AttemptStartedAtUtc captured by RequestSent above. A retry would then fail its "same tracked
-            // attempt" precondition and mint a new ULID for a removal that may already have reached the
-            // server, so the refusal is applied in place instead.
-            SetSnapshot(_snapshot with
-            {
-                State = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value,
-                SafeMessageKey = null,
-                // A retry reuses an identity that may already have reached the server, so its status is unknown.
-                AuditState = retryMessageId is null
-                    ? TenantCommandAuditStates.NotStarted
-                    : TenantCommandAuditStates.Unverifiable,
-                FocusTarget = TenantCommandFocusTarget.Submit,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            });
+            // Blocked() builds a fresh record, which would drop the Intent captured by RequestSent above, so a
+            // first attempt's refusal is applied in place. A refused retry keeps the failed attempt it retried
+            // (see RefuseRetry).
+            string reason = CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value;
+            SetSnapshot(retryMessageId is null
+                ? _snapshot with
+                {
+                    State = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = reason,
+                    SafeMessageKey = null,
+                    AuditState = TenantCommandAuditStates.NotStarted,
+                    FocusTarget = TenantCommandFocusTarget.Submit,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                }
+                : RefuseRetry(reason, retriedAttempt));
             return;
         }
 
@@ -840,15 +869,10 @@
             ITenantCommandGateway? gateway = CommandGateway;
             if (gateway is null)
             {
-                SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(
-                    Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value,
-                    TenantCommandFocusTarget.Submit) with
-                {
-                    // A retry reuses an identity that may already have reached the server, so its status is unknown.
-                    AuditState = retryMessageId is null
-                        ? TenantCommandAuditStates.NotStarted
-                        : TenantCommandAuditStates.Unverifiable,
-                });
+                string reason = Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value;
+                SetSnapshot(retryMessageId is null
+                    ? TenantRemoveMemberCommandSnapshot.Blocked(reason, TenantCommandFocusTarget.Submit)
+                    : RefuseRetry(reason, retriedAttempt));
                 return;
             }
 
@@ -871,7 +895,7 @@
                     SafeMessage = result.SafeMessage,
                     SafeMessageKey = result.SafeMessageKey,
                     RejectionCode = result.RejectionCode,
-                    AuditState = TenantCommandAuditStates.FromSubmission(result),
+                    AuditState = TenantCommandAuditStates.FromSubmission(result, retryMessageId),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 });

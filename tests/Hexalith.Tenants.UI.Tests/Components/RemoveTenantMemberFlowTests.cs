@@ -606,7 +606,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.CommandActivityLease, active => Task.FromResult(!active || ++acquisitions == 1)));
+            .Add(p => p.CommandActivityLease, active => Task.FromResult(!active || ++acquisitions != 2)));
 
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
@@ -618,10 +618,17 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         // before dispatch, and the audit dimension reports the unknown status instead of "not started".
         cut.Find("form").Submit();
 
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        // The refused retry keeps the failed attempt it retried, identity included.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         gateway.RemoveMemberCallCount.ShouldBe(1);
+
+        // Once the lease is granted again, the next submit re-dispatches the same identity instead of minting one.
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
+        gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
     }
 
     [Fact]
@@ -660,10 +667,18 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         cut.Find("form").Submit();
 
-        // The blocked retry reuses an identity that may already have reached the server: its status is unknown.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        // The blocked retry keeps the failed attempt it retried: that identity may already have reached the
+        // server, so its status is unknown and it stays the identity the next submit reuses.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         gateway.RemoveMemberCallCount.ShouldBe(1);
+
+        gatewayAvailable = true;
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
+        gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
     }
 
     [Fact]

@@ -12,7 +12,8 @@ namespace Hexalith.Tenants.UI.State.TenantAudit;
 public sealed record TenantAuditAvailability(
     TenantAuditAvailabilityState? State,
     IReadOnlyList<TenantAuditRecoveryVerb> RecoveryVerbs,
-    TenantCommandLiveRegionPoliteness LiveRegionPoliteness) {
+    TenantCommandLiveRegionPoliteness LiveRegionPoliteness)
+{
     /// <summary>
     /// Refresh attempts that may leave the state unchanged before Refresh is withdrawn. A state change resets
     /// the count, and every other recovery stays available.
@@ -23,9 +24,11 @@ public sealed record TenantAuditAvailability(
 
     private const string ExplanationPrefix = "Tenants.Audit.Availability.Reason.";
 
+    /// <summary>Gets whether an audit dimension applies, so the shared control renders.</summary>
     public bool ShouldRender
         => State is not null;
 
+    /// <summary>Gets whether attempt-matched audit evidence proves the outcome.</summary>
     public bool IsAuditAvailable
         => State is TenantAuditAvailabilityState.Available;
 
@@ -57,8 +60,14 @@ public sealed record TenantAuditAvailability(
     public static string? StateLabelKeyFor(TenantCommandAuditState state)
         => FromCommandAuditState(state).StateLabelKey;
 
+    /// <summary>Maps a command audit state to its availability state, recovery verbs, and announcement politeness.</summary>
+    /// <param name="state">The command audit state.</param>
+    /// <returns>
+    /// The availability of that state; <see cref="TenantCommandAuditState.NotStarted"/> yields one that renders nothing.
+    /// </returns>
     public static TenantAuditAvailability FromCommandAuditState(TenantCommandAuditState state)
-        => state switch {
+        => state switch
+        {
             TenantCommandAuditState.AuditPending => new(
                 TenantAuditAvailabilityState.Pending,
                 [

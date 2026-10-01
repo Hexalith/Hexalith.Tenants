@@ -46,7 +46,10 @@
                 @Localizer["Tenants.Audit.Availability.RetryLimit"]
             </p>
         }
-        @if (RenderableRecoveryVerbs.Count > 0)
+        @{
+            IReadOnlyList<TenantAuditRecoveryVerb> recoveryVerbs = RenderableRecoveryVerbs;
+        }
+        @if (recoveryVerbs.Count > 0)
         {
             <FluentStack Orientation="Orientation.Horizontal"
                          HorizontalGap="0.5rem"
@@ -55,7 +58,7 @@
                          data-testid="tenants-audit-availability-actions"
                          role="group"
                          aria-label="@Localizer["Tenants.Audit.Availability.ActionsLabel"]">
-                @foreach (TenantAuditRecoveryVerb verb in RenderableRecoveryVerbs)
+                @foreach (TenantAuditRecoveryVerb verb in recoveryVerbs)
                 {
                     @if (verb is TenantAuditRecoveryVerb.InspectAudit && InspectAuditAction is not null)
                     {
@@ -99,6 +102,8 @@
 
     private readonly string _retryLimitId = $"tenants-audit-availability-limit-{Guid.NewGuid():N}";
     private ElementReference _stateLineElement;
+    private TenantAuditAvailability _availability = TenantAuditAvailability.FromCommandAuditState(TenantCommandAuditState.NotStarted);
+    private string? _escalationHref;
     private TenantAuditAvailabilityState? _countedState;
     private int _unchangedRefreshCount;
     private bool _focusStateLinePending;
@@ -153,8 +158,9 @@
     [Parameter]
     public EventCallback OnContinueReadOnly { get; set; }
 
+    // Derived once per parameter set: every render reads the state, verbs, and labels several times.
     private TenantAuditAvailability Availability
-        => TenantAuditAvailability.FromCommandAuditState(AuditState);
+        => _availability;
 
     private string StateCss
         => Availability.State?.ToString().ToLowerInvariant() ?? "not-started";
@@ -196,19 +202,24 @@
     private bool IsRetryLimitReached
         => _unchangedRefreshCount >= TenantAuditAvailability.MaximumUnchangedRetries;
 
-    // Escalation goes only to the configured local destination; an absent, external, or otherwise unsafe
-    // configuration renders no escalation control at all.
     private string? EscalationHref
-        => SuppressEscalation
-            ? null
-            : TenantAuditNavigationSafety.SafeRecoveryHref(
-                (Services.GetService(typeof(ITenantsBffComposition)) as ITenantsBffComposition)?.AuditEscalationRecoveryHref);
+        => _escalationHref;
 
     private IReadOnlyList<TenantAuditRecoveryVerb> RenderableRecoveryVerbs
         => [.. Availability.RecoveryVerbs.Where(CanRenderRecovery)];
 
     protected override void OnParametersSet()
     {
+        _availability = TenantAuditAvailability.FromCommandAuditState(AuditState);
+
+        // Escalation goes only to the configured local destination; an absent, external, or otherwise unsafe
+        // configuration renders no escalation control at all. It is resolved once per parameter set, not on
+        // every Escalate check of a render.
+        _escalationHref = SuppressEscalation
+            ? null
+            : TenantAuditNavigationSafety.SafeRecoveryHref(
+                (Services.GetService(typeof(ITenantsBffComposition)) as ITenantsBffComposition)?.AuditEscalationRecoveryHref);
+
         // A state change is new evidence: the unchanged-retry count starts over.
         TenantAuditAvailabilityState? state = Availability.State;
         if (state != _countedState)

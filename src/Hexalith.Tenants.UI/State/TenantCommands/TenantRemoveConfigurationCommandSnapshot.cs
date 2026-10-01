@@ -173,7 +173,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.EventsStored or CommandStatus.EventsPublished => this with
@@ -183,7 +183,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.Completed when status.EventCount is not > 0 && !HasCommandEventEvidence
@@ -198,7 +198,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.Rejected when HasCommandEventEvidence
@@ -213,7 +213,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.Configuration.Remove.Status.Rejected",
                 RejectionCode = status.RejectionCode,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             },
@@ -224,7 +224,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.Configuration.Remove.Status.PublishFailed",
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             },
@@ -233,12 +233,12 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
             {
                 StatusObservationCount = StatusObservationCount + 1,
                 // The lifecycle keeps its stronger event evidence, but a timed-out status still delays audit.
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
             },
             CommandStatus.TimedOut => UnableToVerify("Tenants.Configuration.Remove.UnableToVerify.StatusTimeout") with
             {
                 StatusObservationCount = StatusObservationCount + 1,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
             },
             _ => UnableToVerify("Tenants.Configuration.Remove.UnableToVerify.Status") with
             {

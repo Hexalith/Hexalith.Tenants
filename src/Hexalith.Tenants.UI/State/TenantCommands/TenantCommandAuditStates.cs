@@ -15,7 +15,9 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 /// the attempt does, through <see cref="FromConfirmationEvidence(TenantAuditReceipt?)"/>.
 /// A projection read that fails, or a projection that is read but cannot prove the attempt (missing provenance,
 /// baseline, target, or proof reader), never rewrites the audit dimension: no audit read happened, so the
-/// attempt keeps the audit state its command status established.
+/// attempt keeps the audit state its command status established. The one exception is an attempt the flow
+/// stops following (see <see cref="AfterTrackingEnds(TenantCommandAuditState)"/>): nothing would ever advance its
+/// pending audit record, so the record is reported delayed rather than pending forever.
 /// </remarks>
 public static class TenantCommandAuditStates
 {
@@ -57,13 +59,21 @@ public static class TenantCommandAuditStates
     /// The event count the status reported. A <see cref="CommandStatus.Completed"/> status that stored zero
     /// events has no audit record to wait for; an unreported (<see langword="null"/>) count keeps it pending.
     /// </param>
+    /// <param name="hasEventEvidence">
+    /// Whether an earlier status of the same attempt already proved stored events. A later received, processing,
+    /// or zero-event completed status (a stale replica or an out-of-order poll) cannot unstore them, so the audit
+    /// record stays pending instead of disappearing as not started.
+    /// </param>
     /// <returns>The canonical audit state for that status.</returns>
-    public static TenantCommandAuditState FromCommandStatus(CommandStatus? status, int? eventCount = null)
+    public static TenantCommandAuditState FromCommandStatus(
+        CommandStatus? status,
+        int? eventCount = null,
+        bool hasEventEvidence = false)
         => status switch
         {
             // Receipt or processing proves nothing was stored yet: audit pending starts at events-stored.
-            CommandStatus.Received or CommandStatus.Processing => NotStarted,
-            CommandStatus.Completed when eventCount == 0 => NotStarted,
+            CommandStatus.Received or CommandStatus.Processing => hasEventEvidence ? EventsStored : NotStarted,
+            CommandStatus.Completed when eventCount == 0 => hasEventEvidence ? EventsStored : NotStarted,
             CommandStatus.EventsStored or CommandStatus.EventsPublished or CommandStatus.Completed => EventsStored,
             CommandStatus.TimedOut or CommandStatus.PublishFailed => Delayed,
             CommandStatus.Rejected => NotStarted,
@@ -113,6 +123,39 @@ public static class TenantCommandAuditStates
                 _ => Unverifiable,
             };
     }
+
+    /// <summary>Derives the audit dimension from the submission of an attempt that may reuse an earlier identity.</summary>
+    /// <param name="result">The gateway submission result.</param>
+    /// <param name="retriedMessageId">
+    /// The message id this submission reused from an earlier attempt, or <see langword="null"/> for a first attempt.
+    /// </param>
+    /// <returns>
+    /// The canonical audit state for that submission outcome, except that a retry the gateway failed before
+    /// dispatch stays <see cref="Unverifiable"/>: the earlier attempt with the same identity may already have
+    /// reached the server, so nothing proves that no audit record exists.
+    /// </returns>
+    public static TenantCommandAuditState FromSubmission(TenantCommandSubmissionResult result, string? retriedMessageId)
+    {
+        TenantCommandAuditState state = FromSubmission(result);
+        return state is NotStarted
+            && result.State is TenantCommandLifecycleState.Failed
+            && !string.IsNullOrWhiteSpace(retriedMessageId)
+                ? Unverifiable
+                : state;
+    }
+
+    /// <summary>
+    /// Derives the audit dimension of an attempt the flow stops following: it reached a terminal outcome without
+    /// proof, so neither a status lookup nor a projection re-query will run for it again.
+    /// </summary>
+    /// <param name="current">The attempt's audit state when following stops.</param>
+    /// <returns>
+    /// <see cref="Delayed"/> for a pending audit record, which nothing would ever advance once the attempt is no
+    /// longer followed; otherwise <paramref name="current"/>. No audit read failed, so the result is never
+    /// <see cref="Unverifiable"/> on that account.
+    /// </returns>
+    public static TenantCommandAuditState AfterTrackingEnds(TenantCommandAuditState current)
+        => current is TenantCommandAuditState.AuditPending ? Delayed : current;
 
     /// <summary>
     /// Derives the audit dimension of a projection-confirmed attempt from the attempt-matched audit evidence.

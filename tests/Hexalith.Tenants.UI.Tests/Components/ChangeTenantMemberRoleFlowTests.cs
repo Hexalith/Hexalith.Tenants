@@ -799,7 +799,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.CommandActivityLease, active => Task.FromResult(!active || (isRetry && ++acquisitions == 1))));
+            .Add(p => p.CommandActivityLease, active => Task.FromResult(!active || (isRetry && ++acquisitions != 2))));
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
 
         if (isRetry)
@@ -814,11 +814,24 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         // attempt refused before dispatch sent nothing, so no audit state is implied.
         cut.Find("form").Submit();
 
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        // A refused retry keeps the failed attempt it retried, identity included; a refused first attempt is blocked.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
+        cut.Instance.Snapshot.State.ShouldBe(isRetry
+            ? TenantCommandLifecycleState.Failed
+            : TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.MessageId.ShouldBe(isRetry ? "01ARZ3NDEKTSV4RRFFQ69G5FAV" : null);
         cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
         cut.FindAll("[data-testid='tenants-change-role-audit'] [data-testid='tenants-audit-availability']").Count
             .ShouldBe(isRetry ? 1 : 0);
         gateway.ChangeRoleCallCount.ShouldBe(isRetry ? 1 : 0);
+
+        if (isRetry)
+        {
+            // Once the lease is granted again, the next submit re-dispatches the same identity instead of minting one.
+            cut.Find("form").Submit();
+            cut.WaitForAssertion(() => gateway.ChangeRoleCallCount.ShouldBe(2));
+            gateway.LastChangeRoleMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        }
     }
 
     [Fact]
@@ -856,10 +869,18 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         cut.Find("form").Submit();
 
-        // The blocked retry reuses an identity that may already have reached the server: its status is unknown.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        // The blocked retry keeps the failed attempt it retried: that identity may already have reached the
+        // server, so its status is unknown and it stays the identity the next submit reuses.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         gateway.ChangeRoleCallCount.ShouldBe(1);
+
+        gatewayAvailable = true;
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.ChangeRoleCallCount.ShouldBe(2));
+        gateway.LastChangeRoleMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
     }
 
     private IRenderedComponent<ChangeTenantMemberRoleFlow> RenderReaderFlow()

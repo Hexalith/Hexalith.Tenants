@@ -126,7 +126,7 @@
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         Source="lifecycle"
                                         OwnerRefreshIncludesAuditAuthority="true"
-                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusFromUiAsync) : default(EventCallback))"
+                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshFromAuditControlAsync) : default(EventCallback))"
                                         OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, CloseAsync) : default(EventCallback))"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
@@ -424,6 +424,20 @@
                                      AuthorityPending="@AuditReadPending"
                                      UnavailableReason="@AuditReadUnavailableReason"
                                      IsAvailable="@AuditReadAvailable" />;
+
+    // The shared control's Refresh can resolve the audit state to NotStarted, which unmounts the control and its
+    // focused Refresh button; focus then moves to the lifecycle section instead of falling back to the document body.
+    private async Task RefreshFromAuditControlAsync()
+    {
+        await RefreshStatusFromUiAsync().ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!ShouldRenderAuditEntryPoint)
+            {
+                _focusLifecyclePending = true;
+            }
+        }).ConfigureAwait(false);
+    }
 
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;

@@ -311,11 +311,13 @@
             || TenantAuditSupportSafety.IsSafe(target, SupportSafeCopyValueKind.TenantId)
                 ? target! : string.Empty;
 
+    // Receipt-local recoveries use the canonical verb spellings the shared availability control renders under the
+    // same prefix, so one recovery keeps one selector whichever receipt state renders it.
     private static string RecoveryTestId(string action)
         => action switch
         {
-            "Tenants.Audit.Receipt.Action.InspectAudit" => "tenants-audit-receipt-recovery-inspect",
-            "Tenants.Audit.Receipt.Action.ContinueReadOnly" => "tenants-audit-receipt-recovery-continue",
+            "Tenants.Audit.Receipt.Action.InspectAudit" => "tenants-audit-receipt-recovery-inspectaudit",
+            "Tenants.Audit.Receipt.Action.ContinueReadOnly" => "tenants-audit-receipt-recovery-continuereadonly",
             "Tenants.Audit.Receipt.Action.Reset" => "tenants-audit-receipt-recovery-reset",
             _ => "tenants-audit-receipt-recovery-refresh",
         };

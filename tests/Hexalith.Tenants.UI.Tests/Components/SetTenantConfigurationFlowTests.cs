@@ -363,7 +363,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_it_and_never_exhaust_the_retry_limit()
+    public async Task Refresh_clicks_merged_into_a_running_lookup_wait_for_it_then_run_their_own_and_never_exhaust_the_retry_limit()
     {
         StubTenantCommandGateway gateway = RegisterServices();
         gateway.SubmissionFactory = (_, messageId) => TenantCommandSubmissionResult.Ambiguous(
@@ -408,7 +408,9 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         await nudge.WaitAsync(TimeSpan.FromSeconds(5));
         cut.WaitForAssertion(() => cut.FindAll(refresh).ShouldHaveSingleItem(), TimeSpan.FromSeconds(5));
         cut.FindAll("[data-testid='tenants-audit-availability-retry-limit']").ShouldBeEmpty();
-        statusCalls.ShouldBe(1);
+        // The nudge's lookup started before the click, so the merged click runs one lookup of its own after it:
+        // a click is never counted as a retry that no lookup served. Three clicks while it waited are one request.
+        cut.WaitForAssertion(() => Volatile.Read(ref statusCalls).ShouldBe(2), TimeSpan.FromSeconds(5));
         gateway.SetConfigurationCallCount.ShouldBe(1);
     }
 

@@ -191,7 +191,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.EventsStored or CommandStatus.EventsPublished => this with
@@ -202,7 +202,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.Completed when status.EventCount is null or < 0
@@ -218,7 +218,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             },
             CommandStatus.Rejected => this with
@@ -228,7 +228,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.Configuration.Set.Status.Rejected",
                 RejectionCode = status.RejectionCode,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             },
@@ -238,14 +238,14 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = "Tenants.Configuration.Set.Status.PublishFailed",
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             },
             CommandStatus.TimedOut => UnableToVerify("Tenants.Configuration.Set.UnableToVerify.StatusTimeout") with
             {
                 StatusObservationCount = StatusObservationCount + 1,
-                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount),
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
             },
             _ => UnableToVerify("Tenants.Configuration.Set.UnableToVerify.Status") with
             {

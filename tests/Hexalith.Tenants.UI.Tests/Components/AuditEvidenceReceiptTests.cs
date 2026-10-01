@@ -672,15 +672,15 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(TenantAuditReceiptState.Ready, "inspect,continue", 0, 1, 1)]
+    [InlineData(TenantAuditReceiptState.Ready, "inspectaudit,continuereadonly", 0, 1, 1)]
     [InlineData(TenantAuditReceiptState.Partial, "refresh", 1, 0, 0)]
     [InlineData(TenantAuditReceiptState.Loading, "", 0, 0, 0)]
     [InlineData(TenantAuditReceiptState.Error, "refresh", 1, 0, 0)]
     [InlineData(TenantAuditReceiptState.Stale, "refresh", 1, 0, 0)]
     [InlineData(TenantAuditReceiptState.Degraded, "refresh", 1, 0, 0)]
-    [InlineData(TenantAuditReceiptState.Unauthorized, "continue", 0, 1, 0)]
+    [InlineData(TenantAuditReceiptState.Unauthorized, "continuereadonly", 0, 1, 0)]
     [InlineData(TenantAuditReceiptState.InvalidCursor, "refresh", 1, 0, 0)]
-    [InlineData(TenantAuditReceiptState.InvalidReference, "inspect,refresh", 1, 0, 1)]
+    [InlineData(TenantAuditReceiptState.InvalidReference, "inspectaudit,refresh", 1, 0, 1)]
     public void Every_receipt_local_state_routes_only_its_named_recoveries(
         TenantAuditReceiptState state,
         string expectedActions,

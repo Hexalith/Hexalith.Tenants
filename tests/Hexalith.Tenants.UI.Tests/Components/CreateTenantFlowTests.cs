@@ -288,6 +288,85 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public void Missing_support_without_audit_read_or_escalation_still_offers_continue_read_only()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+        };
+        TenantCreateAttemptTracker tracker = new();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton(tracker);
+
+        IRenderedComponent<CascadingValue<bool>> wrapper = Render<CascadingValue<bool>>(parameters => parameters
+            .Add(p => p.Name, "AuditReadDenied")
+            .Add(p => p.Value, true)
+            .AddChildContent<CreateTenantFlow>(child => child
+                .Add(p => p.BaselineTenantAbsent, true)
+                .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<(TenantSummary?, string?)>(
+                    (new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v2")))));
+        IRenderedComponent<CreateTenantFlow> cut = wrapper.FindComponent<CreateTenantFlow>();
+        const string audit = "[data-testid='tenants-create-audit']";
+
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        // Audit read is denied and no escalation destination is configured, so continue read-only is the one
+        // recovery the missing-support state can still offer; the state never renders without a way forward.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport));
+        cut.FindAll($"{audit} [data-recovery-verb='inspectaudit']").ShouldBeEmpty();
+        cut.FindAll($"{audit} [data-recovery-verb='escalate']").ShouldBeEmpty();
+        cut.Find($"{audit} [data-recovery-verb='continuereadonly']").Click();
+
+        // Continue read-only dismisses the attempt back to the tenant list, and focus lands on the lifecycle section
+        // instead of falling back to the document body with the unmounted button.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle));
+        cut.FindAll($"{audit} [data-testid='tenants-audit-availability']").ShouldBeEmpty();
+        string lifecycleReferenceId = ((ElementReference)typeof(CreateTenantFlow)
+            .GetField("_lifecycleElement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).Id;
+        cut.WaitForAssertion(() => LastFocusedReferenceId().ShouldBe(lifecycleReferenceId));
+        tracker.Find("tenant.alpha").ShouldBeNull();
+        gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Continue_read_only_from_an_unresolved_attempt_keeps_it_adoptable_instead_of_dispatching_again()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+        };
+        TenantCreateAttemptTracker tracker = new();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton(tracker);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true));
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        // The status lookup cannot be read, so the attempt is unverified and still tracked.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        cut.Instance.Snapshot.IsTerminal.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-create-audit'] [data-recovery-verb='continuereadonly']").Click();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle));
+
+        // The circuit keeps the unresolved attempt, so resubmitting the same tenant reconciles it.
+        tracker.Find("tenant.alpha").ShouldNotBeNull();
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => gateway.StatusCallCount.ShouldBe(2));
+        gateway.CreateTenantCallCount.ShouldBe(1);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
+    [Fact]
     public void Missing_provenance_renders_localized_unable_to_verify_copy()
     {
         StubTenantCommandGateway gateway = new()
@@ -764,6 +843,14 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Instance.Snapshot.CorrelationId.ShouldBe("correlation-123");
     }
+
+    private string LastFocusedReferenceId()
+        => JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.FirstOrDefault())
+            .OfType<ElementReference>()
+            .LastOrDefault()
+            .Id ?? string.Empty;
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {

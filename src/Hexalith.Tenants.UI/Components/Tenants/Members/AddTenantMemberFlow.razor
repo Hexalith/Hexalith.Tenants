@@ -107,7 +107,7 @@
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         Source="add-member"
                                         OwnerRefreshIncludesAuditAuthority="true"
-                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusAsync) : default(EventCallback))"
+                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshFromAuditControlAsync) : default(EventCallback))"
                                         OnContinueReadOnly="ContinueReadOnlyAsync"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
@@ -294,6 +294,20 @@
                                      UnavailableReason="@AuditReadUnavailableReason"
                                      IsAvailable="@AuditReadAvailable" />;
 
+    // The shared control's Refresh can resolve the audit state to NotStarted, which unmounts the control and its
+    // focused Refresh button; focus then moves to the lifecycle section instead of falling back to the document body.
+    private async Task RefreshFromAuditControlAsync()
+    {
+        await RefreshStatusAsync().ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!ShouldRenderAuditEntryPoint)
+            {
+                _focusLifecyclePending = true;
+            }
+        }).ConfigureAwait(false);
+    }
+
     private bool ShouldRenderAuditEntryPoint
         => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
 
@@ -339,6 +353,24 @@
             _focusLifecyclePending = true;
         }
     }
+
+    // A first attempt refused before dispatch sent nothing. A refused retry keeps the failed attempt it retried:
+    // that identity may already have reached the server, so its status stays unknown and the next submit must
+    // reuse it. The Blocked() factory builds a fresh record and would drop it, minting a new ULID next time.
+    private static TenantAddMemberCommandSnapshot RefuseDispatch(
+        string reason,
+        TenantAddMemberCommandSnapshot retriedAttempt,
+        string? retryMessageId)
+        => retryMessageId is null
+            ? TenantAddMemberCommandSnapshot.Blocked(reason, TenantCommandFocusTarget.Submit)
+            : retriedAttempt with
+            {
+                SafeMessage = reason,
+                SafeMessageKey = null,
+                AuditState = TenantCommandAuditStates.Unverifiable,
+                FocusTarget = TenantCommandFocusTarget.Submit,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
 
     private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
     {
@@ -475,6 +507,7 @@
         bool baselinePostconditionMet = Detail.Members.Any(member =>
             string.Equals(member.UserId, request.UserId, StringComparison.Ordinal)
             && member.Role == request.Role);
+        TenantAddMemberCommandSnapshot retriedAttempt = _snapshot;
         _snapshot = TenantAddMemberCommandSnapshot.Idle()
             .RequestSent(request, ResolveCurrentProjectionVersion(), baselinePostconditionMet) with
         {
@@ -486,15 +519,10 @@
         if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
         {
             _isSubmitting = false;
-            SetSnapshot(TenantAddMemberCommandSnapshot.Blocked(
+            SetSnapshot(RefuseDispatch(
                 CommandSurfaceUnavailableReason ?? Localizer["Tenants.AddMember.Unavailable.InFlight"].Value,
-                TenantCommandFocusTarget.Submit) with
-            {
-                // A retry reuses an identity that may already have reached the server, so its status is unknown.
-                AuditState = retryMessageId is null
-                    ? TenantCommandAuditStates.NotStarted
-                    : TenantCommandAuditStates.Unverifiable,
-            });
+                retriedAttempt,
+                retryMessageId));
             return;
         }
 
@@ -503,15 +531,10 @@
             ITenantCommandGateway? gateway = CommandGateway;
             if (gateway is null)
             {
-                SetSnapshot(TenantAddMemberCommandSnapshot.Blocked(
+                SetSnapshot(RefuseDispatch(
                     Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value,
-                    TenantCommandFocusTarget.Submit) with
-                {
-                    // A retry reuses an identity that may already have reached the server, so its status is unknown.
-                    AuditState = retryMessageId is null
-                        ? TenantCommandAuditStates.NotStarted
-                        : TenantCommandAuditStates.Unverifiable,
-                });
+                    retriedAttempt,
+                    retryMessageId));
                 return;
             }
 
@@ -534,7 +557,7 @@
                     SafeMessage = result.SafeMessage,
                     SafeMessageKey = null,
                     RejectionCode = result.RejectionCode,
-                    AuditState = TenantCommandAuditStates.FromSubmission(result),
+                    AuditState = TenantCommandAuditStates.FromSubmission(result, retryMessageId),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 });

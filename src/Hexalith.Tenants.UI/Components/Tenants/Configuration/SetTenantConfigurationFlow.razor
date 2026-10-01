@@ -162,7 +162,7 @@
             @if (ShouldRenderAuditEntryPoint)
             {
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
-                                        Source="set-configuration" OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusAsync) : default(EventCallback))" OwnerRefreshIncludesAuditAuthority="true"
+                                        Source="set-configuration" OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshFromAuditControlAsync) : default(EventCallback))" OwnerRefreshIncludesAuditAuthority="true"
                                         OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, CloseEditorAsync) : default(EventCallback))"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
@@ -376,6 +376,20 @@
                                      AuthorityPending="@AuditReadPending"
                                      UnavailableReason="@AuditReadUnavailableReason"
                                      IsAvailable="@AuditReadAvailable" />;
+    // The shared control's Refresh can resolve the audit state to NotStarted, which unmounts the control and its
+    // focused Refresh button; focus then moves to the lifecycle section instead of falling back to the document body.
+    private async Task RefreshFromAuditControlAsync()
+    {
+        await RefreshStatusAsync().ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!ShouldRenderAuditEntryPoint)
+            {
+                _focusLifecyclePending = true;
+            }
+        }).ConfigureAwait(false);
+    }
+
     private bool ShouldRenderAuditEntryPoint => _snapshot.AuditState is not TenantCommandAuditState.NotStarted;
     private string? CommandAuditReturnUrl => DetailAuditReturnUrl;
     private string RecoveryText => Localizer[$"Tenants.Configuration.Set.Recovery.{LocalizedCommandState(_snapshot.State)}"];
@@ -737,9 +751,10 @@
         }
     }
 
-    // A user-initiated refresh that arrives while one is running waits for it, so the shared control's bounded
-    // Refresh never counts a merged click as an unchanged retry. SignalR nudges, and anything reachable from inside
-    // a running refresh, must pass false: waiting there would deadlock.
+    // A user-initiated refresh that arrives while one is running waits for it and then runs a lookup of its own, so
+    // the shared control's bounded Refresh never counts a merged click as an unchanged retry that no lookup served.
+    // SignalR nudges, and anything reachable from inside a running refresh, must pass false: waiting there would
+    // deadlock.
     private Task RefreshStatusAsync()
         => RefreshAttemptStatusAsync(waitForRunningRefresh: true);
 
@@ -747,7 +762,14 @@
     {
         if (_isRefreshing)
         {
-            if (waitForRunningRefresh && _refreshCompletion is { } running) await running.Task.ConfigureAwait(false);
+            if (waitForRunningRefresh && _refreshCompletion is { } running)
+            {
+                // The running refresh started before this request, so its lookup cannot serve it: wait for it,
+                // then run a lookup of its own on the renderer dispatcher.
+                await running.Task.ConfigureAwait(false);
+                await InvokeAsync(() => RefreshAttemptStatusAsync(waitForRunningRefresh: true)).ConfigureAwait(false);
+            }
+
             return;
         }
 

@@ -360,6 +360,38 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     }
 
     [Fact]
+    public void A_successful_unmatched_proof_read_clears_a_stale_unreadable_state_but_keeps_a_delay()
+    {
+        TenantRemoveMemberCommandSnapshot confirmed = TenantRemoveMemberCommandSnapshot
+            .Idle()
+            .Previewed(new RemoveUserFromTenant("tenant.alpha", "literal-user"), TenantRole.TenantReader, 2, false, Detail(
+                "tenant.alpha",
+                [new TenantMember("literal-user", TenantRole.TenantReader)]))
+            .RequestSent(baselineProjectionVersion: "v1")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            .ConfirmProjection(Detail(
+                "tenant.alpha",
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]),
+                currentProjectionVersion: "v2");
+
+        // One failed audit read made the status unreadable; the next complete read succeeds without the row yet.
+        TenantRemoveMemberCommandSnapshot unreadable = confirmed.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditUnavailable);
+        unreadable.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        TenantRemoveMemberCommandSnapshot readable = unreadable.ApplyRemovalProofMatch(matched: false);
+
+        readable.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        readable.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        readable.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+
+        // A delay is still true after an unmatched read, so it is kept.
+        confirmed.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed)
+            .ApplyRemovalProofMatch(matched: false)
+            .AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+    }
+
+    [Fact]
     public void FindMatchingRemovalProof_requires_event_type_tenant_target_and_causal_bound()
     {
         DateTimeOffset started = DateTimeOffset.Parse("2026-08-08T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture);

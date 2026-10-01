@@ -110,7 +110,8 @@
                 <AuditAvailabilityState AuditState="@_snapshot.AuditState"
                                         Source="create-tenant"
                                         OwnerRefreshIncludesAuditAuthority="true"
-                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshStatusAsync) : default(EventCallback))"
+                                        OnRefresh="@(CanRequeryAudit ? EventCallback.Factory.Create(this, RefreshFromAuditControlAsync) : default(EventCallback))"
+                                        OnContinueReadOnly="@(CanContinueReadOnly ? EventCallback.Factory.Create(this, ContinueReadOnly) : default(EventCallback))"
                                         InspectAuditAction="@CommandAuditEntryPoint" />
             }
         </div>
@@ -268,6 +269,11 @@
     private bool CanRequeryAudit
         => !string.IsNullOrWhiteSpace(_snapshot.MessageId) && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId);
 
+    // Continue read-only dismisses the attempt panel back to the tenant list; it is never offered mid-dispatch,
+    // where it would race the submission it dismisses.
+    private bool CanContinueReadOnly
+        => !_isSubmitting;
+
     // No fragment at all when audit read is denied, so the shared control renders no empty Inspect-audit shell.
     private RenderFragment? CommandAuditEntryPoint
         => AuditReadDenied ? null : CommandAuditEntryPointTemplate;
@@ -303,6 +309,20 @@
             LocalizedString localized = Localizer[_snapshot.SafeMessageKey];
             return localized.ResourceNotFound ? null : localized.Value;
         }
+    }
+
+    // The shared control's Refresh can resolve the audit state to NotStarted, which unmounts the control and its
+    // focused Refresh button; focus then moves to the lifecycle section instead of falling back to the document body.
+    private async Task RefreshFromAuditControlAsync()
+    {
+        await RefreshStatusAsync().ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!ShouldRenderAuditEntryPoint)
+            {
+                _focusLifecyclePending = true;
+            }
+        }).ConfigureAwait(false);
     }
 
     private bool ShouldRenderAuditEntryPoint
@@ -581,6 +601,19 @@
         }
 
         ReleaseTrackingIfTerminal();
+    }
+
+    // Continue read-only leaves the attempt and returns to the read-only tenant list. A still-resolving attempt
+    // keeps its circuit tracking handle, so resubmitting the same tenant id adopts and reconciles it instead of
+    // dispatching a second create.
+    private void ContinueReadOnly()
+    {
+        ReleaseTrackingIfTerminal();
+        _snapshot = TenantCreateCommandSnapshot.Idle();
+
+        // The Idle snapshot unmounts the shared control and the button that had focus, so focus moves to the
+        // lifecycle section instead of falling back to the document body.
+        _focusLifecyclePending = true;
     }
 
     private void ReleaseTrackingIfTerminal()

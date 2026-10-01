@@ -128,6 +128,41 @@ public sealed class TenantCommandAuditStatesTests
     }
 
     [Theory]
+    [MemberData(nameof(Flows))]
+    public void A_stale_status_after_stored_events_keeps_the_audit_record_pending(string flow)
+    {
+        // An out-of-order poll or a stale replica reporting receipt or processing cannot unstore the events an
+        // earlier status proved, so the pending audit record never disappears as "not started".
+        TenantCommandStatusResult stored = new(CommandStatus.EventsStored, EventCount: 1, HasVerifiedCommandIdentity: true);
+        foreach (CommandStatus stale in new[] { CommandStatus.Received, CommandStatus.Processing })
+        {
+            ApplyStatuses(flow, stored, new TenantCommandStatusResult(stale, HasVerifiedCommandIdentity: true))
+                .ShouldBe(TenantCommandAuditState.AuditPending, $"{stale} after stored events");
+        }
+    }
+
+    [Fact]
+    public void Prior_event_evidence_keeps_a_stale_status_pending_in_the_canonical_table()
+    {
+        TenantCommandAuditStates.FromCommandStatus(CommandStatus.Received, hasEventEvidence: true)
+            .ShouldBe(TenantCommandAuditState.AuditPending);
+        TenantCommandAuditStates.FromCommandStatus(CommandStatus.Processing, hasEventEvidence: true)
+            .ShouldBe(TenantCommandAuditState.AuditPending);
+        TenantCommandAuditStates.FromCommandStatus(CommandStatus.Completed, eventCount: 0, hasEventEvidence: true)
+            .ShouldBe(TenantCommandAuditState.AuditPending);
+
+        // Definitive outcomes keep their canonical state whatever the earlier evidence.
+        TenantCommandAuditStates.FromCommandStatus(CommandStatus.Rejected, hasEventEvidence: true)
+            .ShouldBe(TenantCommandAuditState.NotStarted);
+        TenantCommandAuditStates.FromCommandStatus(CommandStatus.TimedOut, hasEventEvidence: true)
+            .ShouldBe(TenantCommandAuditState.AuditDelayed);
+        TenantCommandAuditStates.FromCommandStatus(CommandStatus.PublishFailed, hasEventEvidence: true)
+            .ShouldBe(TenantCommandAuditState.AuditDelayed);
+        TenantCommandAuditStates.FromCommandStatus(null, hasEventEvidence: true)
+            .ShouldBe(TenantCommandAuditState.AuditUnavailable);
+    }
+
+    [Theory]
     [InlineData("create")]
     [InlineData("add-member-baseline-met")]
     [InlineData("add-member-baseline-missing")]
@@ -136,9 +171,6 @@ public sealed class TenantCommandAuditStatesTests
     [InlineData("remove-member-missing-baseline")]
     [InlineData("edit-metadata-missing-baseline")]
     [InlineData("edit-metadata-missing-provenance")]
-    [InlineData("lifecycle-missing-baseline")]
-    [InlineData("lifecycle-unknown-status")]
-    [InlineData("lifecycle-no-proof-reader")]
     public void A_projection_that_cannot_prove_the_attempt_keeps_the_audit_state(string failure)
     {
         // The projection was read but did not prove this attempt, and no audit read happened: the command is
@@ -148,6 +180,43 @@ public sealed class TenantCommandAuditStatesTests
         before.ShouldBe(TenantCommandAuditState.AuditPending);
         state.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         after.ShouldBe(before);
+    }
+
+    [Theory]
+    [InlineData("lifecycle-missing-baseline")]
+    [InlineData("lifecycle-unknown-status")]
+    [InlineData("lifecycle-no-proof-reader")]
+    public void A_terminal_lifecycle_projection_failure_delays_the_pending_audit_record_it_stops_following(string failure)
+    {
+        // Lifecycle unable-to-verify is terminal: the attempt is released, so no status lookup or projection
+        // re-query will ever advance a pending audit record again. It is reported delayed rather than pending
+        // forever, and never unavailable, because no audit read failed.
+        (TenantCommandLifecycleState state, TenantCommandAuditState before, TenantCommandAuditState after) = ProvenanceFailure(failure);
+
+        before.ShouldBe(TenantCommandAuditState.AuditPending);
+        state.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        new TenantLifecycleCommandSnapshot(state).RetainsAttempt.ShouldBeFalse();
+        after.ShouldBe(TenantCommandAuditState.AuditDelayed);
+    }
+
+    [Fact]
+    public void An_attempt_no_longer_followed_delays_only_a_pending_audit_record()
+    {
+        foreach (TenantCommandAuditState current in Enum.GetValues<TenantCommandAuditState>())
+        {
+            TenantCommandAuditStates.AfterTrackingEnds(current).ShouldBe(
+                current is TenantCommandAuditState.AuditPending ? TenantCommandAuditState.AuditDelayed : current,
+                $"from {current}");
+        }
+
+        // A lifecycle proof failure keeps a non-pending audit state exactly as command status established it.
+        TenantLifecycleCommandSnapshot unverifiable = LifecycleStarted()
+            .AmbiguousSubmission("Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        unverifiable.ProjectionUnverified("Tenants.Lifecycle.UnableToVerify.ProofRead")
+            .AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        LifecycleStarted().Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+            .ProjectionUnverified("Tenants.Lifecycle.UnableToVerify.ProofRead")
+            .AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
     }
 
     [Fact]
@@ -171,6 +240,35 @@ public sealed class TenantCommandAuditStatesTests
             .ShouldBe(TenantCommandAuditState.AuditUnavailable);
         TenantCommandAuditStates.FromSubmission(TenantCommandSubmissionResult.Ambiguous(MessageId, "Tenants.Lifecycle.SubmissionEvidence.Ambiguous"))
             .ShouldBe(TenantCommandAuditState.AuditUnavailable);
+    }
+
+    [Fact]
+    public void A_retry_failed_before_dispatch_keeps_the_reused_identity_unverifiable()
+    {
+        TenantCommandSubmissionResult preDispatchFailure = TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Commands.Unavailable.InvalidTrackingReference");
+
+        // The earlier attempt with this identity may already have reached the server, so a retry that sent
+        // nothing proves no absence of an audit record.
+        TenantCommandAuditStates.FromSubmission(preDispatchFailure, MessageId).ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        TenantCommandAuditStates.FromSubmission(
+                TenantCommandSubmissionResult.Failed("Tenant command submission is unavailable."),
+                MessageId)
+            .ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        // A first attempt that failed before dispatch sent nothing, exactly as the single-argument derivation.
+        TenantCommandAuditStates.FromSubmission(preDispatchFailure, retriedMessageId: null).ShouldBe(TenantCommandAuditState.NotStarted);
+        TenantCommandAuditStates.FromSubmission(preDispatchFailure, " ").ShouldBe(TenantCommandAuditState.NotStarted);
+
+        // Every definitive server outcome of a retry keeps its canonical state.
+        TenantCommandAuditStates.FromSubmission(TenantCommandSubmissionResult.Rejected("Rejected.", "InsufficientPermissions"), MessageId)
+            .ShouldBe(TenantCommandAuditState.NotStarted);
+        TenantCommandAuditStates.FromSubmission(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"), MessageId)
+            .ShouldBe(TenantCommandAuditState.NotStarted);
+        TenantCommandAuditStates.FromSubmission(new TenantCommandSubmissionResult(TenantCommandLifecycleState.AlreadyApplied), MessageId)
+            .ShouldBe(TenantCommandAuditState.NotStarted);
+        TenantCommandAuditStates.FromSubmission(new TenantCommandSubmissionResult(TenantCommandLifecycleState.DuplicatePrevented), MessageId)
+            .ShouldBe(TenantCommandAuditState.NotStarted);
     }
 
     [Fact]
