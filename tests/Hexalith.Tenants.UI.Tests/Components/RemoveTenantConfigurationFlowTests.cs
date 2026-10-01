@@ -15,6 +15,8 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -976,7 +978,7 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
         Task nudge = cut.InvokeAsync(() => cut.Instance.ApplySignalRNudgeAsync());
         SpinWait.SpinUntil(() => gateway.GetStatusCallCount == 1, TimeSpan.FromSeconds(5)).ShouldBeTrue();
-        cut.Find(refresh).Click();
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
         cut.Find(refresh).Click();
         cut.Find(refresh).Click();
 
@@ -991,8 +993,63 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         // The nudge's lookup started before the click, so the merged click runs one lookup of its own after it:
         // a click is never counted as a retry that no lookup served. Three clicks while it waited are one request.
         cut.WaitForAssertion(() => gateway.GetStatusCallCount.ShouldBe(2), TimeSpan.FromSeconds(5));
+
+        // Once the merged refresh has settled, no later lookup followed the one it ran.
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.GetStatusCallCount.ShouldBe(2);
         gateway.RemoveConfigurationCallCount.ShouldBe(1);
     }
+
+    [Fact]
+    public void Audit_refresh_that_resolves_to_not_started_moves_focus_to_the_lifecycle_section()
+    {
+        // The first lookup cannot be read; the user's Refresh then waits on the gate, which finds the command still
+        // processing.
+        TaskCompletionSource<TenantCommandStatusResult> refreshLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("stub-message-id", "correlation-1"),
+            StatusGate = refreshLookup,
+            GateFromCall = 2,
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        const string audit = "[data-testid='tenants-config-remove-audit']";
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable), TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='refresh']"), TimeSpan.FromSeconds(5));
+        string lifecycleReferenceId = ((ElementReference)typeof(RemoveTenantConfigurationFlow)
+            .GetField("_lifecycleElement", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).Id;
+        int focusCallsBeforeRefresh = FocusCalls().Count;
+
+        cut.Find($"{audit} [data-recovery-verb='refresh']").Click();
+        refreshLookup.SetResult(new TenantCommandStatusResult(CommandStatus.Processing, HasVerifiedCommandIdentity: true));
+
+        // The polite NotStarted state unmounts the control and its focused Refresh button, so focus lands on the
+        // lifecycle section instead of falling back to the document body.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted), TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+        cut.Instance.Snapshot.FocusTarget.ShouldNotBe(TenantCommandFocusTarget.Lifecycle);
+        cut.WaitForAssertion(() => cut.FindAll($"{audit} [data-testid='tenants-audit-availability']").ShouldBeEmpty(), TimeSpan.FromSeconds(5));
+        SpinWait.SpinUntil(() => FocusCalls().Count > focusCallsBeforeRefresh, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        FocusCalls().Last().ShouldBe(lifecycleReferenceId);
+        gateway.RemoveConfigurationCallCount.ShouldBe(1);
+    }
+
+    private List<string> FocusCalls()
+        => [.. JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.FirstOrDefault())
+            .OfType<ElementReference>()
+            .Select(reference => reference.Id ?? string.Empty)];
 
     [Fact]
     public void Cancel_and_escape_close_without_committing_action()

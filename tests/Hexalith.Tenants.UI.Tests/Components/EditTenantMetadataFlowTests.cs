@@ -17,6 +17,7 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -1454,7 +1455,12 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         // attempt refused before dispatch sent nothing, so no audit state is implied.
         cut.Find("form").Submit();
 
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe(
+                "Another command is already in progress for this tenant, so this one was not submitted. Wait for its outcome, then try again.");
+        });
         cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
         cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']").Count
             .ShouldBe(isRetry ? 1 : 0);
@@ -1593,7 +1599,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         // The editor's Refresh starts a slow lookup; the shared control's Refresh then merges into it.
         cut.Find("[data-testid='tenants-edit-metadata-refresh']").Click();
         await lookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.Find(refresh).Click();
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
         cut.Find(refresh).Click();
         cut.Find(refresh).Click();
 
@@ -1607,6 +1613,10 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         // The editor's lookup started before the click, so the merged click runs one lookup of its own after it:
         // a click is never counted as a retry that no lookup served. Three clicks while it waited are one request.
         cut.WaitForAssertion(() => Volatile.Read(ref statusCalls).ShouldBe(3), TimeSpan.FromSeconds(5));
+
+        // Once the merged refresh has settled, no later lookup followed the one it ran.
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(3);
         gateway.UpdateTenantCallCount.ShouldBe(1);
     }
 
@@ -1648,8 +1658,137 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         cut.Find("form").Submit();
 
         // The blocked retry reuses an identity that may already have reached the server: its status is unknown.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe("Tenant command support is unavailable.");
+        });
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Audit_refresh_that_resolves_to_not_started_moves_focus_to_the_lifecycle_section()
+    {
+        int statusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            // The first lookup cannot be read; the user's Refresh then finds the command still processing.
+            StatusAsync = _ => Task.FromResult(++statusCalls == 1
+                ? TenantCommandStatusResult.Unknown("Command status is unavailable.")
+                : new TenantCommandStatusResult(CommandStatus.Processing, HasVerifiedCommandIdentity: true)),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        int focusCallsBeforeRefresh = FocusCalls().Count;
+
+        cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-recovery-verb='refresh']").Click();
+
+        // The polite NotStarted state unmounts the control and its focused Refresh button, so focus lands on the
+        // lifecycle section instead of falling back to the document body.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted));
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+        cut.FindAll("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
+        cut.WaitForAssertion(() => FocusCalls().Count.ShouldBeGreaterThan(focusCallsBeforeRefresh), TimeSpan.FromSeconds(5));
+        FocusCalls().Last().ShouldBe(ElementReferenceId(cut.Instance, "_lifecycleElement"));
+    }
+
+    [Fact]
+    public void Retry_failed_before_dispatch_keeps_the_reused_identity_unverifiable()
+    {
+        int submissions = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            // The first attempt failed after the message was sent; the retry of that identity then fails before
+            // dispatch and reports no message id of its own.
+            UpdateTenantSubmissionAsync = _ => Task.FromResult(++submissions == 1
+                ? TenantCommandSubmissionResult.Failed("Metadata command submission failed.") with
+                {
+                    MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                }
+                : TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference")),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+
+        cut.Find("form").Submit();
+
+        // The retry sent nothing, but the earlier attempt with the same identity may have reached the server: the
+        // audit dimension stays unknown instead of disappearing as "not started".
+        cut.WaitForAssertion(() => gateway.UpdateTenantCallCount.ShouldBe(2));
+        gateway.LastUpdateTenantMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.Find("[data-testid='tenants-edit-metadata-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("unavailable");
+    }
+
+    [Fact]
+    public async Task A_refresh_merged_into_a_lookup_that_confirms_the_attempt_runs_no_follow_up_lookup()
+    {
+        TaskCompletionSource lookupStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseLookup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusCalls = 0;
+        bool projected = false;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
+            StatusAsync = async _ =>
+            {
+                if (Interlocked.Increment(ref statusCalls) == 2)
+                {
+                    lookupStarted.SetResult();
+                    await releaseLookup.Task.ConfigureAwait(false);
+                    return new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1);
+                }
+
+                return new TenantCommandStatusResult(CommandStatus.EventsStored);
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "projection-v1")
+            .Add(p => p.ProjectionVersionProvider, () => Volatile.Read(ref projected) ? "projection-v2" : "projection-v1")
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Volatile.Read(ref projected)
+                ? Detail(request.TenantId, request.Name, request.Description)
+                : Detail(request.TenantId, "Alpha", "Tenant alpha description"))));
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending));
+        const string refresh = "[data-testid='tenants-edit-metadata-audit'] [data-recovery-verb='refresh']";
+        cut.WaitForAssertion(() => cut.Find(refresh), TimeSpan.FromSeconds(5));
+
+        // The editor's Refresh starts a slow lookup; the shared control's Refresh merges into it and waits.
+        cut.Find("[data-testid='tenants-edit-metadata-refresh']").Click();
+        await lookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
+
+        // The running lookup completes and its projection read confirms the attempt.
+        Volatile.Write(ref projected, true);
+        releaseLookup.SetResult();
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
+
+        // A confirmed attempt is no longer refreshable: the merged request runs no lookup of its own, so the
+        // confirmation is never re-applied as projection-pending and confirmed a second time.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        Volatile.Read(ref statusCalls).ShouldBe(2);
+        gateway.StatusCallCount.ShouldBe(2);
         gateway.UpdateTenantCallCount.ShouldBe(1);
     }
 
@@ -1801,6 +1940,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             ["Tenants.EditMetadata.Unavailable.CommandSurface"] = "Tenant command support is unavailable.",
             ["Tenants.EditMetadata.Unavailable.InFlight"] = "A tenant command is already in progress.",
             ["Tenants.EditMetadata.Unavailable.Identity"] = "Tenant identity is unavailable, so metadata editing fails closed.",
+            ["Tenants.Commands.Unavailable.AggregateInFlight"] = "Another command is already in progress for this tenant, so this one was not submitted. Wait for its outcome, then try again.",
             ["Tenants.Commands.Unavailable.InvalidTrackingReference"] = "This command could not be submitted because its tracking identifier was not valid. Refresh the tenant and start the action again.",
             ["Tenants.EditMetadata.State.Idle"] = "No metadata command submitted.",
             ["Tenants.EditMetadata.State.RequestSent"] = "Metadata update request sent.",

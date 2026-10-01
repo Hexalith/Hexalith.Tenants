@@ -290,8 +290,11 @@
         || !string.IsNullOrWhiteSpace(UnavailableReason);
 
     private bool CanRefresh
-        => !_isRefreshing
-        && !string.IsNullOrWhiteSpace(_snapshot.MessageId)
+        => !_isRefreshing && IsRefreshableAttempt;
+
+    // The attempt can still be re-queried: it carries its tracking identity and has not settled.
+    private bool IsRefreshableAttempt
+        => !string.IsNullOrWhiteSpace(_snapshot.MessageId)
         && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
         && _snapshot.State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
@@ -763,9 +766,14 @@
             if (waitForRunningRefresh && _refreshCompletion is { } running)
             {
                 // The running refresh started before this request, so its lookup cannot serve it: wait for it,
-                // then run a lookup of its own on the renderer dispatcher.
+                // then run a lookup of its own on the renderer dispatcher. The running refresh may have settled the
+                // attempt (confirmed, rejected, failed); a settled attempt has no status to re-apply, so the
+                // follow-up runs only while the attempt is still refreshable.
                 await running.Task.ConfigureAwait(false);
-                await InvokeAsync(() => RefreshAttemptStatusAsync(waitForRunningRefresh: true)).ConfigureAwait(false);
+                await InvokeAsync(() => IsRefreshableAttempt
+                        ? RefreshAttemptStatusAsync(waitForRunningRefresh: true)
+                        : Task.CompletedTask)
+                    .ConfigureAwait(false);
             }
 
             return;

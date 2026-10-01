@@ -13,6 +13,7 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -319,18 +320,143 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport));
         cut.FindAll($"{audit} [data-recovery-verb='inspectaudit']").ShouldBeEmpty();
         cut.FindAll($"{audit} [data-recovery-verb='escalate']").ShouldBeEmpty();
+
+        // The confirming refresh already released the terminal attempt's tracking, before any recovery ran.
+        tracker.Find("tenant.alpha").ShouldBeNull();
         cut.Find($"{audit} [data-recovery-verb='continuereadonly']").Click();
 
-        // Continue read-only dismisses the attempt back to the tenant list, and focus lands on the lifecycle section
+        // Continue read-only resets the attempt panel without navigating, and focus lands on the lifecycle section
         // instead of falling back to the document body with the unmounted button.
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle));
         cut.FindAll($"{audit} [data-testid='tenants-audit-availability']").ShouldBeEmpty();
-        string lifecycleReferenceId = ((ElementReference)typeof(CreateTenantFlow)
-            .GetField("_lifecycleElement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-            .GetValue(cut.Instance)!).Id;
+        string lifecycleReferenceId = LifecycleReferenceId(cut);
         cut.WaitForAssertion(() => LastFocusedReferenceId().ShouldBe(lifecycleReferenceId));
-        tracker.Find("tenant.alpha").ShouldBeNull();
         gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Continue_read_only_is_withheld_until_the_submission_projection_refresh_finishes()
+    {
+        TaskCompletionSource refreshStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseRefresh = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            // The default status cannot be read, so the attempt is unverified and offers continue read-only.
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true)
+            .Add(p => p.OnProjectionRefreshRequested, (Func<Task>)(async () =>
+            {
+                refreshStarted.TrySetResult();
+                await releaseRefresh.Task.ConfigureAwait(false);
+            })));
+        const string audit = "[data-testid='tenants-create-audit']";
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+
+        // The unreadable status is applied, and the submission is still running the host's projection refresh:
+        // continue read-only would race the submission it dismisses, so the control does not offer it yet.
+        await refreshStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("unavailable"));
+        cut.Find($"{audit} [data-recovery-verb='refresh']");
+        cut.FindAll($"{audit} [data-recovery-verb='continuereadonly']").ShouldBeEmpty();
+
+        releaseRefresh.SetResult();
+
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='continuereadonly']"), TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Continue_read_only_during_a_status_lookup_drops_the_late_result_for_the_dismissed_attempt()
+    {
+        TaskCompletionSource lookupStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantCommandStatusResult> lateStatus = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int statusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            // The first lookup cannot be read; the user's Refresh then waits on a slow lookup.
+            StatusAsync = _ =>
+            {
+                if (Interlocked.Increment(ref statusCalls) == 1)
+                {
+                    return Task.FromResult(TenantCommandStatusResult.Unknown("Command status is unavailable."));
+                }
+
+                lookupStarted.TrySetResult();
+                return lateStatus.Task;
+            },
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true));
+        const string audit = "[data-testid='tenants-create-audit']";
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='continuereadonly']"), TimeSpan.FromSeconds(5));
+
+        Task refresh = cut.Find($"{audit} [data-recovery-verb='refresh']").ClickAsync(new MouseEventArgs());
+        await lookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find($"{audit} [data-recovery-verb='continuereadonly']").Click();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle));
+
+        // The late lookup belongs to the dismissed attempt: it is dropped instead of writing that attempt's lifecycle
+        // and audit state back onto the reset panel.
+        lateStatus.SetResult(new TenantCommandStatusResult(CommandStatus.EventsStored, EventCount: 1, HasVerifiedCommandIdentity: true));
+        await refresh.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle));
+        cut.Instance.Snapshot.MessageId.ShouldBeNull();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.FindAll($"{audit} [data-testid='tenants-audit-availability']").ShouldBeEmpty();
+        Volatile.Read(ref statusCalls).ShouldBe(2);
+        gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Audit_refresh_that_resolves_to_not_started_moves_focus_to_the_lifecycle_section()
+    {
+        int statusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            // The first lookup cannot be read; the user's Refresh then finds the command still processing.
+            StatusAsync = _ => Task.FromResult(++statusCalls == 1
+                ? TenantCommandStatusResult.Unknown("Command status is unavailable.")
+                : new TenantCommandStatusResult(CommandStatus.Processing, HasVerifiedCommandIdentity: true)),
+        };
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.BaselineTenantAbsent, true));
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        string lifecycleReferenceId = LifecycleReferenceId(cut);
+        int focusCallsBeforeRefresh = FocusCallCount();
+
+        cut.Find("[data-testid='tenants-create-audit'] [data-recovery-verb='refresh']").Click();
+
+        // The polite NotStarted state unmounts the control and its focused Refresh button, so focus lands on the
+        // lifecycle section instead of falling back to the document body.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted));
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+        cut.FindAll("[data-testid='tenants-create-audit'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
+        cut.WaitForAssertion(() => FocusCallCount().ShouldBeGreaterThan(focusCallsBeforeRefresh));
+        LastFocusedReferenceId().ShouldBe(lifecycleReferenceId);
     }
 
     [Fact]
@@ -844,6 +970,14 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Instance.Snapshot.CorrelationId.ShouldBe("correlation-123");
     }
 
+    private static string LifecycleReferenceId(IRenderedComponent<CreateTenantFlow> cut)
+        => ((ElementReference)typeof(CreateTenantFlow)
+            .GetField("_lifecycleElement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).Id;
+
+    private int FocusCallCount()
+        => JSInterop.Invocations.Count(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase));
+
     private string LastFocusedReferenceId()
         => JSInterop.Invocations
             .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
@@ -859,6 +993,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
 
         public TenantCommandStatusResult Status { get; init; }
             = TenantCommandStatusResult.Unknown("Command status is unavailable.");
+
+        public Func<TenantCommandTrackingHandle, Task<TenantCommandStatusResult>>? StatusAsync { get; init; }
 
         public CreateTenant? LastRequest { get; private set; }
 
@@ -897,7 +1033,7 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
         {
             StatusCallCount++;
-            return Task.FromResult(Status);
+            return StatusAsync is null ? Task.FromResult(Status) : StatusAsync(handle);
         }
     }
 

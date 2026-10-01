@@ -269,8 +269,8 @@
     private bool CanRequeryAudit
         => !string.IsNullOrWhiteSpace(_snapshot.MessageId) && !string.IsNullOrWhiteSpace(_snapshot.CorrelationId);
 
-    // Continue read-only dismisses the attempt panel back to the tenant list; it is never offered mid-dispatch,
-    // where it would race the submission it dismisses.
+    // Continue read-only resets the attempt panel and focuses the lifecycle section; it does not navigate. It is
+    // never offered mid-dispatch, where it would race the submission it dismisses.
     private bool CanContinueReadOnly
         => !_isSubmitting;
 
@@ -557,9 +557,17 @@
             return;
         }
 
+        // The status belongs to the attempt tracked before the await. Continue read-only can reset the panel while
+        // the lookup runs; applying the late result then would write a dismissed attempt back onto the Idle panel.
+        string messageId = _snapshot.MessageId;
         TenantCommandStatusResult status = await gateway
-            .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+            .GetStatusAsync(new TenantCommandTrackingHandle(messageId, _snapshot.CorrelationId), CancellationToken.None)
             .ConfigureAwait(false);
+        if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
+        {
+            return;
+        }
+
         SetSnapshot(_snapshot.ApplyStatus(status));
 
         // Marshal the EventCallback back onto the renderer's Dispatcher: the preceding
@@ -603,9 +611,9 @@
         ReleaseTrackingIfTerminal();
     }
 
-    // Continue read-only leaves the attempt and returns to the read-only tenant list. A still-resolving attempt
-    // keeps its circuit tracking handle, so resubmitting the same tenant id adopts and reconciles it instead of
-    // dispatching a second create.
+    // Continue read-only resets the attempt panel to Idle and focuses the lifecycle section; it does not navigate to
+    // the tenant list. A still-resolving attempt keeps its circuit tracking handle, so resubmitting the same tenant id
+    // adopts and reconciles it instead of dispatching a second create.
     private void ContinueReadOnly()
     {
         ReleaseTrackingIfTerminal();

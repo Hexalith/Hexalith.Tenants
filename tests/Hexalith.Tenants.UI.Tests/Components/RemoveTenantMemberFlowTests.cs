@@ -618,9 +618,13 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         // before dispatch, and the audit dimension reports the unknown status instead of "not started".
         cut.Find("form").Submit();
 
-        // The refused retry keeps the failed attempt it retried, identity included.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
-        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        // The refused retry keeps the failed attempt it retried, identity included, with the in-flight refusal the
+        // flow assigns, which the failed attempt's message never matches.
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe("A tenant command is already in progress.");
+        });
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         gateway.RemoveMemberCallCount.ShouldBe(1);
@@ -669,8 +673,11 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         // The blocked retry keeps the failed attempt it retried: that identity may already have reached the
         // server, so its status is unknown and it stays the identity the next submit reuses.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
-        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe("Tenant command support is unavailable.");
+        });
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         gateway.RemoveMemberCallCount.ShouldBe(1);
@@ -680,6 +687,90 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
         gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
     }
+
+    [Fact]
+    public void Audit_refresh_that_resolves_to_not_started_moves_focus_to_the_lifecycle_section()
+    {
+        int statusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            // The first lookup cannot be read; the user's Refresh then finds the command still processing.
+            StatusAsync = (_, _) => Task.FromResult(++statusCalls == 1
+                ? TenantCommandStatusResult.Unknown("Command status is unavailable.")
+                : new TenantCommandStatusResult(CommandStatus.Processing, HasVerifiedCommandIdentity: true)),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        string lifecycleReferenceId = ((ElementReference)typeof(RemoveTenantMemberFlow)
+            .GetField("_lifecycleElement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).Id;
+        int focusCallsBeforeRefresh = FocusCalls().Count;
+
+        cut.Find("[data-testid='tenants-remove-member-audit'] [data-recovery-verb='refresh']").Click();
+
+        // The polite NotStarted state unmounts the control and its focused Refresh button, so focus lands on the
+        // lifecycle section instead of falling back to the document body.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted));
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+        cut.FindAll("[data-testid='tenants-remove-member-audit'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
+        cut.WaitForAssertion(() => FocusCalls().Count.ShouldBeGreaterThan(focusCallsBeforeRefresh));
+        FocusCalls().Last().ShouldBe(lifecycleReferenceId);
+    }
+
+    [Fact]
+    public void Retry_failed_before_dispatch_keeps_the_reused_identity_unverifiable()
+    {
+        int submissions = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            // The first attempt failed after the message was sent; the retry of that identity then fails before
+            // dispatch and reports no message id of its own.
+            RemoveMemberAsync = _ => Task.FromResult(++submissions == 1
+                ? TenantCommandSubmissionResult.Failed("Submission outcome is ambiguous.") with
+                {
+                    MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                }
+                : TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference")),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuditProofCapabilityAvailable, true)
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+
+        cut.Find("form").Submit();
+
+        // The retry sent nothing, but the earlier attempt with the same identity may have reached the server: the
+        // audit dimension stays unknown instead of disappearing as "not started".
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
+        gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.Find("[data-testid='tenants-remove-member-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("unavailable");
+    }
+
+    private List<string> FocusCalls()
+        => [.. JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.FirstOrDefault())
+            .OfType<ElementReference>()
+            .Select(reference => reference.Id ?? string.Empty)];
 
     [Fact]
     public void Programmatic_submit_while_unable_to_verify_recovers_status_without_dispatching()

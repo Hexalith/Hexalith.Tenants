@@ -131,14 +131,53 @@ public sealed class TenantCommandAuditStatesTests
     [MemberData(nameof(Flows))]
     public void A_stale_status_after_stored_events_keeps_the_audit_record_pending(string flow)
     {
-        // An out-of-order poll or a stale replica reporting receipt or processing cannot unstore the events an
-        // earlier status proved, so the pending audit record never disappears as "not started".
+        // An out-of-order poll or a stale replica reporting receipt, processing, or a zero-event completion cannot
+        // unstore the events an earlier status proved, so the pending audit record never disappears as "not started".
         TenantCommandStatusResult stored = new(CommandStatus.EventsStored, EventCount: 1, HasVerifiedCommandIdentity: true);
-        foreach (CommandStatus stale in new[] { CommandStatus.Received, CommandStatus.Processing })
+        TenantCommandStatusResult[] staleStatuses =
+        [
+            new(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+            new(CommandStatus.Processing, HasVerifiedCommandIdentity: true),
+            new(CommandStatus.Completed, EventCount: 0, HasVerifiedCommandIdentity: true),
+        ];
+        foreach (TenantCommandStatusResult stale in staleStatuses)
         {
-            ApplyStatuses(flow, stored, new TenantCommandStatusResult(stale, HasVerifiedCommandIdentity: true))
-                .ShouldBe(TenantCommandAuditState.AuditPending, $"{stale} after stored events");
+            ApplyStatuses(flow, stored, stale)
+                .ShouldBe(TenantCommandAuditState.AuditPending, $"{stale.Status} ({stale.EventCount} events) after stored events");
         }
+    }
+
+    [Fact]
+    public void A_zero_event_completion_after_stored_events_keeps_the_event_evidence()
+    {
+        TenantCommandStatusResult stored = new(CommandStatus.EventsStored, EventCount: 1, HasVerifiedCommandIdentity: true);
+        TenantCommandStatusResult staleCompleted = new(CommandStatus.Completed, EventCount: 0, HasVerifiedCommandIdentity: true);
+
+        // ChangeRole: the stale completion is not "the requested role was already applied"; the attempt stays
+        // projection-pending with its event evidence, so the audit control stays visible.
+        TenantChangeRoleCommandSnapshot change = ChangeAccepted().ApplyStatus(stored).ApplyStatus(staleCompleted);
+        change.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        change.HasCommandEventEvidence.ShouldBeTrue();
+        change.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+
+        // Set configuration: the stale completion neither clears the evidence nor marks the attempt completed
+        // without events.
+        TenantSetConfigurationCommandSnapshot set = SetRequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+            .ApplyStatus(stored)
+            .ApplyStatus(staleCompleted);
+        set.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        set.HasCommandEventEvidence.ShouldBeTrue();
+        set.CompletedWithoutEvents.ShouldBeFalse();
+        set.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+
+        // Without earlier evidence, a zero-event completion still reads as completed without events.
+        TenantSetConfigurationCommandSnapshot eventless = SetRequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+            .ApplyStatus(staleCompleted);
+        eventless.HasCommandEventEvidence.ShouldBeFalse();
+        eventless.CompletedWithoutEvents.ShouldBeTrue();
+        eventless.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
     }
 
     [Fact]

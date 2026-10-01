@@ -815,10 +815,15 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         cut.Find("form").Submit();
 
         // A refused retry keeps the failed attempt it retried, identity included; a refused first attempt is blocked.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
-        cut.Instance.Snapshot.State.ShouldBe(isRetry
+        // Both carry the in-flight refusal the flow assigns, which the failed attempt's message never matches.
+        TenantCommandLifecycleState expectedState = isRetry
             ? TenantCommandLifecycleState.Failed
-            : TenantCommandLifecycleState.UnableToVerify);
+            : TenantCommandLifecycleState.UnableToVerify;
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(expectedState);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe("A tenant command is already in progress.");
+        });
         cut.Instance.Snapshot.MessageId.ShouldBe(isRetry ? "01ARZ3NDEKTSV4RRFFQ69G5FAV" : null);
         cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
         cut.FindAll("[data-testid='tenants-change-role-audit'] [data-testid='tenants-audit-availability']").Count
@@ -871,8 +876,11 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         // The blocked retry keeps the failed attempt it retried: that identity may already have reached the
         // server, so its status is unknown and it stays the identity the next submit reuses.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
-        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe("Tenant command support is unavailable.");
+        });
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         gateway.ChangeRoleCallCount.ShouldBe(1);
@@ -881,6 +889,73 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => gateway.ChangeRoleCallCount.ShouldBe(2));
         gateway.LastChangeRoleMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
+    [Fact]
+    public void Audit_refresh_that_resolves_to_not_started_moves_focus_to_the_lifecycle_section()
+    {
+        int statusCalls = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            // The first lookup cannot be read; the user's Refresh then finds the command still processing.
+            StatusAsync = _ => Task.FromResult(++statusCalls == 1
+                ? TenantCommandStatusResult.Unknown("Command status is unavailable.")
+                : new TenantCommandStatusResult(CommandStatus.Processing, HasVerifiedCommandIdentity: true)),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = RenderReaderFlow();
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+        string lifecycleReferenceId = ((ElementReference)typeof(ChangeTenantMemberRoleFlow)
+            .GetField("_lifecycleElement", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).Id;
+        int focusCallsBeforeRefresh = FocusCalls().Count;
+
+        cut.Find("[data-testid='tenants-change-role-audit'] [data-recovery-verb='refresh']").Click();
+
+        // The polite NotStarted state unmounts the control and its focused Refresh button, so focus lands on the
+        // lifecycle section instead of falling back to the document body.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted));
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+        cut.FindAll("[data-testid='tenants-change-role-audit'] [data-testid='tenants-audit-availability']").ShouldBeEmpty();
+        cut.WaitForAssertion(() => FocusCalls().Count.ShouldBeGreaterThan(focusCallsBeforeRefresh));
+        FocusCalls().Last().ShouldBe(lifecycleReferenceId);
+    }
+
+    [Fact]
+    public void Retry_failed_before_dispatch_keeps_the_reused_identity_unverifiable()
+    {
+        int submissions = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            // The first attempt failed after the message was sent; the retry of that identity then fails before
+            // dispatch and reports no message id of its own.
+            ChangeRoleAsync = _ => Task.FromResult(++submissions == 1
+                ? TenantCommandSubmissionResult.Failed("Submission outcome is ambiguous.") with
+                {
+                    MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                }
+                : TenantCommandSubmissionResult.FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference")),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = RenderReaderFlow();
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable));
+
+        cut.Find("form").Submit();
+
+        // The retry sent nothing, but the earlier attempt with the same identity may have reached the server: the
+        // audit dimension stays unknown instead of disappearing as "not started".
+        cut.WaitForAssertion(() => gateway.ChangeRoleCallCount.ShouldBe(2));
+        gateway.LastChangeRoleMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        cut.Find("[data-testid='tenants-change-role-audit'] [data-testid='tenants-audit-availability']")
+            .GetAttribute("data-state").ShouldBe("unavailable");
     }
 
     private IRenderedComponent<ChangeTenantMemberRoleFlow> RenderReaderFlow()

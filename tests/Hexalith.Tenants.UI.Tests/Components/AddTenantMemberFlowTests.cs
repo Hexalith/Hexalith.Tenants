@@ -725,10 +725,15 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         cut.Find("form").Submit();
 
         // A refused retry keeps the failed attempt it retried, identity included; a refused first attempt is blocked.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
-        cut.Instance.Snapshot.State.ShouldBe(isRetry
+        // Both carry the in-flight refusal the flow assigns, which the failed attempt's message never matches.
+        TenantCommandLifecycleState expectedState = isRetry
             ? TenantCommandLifecycleState.Failed
-            : TenantCommandLifecycleState.UnableToVerify);
+            : TenantCommandLifecycleState.UnableToVerify;
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(expectedState);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe("A tenant command is already in progress.");
+        });
         cut.Instance.Snapshot.MessageId.ShouldBe(isRetry ? "01ARZ3NDEKTSV4RRFFQ69G5FAV" : null);
         cut.Instance.Snapshot.AuditState.ShouldBe(expectedAuditState);
         cut.FindAll("[data-testid='tenants-add-member-audit'] [data-testid='tenants-audit-availability']").Count
@@ -781,8 +786,11 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
 
         // The blocked retry keeps the failed attempt it retried: that identity may already have reached the
         // server, so its status is unknown and it stays the identity the next submit reuses.
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.SafeMessage.ShouldNotBe("Submission outcome is ambiguous."));
-        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe("Tenant command support is unavailable.");
+        });
         cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         gateway.AddMemberCallCount.ShouldBe(1);

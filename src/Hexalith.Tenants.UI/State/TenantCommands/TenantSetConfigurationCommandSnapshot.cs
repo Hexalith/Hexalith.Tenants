@@ -210,11 +210,13 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                 {
                     StatusObservationCount = StatusObservationCount + 1,
                 },
+            // A zero-event completion after stored events is a stale status: it cannot unstore them, so the
+            // earlier event evidence stays and the attempt is never marked completed without events.
             CommandStatus.Completed => this with
             {
                 State = TenantCommandLifecycleState.ProjectionPending,
-                CompletedWithoutEvents = status.EventCount == 0,
-                HasCommandEventEvidence = status.EventCount > 0,
+                CompletedWithoutEvents = !HasCommandEventEvidence && status.EventCount == 0,
+                HasCommandEventEvidence = HasCommandEventEvidence || status.EventCount > 0,
                 StatusObservationCount = StatusObservationCount + 1,
                 SafeMessage = null,
                 SafeMessageKey = null,

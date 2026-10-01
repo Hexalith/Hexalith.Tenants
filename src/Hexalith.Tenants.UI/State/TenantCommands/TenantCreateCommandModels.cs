@@ -702,7 +702,9 @@ public sealed record TenantChangeRoleCommandSnapshot(
         return status.Status.Value switch {
             CommandStatus.Received or CommandStatus.Processing
                 => this with { State = TenantCommandLifecycleState.Accepted, SafeMessage = null, SafeMessageKey = null, RejectionCode = null, AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence), LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
-            CommandStatus.Completed when status.EventCount == 0
+            // A zero-event completion after stored events is a stale status: it cannot unstore them, so it falls
+            // through to the Completed arm below, which keeps the event evidence and the pending audit record.
+            CommandStatus.Completed when status.EventCount == 0 && !HasCommandEventEvidence
                 => this with {
                     State = TenantCommandLifecycleState.AlreadyApplied,
                     SafeMessage = "The requested role was already applied.",
@@ -1126,7 +1128,8 @@ public sealed record TenantRemoveMemberCommandSnapshot(
     /// <summary>
     /// Promotes confirmed removal to <see cref="TenantCommandAuditState.AuditAvailable"/> only when a
     /// matching WP-2A removal audit row is supplied. Never invents available from empty or mismatched evidence.
-    /// Once available, unmatched rematches keep Available (confirmed outcome survives audit flaps).
+    /// Unmatched rematches keep Available (confirmed outcome survives audit flaps) and keep Delayed. An unmatched
+    /// rematch is a complete audit read, so an earlier Unavailable falls back to Pending.
     /// </summary>
     public TenantRemoveMemberCommandSnapshot ApplyRemovalProofMatch(
         bool matched,

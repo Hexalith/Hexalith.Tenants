@@ -14,6 +14,7 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -396,7 +397,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         // A SignalR nudge starts a slow lookup; the shared control's Refresh then merges into it.
         Task nudge = cut.InvokeAsync(() => cut.Instance.ApplySignalRNudgeAsync());
         await lookupStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.Find(refresh).Click();
+        Task merged = cut.Find(refresh).ClickAsync(new MouseEventArgs());
         cut.Find(refresh).Click();
         cut.Find(refresh).Click();
 
@@ -411,8 +412,55 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         // The nudge's lookup started before the click, so the merged click runs one lookup of its own after it:
         // a click is never counted as a retry that no lookup served. Three clicks while it waited are one request.
         cut.WaitForAssertion(() => Volatile.Read(ref statusCalls).ShouldBe(2), TimeSpan.FromSeconds(5));
+
+        // Once the merged refresh has settled, no later lookup followed the one it ran.
+        await merged.WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Read(ref statusCalls).ShouldBe(2);
         gateway.SetConfigurationCallCount.ShouldBe(1);
     }
+
+    [Fact]
+    public void Audit_refresh_that_resolves_to_not_started_moves_focus_to_the_lifecycle_section()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        int statusCalls = 0;
+        // The first lookup cannot be read; the user's Refresh then finds the command still processing.
+        gateway.StatusAsync = _ => Task.FromResult(++statusCalls == 1
+            ? TenantCommandStatusResult.Unknown("Command status is unavailable.")
+            : new TenantCommandStatusResult(CommandStatus.Processing, HasVerifiedCommandIdentity: true));
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway,
+            Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+        const string audit = "[data-testid='tenants-config-set-audit']";
+
+        CompleteForm(cut, "mode", "value");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable), TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.Find($"{audit} [data-recovery-verb='refresh']"), TimeSpan.FromSeconds(5));
+        string lifecycleReferenceId = ((ElementReference)typeof(SetTenantConfigurationFlow)
+            .GetField("_lifecycleElement", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).Id;
+        int focusCallsBeforeRefresh = FocusCalls().Count;
+
+        cut.Find($"{audit} [data-recovery-verb='refresh']").Click();
+
+        // The polite NotStarted state unmounts the control and its focused Refresh button, so focus lands on the
+        // lifecycle section instead of falling back to the document body.
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted), TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+        cut.Instance.Snapshot.FocusTarget.ShouldNotBe(TenantCommandFocusTarget.Lifecycle);
+        cut.WaitForAssertion(() => cut.FindAll($"{audit} [data-testid='tenants-audit-availability']").ShouldBeEmpty(), TimeSpan.FromSeconds(5));
+        SpinWait.SpinUntil(() => FocusCalls().Count > focusCallsBeforeRefresh, TimeSpan.FromSeconds(5)).ShouldBeTrue();
+        FocusCalls().Last().ShouldBe(lifecycleReferenceId);
+    }
+
+    private List<string> FocusCalls()
+        => [.. JSInterop.Invocations
+            .Where(invocation => invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase))
+            .Select(invocation => invocation.Arguments.FirstOrDefault())
+            .OfType<ElementReference>()
+            .Select(reference => reference.Id ?? string.Empty)];
 
     [Fact]
     public void Ambiguous_attempt_is_adopted_and_reconciled_after_remount_without_redispatch()
