@@ -167,8 +167,9 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
 
         GeneratedProjectionAssertions.AssertDataGridEnvelope(cut);
         GeneratedProjectionAssertions.AssertHeadersInOrder(cut, "Id", "Name", "Status");
-        // Fluent UI 5 includes the header in the ARIA row count.
-        cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("2");
+        // Both Fluent UI 5 RC and stable count TotalItemCount + 1 for the header.
+        // Wait for the populated item count: one data row plus its header.
+        cut.WaitForAssertion(() => cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("2"), TimeSpan.FromSeconds(5));
     }
 
     [Fact]

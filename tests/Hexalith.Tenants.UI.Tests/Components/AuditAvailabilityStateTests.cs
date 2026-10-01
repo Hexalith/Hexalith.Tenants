@@ -385,11 +385,11 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
                 return pending.Task;
             })));
 
-        Task activation = cut.InvokeAsync(() => InvokeRefreshAsync(cut.Instance));
+        Task activation = cut.Find("[data-recovery-verb='refresh']").ClickAsync(new MouseEventArgs());
         await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
         AuditAvailabilityState instance = cut.Instance;
-        instance.Dispose();
-        cut.Dispose();
+        // Disposing the bUnit wrapper alone leaves its component live; use renderer disposal.
+        await DisposeComponentsAsync().WaitAsync(TimeSpan.FromSeconds(5));
         pending.SetResult();
 
         await activation.WaitAsync(TimeSpan.FromSeconds(5));
@@ -438,6 +438,10 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
                         _ => await Should.ThrowAsync<InvalidOperationException>(finalize),
                     };
                     observed.GetType().ShouldBe(exception.GetType());
+                    if (exception is not TaskCanceledException)
+                    {
+                        observed.ShouldBeSameAs(exception);
+                    }
                 }
 
                 failingDispatcher.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(Dispatcher.InvokeAsync))
