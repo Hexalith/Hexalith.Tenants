@@ -206,6 +206,160 @@ public sealed class TenantRemoveConfigurationCommandSnapshotTests
         result.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
     }
 
+    /// <summary>Distinguishes propagation waits from failed reads without changing command evidence.</summary>
+    /// <param name="hasEvents">Whether an earlier status established stored events.</param>
+    /// <param name="isPending">Whether the lookup is a propagation wait instead of a failed read.</param>
+    /// <param name="expectedAudit">The expected independent audit state.</param>
+    [Theory]
+    [InlineData(false, false, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(true, false, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(false, true, TenantCommandAuditState.NotStarted)]
+    [InlineData(true, true, TenantCommandAuditState.AuditPending)]
+    public void PendingLookupAndRetryableFailedReadHaveDistinctAuditStates(
+        bool hasEvents,
+        bool isPending,
+        TenantCommandAuditState expectedAudit)
+    {
+        TenantRemoveConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"));
+        if (hasEvents)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        TenantRemoveConfigurationCommandSnapshot result = snapshot.ApplyStatus(isPending
+            ? TenantCommandStatusResult.Pending(string.Empty)
+            : TenantCommandStatusResult.RetryableFailure(string.Empty));
+
+        result.AuditState.ShouldBe(expectedAudit);
+        result.State.ShouldBe(snapshot.State);
+        result.HasCommandEventEvidence.ShouldBe(hasEvents);
+        result.RetainsAttempt.ShouldBeTrue();
+        result.MessageId.ShouldBe(snapshot.MessageId);
+        result.StatusObservationCount.ShouldBe(snapshot.StatusObservationCount + 1);
+    }
+
+    /// <summary>Restores audit from readable status while preserving accepted, pending, or degraded command evidence.</summary>
+    /// <param name="status">The readable pre-event status.</param>
+    /// <param name="hasEvents">Whether an earlier status established stored events.</param>
+    /// <param name="isDegraded">Whether publication failed before the unreadable lookup.</param>
+    [Theory]
+    [InlineData(CommandStatus.Received, false, false)]
+    [InlineData(CommandStatus.Processing, false, false)]
+    [InlineData(CommandStatus.Received, true, false)]
+    [InlineData(CommandStatus.Processing, true, false)]
+    [InlineData(CommandStatus.Received, false, true)]
+    [InlineData(CommandStatus.Processing, false, true)]
+    [InlineData(CommandStatus.Received, true, true)]
+    [InlineData(CommandStatus.Processing, true, true)]
+    public void ReadablePreEventStatusRecoversAuditWithoutRegressingCommandEvidence(
+        CommandStatus status,
+        bool hasEvents,
+        bool isDegraded)
+    {
+        TenantRemoveConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"));
+        if (hasEvents)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        if (isDegraded)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.PublishFailed,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        TenantRemoveConfigurationCommandSnapshot unreadable = snapshot.ApplyStatus(
+            TenantCommandStatusResult.RetryableFailure(string.Empty));
+        unreadable.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        TenantRemoveConfigurationCommandSnapshot result = unreadable.ApplyStatus(new TenantCommandStatusResult(
+            status,
+            HasVerifiedCommandIdentity: true));
+
+        result.State.ShouldBe(snapshot.State);
+        result.AuditState.ShouldBe(hasEvents ? TenantCommandAuditState.AuditPending : TenantCommandAuditState.NotStarted);
+        result.HasCommandEventEvidence.ShouldBe(hasEvents);
+        result.StatusObservationCount.ShouldBe(unreadable.StatusObservationCount + 1);
+    }
+
+    /// <summary>Derives completion audit independently of event-count requirements for command verification.</summary>
+    /// <param name="eventCount">The completion event count.</param>
+    /// <param name="hasEvents">Whether an earlier status established stored events.</param>
+    /// <param name="expectedAudit">The expected independent audit state.</param>
+    /// <param name="expectedState">The unchanged command lifecycle outcome.</param>
+    [Theory]
+    [InlineData(0, false, TenantCommandAuditState.NotStarted, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(null, false, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(-1, false, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(0, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData(null, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData(-1, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.ProjectionPending)]
+    public void CompletedEventCountAuditIsIndependentOfLifecycleVerification(
+        int? eventCount,
+        bool hasEvents,
+        TenantCommandAuditState expectedAudit,
+        TenantCommandLifecycleState expectedState)
+    {
+        TenantRemoveConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"));
+        if (hasEvents)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        TenantRemoveConfigurationCommandSnapshot result = snapshot.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.Completed,
+            EventCount: eventCount,
+            HasVerifiedCommandIdentity: true));
+
+        result.AuditState.ShouldBe(expectedAudit);
+        result.State.ShouldBe(expectedState);
+        result.HasCommandEventEvidence.ShouldBe(hasEvents);
+        result.MessageId.ShouldBe(snapshot.MessageId);
+        result.StatusObservationCount.ShouldBe(snapshot.StatusObservationCount + 1);
+    }
+
+    /// <summary>Applies rejection audit semantics while retaining stronger command evidence.</summary>
+    /// <param name="earlierStatus">The earlier event or publication-failure status.</param>
+    /// <param name="eventCount">The earlier status event count.</param>
+    /// <param name="expectedState">The command lifecycle that must be preserved.</param>
+    [Theory]
+    [InlineData(CommandStatus.EventsStored, null, TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData(CommandStatus.PublishFailed, 1, TenantCommandLifecycleState.Degraded)]
+    [InlineData(CommandStatus.PublishFailed, null, TenantCommandLifecycleState.Degraded)]
+    public void RejectedStatusHidesAuditWithoutErasingStrongerCommandEvidence(
+        CommandStatus earlierStatus,
+        int? eventCount,
+        TenantCommandLifecycleState expectedState)
+    {
+        TenantRemoveConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
+            .ApplyStatus(new TenantCommandStatusResult(
+                earlierStatus,
+                EventCount: eventCount,
+                HasVerifiedCommandIdentity: true));
+
+        TenantRemoveConfigurationCommandSnapshot result = snapshot.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.Rejected,
+            RejectionCode: "ConfigurationKeyNotFound",
+            HasVerifiedCommandIdentity: true));
+
+        result.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        result.State.ShouldBe(expectedState);
+        result.HasCommandEventEvidence.ShouldBe(snapshot.HasCommandEventEvidence);
+        result.MessageId.ShouldBe(snapshot.MessageId);
+        result.StatusObservationCount.ShouldBe(snapshot.StatusObservationCount + 1);
+    }
+
     private static TenantRemoveConfigurationCommandSnapshot Pending(TenantRemoveConfigurationIntent intent)
         => RequestSent(intent)
             .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))

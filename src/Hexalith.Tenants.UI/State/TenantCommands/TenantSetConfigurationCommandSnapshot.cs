@@ -161,6 +161,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                     StatusObservationCount = StatusObservationCount + 1,
                     SafeMessage = null,
                     SafeMessageKey = "Tenants.Configuration.Set.Status.Pending",
+                    AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                 }
                 : UnableToVerify("Tenants.Configuration.Set.UnableToVerify.Status") with
@@ -184,6 +185,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                     or TenantCommandLifecycleState.Degraded => this with
             {
                 StatusObservationCount = StatusObservationCount + 1,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
             },
             CommandStatus.Received or CommandStatus.Processing => this with
             {
@@ -209,6 +211,7 @@ public sealed record TenantSetConfigurationCommandSnapshot(
                 => UnableToVerify("Tenants.Configuration.Set.UnableToVerify.Status") with
                 {
                     StatusObservationCount = StatusObservationCount + 1,
+                    AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 },
             // A zero-event completion after stored events is a stale status: it cannot unstore them, so the
             // earlier event evidence stays and the attempt is never marked completed without events.

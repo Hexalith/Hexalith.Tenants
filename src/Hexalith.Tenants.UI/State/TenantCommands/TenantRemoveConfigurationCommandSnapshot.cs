@@ -143,6 +143,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                     StatusObservationCount = StatusObservationCount + 1,
                     SafeMessage = null,
                     SafeMessageKey = "Tenants.Configuration.Remove.Status.Pending",
+                    AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                 }
                 : UnableToVerify("Tenants.Configuration.Remove.UnableToVerify.Status") with
@@ -166,6 +167,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                     or TenantCommandLifecycleState.Degraded => this with
             {
                 StatusObservationCount = StatusObservationCount + 1,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
             },
             CommandStatus.Received or CommandStatus.Processing => this with
             {
@@ -190,6 +192,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 => UnableToVerify("Tenants.Configuration.Remove.UnableToVerify.MissingEventEvidence") with
                 {
                     StatusObservationCount = StatusObservationCount + 1,
+                    AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                 },
             CommandStatus.Completed => this with
             {
@@ -205,6 +208,7 @@ public sealed record TenantRemoveConfigurationCommandSnapshot(
                 || State is TenantCommandLifecycleState.Degraded => this with
             {
                 StatusObservationCount = StatusObservationCount + 1,
+                AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
             },
             CommandStatus.Rejected => this with
             {

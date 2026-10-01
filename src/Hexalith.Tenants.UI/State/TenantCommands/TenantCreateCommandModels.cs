@@ -1754,6 +1754,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                         : "Tenants.Lifecycle.StatusEvidence.RetryableFailure"
                     : null,
                 RecoveryKey = "Tenants.Lifecycle.Retained.Recovery",
+                AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                 PendingStatusPollCount = nextPendingPollCount,
@@ -1797,6 +1798,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                     SafeMessage = status.SafeMessage,
                     SafeMessageKey = null,
                     RecoveryKey = null,
+                    AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                     EvidenceRevision = NextEvidenceRevision(),
                 },
@@ -1815,7 +1817,10 @@ public sealed record TenantLifecycleCommandSnapshot(
                 },
             CommandStatus.Completed
                 when status.EventCount is not > 0 && !HasCommandEventEvidence
-                => UnableToVerify("Tenants.Lifecycle.UnableToVerify.MissingEventEvidence"),
+                => UnableToVerify("Tenants.Lifecycle.UnableToVerify.MissingEventEvidence") with
+                {
+                    AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
+                },
             CommandStatus.Completed
                 => this with
                 {

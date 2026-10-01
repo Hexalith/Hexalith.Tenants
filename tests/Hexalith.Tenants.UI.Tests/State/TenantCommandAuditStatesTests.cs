@@ -343,12 +343,12 @@ public sealed class TenantCommandAuditStatesTests
     [InlineData("remove-member", TenantCommandAuditState.NotStarted)]
     [InlineData("edit-metadata", TenantCommandAuditState.NotStarted)]
     [InlineData("set-configuration", TenantCommandAuditState.NotStarted)]
-    [InlineData("lifecycle", TenantCommandAuditState.AuditUnavailable)]
-    [InlineData("remove-configuration", TenantCommandAuditState.AuditUnavailable)]
+    [InlineData("lifecycle", TenantCommandAuditState.NotStarted)]
+    [InlineData("remove-configuration", TenantCommandAuditState.NotStarted)]
     public void A_completed_status_with_zero_events_never_claims_a_pending_audit_record(
         string flow,
         TenantCommandAuditState expected)
-        // Lifecycle and remove-configuration require event evidence, so zero events is an unverifiable status.
+        // Command verification may require event evidence, but zero stored events implies no audit record.
         => ApplyStatus(flow, new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0, HasVerifiedCommandIdentity: true))
             .ShouldBe(expected);
 

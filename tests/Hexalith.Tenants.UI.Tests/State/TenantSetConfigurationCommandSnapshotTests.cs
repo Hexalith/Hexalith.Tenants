@@ -212,6 +212,129 @@ public sealed class TenantSetConfigurationCommandSnapshotTests
             + "AuditState = NotStarted }");
     }
 
+    /// <summary>Distinguishes propagation waits from failed reads without changing command evidence.</summary>
+    /// <param name="hasEvents">Whether an earlier status established stored events.</param>
+    /// <param name="isPending">Whether the lookup is a propagation wait instead of a failed read.</param>
+    /// <param name="expectedAudit">The expected independent audit state.</param>
+    [Theory]
+    [InlineData(false, false, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(true, false, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(false, true, TenantCommandAuditState.NotStarted)]
+    [InlineData(true, true, TenantCommandAuditState.AuditPending)]
+    public void PendingLookupAndRetryableFailedReadHaveDistinctAuditStates(
+        bool hasEvents,
+        bool isPending,
+        TenantCommandAuditState expectedAudit)
+    {
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+        if (hasEvents)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        TenantSetConfigurationCommandSnapshot result = snapshot.ApplyStatus(isPending
+            ? TenantCommandStatusResult.Pending(string.Empty)
+            : TenantCommandStatusResult.RetryableFailure(string.Empty));
+
+        result.AuditState.ShouldBe(expectedAudit);
+        result.State.ShouldBe(snapshot.State);
+        result.HasCommandEventEvidence.ShouldBe(hasEvents);
+        result.RetainsAttempt.ShouldBeTrue();
+        result.MessageId.ShouldBe(snapshot.MessageId);
+        result.StatusObservationCount.ShouldBe(snapshot.StatusObservationCount + 1);
+    }
+
+    /// <summary>Restores audit from readable status while preserving accepted, pending, or degraded command evidence.</summary>
+    /// <param name="status">The readable pre-event status.</param>
+    /// <param name="hasEvents">Whether an earlier status established stored events.</param>
+    /// <param name="isDegraded">Whether publication failed before the unreadable lookup.</param>
+    [Theory]
+    [InlineData(CommandStatus.Received, false, false)]
+    [InlineData(CommandStatus.Processing, false, false)]
+    [InlineData(CommandStatus.Received, true, false)]
+    [InlineData(CommandStatus.Processing, true, false)]
+    [InlineData(CommandStatus.Received, false, true)]
+    [InlineData(CommandStatus.Processing, false, true)]
+    [InlineData(CommandStatus.Received, true, true)]
+    [InlineData(CommandStatus.Processing, true, true)]
+    public void ReadablePreEventStatusRecoversAuditWithoutRegressingCommandEvidence(
+        CommandStatus status,
+        bool hasEvents,
+        bool isDegraded)
+    {
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+        if (hasEvents)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        if (isDegraded)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.PublishFailed,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        TenantSetConfigurationCommandSnapshot unreadable = snapshot.ApplyStatus(
+            TenantCommandStatusResult.RetryableFailure(string.Empty));
+        unreadable.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        TenantSetConfigurationCommandSnapshot result = unreadable.ApplyStatus(new TenantCommandStatusResult(
+            status,
+            HasVerifiedCommandIdentity: true));
+
+        result.State.ShouldBe(snapshot.State);
+        result.AuditState.ShouldBe(hasEvents ? TenantCommandAuditState.AuditPending : TenantCommandAuditState.NotStarted);
+        result.HasCommandEventEvidence.ShouldBe(hasEvents);
+        result.StatusObservationCount.ShouldBe(unreadable.StatusObservationCount + 1);
+    }
+
+    /// <summary>Derives completion audit independently of event-count requirements for command verification.</summary>
+    /// <param name="eventCount">The completion event count.</param>
+    /// <param name="hasEvents">Whether an earlier status established stored events.</param>
+    /// <param name="expectedAudit">The expected independent audit state.</param>
+    /// <param name="expectedState">The unchanged command lifecycle outcome.</param>
+    [Theory]
+    [InlineData(0, false, TenantCommandAuditState.NotStarted, TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData(null, false, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(-1, false, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(0, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData(null, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(-1, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.UnableToVerify)]
+    public void CompletedEventCountAuditIsIndependentOfLifecycleVerification(
+        int? eventCount,
+        bool hasEvents,
+        TenantCommandAuditState expectedAudit,
+        TenantCommandLifecycleState expectedState)
+    {
+        TenantSetConfigurationCommandSnapshot snapshot = RequestSent(Intent())
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+        if (hasEvents)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        TenantSetConfigurationCommandSnapshot result = snapshot.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.Completed,
+            EventCount: eventCount,
+            HasVerifiedCommandIdentity: true));
+
+        result.AuditState.ShouldBe(expectedAudit);
+        result.State.ShouldBe(expectedState);
+        result.HasCommandEventEvidence.ShouldBe(hasEvents);
+        result.CompletedWithoutEvents.ShouldBe(!hasEvents && eventCount == 0);
+        result.MessageId.ShouldBe(snapshot.MessageId);
+        result.StatusObservationCount.ShouldBe(snapshot.StatusObservationCount + 1);
+    }
+
     private static TenantSetConfigurationCommandSnapshot Pending(
         TenantSetConfigurationIntent intent,
         int eventCount)

@@ -701,6 +701,129 @@ public sealed class TenantLifecycleCommandSnapshotTests
         proof.EvidenceRevision.ShouldBe(long.MaxValue);
     }
 
+    /// <summary>A readable pre-event status resolves audit uncertainty after ambiguous dispatch.</summary>
+    /// <param name="status">The readable command status.</param>
+    [Theory]
+    [InlineData(CommandStatus.Received)]
+    [InlineData(CommandStatus.Processing)]
+    public void ReadablePreEventStatusClearsAmbiguousAuditUncertainty(CommandStatus status)
+    {
+        TenantLifecycleCommandSnapshot ambiguous = Started(
+                TenantLifecycleOperation.DisableTenant,
+                TenantStatus.Active)
+            .AmbiguousSubmission("Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        ambiguous.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        TenantLifecycleCommandSnapshot result = ambiguous.ApplyStatus(new TenantCommandStatusResult(
+            status,
+            HasVerifiedCommandIdentity: true));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        result.HasCommandEventEvidence.ShouldBeFalse();
+        result.MessageId.ShouldBe(ambiguous.MessageId);
+    }
+
+    /// <summary>Distinguishes propagation waits from failed reads without changing command evidence.</summary>
+    /// <param name="hasEvents">Whether an earlier status established stored events.</param>
+    /// <param name="isPending">Whether the lookup is a propagation wait instead of a failed read.</param>
+    /// <param name="expectedAudit">The expected independent audit state.</param>
+    [Theory]
+    [InlineData(false, false, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(true, false, TenantCommandAuditState.AuditUnavailable)]
+    [InlineData(false, true, TenantCommandAuditState.NotStarted)]
+    [InlineData(true, true, TenantCommandAuditState.AuditPending)]
+    public void PendingLookupAndRetryableFailedReadHaveDistinctAuditStates(
+        bool hasEvents,
+        bool isPending,
+        TenantCommandAuditState expectedAudit)
+    {
+        TenantLifecycleCommandSnapshot snapshot = Started(
+                TenantLifecycleOperation.DisableTenant,
+                TenantStatus.Active)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+        if (hasEvents)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        TenantLifecycleCommandSnapshot result = snapshot.ApplyStatus(isPending
+            ? TenantCommandStatusResult.Pending(string.Empty)
+            : TenantCommandStatusResult.RetryableFailure(string.Empty));
+
+        result.AuditState.ShouldBe(expectedAudit);
+        result.State.ShouldBe(snapshot.State);
+        result.HasCommandEventEvidence.ShouldBe(hasEvents);
+        result.RetainsAttempt.ShouldBeTrue();
+        result.MessageId.ShouldBe(snapshot.MessageId);
+    }
+
+    /// <summary>Restores audit from readable status while preserving accepted, pending, or degraded command evidence.</summary>
+    /// <param name="status">The readable pre-event status.</param>
+    [Theory]
+    [InlineData(CommandStatus.Received)]
+    [InlineData(CommandStatus.Processing)]
+    public void ReadablePreEventStatusRestoresPendingAuditAfterFailedReadOfStoredEvents(CommandStatus status)
+    {
+        TenantLifecycleCommandSnapshot unreadable = Pending(
+                TenantLifecycleOperation.DisableTenant,
+                TenantStatus.Active,
+                hasEventEvidence: true)
+            .ApplyStatus(TenantCommandStatusResult.RetryableFailure(string.Empty));
+        unreadable.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        TenantLifecycleCommandSnapshot result = unreadable.ApplyStatus(new TenantCommandStatusResult(
+            status,
+            HasVerifiedCommandIdentity: true));
+
+        result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
+        result.HasCommandEventEvidence.ShouldBeTrue();
+    }
+
+    /// <summary>Derives completion audit independently of event-count requirements for command verification.</summary>
+    /// <param name="eventCount">The completion event count.</param>
+    /// <param name="hasEvents">Whether an earlier status established stored events.</param>
+    /// <param name="expectedAudit">The expected independent audit state.</param>
+    /// <param name="expectedState">The unchanged command lifecycle outcome.</param>
+    [Theory]
+    [InlineData(0, false, TenantCommandAuditState.NotStarted, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(null, false, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(-1, false, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.UnableToVerify)]
+    [InlineData(0, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData(null, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.ProjectionPending)]
+    [InlineData(-1, true, TenantCommandAuditState.AuditPending, TenantCommandLifecycleState.ProjectionPending)]
+    public void CompletedEventCountAuditIsIndependentOfLifecycleVerification(
+        int? eventCount,
+        bool hasEvents,
+        TenantCommandAuditState expectedAudit,
+        TenantCommandLifecycleState expectedState)
+    {
+        TenantLifecycleCommandSnapshot snapshot = Started(
+                TenantLifecycleOperation.DisableTenant,
+                TenantStatus.Active)
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
+        if (hasEvents)
+        {
+            snapshot = snapshot.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsStored,
+                HasVerifiedCommandIdentity: true));
+        }
+
+        TenantLifecycleCommandSnapshot result = snapshot.ApplyStatus(new TenantCommandStatusResult(
+            CommandStatus.Completed,
+            EventCount: eventCount,
+            HasVerifiedCommandIdentity: true));
+
+        result.AuditState.ShouldBe(expectedAudit);
+        result.State.ShouldBe(expectedState);
+        result.HasCommandEventEvidence.ShouldBe(hasEvents);
+        result.LastConfirmedProjection.ShouldBe(snapshot.LastConfirmedProjection);
+        result.MessageId.ShouldBe(snapshot.MessageId);
+    }
+
     private static TenantLifecycleCommandSnapshot Pending(
         TenantLifecycleOperation operation,
         TenantStatus baselineStatus,

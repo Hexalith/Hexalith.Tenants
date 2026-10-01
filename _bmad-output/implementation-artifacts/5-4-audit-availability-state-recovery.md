@@ -5,7 +5,7 @@ baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
 
 # Story 5.4: Audit Availability State Recovery
 
-Status: in-progress
+Status: review
 
 <!-- Note: Created by the BMAD create-story workflow for Story 5.4. -->
 
