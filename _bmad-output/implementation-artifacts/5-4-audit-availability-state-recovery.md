@@ -5,7 +5,7 @@ baseline_commit: a5ca6e3f548e89b28a37826be721d9ef9f7cd51a
 
 # Story 5.4: Audit Availability State Recovery
 
-Status: review
+Status: in-progress
 
 <!-- Note: Created by the BMAD create-story workflow for Story 5.4. -->
 
@@ -317,3 +317,43 @@ Scope: the post-review hardening commit `82b13514` against `spec-5-4-understand-
 - [Rejected][low] A host that unmounts the control during its own refresh and then throws a real `ObjectDisposedException`/`InvalidOperationException` has that exception swallowed, because `_disposed` is a lifetime proxy, not the exception's origin. This needs a host defect after the same refresh removed the control, and the fix splits host-task awaiting from dispatch awaiting.
 - [Rejected][false] A live focus `TaskCanceledException` (JS interop timeout) ends the circuit. A canceled after-render task is non-fatal to the renderer.
 - [Rejected][false] A concurrent session mutated `AuditAvailabilityState.razor` around 14:58. Those edits were this review's own mutation runs. They were restored, the tree is clean at `82b13514`, and the binaries were rebuilt with `--no-incremental`.
+
+### Review Findings (2026-09-30 re-review 2 of `55fc6f91..a4a1ce13`)
+
+Scope: the verification-gap closure commit `6a608e73` (merged as `a4a1ce13`, PR #49) against `spec-5-4-understand-audit-availability-and-recovery-3.md`. Layers: Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor; none failed. All eight 2026-09-30 re-review patches are implemented, and neither `AuditAvailabilityState.razor` nor `AuditEvidenceReceipt.razor` changed. Independent evidence on a clean tree at `a4a1ce13`:
+- **Build:** `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -m:1 --no-incremental -p:UseHexalithProjectReferences=true` gave 0 warnings and 0 errors.
+- **Full suite:** the maintained MTP run passed 3,585 of 3,586. The only failure was a `WaitForAssertion` timeout in `TenantDetailSurfaceTests.Detail_lifecycle_actions_fail_closed_while_authorization_is_pending`, which is not in the diff and passes 3 of 3 runs on its own.
+- **Changed classes:** `AuditAvailabilityStateTests`, `AuditEvidenceReceiptTests`, `TenantListSurfaceTests` and `GeneratedTenantsSurfaceTests` passed 263 of 263, five times in a row.
+- **Mutations:** each file was restored and rebuilt with `--no-incremental` afterwards.
+  - Deleting the whole-template `IsSafe` condition fails `Receipt_component_checks_template_safety_across_summary_segments`, while `Receipt_component_rejects_an_unsafe_localized_summary` still passes.
+  - Moving `_refreshInFlight = false` before the finalization dispatch fails `Dispatcher_finalization_keeps_the_gate_closed_until_the_retry_is_counted`, because the host is called twice.
+- **CI:** PR #49 was merged with `ci / build-and-test` and `validate-remove-focus-in-chromium` red, so no Tenants test tier ran in CI. The verification report doesn't mention CI.
+
+- [ ] [Review][Patch] Pin the sort direction and column for a non-empty ascending sort event, including the Status column. Dropping the `Ascending` read still passes the suite, because only descending and empty sorts reach `OnTenantSortChanged` [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:1656]
+- [ ] [Review][Patch] Drive the successful post-disposal refresh through the real Refresh click (`ClickAsync`). Otherwise no teardown test covers click → `InvokeRecoveryAsync` → `RefreshAsync`, and the verification report's "original successful-disposal case is retained" is inaccurate [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:388]
+- [ ] [Review][Patch] Correct the `aria-rowcount` rationale here and in the verification report (line 42). `5.0.0-rc.5-26219.1` and `5.0.0` both render `TotalItemCount + 1`. What changed is that the item count is filled in by the time bUnit asserts, so the old `"1"` meant zero counted rows [tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs:170]
+- [ ] [Review][Patch] In the finalization theory, assert exception identity (`ShouldBeSameAs`), not just the type, for the live `ObjectDisposedException` and `InvalidOperationException` rows, as the verification report says it does [tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:440]
+- [ ] [Review][Patch] Correct the new Change Log entry. It says "six mutation", while the Completion Notes and verification report record nine, and it leaves out the final 3,586/3,586 run [_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md:210]
+- [x] [Review][Defer] CI has not run the Tenants test tiers since at least 2026-09-29. `ci / build-and-test` fails at "Validate package consumer references" because the `Hexalith.Tenants.Server` nupkg dependency boundary includes `Hexalith.EventStore.ServiceDefaults`, so Tier 1 and Tier 2 report no counts. PR #49 was merged red (runs `36747901026` and `36747920099`) [src/Hexalith.Tenants.Server/Hexalith.Tenants.Server.csproj:6] — deferred: pre-existing (first failed in run `36590317356` at `e077e65e`); the cause is the source-referenced `Hexalith.EventStore.Server` graph at the bumped EventStore gitlink, not this diff
+- [x] [Review][Defer] `validate-remove-focus-in-chromium` aborts in CI (Chrome 153 core dump, exit 134) on every `main` push since at least 2026-09-29; it last passed on 2026-09-22 [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:200] — deferred: pre-existing. Local Chrome 154 passes. A runner sandbox restriction is suspected but unverified; settle it by capturing the `.stderr` output in the workflow
+- [x] [Review][Defer] The browser harness hardcodes `obj/Release` scoped-CSS inputs. Local Debug-only verification therefore needs an uncommitted `/tmp` copy, and the recorded Chrome evidence can't be reproduced from the repository [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:8] — deferred: pre-existing harness design
+- [x] [Review][Defer] Some bUnit `WaitForAssertion` checks time out under load. Two cases so far: an unnamed metadata-confirmation test during development, and `TenantDetailSurfaceTests.Detail_lifecycle_actions_fail_closed_while_authorization_is_pending` in this review's full run [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:1924] — deferred: pre-existing; neither test is in the diff
+- [x] [Review][Defer] `validate-story-gitlinks.py` still exits 1 on this legacy story, because `baseline_commit` `a5ca6e3f…` is not a commit [_bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md:3] — deferred: already recorded 2026-09-30. The spec-3 range (`55fc6f9..HEAD`, no pointer changes) and the primary spec range (`55f3dc6..HEAD`, 3 declared bumps) both pass
+
+#### Rejected (2026-09-30 re-review 2)
+
+- [Rejected][low] The Fluent UI sort migration and test updates are bundled into `fix(audit)`. They were required, because the Builds bump in `55fc6f91` moved Fluent UI to `5.0.0` and CI failed with CS1061 (run `36726541810`). The spec and File List document them, and merged history can't be relabeled.
+- [Rejected][false] The unsafe-summary test does not isolate the template check. Deleting that check fails the new cross-segment test (verified by mutation); the older test is a combined rejection test, and spec-3 documents why.
+- [Rejected][fix edits the spec under review] Spec-3 bookkeeping: `review_loop_iteration: 0` and the superseded 3,580/3,580 and "six" statements.
+- [Rejected][false] The 2026-09-30 deferral about Debug Log References is stale. The new Debug Log entry only points to the report, so "no … Debug Log References with exact commands" still holds.
+- [Rejected][false] Commitlint evidence used a `/tmp` message file. Validating the exact candidate file before committing is the prescribed flow, and CI commitlint passed on PR #49.
+- [Rejected][false] The new PascalCase test names break the file's convention. The Hexalith baseline requires PascalCase test names. The unbounded await in `Disposed_focus_handoff_contains_renderer_teardown` predates this diff and is low.
+- [Rejected][low] The SSR route test still asserts `aria-rowcount="1"` (`GeneratedTenantsSurfaceTests.cs:151`). This weakness predates the diff: that test never asserted data rows, and tightening it needs prerender investigation.
+- [Rejected][false] A live finalization dispatcher fault closes the Refresh gate for good. That exception escapes the click handler, which ends the circuit, so no later click exists.
+- [Rejected][false] The teardown exception set is too narrow. Canceled tasks don't break the renderer (already rejected in the previous re-review), and the host refresh makes gateway calls, not JS calls. More negative cases would add tests without a demonstrated bad outcome.
+- [Rejected][low] The dispatcher test has no guard proving it reached the race window. It is valid on the current framework (the off-dispatcher gate-reset mutation fails it), and a framework-change guard would add more reflection.
+- [Rejected][false] Reflection-string access to private members is fragile. A rename fails loudly with `NullReferenceException`, not silently; this was already rejected in the previous re-review.
+- [Rejected][low] The French receipt copy still mixes accented and unaccented spellings. This predates the diff and is already tracked (DW-270, DW-306, DW-324 and the 2026-09-28 receipt entry).
+- [Rejected][low] The browser fixture's French button and badge labels are hand-written and unchecked. This predates the diff; the patch only asked for group-role parity.
+- [Rejected][false] `SortColumns[0]` depends on an unpinned `SortMode`. `SortMode` defaults to `Single` and is never set, so `SortColumns` holds at most one entry.
+- [Rejected][low] The fault branch of `AuditAuthorityRefresh` is untested. The same `when (_disposed)` catches are already exercised through the owner-refresh faults.

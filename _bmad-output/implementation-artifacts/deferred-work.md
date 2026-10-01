@@ -3326,3 +3326,23 @@ Review range `1cdcc0a9..e077e65e` (delta only).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md`
   summary: Refresh the stale parts of the legacy Story 5.4 record.
   evidence: `5-4-audit-availability-state-recovery.md:211` still reads "Outcome: Approve (status → done)" under a `Status: review` story. The ticked 2026-09-30 patch anchors point at `AuditAvailabilityState.razor:299/:220/:51`; the current locations are `:287-376`, `:236-243` and `:56`. The 2026-09-30 hardening has no Debug Log References with exact commands, and the "three mutation rejections" are never named, so the evidence cannot be reproduced.
+
+## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery-3.md (2026-09-30)
+
+Review range `55fc6f91..a4a1ce13`.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
+  summary: Restore CI test execution. `ci / build-and-test` fails at "Validate package consumer references", so no Tenants test tier has run in CI since at least 2026-09-29.
+  evidence: "Package validation failed: Hexalith.Tenants.Server.0.0.0-ci-test.nupkg: dependency boundary includes host, samples, tests, or other forbidden projects: ['Hexalith.EventStore.ServiceDefaults']". This comes from the reusable `domain-ci.yml:350` step, after which Tier 1 and Tier 2 report no failure count. `Hexalith.Tenants.Server.csproj:6` references `Hexalith.EventStore.Server` from source at the bumped EventStore gitlink. First seen in run `36590317356` (`e077e65e`). It is still red on `main` (`36747920099`, `a4a1ce13`), and PR #49 was merged red. The fix is either in the EventStore package graph or in the boundary allow-list; decide which, then bump the gitlink.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
+  summary: Repair `validate-remove-focus-in-chromium`, which aborts in CI with Chrome 153 (core dump, exit 134) on every `main` push.
+  evidence: `validate-tenants-focus-browser.sh` gets "Aborted (core dumped)" from `--headless=new --disable-dev-shm-usage --disable-gpu` in runs `36559824612` (`55f3dc63`) through `36747918865` (`a4a1ce13`). The workflow last passed on 2026-09-22 (`35782893330`), and local Chrome 154 passes. A runner sandbox restriction is suspected but unverified; settle it by uploading the `${output_path}.stderr` Chrome writes.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
+  summary: Let the browser harness run against the local Debug build, so local UI evidence can be reproduced from the repository.
+  evidence: `validate-tenants-focus-browser.sh:8-11` hardcodes four `obj/Release/net10.0/scopedcss` inputs, while local work is Debug-only. Story 5.4's Chrome 154 evidence came from an uncommitted `/tmp/story-5-4-browser-debug.sh` copy with Debug paths. A configuration variable that defaults to Release would keep CI unchanged.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
+  summary: Some bUnit `WaitForAssertion` checks in the UI suite time out under load.
+  evidence: `TenantDetailSurfaceTests.Detail_lifecycle_actions_fail_closed_while_authorization_is_pending` (`:1924`) failed with check count 85 and render count 86 in a full MTP run (3,585/3,586) while four review agents were running; it passes 3 of 3 runs on its own. Story 5.4's verification report also records an unnamed "metadata-confirmation" timeout (3,579/3,580) that passed on rerun. Neither test is in the reviewed diff. Name the tests, then raise their per-call timeouts or make their waits event-driven.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
+  summary: `validate-story-gitlinks.py` still exits 1 on the legacy Story 5.4 artifact. This recurs the 2026-09-30 entry above; add no separate action.
+  evidence: `5-4-audit-availability-state-recovery.md:3` `baseline_commit a5ca6e3f…` is not a commit. The spec-3 range (`55fc6f9..HEAD`, no pointer changes) and the primary spec range (`55f3dc6..HEAD`, Builds, EventStore and FrontComposer declared) both pass.
