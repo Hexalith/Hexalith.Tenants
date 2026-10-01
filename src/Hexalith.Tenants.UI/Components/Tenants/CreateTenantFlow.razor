@@ -342,10 +342,11 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         // Keep the state before navigation. A native anchor can leave a Blazor Server circuit before
-        // its click callback reaches the server, so click-time retention is too late.
+        // its click callback reaches the server, so click-time retention is too late. The gate follows the
+        // attempt the entry point links to, not the live input, which the operator may already have edited.
         TenantCreateAuditReturnState? returnState = Services.GetService<TenantCreateAuditReturnState>();
         if (!_returnStateConsumed && IsAuthorized && AuditReadAvailable && ShouldRenderAuditEntryPoint
-            && TenantAuditNavigationSafety.IsSafeIdentifier(_tenantId))
+            && TenantAuditNavigationSafety.IsSafeIdentifier(_snapshot.Intent?.TenantId ?? _tenantId))
         {
             returnState?.Remember(_snapshot, _tenantId, _name, _description);
         }

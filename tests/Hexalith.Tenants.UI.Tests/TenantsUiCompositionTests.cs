@@ -1718,7 +1718,10 @@ public sealed class TenantsUiCompositionTests
         // The French availability set is written with its accents, never an ASCII-folded approximation.
         french["Tenants.Audit.Availability.State.Delayed"].ShouldBe("Audit retardé");
         french["Tenants.Audit.Availability.State.MissingSupport"].ShouldBe("Support d’implémentation manquant");
-        string frenchAvailability = string.Join('\n', ReadResourceValues(frenchPath, ["Tenants.Audit.Availability."]));
+        // The shared set also includes required keys outside that prefix: the receipt's unavailable reason and Escalate.
+        string frenchAvailability = string.Join(
+            '\n',
+            ReadResourceValues(frenchPath, ["Tenants.Audit.Availability."]).Concat(required.Select(key => french[key])));
         foreach (string folded in new[] { "retarde ", "implementation", "verifier", "verifiee", "reessayez", "disponibilite", "evenement", "resultat" })
         {
             frenchAvailability.ShouldNotContain(folded, Case.Insensitive);

@@ -486,3 +486,65 @@ Review 7 patch closure (2026-10-01): all seven patches above are implemented. Cr
 - EC15, "the live region's first state is not announced": same as BH15, a duplicate deferral.
 - EC20, "configuration status-lookup timeouts are Unavailable while Lifecycle's are Delayed": low. It needs a status read hung past its bound, both states are incomplete and offer Escalate, and aligning them is a decision that would reopen fix-pass #8. The record already disagrees with itself: Review 2 EC16 calls a client status timeout Unavailable, while the Implementation Notes call Lifecycle's Delayed.
 - EC18 is the claim form of the Set configuration focus patch above, so it is folded into that patch.
+
+### Review Findings (Review 8)
+
+Review 8 (2026-10-01): one chunk of 18 files and 1,257 diff lines, drawn from two ranges.
+- `fa489329..78e09184` for `src` and `tests`: the Review 7 patch closure plus the build-completion patches (BH5/VG1, BH7/VG2, VG3).
+- The full-story `55f3dc63..78e09184` diff of the browser harness, `TenantsUiCompositionTests`, `TenantsWorkspaceTests` and `GeneratedTenantsSurfaceTests`.
+
+The spec and its two context docs were loaded. Layers: blind hunter, edge-case hunter, verification gap and acceptance auditor, with no failed layers. `python3 scripts/validate-story-gitlinks.py` on this spec passes with the four declared pointer moves. This review ran no build or test. HEAD `78e09184` is local only, and `origin/main` is at `3ce15d10`. Still to review as separate chunks: the component tests from `55f3dc63..fa489329` (~5,000 diff lines), the state tests (~1,669) and the story artifacts (~1,388).
+
+- [x] [Review][Patch] Create's audit-return retention still checks the live tenant-id input, so an audit round trip can lose the attempt [src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:348]. Review 7 moved the entry point's scope and accessible name to `_snapshot.Intent?.TenantId ?? _tenantId`. `OnAfterRenderAsync` still calls `Remember` only when `IsSafeIdentifier(_tenantId)` holds, and calls `Clear()` otherwise. If the operator clears the field, or types an id with a space, after a confirmed create, Inspect audit still opens `/tenants/tenant.alpha/audit`, but the saved state is gone. On return the panel is idle, and focus lands on an empty lifecycle section. Before Review 7 the same edit disabled the entry point, so this mismatch is new. Fix: gate on `_snapshot.Intent?.TenantId ?? _tenantId`. Then extend `InspectAuditKeepsTheConfirmedAttemptScopeAfterTheTenantInputChanges`: register a `TenantCreateAuditReturnState`, change the input to `""` after confirmation, and assert that `Take()` returns the attempt's snapshot (`message-1`).
+- [x] [Review][Patch] The RemoveMember lease-refusal theory's name and comment contradict its new first-attempt row [tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs:595]. The test is still named `Retry_refused_by_the_activity_lease_reports_the_possibly_delivered_attempt_as_unverifiable`, but its `false` row expects `NotStarted`. The comment "The retry reuses an identity that may already have reached the server" also applies to both rows. Rename the test to cover both rows (for example `ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted`), and limit the comment to the retry row.
+- [x] [Review][Patch] The unstacked-availability mutation's cause check is vacuous [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:278]. `--dump-dom` serializes the inline harness script and the `availability-stylesheet` link id, so `grep -q 'availability-style'` matches every dump. A mutation run that failed for an unrelated reason, such as a broken mutated stylesheet, would still count as "correctly rejected". Fix: grep only the report, with `grep -o '<output id="validation-report">[^<]*' "$availability_mutation_output" | grep -q 'FAIL availability-style:'`. The forced-colors observation grep (`:239`) and the baseline `remove-dialog-style` grep (`:265`) have the same shape and can take the same edit.
+- [x] [Review][Patch] The French ASCII-folding guard skips two keys of the shared availability set [tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs:1721]. It scans only the `Tenants.Audit.Availability.` prefix. The test's own `required` set also lists `Tenants.Audit.Receipt.Availability.Unavailable.Reason` and `Tenants.Audit.Recovery.Action.Escalate`. Both are written correctly today, but if either lost its accents, this test would still pass. Fix: scan those keys too, either by adding their prefixes or by joining `required.Select(key => french[key])` with the prefix values.
+- [x] [Review][Defer] After a first-attempt activity-lease refusal in RemoveMember, submitting again shows "can no longer be tracked", although nothing was sent [src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:853] — deferred: pre-existing.
+  - The refusal leaves `UnableToVerify` with no MessageId (`:853-862`).
+  - The next submit takes the branch for `UnableToVerify` with a null MessageId (`:772-791`), which shows `Tenants.Members.Submit.TrackingLost`. The operator has to Cancel and reopen.
+  - Both branches are the same at baseline `55f3dc63`, except for the audit state this story changed.
+  - The new `isRetry=false` row stops before the second submit, so no test pins this behavior.
+
+Review 8 patch closure (2026-10-01): all four patches above are applied on top of `78e09184`, and left uncommitted.
+- **Create gate:** retention now checks `_snapshot.Intent?.TenantId ?? _tenantId`. `InspectAuditKeepsTheConfirmedAttemptScopeAfterTheTenantInputChanges` became a theory over `tenant.next`, `""` and `tenant next`. Each row asserts that the retained snapshot is the attempt (`message-1`, intent `tenant.alpha`) and that the live input is restored as typed.
+- **Test rename:** AddMember, ChangeRole and Metadata had the same mismatched name, so all four lease-refusal theories became `ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted`, with XML docs. RemoveMember's comment now matches its siblings.
+- **Validator cause checks:** a `validation_report_contains` helper reads only the `<output id="validation-report">` text. The unstacked-availability and removal-dialog mutations must now fail with their exact computed-layout messages, and the forced-colors pass must report its observation.
+- **French accent scan:** the scan now also covers every `required` key.
+
+Mutation evidence:
+- Restoring the live-input gate failed exactly the `""` and `tenant next` rows; the safe `tenant.next` row still passed.
+- Removing the accent from the French receipt's unavailable reason ("vérifier" became "verifier") failed the composition guard.
+- An empty mutated availability stylesheet failed the new report-scoped check, exit 1 with "did not fail the computed-layout check". The old grep accepted the same run, exit 0 with "correctly rejected".
+- Source bytes were restored before the final build.
+
+Acceptance:
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug -m:1 --no-restore --no-incremental -p:UseHexalithProjectReferences=true`: 0 warnings, 0 errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -parallelMode none`: 3683/3683 passed, with no failures or skips.
+- Browser acceptance used a temporary copy of the tracked validator whose only changes are the input root and `obj/Release` → `obj/Debug`. It passed in Google Chrome 154.0.8037.57: narrow, desktop, forced colors and all four mutation rejections, each with its exact cause.
+- `bash -n` on the validator and `git diff --check` pass. The Release/package lane was not run, as recorded in the Review 7 closure.
+
+#### Rejected (Review 8)
+
+- AA1, "Lifecycle's audit Refresh re-dispatches, and the extended merged-redispatch test now requires it": rejected as previously decided (fix pass #7, Review 7 AA1). Recording the exception in the Spec Change Log would be a spec edit.
+- AA3, "the availability CSS path is Release-only, and the spec's Verification gates were not run as written": the hardcoded Release path is the open build-completion BH8 deferral. The Review 7 closure and the build completion review both record that the Release gate and the tracked script were not run as written. Changing those gates means editing the spec.
+- AA4, BH7 and BH8, "the forced-colors pass cannot fail for its reason": low.
+  - Deleting the `@media (forced-colors: active)` block would still pass, because the base `:focus-visible` outline applies in every mode.
+  - The badge border is never asserted, and the placeholder icon's `fill === "none"` check can never fail.
+  - The pass does show that the badge text and the focus outline stay visible in real Chromium under forced colors, which is what AC3 asks for.
+  - Adding a forced-colors mutation, a border check and an icon-contrast check is new harness work for a rare regression.
+- AA5, "the new tests use PascalCase, and older records cite the renamed focus test": false. The Hexalith baseline requires PascalCase test names. The legacy story and the 2026-09-30 re-review record describe the code as it was when they were written.
+- BH2, "the `?? _tenantId` / `?? _userId` fallbacks bring back the live-input bug": false. The entry point renders only for an audit state other than NotStarted, and every such snapshot carries an Intent (`Blocked()` forces NotStarted). The fallback is unreachable.
+- BH3, EC2, EC7 and VG Other-1, "focus timeouts can still end the circuit in the flows' focus helpers": low and pre-existing.
+  - The `FocusSafelyAsync` copies and the bare `FocusAsync` calls predate the story.
+  - A `TaskCanceledException` there needs a client that leaves a focus call unanswered for the whole interop timeout (one minute by default). By then the circuit is effectively gone.
+  - This is the same pattern as Review 5's rejected EC19–EC22. The Review 7 patch deliberately limited containment to the shared control's state line.
+- BH6, "`RendererTeardownFocusExceptions` now stands for a live timeout": low. Two teardown tests share the data set, and only its message text reads oddly in the live test.
+- BH9, "the fixture covers only the shortest badge label and two widths": low. Adding fixture states is new harness scope.
+- BH10 and EC5, "the Python mutation can remove the wrong `@media` block": false today. The compiled CSS has one 767px block, and that block holds the stacking rule. A second block would need a matching script edit.
+- BH11, "`Three_call_host_renders_generated_projection_route` still asserts `aria-rowcount="1"`": low and outside the story. The test passes with `1`, so its prerendered grid has no data rows yet. Whether prerender should include them is a FrontComposer question. Spec `-4` records the Fluent UI 5 row-count change.
+- BH12, "the French receipt strings mix accents and apostrophes": carried from Review 7 BH16 (low). `Tenants.Audit.Receipt.Title` ("Recu de preuve d'audit") and the receipt state strings have not changed since baseline `55f3dc63`.
+- BH13, "two keys hold the Inspect audit label, with no resource-level equality check": low. `AuditEvidenceReceiptTests` already checks that the receipt and the shared control render the same French text.
+- BH14, "the label-in-name guard covers only the command template": low. The other entry-point templates predate the story.
+- BH15, "the retry-budget block is copied five times with a hard-coded budget": low. Changing `MaximumUnchangedRetries` would make all five tests fail visibly, and a shared helper would be a refactor.
+- EC3, "the forced-colors observation grep is vacuous": false as a gap. The `passed` status check already proves that the block ran, because the run passes `forcedColors=active` and the harness throws when the media mode is inactive. The redundant grep can take the same report-scoped edit as the patch above.
+- VG2 and VG Other-2, "CI never executes the new browser checks or bUnit tests": both are already in `deferred-work.md`, as the Chrome 153 exit-134 abort and the Server package-boundary failure.

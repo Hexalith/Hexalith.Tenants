@@ -289,16 +289,23 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
     }
 
     /// <summary>
-    /// Verifies that editing the next tenant does not change the confirmed attempt's audit scope or accessible name.
+    /// Verifies that editing the next tenant does not change the confirmed attempt's audit scope, accessible name, or
+    /// the state retained for the audit round trip, even when the edited input is empty or not a safe identifier.
     /// </summary>
-    [Fact]
-    public void InspectAuditKeepsTheConfirmedAttemptScopeAfterTheTenantInputChanges()
+    /// <param name="nextTenantId">The tenant identifier typed after the attempt is confirmed.</param>
+    [Theory]
+    [InlineData("tenant.next")]
+    [InlineData("")]
+    [InlineData("tenant next")]
+    public void InspectAuditKeepsTheConfirmedAttemptScopeAfterTheTenantInputChanges(string nextTenantId)
     {
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
             Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
         };
+        TenantCreateAuditReturnState returnState = new(new ServiceCollection().BuildServiceProvider());
+        Services.AddSingleton(returnState);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
@@ -317,13 +324,20 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Find("form").Submit();
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
 
-        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.next");
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change(nextTenantId);
 
         AngleSharp.Dom.IElement entry = cut.Find("[data-testid='tenants-audit-entrypoint']");
         string href = entry.GetAttribute("href").ShouldNotBeNull();
         href.ShouldStartWith("/tenants/tenant.alpha/audit?");
         entry.GetAttribute("aria-label").ShouldBe("Inspect audit for tenant tenant.alpha (Missing implementation support)");
         href.ShouldNotContain("tenant.next");
+
+        // The entry point still follows the attempt, so the state kept for its return trip must follow it too.
+        var retained = returnState.Take();
+        retained.ShouldNotBeNull();
+        retained.Value.Snapshot.MessageId.ShouldBe("message-1");
+        retained.Value.Snapshot.Intent.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+        retained.Value.TenantId.ShouldBe(nextTenantId);
         gateway.CreateTenantCallCount.ShouldBe(1);
     }
 

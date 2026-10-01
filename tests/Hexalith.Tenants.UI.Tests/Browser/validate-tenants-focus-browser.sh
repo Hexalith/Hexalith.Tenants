@@ -215,6 +215,14 @@ run_browser() {
         "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}&availabilityCss=./${availability_css_name}&forcedColors=${forced_colors}" >"$output_path" 2>"${output_path}.stderr"
 }
 
+# The dumped DOM also serializes the harness script, its error messages, and its element ids, so a check for
+# why a run passed or failed reads only the validation report.
+validation_report_contains() {
+    local report
+    report="$(grep -o '<output id="validation-report">[^<]*' "$1" || true)"
+    [[ "$report" == *"$2"* ]]
+}
+
 positive_output="$validation_tmp/shipped.html"
 run_browser "tenantsFocus.js" "profile-shipped" "$positive_output"
 if ! grep -q 'data-validation-status="passed"' "$positive_output"; then
@@ -236,7 +244,7 @@ fi
 forced_colors_output="$validation_tmp/shipped-forced-colors.html"
 run_browser "tenantsFocus.js" "profile-shipped-forced-colors" "$forced_colors_output" "global-admins.css" 390 narrow "availability.css" active
 if ! grep -q 'data-validation-status="passed"' "$forced_colors_output" \
-    || ! grep -q 'availability-forced-colors-active-visible-text-icon-focus-outline' "$forced_colors_output"; then
+    || ! validation_report_contains "$forced_colors_output" 'availability-forced-colors-active-visible-text-icon-focus-outline'; then
     echo "Shipped audit availability failed real-Chromium forced-colors validation:" >&2
     grep -o '<output id="validation-report">[^<]*' "$forced_colors_output" >&2 || true
     sed -n '1,120p' "${forced_colors_output}.stderr" >&2
@@ -262,7 +270,7 @@ for style_mutation in inflow hidden; do
         exit 1
     fi
     if ! grep -q 'data-validation-status="failed"' "$style_output" \
-        || ! grep -q 'remove-dialog-style' "$style_output"; then
+        || ! validation_report_contains "$style_output" 'FAIL remove-dialog-style: visible fixed foreground bounds required'; then
         echo "The ${style_mutation} removal-dialog mutation did not fail the computed-style check." >&2
         exit 1
     fi
@@ -275,7 +283,7 @@ if grep -q 'data-validation-status="passed"' "$availability_mutation_output"; th
     exit 1
 fi
 if ! grep -q 'data-validation-status="failed"' "$availability_mutation_output" \
-    || ! grep -q 'availability-style' "$availability_mutation_output"; then
+    || ! validation_report_contains "$availability_mutation_output" 'FAIL availability-style: narrow recoveries did not stack full-width'; then
     echo "The unstacked availability mutation did not fail the computed-layout check." >&2
     exit 1
 fi

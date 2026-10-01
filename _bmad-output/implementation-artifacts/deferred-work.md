@@ -3403,3 +3403,16 @@ Review range `55f3dc63..fa489329`, chunk 1 (`src` minus `State/` and `Services/`
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
   summary: Split the fourteen pre-existing public command-model types into their own named C# files.
   evidence: Build completion review BH11 compared TenantCreateCommandModels.cs with baseline 55f3dc63b6ce10bb0afdf929d026fa07cffd9105 and found all fourteen public types already present. The monolithic file remains contrary to the Hexalith one-type-per-file rule; Review 7's fixes did not edit that file.
+
+## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-10-01, review 8)
+
+Review chunk: `fa489329..78e09184` for `src` and `tests`, plus the full-story diff of the browser harness and of the composition, workspace and generated-surface tests.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: After a first-attempt activity-lease refusal in RemoveMember, a second submit shows "This attempt can no longer be tracked", although nothing was dispatched.
+  evidence:
+  - The refusal sets `UnableToVerify` with a null MessageId (`RemoveTenantMemberFlow.razor:853-862`).
+  - The next submit enters the branch for `UnableToVerify` with a null MessageId (`:772-791`), which shows `Tenants.Members.Submit.TrackingLost`. The operator must Cancel and reopen to try again.
+  - Both branches are the same at baseline `55f3dc63`, except for the audit state Story 5.4 changed.
+  - `RemoveTenantMemberFlowTests.Retry_refused_by_the_activity_lease_…` (row `isRetry=false`) stops before the second submit, so no test pins this.
+  - Fix direction: keep a pre-dispatch busy refusal resubmittable, for example a Blocked-style state that keeps the Intent, and add a test that the second submit dispatches once the lease is granted.

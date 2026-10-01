@@ -589,10 +589,16 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         gateway.RemoveMemberCallCount.ShouldBe(3);
     }
 
+    /// <summary>
+    /// Verifies that an activity-lease refusal reports a retry, whose identity may already have reached the server,
+    /// as unverifiable, and a first attempt, which sent nothing, as not started.
+    /// </summary>
+    /// <param name="isRetry">Whether the refused submission retries an ambiguous attempt.</param>
+    /// <param name="expectedAuditState">The audit state the refusal must report.</param>
     [Theory]
     [InlineData(true, TenantCommandAuditState.AuditUnavailable)]
     [InlineData(false, TenantCommandAuditState.NotStarted)]
-    public void Retry_refused_by_the_activity_lease_reports_the_possibly_delivered_attempt_as_unverifiable(
+    public void ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted(
         bool isRetry,
         TenantCommandAuditState expectedAuditState)
     {
@@ -622,7 +628,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         }
 
         // The retry reuses an identity that may already have reached the server; the refused lease blocks it
-        // before dispatch. A first attempt refused before dispatch sent nothing, so no audit state is implied.
+        // before dispatch, and the audit dimension reports the unknown status instead of "not started". A first
+        // attempt refused before dispatch sent nothing, so no audit state is implied.
         cut.Find("form").Submit();
 
         TenantCommandLifecycleState expectedState = isRetry

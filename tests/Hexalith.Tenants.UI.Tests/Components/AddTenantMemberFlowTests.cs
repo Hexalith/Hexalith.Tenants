@@ -755,10 +755,16 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         cut.WaitForAssertion(() => LastFocusedReferenceId().ShouldBe(lifecycleReferenceId));
     }
 
+    /// <summary>
+    /// Verifies that an activity-lease refusal reports a retry, whose identity may already have reached the server,
+    /// as unverifiable, and a first attempt, which sent nothing, as not started.
+    /// </summary>
+    /// <param name="isRetry">Whether the refused submission retries an ambiguous attempt.</param>
+    /// <param name="expectedAuditState">The audit state the refusal must report.</param>
     [Theory]
     [InlineData(true, TenantCommandAuditState.AuditUnavailable)]
     [InlineData(false, TenantCommandAuditState.NotStarted)]
-    public void Retry_refused_by_the_activity_lease_reports_the_possibly_delivered_attempt_as_unverifiable(
+    public void ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted(
         bool isRetry,
         TenantCommandAuditState expectedAuditState)
     {
