@@ -3350,3 +3350,14 @@ Review range `55fc6f91..a4a1ce13`.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-4.md`
   summary: Reconcile dotnet formatter same-line-brace expectations with the Hexalith baseline requirement for Allman braces.
   evidence: The supplementary read-only dotnet format whitespace check on the three changed UI test files exited 2 with 299 WHITESPACE diagnostics before review amendments; it requested same-line braces for existing Allman blocks and four new blocks matching that required style. The exact command and result are in the 2026-10-01 addendum to story-5-4-re-review-verification-2026-09-30.md. A policy correction belongs in separate repository maintenance; no formatting configuration or build/test gate was weakened here.
+
+## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-10-01, review 5)
+
+Review range `54ceb3e1..697697f9`.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Use the retry-aware `TenantCommandAuditStates.FromSubmission(result, retriedMessageId)` in Lifecycle, Set configuration and Remove configuration.
+  evidence: Pre-existing; the 2026-10-01 fix pass wired it in AddMember, ChangeRole, RemoveMember and Metadata only. `TenantLifecycleCommandFlow.razor:1315`, `SetTenantConfigurationFlow.razor:698` and `RemoveTenantConfigurationFlow.razor:937` still call `FromSubmission(result)`. Their tracked gateways return `FailedWithKey` with no MessageId for failures before dispatch (`TenantCommandGateway.cs`, `UnavailableTenantCommandGateway.cs`), so a re-dispatch of a retained, possibly delivered identity that fails that way reports NotStarted and hides the control. Lifecycle's re-dispatch site (`:1550`) is explicit. The configuration flows first need the tracker to report whether `BeginDispatch` resumed a retained identity.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+  summary: Keep the localized reason of a keyed failed submission in AddMember and ChangeRole.
+  evidence: Pre-existing. The failure arm sets `SafeMessage = result.SafeMessage, SafeMessageKey = null` (`AddTenantMemberFlow.razor:558`, `ChangeTenantMemberRoleFlow.razor:617`), so `FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference")` renders no explanation. It is reachable only when the reused message id fails `TryResolveMessageId`. The fix is to pass `result.SafeMessageKey` through, as RemoveMember and Metadata already do.
