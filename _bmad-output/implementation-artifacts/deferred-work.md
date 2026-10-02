@@ -3425,3 +3425,22 @@ Review chunk: `fa489329..78e09184` for `src` and `tests`, plus the full-story di
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Decide and expose redacted last-owner consequence facts in tenant correction previews (medium).
   evidence: R-B7; the baseline preview contains no owner count or explicit last-owner warning. Domain validation prevents removing the last owner, but the existing Story 5.6 consequence preview cannot warn before that rejection.
+
+## Deferred from: code review of spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md (2026-10-02)
+
+Review diff: `bcfc0788..f44e19e7` (story commits `cefefa26` and `f44e19e7`, merged as PR #51 `09c90f08`).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: A submitted, tracked tenant-correction preview is still unmounted by refresh, list-refresh, row loss and viewport narrowing (pre-existing).
+  evidence:
+  - These paths in `TenantAuditPage.razor` clear `_previewCorrectionIntent` without checking `HasSubmittedCorrection`:
+    - `CaptureCorrectionAuthority` (`:1653`), when the source row is absent or not Ready, for example after the corrective event pushes it off page 1.
+    - `ClearPaging` (`:1407`), on `ListRefreshed`/`InvalidCursor`.
+    - The viewport handler (`:645`).
+  - The preview is also rendered inside the `ShouldRenderRows` block (`:214`), so a Loading snapshot unmounts it.
+  - The operator loses the lifecycle, tracking handle and proof link of a dispatched command.
+  - At baseline `bcfc0788` the same paths unmounted the submitting `CorrectionStartPanel`. Commit `f44e19e7` retains submitted previews only on the new role and start paths.
+  - Story 5.6 owns preview lifecycle retention. It should reuse whatever "submitted" signal the Story 5.5 review decision on Failed/Rejected previews settles.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: CI still runs no Tenants test tier (already tracked above; reconfirmed).
+  evidence: Run 36970095241 on `09c90f08` (`main`, after the PR #51 merge) fails `ci / build-and-test` at "Validate package consumer references". Aspire and performance tests are skipped. All Story 5.5 test evidence is local only. See the 2026-09-29 entry "Restore CI test execution".
