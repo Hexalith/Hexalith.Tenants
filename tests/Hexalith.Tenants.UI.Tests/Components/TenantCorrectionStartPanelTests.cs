@@ -46,7 +46,7 @@ public sealed class TenantCorrectionStartPanelTests : FluentBunitContext
             IRenderedComponent<TenantCorrectionStartPanel> cut = Render<TenantCorrectionStartPanel>(parameters => parameters
                 .Add(p => p.Intent, intent).Add(p => p.OnHandoff, value => handedOff = value));
             cut.Find("[data-testid='tenants-correction-start-reference']").TextContent.ShouldBe("event-original");
-            cut.Find("[data-testid='tenants-correction-start-timestamp']").TextContent.ShouldContain("+00:00");
+            cut.Find("[data-testid='tenants-correction-start-timestamp']").TextContent.ShouldBe("2026-06-01 10:00:00 UTC");
             cut.Find("[data-testid='tenants-correction-start-scope']").TextContent.ShouldBe("tenant.alpha");
             cut.Find("[data-testid='tenants-correction-start-target']").TextContent.ShouldBe("target-user");
             cut.VisibleText().ShouldNotContain("Tenants.Correction.");

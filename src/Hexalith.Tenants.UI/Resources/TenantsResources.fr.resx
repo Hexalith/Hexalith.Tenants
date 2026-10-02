@@ -3734,7 +3734,7 @@
     <value>La preuve d'audit n'est pas prête pour démarrer une correction.</value>
   </data>
   <data name="Tenants.Correction.Unavailable.AuthorizationIndeterminate" xml:space="preserve">
-    <value>La preuve d'autorisation est indéterminée.</value>
+    <value>Les droits actuels n’ont pas pu être vérifiés. Actualisez ou demandez les droits nécessaires avant de démarrer la correction.</value>
   </data>
   <data name="Tenants.Correction.Unavailable.CommandSupportUnavailable" xml:space="preserve">
     <value>Le chemin de commande de correction locataire n'est pas connecté.</value>
@@ -3846,6 +3846,9 @@
   </data>
   <data name="Tenants.Correction.RoleChoice.Label" xml:space="preserve">
     <value>Choisir le rôle prévu</value>
+  </data>
+  <data name="Tenants.Correction.RoleChoice.ForEvidence" xml:space="preserve">
+    <value>Choisir le rôle prévu pour la preuve d’audit {0}</value>
   </data>
   <data name="Tenants.Correction.RoleChoice.Placeholder" xml:space="preserve">
     <value>Sélectionner un rôle</value>
@@ -4157,7 +4160,7 @@
     <value>Les nouvelles tentatives n’ont pas modifié cet état ; il n’est plus proposé de réessayer ici.</value>
   </data>
   <data name="Tenants.Correction.Start.Title" xml:space="preserve">
-    <value>Démarrer une correction de locataire</value>
+    <value>Démarrer une correction en avant du locataire</value>
   </data>
   <data name="Tenants.Correction.Start.Context" xml:space="preserve">
     <value>Vérifiez l’état actuel et le rôle choisi avant d’ouvrir l’aperçu distinct. Aucune commande n’a été envoyée.</value>
@@ -4181,7 +4184,7 @@
     <value>Le locataire ou la cible ne correspond pas à la preuve actuelle. Actualisez ou poursuivez en lecture seule.</value>
   </data>
   <data name="Tenants.Correction.Unavailable.EmptyMembershipRequiresOwner" xml:space="preserve">
-    <value>La liste actuelle des membres est vide. Choisissez Propriétaire et demandez les droits actuels d’administrateur global avant la récupération.</value>
+    <value>La liste actuelle des membres est vide. Choisissez Propriétaire pour poursuivre cette récupération.</value>
   </data>
   <data name="Tenants.Correction.PreviewInput.emptyMembership" xml:space="preserve">
     <value>Récupération de membres absents</value>

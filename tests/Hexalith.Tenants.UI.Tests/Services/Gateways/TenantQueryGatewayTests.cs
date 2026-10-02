@@ -107,6 +107,54 @@ public sealed class TenantQueryGatewayTests
         _ = composition.DidNotReceiveWithAnyArgs().ComposeTenantCorrectionProjectionsAsync(default!, default!, default!, default, default, default);
     }
 
+    [Theory]
+    [InlineData(true, ProjectionLifecycleState.Unknown, QueryResponseProvenance.ProjectionBacked)]
+    [InlineData(false, ProjectionLifecycleState.Rebuilding, QueryResponseProvenance.ProjectionBacked)]
+    [InlineData(false, ProjectionLifecycleState.Current, QueryResponseProvenance.HandlerComputed)]
+    public async Task SuccessfulCorrectionReadStillRequiresCurrentProjectionMetadata(
+        bool isStale,
+        ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        TenantsRestQueryResponse<TenantDetail> response = DirectResponse(Detail("tenant.alpha")) with
+        {
+            Metadata = ProjectionBackedMetadata(isStale: isStale, lifecycle: lifecycle, provenance: provenance),
+        };
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(response);
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(),
+            principalResolver: new StubConfigurationPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.NonAdministrator("owner-user")));
+
+        TenantCorrectionProjection capture = await CreateGateway(client, bffComposition: composition)
+            .GetTenantCorrectionProjectionAsync("tenant.alpha", "reader-user");
+
+        capture.IsAuthorized.ShouldBeTrue();
+        capture.HasVerifiedMembership.ShouldBeTrue();
+        capture.CurrentRole.ShouldBe(TenantRole.TenantReader);
+        capture.IsCurrent.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CorrectionCaptureRedactsReadAndPrincipalResolverFailures(bool principalFailure)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => principalFailure ? DirectResponse(Detail("tenant.alpha"))
+                : throw new HttpRequestException("raw query URI"));
+        ITenantConfigurationPrincipalResolver resolver = new ThrowingPrincipalResolver();
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver: resolver);
+        TenantCorrectionProjection capture = await CreateGateway(client, bffComposition: composition)
+            .GetTenantCorrectionProjectionAsync("tenant.alpha", "target-user");
+        capture.IsCurrent.ShouldBeFalse();
+        capture.IsAuthorized.ShouldBeFalse();
+        capture.HasVerifiedMembership.ShouldBeFalse();
+        capture.CurrentRole.ShouldBeNull();
+    }
+
     [Fact]
     public async Task Gateway_constructs_each_direct_typed_query_at_the_production_client_boundary()
     {
@@ -8353,6 +8401,14 @@ public sealed class TenantQueryGatewayTests
         public ValueTask<TenantConfigurationPrincipalEvidence> ResolveAsync(
             CancellationToken cancellationToken = default)
             => ValueTask.FromResult(evidence);
+    }
+
+    private sealed class ThrowingPrincipalResolver : ITenantConfigurationPrincipalResolver
+    {
+        public ValueTask<TenantConfigurationPrincipalEvidence> ResolveAsync(
+            CancellationToken cancellationToken = default)
+            => ValueTask.FromException<TenantConfigurationPrincipalEvidence>(
+                new InvalidOperationException("raw principal failure"));
     }
 
     private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch);

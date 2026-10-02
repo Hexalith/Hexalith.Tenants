@@ -206,9 +206,8 @@
             : OnRoleSelected.InvokeAsync(new(CorrectionIntent.OriginalAuditReference, role));
     }
 
-    // Mirror AuditDataGrid: only surface correction UI on a ready receipt, and never show a
-    // correction reason for outcomes that are not correctable at all (e.g. UserAddedToTenant),
-    // so opening any receipt does not render a confusing "not supported for correction" message.
+    // Mirror AuditDataGrid: only surface correction UI on a ready receipt. Unsupported
+    // outcomes show one localized reason without implying missing current evidence.
     private bool ShouldRenderCorrection
         => CorrectionIntent is not null
             && Receipt?.State is TenantAuditReceiptState.Ready
@@ -357,8 +356,7 @@
 
     private bool HasRenderableUnavailableReason
         => CorrectionIntent is not null
-            && CorrectionIntent.UnavailableReasons.Count > 0
-;
+            && CorrectionIntent.UnavailableReasons.Count > 0;
 
     private string CorrectionActionLabel
         => CorrectionIntent?.IsRestoreAccessAction is true
@@ -375,6 +373,8 @@
             ? string.Empty
             : CorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
                 ? Localizer["Tenants.Correction.Start.GlobalNotReady"]
+                : CorrectionIntent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome)
+                    ? Localizer["Tenants.Correction.Unavailable.UnsupportedOutcome"]
                 : string.Join(
                 " ",
                 CorrectionIntent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));

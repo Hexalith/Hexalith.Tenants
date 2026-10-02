@@ -66,4 +66,5 @@ jobs:
       - name: Validate the shipped removal focus module in Chromium
         env:
           CHROMIUM_BIN: ${{ steps.chrome.outputs.chrome-path }}
+          TENANTS_BROWSER_BUILD_CONFIGURATION: Release
         run: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh

@@ -147,9 +147,20 @@ PY
 # Export the real EN/FR component markup from the built Debug/source-reference test executable.
 start_test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
 start_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/TenantCorrectionStartPanel.razor.rz.scp.css"
-TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
     -method '*TenantCorrectionStartPanelTests.StartAndHandoffPreserveSafeEvidenceWithoutCommandsOrStatusLookups' \
-    >"$validation_tmp/start-fixture-tests.log" 2>&1
+    >"$validation_tmp/start-fixture-tests.log" 2>&1; then
+    echo "Correction start fixture export failed." >&2
+    cat "$validation_tmp/start-fixture-tests.log" >&2
+    exit 1
+fi
+for fixture in tenant-correction-start-en.html tenant-correction-start-fr.html; do
+    if [[ ! -f "$validation_tmp/$fixture" ]]; then
+        echo "Correction start fixture export did not create $fixture." >&2
+        cat "$validation_tmp/start-fixture-tests.log" >&2
+        exit 1
+    fi
+done
 cp -- "$script_dir/tenant-correction-start-browser-validation.html" "$validation_tmp/start.html"
 cp -- "$start_css_path" "$validation_tmp/tenant-correction-start.css"
 

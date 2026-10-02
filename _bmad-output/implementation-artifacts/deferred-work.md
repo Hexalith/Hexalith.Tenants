@@ -3416,7 +3416,8 @@ Review chunk: `fa489329..78e09184` for `src` and `tests`, plus the full-story di
   - Both branches are the same at baseline `55f3dc63`, except for the audit state Story 5.4 changed.
   - `RemoveTenantMemberFlowTests.Retry_refused_by_the_activity_lease_…` (row `isRetry=false`) stops before the second submit, so no test pins this.
   - Fix direction: keep a pre-dispatch busy refusal resubmittable, for example a Blocked-style state that keeps the Intent, and add a test that the second submit dispatches once the lease is granted.
-# Story 5.5 resumed review — 2026-10-02
+
+## Deferred from: code review of spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md (2026-10-02)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Recheck current circuit authority and membership immediately before tenant correction confirmation dispatch (high).
@@ -3444,3 +3445,21 @@ Review diff: `bcfc0788..f44e19e7` (story commits `cefefa26` and `f44e19e7`, merg
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: CI still runs no Tenants test tier (already tracked above; reconfirmed).
   evidence: Run 36970095241 on `09c90f08` (`main`, after the PR #51 merge) fails `ci / build-and-test` at "Validate package consumer references". Aspire and performance tests are skipped. All Story 5.5 test evidence is local only. See the 2026-09-29 entry "Restore CI test execution".
+
+## Deferred from: code review of spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md (2026-10-02)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: Retain a submitted correction preview across audit refresh, row loss, and viewport changes.
+  evidence: BH3/EH1; the Story 5.6 preview is still mounted inside the row surface and these existing page paths clear it, losing a dispatched attempt's tracking handle. This was present before Story 5.5.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: Require attempt-specific provenance before linking a corrective audit event as proof.
+  evidence: BH5; the existing Story 5.6 proof search matches type, tenant, target, and time, so a separate command can produce a false proof match.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: Give the corrective audit proof link a matching destination in the audit grid.
+  evidence: BH6; the existing Story 5.6 link points to an audit-reference fragment while the grid renders no matching id.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: Show the original evidence timestamp in the Story 5.6 final preview.
+  evidence: BH7; the preview carries originalTimestamp in its intent but filters it from visible preview fields, although the start surface shows it.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: Verify the composed audit grid, receipt, start, and preview at narrow widths in an authenticated browser run.
+  evidence: BH12; the isolated browser fixture cannot prove the composed layout. This is a medium-impact possibility without demonstrated overflow; a live authenticated browser run across measured widths would settle it when the existing query-gateway authentication limitation is resolved.

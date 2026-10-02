@@ -589,7 +589,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Fact]
-    public void Receipt_component_omits_correction_copy_for_uncorrectable_outcomes()
+    public void Receipt_component_shows_only_unsupported_reason_for_uncorrectable_outcomes()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row()));
@@ -599,7 +599,25 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             .Add(component => component.CorrectionIntent, intent));
 
         intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.UnsupportedOutcome);
-        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldBe("This audit outcome is not supported for correction start.");
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Receipt_hides_role_picker_on_unsafe_viewport()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAuditRow row = Row(eventType: "UserRemovedFromTenant");
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(row, TenantRole.TenantReader) with
+        {
+            IsNarrowViewportSafe = false,
+        });
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(row))
+            .Add(component => component.CorrectionIntent, intent)
+            .Add(component => component.IsCorrectionViewportSafe, false));
+        cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
     }
 
@@ -923,6 +941,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Correction.Action.StartAccessible"] = "start correction for audit evidence {0}",
             ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
+            ["Tenants.Correction.Unavailable.UnsupportedOutcome"] = "This audit outcome is not supported for correction start.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
             ["Tenants.Audit.Availability.State.Available"] = "Audit available",

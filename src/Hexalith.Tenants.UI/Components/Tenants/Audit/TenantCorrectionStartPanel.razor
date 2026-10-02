@@ -78,7 +78,7 @@
     private bool IsEmptyRecovery => Input("emptyMembership") is "true";
     private string TimestampLabel => DateTimeOffset.TryParse(Input("originalTimestamp"), CultureInfo.InvariantCulture,
         DateTimeStyles.RoundtripKind, out DateTimeOffset timestamp) && timestamp != default
-        ? timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC' zzz", CultureInfo.CurrentCulture) : string.Empty;
+        ? timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) : string.Empty;
     private bool HasSafeFields => SafeReference.Length > 0 && SafeScope.Length > 0 && SafeTarget.Length > 0
         && TimestampLabel.Length > 0 && Intent?.IntendedRole is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
     private bool CanHandoff => HasSafeFields && Intent?.IsAvailable is true && OnHandoff.HasDelegate

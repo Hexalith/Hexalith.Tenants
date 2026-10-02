@@ -120,7 +120,7 @@
                               data-testid="tenants-correction-role"
                               data-correction-focus-reference="@context.EventReference"
                               data-correction-origin="grid"
-                              aria-label="@Localizer["Tenants.Correction.RoleChoice.Label"]">
+                              aria-label="@Localizer["Tenants.Correction.RoleChoice.ForEvidence", context.EventReference]">
                     <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</FluentOption>
                     @foreach (TenantRole role in AssignableRoles)
                     {
@@ -256,16 +256,11 @@
         => CorrectionIntentProvider?.Invoke(row);
 
     private static bool ShouldRenderUnavailableReason(TenantCorrectionStartIntent? intent)
-        => intent?.UnavailableReasons.Count > 0
-;
+        => intent?.UnavailableReasons.Count > 0;
 
     private static bool IsSupportedCorrection(TenantCorrectionStartIntent? intent)
-        => intent?.IntendedCommandDomain is not null
-            && intent.IntendedCommandType is not null
-;
-
-    private static bool RequiresRoleSelection(TenantCorrectionStartIntent intent)
-        => intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.ExplicitRoleRequired);
+        => intent?.IntendedCommandDomain is TenantCorrectionCommandDomain.Tenants
+            && intent.IntendedCommandType is not null;
 
     private string CorrectionActionLabel(TenantCorrectionStartIntent intent)
         => intent.IsRestoreAccessAction
@@ -280,6 +275,8 @@
     private string CorrectionUnavailableReason(TenantCorrectionStartIntent intent)
         => intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
             ? Localizer["Tenants.Correction.Start.GlobalNotReady"]
+            : intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome)
+                ? Localizer["Tenants.Correction.Unavailable.UnsupportedOutcome"]
             : string.Join(
             " ",
             intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));

@@ -152,16 +152,6 @@
                               OnClick="SubmitAsync">
                     @Localizer["Tenants.Correction.Confirm.Submit"]
                 </FluentButton>
-                @if (_snapshot.CanSubmit)
-                {
-                    <FluentButton Appearance="ButtonAppearance.Outline"
-                                  Class="correction-start-panel__preview-action"
-                                  data-testid="tenants-correction-preview-handoff"
-                                  Disabled="@IsConfirmDisabled"
-                                  OnClick="SubmitAsync">
-                        @Localizer["Tenants.Correction.Action.PreviewHandoff"]
-                    </FluentButton>
-                }
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               data-testid="tenants-correction-refresh"
                               Disabled="@(!CanRefresh)"
@@ -189,6 +179,7 @@
     private TenantCorrectionPreviewSnapshot? _snapshot;
     private string _roleValue = string.Empty;
     private bool _isSubmitting;
+    private bool _hasSubmitted;
     private string? _intentReference;
     private ElementReference _lifecycleElement;
     private bool _focusLifecyclePending;
@@ -210,6 +201,8 @@
     public Func<Task<TenantDetail?>>? ProjectionRefreshProvider { get; set; }
 
     internal TenantCorrectionPreviewSnapshot? Snapshot => _snapshot;
+
+    internal bool HasSubmitted => _hasSubmitted;
 
     private ITenantCommandGateway? CommandGateway
         => Services.GetService<ITenantCommandGateway>();
@@ -234,10 +227,11 @@
                 _snapshot.Intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
 
     private bool IsConfirmDisabled
-        => _isSubmitting || _snapshot?.CanSubmit is not true || CommandGateway is null;
+        => _hasSubmitted || _isSubmitting || _snapshot?.CanSubmit is not true
+            || CommandGateway?.SupportsCommandStatusLookup is not true;
 
     private bool RoleSelectionDisabled
-        => _isSubmitting || _snapshot?.LifecycleState is TenantCommandLifecycleState.RequestSent
+        => _hasSubmitted || _isSubmitting || _snapshot?.LifecycleState is TenantCommandLifecycleState.RequestSent
             or TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.Confirmed;
@@ -506,6 +500,7 @@
         }
 
         _snapshot = _snapshot.RequestSent();
+        _hasSubmitted = true;
         _isSubmitting = true;
 
         try
@@ -661,6 +656,10 @@
 
     private void OnRoleChanged(string? value)
     {
+        if (RoleSelectionDisabled)
+        {
+            return;
+        }
         _roleValue = value ?? string.Empty;
         SetSnapshotFromIntent();
     }

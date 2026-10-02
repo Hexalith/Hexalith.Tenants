@@ -3734,7 +3734,7 @@
     <value>Audit evidence is not ready for correction start.</value>
   </data>
   <data name="Tenants.Correction.Unavailable.AuthorizationIndeterminate" xml:space="preserve">
-    <value>Authorization evidence is indeterminate.</value>
+    <value>Current access could not be verified. Refresh or request permission before starting correction.</value>
   </data>
   <data name="Tenants.Correction.Unavailable.CommandSupportUnavailable" xml:space="preserve">
     <value>The tenant correction command path is not connected.</value>
@@ -3846,6 +3846,9 @@
   </data>
   <data name="Tenants.Correction.RoleChoice.Label" xml:space="preserve">
     <value>Choose intended role</value>
+  </data>
+  <data name="Tenants.Correction.RoleChoice.ForEvidence" xml:space="preserve">
+    <value>Choose intended role for audit evidence {0}</value>
   </data>
   <data name="Tenants.Correction.RoleChoice.Placeholder" xml:space="preserve">
     <value>Select role</value>
@@ -4181,7 +4184,7 @@
     <value>The tenant or target does not match the current evidence. Refresh or continue read-only.</value>
   </data>
   <data name="Tenants.Correction.Unavailable.EmptyMembershipRequiresOwner" xml:space="preserve">
-    <value>Current membership is empty. Choose Owner and request current global administrator permission before recovery.</value>
+    <value>Current membership is empty. Choose Owner to continue this recovery.</value>
   </data>
   <data name="Tenants.Correction.PreviewInput.emptyMembership" xml:space="preserve">
     <value>Empty membership recovery</value>

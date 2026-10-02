@@ -29,7 +29,7 @@
             const handoff = panel?.querySelector('[data-testid="tenants-correction-start-handoff"]');
             const cancel = panel?.querySelector('[data-testid="tenants-correction-start-cancel"]');
             if (!panel || !handoff || !cancel || handoff.hasAttribute('disabled')) throw new Error('Rendered start/handoff selectors or readiness changed');
-            if (!panel.querySelector('[data-testid="tenants-correction-start-timestamp"]').textContent.includes('+00:00')) throw new Error('Absolute timestamp lost its offset');
+            if (!panel.querySelector('[data-testid="tenants-correction-start-timestamp"]').textContent.trim().endsWith(' UTC')) throw new Error('Absolute timestamp lost its UTC marker');
             if (panel.querySelector('[data-testid="tenants-correction-confirm"], [data-testid="tenants-correction-proof-link"]')) throw new Error('Start fixture contains submission or proof UI');
             for (const token of ['TenantReader', 'ProjectionBacked', 'tenant-projection-current', 'Tenants.Correction.']) {
                 if (panel.textContent.includes(token)) throw new Error(`Visible machine token: ${token}`);

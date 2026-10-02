@@ -39,6 +39,8 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
         var action = cut.Find("[data-testid='tenants-correction-start']");
         action.TextContent.ShouldContain("restore intended access");
         action.GetAttribute("aria-label").ShouldNotBeNull().ShouldContain("restore intended access");
+        cut.Find("[data-testid='tenants-correction-role']").GetAttribute("aria-label")
+            .ShouldBe("Choose intended role for audit evidence event-safe-reference");
 
         action.Click();
 
@@ -138,7 +140,7 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
     }
 
     [Fact]
-    public void Audit_grid_does_not_render_correction_copy_for_unsupported_rows()
+    public void Audit_grid_shows_only_unsupported_reason_for_uncorrectable_rows()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -149,7 +151,8 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             .Add(component => component.Rows, [row])
             .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value))));
 
-        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldBe("This audit outcome is not supported for correction start.");
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-mobile-read-only']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-viewport-pending']").ShouldBeEmpty();
@@ -175,7 +178,32 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
 
         cut.Find($"[data-testid='{expectedSelector}']").TextContent.ShouldNotBeNullOrWhiteSpace();
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-audit-row-timestamp']").TextContent.ShouldContain("UTC");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void GlobalAdministratorRowsNeverClaimSupportedPhoneCorrection(bool hasMeasurement)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        TenantAuditRow row = Row("GlobalAdministratorRemoved") with
+        {
+            TenantId = "system",
+            Scope = "global-administrators",
+        };
+        IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
+            .Add(component => component.Rows, [row])
+            .Add(component => component.HasViewportMeasurement, hasMeasurement)
+            .Add(component => component.IsCorrectionViewportSafe, false)
+            .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value))));
+        cut.FindAll("[data-testid='tenants-correction-mobile-read-only']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-viewport-pending']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldBe("The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.");
     }
 
     private static TenantCorrectionStartContext Context(TenantAuditRow row, TenantRole? intendedRole = null)
@@ -240,8 +268,11 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
             ["Tenants.Correction.Action.Start"] = "start correction",
             ["Tenants.Correction.Action.StartAccessible"] = "start correction for audit evidence {0}",
+            ["Tenants.Correction.RoleChoice.ForEvidence"] = "Choose intended role for audit evidence {0}",
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Correction.Unavailable.FreshnessIndeterminate"] = "Refresh current evidence before starting correction.",
+            ["Tenants.Correction.Unavailable.UnsupportedOutcome"] = "This audit outcome is not supported for correction start.",
+            ["Tenants.Correction.Start.GlobalNotReady"] = "The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.",
             ["Tenants.Copy.Action"] = "Copy",
         };
     }

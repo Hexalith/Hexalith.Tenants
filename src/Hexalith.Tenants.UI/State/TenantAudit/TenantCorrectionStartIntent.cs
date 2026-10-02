@@ -190,8 +190,15 @@ public sealed record TenantCorrectionStartIntent(
                 break;
         }
 
+        // The BFF redacts an unavailable authority capture. Do not turn that redaction into a
+        // stack of guesses about lifecycle and membership on the operator surface.
+        IReadOnlyList<TenantCorrectionUnavailableReason> safeReasons = context.Projection is
+            { IsAuthorized: false, HasVerifiedMembership: false } && !context.IsAuthorized
+            && domain is TenantCorrectionCommandDomain.Tenants
+                ? [TenantCorrectionUnavailableReason.AuthorizationIndeterminate]
+                : reasons.Distinct().ToArray();
         return new(reference, scope, target, row.EventType, projectionReference, domain, command,
-            context.IntendedRole, reasons.Distinct().ToArray(), inputs,
+            context.IntendedRole, safeReasons, inputs,
             domain is TenantCorrectionCommandDomain.Tenants ? context.Projection : null);
     }
 

@@ -447,6 +447,37 @@ public sealed class TenantCorrectionStartIntentTests
         intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StaleOrScopeConflictingCaptureCannotClaimAlreadyApplied(bool scopeConflict)
+    {
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant", "userId: target-user"),
+            TenantRole.TenantReader, TenantRole.TenantReader);
+        TenantCorrectionProjection capture = context.Projection!;
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with
+        {
+            Projection = scopeConflict ? capture with { TenantId = "tenant.beta" }
+                : capture with { Freshness = ReadModelFreshnessState.Stale },
+        });
+        intent.IsAvailable.ShouldBeFalse();
+        intent.UnavailableReasons.ShouldNotContain(TenantCorrectionUnavailableReason.AlreadyApplied);
+        intent.RequiredPreviewInputs.ContainsKey("currentRole").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RedactedAuthorityCaptureShowsOneRecoveryWithoutMembershipGuesses()
+    {
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant", "userId: target-user"), TenantRole.TenantReader);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with
+        {
+            IsAuthorized = false,
+            Projection = TenantCorrectionProjection.Unavailable("tenant.alpha", "target-user"),
+        });
+        intent.UnavailableReasons.ShouldBe([TenantCorrectionUnavailableReason.AuthorizationIndeterminate]);
+        intent.RequiredPreviewInputs.ContainsKey("currentRole").ShouldBeFalse();
+    }
+
     [Fact]
     public void AuthoritySupportAndViewportLossBlockWithoutLosingOriginalEvidence()
     {

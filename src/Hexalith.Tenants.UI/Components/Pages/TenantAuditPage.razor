@@ -2,7 +2,6 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State
-@using Hexalith.Tenants.UI.State.GlobalAdministrators
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Hexalith.EventStore.Client.Gateway
 @using Microsoft.JSInterop
@@ -313,8 +312,6 @@
     private int _correctionOpenGeneration;
     private long _correctionProjectionGeneration;
     private TenantDetailSnapshot? _tenantDetailSnapshot;
-    private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
-    private long _globalAdministratorsProjectionGeneration;
     private IAsyncDisposable? _readRefreshLease;
     private string? _loadedTenantId;
     private string? _initialLoadStartedTenantId;
@@ -645,7 +642,7 @@
                 if (!HasMeasuredSafeViewport)
                 {
                     _correctionOpenGeneration++;
-                    if (_activeCorrectionFocusReference is not null)
+                    if (_activeCorrectionIntent is not null || _previewCorrectionIntent is not null)
                     {
                         ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
                     }
@@ -679,7 +676,6 @@
             {
                 ClearPaging();
                 _tenantDetailSnapshot = null;
-                _globalAdministratorsSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Unavailable(new TenantAuditRequest("invalid"));
                 _loadedTenantId = null;
                 _initialLoadStartedTenantId = null;
@@ -710,7 +706,6 @@
                 ClearPaging();
                 _filtersDirty = false;
                 _tenantDetailSnapshot = null;
-                _globalAdministratorsSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Loading(tenantId);
                 _loadedTenantId = tenantId;
                 _initialLoadStartedTenantId = null;
@@ -959,7 +954,7 @@
             }
         }).ConfigureAwait(false);
 
-        // Page-load enrichment only, same contract as the global-administrator refresh below. The gateway
+        // Page-load enrichment only. The gateway
         // rethrows OperationCanceledException unfiltered, so without this handler a Refresh or paging click
         // during the in-flight detail read let the cancellation escape LoadAsync and OnParametersSetAsync
         // and tear down the circuit. The audit list itself has already been applied above.
@@ -1455,8 +1450,7 @@
         => OpenCorrectionAsync(intent, "receipt");
 
     private bool HasSubmittedCorrection => _previewCorrectionIntent is not null
-        && _correctionPreview?.Snapshot is { } snapshot
-        && (snapshot.HasCommandTracking || snapshot.LifecycleState is TenantCommandLifecycleState.RequestSent);
+        && _correctionPreview?.HasSubmitted is true;
 
     private async Task<bool> OpenCorrectionAsync(TenantCorrectionStartIntent intent, string origin, bool retainStart = false)
     {
@@ -1529,51 +1523,6 @@
                 StateHasChanged();
             }
         }).ConfigureAwait(false);
-    }
-
-    // Re-resolves the receipt so a correction that became unavailable shows its reason instead of a stale,
-    // silently inert Start correction; hands focus to the receipt heading when that control held it.
-    private void ReplaceUnavailableReceiptCorrection(bool focusInReceiptCorrection)
-    {
-        if (focusInReceiptCorrection)
-        {
-            ScheduleReceiptHeadingFocus();
-        }
-
-        ResolveReceiptSelection();
-        StateHasChanged();
-    }
-
-    private async Task<bool> IsFocusInsideReceiptCorrectionAsync(string originalAuditReference)
-    {
-        if (!RendererInfo.IsInteractive
-            || !string.Equals(_selectedReceiptCorrectionIntent?.OriginalAuditReference, originalAuditReference, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        try
-        {
-            IJSObjectReference focusModule = _focusModule
-                ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
-            return await focusModule.InvokeAsync<bool>("isFocusInsideAuditReceiptCorrection").ConfigureAwait(false);
-        }
-        catch (JSDisconnectedException)
-        {
-            return false;
-        }
-        catch (JSException)
-        {
-            return false;
-        }
-        catch (ObjectDisposedException)
-        {
-            return false;
-        }
-        catch (OperationCanceledException)
-        {
-            return false;
-        }
     }
 
     private Task CloseCorrectionAsync()
@@ -1793,18 +1742,18 @@
             Projection: projection));
     }
 
-    private async Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
+    private Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
     {
         if (HasSubmittedCorrection || !HasMeasuredSafeViewport)
         {
-            return;
+            return Task.CompletedTask;
         }
         TenantAuditRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
             string.Equals(candidate.EventReference, selection.AuditReference, StringComparison.Ordinal));
         if (row is null || !string.Equals(row.TenantId, TenantId, StringComparison.Ordinal)
             || row.EventType is not ("UserRemovedFromTenant" or "UserRoleChanged"))
         {
-            return;
+            return Task.CompletedTask;
         }
         _correctionOpenGeneration++;
         if (_activeCorrectionIntent is not null || _previewCorrectionIntent is not null)
@@ -1822,7 +1771,7 @@
             _selectedCorrectionRoles.Remove(selection.AuditReference);
         }
         ResolveReceiptSelection();
-        await Task.CompletedTask.ConfigureAwait(false);
+        return Task.CompletedTask;
     }
 
     private async Task<Hexalith.Tenants.Contracts.Queries.TenantDetail?> RefreshTenantProjectionAsync()
@@ -1914,59 +1863,6 @@
             }
         }).ConfigureAwait(false);
     }
-
-    // Always re-read the fixed platform-authority projection. This is also the correction panel's
-    // confirm-time ProjectionRefreshProvider, so it must never short-circuit on the current audit
-    // page contents: a correction can be open while the page has paged to rows without a
-    // global-administrator entry, and the confirmation must still observe the applied change.
-    // The page-load path applies its own "only when global-administrator rows are present" guard at
-    // the call site so a tenant audit page with no such rows never pays for an extra query.
-    private async Task<GlobalAdministratorsSnapshot?> RefreshGlobalAdministratorsProjectionAsync()
-    {
-        long projectionGeneration = Interlocked.Increment(ref _globalAdministratorsProjectionGeneration);
-        GlobalAdministratorsSnapshot snapshot = await GlobalAdministratorsProjectionLoader
-            .LoadAsync(QueryGateway, cancellationToken: CancellationToken.None)
-            .ConfigureAwait(false);
-        // Assign on the renderer's dispatcher: this also runs as the correction panel's confirm-time
-        // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
-        await InvokeAsync(() =>
-        {
-            if (!_disposed
-                && projectionGeneration == Volatile.Read(ref _globalAdministratorsProjectionGeneration))
-            {
-                _globalAdministratorsSnapshot = snapshot;
-            }
-        }).ConfigureAwait(false);
-        return snapshot;
-    }
-
-    private async Task RefreshGlobalAdministratorsProjectionForLoadAsync(
-        string tenantId,
-        long generation,
-        CancellationToken cancellationToken)
-    {
-        long projectionGeneration = Interlocked.Increment(ref _globalAdministratorsProjectionGeneration);
-        GlobalAdministratorsSnapshot snapshot = await GlobalAdministratorsProjectionLoader
-            .LoadAsync(QueryGateway, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
-        if (CanApply(tenantId, generation))
-        {
-            await InvokeAsync(() =>
-            {
-                if (CanApply(tenantId, generation)
-                    && projectionGeneration == Volatile.Read(ref _globalAdministratorsProjectionGeneration))
-                {
-                    _globalAdministratorsSnapshot = snapshot;
-                }
-            }).ConfigureAwait(false);
-        }
-    }
-
-    private static bool IsGlobalAdministratorRow(TenantAuditRow row)
-        => row.EventType is "GlobalAdministratorRemoved" or "GlobalAdministratorSet";
-
-    private bool IsGlobalAdministratorAuthorized
-        => BffComposition.GlobalAdministratorsAuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
 
     // The datetime-local filter input carries no timezone. Interpret it as UTC so the absolute
     // date-range filter stays deterministic and aligns with the UTC-rendered timestamp column,

@@ -127,6 +127,21 @@ public sealed class TenantsBffCompositionTests
         capture.IsAuthorized.ShouldBe(global);
     }
 
+    [Theory]
+    [InlineData(TenantRole.TenantContributor)]
+    [InlineData(TenantRole.TenantReader)]
+    public async Task NonOwnerMembershipDoesNotAuthorizeCorrectionCapture(TenantRole role)
+    {
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver:
+            new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha")));
+        TenantCorrectionProjection capture = await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user",
+            Detail([new("operator.alpha", role), new("target-user", TenantRole.TenantOwner)]),
+            ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        capture.IsAuthorized.ShouldBeFalse();
+        capture.HasVerifiedMembership.ShouldBeFalse();
+        capture.CurrentRole.ShouldBeNull();
+    }
+
     [Fact]
     public async Task BatchCorrectionCompositionResolvesOnePrincipalForAllSafeTargets()
     {
