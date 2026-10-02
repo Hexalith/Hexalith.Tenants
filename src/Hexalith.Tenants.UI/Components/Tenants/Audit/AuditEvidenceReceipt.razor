@@ -1,3 +1,4 @@
+@using Hexalith.Tenants.Contracts.Enums
 @using System.Globalization
 @using System.Text.RegularExpressions
 @using Hexalith.Tenants.UI.State.TenantCommands
@@ -103,12 +104,29 @@
             @if (ShouldRenderCorrection)
             {
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.5rem" Class="audit-evidence-receipt__correction">
+                    @if (IsCorrectionViewportSafe && CorrectionIntent!.IntendedCommandDomain is TenantCorrectionCommandDomain.Tenants)
+                    {
+                        <FluentSelect TOption="string" TValue="string"
+                                      Value="@(CorrectionIntent.IntendedRole?.ToString() ?? string.Empty)"
+                                      ValueChanged="SelectRoleAsync"
+                                      Label="@Localizer["Tenants.Correction.RoleChoice.Label"]"
+                                      data-testid="tenants-correction-role"
+                                      data-correction-focus-reference="@CorrectionIntent.OriginalAuditReference"
+                                      data-correction-origin="receipt">
+                            <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</FluentOption>
+                            @foreach (TenantRole role in new[] { TenantRole.TenantOwner, TenantRole.TenantContributor, TenantRole.TenantReader })
+                            {
+                                <FluentOption TValue="string" Value="@role.ToString()">@Localizer[$"Tenants.Correction.Role.{role}"]</FluentOption>
+                            }
+                        </FluentSelect>
+                    }
                     @if (CorrectionIntent!.IsAvailable)
                     {
                         <FluentButton Appearance="ButtonAppearance.Primary"
                                       Class="audit-evidence-receipt__action audit-evidence-receipt__correction-start"
                                       data-testid="tenants-correction-start"
                                       data-correction-focus-reference="@CorrectionIntent.OriginalAuditReference"
+                                      data-correction-origin="receipt"
                                       aria-label="@CorrectionAccessibleName"
                                       OnClick="StartCorrectionAsync">
                             @CorrectionActionLabel
@@ -117,7 +135,8 @@
                     else
                     {
                         <p class="audit-evidence-receipt__correction-reason"
-                           data-testid="tenants-correction-unavailable-reason">
+                           data-testid="tenants-correction-unavailable-reason" tabindex="-1"
+                           data-correction-focus-reference="@CorrectionIntent.OriginalAuditReference" data-correction-origin="receipt">
                             @CorrectionUnavailableReason
                         </p>
                     }
@@ -172,6 +191,20 @@
 
     [Parameter]
     public EventCallback<TenantCorrectionStartIntent> OnStartCorrection { get; set; }
+
+    /// <summary>Gets or sets deliberate role selection shared with the grid.</summary>
+    [Parameter] public EventCallback<TenantCorrectionRoleSelection> OnRoleSelected { get; set; }
+
+    [Parameter] public bool IsCorrectionViewportSafe { get; set; }
+
+    private Task SelectRoleAsync(string? value)
+    {
+        TenantRole role = Enum.TryParse(value, out TenantRole selected)
+            && selected is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
+                ? selected : TenantRole.Unknown;
+        return !IsCorrectionViewportSafe || CorrectionIntent is null ? Task.CompletedTask
+            : OnRoleSelected.InvokeAsync(new(CorrectionIntent.OriginalAuditReference, role));
+    }
 
     // Mirror AuditDataGrid: only surface correction UI on a ready receipt, and never show a
     // correction reason for outcomes that are not correctable at all (e.g. UserAddedToTenant),
@@ -325,7 +358,7 @@
     private bool HasRenderableUnavailableReason
         => CorrectionIntent is not null
             && CorrectionIntent.UnavailableReasons.Count > 0
-            && !CorrectionIntent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome);
+;
 
     private string CorrectionActionLabel
         => CorrectionIntent?.IsRestoreAccessAction is true
@@ -340,7 +373,9 @@
     private string CorrectionUnavailableReason
         => CorrectionIntent is null
             ? string.Empty
-            : string.Join(
+            : CorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
+                ? Localizer["Tenants.Correction.Start.GlobalNotReady"]
+                : string.Join(
                 " ",
                 CorrectionIntent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
 

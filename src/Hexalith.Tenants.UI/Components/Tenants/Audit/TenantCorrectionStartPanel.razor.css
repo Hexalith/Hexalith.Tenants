@@ -1,0 +1,30 @@
+.tenant-correction-start-panel {
+    border: 1px solid var(--colorNeutralStroke1);
+}
+
+/* fc-css-exception: Literal evidence identifiers need wrapping independent of Fluent text styling. */
+.tenant-correction-start-panel__fields dd {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.tenant-correction-start-panel :focus-visible {
+    outline: 2px solid var(--colorStrokeFocus2);
+    outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+    .tenant-correction-start-panel {
+        border-color: CanvasText;
+    }
+
+    .tenant-correction-start-panel :focus-visible {
+        outline-color: Highlight;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tenant-correction-start-panel {
+        scroll-behavior: auto;
+    }
+}

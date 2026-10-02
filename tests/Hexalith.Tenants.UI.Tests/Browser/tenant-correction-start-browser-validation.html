@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tenant correction start browser validation</title>
+    <link rel="stylesheet" href="./fluent-ui.css">
+    <link rel="stylesheet" href="./tenant-correction-start.css">
+</head>
+<body>
+    <output id="validation-report">RUNNING</output>
+    <script type="module">
+        const report = document.getElementById('validation-report');
+        const observations = [];
+        const parameters = new URLSearchParams(location.search);
+        const culture = parameters.get('culture') || 'en';
+        document.documentElement.lang = culture;
+        try {
+            const fluent = await import('./fluent-ui.js');
+            fluent.beforeStart(document, 'web');
+            await customElements.whenDefined('fluent-button');
+            const { focusCorrectionLauncher, focusElementById } = await import('./tenantsFocus.js');
+            const response = await fetch(`./tenant-correction-start-${culture}.html`);
+            if (!response.ok) throw new Error('Actual rendered start fixture is unavailable');
+            const renderedMarkup = await response.text();
+            const template = document.createElement('template');
+            template.innerHTML = renderedMarkup;
+            const panel = template.content.querySelector('[data-testid="tenants-correction-start-panel"]');
+            const handoff = panel?.querySelector('[data-testid="tenants-correction-start-handoff"]');
+            const cancel = panel?.querySelector('[data-testid="tenants-correction-start-cancel"]');
+            if (!panel || !handoff || !cancel || handoff.hasAttribute('disabled')) throw new Error('Rendered start/handoff selectors or readiness changed');
+            if (!panel.querySelector('[data-testid="tenants-correction-start-timestamp"]').textContent.includes('+00:00')) throw new Error('Absolute timestamp lost its offset');
+            if (panel.querySelector('[data-testid="tenants-correction-confirm"], [data-testid="tenants-correction-proof-link"]')) throw new Error('Start fixture contains submission or proof UI');
+            for (const token of ['TenantReader', 'ProjectionBacked', 'tenant-projection-current', 'Tenants.Correction.']) {
+                if (panel.textContent.includes(token)) throw new Error(`Visible machine token: ${token}`);
+            }
+            observations.push(`actual-rendered-${culture}-safe-fields`);
+            const launchers = ['grid', 'receipt'].map(origin => {
+                const picker = document.createElement('select');
+                picker.setAttribute('data-testid', 'tenants-correction-role');
+                picker.setAttribute('data-correction-focus-reference', 'event-original');
+                picker.setAttribute('data-correction-origin', origin);
+                picker.setAttribute('aria-label', `Intended role from ${origin}`);
+                picker.append(new Option('Tenant reader', 'TenantReader'));
+                document.body.append(picker);
+                const button = document.createElement('fluent-button');
+                button.setAttribute('data-testid', 'tenants-correction-start');
+                button.setAttribute('data-correction-focus-reference', 'event-original');
+                button.setAttribute('data-correction-origin', origin);
+                button.textContent = origin === 'grid' ? 'Start from grid' : 'Start from receipt';
+                document.body.append(button);
+                return button;
+            });
+            let handoffs = 0;
+            let submits = 0;
+            const deniedEgress = () => { submits++; throw new Error('Unexpected browser command egress'); };
+            window.fetch = deniedEgress;
+            window.XMLHttpRequest = class { constructor() { deniedEgress(); } };
+            for (const launcher of launchers) {
+                const origin = launcher.getAttribute('data-correction-origin');
+                launcher.focus();
+                document.body.append(panel);
+                if (!focusElementById('tenants-correction-start-title')) throw new Error('Start heading was not focused');
+                handoff.focus();
+                if (document.activeElement !== handoff) throw new Error('Fluent handoff is not keyboard focusable');
+                const onHandoff = () => { handoffs++; };
+                handoff.addEventListener('click', onHandoff);
+                handoff.click();
+                handoff.removeEventListener('click', onHandoff);
+                cancel.focus();
+                if (document.activeElement !== cancel) throw new Error('Fluent cancel is not keyboard focusable');
+                const close = () => {
+                    panel.remove();
+                    if (!focusCorrectionLauncher('event-original', origin) || document.activeElement !== launcher) throw new Error(`Exact ${origin} focus return failed`);
+                };
+                const onCancel = () => close();
+                cancel.addEventListener('click', onCancel);
+                cancel.click();
+                cancel.removeEventListener('click', onCancel);
+                document.body.append(panel);
+                focusElementById('tenants-correction-start-title');
+                const onEscape = event => { if (event.key === 'Escape') close(); };
+                panel.addEventListener('keydown', onEscape);
+                panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                panel.removeEventListener('keydown', onEscape);
+                observations.push(`${origin}-handoff-cancel-escape-exact-focus`);
+                const reason = document.createElement('p');
+                reason.setAttribute('data-testid', 'tenants-correction-unavailable-reason');
+                reason.setAttribute('data-correction-focus-reference', 'event-original');
+                reason.setAttribute('data-correction-origin', origin);
+                reason.setAttribute('tabindex', '-1');
+                reason.textContent = 'Current access could not be verified';
+                launcher.replaceWith(reason);
+                document.body.append(panel);
+                focusElementById('tenants-correction-start-title');
+                panel.remove();
+                if (!focusCorrectionLauncher('event-original', origin) || document.activeElement !== reason) {
+                    throw new Error(`Exact ${origin} reason priority over picker failed`);
+                }
+                observations.push(`${origin}-reason-before-picker`);
+            }
+            if (handoffs !== 2 || submits !== 0) throw new Error('Handoff dispatched or callback parity failed');
+            document.body.append(panel);
+            focusElementById('tenants-correction-start-title');
+            const bounds = panel.getBoundingClientRect();
+            if (bounds.width <= 0 || bounds.right > innerWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1) throw new Error('Responsive start panel overflow');
+            if (parameters.get('forcedColors') === 'active') {
+                if (!matchMedia('(forced-colors: active)').matches) throw new Error('Forced colors is not active');
+                const styles = getComputedStyle(panel);
+                if (styles.borderTopStyle === 'none') throw new Error('Forced colors panel boundary disappeared');
+                observations.push('forced-colors-visible-boundary');
+            }
+            observations.push(`responsive-${innerWidth}-zero-egress`);
+            report.textContent = `PASS ${observations.join(' | ')}`;
+            document.body.setAttribute('data-validation-status', 'passed');
+        } catch (error) {
+            report.textContent = `FAIL ${error.message} | ${observations.join(' | ')}`;
+            document.body.setAttribute('data-validation-status', 'failed');
+        }
+    </script>
+</body>
+</html>

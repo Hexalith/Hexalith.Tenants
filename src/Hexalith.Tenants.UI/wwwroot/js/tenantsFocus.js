@@ -1,4 +1,4 @@
-export function focusCorrectionLauncher(auditReference) {
+export function focusCorrectionLauncher(auditReference, origin = null) {
   if (!auditReference) {
     return false;
   }
@@ -13,8 +13,16 @@ export function focusCorrectionLauncher(auditReference) {
 
   const launcherAttributes = ['data-correction-focus-reference', 'data-receipt-focus-reference'];
   for (const attribute of launcherAttributes) {
-    for (const candidate of document.querySelectorAll(`[${attribute}]`)) {
-      if (candidate.getAttribute(attribute) !== auditReference
+    const candidates = Array.from(document.querySelectorAll(`[${attribute}]`));
+    if (origin) candidates.sort((a, b) => {
+      const priority = value => value.getAttribute('data-testid') === 'tenants-correction-start' ? 0
+        : value.getAttribute('data-testid')?.includes('reason') ? 1 : 2;
+      return priority(a) - priority(b);
+    });
+    for (const candidate of candidates) {
+      if ((origin && attribute === 'data-correction-focus-reference'
+              && candidate.getAttribute("data-correction-origin") !== origin)
+          || candidate.getAttribute(attribute) !== auditReference
           || candidate.closest('[hidden], [aria-hidden="true"]')
           || candidate.matches(':disabled, [disabled], [aria-disabled="true"]')
           || candidate.getClientRects().length === 0) {

@@ -139,7 +139,10 @@ public sealed class TenantCorrectionPreviewSnapshotTests
             TenantStatus: TenantStatus.Active,
             CurrentRole: currentRole,
             IntendedRole: intendedRole,
-            HasTenantCommandSupport: true));
+            HasTenantCommandSupport: true,
+            Projection: new TenantCorrectionProjection("tenant.alpha", "target-user",
+                TenantStatus.Active, currentRole, false, true, false, true, ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)));
 
     private static TenantDetail Detail(params TenantMember[] members)
         => new(

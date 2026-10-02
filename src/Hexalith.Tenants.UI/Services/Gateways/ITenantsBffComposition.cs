@@ -4,12 +4,39 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 public interface ITenantsBffComposition {
+    /// <summary>Redacts one direct tenant read after resolving current circuit authority.</summary>
+    ValueTask<TenantCorrectionProjection> ComposeTenantCorrectionProjectionAsync(
+        string tenantId,
+        string targetUserId,
+        TenantDetail rawDetail,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance,
+        CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(TenantCorrectionProjection.Unavailable(tenantId, targetUserId));
+
+    /// <summary>Redacts every requested target from one direct read and one current principal resolution.</summary>
+    ValueTask<IReadOnlyList<TenantCorrectionProjection>> ComposeTenantCorrectionProjectionsAsync(
+        string tenantId,
+        IReadOnlyList<string> targetUserIds,
+        TenantDetail rawDetail,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(targetUserIds);
+        return ValueTask.FromResult<IReadOnlyList<TenantCorrectionProjection>>(targetUserIds
+            .Select(target => TenantCorrectionProjection.Unavailable(tenantId, target)).ToArray());
+    }
+
     bool IsReadSurfaceConnected { get; }
 
     bool IsCommandSurfaceConnected { get; }

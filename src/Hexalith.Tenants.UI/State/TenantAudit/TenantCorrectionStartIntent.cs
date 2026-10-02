@@ -1,54 +1,13 @@
-using Hexalith.Tenants.Contracts.Enums;
+using System.Globalization;
+
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Services.SupportSafety;
 
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
-public enum TenantCorrectionCommandDomain {
-    Tenants,
-    GlobalAdministrators,
-}
-
-public enum TenantCorrectionCommandType {
-    AddUserToTenant,
-    ChangeUserRole,
-    SetGlobalAdministrator,
-    RemoveGlobalAdministrator,
-}
-
-public enum TenantCorrectionUnavailableReason {
-    AuthorizationIndeterminate,
-    FreshnessIndeterminate,
-    CurrentProjectionUnavailable,
-    AuditEvidenceUnavailable,
-    CommandSupportUnavailable,
-    ExplicitRoleRequired,
-    UnsupportedOutcome,
-    GlobalAdministratorCommandSupportUnavailable,
-    AlreadyApplied,
-    TenantDisabled,
-    TenantLifecycleUnknown,
-    CurrentStateIndeterminate,
-    CurrentRoleConflict,
-    NarrowViewportUnavailable,
-}
-
-public sealed record TenantCorrectionStartContext(
-    TenantAuditReceipt Receipt,
-    TenantAuditRow Row,
-    bool IsAuthorized,
-    bool HasCurrentProjectionSnapshot,
-    string CurrentProjectionSnapshotReference,
-    TenantStatus TenantStatus = TenantStatus.Active,
-    TenantRole? CurrentRole = null,
-    TenantRole? IntendedRole = null,
-    bool HasTenantCommandSupport = true,
-    bool HasGlobalAdministratorCommandSupport = false,
-    bool IsNarrowViewportSafe = true);
-
-public sealed record TenantCorrectionRoleSelection(string AuditReference, TenantRole Role);
-
+/// <summary>Safe non-submitting intent handed to the separate consequence preview.</summary>
 public sealed record TenantCorrectionStartIntent(
     string OriginalAuditReference,
     string TenantScope,
@@ -59,210 +18,185 @@ public sealed record TenantCorrectionStartIntent(
     TenantCorrectionCommandType? IntendedCommandType,
     TenantRole? IntendedRole,
     IReadOnlyList<TenantCorrectionUnavailableReason> UnavailableReasons,
-    IReadOnlyDictionary<string, string> RequiredPreviewInputs) {
-    public bool IsAvailable
-        => UnavailableReasons.Count == 0 && IntendedCommandDomain is not null && IntendedCommandType is not null;
+    IReadOnlyDictionary<string, string> RequiredPreviewInputs,
+    TenantCorrectionProjection? CurrentProjection = null)
+{
+    /// <summary>Gets whether all start gates allow the separate preview handoff.</summary>
+    public bool IsAvailable => UnavailableReasons.Count == 0
+        && IntendedCommandDomain is not null && IntendedCommandType is not null;
 
-    public bool IsRestoreAccessAction
-        => IntendedCommandType is TenantCorrectionCommandType.AddUserToTenant
-            or TenantCorrectionCommandType.SetGlobalAdministrator;
+    /// <summary>Gets whether the selected command restores access.</summary>
+    public bool IsRestoreAccessAction => IntendedCommandType is TenantCorrectionCommandType.AddUserToTenant
+        or TenantCorrectionCommandType.SetGlobalAdministrator;
 
-    public static TenantCorrectionStartIntent Evaluate(TenantCorrectionStartContext context) {
+    /// <summary>Evaluates complete receipt, current projection, authority, selection and viewport facts.</summary>
+    public static TenantCorrectionStartIntent Evaluate(TenantCorrectionStartContext context)
+    {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(context.Receipt);
         ArgumentNullException.ThrowIfNull(context.Row);
-
+        TenantAuditRow row = context.Row;
         List<TenantCorrectionUnavailableReason> reasons = [];
-        Dictionary<string, string> previewInputs = new(StringComparer.Ordinal) {
-            ["originalAuditReference"] = context.Receipt.AuditReference,
-            ["originalTimestamp"] = context.Row.Timestamp.ToUniversalTime().ToString("O", System.Globalization.CultureInfo.InvariantCulture),
-            ["currentProjectionSnapshot"] = context.CurrentProjectionSnapshotReference,
-        };
-
-        if (!context.IsAuthorized) {
-            reasons.Add(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
-        }
-
-        if (context.Receipt.State is not TenantAuditReceiptState.Ready) {
+        Dictionary<string, string> inputs = new(StringComparer.Ordinal);
+        TenantAuditReceipt verifiedReceipt = TenantAuditReceipt.FromRow(row);
+        if (context.Receipt.State is not TenantAuditReceiptState.Ready
+            || verifiedReceipt.State is not TenantAuditReceiptState.Ready
+            || context.Receipt != verifiedReceipt)
+        {
             reasons.Add(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
         }
 
-        // Mutation eligibility is owned by the EventStore platform policy, not by the compatibility
-        // freshness view. ResolveFreshness still reports Current through the legacy `IsStale == false`
-        // fall-through when a response carries no authoritative lifecycle evidence — a state
-        // ProjectionLifecyclePolicy.CanMutate denies — so gating on freshness alone would arm a
-        // correction the platform forbids. Both must hold: a Current compatibility view AND
-        // projection-confirmed evidence on the declared route provenance (Story 2.11).
-        if (context.Row.Freshness is not ReadModelFreshnessState.Current
-            || !ProjectionLifecyclePolicy.IsProjectionConfirmed(context.Row.Provenance, context.Row.Lifecycle)) {
+        string reference = TenantAuditSupportSafety.SafeApprovedReference(context.Receipt.AuditReference) ?? string.Empty;
+        string target = TenantAuditSupportSafety.SafeIdentifier(row.Narrative?.UserId, SupportSafeCopyValueKind.UserId);
+        string scope = TenantAuditSupportSafety.SafeIdentifier(row.TenantId, SupportSafeCopyValueKind.TenantId);
+        if (reference.Length == 0 || target.Length == 0 || scope.Length == 0
+            || !string.Equals(target, row.Target, StringComparison.Ordinal))
+        {
+            reasons.Add(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
+        }
+
+        inputs["originalAuditReference"] = reference;
+        if (verifiedReceipt.Timestamp is { } timestamp)
+        {
+            inputs["originalTimestamp"] = timestamp.ToString("O", CultureInfo.InvariantCulture);
+        }
+
+        if (!context.IsAuthorized)
+        {
+            reasons.Add(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
+        }
+        if (row.Freshness is not ReadModelFreshnessState.Current
+            || !ProjectionLifecyclePolicy.IsProjectionConfirmed(row.Provenance, row.Lifecycle))
+        {
             reasons.Add(TenantCorrectionUnavailableReason.FreshnessIndeterminate);
         }
-
-        if (!context.HasCurrentProjectionSnapshot || string.IsNullOrWhiteSpace(context.CurrentProjectionSnapshotReference)) {
-            reasons.Add(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
-        }
-
-        if (!context.IsNarrowViewportSafe) {
+        if (!context.IsNarrowViewportSafe)
+        {
             reasons.Add(TenantCorrectionUnavailableReason.NarrowViewportUnavailable);
         }
 
         TenantCorrectionCommandDomain? domain = null;
-        TenantCorrectionCommandType? commandType = null;
-        // Corrections require the typed, sanitized user identifier from audit evidence. A display
-        // fallback such as the tenant id or configuration key is never a command target.
-        string targetUserId = TenantAuditSupportSafety.SafeIdentifier(
-            context.Row.Narrative?.UserId,
-            SupportSafeCopyValueKind.UserId);
-        string tenantScope = context.Row.Scope;
-
-        switch (context.Row.EventType) {
+        TenantCorrectionCommandType? command = null;
+        string projectionReference = string.Empty;
+        switch (row.EventType)
+        {
             case "UserRemovedFromTenant":
-                domain = TenantCorrectionCommandDomain.Tenants;
-                commandType = TenantCorrectionCommandType.AddUserToTenant;
-                AddTenantMemberRequirements(context, reasons, previewInputs, targetUserId);
-                break;
             case "UserRoleChanged":
                 domain = TenantCorrectionCommandDomain.Tenants;
-                commandType = TenantCorrectionCommandType.ChangeUserRole;
-                AddChangeRoleRequirements(context, reasons, previewInputs, targetUserId);
+                TenantCorrectionProjection? projection = context.Projection;
+                bool matchingProjection = projection is not null
+                    && string.Equals(projection.TenantId, scope, StringComparison.Ordinal)
+                    && string.Equals(projection.TargetUserId, target, StringComparison.Ordinal)
+                    && string.Equals(row.Scope, scope, StringComparison.Ordinal);
+                bool verifiedCurrentEvidence = matchingProjection && projection!.IsCurrent
+                    && context.HasCurrentProjectionSnapshot;
+                if (!string.Equals(row.Scope, scope, StringComparison.Ordinal)
+                    || projection is not null && (!string.Equals(projection.TenantId, scope, StringComparison.Ordinal)
+                        || !string.Equals(projection.TargetUserId, target, StringComparison.Ordinal)))
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.ScopeConflict);
+                }
+                if (projection?.IsCurrent is not true || !context.HasCurrentProjectionSnapshot)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
+                }
+                if (projection?.IsAuthorized is not true)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
+                }
+                if (!context.HasTenantCommandSupport)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.CommandSupportUnavailable);
+                }
+                TenantStatus status = projection?.TenantStatus ?? context.TenantStatus;
+                if (status is TenantStatus.Disabled)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.TenantDisabled);
+                }
+                else if (status is not TenantStatus.Active)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.TenantLifecycleUnknown);
+                }
+                bool validRole = context.IntendedRole is TenantRole.TenantOwner
+                    or TenantRole.TenantContributor or TenantRole.TenantReader;
+                if (!validRole)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.ExplicitRoleRequired);
+                }
+                TenantRole? currentRole = verifiedCurrentEvidence ? projection!.CurrentRole : null;
+                if (projection?.HasVerifiedMembership is not true
+                    || currentRole is not null && currentRole is not (TenantRole.TenantOwner
+                        or TenantRole.TenantContributor or TenantRole.TenantReader)
+                    || row.EventType is "UserRoleChanged" && currentRole is null)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
+                }
+                if (verifiedCurrentEvidence && projection!.IsMembershipEmpty)
+                {
+                    if (context.IntendedRole is not TenantRole.TenantOwner)
+                    {
+                        reasons.Add(TenantCorrectionUnavailableReason.EmptyMembershipRequiresOwner);
+                    }
+                    if (!projection.IsGlobalAdministrator)
+                    {
+                        reasons.Add(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
+                    }
+                    inputs["emptyMembership"] = "true";
+                }
+                command = !verifiedCurrentEvidence ? null
+                    : currentRole is null ? TenantCorrectionCommandType.AddUserToTenant : TenantCorrectionCommandType.ChangeUserRole;
+                if (verifiedCurrentEvidence && validRole && currentRole == context.IntendedRole)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.AlreadyApplied);
+                    command = null;
+                }
+                inputs["tenantId"] = scope;
+                inputs["userId"] = target;
+                if (validRole)
+                {
+                    inputs["intendedRole"] = context.IntendedRole!.Value.ToString();
+                }
+                if (currentRole is not null)
+                {
+                    inputs["currentRole"] = currentRole.Value.ToString();
+                }
+                projectionReference = verifiedCurrentEvidence ? "tenant-projection-current" : string.Empty;
+                inputs["currentProjectionSnapshot"] = projectionReference;
                 break;
             case "GlobalAdministratorRemoved":
-                domain = TenantCorrectionCommandDomain.GlobalAdministrators;
-                commandType = TenantCorrectionCommandType.SetGlobalAdministrator;
-                tenantScope = "global-administrators";
-                AddGlobalAdministratorRequirements(context, reasons, previewInputs, targetUserId);
-                break;
             case "GlobalAdministratorSet":
+                // Compatibility for Story 5.7. The tenant page always passes support=false.
                 domain = TenantCorrectionCommandDomain.GlobalAdministrators;
-                commandType = TenantCorrectionCommandType.RemoveGlobalAdministrator;
-                tenantScope = "global-administrators";
-                AddGlobalAdministratorRequirements(context, reasons, previewInputs, targetUserId);
+                command = row.EventType is "GlobalAdministratorRemoved"
+                    ? TenantCorrectionCommandType.SetGlobalAdministrator : TenantCorrectionCommandType.RemoveGlobalAdministrator;
+                scope = "global-administrators";
+                if (!context.HasGlobalAdministratorCommandSupport)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.GlobalAdministratorCommandSupportUnavailable);
+                }
+                if (!context.HasCurrentProjectionSnapshot || string.IsNullOrWhiteSpace(context.CurrentProjectionSnapshotReference))
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
+                }
+                projectionReference = context.CurrentProjectionSnapshotReference;
+                inputs["currentProjectionSnapshot"] = projectionReference;
+                inputs["tenantId"] = "system";
+                inputs["domain"] = "global-administrators";
+                inputs["aggregateId"] = "global-administrators";
+                inputs["userId"] = target;
                 break;
             default:
                 reasons.Add(TenantCorrectionUnavailableReason.UnsupportedOutcome);
                 break;
         }
 
-        return new(
-            context.Receipt.AuditReference,
-            tenantScope,
-            targetUserId,
-            context.Row.EventType,
-            context.CurrentProjectionSnapshotReference,
-            domain,
-            commandType,
-            context.IntendedRole,
-            reasons.Distinct().ToArray(),
-            previewInputs);
+        return new(reference, scope, target, row.EventType, projectionReference, domain, command,
+            context.IntendedRole, reasons.Distinct().ToArray(), inputs,
+            domain is TenantCorrectionCommandDomain.Tenants ? context.Projection : null);
     }
 
-    public static TenantCorrectionStartIntent FromReceipt(TenantAuditReceipt receipt, TenantAuditRow row) {
-        ArgumentNullException.ThrowIfNull(receipt);
-        ArgumentNullException.ThrowIfNull(row);
-
-        return Evaluate(new(
-            receipt,
-            row,
-            IsAuthorized: true,
-            HasCurrentProjectionSnapshot: receipt.ProjectionMarker is ReadModelFreshnessState.Current,
-            CurrentProjectionSnapshotReference: receipt.ProjectionMarker is ReadModelFreshnessState.Current
-                ? "Current tenant projection is available."
-                : "Current tenant projection is not available.",
-            TenantStatus: TenantStatus.Active,
-            HasTenantCommandSupport: true,
-            HasGlobalAdministratorCommandSupport: false));
-    }
-
-    private static void AddTenantMemberRequirements(
-        TenantCorrectionStartContext context,
-        ICollection<TenantCorrectionUnavailableReason> reasons,
-        IDictionary<string, string> previewInputs,
-        string targetUserId) {
-        previewInputs["tenantId"] = context.Row.TenantId;
-        previewInputs["userId"] = targetUserId;
-
-        // Fail closed when the audit evidence does not yield the identifiers a tenant-domain
-        // correction command requires; an empty tenant or user id must never be treated as a
-        // startable correction (AC4). The original evidence stays visible via the unavailable reason.
-        if (string.IsNullOrWhiteSpace(context.Row.TenantId) || string.IsNullOrWhiteSpace(targetUserId)) {
-            reasons.Add(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
-        }
-
-        AddTenantLifecycleReason(context, reasons);
-
-        if (!context.HasTenantCommandSupport) {
-            reasons.Add(TenantCorrectionUnavailableReason.CommandSupportUnavailable);
-        }
-
-        if (context.IntendedRole is null or TenantRole.Unknown) {
-            reasons.Add(TenantCorrectionUnavailableReason.ExplicitRoleRequired);
-            return;
-        }
-
-        previewInputs["intendedRole"] = context.IntendedRole.Value.ToString();
-
-        if (context.CurrentRole is not null and not TenantRole.Unknown) {
-            previewInputs["currentRole"] = context.CurrentRole.Value.ToString();
-
-            if (context.CurrentRole == context.IntendedRole) {
-                reasons.Add(TenantCorrectionUnavailableReason.AlreadyApplied);
-            }
-            else if (context.Row.EventType is "UserRemovedFromTenant") {
-                reasons.Add(TenantCorrectionUnavailableReason.CurrentRoleConflict);
-            }
-        }
-    }
-
-    private static void AddChangeRoleRequirements(
-        TenantCorrectionStartContext context,
-        ICollection<TenantCorrectionUnavailableReason> reasons,
-        IDictionary<string, string> previewInputs,
-        string targetUserId) {
-        AddTenantMemberRequirements(context, reasons, previewInputs, targetUserId);
-
-        if (context.CurrentRole is null or TenantRole.Unknown) {
-            reasons.Add(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
-            return;
-        }
-
-        previewInputs["currentRole"] = context.CurrentRole.Value.ToString();
-
-        if (context.IntendedRole == context.CurrentRole) {
-            reasons.Add(TenantCorrectionUnavailableReason.AlreadyApplied);
-        }
-    }
-
-    private static void AddGlobalAdministratorRequirements(
-        TenantCorrectionStartContext context,
-        ICollection<TenantCorrectionUnavailableReason> reasons,
-        IDictionary<string, string> previewInputs,
-        string targetUserId) {
-        previewInputs["tenantId"] = "system";
-        previewInputs["domain"] = "global-administrators";
-        previewInputs["aggregateId"] = "global-administrators";
-        previewInputs["userId"] = targetUserId;
-
-        // Fail closed when the system-scope audit evidence does not yield the target user id a
-        // global-administrator correction command requires; an empty user id must never be treated
-        // as a startable correction (AC8). The original evidence stays visible via the reason.
-        if (string.IsNullOrWhiteSpace(targetUserId)) {
-            reasons.Add(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
-        }
-
-        if (!context.HasGlobalAdministratorCommandSupport) {
-            reasons.Add(TenantCorrectionUnavailableReason.GlobalAdministratorCommandSupportUnavailable);
-        }
-    }
-
-    private static void AddTenantLifecycleReason(
-        TenantCorrectionStartContext context,
-        ICollection<TenantCorrectionUnavailableReason> reasons) {
-        if (context.TenantStatus is TenantStatus.Disabled) {
-            reasons.Add(TenantCorrectionUnavailableReason.TenantDisabled);
-        }
-        else if (context.TenantStatus is TenantStatus.Unknown) {
-            reasons.Add(TenantCorrectionUnavailableReason.TenantLifecycleUnknown);
-        }
-    }
-
+    /// <summary>Creates an unarmed receipt intent until current authority and projection are captured.</summary>
+    public static TenantCorrectionStartIntent FromReceipt(TenantAuditReceipt receipt, TenantAuditRow row)
+        => Evaluate(new(receipt, row, IsAuthorized: false, HasCurrentProjectionSnapshot: false,
+            CurrentProjectionSnapshotReference: string.Empty, HasTenantCommandSupport: false));
 }

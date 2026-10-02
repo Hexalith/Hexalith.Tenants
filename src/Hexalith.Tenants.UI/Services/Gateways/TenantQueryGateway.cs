@@ -37,6 +37,59 @@ internal sealed class TenantQueryGateway(
     ITenantsBffComposition? bffComposition = null,
     ILogger<TenantQueryGateway>? logger = null,
     TimeSpan? enrichmentDeadline = null) : ITenantQueryGateway {
+    public bool SupportsTenantCorrectionStart => bffComposition is not null;
+
+    public async Task<TenantCorrectionProjection> GetTenantCorrectionProjectionAsync(
+        string tenantId,
+        string targetUserId,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<TenantCorrectionProjection> projections = await GetTenantCorrectionProjectionsAsync(
+            tenantId, [targetUserId], cancellationToken).ConfigureAwait(false);
+        return projections.Count == 1 ? projections[0] : TenantCorrectionProjection.Unavailable(tenantId, targetUserId);
+    }
+
+    public async Task<IReadOnlyList<TenantCorrectionProjection>> GetTenantCorrectionProjectionsAsync(
+        string tenantId,
+        IReadOnlyList<string> targetUserIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(targetUserIds);
+        TenantCorrectionProjection[] unavailable = targetUserIds.Select(target =>
+            TenantCorrectionProjection.Unavailable(tenantId, target)).ToArray();
+        if (targetUserIds.Count == 0)
+        {
+            return unavailable;
+        }
+        if (bffComposition is null || string.IsNullOrWhiteSpace(tenantId)
+            || !TenantAuditSupportSafety.IsSafe(tenantId, Hexalith.Tenants.UI.Services.SupportSafety.SupportSafeCopyValueKind.TenantId)
+            || targetUserIds.Any(target => string.IsNullOrWhiteSpace(target)
+                || !TenantAuditSupportSafety.IsSafe(target, Hexalith.Tenants.UI.Services.SupportSafety.SupportSafeCopyValueKind.UserId)))
+        {
+            return unavailable;
+        }
+        try
+        {
+            TenantsRestQueryResponse<TenantDetail> response = await queryClient.GetTenantAsync(
+                new GetTenantQuery { TenantId = tenantId }, eTag: null, cancellationToken).ConfigureAwait(false);
+            if (!response.IsSuccess || response.IsNotModified || response.Payload is null || response.Metadata.IsDegraded == true)
+            {
+                return unavailable;
+            }
+            return await bffComposition.ComposeTenantCorrectionProjectionsAsync(tenantId, targetUserIds,
+                response.Payload, ResolveFreshness(response.Metadata), ResolveLifecycle(response.Metadata),
+                response.Metadata.Provenance, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return unavailable;
+        }
+    }
+
     public bool SupportsSetConfigurationPreview => bffComposition is not null;
 
     public bool SupportsRemoveConfigurationPreview => bffComposition is not null;

@@ -4,11 +4,12 @@ set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(cd -- "$script_dir/../../.." && pwd)"
 harness_path="$script_dir/tenants-focus-browser-validation.html"
+build_configuration="${TENANTS_BROWSER_BUILD_CONFIGURATION:-Debug}"
 focus_module_path="$project_root/src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js"
-correction_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.rz.scp.css"
-receipt_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Tenants/Audit/AuditEvidenceReceipt.razor.rz.scp.css"
-availability_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Tenants/Audit/AuditAvailabilityState.razor.rz.scp.css"
-page_css_path="$project_root/src/Hexalith.Tenants.UI/obj/Release/net10.0/scopedcss/Components/Pages/GlobalAdministratorsPage.razor.rz.scp.css"
+correction_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.rz.scp.css"
+receipt_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/AuditEvidenceReceipt.razor.rz.scp.css"
+availability_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/AuditAvailabilityState.razor.rz.scp.css"
+page_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Pages/GlobalAdministratorsPage.razor.rz.scp.css"
 project_assets_path="$project_root/src/Hexalith.Tenants.UI/obj/project.assets.json"
 
 if [[ ! -f "$harness_path" || ! -f "$focus_module_path" || ! -f "$correction_css_path" || ! -f "$receipt_css_path" || ! -f "$availability_css_path" || ! -f "$page_css_path" || ! -f "$project_assets_path" ]]; then
@@ -142,6 +143,15 @@ if end is None:
 mutated = source[:start] + signature + " {\n  return true;\n}" + source[end:]
 Path(sys.argv[2]).write_text(mutated, encoding="utf-8")
 PY
+
+# Export the real EN/FR component markup from the built Debug/source-reference test executable.
+start_test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
+start_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/TenantCorrectionStartPanel.razor.rz.scp.css"
+TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -method '*TenantCorrectionStartPanelTests.StartAndHandoffPreserveSafeEvidenceWithoutCommandsOrStatusLookups' \
+    >"$validation_tmp/start-fixture-tests.log" 2>&1
+cp -- "$script_dir/tenant-correction-start-browser-validation.html" "$validation_tmp/start.html"
+cp -- "$start_css_path" "$validation_tmp/tenant-correction-start.css"
 
 validation_port="$(python3 - <<'PY'
 import socket
@@ -287,6 +297,28 @@ if ! grep -q 'data-validation-status="failed"' "$availability_mutation_output" \
     echo "The unstacked availability mutation did not fail the computed-layout check." >&2
     exit 1
 fi
+
+for culture in en fr; do
+    for scenario in desktop narrow forced-colors; do
+        start_width=1024
+        start_color_args=()
+        start_colors=none
+        if [[ "$scenario" != desktop ]]; then start_width=390; fi
+        if [[ "$scenario" == forced-colors ]]; then start_color_args+=(--force-high-contrast); start_colors=active; fi
+        start_output="$validation_tmp/start-${culture}-${scenario}.html"
+        "$browser_path" --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+            "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-start-${culture}-${scenario}" \
+            --virtual-time-budget=3000 --dump-dom \
+            "http://127.0.0.1:${validation_port}/start.html?culture=${culture}&forcedColors=${start_colors}" \
+            >"$start_output" 2>"${start_output}.stderr"
+        if ! grep -q 'data-validation-status="passed"' "$start_output"; then
+            echo "Rendered correction start ${culture}/${scenario} failed:" >&2
+            grep -o '<output id="validation-report">[^<]*' "$start_output" >&2 || true
+            exit 1
+        fi
+    done
+done
+printf '%s\n' "Actual rendered tenant start EN/FR: desktop, narrow and forced colors; handoff/cancel/Escape, exact grid/receipt focus and zero browser egress passed"
 
 browser_version="$($browser_path --version | head -n 1)"
 positive_report="$(grep -o '<output id="validation-report">[^<]*' "$positive_output" | sed 's/.*>//')"

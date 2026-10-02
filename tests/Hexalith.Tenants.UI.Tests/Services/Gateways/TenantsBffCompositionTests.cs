@@ -9,6 +9,7 @@ using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -52,6 +53,111 @@ public sealed class TenantsBffCompositionTests
         ITenantsBffComposition configured = new TenantsBffComposition(gateway, configuration: configuration);
         configured.AuditPermissionRecoveryHref.ShouldBe("/support/audit-access");
         configured.AuditEscalationRecoveryHref.ShouldBe("/support/audit-incident");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CorrectionCaptureResolvesCurrentOwnerOrGlobalAuthorityAndRedactsRawDetail(bool global)
+    {
+        var resolver = new StubPrincipalResolver(global
+            ? TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")
+            : TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver: resolver);
+        TenantDetail detail = Detail([new TenantMember("operator.alpha", TenantRole.TenantOwner),
+            new TenantMember("target-user", TenantRole.TenantContributor)]) with
+        {
+            Configuration = new ThrowingConfiguration(),
+            Description = "Bearer raw-secret",
+        };
+        TenantCorrectionProjection capture = await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user",
+            detail, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        capture.IsCurrent.ShouldBeTrue();
+        capture.IsAuthorized.ShouldBeTrue();
+        capture.IsGlobalAdministrator.ShouldBe(global);
+        capture.CurrentRole.ShouldBe(TenantRole.TenantContributor);
+        typeof(TenantCorrectionProjection).GetProperties().ShouldAllBe(property => property.Name != "Members" && property.Name != "Configuration"
+            && property.Name != "ETag" && property.Name != "ProjectionVersion");
+        resolver.Evidence = TenantConfigurationPrincipalEvidence.NonAdministrator("revoked-user");
+        TenantCorrectionProjection revoked = await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user",
+            detail, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        revoked.IsAuthorized.ShouldBeFalse();
+        revoked.HasVerifiedMembership.ShouldBeFalse();
+        revoked.CurrentRole.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("null-member")]
+    [InlineData("duplicate")]
+    [InlineData("unknown-role")]
+    [InlineData("unsafe-id")]
+    public async Task MalformedMembershipNeverImpliesAbsenceOrEmptyRecovery(string kind)
+    {
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver:
+            new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")));
+        IReadOnlyList<TenantMember>? members = kind switch
+        {
+            "null" => null,
+            "null-member" => [null!],
+            "duplicate" => [new("same-user", TenantRole.TenantReader), new("same-user", TenantRole.TenantOwner)],
+            "unknown-role" => [new("some-user", TenantRole.Unknown)],
+            _ => [new("access_token=secret", TenantRole.TenantReader)],
+        };
+        TenantCorrectionProjection capture = await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user",
+            Detail() with { Members = members! }, ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        capture.IsCurrent.ShouldBeFalse();
+        capture.HasVerifiedMembership.ShouldBeFalse();
+        capture.IsMembershipEmpty.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task EmptyMembershipRequiresCurrentGlobalAuthorityAtTheBffBoundary(bool global)
+    {
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver:
+            new StubPrincipalResolver(global ? TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")
+                : TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha")));
+        TenantCorrectionProjection capture = await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user",
+            Detail([]), ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        capture.IsCurrent.ShouldBe(global);
+        capture.IsMembershipEmpty.ShouldBe(global);
+        capture.IsAuthorized.ShouldBe(global);
+    }
+
+    [Fact]
+    public async Task BatchCorrectionCompositionResolvesOnePrincipalForAllSafeTargets()
+    {
+        var resolver = new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"));
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver: resolver);
+        IReadOnlyList<TenantCorrectionProjection> captures = await composition.ComposeTenantCorrectionProjectionsAsync(
+            "tenant.alpha", ["first-user", "second-user"], Detail([new("first-user", TenantRole.TenantContributor)]),
+            ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        captures.Count.ShouldBe(2);
+        captures[0].CurrentRole.ShouldBe(TenantRole.TenantContributor);
+        captures[1].CurrentRole.ShouldBeNull();
+        captures.ShouldAllBe(capture => capture.IsCurrent);
+        resolver.ResolutionCount.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RawTenantMismatchNeverReLabelsMembershipOrAuthorityAsTheRequestedTenant(bool batch)
+    {
+        var resolver = new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"));
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver: resolver);
+        TenantDetail wrongTenant = Detail([new("target-user", TenantRole.TenantOwner)]) with { TenantId = "tenant.beta" };
+        IReadOnlyList<TenantCorrectionProjection> captures = batch
+            ? await composition.ComposeTenantCorrectionProjectionsAsync("tenant.alpha", ["target-user", "another-user"], wrongTenant,
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)
+            : [await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user", wrongTenant,
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)];
+        captures.ShouldAllBe(capture => !capture.IsCurrent && !capture.IsAuthorized && !capture.IsGlobalAdministrator
+            && !capture.HasVerifiedMembership && !capture.IsMembershipEmpty && capture.CurrentRole == null);
+        resolver.ResolutionCount.ShouldBe(0);
     }
 
     private const string GrantedPolicy = """
@@ -1209,9 +1315,16 @@ public sealed class TenantsBffCompositionTests
     private sealed class StubPrincipalResolver(TenantConfigurationPrincipalEvidence evidence)
         : ITenantConfigurationPrincipalResolver
     {
+        public TenantConfigurationPrincipalEvidence Evidence { get; set; } = evidence;
+
+        public int ResolutionCount { get; private set; }
+
         public ValueTask<TenantConfigurationPrincipalEvidence> ResolveAsync(
             CancellationToken cancellationToken = default)
-            => ValueTask.FromResult(evidence);
+        {
+            ResolutionCount++;
+            return ValueTask.FromResult(Evidence);
+        }
     }
 
     private sealed class ThrowingConfiguration : IReadOnlyDictionary<string, string>
