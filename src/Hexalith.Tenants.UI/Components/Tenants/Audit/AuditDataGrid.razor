@@ -110,13 +110,30 @@
                     ? null
                     : CorrectionIntentFor(context);
             }
+            @if (correctionIntent?.IntendedCommandDomain is TenantCorrectionCommandDomain.Tenants && IsCorrectionViewportSafe
+                && TenantAuditReceipt.FromRow(context).State is TenantAuditReceiptState.Ready)
+            {
+                <FluentSelect TOption="string" TValue="string"
+                              Class="audit-data-grid__correction-role"
+                              Value="@(correctionIntent.IntendedRole?.ToString() ?? string.Empty)"
+                              ValueChanged="value => SelectCorrectionRoleAsync(context, value)"
+                              data-testid="tenants-correction-role"
+                              data-correction-focus-reference="@context.EventReference"
+                              data-correction-origin="grid"
+                              aria-label="@Localizer["Tenants.Correction.RoleChoice.Label"]">
+                    <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</FluentOption>
+                    @foreach (TenantRole role in AssignableRoles)
+                    {
+                        <FluentOption TValue="string" Value="@role.ToString()">@Localizer[$"Tenants.Correction.Role.{role}"]</FluentOption>
+                    }
+                </FluentSelect>
+            }
             @if (IsSupportedCorrection(correctionIntent) && !IsCorrectionViewportSafe)
             {
-                <span class="audit-data-grid__correction-reason"
+                <span class="audit-data-grid__correction-reason" tabindex="-1"
+                      data-correction-focus-reference="@context.EventReference" data-correction-origin="grid"
                       data-testid="@(HasViewportMeasurement ? "tenants-correction-mobile-read-only" : "tenants-correction-viewport-pending")">
-                    @(HasViewportMeasurement
-                        ? Localizer["Tenants.Audit.Mobile.ReadOnly"]
-                        : Localizer["Tenants.Audit.Viewport.Pending"])
+                    @(HasViewportMeasurement ? Localizer["Tenants.Audit.Mobile.ReadOnly"] : Localizer["Tenants.Audit.Viewport.Pending"])
                 </span>
             }
             else if (correctionIntent?.IsAvailable is true)
@@ -125,6 +142,7 @@
                               Class="audit-data-grid__correction-start"
                               data-testid="tenants-correction-start"
                               data-correction-focus-reference="@context.EventReference"
+                              data-correction-origin="grid"
                               aria-label="@CorrectionAccessibleName(correctionIntent)"
                               OnClick="() => StartCorrectionAsync(correctionIntent)">
                     @CorrectionActionLabel(correctionIntent)
@@ -132,23 +150,8 @@
             }
             else if (ShouldRenderUnavailableReason(correctionIntent))
             {
-                @if (RequiresRoleSelection(correctionIntent!))
-                {
-                    <FluentSelect TOption="string" TValue="string"
-                                  Class="audit-data-grid__correction-role"
-                                  Value="@string.Empty"
-                                  ValueChanged="value => SelectCorrectionRoleAsync(context, value)"
-                                  data-testid="tenants-correction-role"
-                                  data-correction-focus-reference="@context.EventReference"
-                                  aria-label="@Localizer["Tenants.Correction.RoleChoice.Label"]">
-                        <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</FluentOption>
-                        @foreach (TenantRole role in AssignableRoles)
-                        {
-                            <FluentOption TValue="string" Value="@role.ToString()">@Localizer[$"Tenants.Correction.Role.{role}"]</FluentOption>
-                        }
-                    </FluentSelect>
-                }
-                <span class="audit-data-grid__correction-reason"
+                <span class="audit-data-grid__correction-reason" tabindex="-1"
+                      data-correction-focus-reference="@context.EventReference" data-correction-origin="grid"
                       data-testid="tenants-correction-unavailable-reason">
                     @CorrectionUnavailableReason(correctionIntent!)
                 </span>
@@ -254,12 +257,12 @@
 
     private static bool ShouldRenderUnavailableReason(TenantCorrectionStartIntent? intent)
         => intent?.UnavailableReasons.Count > 0
-            && !intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome);
+;
 
     private static bool IsSupportedCorrection(TenantCorrectionStartIntent? intent)
         => intent?.IntendedCommandDomain is not null
             && intent.IntendedCommandType is not null
-            && !intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome);
+;
 
     private static bool RequiresRoleSelection(TenantCorrectionStartIntent intent)
         => intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.ExplicitRoleRequired);
@@ -275,7 +278,9 @@
             : Localizer["Tenants.Correction.Action.StartAccessible", intent.OriginalAuditReference];
 
     private string CorrectionUnavailableReason(TenantCorrectionStartIntent intent)
-        => string.Join(
+        => intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
+            ? Localizer["Tenants.Correction.Start.GlobalNotReady"]
+            : string.Join(
             " ",
             intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
 
@@ -284,10 +289,8 @@
 
     private async Task SelectCorrectionRoleAsync(TenantAuditRow row, string? value)
     {
-        if (Enum.TryParse(value, ignoreCase: false, out TenantRole role)
-            && AssignableRoles.Contains(role))
-        {
-            await InvokeAsync(() => OnRoleSelected.InvokeAsync(new(row.EventReference, role))).ConfigureAwait(false);
-        }
+        TenantRole role = Enum.TryParse(value, ignoreCase: false, out TenantRole parsed) && AssignableRoles.Contains(parsed)
+            ? parsed : TenantRole.Unknown;
+        await InvokeAsync(() => OnRoleSelected.InvokeAsync(new(row.EventReference, role))).ConfigureAwait(false);
     }
 }

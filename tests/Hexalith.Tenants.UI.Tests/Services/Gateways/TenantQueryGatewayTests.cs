@@ -44,6 +44,70 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed class TenantQueryGatewayTests
 {
     [Fact]
+    public async Task AuditPageCorrectionCaptureUsesOneReadForMultipleTargets()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        TenantDetail raw = Detail("tenant.alpha");
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(DirectResponse(raw));
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        string[] targets = ["first-user", "second-user"];
+        TenantCorrectionProjection[] safe = targets.Select(target => new TenantCorrectionProjection("tenant.alpha", target,
+            TenantStatus.Active, null, false, true, false, true, ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)).ToArray();
+        composition.ComposeTenantCorrectionProjectionsAsync("tenant.alpha", targets, raw, ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult<IReadOnlyList<TenantCorrectionProjection>>(safe));
+        IReadOnlyList<TenantCorrectionProjection> captures = await CreateGateway(client, bffComposition: composition)
+            .GetTenantCorrectionProjectionsAsync("tenant.alpha", targets);
+        captures.ShouldBe(safe);
+        _ = client.Received(1).GetTenantAsync(Arg.Any<GetTenantQuery>(), null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CorrectionCaptureAlwaysReadsWithoutValidatorAndReturnsOnlyComposedFacts()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        TenantDetail raw = Detail("tenant.alpha");
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(raw, "secret-etag", "secret-version"));
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        TenantCorrectionProjection safe = new("tenant.alpha", "target-user", TenantStatus.Active, TenantRole.TenantContributor,
+            false, true, false, true, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);
+        composition.ComposeTenantCorrectionProjectionsAsync("tenant.alpha", Arg.Is<IReadOnlyList<string>>(targets => targets.Count == 1 && targets[0] == "target-user"), raw, ReadModelFreshnessState.Current,
+            ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked, Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult<IReadOnlyList<TenantCorrectionProjection>>([safe]));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
+        TenantCorrectionProjection capture = await gateway.GetTenantCorrectionProjectionAsync("tenant.alpha", "target-user");
+        capture.ShouldBe(safe);
+        _ = client.Received(1).GetTenantAsync(Arg.Is<GetTenantQuery>(query => query.TenantId == "tenant.alpha"), null, Arg.Any<CancellationToken>());
+        gateway.SupportsTenantCorrectionStart.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("not-modified")]
+    [InlineData("null")]
+    [InlineData("degraded")]
+    [InlineData("unauthorized")]
+    public async Task CorrectionCaptureDoesNotRetainOrComposeUnusablePayload(string kind)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        TenantsRestQueryResponse<TenantDetail> response = kind switch
+        {
+            "not-modified" => NotModifiedResponse<TenantDetail>("secret-etag"),
+            "null" => DirectResponse<TenantDetail>(null!),
+            "degraded" => DirectResponse(Detail("tenant.alpha")) with { Metadata = ProjectionBackedMetadata(isStale: false) with { IsDegraded = true } },
+            _ => FailureResponse<TenantDetail>(TenantsRestQueryFailureKind.Unauthorized, 401),
+        };
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(response);
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        TenantCorrectionProjection capture = await CreateGateway(client, bffComposition: composition)
+            .GetTenantCorrectionProjectionAsync("tenant.alpha", "target-user");
+        capture.IsCurrent.ShouldBeFalse();
+        capture.HasVerifiedMembership.ShouldBeFalse();
+        _ = composition.DidNotReceiveWithAnyArgs().ComposeTenantCorrectionProjectionsAsync(default!, default!, default!, default, default, default);
+    }
+
+    [Fact]
     public async Task Gateway_constructs_each_direct_typed_query_at_the_production_client_boundary()
     {
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();

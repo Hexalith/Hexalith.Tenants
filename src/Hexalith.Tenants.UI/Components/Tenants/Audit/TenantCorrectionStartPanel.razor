@@ -1,0 +1,131 @@
+@using System.Globalization
+@using Hexalith.Tenants.Contracts.Enums
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+@inject IStringLocalizer<TenantsResources> Localizer
+
+@if (Intent is not null)
+{
+    <section class="tenant-correction-start-panel"
+             data-testid="tenants-correction-start-panel"
+             role="region"
+             aria-labelledby="tenants-correction-start-title"
+             @onkeydown="OnKeyDownAsync">
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="12px">
+            <h3 id="tenants-correction-start-title" tabindex="-1" @ref="_heading">@Localizer["Tenants.Correction.Start.Title"]</h3>
+            <p data-testid="tenants-correction-start-context">@Localizer["Tenants.Correction.Start.Context"]</p>
+            <dl class="tenant-correction-start-panel__fields">
+                <dt>@Localizer["Tenants.Correction.Field.OriginalEvidence"]</dt>
+                <dd data-testid="tenants-correction-start-reference">@SafeReference</dd>
+                <dt>@Localizer["Tenants.Correction.Start.Timestamp"]</dt>
+                <dd data-testid="tenants-correction-start-timestamp">@TimestampLabel</dd>
+                <dt>@Localizer["Tenants.Audit.Receipt.Field.Scope"]</dt>
+                <dd data-testid="tenants-correction-start-scope">@SafeScope</dd>
+                <dt>@Localizer["Tenants.Audit.Receipt.Field.Target"]</dt>
+                <dd data-testid="tenants-correction-start-target">@SafeTarget</dd>
+                <dt>@Localizer["Tenants.Correction.Preview.CurrentRole"]</dt>
+                <dd data-testid="tenants-correction-start-current-role">@CurrentRoleLabel</dd>
+                <dt>@Localizer["Tenants.Correction.Preview.IntendedRole"]</dt>
+                <dd data-testid="tenants-correction-start-intended-role">@IntendedRoleLabel</dd>
+                <dt>@Localizer["Tenants.Correction.Field.CurrentSnapshot"]</dt>
+                <dd data-testid="tenants-correction-start-projection">@Localizer[Intent.IsAvailable ? "Tenants.Correction.Start.Projection" : "Tenants.Correction.Unavailable.CurrentProjectionUnavailable"]</dd>
+                <dt>@Localizer["Tenants.Correction.Field.Command"]</dt>
+                <dd data-testid="tenants-correction-start-command">@CommandLabel</dd>
+            </dl>
+            @if (IsEmptyRecovery)
+            {
+                <p data-testid="tenants-correction-start-empty-recovery">@Localizer["Tenants.Correction.Start.EmptyRecovery"]</p>
+            }
+            @if (!CanHandoff)
+            {
+                <p role="alert" tabindex="-1" data-testid="tenants-correction-start-reason">@ReasonLabel</p>
+            }
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              data-testid="tenants-correction-start-handoff"
+                              Disabled="@(!CanHandoff)"
+                              OnClick="HandoffAsync">@Localizer["Tenants.Correction.Start.Handoff"]</FluentButton>
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              data-testid="tenants-correction-start-cancel"
+                              OnClick="CloseAsync">@Localizer["Tenants.Correction.Confirm.Cancel"]</FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </section>
+}
+
+@code {
+    private ElementReference _heading;
+    private string? _focusedReference;
+
+    /// <summary>Gets or sets the redacted start intent.</summary>
+    [Parameter] public TenantCorrectionStartIntent? Intent { get; set; }
+
+    /// <summary>Gets or sets the callback opening the separate preview without submitting.</summary>
+    [Parameter] public EventCallback<TenantCorrectionStartIntent> OnHandoff { get; set; }
+
+    /// <summary>Gets or sets the callback restoring the exact launcher focus.</summary>
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string SafeReference => TenantAuditSupportSafety.SafeApprovedReference(Intent?.OriginalAuditReference) ?? string.Empty;
+    private string SafeScope => TenantAuditSupportSafety.SafeIdentifier(Intent?.TenantScope, SupportSafeCopyValueKind.TenantId);
+    private string SafeTarget => TenantAuditSupportSafety.SafeIdentifier(Intent?.TargetUserId, SupportSafeCopyValueKind.UserId);
+    private string Input(string name) => Intent?.RequiredPreviewInputs.TryGetValue(name, out string? value) is true ? value : string.Empty;
+    private bool IsEmptyRecovery => Input("emptyMembership") is "true";
+    private string TimestampLabel => DateTimeOffset.TryParse(Input("originalTimestamp"), CultureInfo.InvariantCulture,
+        DateTimeStyles.RoundtripKind, out DateTimeOffset timestamp) && timestamp != default
+        ? timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC' zzz", CultureInfo.CurrentCulture) : string.Empty;
+    private bool HasSafeFields => SafeReference.Length > 0 && SafeScope.Length > 0 && SafeTarget.Length > 0
+        && TimestampLabel.Length > 0 && Intent?.IntendedRole is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
+    private bool CanHandoff => HasSafeFields && Intent?.IsAvailable is true && OnHandoff.HasDelegate
+        && Intent.CurrentProjection is { IsCurrent: true, IsAuthorized: true }
+        && Intent.CurrentProjection.TenantId == SafeScope && Intent.CurrentProjection.TargetUserId == SafeTarget
+        && Intent.CurrentProjectionSnapshotReference is "tenant-projection-current"
+        && Input("currentProjectionSnapshot") is "tenant-projection-current"
+        && Input("originalAuditReference") == SafeReference && Input("tenantId") == SafeScope && Input("userId") == SafeTarget
+        && Input("intendedRole") == Intent.IntendedRole?.ToString()
+        && Intent.IntendedCommandDomain is TenantCorrectionCommandDomain.Tenants
+        && Intent.IntendedCommandType is TenantCorrectionCommandType.AddUserToTenant or TenantCorrectionCommandType.ChangeUserRole;
+    private string CurrentRoleLabel => Enum.TryParse(Input("currentRole"), out TenantRole role)
+        && role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
+        ? Localizer[$"Tenants.Correction.Role.{role}"] : Localizer["Tenants.Correction.Start.TargetAbsent"];
+    private string IntendedRoleLabel => Intent?.IntendedRole is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader
+        ? Localizer[$"Tenants.Correction.Role.{Intent.IntendedRole}"] : Localizer["Tenants.Correction.RoleChoice.Placeholder"];
+    private string CommandLabel => Intent?.IntendedCommandType is TenantCorrectionCommandType.AddUserToTenant or TenantCorrectionCommandType.ChangeUserRole
+        ? Localizer[$"Tenants.Correction.Command.{Intent.IntendedCommandType}"] : Localizer["Tenants.Correction.Unavailable.UnsupportedOutcome"];
+    private string ReasonLabel => Intent?.UnavailableReasons.Count > 0
+        ? string.Join(" ", Intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value))
+        : Localizer["Tenants.Correction.Unavailable.AuditEvidenceUnavailable"];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Intent is null || !RendererInfo.IsInteractive || _focusedReference == SafeReference)
+        {
+            return;
+        }
+        _focusedReference = SafeReference;
+        try
+        {
+            await _heading.FocusAsync().ConfigureAwait(false);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Focus is unobservable after the circuit disconnects.
+        }
+        catch (JSException)
+        {
+            // Evidence remains usable if browser focus support is unavailable.
+        }
+        catch (ObjectDisposedException)
+        {
+            // The panel disappeared during the focus handoff.
+        }
+        catch (OperationCanceledException)
+        {
+            // Circuit teardown cancelled the focus handoff.
+        }
+    }
+
+    private Task OnKeyDownAsync(KeyboardEventArgs args) => args.Key is "Escape" ? CloseAsync() : Task.CompletedTask;
+    private Task CloseAsync() => OnClose.InvokeAsync();
+    private Task HandoffAsync() => CanHandoff ? OnHandoff.InvokeAsync(Intent!) : Task.CompletedTask;
+}

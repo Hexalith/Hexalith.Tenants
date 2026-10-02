@@ -224,23 +224,19 @@
                            OnOpenReceipt="OpenReceiptAsync"
                            CorrectionIntentProvider="CreateCorrectionIntent"
                            OnRoleSelected="SelectCorrectionRoleAsync"
-                           OnStartCorrection="OpenCorrectionAsync" />
+                           OnStartCorrection="OpenGridCorrectionAsync" />
             @if (_activeCorrectionIntent is not null)
             {
-                @if (_activeCorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
-                {
-                    <GlobalAdministratorCorrectionPanel Intent="@_activeCorrectionIntent"
-                                                        CurrentProjection="@_globalAdministratorsSnapshot"
-                                                        ProjectionRefreshProvider="RefreshGlobalAdministratorsProjectionAsync"
-                                                        OnClose="CloseCorrectionAsync" />
-                }
-                else
-                {
-                    <CorrectionStartPanel Intent="@_activeCorrectionIntent"
-                                          CurrentProjection="@_tenantDetailSnapshot?.Detail"
-                                          ProjectionRefreshProvider="RefreshTenantProjectionAsync"
-                                          OnClose="CloseCorrectionAsync" />
-                }
+                <TenantCorrectionStartPanel Intent="@_activeCorrectionIntent"
+                                            OnHandoff="HandoffCorrectionAsync"
+                                            OnClose="CloseCorrectionAsync" />
+            }
+            @if (_previewCorrectionIntent is not null)
+            {
+                <CorrectionStartPanel Intent="@_previewCorrectionIntent"
+                                      StartProjection="@_previewCorrectionIntent.CurrentProjection"
+                                      ProjectionRefreshProvider="RefreshTenantProjectionAsync"
+                                      OnClose="CloseCorrectionAsync" />
             }
             @if (_pagingJumpedToFirstPage)
             {
@@ -264,7 +260,9 @@
     {
         <AuditEvidenceReceipt Receipt="@_selectedReceipt"
                               CorrectionIntent="@_selectedReceiptCorrectionIntent"
-                              OnStartCorrection="OpenCorrectionAsync"
+                              IsCorrectionViewportSafe="@HasMeasuredSafeViewport"
+                              OnStartCorrection="OpenReceiptCorrectionAsync"
+                              OnRoleSelected="SelectCorrectionRoleAsync"
                               OnRetry="RefreshAsync"
                               OnReset="ResetFiltersAsync"
                               UseResetRecovery="@HasFilterValidation"
@@ -306,7 +304,12 @@
     private long _receiptFocusGeneration;
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
+    private TenantCorrectionStartIntent? _previewCorrectionIntent;
+    private readonly Dictionary<string, TenantCorrectionProjection> _correctionProjections = new(StringComparer.Ordinal);
+    private string? _activeCorrectionOrigin;
+    private string? _pendingCorrectionOrigin;
     private int _correctionOpenGeneration;
+    private long _correctionProjectionGeneration;
     private TenantDetailSnapshot? _tenantDetailSnapshot;
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     private long _globalAdministratorsProjectionGeneration;
@@ -335,6 +338,7 @@
     private IJSObjectReference? _focusModule;
     private string? _activeCorrectionFocusReference;
     private string? _pendingCorrectionFocusReference;
+    private long _correctionFocusGeneration;
     private TenantHighImpactViewportObservation? _viewportObservation;
 
     [Parameter]
@@ -638,7 +642,10 @@
 
                 if (!HasMeasuredSafeViewport)
                 {
+                    _correctionOpenGeneration++;
+                    ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
                     _activeCorrectionIntent = null;
+                    _previewCorrectionIntent = null;
                     _activeCorrectionFocusReference = null;
                 }
 
@@ -769,7 +776,10 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         string? pendingCorrectionFocusReference = _pendingCorrectionFocusReference;
+        string? pendingCorrectionOrigin = _pendingCorrectionOrigin;
+        long correctionFocusGeneration = _correctionFocusGeneration;
         _pendingCorrectionFocusReference = null;
+        _pendingCorrectionOrigin = null;
 
         if (_pendingReceiptFocus is { } pendingReceiptFocus)
         {
@@ -779,12 +789,12 @@
             {
                 IJSObjectReference focusModule = _focusModule
                     ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
-                if (focusGeneration == _receiptFocusGeneration)
+                if (!_disposed && focusGeneration == _receiptFocusGeneration)
                 {
                     bool focused = pendingReceiptFocus is "heading"
                         ? await focusModule.InvokeAsync<bool>("focusElementById", "tenants-audit-receipt-heading").ConfigureAwait(false)
                         : await focusModule.InvokeAsync<bool>("focusElementById", pendingReceiptFocus).ConfigureAwait(false);
-                    if (focusGeneration == _receiptFocusGeneration && !focused)
+                    if (!_disposed && focusGeneration == _receiptFocusGeneration && !focused)
                     {
                         _ = await focusModule.InvokeAsync<bool>("focusElementById", "tenant-audit-heading").ConfigureAwait(false);
                     }
@@ -817,11 +827,14 @@
         {
             IJSObjectReference module = _focusModule
                 ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
-
+            if (_disposed || correctionFocusGeneration != _correctionFocusGeneration)
+            {
+                return;
+            }
             bool focused = await module
-                .InvokeAsync<bool>("focusCorrectionLauncher", pendingCorrectionFocusReference)
+                .InvokeAsync<bool>("focusCorrectionLauncher", pendingCorrectionFocusReference, pendingCorrectionOrigin)
                 .ConfigureAwait(false);
-            if (!focused)
+            if (!_disposed && correctionFocusGeneration == _correctionFocusGeneration && !focused)
             {
                 string fallback = _selectedReceipt is null
                     ? "tenant-audit-heading"
@@ -905,11 +918,21 @@
             return null;
         }
 
-        if (_selectedReceipt is not null && ReceiptStateForSnapshot(result) != _selectedReceipt.State)
+        bool receiptStateChanges = false;
+        bool removesReceiptCorrection = false;
+        await InvokeAsync(() =>
+        {
+            if (CanApply(tenantId, generation))
+            {
+                receiptStateChanges = _selectedReceipt is not null && ReceiptStateForSnapshot(result) != _selectedReceipt.State;
+                removesReceiptCorrection = !receiptStateChanges && WillRemoveReceiptCorrectionControl(result);
+            }
+        }).ConfigureAwait(false);
+        if (receiptStateChanges)
         {
             await CaptureReceiptFocusForReplacementAsync().ConfigureAwait(false);
         }
-        else if (WillRemoveReceiptCorrectionControl(result))
+        else if (removesReceiptCorrection)
         {
             await CaptureReceiptFocusForReplacementAsync(correctionOnly: true).ConfigureAwait(false);
         }
@@ -966,7 +989,15 @@
             return null;
         }
 
-        if (WillRemoveReceiptCorrectionControl(_snapshot))
+        removesReceiptCorrection = false;
+        await InvokeAsync(() =>
+        {
+            if (CanApply(tenantId, generation))
+            {
+                removesReceiptCorrection = WillRemoveReceiptCorrectionControl(_snapshot);
+            }
+        }).ConfigureAwait(false);
+        if (removesReceiptCorrection)
         {
             await CaptureReceiptFocusForReplacementAsync(correctionOnly: true).ConfigureAwait(false);
         }
@@ -1394,6 +1425,10 @@
         _activeCorrectionIntent = null;
         _activeCorrectionFocusReference = null;
         _selectedCorrectionRoles.Clear();
+        _correctionProjections.Clear();
+        _previewCorrectionIntent = null;
+        _correctionOpenGeneration++;
+        InvalidateCorrectionFocus();
     }
 
     private Task OpenReceiptAsync(TenantAuditRow row)
@@ -1425,72 +1460,75 @@
         return Task.CompletedTask;
     }
 
-    private async Task OpenCorrectionAsync(TenantCorrectionStartIntent intent)
+    private Task OpenGridCorrectionAsync(TenantCorrectionStartIntent intent)
+        => OpenCorrectionAsync(intent, "grid");
+
+    private Task OpenReceiptCorrectionAsync(TenantCorrectionStartIntent intent)
+        => OpenCorrectionAsync(intent, "receipt");
+
+    private async Task OpenCorrectionAsync(TenantCorrectionStartIntent intent, string origin)
     {
-        if (!HasMeasuredSafeViewport || !intent.IsAvailable)
+        if (!HasMeasuredSafeViewport || !intent.IsAvailable
+            || intent.IntendedCommandDomain is not TenantCorrectionCommandDomain.Tenants)
         {
             return;
         }
 
-        // Guard against out-of-order completion: two rapid opens each await a projection refresh, and the
-        // earlier one can resolve last. Capturing a generation synchronously (before the first await, on the
-        // renderer dispatcher) lets only the newest open apply its intent.
         int generation = ++_correctionOpenGeneration;
-
-        // Started on the dispatcher at activation time: if the refreshed intent turns unavailable, the receipt's
-        // Start correction is replaced by its reason, and focus must move to the receipt heading, not <body>.
-        Task<bool> receiptCorrectionFocusProbe = IsFocusInsideReceiptCorrectionAsync(intent.OriginalAuditReference);
-
-        // Refresh the projection that actually governs this correction so the panel's preview,
-        // last-administrator hard stop, and present/absent evaluation run against current evidence:
-        // the fixed global-administrator projection for platform-authority corrections, tenant detail
-        // otherwise. The panel re-derives its preview from this refreshed CurrentProjection (AC6/AC8).
-        GlobalAdministratorsSnapshot? globalSnapshot = null;
-        if (intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
-        {
-            globalSnapshot = await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
-        }
-        else
-        {
-            await RefreshTenantProjectionAsync().ConfigureAwait(false);
-        }
-
-        bool focusInReceiptCorrection = await receiptCorrectionFocusProbe.ConfigureAwait(false);
-
-        // Marshal the parent field writes back onto the renderer's dispatcher: this method awaited a
-        // projection refresh with ConfigureAwait(false), so the continuation runs off the Blazor sync
-        // context (dispatcher hygiene — this UI has documented off-dispatcher circuit-crash history).
+        InvalidateCorrectionFocus();
+        long projectionGeneration = Interlocked.Increment(ref _correctionProjectionGeneration);
+        string tenantId = TenantId;
+        long loadGeneration = Volatile.Read(ref _loadGeneration);
+        _activeCorrectionIntent = null;
+        _previewCorrectionIntent = null;
+        TenantCorrectionProjection projection = await QueryGateway.GetTenantCorrectionProjectionAsync(
+            tenantId, intent.TargetUserId, CancellationToken.None).ConfigureAwait(false);
         await InvokeAsync(() =>
         {
-            if (generation != _correctionOpenGeneration || !HasMeasuredSafeViewport)
+            if (_disposed || generation != _correctionOpenGeneration
+                || projectionGeneration != Volatile.Read(ref _correctionProjectionGeneration) || !HasMeasuredSafeViewport
+                || !CanApply(tenantId, loadGeneration))
             {
-                return; // A newer correction open superseded this one while its projection refreshed.
-            }
-
-            TenantAuditRow? sourceRow = _snapshot.Rows.FirstOrDefault(row =>
-                string.Equals(row.EventReference, intent.OriginalAuditReference, StringComparison.Ordinal));
-            if (sourceRow is null
-                || TenantAuditReceipt.FromRow(sourceRow, surfaceKind: _snapshot.Kind).State is not TenantAuditReceiptState.Ready)
-            {
-                ReplaceUnavailableReceiptCorrection(focusInReceiptCorrection);
                 return;
             }
 
-            if (globalSnapshot is not null)
+            _correctionProjections[intent.TargetUserId] = projection;
+            TenantAuditRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
+                string.Equals(candidate.EventReference, intent.OriginalAuditReference, StringComparison.Ordinal));
+            TenantCorrectionStartIntent? refreshed = row is null ? null : CreateCorrectionIntent(row);
+            _activeCorrectionFocusReference = intent.OriginalAuditReference;
+            _activeCorrectionOrigin = origin;
+            if (refreshed?.IsAvailable is true)
             {
-                _globalAdministratorsSnapshot = globalSnapshot;
+                _activeCorrectionIntent = refreshed;
             }
-
-            TenantCorrectionStartIntent refreshedIntent = CreateCorrectionIntent(sourceRow);
-            if (!refreshedIntent.IsAvailable)
+            else
             {
-                ReplaceUnavailableReceiptCorrection(focusInReceiptCorrection);
-                return;
+                ScheduleCorrectionFocus(intent.OriginalAuditReference, origin);
             }
-
-            _activeCorrectionIntent = refreshedIntent;
-            _activeCorrectionFocusReference = refreshedIntent.OriginalAuditReference;
+            ResolveReceiptSelection();
             StateHasChanged();
+        }).ConfigureAwait(false);
+    }
+
+    private async Task HandoffCorrectionAsync(TenantCorrectionStartIntent intent)
+    {
+        // Handoff refreshes the same safety gates, then opens the existing preview. It never dispatches.
+        string? origin = _activeCorrectionOrigin;
+        int expectedGeneration = _correctionOpenGeneration + 1;
+        await OpenCorrectionAsync(intent, origin ?? "grid").ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (_correctionOpenGeneration == expectedGeneration && _activeCorrectionIntent?.IsAvailable is true
+                && _activeCorrectionIntent.OriginalAuditReference == intent.OriginalAuditReference
+                && _activeCorrectionIntent.IntendedRole == intent.IntendedRole)
+            {
+                _previewCorrectionIntent = _activeCorrectionIntent;
+                _activeCorrectionIntent = null;
+                _receiptFocusGeneration++;
+                _pendingReceiptFocus = "tenants-correction-title";
+                StateHasChanged();
+            }
         }).ConfigureAwait(false);
     }
 
@@ -1541,9 +1579,11 @@
 
     private Task CloseCorrectionAsync()
     {
-        _pendingCorrectionFocusReference = _activeCorrectionFocusReference;
+        _correctionOpenGeneration++;
+        ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
         _activeCorrectionFocusReference = null;
         _activeCorrectionIntent = null;
+        _previewCorrectionIntent = null;
         return Task.CompletedTask;
     }
 
@@ -1613,21 +1653,22 @@
 
     private void CaptureCorrectionAuthority(TenantAuditSnapshot snapshot)
     {
-        if (_activeCorrectionIntent is null)
+        TenantCorrectionStartIntent? active = _activeCorrectionIntent ?? _previewCorrectionIntent;
+        if (active is null)
         {
             return;
         }
 
         TenantAuditRow? source = snapshot.Rows.FirstOrDefault(row =>
-            string.Equals(row.EventReference, _activeCorrectionIntent.OriginalAuditReference, StringComparison.Ordinal));
+            string.Equals(row.EventReference, active.OriginalAuditReference, StringComparison.Ordinal));
         if (source is not null && TenantAuditReceipt.FromRow(source, surfaceKind: snapshot.Kind).State is TenantAuditReceiptState.Ready)
         {
             return;
         }
 
         _correctionOpenGeneration++;
-        _pendingCorrectionFocusReference = _activeCorrectionFocusReference
-            ?? _activeCorrectionIntent.OriginalAuditReference;
+        ScheduleCorrectionFocus(_activeCorrectionFocusReference ?? active.OriginalAuditReference, _activeCorrectionOrigin);
+        _previewCorrectionIntent = null;
         _activeCorrectionIntent = null;
         _activeCorrectionFocusReference = null;
     }
@@ -1636,6 +1677,22 @@
     {
         _receiptFocusGeneration++;
         _pendingReceiptFocus = "heading";
+    }
+
+    private void InvalidateCorrectionFocus()
+    {
+        _correctionFocusGeneration++;
+        _pendingCorrectionFocusReference = null;
+        _pendingCorrectionOrigin = null;
+        _receiptFocusGeneration++;
+        _pendingReceiptFocus = null;
+    }
+
+    private void ScheduleCorrectionFocus(string? reference, string? origin)
+    {
+        InvalidateCorrectionFocus();
+        _pendingCorrectionFocusReference = reference;
+        _pendingCorrectionOrigin = origin;
     }
 
     private void ScheduleReceiptFocus(string? reference)
@@ -1716,77 +1773,57 @@
 
     private TenantCorrectionStartIntent CreateCorrectionIntent(TenantAuditRow row)
     {
-        if (IsGlobalAdministratorRow(row))
-        {
-            return CreateGlobalAdministratorCorrectionIntent(row);
-        }
-
-        Hexalith.Tenants.Contracts.Queries.TenantDetail? detail = _tenantDetailSnapshot?.Detail;
-        TenantMember? member = detail?.Members.FirstOrDefault(member =>
-            string.Equals(member.UserId, row.Narrative?.UserId, StringComparison.Ordinal));
+        string target = row.Narrative?.UserId ?? string.Empty;
+        _correctionProjections.TryGetValue(target, out TenantCorrectionProjection? projection);
         TenantRole? intendedRole = _selectedCorrectionRoles.TryGetValue(row.EventReference, out TenantRole selectedRole)
-            ? selectedRole
-            : IntendedRoleFromNarrative(row);
-
+            ? selectedRole : null;
         return TenantCorrectionStartIntent.Evaluate(new(
-            TenantAuditReceipt.FromRow(row, surfaceKind: _snapshot.Kind),
-            row,
-            IsAuthorized: true,
-            HasCurrentProjectionSnapshot: _tenantDetailSnapshot?.Kind is TenantDetailSurfaceKind.Ready && _tenantDetailSnapshot.Freshness is ReadModelFreshnessState.Current,
-            CurrentProjectionSnapshotReference: _tenantDetailSnapshot?.Kind is TenantDetailSurfaceKind.Ready
-                ? "Current tenant projection is available."
-                : "Current tenant projection is not available.",
-            TenantStatus: detail?.Status ?? TenantStatus.Unknown,
-            CurrentRole: member?.Role,
+            TenantAuditReceipt.FromRow(row, surfaceKind: _snapshot.Kind), row,
+            IsAuthorized: projection?.IsAuthorized is true,
+            HasCurrentProjectionSnapshot: projection?.IsCurrent is true
+                && _snapshot.Lifecycle is ProjectionLifecycleState.Current
+                && _snapshot.Freshness is ReadModelFreshnessState.Current,
+            CurrentProjectionSnapshotReference: string.Empty,
+            TenantStatus: projection?.TenantStatus ?? TenantStatus.Unknown,
+            CurrentRole: projection?.CurrentRole,
             IntendedRole: intendedRole,
-            HasTenantCommandSupport: true,
+            HasTenantCommandSupport: QueryGateway.SupportsTenantCorrectionStart
+                && BffComposition.IsReadSurfaceConnected && BffComposition.IsCommandSurfaceConnected,
             HasGlobalAdministratorCommandSupport: false,
-            IsNarrowViewportSafe: HasMeasuredSafeViewport));
+            IsNarrowViewportSafe: HasMeasuredSafeViewport,
+            Projection: projection));
     }
 
-    // Build the fixed-scope global-administrator correction intent. Command support is enabled only
-    // when authorization reflection, both BFF surfaces, and a current fixed global-administrator
-    // projection are all present; any missing evidence leaves the intent fail-closed (AC1/AC2/AC8).
-    // Tenant detail, tenant members, and tenant roles are never consulted for platform authority.
-    private TenantCorrectionStartIntent CreateGlobalAdministratorCorrectionIntent(TenantAuditRow row)
+    private async Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
     {
-        bool projectionReady = _globalAdministratorsSnapshot is
-            {
-                Kind: GlobalAdministratorsSurfaceKind.Ready
-                    or GlobalAdministratorsSurfaceKind.Empty,
-                IsCompleteEvidence: true,
-                HasMore: false,
-                Lifecycle: ProjectionLifecycleState.Current,
-            }
-            && _globalAdministratorsSnapshot.Freshness is ReadModelFreshnessState.Current;
-        bool commandSupport = IsGlobalAdministratorAuthorized
-            && BffComposition.IsReadSurfaceConnected
-            && BffComposition.IsCommandSurfaceConnected
-            && projectionReady;
-
-        return TenantCorrectionStartIntent.Evaluate(new(
-            TenantAuditReceipt.FromRow(row, surfaceKind: _snapshot.Kind),
-            row,
-            IsAuthorized: IsGlobalAdministratorAuthorized,
-            HasCurrentProjectionSnapshot: projectionReady,
-            CurrentProjectionSnapshotReference: projectionReady
-                ? "global-administrators:current"
-                : "global-administrators:unavailable",
-            TenantStatus: TenantStatus.Active,
-            HasTenantCommandSupport: false,
-            HasGlobalAdministratorCommandSupport: commandSupport,
-            IsNarrowViewportSafe: HasMeasuredSafeViewport));
-    }
-
-    private Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
-    {
+        if (!HasMeasuredSafeViewport)
+        {
+            return;
+        }
+        TenantAuditRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
+            string.Equals(candidate.EventReference, selection.AuditReference, StringComparison.Ordinal));
+        if (row is null || !string.Equals(row.TenantId, TenantId, StringComparison.Ordinal)
+            || row.EventType is not ("UserRemovedFromTenant" or "UserRoleChanged"))
+        {
+            return;
+        }
+        _correctionOpenGeneration++;
+        if (_activeCorrectionIntent is not null || _previewCorrectionIntent is not null)
+        {
+            ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
+        }
+        _activeCorrectionIntent = null;
+        _previewCorrectionIntent = null;
         if (selection.Role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader)
         {
             _selectedCorrectionRoles[selection.AuditReference] = selection.Role;
-            ResolveReceiptSelection();
         }
-
-        return Task.CompletedTask;
+        else
+        {
+            _selectedCorrectionRoles.Remove(selection.AuditReference);
+        }
+        ResolveReceiptSelection();
+        await Task.CompletedTask.ConfigureAwait(false);
     }
 
     private async Task<Hexalith.Tenants.Contracts.Queries.TenantDetail?> RefreshTenantProjectionAsync()
@@ -1817,14 +1854,66 @@
         long generation,
         CancellationToken cancellationToken)
     {
-        TenantDetailSnapshot? previous = _tenantDetailSnapshot;
-        TenantDetailSnapshot? snapshot = await QueryGateway
-            .GetTenantAsync(new TenantDetailRequest(tenantId, previous?.ETag), previous, cancellationToken)
-            .ConfigureAwait(false);
-        if (CanApply(tenantId, generation))
+        long projectionGeneration = Interlocked.Increment(ref _correctionProjectionGeneration);
+        string[] targets = _snapshot.Rows.Where(row => row.EventType is "UserRemovedFromTenant" or "UserRoleChanged")
+            .Select(row => row.Narrative?.UserId ?? string.Empty).Where(target => !string.IsNullOrWhiteSpace(target))
+            .Distinct(StringComparer.Ordinal).ToArray();
+        IReadOnlyList<TenantCorrectionProjection> projections = await QueryGateway.GetTenantCorrectionProjectionsAsync(
+            tenantId, targets, cancellationToken).ConfigureAwait(false);
+        Dictionary<string, TenantCorrectionProjection> captures = projections
+            .GroupBy(projection => projection.TargetUserId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Count() == 1 ? group.Single()
+                : TenantCorrectionProjection.Unavailable(tenantId, group.Key), StringComparer.Ordinal);
+        bool removesReceiptCorrection = false;
+        await InvokeAsync(() =>
         {
-            await InvokeAsync(() => _tenantDetailSnapshot = snapshot).ConfigureAwait(false);
+            if (CanApply(tenantId, generation) && projectionGeneration == Volatile.Read(ref _correctionProjectionGeneration))
+            {
+                _correctionProjections.Clear();
+                foreach (var capture in captures)
+                {
+                    _correctionProjections[capture.Key] = capture.Value;
+                }
+                removesReceiptCorrection = WillRemoveReceiptCorrectionControl(_snapshot);
+            }
+        }).ConfigureAwait(false);
+        if (removesReceiptCorrection)
+        {
+            await CaptureReceiptFocusForReplacementAsync(correctionOnly: true).ConfigureAwait(false);
         }
+        await InvokeAsync(() =>
+        {
+            if (CanApply(tenantId, generation) && projectionGeneration == Volatile.Read(ref _correctionProjectionGeneration))
+            {
+                if (_activeCorrectionIntent is not null)
+                {
+                    TenantAuditRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
+                        string.Equals(candidate.EventReference, _activeCorrectionIntent.OriginalAuditReference, StringComparison.Ordinal));
+                    TenantCorrectionStartIntent? updated = row is null ? null : CreateCorrectionIntent(row);
+                    if (updated?.IsAvailable is not true)
+                    {
+                        _ = CloseCorrectionAsync();
+                    }
+                    else
+                    {
+                        _activeCorrectionIntent = updated;
+                    }
+                }
+                if (_previewCorrectionIntent is not null)
+                {
+                    TenantAuditRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
+                        string.Equals(candidate.EventReference, _previewCorrectionIntent.OriginalAuditReference, StringComparison.Ordinal));
+                    if (row is not null)
+                    {
+                        // Keep the child mounted so it can preserve submitted/terminal snapshots. Pre-submit
+                        // previews receive even unavailable captures and immediately lose their old authority.
+                        _previewCorrectionIntent = CreateCorrectionIntent(row);
+                    }
+                }
+                ResolveReceiptSelection();
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
     }
 
     // Always re-read the fixed platform-authority projection. This is also the correction panel's
@@ -1879,14 +1968,6 @@
 
     private bool IsGlobalAdministratorAuthorized
         => BffComposition.GlobalAdministratorsAuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
-
-    private static TenantRole? IntendedRoleFromNarrative(TenantAuditRow row)
-        => row.EventType switch
-        {
-            "UserRemovedFromTenant" => row.Narrative?.PreviousRole ?? row.Narrative?.Role,
-            "UserRoleChanged" => row.Narrative?.OldRole,
-            _ => null,
-        };
 
     // The datetime-local filter input carries no timezone. Interpret it as UTC so the absolute
     // date-range filter stays deterministic and aligns with the UTC-rendered timestamp column,

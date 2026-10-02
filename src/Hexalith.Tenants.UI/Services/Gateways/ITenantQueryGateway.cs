@@ -11,6 +11,27 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 
 public interface ITenantQueryGateway
 {
+    /// <summary>Gets whether safe current correction captures are supported.</summary>
+    bool SupportsTenantCorrectionStart => false;
+
+    /// <summary>Captures redacted target state and current authority without a validator or retained snapshot.</summary>
+    Task<TenantCorrectionProjection> GetTenantCorrectionProjectionAsync(
+        string tenantId,
+        string targetUserId,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(TenantCorrectionProjection.Unavailable(tenantId, targetUserId));
+
+    /// <summary>Captures safe target facts for an audit page from one unconditional tenant read.</summary>
+    Task<IReadOnlyList<TenantCorrectionProjection>> GetTenantCorrectionProjectionsAsync(
+        string tenantId,
+        IReadOnlyList<string> targetUserIds,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(targetUserIds);
+        return Task.FromResult<IReadOnlyList<TenantCorrectionProjection>>(targetUserIds
+            .Select(target => TenantCorrectionProjection.Unavailable(tenantId, target)).ToArray());
+    }
+
     /// <summary>Gets whether this gateway provides the complete safe preview and proof capability.</summary>
     bool SupportsSetConfigurationPreview => false;
 

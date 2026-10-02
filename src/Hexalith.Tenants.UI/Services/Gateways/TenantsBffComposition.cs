@@ -7,6 +7,8 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
+using Hexalith.Tenants.UI.Services.SupportSafety;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -498,6 +500,76 @@ internal sealed class TenantsBffComposition(
     public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveLifecycleAuthorizationAsync(
         CancellationToken cancellationToken = default)
         => ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken);
+
+    public async ValueTask<TenantCorrectionProjection> ComposeTenantCorrectionProjectionAsync(
+        string tenantId,
+        string targetUserId,
+        TenantDetail rawDetail,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<TenantCorrectionProjection> captures = await ComposeTenantCorrectionProjectionsAsync(
+            tenantId, [targetUserId], rawDetail, freshness, lifecycle, provenance, cancellationToken).ConfigureAwait(false);
+        return captures[0];
+    }
+
+    public async ValueTask<IReadOnlyList<TenantCorrectionProjection>> ComposeTenantCorrectionProjectionsAsync(
+        string tenantId,
+        IReadOnlyList<string> targetUserIds,
+        TenantDetail rawDetail,
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(rawDetail);
+        ArgumentNullException.ThrowIfNull(targetUserIds);
+        TenantCorrectionProjection[] unavailable = targetUserIds.Select(target =>
+            TenantCorrectionProjection.Unavailable(tenantId, target)).ToArray();
+        if (principalResolver is null || string.IsNullOrWhiteSpace(tenantId)
+            || !TenantAuditSupportSafety.IsSafe(tenantId, SupportSafeCopyValueKind.TenantId)
+            || targetUserIds.Any(target => string.IsNullOrWhiteSpace(target)
+                || !TenantAuditSupportSafety.IsSafe(target, SupportSafeCopyValueKind.UserId))
+            || targetUserIds.Distinct(StringComparer.Ordinal).Count() != targetUserIds.Count
+            || !string.Equals(rawDetail.TenantId, tenantId, StringComparison.Ordinal))
+        {
+            return unavailable;
+        }
+
+        // Principal resolution precedes membership inspection; raw collections and claims never leave this seam.
+        TenantConfigurationPrincipalEvidence authority = await principalResolver.ResolveAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (authority.State is TenantConfigurationPrincipalEvidenceState.Indeterminate
+            || string.IsNullOrWhiteSpace(authority.Subject))
+        {
+            return unavailable;
+        }
+
+        IReadOnlyList<TenantMember>? members = rawDetail.Members;
+        if (members is null || members.Any(member => member is null
+                || string.IsNullOrWhiteSpace(member.UserId)
+                || !string.Equals(TenantAuditSupportSafety.SafeIdentifier(member.UserId,
+                    SupportSafeCopyValueKind.UserId), member.UserId, StringComparison.Ordinal)
+                || member.Role is not (TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader))
+            || members.Select(member => member.UserId).Distinct(StringComparer.Ordinal).Count() != members.Count)
+        {
+            return unavailable;
+        }
+
+        bool global = authority.State is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator;
+        bool authorized = global || members.Any(member => member.Role is TenantRole.TenantOwner
+            && string.Equals(member.UserId, authority.Subject, StringComparison.Ordinal));
+        if (!authorized)
+        {
+            return unavailable;
+        }
+
+        return targetUserIds.Select(target => new TenantCorrectionProjection(tenantId, target, rawDetail.Status,
+            members.FirstOrDefault(member => string.Equals(member.UserId, target, StringComparison.Ordinal))?.Role,
+            members.Count == 0, true, global, true, freshness, lifecycle, provenance)).ToArray();
+    }
 
     public async ValueTask<TenantConfigurationComposition> ComposeTenantDetailAsync(
         TenantDetail detail,

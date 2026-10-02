@@ -599,7 +599,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             .Add(component => component.CorrectionIntent, intent));
 
         intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.UnsupportedOutcome);
-        cut.FindAll("[data-testid='tenants-correction-unavailable-reason']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldNotBeNullOrWhiteSpace();
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
     }
 
@@ -771,7 +771,10 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             IsAuthorized: true,
             HasCurrentProjectionSnapshot: true,
             CurrentProjectionSnapshotReference: "tenant.alpha@current",
-            IntendedRole: intendedRole);
+            IntendedRole: intendedRole,
+            Projection: new TenantCorrectionProjection(row.TenantId, row.Narrative?.UserId ?? string.Empty,
+                TenantStatus.Active, null, false, true, false, true, ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked));
 
     private static TenantAuditReceipt DirectReceipt(TenantAuditReceiptState state, string auditReference)
         => new(

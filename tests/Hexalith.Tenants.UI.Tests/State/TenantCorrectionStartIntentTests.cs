@@ -364,6 +364,106 @@ public sealed class TenantCorrectionStartIntentTests
         intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.UnsupportedOutcome);
     }
 
+    [Theory]
+    [InlineData("UserRemovedFromTenant", null, TenantRole.TenantReader, TenantCorrectionCommandType.AddUserToTenant)]
+    [InlineData("UserRemovedFromTenant", TenantRole.TenantContributor, TenantRole.TenantReader, TenantCorrectionCommandType.ChangeUserRole)]
+    [InlineData("UserRoleChanged", TenantRole.TenantContributor, TenantRole.TenantOwner, TenantCorrectionCommandType.ChangeUserRole)]
+    public void CurrentMembershipDeterminesTheForwardCommand(string outcome, TenantRole? current, TenantRole intended,
+        TenantCorrectionCommandType expected)
+    {
+        ArgumentNullException.ThrowIfNull(outcome);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row(outcome, "userId: target-user"), intended, current));
+        intent.IsAvailable.ShouldBeTrue();
+        intent.IntendedCommandType.ShouldBe(expected);
+    }
+
+    [Theory]
+    [InlineData("UserRemovedFromTenant")]
+    [InlineData("UserRoleChanged")]
+    public void MatchingCurrentAndIntendedRoleCarriesNoCommand(string outcome)
+    {
+        ArgumentNullException.ThrowIfNull(outcome);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row(outcome, "userId: target-user"),
+            TenantRole.TenantReader, TenantRole.TenantReader));
+        intent.IntendedCommandType.ShouldBeNull();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AlreadyApplied);
+    }
+
+    [Theory]
+    [InlineData(TenantRole.TenantOwner, true, true)]
+    [InlineData(TenantRole.TenantReader, true, false)]
+    [InlineData(TenantRole.TenantOwner, false, false)]
+    public void EmptyMembershipRequiresExplicitOwnerAndCurrentGlobalAuthority(TenantRole role, bool global, bool available)
+    {
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant", "userId: target-user"), role);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with
+        {
+            Projection = context.Projection! with { IsMembershipEmpty = true, IsGlobalAdministrator = global },
+        });
+        intent.IsAvailable.ShouldBe(available);
+        intent.RequiredPreviewInputs["emptyMembership"].ShouldBe("true");
+        if (available) intent.IntendedCommandType.ShouldBe(TenantCorrectionCommandType.AddUserToTenant);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(TenantRole.Unknown)]
+    [InlineData((TenantRole)999)]
+    public void RoleChangeRequiresAKnownCurrentTargetRole(TenantRole? current)
+    {
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row("UserRoleChanged", "userId: target-user"),
+            TenantRole.TenantReader, current));
+        intent.IsAvailable.ShouldBeFalse();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
+    }
+
+    [Fact]
+    public void ReceiptMismatchAndProjectionScopeMismatchFailClosed()
+    {
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant", "userId: target-user"), TenantRole.TenantReader);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with
+        {
+            Receipt = context.Receipt with { AuditReference = "another-safe-reference" },
+            Projection = context.Projection! with { TenantId = "another-tenant" },
+        });
+        intent.IsAvailable.ShouldBeFalse();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AuditEvidenceUnavailable);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.ScopeConflict);
+    }
+
+    [Theory]
+    [InlineData(ReadModelFreshnessState.Stale, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Degraded, QueryResponseProvenance.ProjectionBacked)]
+    [InlineData(ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.HandlerComputed)]
+    public void DirectProjectionEvidenceMustBeCurrent(ReadModelFreshnessState freshness, ProjectionLifecycleState lifecycle,
+        QueryResponseProvenance provenance)
+    {
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant", "userId: target-user"), TenantRole.TenantReader);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with
+        {
+            Projection = context.Projection! with { Freshness = freshness, Lifecycle = lifecycle, Provenance = provenance },
+        });
+        intent.IsAvailable.ShouldBeFalse();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
+    }
+
+    [Fact]
+    public void AuthoritySupportAndViewportLossBlockWithoutLosingOriginalEvidence()
+    {
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant", "userId: target-user"), TenantRole.TenantReader);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with
+        {
+            Projection = context.Projection! with { IsAuthorized = false },
+            HasTenantCommandSupport = false,
+            IsNarrowViewportSafe = false,
+        });
+        intent.IsAvailable.ShouldBeFalse();
+        intent.OriginalAuditReference.ShouldBe(context.Receipt.AuditReference);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.CommandSupportUnavailable);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.NarrowViewportUnavailable);
+    }
+
     private static TenantCorrectionStartContext Context(
         TenantAuditRow row,
         TenantRole? intendedRole = null,
@@ -380,7 +480,10 @@ public sealed class TenantCorrectionStartIntentTests
             CurrentRole: currentRole,
             IntendedRole: intendedRole,
             HasTenantCommandSupport: true,
-            HasGlobalAdministratorCommandSupport: hasGlobalAdministratorCommandSupport);
+            HasGlobalAdministratorCommandSupport: hasGlobalAdministratorCommandSupport,
+            Projection: new TenantCorrectionProjection(row.TenantId, row.Narrative?.UserId ?? string.Empty,
+                tenantStatus, currentRole, false, true, false, true, ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked));
 
     // Defaults describe the only evidence shape that may arm a correction: a projection-backed route
     // reporting Current lifecycle. Tests that exercise a fail-closed path override them explicitly.

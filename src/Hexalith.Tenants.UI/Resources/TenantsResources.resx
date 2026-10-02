@@ -4156,4 +4156,37 @@
   <data name="Tenants.Audit.Availability.RetryLimit" xml:space="preserve">
     <value>Repeated retries left this state unchanged, so retrying is no longer offered here.</value>
   </data>
+  <data name="Tenants.Correction.Start.Title" xml:space="preserve">
+    <value>Start a forward tenant correction</value>
+  </data>
+  <data name="Tenants.Correction.Start.Context" xml:space="preserve">
+    <value>Review the current state and your chosen role before opening the separate preview. No command has been submitted.</value>
+  </data>
+  <data name="Tenants.Correction.Start.Timestamp" xml:space="preserve">
+    <value>Original evidence timestamp</value>
+  </data>
+  <data name="Tenants.Correction.Start.Projection" xml:space="preserve">
+    <value>Current state from the tenant projection; current authority was checked.</value>
+  </data>
+  <data name="Tenants.Correction.Start.TargetAbsent" xml:space="preserve">
+    <value>Target absent from the verified current membership</value>
+  </data>
+  <data name="Tenants.Correction.Start.EmptyRecovery" xml:space="preserve">
+    <value>Current membership is empty. Recovery requires current global administrator authority and the explicitly chosen Owner role. This does not establish whether earlier membership existed.</value>
+  </data>
+  <data name="Tenants.Correction.Start.Handoff" xml:space="preserve">
+    <value>Review correction preview</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.ScopeConflict" xml:space="preserve">
+    <value>The tenant or target does not match the current evidence. Refresh or continue read-only.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.EmptyMembershipRequiresOwner" xml:space="preserve">
+    <value>Current membership is empty. Choose Owner and request current global administrator permission before recovery.</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.emptyMembership" xml:space="preserve">
+    <value>Empty membership recovery</value>
+  </data>
+  <data name="Tenants.Correction.Start.GlobalNotReady" xml:space="preserve">
+    <value>The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.</value>
+  </data>
 </root>

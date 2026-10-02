@@ -507,6 +507,23 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture));
     }
 
+    [Fact]
+    public void FreshRedactedHandoffOverridesConflictingCachedDetailWithoutManufacturingProjectionEvidence()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant"), TenantRole.TenantReader, TenantRole.TenantContributor);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent).Add(p => p.StartProjection, context.Projection)
+            .Add(p => p.CurrentProjection, Detail(new TenantMember("target-user", TenantRole.TenantReader))));
+        cut.Instance.Snapshot!.CurrentRole.ShouldBe(TenantRole.TenantContributor);
+        cut.Instance.Snapshot.IntendedRole.ShouldBe(TenantRole.TenantReader);
+        cut.Instance.Snapshot.Intent.IntendedCommandType.ShouldBe(TenantCorrectionCommandType.ChangeUserRole);
+        cut.Instance.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.Snapshot.LastConfirmedProjectionEvidence.ShouldBeNull();
+        cut.Find("[data-testid='tenants-correction-current-role']").TextContent.ShouldBe("Tenant contributor");
+    }
+
     private static TenantCorrectionStartContext Context(
         TenantAuditRow row,
         TenantRole? intendedRole = null,
@@ -518,7 +535,10 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             HasCurrentProjectionSnapshot: true,
             CurrentProjectionSnapshotReference: "tenant.alpha@current",
             CurrentRole: currentRole,
-            IntendedRole: intendedRole);
+            IntendedRole: intendedRole,
+            Projection: new TenantCorrectionProjection(row.TenantId, row.Narrative?.UserId ?? string.Empty,
+                TenantStatus.Active, currentRole, false, true, false, true, ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked));
 
     private static TenantDetail Detail(params TenantMember[] members)
         => new(

@@ -414,7 +414,8 @@ public sealed class TenantAuditPageTests : BunitContext
             .TextContent.ShouldBe("Reference unavailable");
         cut.FindAll("[data-testid='tenants-audit-copy-reference']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-audit-row']").HasAttribute("data-audit-reference").ShouldBeFalse();
-        cut.FindAll("[data-correction-focus-reference]").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -439,7 +440,8 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference")
             .ShouldBe("event-safe-correction");
         cut.FindAll("[data-testid='tenants-audit-row-context']").ShouldBeEmpty();
-        cut.FindAll("[data-correction-focus-reference]").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("raw-token", Case.Insensitive);
         cut.Markup.ShouldNotContain("Bearer", Case.Insensitive);
     }
@@ -858,6 +860,7 @@ public sealed class TenantAuditPageTests : BunitContext
         insideCorrection.SetResult(correctionHasFocus);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-audit-receipt-open']").Click();
         cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']");
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
@@ -900,6 +903,7 @@ public sealed class TenantAuditPageTests : BunitContext
         insideCorrection.SetResult(true);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         await subscription.Received(1).SubscribeAsync(
             GetTenantAuditQuery.ProjectionType, "tenant.alpha", Arg.Any<CancellationToken>());
         cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
@@ -1106,7 +1110,7 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
-    public void Tenant_audit_page_opens_fixed_global_administrator_correction_panel_for_authorized_evidence()
+    public void TenantAuditPageKeepsGlobalAdministratorCorrectionReadOnlyEvenWithAuthority()
     {
         StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
             authorized: true,
@@ -1117,70 +1121,65 @@ public sealed class TenantAuditPageTests : BunitContext
             .Add(p => p.TenantId, "system"));
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
 
-        cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
-
-        cut.WaitForElement("[data-testid='tenants-correction-panel']");
-        cut.Find("[data-testid='tenants-correction-domain']").TextContent.ShouldContain("Global administrators");
-        // The fixed global-administrator correction never offers a tenant role selector (AC1/AC2).
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldNotBeNullOrWhiteSpace();
         cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
-        gateway.GlobalAdminRequests.Count.ShouldBeGreaterThanOrEqualTo(1);
-        cut.VisibleText().ShouldNotContain("tenant role", Case.Insensitive);
     }
 
     [Fact]
     public void Correction_panel_does_not_remount_after_its_source_audit_row_disappears()
     {
-        TenantAuditSnapshot evidence = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
-        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
-            authorized: true,
-            GlobalAdmins("other-admin"),
+        TenantAuditSnapshot evidence = ReadySnapshot([Row("event-global-admin", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]);
+        StubTenantQueryGateway gateway = RegisterServices(
             evidence,
-            TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, "\"etag\"", new TenantAuditRequest("system")),
+            TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, "\"etag\"", new TenantAuditRequest("tenant.alpha")),
             evidence);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
-            .Add(p => p.TenantId, "system"));
+            .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
-        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        cut.WaitForElement("[data-testid='tenants-correction-start-panel']");
 
         cut.Find("[data-testid='tenants-audit-refresh']").Click();
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
-        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
 
         cut.Find("[data-testid='tenants-audit-refresh']").Click();
         cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(3));
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
-        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Grid_started_correction_is_invalidated_on_loading_and_does_not_remount_on_the_same_row()
     {
-        TenantAuditSnapshot evidence = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
-        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
-            authorized: true, GlobalAdmins("other-admin"), evidence);
+        TenantAuditSnapshot evidence = ReadySnapshot([Row("event-global-admin", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]);
+        StubTenantQueryGateway gateway = RegisterServices( evidence);
         var pending = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
         BunitJSModuleInterop focusModule = JSInterop.SetupModule("./js/tenantsFocus.js");
-        JSRuntimeInvocationHandler<bool> focus = focusModule.Setup<bool>("focusCorrectionLauncher", "event-global-admin");
+        JSRuntimeInvocationHandler<bool> focus = focusModule.Setup<bool>("focusCorrectionLauncher", "event-global-admin", "grid");
         focus.SetResult(false);
         JSRuntimeInvocationHandler<bool> fallback = focusModule.Setup<bool>("focusElementById", "tenant-audit-heading");
         fallback.SetResult(true);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
-            .Add(p => p.TenantId, "system"));
+            .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
-        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        cut.WaitForElement("[data-testid='tenants-correction-start-panel']");
         gateway.QueueResponse(pending.Task);
 
         Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
             .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         cut.WaitForElement("[data-testid='tenants-audit-loading']");
-        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
         cut.WaitForAssertion(() => fallback.Invocations.Count.ShouldBe(1));
         pending.SetResult(evidence);
         await refresh;
 
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
-        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
         gateway.Requests.Count.ShouldBe(2);
     }
 
@@ -1189,21 +1188,21 @@ public sealed class TenantAuditPageTests : BunitContext
     [Fact]
     public async Task Invalidated_correction_with_an_open_receipt_falls_back_to_the_receipt_heading()
     {
-        TenantAuditSnapshot evidence = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
-        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
-            authorized: true, GlobalAdmins("other-admin"), evidence);
+        TenantAuditSnapshot evidence = ReadySnapshot([Row("event-global-admin", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]);
+        StubTenantQueryGateway gateway = RegisterServices( evidence);
         var pending = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
         BunitJSModuleInterop focusModule = JSInterop.SetupModule("./js/tenantsFocus.js");
-        JSRuntimeInvocationHandler<bool> launcher = focusModule.Setup<bool>("focusCorrectionLauncher", "event-global-admin");
+        JSRuntimeInvocationHandler<bool> launcher = focusModule.Setup<bool>("focusCorrectionLauncher", "event-global-admin", "grid");
         launcher.SetResult(false);
         JSRuntimeInvocationHandler<bool> focus = focusModule.Setup<bool>("focusElementById", _ => true);
         focus.SetResult(true);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
-            .Add(p => p.TenantId, "system"));
+            .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-audit-receipt-open']").Click();
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
         cut.Find("[data-testid='tenants-audit-grid'] [data-testid='tenants-correction-start']").Click();
-        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        cut.WaitForElement("[data-testid='tenants-correction-start-panel']");
         int focusCount = focus.Invocations.Count;
         gateway.QueueResponse(pending.Task);
 
@@ -1224,19 +1223,19 @@ public sealed class TenantAuditPageTests : BunitContext
     [InlineData("disposed")]
     public async Task Correction_focus_return_failures_do_not_fault_the_audit_page(string failure)
     {
-        TenantAuditSnapshot evidence = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
-        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
-            authorized: true, GlobalAdmins("other-admin"), evidence);
+        TenantAuditSnapshot evidence = ReadySnapshot([Row("event-global-admin", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]);
+        StubTenantQueryGateway gateway = RegisterServices( evidence);
         var pending = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
         BunitJSModuleInterop focusModule = JSInterop.SetupModule("./js/tenantsFocus.js");
-        JSRuntimeInvocationHandler<bool> launcher = focusModule.Setup<bool>("focusCorrectionLauncher", "event-global-admin");
+        JSRuntimeInvocationHandler<bool> launcher = focusModule.Setup<bool>("focusCorrectionLauncher", "event-global-admin", "grid");
         launcher.SetException<Exception>(failure is "js"
             ? new Microsoft.JSInterop.JSException("Focus module failed.")
             : new ObjectDisposedException("tenantsFocus"));
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
-            .Add(p => p.TenantId, "system"));
+            .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-correction-start']").Click();
-        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        cut.WaitForElement("[data-testid='tenants-correction-start-panel']");
         gateway.QueueResponse(pending.Task);
 
         Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
@@ -1272,6 +1271,7 @@ public sealed class TenantAuditPageTests : BunitContext
         var pendingProjection = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-correction-start']");
         gateway.QueueDetailResponse(pendingProjection.Task);
 
@@ -1301,6 +1301,7 @@ public sealed class TenantAuditPageTests : BunitContext
         var pendingProjection = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-correction-start']");
         gateway.QueueDetailResponse(pendingProjection.Task);
 
@@ -1334,6 +1335,7 @@ public sealed class TenantAuditPageTests : BunitContext
         module.Setup<bool>("isFocusInsideAuditReceiptCorrection").SetResult(true);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-audit-receipt-open']").Click();
         cut.WaitForElement("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']");
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
@@ -1372,6 +1374,7 @@ public sealed class TenantAuditPageTests : BunitContext
         correctionFocus.SetResult(true);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
         cut.WaitForElement("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']");
         gateway.QueueDetailResponse(Task.FromResult(DetailSnapshot(TenantRole.TenantReader)));
@@ -1386,63 +1389,51 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
-    public void Invalid_tenant_route_clears_the_previous_receipt_and_correction_selection()
+    public async Task Invalid_tenant_route_clears_the_previous_receipt_and_correction_selection()
     {
-        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
-            authorized: true, GlobalAdmins("other-admin"),
-            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+        StubTenantQueryGateway gateway = RegisterServices(
+            ReadySnapshot([Row("event-global-admin", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]));
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
-        navigation.NavigateTo("/tenants/system/audit?receiptReference=event-global-admin");
+        navigation.NavigateTo("/tenants/tenant.alpha/audit?receiptReference=event-global-admin");
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
-            .Add(p => p.TenantId, "system"));
+            .Add(p => p.TenantId, "tenant.alpha"));
+        await cut.InvokeAsync(() => cut.FindComponent<AuditDataGrid>().Instance.OnRoleSelected
+            .InvokeAsync(new TenantCorrectionRoleSelection("event-global-admin", TenantRole.TenantReader)));
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
         cut.Find("[data-testid='tenants-correction-start']").Click();
-        cut.WaitForElement("[data-testid='tenants-correction-panel']");
+        cut.WaitForElement("[data-testid='tenants-correction-start-panel']");
         cut.Find("[data-testid='tenants-audit-receipt']");
 
         navigation.NavigateTo("/tenants/Bearer%20raw-token/audit?receiptReference=event-global-admin");
         cut.Render(parameters => parameters.Add(p => p.TenantId, "Bearer raw-token"));
 
         cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
-        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("event-global-admin");
         gateway.Requests.Count.ShouldBe(1);
     }
 
     [Fact]
-    public async Task Newest_global_administrator_correction_projection_wins_an_out_of_order_open_race()
+    public async Task NewestTenantCorrectionProjectionWinsAnOutOfOrderOpenRace()
     {
-        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
-            authorized: true,
-            GlobalAdmins("initial-admin"),
-            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
-        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
-            .Add(p => p.TenantId, "system"));
-        cut.WaitForElement("[data-testid='tenants-audit-grid']");
-        int initialRequestCount = gateway.GlobalAdminRequests.Count;
-        var older = new TaskCompletionSource<GlobalAdministratorsSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var newer = new TaskCompletionSource<GlobalAdministratorsSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
-        gateway.QueueGlobalAdministratorResponse(older.Task);
-        gateway.QueueGlobalAdministratorResponse(newer.Task);
-
-        Task olderOpen = cut.Find("[data-testid='tenants-correction-start']")
-            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
-        cut.WaitForAssertion(() => gateway.GlobalAdminRequests.Count.ShouldBe(initialRequestCount + 1));
-        Task newerOpen = cut.Find("[data-testid='tenants-correction-start']")
-            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
-        cut.WaitForAssertion(() => gateway.GlobalAdminRequests.Count.ShouldBe(initialRequestCount + 2));
-
-        newer.SetResult(GlobalAdmins("newer-admin"));
-        await newerOpen.WaitAsync(TimeSpan.FromSeconds(5));
-        older.SetResult(GlobalAdmins("older-admin", "admin-user"));
-        await olderOpen.WaitAsync(TimeSpan.FromSeconds(5));
-
-        GlobalAdministratorsSnapshot applied = (GlobalAdministratorsSnapshot)(typeof(TenantAuditPage)
-            .GetField("_globalAdministratorsSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(cut.Instance)
-            ?? throw new InvalidOperationException("The global-administrator projection was not applied."));
-        applied.Rows.ShouldHaveSingleItem().UserId.ShouldBe("newer-admin");
-        cut.Find("[data-testid='tenants-correction-admin-count']").TextContent.ShouldBe("1");
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([
+            Row("event-role-change", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        var older = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var newer = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.QueueDetailResponse(older.Task);
+        gateway.QueueDetailResponse(newer.Task);
+        Task olderOpen = cut.Find("[data-testid='tenants-correction-start']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.DetailRequests.Count.ShouldBe(2));
+        Task newerOpen = cut.Find("[data-testid='tenants-correction-start']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.DetailRequests.Count.ShouldBe(3));
+        newer.SetResult(DetailSnapshot(TenantRole.TenantOwner));
+        await newerOpen;
+        older.SetResult(DetailSnapshot(TenantRole.TenantReader));
+        await olderOpen;
+        cut.Find("[data-testid='tenants-correction-start-current-role']").TextContent.ShouldContain("Tenant owner");
+        cut.Find("[data-testid='tenants-correction-start-panel']");
     }
 
     [Fact]
@@ -2038,10 +2029,10 @@ public sealed class TenantAuditPageTests : BunitContext
     public async Task Recovered_first_page_clears_history_before_supplementary_detail_read_completes()
     {
         StubTenantQueryGateway gateway = RegisterServices(
-            ReadySnapshot([Row("event-page-one", AuditEventCategory.Access)], nextCursor: "opaque-next", hasMore: true),
-            ReadySnapshot([Row("event-page-two", AuditEventCategory.Access)], requestCursor: "opaque-next"),
+            ReadySnapshot([Row("event-page-one", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")], nextCursor: "opaque-next", hasMore: true),
+            ReadySnapshot([Row("event-page-two", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")], requestCursor: "opaque-next"),
             TenantAuditSnapshot.ListRefreshed(
-                [Row("event-refreshed", AuditEventCategory.Access)], null, false, "etag-refreshed",
+                [Row("event-refreshed", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")], null, false, "etag-refreshed",
                 ReadModelFreshnessState.Current, new TenantAuditRequest("tenant.alpha")));
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
@@ -2163,7 +2154,7 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
-    public void User_role_changed_correction_uses_typed_old_role_instead_of_display_parsing()
+    public void RoleChangeEvidenceRequiresDeliberateSelectionEvenWhenHistoricalRoleExists()
     {
         TenantAuditEntry entry = new(
             "event-role-change",
@@ -2189,8 +2180,10 @@ public sealed class TenantAuditPageTests : BunitContext
             .Add(p => p.TenantId, "tenant.alpha"));
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
 
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-role']");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.Find("[data-testid='tenants-correction-start']").TextContent.ShouldNotBeNullOrWhiteSpace();
-        cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
     }
 
     [Theory]
@@ -2282,6 +2275,7 @@ public sealed class TenantAuditPageTests : BunitContext
                 eventType: "UserRoleChanged")]));
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
         cut.Find("[data-testid='tenants-correction-start']").TextContent.ShouldNotBeNullOrWhiteSpace();
 
@@ -2517,6 +2511,107 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.WaitForElement("[data-testid='tenants-audit-grid']");
         gateway.GlobalAdminRequests.ShouldNotBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("grid")]
+    [InlineData("receipt")]
+    public void DeliberateStartAndSeparatePreviewHandoffNeverSubmitOrPoll(string origin)
+    {
+        ArgumentNullException.ThrowIfNull(origin);
+        StubTenantQueryGateway query = RegisterServices(ReadySnapshot([
+            Row("event-correction", AuditEventCategory.Access, "userId: target-user; oldRole: TenantOwner", eventType: "UserRoleChanged")]));
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        if (origin == "receipt") cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
+        string container = origin == "receipt" ? "tenants-audit-receipt" : "tenants-audit-grid";
+        cut.Find($"[data-testid='{container}'] [data-testid='tenants-correction-start']").Click();
+        cut.Find("[data-testid='tenants-correction-start-panel']");
+        cut.FindAll("[data-testid='tenants-correction-confirm']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-start-intended-role']").TextContent.ShouldBe("Tenant reader");
+        query.DetailRequests.Count.ShouldBe(2);
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-panel']");
+        cut.Find("[data-testid='tenants-correction-original-evidence']").TextContent.ShouldBe("event-correction");
+        query.DetailRequests.Count.ShouldBe(3);
+        commands.ReceivedCalls().ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StartAndHandoffRecheckAuthorityAndCommandSupport(bool supportLoss)
+    {
+        StubTenantQueryGateway query = RegisterServices(ReadySnapshot([
+            Row("event-correction", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
+        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']").Click();
+        cut.Find("[data-testid='tenants-correction-start-panel']");
+        if (supportLoss) query.CorrectionSupport = false;
+        else query.CorrectionAuthorized = false;
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-correction");
+        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-unavailable-reason']");
+    }
+
+    [Fact]
+    public async Task RoleSelectionChangeInvalidatesAPendingStart()
+    {
+        StubTenantQueryGateway query = RegisterServices(ReadySnapshot([
+            Row("event-correction", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        var pending = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        query.QueueDetailResponse(pending.Task);
+        Task opening = cut.Find("[data-testid='tenants-correction-start']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => query.DetailRequests.Count.ShouldBe(2));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantOwner.ToString());
+        pending.SetResult(DetailSnapshot(TenantRole.TenantContributor));
+        await opening;
+        cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void AuditRefreshCapturesMultipleTargetsWithOneUnconditionalDetailRead()
+    {
+        TenantAuditRow first = Row("event-first", AuditEventCategory.Access, "userId: target-user", eventType: "UserRemovedFromTenant");
+        TenantAuditRow second = first with { EventReference = "event-second", Target = "another-user", Narrative = new TenantAuditNarrative(UserId: "another-user") };
+        StubTenantQueryGateway query = RegisterServices(ReadySnapshot([first, second]), ReadySnapshot([first, second]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        query.DetailRequests.ShouldHaveSingleItem().ETag.ShouldBeNull();
+        cut.Find("[data-testid='tenants-audit-refresh']").Click();
+        query.DetailRequests.Count.ShouldBe(2);
+        query.DetailRequests.ShouldAllBe(request => request.ETag == null);
+    }
+
+    [Fact]
+    public void PreviewHandoffRetainsFreshCaptureWhenEarlierDetailDisagrees()
+    {
+        StubTenantQueryGateway query = RegisterServices(ReadySnapshot([
+            Row("event-correction", AuditEventCategory.Access, "userId: target-user", eventType: "UserRemovedFromTenant")]));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        typeof(TenantAuditPage).GetField("_tenantDetailSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, DetailSnapshot(TenantRole.TenantReader));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        query.QueueDetailResponse(Task.FromResult(DetailSnapshot(TenantRole.TenantOwner)));
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        CorrectionStartPanel preview = cut.FindComponent<CorrectionStartPanel>().Instance;
+        preview.CurrentProjection.ShouldBeNull();
+        preview.StartProjection!.CurrentRole.ShouldBe(TenantRole.TenantOwner);
+        preview.Snapshot!.CurrentRole.ShouldBe(TenantRole.TenantOwner);
+        preview.Snapshot.IntendedRole.ShouldBe(TenantRole.TenantReader);
+        preview.Snapshot.Intent.IntendedCommandType.ShouldBe(TenantCorrectionCommandType.ChangeUserRole);
+        preview.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
     }
 
     private StubTenantQueryGateway RegisterServices(params TenantAuditSnapshot[] snapshots)
@@ -2817,6 +2912,38 @@ public sealed class TenantAuditPageTests : BunitContext
 
         public void QueueGlobalAdministratorResponse(Task<GlobalAdministratorsSnapshot> response)
             => _queuedGlobalAdministratorResponses.Enqueue(response);
+
+        public bool CorrectionSupport { get; set; } = true;
+
+        public bool SupportsTenantCorrectionStart => CorrectionSupport;
+
+        public bool CorrectionAuthorized { get; set; } = true;
+
+        public async Task<IReadOnlyList<TenantCorrectionProjection>> GetTenantCorrectionProjectionsAsync(
+            string tenantId, IReadOnlyList<string> targetUserIds, CancellationToken cancellationToken = default)
+        {
+            if (targetUserIds.Count == 0) return [];
+            TenantDetailSnapshot snapshot = await GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
+            return targetUserIds.Select(targetUserId => new TenantCorrectionProjection(tenantId, targetUserId,
+                snapshot.Detail?.Status ?? TenantStatus.Unknown,
+                snapshot.Detail?.Members.FirstOrDefault(member => member.UserId == targetUserId)?.Role,
+                snapshot.Detail?.Members.Count == 0, CorrectionAuthorized, false,
+                snapshot.Kind is TenantDetailSurfaceKind.Ready, snapshot.Freshness,
+                snapshot.Kind is TenantDetailSurfaceKind.Ready ? ProjectionLifecycleState.Current : ProjectionLifecycleState.Unknown,
+                QueryResponseProvenance.ProjectionBacked)).ToArray();
+        }
+
+        public async Task<TenantCorrectionProjection> GetTenantCorrectionProjectionAsync(
+            string tenantId, string targetUserId, CancellationToken cancellationToken = default)
+        {
+            TenantDetailSnapshot snapshot = await GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
+            return new(tenantId, targetUserId, snapshot.Detail?.Status ?? TenantStatus.Unknown,
+                snapshot.Detail?.Members.FirstOrDefault(member => member.UserId == targetUserId)?.Role,
+                snapshot.Detail?.Members.Count == 0, CorrectionAuthorized, false,
+                snapshot.Kind is TenantDetailSurfaceKind.Ready, snapshot.Freshness,
+                snapshot.Kind is TenantDetailSurfaceKind.Ready ? ProjectionLifecycleState.Current : ProjectionLifecycleState.Unknown,
+                QueryResponseProvenance.ProjectionBacked);
+        }
 
         public Task<TenantDetailSnapshot> GetTenantAsync(
             TenantDetailRequest request,

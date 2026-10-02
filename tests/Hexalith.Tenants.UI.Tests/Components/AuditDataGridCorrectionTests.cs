@@ -149,7 +149,7 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             .Add(component => component.Rows, [row])
             .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value))));
 
-        cut.FindAll("[data-testid='tenants-correction-unavailable-reason']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldNotBeNullOrWhiteSpace();
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-mobile-read-only']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-viewport-pending']").ShouldBeEmpty();
@@ -185,7 +185,10 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             IsAuthorized: true,
             HasCurrentProjectionSnapshot: true,
             CurrentProjectionSnapshotReference: "tenant.alpha@current",
-            IntendedRole: intendedRole);
+            IntendedRole: intendedRole,
+            Projection: new TenantCorrectionProjection(row.TenantId, row.Narrative?.UserId ?? string.Empty,
+                TenantStatus.Active, null, false, true, false, true, ReadModelFreshnessState.Current,
+                ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked));
 
     private static TenantAuditRow Row(string eventType)
         => new(

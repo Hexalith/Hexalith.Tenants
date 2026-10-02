@@ -4156,4 +4156,37 @@
   <data name="Tenants.Audit.Availability.RetryLimit" xml:space="preserve">
     <value>Les nouvelles tentatives n’ont pas modifié cet état ; il n’est plus proposé de réessayer ici.</value>
   </data>
+  <data name="Tenants.Correction.Start.Title" xml:space="preserve">
+    <value>Démarrer une correction de locataire</value>
+  </data>
+  <data name="Tenants.Correction.Start.Context" xml:space="preserve">
+    <value>Vérifiez l’état actuel et le rôle choisi avant d’ouvrir l’aperçu distinct. Aucune commande n’a été envoyée.</value>
+  </data>
+  <data name="Tenants.Correction.Start.Timestamp" xml:space="preserve">
+    <value>Horodatage de la preuve d’origine</value>
+  </data>
+  <data name="Tenants.Correction.Start.Projection" xml:space="preserve">
+    <value>État actuel issu de la projection du locataire ; les droits actuels ont été vérifiés.</value>
+  </data>
+  <data name="Tenants.Correction.Start.TargetAbsent" xml:space="preserve">
+    <value>Cible absente des membres actuels vérifiés</value>
+  </data>
+  <data name="Tenants.Correction.Start.EmptyRecovery" xml:space="preserve">
+    <value>La liste actuelle des membres est vide. La récupération exige les droits actuels d’administrateur global et le choix explicite du rôle Propriétaire. Cela ne prouve pas l’existence ou l’absence de membres antérieurs.</value>
+  </data>
+  <data name="Tenants.Correction.Start.Handoff" xml:space="preserve">
+    <value>Examiner l’aperçu de correction</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.ScopeConflict" xml:space="preserve">
+    <value>Le locataire ou la cible ne correspond pas à la preuve actuelle. Actualisez ou poursuivez en lecture seule.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.EmptyMembershipRequiresOwner" xml:space="preserve">
+    <value>La liste actuelle des membres est vide. Choisissez Propriétaire et demandez les droits actuels d’administrateur global avant la récupération.</value>
+  </data>
+  <data name="Tenants.Correction.PreviewInput.emptyMembership" xml:space="preserve">
+    <value>Récupération de membres absents</value>
+  </data>
+  <data name="Tenants.Correction.Start.GlobalNotReady" xml:space="preserve">
+    <value>Le parcours de correction des administrateurs globaux à fort impact n’est pas prêt ici. Poursuivez en lecture seule ou utilisez le parcours pris en charge pour les administrateurs globaux.</value>
+  </data>
 </root>
