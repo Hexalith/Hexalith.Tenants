@@ -76,9 +76,10 @@ internal sealed class TenantQueryGateway(
             {
                 return unavailable;
             }
-            return await bffComposition.ComposeTenantCorrectionProjectionsAsync(tenantId, targetUserIds,
+            IReadOnlyList<TenantCorrectionProjection> captures = await bffComposition.ComposeTenantCorrectionProjectionsAsync(tenantId, targetUserIds,
                 response.Payload, ResolveFreshness(response.Metadata), ResolveLifecycle(response.Metadata),
                 response.Metadata.Provenance, cancellationToken).ConfigureAwait(false);
+            return captures.Select(capture => capture with { ProjectionVersion = response.Metadata.ProjectionVersion }).ToArray();
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {

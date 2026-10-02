@@ -59,7 +59,7 @@ public sealed class TenantQueryGatewayTests
             .Returns(ValueTask.FromResult<IReadOnlyList<TenantCorrectionProjection>>(safe));
         IReadOnlyList<TenantCorrectionProjection> captures = await CreateGateway(client, bffComposition: composition)
             .GetTenantCorrectionProjectionsAsync("tenant.alpha", targets);
-        captures.ShouldBe(safe);
+        captures.ShouldBe(safe.Select(capture => capture with { ProjectionVersion = "projection-v1" }).ToArray());
         _ = client.Received(1).GetTenantAsync(Arg.Any<GetTenantQuery>(), null, Arg.Any<CancellationToken>());
     }
 
@@ -78,7 +78,7 @@ public sealed class TenantQueryGatewayTests
             .Returns(ValueTask.FromResult<IReadOnlyList<TenantCorrectionProjection>>([safe]));
         TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
         TenantCorrectionProjection capture = await gateway.GetTenantCorrectionProjectionAsync("tenant.alpha", "target-user");
-        capture.ShouldBe(safe);
+        capture.ShouldBe(safe with { ProjectionVersion = "secret-version" });
         _ = client.Received(1).GetTenantAsync(Arg.Is<GetTenantQuery>(query => query.TenantId == "tenant.alpha"), null, Arg.Any<CancellationToken>());
         gateway.SupportsTenantCorrectionStart.ShouldBeTrue();
     }

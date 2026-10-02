@@ -230,14 +230,6 @@
                                             OnHandoff="HandoffCorrectionAsync"
                                             OnClose="CloseCorrectionAsync" />
             }
-            @if (_previewCorrectionIntent is not null)
-            {
-                <CorrectionStartPanel Intent="@_previewCorrectionIntent"
-                                      @ref="_correctionPreview"
-                                      StartProjection="@_previewCorrectionIntent.CurrentProjection"
-                                      ProjectionRefreshProvider="RefreshTenantProjectionAsync"
-                                      OnClose="CloseCorrectionAsync" />
-            }
             @if (_pagingJumpedToFirstPage)
             {
                 <p role="status" aria-live="polite" data-testid="tenants-audit-history-truncated">
@@ -255,6 +247,21 @@
                 </FluentStack>
             </nav>
         </section>
+    }
+    @if (HasAuthorizedAuditSurface && _previewCorrectionIntent is not null)
+    {
+        <CorrectionStartPanel Intent="@_previewCorrectionIntent"
+                              @ref="_correctionPreview"
+                              StartProjection="@_previewCorrectionIntent.CurrentProjection"
+                              OnClose="CloseCorrectionAsync" />
+    }
+    @if (HasAuthorizedAuditSurface && _previewCorrectionIntent is null && RetainedCorrectionAttempt is not null)
+    {
+        <FluentButton Appearance="ButtonAppearance.Outline"
+                      data-testid="tenants-correction-resume"
+                      OnClick="ResumeCorrectionAsync">
+            @Localizer["Tenants.Correction.Resume"]
+        </FluentButton>
     }
     @if (_selectedReceipt is not null)
     {
@@ -311,7 +318,6 @@
     private string? _pendingCorrectionOrigin;
     private int _correctionOpenGeneration;
     private long _correctionProjectionGeneration;
-    private TenantDetailSnapshot? _tenantDetailSnapshot;
     private IAsyncDisposable? _readRefreshLease;
     private string? _loadedTenantId;
     private string? _initialLoadStartedTenantId;
@@ -525,6 +531,14 @@
             && _snapshot.Rows.Count > 0
             && !HasFilterValidation;
 
+    private bool HasAuthorizedAuditSurface
+        => (_snapshot.Kind is TenantAuditSurfaceKind.Ready
+            or TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty
+            or TenantAuditSurfaceKind.ListRefreshed)
+            && _snapshot.Freshness is ReadModelFreshnessState.Current
+            && string.Equals(_snapshot.TenantId, TenantId, StringComparison.Ordinal);
+
     private bool HasFilterValidation
         => _fromValidationKey is not null
             || _toValidationKey is not null
@@ -639,7 +653,7 @@
                     return;
                 }
 
-                if (!HasMeasuredSafeViewport)
+                if (!HasMeasuredSafeViewport && !HasSubmittedCorrection && !HasDisplayedRetainedCorrection)
                 {
                     _correctionOpenGeneration++;
                     if (_activeCorrectionIntent is not null || _previewCorrectionIntent is not null)
@@ -675,7 +689,6 @@
             await InvokeAsync(() =>
             {
                 ClearPaging();
-                _tenantDetailSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Unavailable(new TenantAuditRequest("invalid"));
                 _loadedTenantId = null;
                 _initialLoadStartedTenantId = null;
@@ -683,6 +696,8 @@
                 _selectedReceiptFromLauncher = false;
                 _selectedReceipt = null;
                 _selectedReceiptCorrectionIntent = null;
+                _activeCorrectionIntent = null;
+                _previewCorrectionIntent = null;
                 _dismissedReceiptReference = null;
                 _lastRouteReceiptReference = ReceiptReference;
                 StateHasChanged();
@@ -705,13 +720,14 @@
             {
                 ClearPaging();
                 _filtersDirty = false;
-                _tenantDetailSnapshot = null;
                 _snapshot = TenantAuditSnapshot.Loading(tenantId);
                 _loadedTenantId = tenantId;
                 _initialLoadStartedTenantId = null;
                 _dismissedReceiptReference = null;
                 _selectedReceiptReference = null;
                 _selectedReceiptFromLauncher = false;
+                _activeCorrectionIntent = null;
+                _previewCorrectionIntent = RetainedCorrectionAttempt?.Snapshot.Intent;
                 _lastRouteReceiptReference = ReceiptReference;
                 ResolveReceiptSelection();
                 if (ReceiptReference is not null)
@@ -1452,8 +1468,44 @@
     private bool HasSubmittedCorrection => _previewCorrectionIntent is not null
         && _correctionPreview?.HasSubmitted is true;
 
+    private TenantCorrectionAttempt? RetainedCorrectionAttempt
+        => Services.GetService<TenantCorrectionAttemptTracker>()?.Find(TenantId);
+
+    private bool HasDisplayedRetainedCorrection
+        => _previewCorrectionIntent is not null
+            && RetainedCorrectionAttempt is { } attempt
+            && string.Equals(attempt.Snapshot.OriginalAuditReference,
+                _previewCorrectionIntent.OriginalAuditReference, StringComparison.Ordinal);
+
+    private Task ResumeCorrectionAsync()
+    {
+        if (!HasAuthorizedAuditSurface || RetainedCorrectionAttempt is not { } attempt)
+        {
+            return Task.CompletedTask;
+        }
+
+        _previewCorrectionIntent = attempt.Snapshot.Intent;
+        _activeCorrectionFocusReference = attempt.Snapshot.OriginalAuditReference;
+        _activeCorrectionOrigin ??= "grid";
+        _receiptFocusGeneration++;
+        _pendingReceiptFocus = "tenants-correction-title";
+        return Task.CompletedTask;
+    }
+
     private async Task<bool> OpenCorrectionAsync(TenantCorrectionStartIntent intent, string origin, bool retainStart = false)
     {
+        if (!HasAuthorizedAuditSurface) return false;
+
+        if (RetainedCorrectionAttempt is { } retained
+            && retained.Snapshot.LifecycleState is not TenantCommandLifecycleState.Confirmed
+                and not TenantCommandLifecycleState.Rejected
+                and not TenantCommandLifecycleState.AlreadyApplied
+                and not TenantCommandLifecycleState.Failed)
+        {
+            await ResumeCorrectionAsync().ConfigureAwait(false);
+            return false;
+        }
+
         if (HasSubmittedCorrection || !HasMeasuredSafeViewport || !intent.IsAvailable
             || intent.IntendedCommandDomain is not TenantCorrectionCommandDomain.Tenants)
         {
@@ -1601,6 +1653,11 @@
 
     private void CaptureCorrectionAuthority(TenantAuditSnapshot snapshot)
     {
+        if (HasSubmittedCorrection || HasDisplayedRetainedCorrection)
+        {
+            return;
+        }
+
         TenantCorrectionStartIntent? active = _activeCorrectionIntent ?? _previewCorrectionIntent;
         if (active is null)
         {
@@ -1772,29 +1829,6 @@
         }
         ResolveReceiptSelection();
         return Task.CompletedTask;
-    }
-
-    private async Task<Hexalith.Tenants.Contracts.Queries.TenantDetail?> RefreshTenantProjectionAsync()
-    {
-        string tenantId = TenantId;
-        TenantDetailSnapshot? snapshot = await QueryGateway
-            .GetTenantAsync(new TenantDetailRequest(tenantId, _tenantDetailSnapshot?.ETag), _tenantDetailSnapshot, CancellationToken.None)
-            .ConfigureAwait(false);
-        // Assign on the renderer's dispatcher: this also runs as a correction panel
-        // ProjectionRefreshProvider, i.e. off the Blazor sync context after ConfigureAwait(false).
-        await InvokeAsync(() =>
-        {
-            if (!_disposed && string.Equals(TenantId, tenantId, StringComparison.Ordinal))
-            {
-                _tenantDetailSnapshot = snapshot;
-            }
-        }).ConfigureAwait(false);
-
-        // Confirm-time provider contract: only a Current (fresh, Ready) projection is admissible as
-        // correction proof. A Stale/Degraded/Unknown snapshot returns null so the panel's
-        // ConfirmProjection(null) fails closed instead of confirming a tenant correction off stale evidence
-        // (parity with the global-administrator panel's Freshness=Current confirm gate).
-        return snapshot?.Freshness is ReadModelFreshnessState.Current ? snapshot.Detail : null;
     }
 
     private async Task RefreshTenantProjectionForLoadAsync(

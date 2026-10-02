@@ -148,6 +148,7 @@ PY
 # (Debug/source-reference locally; Story Guards sets TENANTS_BROWSER_BUILD_CONFIGURATION=Release).
 start_test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
 start_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/TenantCorrectionStartPanel.razor.rz.scp.css"
+preview_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/CorrectionStartPanel.razor.rz.scp.css"
 if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
     -method '*TenantCorrectionStartPanelTests.StartAndHandoffPreserveSafeEvidenceWithoutCommandsOrStatusLookups' \
     >"$validation_tmp/start-fixture-tests.log" 2>&1; then
@@ -164,6 +165,22 @@ for fixture in tenant-correction-start-en.html tenant-correction-start-fr.html; 
 done
 cp -- "$script_dir/tenant-correction-start-browser-validation.html" "$validation_tmp/start.html"
 cp -- "$start_css_path" "$validation_tmp/tenant-correction-start.css"
+if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -method '*CorrectionStartPanelTests.Preview_exports_localized_rendered_markup_for_browser_validation' \
+    >"$validation_tmp/preview-fixture-tests.log" 2>&1; then
+    echo "Correction preview fixture export failed." >&2
+    cat "$validation_tmp/preview-fixture-tests.log" >&2
+    exit 1
+fi
+for fixture in tenant-correction-preview-en.html tenant-correction-preview-fr.html; do
+    if [[ ! -f "$validation_tmp/$fixture" ]]; then
+        echo "Correction preview fixture export did not create $fixture." >&2
+        cat "$validation_tmp/preview-fixture-tests.log" >&2
+        exit 1
+    fi
+done
+cp -- "$script_dir/tenant-correction-preview-browser-validation.html" "$validation_tmp/preview.html"
+cp -- "$preview_css_path" "$validation_tmp/tenant-correction-preview.css"
 
 validation_port="$(python3 - <<'PY'
 import socket
@@ -328,9 +345,20 @@ for culture in en fr; do
             grep -o '<output id="validation-report">[^<]*' "$start_output" >&2 || true
             exit 1
         fi
+        preview_output="$validation_tmp/preview-${culture}-${scenario}.html"
+        "$browser_path" --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+            "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-preview-${culture}-${scenario}" \
+            --virtual-time-budget=3000 --dump-dom \
+            "http://127.0.0.1:${validation_port}/preview.html?culture=${culture}&forcedColors=${start_colors}" \
+            >"$preview_output" 2>"${preview_output}.stderr"
+        if ! grep -q 'data-validation-status="passed"' "$preview_output"; then
+            echo "Rendered correction preview ${culture}/${scenario} failed:" >&2
+            grep -o '<output id="validation-report">[^<]*' "$preview_output" >&2 || true
+            exit 1
+        fi
     done
 done
-printf '%s\n' "Actual rendered tenant start EN/FR: desktop, narrow and forced colors; handoff/cancel/Escape, exact grid/receipt focus and zero browser egress passed"
+printf '%s\n' "Actual rendered tenant start and preview EN/FR: desktop, narrow and forced colors; handoff/cancel/Escape, exact focus and zero browser egress passed"
 
 browser_version="$($browser_path --version | head -n 1)"
 positive_report="$(grep -o '<output id="validation-report">[^<]*' "$positive_output" | sed 's/.*>//')"

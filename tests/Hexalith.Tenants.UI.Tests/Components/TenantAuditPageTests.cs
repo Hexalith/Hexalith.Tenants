@@ -2658,8 +2658,6 @@ public sealed class TenantAuditPageTests : BunitContext
         StubTenantQueryGateway query = RegisterServices(ReadySnapshot([
             Row("event-correction", AuditEventCategory.Access, "userId: target-user", eventType: "UserRemovedFromTenant")]));
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
-        typeof(TenantAuditPage).GetField("_tenantDetailSnapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(cut.Instance, DetailSnapshot(TenantRole.TenantReader));
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.Find("[data-testid='tenants-correction-start']").Click();
         query.QueueDetailResponse(Task.FromResult(DetailSnapshot(TenantRole.TenantOwner)));
@@ -2779,9 +2777,10 @@ public sealed class TenantAuditPageTests : BunitContext
         ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
         commands.SupportsCommandStatusLookup.Returns(true);
         commands.ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe")));
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "tracking-safe")));
         commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
+                HasVerifiedCommandIdentity: true)));
         Services.AddSingleton(commands);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
@@ -2798,6 +2797,61 @@ public sealed class TenantAuditPageTests : BunitContext
         preview.Snapshot!.MessageId.ShouldBe(messageId);
         preview.Snapshot.IntendedRole.ShouldBe(TenantRole.TenantReader);
         query.DetailRequests.Count.ShouldBe(detailReads);
+    }
+
+    [Fact]
+    public async Task Pending_correction_can_resume_after_cancel_row_loss_and_narrow_viewport()
+    {
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(ViewportTier.Desktop);
+        TenantAuditRow source = Row("event-correction", AuditEventCategory.Access,
+            "userId: target-user", eventType: "UserRoleChanged");
+        StubTenantQueryGateway query = RegisterServices(viewport, ReadySnapshot([source]), ReadySnapshot([]));
+        TenantCorrectionAttemptTracker tracker = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        commands.ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "tracking-safe")));
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandStatusResult.Pending("Status is still pending.")));
+        Services.AddSingleton(commands);
+
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        CorrectionStartPanel panel = cut.FindComponent<CorrectionStartPanel>().Instance;
+        cut.WaitForAssertion(() => panel.Snapshot!.HasCommandTracking.ShouldBeTrue());
+        string messageId = panel.Snapshot!.MessageId!;
+
+        cut.Find("[data-testid='tenants-correction-cancel']").Click();
+        cut.Find("[data-testid='tenants-correction-resume']").Click();
+        cut.FindComponent<CorrectionStartPanel>().Instance.Snapshot!.MessageId.ShouldBe(messageId);
+
+        TaskCompletionSource<TenantAuditSnapshot> pendingAudit = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        query.QueueResponse(pendingAudit.Task);
+        Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty());
+        cut.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+        pendingAudit.SetResult(TenantAuditSnapshot.Unauthorized(new TenantAuditRequest("tenant.alpha")));
+        await refresh;
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+        tracker.Find("tenant.alpha")!.MessageId.ShouldBe(messageId);
+
+        cut.Find("[data-testid='tenants-audit-refresh']").Click();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-row']").ShouldBeEmpty());
+        cut.FindComponent<CorrectionStartPanel>().Instance.Snapshot!.MessageId.ShouldBe(messageId);
+        viewport.Observe(ViewportTier.Phone);
+        cut.FindComponent<CorrectionStartPanel>().Instance.Snapshot!.MessageId.ShouldBe(messageId);
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        _ = commands.Received(1).ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(),
+            Arg.Is<string>(id => id == messageId), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -3197,7 +3251,8 @@ public sealed class TenantAuditPageTests : BunitContext
                 snapshot.Detail?.Members.Count == 0, CorrectionAuthorized, false,
                 snapshot.Kind is TenantDetailSurfaceKind.Ready, snapshot.Freshness,
                 snapshot.Kind is TenantDetailSurfaceKind.Ready ? ProjectionLifecycleState.Current : ProjectionLifecycleState.Unknown,
-                QueryResponseProvenance.ProjectionBacked)).ToArray();
+                QueryResponseProvenance.ProjectionBacked)
+                { ProjectionVersion = snapshot.ProjectionVersion ?? "tenant-sequence:1" }).ToArray();
         }
 
         public async Task<TenantCorrectionProjection> GetTenantCorrectionProjectionAsync(
@@ -3215,7 +3270,8 @@ public sealed class TenantAuditPageTests : BunitContext
                 snapshot.Detail?.Members.Count == 0, CorrectionAuthorized, false,
                 snapshot.Kind is TenantDetailSurfaceKind.Ready, snapshot.Freshness,
                 snapshot.Kind is TenantDetailSurfaceKind.Ready ? ProjectionLifecycleState.Current : ProjectionLifecycleState.Unknown,
-                QueryResponseProvenance.ProjectionBacked);
+                QueryResponseProvenance.ProjectionBacked)
+                { ProjectionVersion = snapshot.ProjectionVersion ?? "tenant-sequence:1" };
         }
 
         public Task<TenantDetailSnapshot> GetTenantAsync(

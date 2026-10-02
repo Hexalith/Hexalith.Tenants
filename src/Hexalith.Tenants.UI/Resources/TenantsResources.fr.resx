@@ -3757,6 +3757,9 @@
   <data name="Tenants.Correction.Unavailable.NarrowViewportUnavailable" xml:space="preserve">
     <value>Utilisez une fenêtre plus large pour vérifier le contexte de sécurité requis.</value>
   </data>
+  <data name="Tenants.Correction.Unavailable.OriginalTimeUnavailable" xml:space="preserve">
+    <value>L’heure de la preuve d’origine n’a pas pu être vérifiée. Actualisez les données d’audit avant de commencer la correction.</value>
+  </data>
   <data name="Tenants.Correction.Unavailable.TenantDisabled" xml:space="preserve">
     <value>Le locataire est désactivé, donc la correction de membre est bloquée.</value>
   </data>
@@ -3794,7 +3797,7 @@
     <value>Attente d'audit</value>
   </data>
   <data name="Tenants.Correction.Preview.AuditExpectation.Text" xml:space="preserve">
-    <value>Une preuve d'audit est attendue après acceptation de la commande et confirmation par la projection de l'état prévu.</value>
+    <value>Une entrée d’audit corrective peut apparaître après confirmation par la projection. Cette réponse ne permet pas de la relier à cette tentative ; aucun lien de reçu n’est affiché. Consultez l’audit ou demandez une escalade.</value>
   </data>
   <data name="Tenants.Correction.Preview.Consequence.Membership" xml:space="preserve">
     <value>Un nouvel événement d'appartenance peut être ajouté si la projection courante le permet.</value>
@@ -3816,6 +3819,18 @@
   </data>
   <data name="Tenants.Correction.Preview.CurrentRole" xml:space="preserve">
     <value>Rôle courant</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Freshness" xml:space="preserve">
+    <value>Actualité de la lecture courante</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Provenance" xml:space="preserve">
+    <value>Source de la lecture courante</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Provenance.ProjectionBacked" xml:space="preserve">
+    <value>Projection du locataire vérifiée</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Provenance.Unverified" xml:space="preserve">
+    <value>La source de la projection n’a pas pu être vérifiée</value>
   </data>
   <data name="Tenants.Correction.Preview.IntendedRole" xml:space="preserve">
     <value>Rôle prévu</value>
@@ -4191,5 +4206,35 @@
   </data>
   <data name="Tenants.Correction.Start.HandoffPending" xml:space="preserve">
     <value>Vérification des accès actuels avant l’ouverture de l’aperçu.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OriginalTime" xml:space="preserve">
+    <value>Heure de la preuve d’origine (UTC)</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Readiness" xml:space="preserve">
+    <value>Droits actuels et admission</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Readiness.Ready" xml:space="preserve">
+    <value>Les droits, les membres, la version de projection et la commande sont prêts. La confirmation les vérifie de nouveau.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Readiness.Blocked" xml:space="preserve">
+    <value>La correction est bloquée par les données actuelles, la prise en charge des commandes, la taille de l’écran ou une autre commande du locataire. Résolvez la cause ci-dessous et actualisez.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.AggregateBusy" xml:space="preserve">
+    <value>Une autre commande du locataire est en cours de rapprochement. Attendez ou actualisez son état avant de commencer une correction.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact" xml:space="preserve">
+    <value>Effet sur les droits de propriétaire</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact.Bootstrap" xml:space="preserve">
+    <value>Le locataire vide reçoit un propriétaire choisi explicitement ; les droits actuels d’administrateur global sont requis.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact.Changes" xml:space="preserve">
+    <value>Cette commande peut accorder ou modifier les droits de propriétaire du locataire.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact.None" xml:space="preserve">
+    <value>Cette commande ne modifie pas les droits de propriétaire du locataire.</value>
+  </data>
+  <data name="Tenants.Correction.Resume" xml:space="preserve">
+    <value>Reprendre l’état de la correction</value>
   </data>
 </root>

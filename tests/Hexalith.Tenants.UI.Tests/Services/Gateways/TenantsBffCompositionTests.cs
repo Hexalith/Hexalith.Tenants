@@ -77,7 +77,9 @@ public sealed class TenantsBffCompositionTests
         capture.IsGlobalAdministrator.ShouldBe(global);
         capture.CurrentRole.ShouldBe(TenantRole.TenantContributor);
         typeof(TenantCorrectionProjection).GetProperties().ShouldAllBe(property => property.Name != "Members" && property.Name != "Configuration"
-            && property.Name != "ETag" && property.Name != "ProjectionVersion");
+            && property.Name != "ETag");
+        capture.ProjectionVersion.ShouldBeNull();
+        capture.ToString().ShouldBe("TenantCorrectionProjection { IsCurrent = True, IsAuthorized = True, HasVerifiedMembership = True }");
         resolver.Evidence = TenantConfigurationPrincipalEvidence.NonAdministrator("revoked-user");
         TenantCorrectionProjection revoked = await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user",
             detail, ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked);

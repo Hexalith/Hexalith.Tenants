@@ -126,8 +126,7 @@ public sealed record TenantCorrectionStartIntent(
                 TenantRole? currentRole = verifiedCurrentEvidence ? projection!.CurrentRole : null;
                 if (projection?.HasVerifiedMembership is not true
                     || currentRole is not null && currentRole is not (TenantRole.TenantOwner
-                        or TenantRole.TenantContributor or TenantRole.TenantReader)
-                    || row.EventType is "UserRoleChanged" && currentRole is null)
+                        or TenantRole.TenantContributor or TenantRole.TenantReader))
                 {
                     reasons.Add(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
                 }

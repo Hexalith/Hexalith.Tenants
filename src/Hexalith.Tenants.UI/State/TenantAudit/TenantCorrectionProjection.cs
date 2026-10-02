@@ -30,10 +30,17 @@ public sealed record TenantCorrectionProjection(
     ProjectionLifecycleState Lifecycle,
     QueryResponseProvenance Provenance)
 {
+    /// <summary>Gets the server-side ordered projection marker; it is never rendered or copied.</summary>
+    public string? ProjectionVersion { get; init; }
+
     /// <summary>Gets whether the direct read carries current projection evidence.</summary>
     public bool IsCurrent => HasVerifiedMembership
         && Freshness is ReadModelFreshnessState.Current
         && ProjectionLifecyclePolicy.IsProjectionConfirmed(Provenance, Lifecycle);
+
+    /// <summary>Prevents server-only projection provenance from entering diagnostics or UI copy.</summary>
+    public override string ToString()
+        => $"{nameof(TenantCorrectionProjection)} {{ IsCurrent = {IsCurrent}, IsAuthorized = {IsAuthorized}, HasVerifiedMembership = {HasVerifiedMembership} }}";
 
     /// <summary>Creates a fail-closed result without retaining raw response or authority evidence.</summary>
     public static TenantCorrectionProjection Unavailable(string tenantId, string targetUserId)

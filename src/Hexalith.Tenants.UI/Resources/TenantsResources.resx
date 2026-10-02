@@ -3757,6 +3757,9 @@
   <data name="Tenants.Correction.Unavailable.NarrowViewportUnavailable" xml:space="preserve">
     <value>Use a wider viewport to review the required safety context.</value>
   </data>
+  <data name="Tenants.Correction.Unavailable.OriginalTimeUnavailable" xml:space="preserve">
+    <value>The original evidence time could not be verified. Refresh the audit evidence before starting correction.</value>
+  </data>
   <data name="Tenants.Correction.Unavailable.TenantDisabled" xml:space="preserve">
     <value>The tenant is disabled, so member correction is blocked.</value>
   </data>
@@ -3794,7 +3797,7 @@
     <value>Audit expectation</value>
   </data>
   <data name="Tenants.Correction.Preview.AuditExpectation.Text" xml:space="preserve">
-    <value>Audit evidence is expected after the command is accepted and projection truth confirms the intended state.</value>
+    <value>A corrective audit record may appear after projection confirmation. This audit response cannot associate it with this attempt, so no receipt link is shown. Inspect audit or escalate.</value>
   </data>
   <data name="Tenants.Correction.Preview.Consequence.Membership" xml:space="preserve">
     <value>A new membership event may be appended if current projection truth allows it.</value>
@@ -3816,6 +3819,18 @@
   </data>
   <data name="Tenants.Correction.Preview.CurrentRole" xml:space="preserve">
     <value>Current role</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Freshness" xml:space="preserve">
+    <value>Current read freshness</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Provenance" xml:space="preserve">
+    <value>Current read source</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Provenance.ProjectionBacked" xml:space="preserve">
+    <value>Verified tenant projection</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Provenance.Unverified" xml:space="preserve">
+    <value>Projection source could not be verified</value>
   </data>
   <data name="Tenants.Correction.Preview.IntendedRole" xml:space="preserve">
     <value>Intended role</value>
@@ -4191,5 +4206,35 @@
   </data>
   <data name="Tenants.Correction.Start.HandoffPending" xml:space="preserve">
     <value>Checking current access before opening the preview.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OriginalTime" xml:space="preserve">
+    <value>Original evidence time (UTC)</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Readiness" xml:space="preserve">
+    <value>Current authority and admission</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Readiness.Ready" xml:space="preserve">
+    <value>Current authority, membership, projection version, and command support are ready. Confirm rechecks them.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Readiness.Blocked" xml:space="preserve">
+    <value>Correction is blocked by current evidence, command support, viewport, or another tenant command. Resolve the reason below and refresh.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.AggregateBusy" xml:space="preserve">
+    <value>Another tenant command is being reconciled. Wait or refresh its status before starting a correction.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact" xml:space="preserve">
+    <value>Owner access impact</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact.Bootstrap" xml:space="preserve">
+    <value>The empty tenant receives an explicit owner; current global administrator authority is required.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact.Changes" xml:space="preserve">
+    <value>This command may grant or change tenant owner access.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact.None" xml:space="preserve">
+    <value>Tenant owner access is not changed by this command.</value>
+  </data>
+  <data name="Tenants.Correction.Resume" xml:space="preserve">
+    <value>Resume correction status</value>
   </data>
 </root>

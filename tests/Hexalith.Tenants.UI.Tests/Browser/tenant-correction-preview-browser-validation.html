@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tenant correction preview browser validation</title>
+    <link rel="stylesheet" href="./fluent-ui.css">
+    <link rel="stylesheet" href="./tenant-correction-preview.css">
+</head>
+<body>
+    <output id="validation-report">RUNNING</output>
+    <script type="module">
+        const report = document.getElementById('validation-report');
+        const observations = [];
+        const parameters = new URLSearchParams(location.search);
+        const culture = parameters.get('culture') || 'en';
+        document.documentElement.lang = culture;
+        try {
+            const fluent = await import('./fluent-ui.js');
+            fluent.beforeStart(document, 'web');
+            await customElements.whenDefined('fluent-button');
+            const { focusCorrectionLauncher, focusElementById } = await import('./tenantsFocus.js');
+            const response = await fetch(`./tenant-correction-preview-${culture}.html`);
+            if (!response.ok) throw new Error('Actual rendered preview fixture is unavailable');
+            const template = document.createElement('template');
+            template.innerHTML = await response.text();
+            const panel = template.content.querySelector('[data-testid="tenants-correction-panel"]');
+            const confirm = panel?.querySelector('[data-testid="tenants-correction-confirm"]');
+            const cancel = panel?.querySelector('[data-testid="tenants-correction-cancel"]');
+            if (!panel || !confirm || !cancel || confirm.hasAttribute('disabled')) throw new Error('Rendered preview selectors or readiness changed');
+            if (panel.querySelector('[data-testid="tenants-correction-original-time"]').textContent.trim() !== '2026-06-01 10:00:00 UTC') throw new Error('Original UTC timestamp changed');
+            for (const field of ['tenants-correction-original-evidence', 'tenants-correction-current-snapshot', 'tenants-correction-freshness', 'tenants-correction-provenance', 'tenants-correction-current-role', 'tenants-correction-command', 'tenants-correction-domain', 'tenants-correction-owner-impact', 'tenants-correction-readiness', 'tenants-correction-preview-data']) {
+                if (!panel.querySelector(`[data-testid="${field}"]`)) throw new Error(`Current preview fact disappeared: ${field}`);
+            }
+            if (!panel.querySelector('[aria-live][data-testid="tenants-correction-live-region"]')) throw new Error('Lifecycle announcement disappeared');
+            if (panel.querySelector('[data-testid="tenants-correction-proof-link"], a[href^="#audit-"]')) throw new Error('Unproven or dead audit proof link appeared');
+            for (const token of ['TenantReader', 'ProjectionBacked', 'tenant-sequence:', 'Tenants.Correction.']) {
+                if (panel.textContent.includes(token)) throw new Error(`Visible machine token: ${token}`);
+            }
+            observations.push(`actual-rendered-${culture}-safe-preview`);
+
+            const launcher = document.createElement('fluent-button');
+            launcher.setAttribute('data-testid', 'tenants-correction-start');
+            launcher.setAttribute('data-correction-focus-reference', 'event-safe-reference');
+            launcher.setAttribute('data-correction-origin', 'grid');
+            launcher.textContent = 'Start correction';
+            document.body.append(launcher);
+            document.body.append(panel);
+            let egress = 0;
+            const denyEgress = () => { egress++; throw new Error('Unexpected browser command egress'); };
+            window.fetch = denyEgress;
+            window.XMLHttpRequest = class { constructor() { denyEgress(); } };
+
+            if (!focusElementById('tenants-correction-title')) throw new Error('Preview heading did not receive focus');
+            confirm.focus();
+            if (document.activeElement !== confirm) throw new Error('Enabled Confirm is not keyboard focusable');
+            cancel.focus();
+            if (document.activeElement !== cancel) throw new Error('Cancel is not keyboard focusable');
+            panel.remove();
+            if (!focusCorrectionLauncher('event-safe-reference', 'grid') || document.activeElement !== launcher) throw new Error('Cancel did not return focus to exact launcher');
+            document.body.append(panel);
+            focusElementById('tenants-correction-title');
+            const escape = event => {
+                if (event.key === 'Escape') {
+                    panel.remove();
+                    focusCorrectionLauncher('event-safe-reference', 'grid');
+                }
+            };
+            panel.addEventListener('keydown', escape);
+            panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+            panel.removeEventListener('keydown', escape);
+            if (document.activeElement !== launcher) throw new Error('Escape did not return focus to exact launcher');
+            observations.push('confirm-cancel-escape-focus');
+
+            document.body.append(panel);
+            const bounds = panel.getBoundingClientRect();
+            if (bounds.width <= 0 || bounds.right > innerWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1) throw new Error('Responsive preview overflow');
+            const fields = panel.querySelector('.correction-start-panel__fields');
+            const header = panel.querySelector('.correction-start-panel__header');
+            const fieldColumns = getComputedStyle(fields).gridTemplateColumns.split(' ').filter(Boolean).length;
+            const headerColumns = getComputedStyle(header).gridTemplateColumns.split(' ').filter(Boolean).length;
+            if (innerWidth < 768 && (fieldColumns !== 1 || headerColumns !== 1)) throw new Error('Narrow preview fields or header did not stack');
+            if (innerWidth >= 768 && fieldColumns < 2) throw new Error('Desktop preview fields did not use available width');
+            if (parameters.get('forcedColors') === 'active') {
+                if (!matchMedia('(forced-colors: active)').matches) throw new Error('Forced colors is not active');
+                if (getComputedStyle(panel).borderTopStyle === 'none') throw new Error('Forced colors preview boundary disappeared');
+                observations.push('forced-colors-visible-boundary');
+            }
+            if (egress !== 0) throw new Error('Preview caused browser command egress');
+            observations.push(`responsive-${innerWidth}-zero-egress`);
+            report.textContent = `PASS ${observations.join(' | ')}`;
+            document.body.setAttribute('data-validation-status', 'passed');
+        } catch (error) {
+            report.textContent = `FAIL ${error.message} | ${observations.join(' | ')}`;
+            document.body.setAttribute('data-validation-status', 'failed');
+        }
+    </script>
+</body>
+</html>
