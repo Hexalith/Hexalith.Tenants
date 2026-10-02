@@ -524,6 +524,41 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.Find("[data-testid='tenants-correction-current-role']").TextContent.ShouldBe("Tenant contributor");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void RedactedPreviewRecoversFromAnUnsubmittedBlockedCapture(bool authorityLoss)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartContext context = Context(Row("UserRoleChanged"), TenantRole.TenantReader, TenantRole.TenantContributor);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context);
+        TenantCorrectionProjection projection = context.Projection!;
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent).Add(p => p.StartProjection, projection));
+        TenantCorrectionProjection blocked = authorityLoss ? projection with { IsAuthorized = false }
+            : projection with { Freshness = ReadModelFreshnessState.Stale };
+        cut.Render(parameters => parameters.Add(p => p.Intent, TenantCorrectionStartIntent.Evaluate(context with { Projection = blocked }))
+            .Add(p => p.StartProjection, blocked));
+        cut.Instance.Snapshot!.CanSubmit.ShouldBeFalse();
+        cut.Instance.Snapshot.HasCommandTracking.ShouldBeFalse();
+        cut.Render(parameters => parameters.Add(p => p.Intent, intent).Add(p => p.StartProjection, projection));
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.Snapshot.CanSubmit.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MatchingRedactedRoleIsAlreadyAppliedAndNeverAnUnableToVerifyCommand()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartContext context = Context(Row("UserRoleChanged"), TenantRole.TenantReader, TenantRole.TenantReader);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, TenantCorrectionStartIntent.Evaluate(context)).Add(p => p.StartProjection, context.Projection));
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Instance.Snapshot.CanSubmit.ShouldBeFalse();
+        cut.Instance.Snapshot.Intent.IntendedCommandType.ShouldBeNull();
+        cut.Instance.Snapshot.ProofLink.ShouldBeNull();
+    }
+
     private static TenantCorrectionStartContext Context(
         TenantAuditRow row,
         TenantRole? intendedRole = null,

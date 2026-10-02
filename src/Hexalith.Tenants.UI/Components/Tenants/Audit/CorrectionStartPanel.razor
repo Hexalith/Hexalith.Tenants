@@ -348,6 +348,17 @@
 
         TenantCorrectionStartIntent resolvedIntent = ResolvedIntent();
         _snapshot = TenantCorrectionPreviewSnapshot.FromIntent(resolvedIntent, StartProjection is null ? CurrentProjection : null);
+        if (resolvedIntent.UnavailableReasons.Count == 1
+            && resolvedIntent.UnavailableReasons[0] is TenantCorrectionUnavailableReason.AlreadyApplied)
+        {
+            _snapshot = _snapshot with
+            {
+                LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
+                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                SafeMessageKey = "Tenants.Correction.Unavailable.AlreadyApplied",
+            };
+        }
     }
 
     private static bool ShouldLiveUpdatePreview(TenantCorrectionPreviewSnapshot snapshot)
@@ -355,7 +366,8 @@
         && (snapshot.LifecycleState is TenantCommandLifecycleState.Previewed
             or TenantCommandLifecycleState.AlreadyApplied
             || (snapshot.LifecycleState is TenantCommandLifecycleState.UnableToVerify
-                && IsProjectionDrivenBlock(snapshot.SafeMessageKey)));
+                && (IsProjectionDrivenBlock(snapshot.SafeMessageKey)
+                    || snapshot.SafeMessageKey is null && snapshot.Intent.UnavailableReasons.Count > 0)));
 
     private static bool IsProjectionDrivenBlock(string? safeMessageKey)
         => safeMessageKey is "Tenants.Correction.Unavailable.CurrentProjectionUnavailable"

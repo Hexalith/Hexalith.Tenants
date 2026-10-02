@@ -4189,4 +4189,7 @@
   <data name="Tenants.Correction.Start.GlobalNotReady" xml:space="preserve">
     <value>Le parcours de correction des administrateurs globaux à fort impact n’est pas prêt ici. Poursuivez en lecture seule ou utilisez le parcours pris en charge pour les administrateurs globaux.</value>
   </data>
+  <data name="Tenants.Correction.Start.HandoffPending" xml:space="preserve">
+    <value>Vérification des accès actuels avant l’ouverture de l’aperçu.</value>
+  </data>
 </root>

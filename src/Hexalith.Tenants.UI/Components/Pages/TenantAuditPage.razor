@@ -234,6 +234,7 @@
             @if (_previewCorrectionIntent is not null)
             {
                 <CorrectionStartPanel Intent="@_previewCorrectionIntent"
+                                      @ref="_correctionPreview"
                                       StartProjection="@_previewCorrectionIntent.CurrentProjection"
                                       ProjectionRefreshProvider="RefreshTenantProjectionAsync"
                                       OnClose="CloseCorrectionAsync" />
@@ -305,6 +306,7 @@
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
     private TenantCorrectionStartIntent? _previewCorrectionIntent;
+    private CorrectionStartPanel? _correctionPreview;
     private readonly Dictionary<string, TenantCorrectionProjection> _correctionProjections = new(StringComparer.Ordinal);
     private string? _activeCorrectionOrigin;
     private string? _pendingCorrectionOrigin;
@@ -643,7 +645,10 @@
                 if (!HasMeasuredSafeViewport)
                 {
                     _correctionOpenGeneration++;
-                    ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
+                    if (_activeCorrectionFocusReference is not null)
+                    {
+                        ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
+                    }
                     _activeCorrectionIntent = null;
                     _previewCorrectionIntent = null;
                     _activeCorrectionFocusReference = null;
@@ -965,23 +970,6 @@
         catch (Exception ex) when (ex is EventStoreGatewayException or HttpRequestException or JsonException or OperationCanceledException)
         {
             // Supplementary tenant-detail evidence unavailable; the audit page stays usable.
-        }
-
-        if (result.Rows.Any(IsGlobalAdministratorRow))
-        {
-            // Page-load enrichment only: the audit list already rendered. A transport/parse fault that
-            // escapes the gateway's EventStoreGatewayException mapping must degrade this supplementary
-            // global-administrator evidence, not tear down the audit page. The confirm-time path
-            // (OpenCorrectionAsync / the panel ProjectionRefreshProvider) keeps propagating so a correction
-            // never silently confirms on a failed read.
-            try
-            {
-                await RefreshGlobalAdministratorsProjectionForLoadAsync(tenantId, generation, cancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is EventStoreGatewayException or HttpRequestException or JsonException or OperationCanceledException)
-            {
-                // Supplementary evidence unavailable; the audit page stays usable.
-            }
         }
 
         if (!CanApply(tenantId, generation))
@@ -1466,12 +1454,16 @@
     private Task OpenReceiptCorrectionAsync(TenantCorrectionStartIntent intent)
         => OpenCorrectionAsync(intent, "receipt");
 
-    private async Task OpenCorrectionAsync(TenantCorrectionStartIntent intent, string origin)
+    private bool HasSubmittedCorrection => _previewCorrectionIntent is not null
+        && _correctionPreview?.Snapshot is { } snapshot
+        && (snapshot.HasCommandTracking || snapshot.LifecycleState is TenantCommandLifecycleState.RequestSent);
+
+    private async Task<bool> OpenCorrectionAsync(TenantCorrectionStartIntent intent, string origin, bool retainStart = false)
     {
-        if (!HasMeasuredSafeViewport || !intent.IsAvailable
+        if (HasSubmittedCorrection || !HasMeasuredSafeViewport || !intent.IsAvailable
             || intent.IntendedCommandDomain is not TenantCorrectionCommandDomain.Tenants)
         {
-            return;
+            return false;
         }
 
         int generation = ++_correctionOpenGeneration;
@@ -1479,8 +1471,12 @@
         long projectionGeneration = Interlocked.Increment(ref _correctionProjectionGeneration);
         string tenantId = TenantId;
         long loadGeneration = Volatile.Read(ref _loadGeneration);
-        _activeCorrectionIntent = null;
+        if (!retainStart)
+        {
+            _activeCorrectionIntent = null;
+        }
         _previewCorrectionIntent = null;
+        bool installed = false;
         TenantCorrectionProjection projection = await QueryGateway.GetTenantCorrectionProjectionAsync(
             tenantId, intent.TargetUserId, CancellationToken.None).ConfigureAwait(false);
         await InvokeAsync(() =>
@@ -1501,14 +1497,17 @@
             if (refreshed?.IsAvailable is true)
             {
                 _activeCorrectionIntent = refreshed;
+                installed = true;
             }
             else
             {
+                _activeCorrectionIntent = null;
                 ScheduleCorrectionFocus(intent.OriginalAuditReference, origin);
             }
             ResolveReceiptSelection();
             StateHasChanged();
         }).ConfigureAwait(false);
+        return installed;
     }
 
     private async Task HandoffCorrectionAsync(TenantCorrectionStartIntent intent)
@@ -1516,10 +1515,10 @@
         // Handoff refreshes the same safety gates, then opens the existing preview. It never dispatches.
         string? origin = _activeCorrectionOrigin;
         int expectedGeneration = _correctionOpenGeneration + 1;
-        await OpenCorrectionAsync(intent, origin ?? "grid").ConfigureAwait(false);
+        bool installed = await OpenCorrectionAsync(intent, origin ?? "grid", retainStart: true).ConfigureAwait(false);
         await InvokeAsync(() =>
         {
-            if (_correctionOpenGeneration == expectedGeneration && _activeCorrectionIntent?.IsAvailable is true
+            if (installed && _correctionOpenGeneration == expectedGeneration && _activeCorrectionIntent?.IsAvailable is true
                 && _activeCorrectionIntent.OriginalAuditReference == intent.OriginalAuditReference
                 && _activeCorrectionIntent.IntendedRole == intent.IntendedRole)
             {
@@ -1796,7 +1795,7 @@
 
     private async Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
     {
-        if (!HasMeasuredSafeViewport)
+        if (HasSubmittedCorrection || !HasMeasuredSafeViewport)
         {
             return;
         }

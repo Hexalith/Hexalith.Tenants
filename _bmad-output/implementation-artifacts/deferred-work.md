@@ -3416,3 +3416,12 @@ Review chunk: `fa489329..78e09184` for `src` and `tests`, plus the full-story di
   - Both branches are the same at baseline `55f3dc63`, except for the audit state Story 5.4 changed.
   - `RemoveTenantMemberFlowTests.Retry_refused_by_the_activity_lease_…` (row `isRetry=false`) stops before the second submit, so no test pins this.
   - Fix direction: keep a pre-dispatch busy refusal resubmittable, for example a Blocked-style state that keeps the Intent, and add a test that the second submit dispatches once the lease is granted.
+# Story 5.5 resumed review — 2026-10-02
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: Recheck current circuit authority and membership immediately before tenant correction confirmation dispatch (high).
+  evidence: R-B6; the unchanged Story 5.6 CorrectionStartPanel.SubmitAsync dispatches its stored snapshot directly. Story 5.5 refreshes start and handoff and performs no dispatch; a confirmation-time authority loss remains outside those start gates.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
+  summary: Decide and expose redacted last-owner consequence facts in tenant correction previews (medium).
+  evidence: R-B7; the baseline preview contains no owner count or explicit last-owner warning. Domain validation prevents removing the last owner, but the existing Story 5.6 consequence preview cannot warn before that rejection.

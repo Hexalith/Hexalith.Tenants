@@ -40,10 +40,14 @@
             {
                 <p role="alert" tabindex="-1" data-testid="tenants-correction-start-reason">@ReasonLabel</p>
             }
+            @if (_isHandoffPending)
+            {
+                <p role="status" data-testid="tenants-correction-start-pending">@Localizer["Tenants.Correction.Start.HandoffPending"]</p>
+            }
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
                 <FluentButton Appearance="ButtonAppearance.Primary"
                               data-testid="tenants-correction-start-handoff"
-                              Disabled="@(!CanHandoff)"
+                              Disabled="@(_isHandoffPending || !CanHandoff)"
                               OnClick="HandoffAsync">@Localizer["Tenants.Correction.Start.Handoff"]</FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               data-testid="tenants-correction-start-cancel"
@@ -56,6 +60,7 @@
 @code {
     private ElementReference _heading;
     private string? _focusedReference;
+    private bool _isHandoffPending;
 
     /// <summary>Gets or sets the redacted start intent.</summary>
     [Parameter] public TenantCorrectionStartIntent? Intent { get; set; }
@@ -127,5 +132,21 @@
 
     private Task OnKeyDownAsync(KeyboardEventArgs args) => args.Key is "Escape" ? CloseAsync() : Task.CompletedTask;
     private Task CloseAsync() => OnClose.InvokeAsync();
-    private Task HandoffAsync() => CanHandoff ? OnHandoff.InvokeAsync(Intent!) : Task.CompletedTask;
+    private async Task HandoffAsync()
+    {
+        if (_isHandoffPending || !CanHandoff)
+        {
+            return;
+        }
+
+        _isHandoffPending = true;
+        try
+        {
+            await OnHandoff.InvokeAsync(Intent!).ConfigureAwait(false);
+        }
+        finally
+        {
+            _isHandoffPending = false;
+        }
+    }
 }

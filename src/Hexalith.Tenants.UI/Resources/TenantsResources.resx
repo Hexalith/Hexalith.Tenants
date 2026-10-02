@@ -4189,4 +4189,7 @@
   <data name="Tenants.Correction.Start.GlobalNotReady" xml:space="preserve">
     <value>The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.</value>
   </data>
+  <data name="Tenants.Correction.Start.HandoffPending" xml:space="preserve">
+    <value>Checking current access before opening the preview.</value>
+  </data>
 </root>

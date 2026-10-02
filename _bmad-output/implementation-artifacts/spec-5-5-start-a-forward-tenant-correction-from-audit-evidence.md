@@ -2,7 +2,7 @@
 title: 'Start a forward tenant correction from audit evidence'
 type: 'feature'
 created: '2026-10-01'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 4f426e591c85825eb41ec4b289a43e91f2085004
@@ -71,7 +71,7 @@ Paths below are relative to `src/Hexalith.Tenants.UI/`; tests are under `tests/H
 
 Implemented a redacted, unconditional BFF projection capture with one tenant read and one current principal resolution per audit page. Explicit selection determines add/change/already-applied; empty membership requires global authority and Owner. Grid and receipt open a separate non-submitting panel. Both activation and preview handoff refresh current authority/state, reject superseded generations and retain safe original evidence. The existing preview accepts the same redacted capture so an older cached detail cannot override it.
 
-All six execution tasks and four acceptance criteria were checked against the complete baseline diff (including untracked files), component behavior and verification results. No backend contract, persistence, dependency or reference gitlink changes.
+All six execution tasks and four acceptance criteria were checked against the complete baseline diff (including untracked files), component behavior and verification results. No backend contract or persistence changes. The committed implementation includes the two source-reference pointer updates recorded below; this resumed review preserves those existing build inputs and performs no submodule updates.
 
 ## Spec Change Log
 
@@ -92,6 +92,22 @@ All six execution tasks and four acceptance criteria were checked against the co
 | E1 | high | patch (B1 group) | Independent tracing confirms the same retained-preview defect as B1: newly revoked/stale/conflicting captures do not update the preview. |
 | V1 | medium | patch | Pre-verified regression gap: no correction BFF test supplies a mismatched raw tenant, so removing the raw-detail scope guard escapes coverage. Add unavailable/authority/membership assertions for that input. |
 | V2 | medium | patch | Pre-verified browser gap: synthetic Start-only launchers cannot detect loss of picker/reason priority. Include competing controls for both origins and assert exact focused controls. |
+| R-B1 | high | patch | The new grid/receipt role callback clears the mounted preview even after it holds a command tracking handle. Read the child's existing snapshot and retain submitted previews when another start or role selection is attempted. |
+| R-B2 | medium | patch | A pre-submit blocked snapshot created from refreshed intent has no SafeMessageKey, so the recovery predicate cannot accept later current evidence. Allow recovery of that specific untracked, intent-blocked snapshot while retaining submitted terminal states. |
+| R-B3 | medium | patch | Redacted already-applied evidence clears the command but FromIntent maps it to UnableToVerify. Set the existing AlreadyApplied lifecycle for that verified reason at preview composition. |
+| R-B4 | medium | patch | Handoff removes the start panel before its asynchronous read completes, losing its focus and cancellation controls. Keep the panel mounted during handoff and expose localized progress with cancellation. |
+| R-B5 | medium | patch (R-E2 group) | A notification can supersede activation's shared projection generation after it clears the panel. Report whether activation installed an available intent and hand off only that result; retain the start surface during handoff. |
+| R-B6 | high | defer | Final SubmitAsync already dispatches from cached preview facts in the baseline, without an immediate authority recheck. This unchanged Story 5.6 confirmation seam needs separate current-authority validation; 5.5 itself never dispatches. |
+| R-B7 | medium | defer | The baseline preview and capture do not carry owner-count facts or an explicit last-owner warning. Domain command validation remains the last-owner enforcement boundary; the existing Story 5.6 consequence-preview work needs a separate redacted safety decision. |
+| R-B8 | false | reject | The approved matrix explicitly blocks an absent UserRoleChanged target. Complete membership proves current absence, but does not establish the supported correction transition; CurrentStateIndeterminate is the required conservative result. |
+| R-B9 | medium | patch | The tenant start page always blocks global commands, and the global projection field now has no rendered consumer. Stop its redundant load-time enrichment while preserving existing correction components and APIs. |
+| R-B10 | false | reject | carried B9: the browser fixture is explicitly rendered-markup/focus-helper evidence, with actual callback behavior verified by bUnit. It is not described as an authenticated application E2E. |
+| R-E1 | medium | patch | With no panel open, unsafe viewport handling schedules correction focus with a null reference and clears the receipt-heading focus just captured. Schedule launcher focus only when a panel reference exists. |
+| R-E2 | medium | patch (R-B5 group) | A retained notification supersedes a pending handoff projection read; the old code has neither a surviving start surface nor an installed preview. Keep the start mounted and require a successfully installed activation result before handoff. |
+| R-V1 | medium | patch | carried V1: the raw-tenant mismatch remains absent from composition tests. Preserve this prior verdict and complete the outstanding scope-boundary verification task. |
+| R-V2 | medium | patch | The receipt-origin scenario selects in the grid first and bypasses the receipt callback. Select the role through the receipt component and verify its start intent. |
+| R-V3 | high | patch | Initial handoff assertions do not protect retained preview refresh. Deliver notification captures after handoff and assert revoked/stale evidence disables Confirm while preserving the mounted preview and original reference. |
+| R-V4 | medium | patch | carried V2: browser controls lack a competing picker/reason. Preserve this prior verdict and complete the outstanding exact-focus verification task. |
 
 ## Verification
 
@@ -125,8 +141,11 @@ All covering tests below ran in the full UI project (zero skips), with affected 
 
 ### File List
 
+- `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
 - `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
 - `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditDataGrid.razor`
 - `src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditEvidenceReceipt.razor`
@@ -158,3 +177,29 @@ All covering tests below ran in the full UI project (zero skips), with affected 
 - `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionPreviewSnapshotTests.cs`
 - `tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionStartIntentTests.cs`
+
+## Completion Notes List
+
+The resumed review initially ran `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`, which returned `RESULT: FAIL` for two undeclared pointers. Both were already committed in the implementation, rather than introduced by this review. They are recorded as the source build inputs shipped with the story so the complete baseline diff remains reviewable; no pointer was reverted or updated.
+
+| Existing source input | Baseline → committed target | Context |
+|---|---|---|
+| `references/Hexalith.EventStore` | 4339eb6aa4d52b83adc558d2c03687b7ac7d43f2 → 2c58ffda41759e895ace4b9625c9bd931a217672 | Inherited implementation build input; upstream source-structure changes and published archive qualification evidence. |
+| `references/Hexalith.FrontComposer` | 3b1584d923a9a7dac163050b924285a1206605b2 → 4cedcdc216980664f561084ea7b91946c37260c9 | Inherited implementation build input; upstream approved runtime qualification prerequisites. |
+
+### Resumed verification — 2026-10-02
+
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1`: passed, zero warnings/errors (`/tmp/story55-resume-build.log`).
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore`: 3,729 passed, zero failed/skipped (`/tmp/story55-resume-ui.log`).
+- `TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh`: passed rendered EN/FR start fixtures at desktop/narrow widths and forced colors, shipped focus checks, and negative mutations (`/tmp/story55-resume-browser.log`). Browser fixtures verify rendered components and shipped focus helpers; Blazor callback behavior is covered by component tests.
+- `aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json`: all twenty resources Running/Healthy. This is resource-health evidence; it does not resolve the previously recorded live authenticated-read limitation.
+
+### Final review-fix verification — 2026-10-02
+
+- Same Debug/source-reference build command: passed, zero warnings/errors (`/tmp/story55-review-fixes-build.log`).
+- `tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -class '*TenantAuditPageTests' -class '*CorrectionStartPanelTests' -class '*TenantsBffCompositionTests'`: 265 passed, zero errors/failures/skips/not-run (`/tmp/story55-review-fixes-focused.log`).
+- Same per-project Microsoft.Testing.Platform command: 3,740 passed, zero failed/skipped (`/tmp/story55-review-fixes-ui.log`).
+- Same Debug Chromium harness command: passed, now including a picker before each launcher and exact unavailable-reason focus for both origins (`/tmp/story55-review-fixes-browser.log`).
+- `git diff --check` and the story gitlink validator: passed. The final unified review diff is `/tmp/story55-review-vte6q9yt/changes.diff`.
+- All three review layers completed. New retained-handoff, command-tracking, live-recovery, already-applied and focus findings were patched. Prior V1/V2 verification tasks were completed; receipt selection and notification refresh also have executable regression coverage. R-B6 and R-B7 are recorded in `deferred-work.md` as pre-existing Story 5.6 confirmation/consequence work.
+- The exact local commit message passed pinned commitlint 21.2.2 with `node_modules/.bin/commitlint --edit /tmp/story55-review-vte6q9yt/commit-message.txt --verbose`; zero errors/warnings, evidence preserved in `/tmp/story55-review-vte6q9yt/commitlint-validation.log`. Spec status is `done`; sprint status is `review`, as required by the build workflow.

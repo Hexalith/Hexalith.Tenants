@@ -36,6 +36,13 @@
             }
             observations.push(`actual-rendered-${culture}-safe-fields`);
             const launchers = ['grid', 'receipt'].map(origin => {
+                const picker = document.createElement('select');
+                picker.setAttribute('data-testid', 'tenants-correction-role');
+                picker.setAttribute('data-correction-focus-reference', 'event-original');
+                picker.setAttribute('data-correction-origin', origin);
+                picker.setAttribute('aria-label', `Intended role from ${origin}`);
+                picker.append(new Option('Tenant reader', 'TenantReader'));
+                document.body.append(picker);
                 const button = document.createElement('fluent-button');
                 button.setAttribute('data-testid', 'tenants-correction-start');
                 button.setAttribute('data-correction-focus-reference', 'event-original');
@@ -77,6 +84,20 @@
                 panel.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
                 panel.removeEventListener('keydown', onEscape);
                 observations.push(`${origin}-handoff-cancel-escape-exact-focus`);
+                const reason = document.createElement('p');
+                reason.setAttribute('data-testid', 'tenants-correction-unavailable-reason');
+                reason.setAttribute('data-correction-focus-reference', 'event-original');
+                reason.setAttribute('data-correction-origin', origin);
+                reason.setAttribute('tabindex', '-1');
+                reason.textContent = 'Current access could not be verified';
+                launcher.replaceWith(reason);
+                document.body.append(panel);
+                focusElementById('tenants-correction-start-title');
+                panel.remove();
+                if (!focusCorrectionLauncher('event-original', origin) || document.activeElement !== reason) {
+                    throw new Error(`Exact ${origin} reason priority over picker failed`);
+                }
+                observations.push(`${origin}-reason-before-picker`);
             }
             if (handoffs !== 2 || submits !== 0) throw new Error('Handoff dispatched or callback parity failed');
             document.body.append(panel);

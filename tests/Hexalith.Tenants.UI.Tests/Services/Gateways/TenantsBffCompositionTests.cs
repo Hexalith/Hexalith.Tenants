@@ -142,6 +142,24 @@ public sealed class TenantsBffCompositionTests
         resolver.ResolutionCount.ShouldBe(1);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task RawTenantMismatchNeverReLabelsMembershipOrAuthorityAsTheRequestedTenant(bool batch)
+    {
+        var resolver = new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"));
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver: resolver);
+        TenantDetail wrongTenant = Detail([new("target-user", TenantRole.TenantOwner)]) with { TenantId = "tenant.beta" };
+        IReadOnlyList<TenantCorrectionProjection> captures = batch
+            ? await composition.ComposeTenantCorrectionProjectionsAsync("tenant.alpha", ["target-user", "another-user"], wrongTenant,
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)
+            : [await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user", wrongTenant,
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)];
+        captures.ShouldAllBe(capture => !capture.IsCurrent && !capture.IsAuthorized && !capture.IsGlobalAdministrator
+            && !capture.HasVerifiedMembership && !capture.IsMembershipEmpty && capture.CurrentRole == null);
+        resolver.ResolutionCount.ShouldBe(0);
+    }
+
     private const string GrantedPolicy = """
         {
           "Tenants": {
