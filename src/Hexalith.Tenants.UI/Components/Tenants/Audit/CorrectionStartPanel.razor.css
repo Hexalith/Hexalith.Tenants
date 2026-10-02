@@ -54,8 +54,7 @@
     padding-inline-start: 0.5rem;
 }
 
-.correction-start-panel__close,
-.correction-start-panel__preview-action {
+.correction-start-panel__close {
     min-height: 2.5rem;
 }
 

@@ -224,7 +224,17 @@
             ? null
             : SafeMessageText ?? string.Join(
                 " ",
-                _snapshot.Intent.UnavailableReasons.Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
+                DisplayedUnavailableReasons(_snapshot.Intent)
+                    .Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value));
+
+    // A hidden read keeps CurrentProjectionUnavailable for the projection marker, but the operator
+    // sees one access recovery instead of the projection, lifecycle and membership guesses.
+    private static IReadOnlyList<TenantCorrectionUnavailableReason> DisplayedUnavailableReasons(
+        TenantCorrectionStartIntent intent)
+        => TenantCorrectionStartIntent.IsHiddenRead(intent.CurrentProjection)
+            && intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.AuthorizationIndeterminate)
+                ? TenantCorrectionStartIntent.WithoutHiddenReadGuesses(intent.UnavailableReasons)
+                : intent.UnavailableReasons;
 
     private bool IsConfirmDisabled
         => _hasSubmitted || _isSubmitting || _snapshot?.CanSubmit is not true
@@ -408,6 +418,10 @@
             if (!StartProjection.IsCurrent || !StartProjection.IsAuthorized || !matchingProjection)
             {
                 reasons.Add(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
+            }
+            if (TenantCorrectionStartIntent.IsHiddenRead(StartProjection))
+            {
+                reasons.Add(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
             }
             if (!matchingProjection) reasons.Add(TenantCorrectionUnavailableReason.ScopeConflict);
             if (!StartProjection.IsCurrent || !matchingProjection)

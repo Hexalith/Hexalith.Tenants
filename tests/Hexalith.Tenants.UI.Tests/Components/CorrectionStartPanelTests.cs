@@ -615,6 +615,41 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.Instance.Snapshot.CanSubmit.ShouldBeFalse();
     }
 
+    [Fact]
+    public void HiddenReadPreviewShowsOneAccessRecovery()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant"), TenantRole.TenantReader);
+        TenantCorrectionProjection hidden = TenantCorrectionProjection.Unavailable("tenant.alpha", "target-user");
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with { IsAuthorized = false, Projection = hidden });
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent).Add(p => p.StartProjection, hidden));
+        cut.Instance.Snapshot!.CanSubmit.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.Trim()
+            .ShouldBe("Current access could not be verified. Refresh or request permission before starting correction.");
+        cut.Find("[data-testid='tenants-correction-current-snapshot']").TextContent.ShouldBe("Current tenant projection is unavailable.");
+    }
+
+    [Fact]
+    public void EmptyRecoveryPreviewShowsLocalizedValuesWithoutMachineTokens()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant"), TenantRole.TenantOwner);
+        TenantCorrectionProjection projection = context.Projection! with { IsMembershipEmpty = true, IsGlobalAdministrator = true };
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with { Projection = projection });
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent).Add(p => p.StartProjection, projection));
+        cut.Instance.Snapshot!.Intent.RequiredPreviewInputs["emptyMembership"].ShouldBe("true");
+        string previewData = cut.Find("[data-testid='tenants-correction-preview-data']").TextContent;
+        previewData.ShouldContain("Empty membership recovery");
+        previewData.ShouldContain("Current membership is empty. Recovery requires current global administrator authority");
+        previewData.ShouldContain("Current state from the tenant projection; current authority was checked.");
+        string visibleText = cut.Find("[data-testid='tenants-correction-panel']").TextContent;
+        visibleText.ShouldNotContain("tenant-projection-current");
+        System.Text.RegularExpressions.Regex.IsMatch(visibleText, @"\btrue\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            .ShouldBeFalse();
+    }
+
     private static TenantCorrectionStartContext Context(
         TenantAuditRow row,
         TenantRole? intendedRole = null,
@@ -819,7 +854,6 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
-            ["Tenants.Correction.Action.PreviewHandoff"] = "Continue to correction preview",
             ["Tenants.Correction.Audit.AuditPending"] = "Corrective audit evidence is pending.",
             ["Tenants.Correction.Confirm.Cancel"] = "Cancel",
             ["Tenants.Correction.Confirm.Refresh"] = "Refresh status",
@@ -836,6 +870,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             ["Tenants.Correction.Field.OriginalEvidence"] = "Original evidence",
             ["Tenants.Correction.Field.PreviewData"] = "Required preview data",
             ["Tenants.Correction.PreviewInput.currentProjectionSnapshot"] = "Current projection snapshot",
+            ["Tenants.Correction.PreviewInput.emptyMembership"] = "Empty membership recovery",
+            ["Tenants.Correction.Start.EmptyRecovery"] = "Current membership is empty. Recovery requires current global administrator authority and the explicitly chosen Owner role. This does not establish whether earlier membership existed.",
+            ["Tenants.Correction.Start.Projection"] = "Current state from the tenant projection; current authority was checked.",
             ["Tenants.Correction.PreviewInput.currentRole"] = "Current role",
             ["Tenants.Correction.PreviewInput.domain"] = "Domain",
             ["Tenants.Correction.PreviewInput.aggregateId"] = "Aggregate",
@@ -877,6 +914,8 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             ["Tenants.Correction.State.RequestSent"] = "Corrective command request was sent.",
             ["Tenants.Correction.State.UnableToVerify"] = "Correction cannot be verified from current evidence.",
             ["Tenants.Correction.Unavailable.CommandSupportUnavailable"] = "The tenant correction command path is not connected.",
+            ["Tenants.Correction.Unavailable.AuthorizationIndeterminate"] = "Current access could not be verified. Refresh or request permission before starting correction.",
+            ["Tenants.Correction.Unavailable.CurrentProjectionUnavailable"] = "Current projection evidence is unavailable.",
             ["Tenants.Correction.Title"] = "Start correction",
             ["Tenants.Correction.Unavailable.AlreadyApplied"] = "The current projection already matches the intended state.",
             ["Tenants.Correction.Unavailable.CurrentRoleConflict"] = "Current projection shows this user with a different role; start a role-change correction instead.",

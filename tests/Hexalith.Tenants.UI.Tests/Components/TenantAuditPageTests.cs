@@ -2548,6 +2548,8 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-correction-panel']");
         cut.Find("[data-testid='tenants-correction-original-evidence']").TextContent.ShouldBe("event-correction");
         cut.WaitForAssertion(() => headingFocus.Invocations.Count.ShouldBe(1));
+        focusModule.Invocations["focusElementById"].Last().Arguments[0].ShouldBe("tenants-correction-title");
+        focusModule.Invocations["focusCorrectionLauncher"].ShouldBeEmpty();
         string previewText = cut.Find("[data-testid='tenants-correction-panel']").TextContent;
         previewText.ShouldNotContain("tenant-projection-current");
         System.Text.RegularExpressions.Regex.IsMatch(previewText, @"\btrue\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
@@ -2574,7 +2576,14 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-correction");
-        cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-unavailable-reason']");
+        string receiptReason = cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-unavailable-reason']")
+            .TextContent.Trim();
+        if (!supportLoss)
+        {
+            receiptReason.ShouldBe("Current access could not be verified. Refresh or request permission before starting correction.");
+            cut.Find("[data-testid='tenants-audit-grid'] [data-testid='tenants-correction-unavailable-reason']")
+                .TextContent.Trim().ShouldBe("Current access could not be verified. Refresh or request permission before starting correction.");
+        }
     }
 
     [Fact]
@@ -2585,6 +2594,8 @@ public sealed class TenantAuditPageTests : BunitContext
         Services.AddSingleton<ITenantsBffComposition>(new StubBffComposition(commandConnected: false));
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-audit-grid'] [data-testid='tenants-correction-unavailable-reason']").TextContent.Trim()
+            .ShouldBe("The tenant correction command path is not connected.");
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
@@ -2607,6 +2618,7 @@ public sealed class TenantAuditPageTests : BunitContext
         launcher.Click();
         cut.Find("[data-testid='tenants-correction-start-cancel']").Click();
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+        module.Invocations["focusCorrectionLauncher"].Count.ShouldBe(1);
     }
 
     [Fact]
@@ -2728,13 +2740,16 @@ public sealed class TenantAuditPageTests : BunitContext
         Services.AddSingleton(Substitute.For<IProjectionSubscription>());
         Services.AddSingleton(notifier);
         Services.AddScoped<TenantReadRefreshSubscription>();
-        Services.AddSingleton(Substitute.For<ITenantCommandGateway>());
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        Services.AddSingleton(commands);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.Find("[data-testid='tenants-correction-start']").Click();
         cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
         CorrectionStartPanel preview = cut.FindComponent<CorrectionStartPanel>().Instance;
         preview.Snapshot!.CanSubmit.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
         if (stale)
         {
             query.QueueDetailResponse(Task.FromResult(TenantDetailSnapshot.Ready(
@@ -2749,6 +2764,11 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.FindComponent<CorrectionStartPanel>().Instance.ShouldBeSameAs(preview);
         preview.Snapshot!.OriginalAuditReference.ShouldBe("event-correction");
         cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        if (!stale)
+        {
+            cut.Find("[data-testid='tenants-correction-panel'] [data-testid='tenants-correction-unavailable-reason']")
+                .TextContent.Trim().ShouldBe("Current access could not be verified. Refresh or request permission before starting correction.");
+        }
     }
 
     [Fact]
@@ -2839,7 +2859,8 @@ public sealed class TenantAuditPageTests : BunitContext
         JSRuntimeInvocationHandler<bool> focus = module.Setup<bool>("focusElementById", _ => true);
         focus.SetResult(true);
         module.Setup<bool>("isFocusInsideAuditReceiptCorrection").SetResult(true);
-        module.Setup<bool>("focusCorrectionLauncher", _ => true).SetResult(true);
+        JSRuntimeInvocationHandler<bool> launcherFocus = module.Setup<bool>("focusCorrectionLauncher", _ => true);
+        launcherFocus.SetResult(true);
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
         cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
         FluentSelectInterop.ChangeFluentSelect(cut.FindComponent<AuditEvidenceReceipt>(),
@@ -2850,9 +2871,12 @@ public sealed class TenantAuditPageTests : BunitContext
             "tenants-correction-role", TenantRole.TenantOwner.ToString());
         cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
         int previousFocusCount = focus.Invocations.Count;
+        int previousLauncherFocusCount = launcherFocus.Invocations.Count;
         viewport.Observe(ViewportTier.Phone);
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBeGreaterThan(previousFocusCount));
         focus.Invocations.Last().Arguments[0].ShouldBe("tenants-audit-receipt-heading");
+        SpinWait.SpinUntil(() => launcherFocus.Invocations.Count > previousLauncherFocusCount, TimeSpan.FromMilliseconds(500));
+        launcherFocus.Invocations.Count.ShouldBe(previousLauncherFocusCount);
     }
 
     private StubTenantQueryGateway RegisterServices(params TenantAuditSnapshot[] snapshots)
@@ -3165,7 +3189,9 @@ public sealed class TenantAuditPageTests : BunitContext
         {
             if (targetUserIds.Count == 0) return [];
             TenantDetailSnapshot snapshot = await GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
-            return targetUserIds.Select(targetUserId => new TenantCorrectionProjection(tenantId, targetUserId,
+            return targetUserIds.Select(targetUserId => !CorrectionAuthorized
+                ? TenantCorrectionProjection.Unavailable(tenantId, targetUserId)
+                : new TenantCorrectionProjection(tenantId, targetUserId,
                 snapshot.Detail?.Status ?? TenantStatus.Unknown,
                 snapshot.Detail?.Members.FirstOrDefault(member => member.UserId == targetUserId)?.Role,
                 snapshot.Detail?.Members.Count == 0, CorrectionAuthorized, false,
@@ -3178,6 +3204,12 @@ public sealed class TenantAuditPageTests : BunitContext
             string tenantId, string targetUserId, CancellationToken cancellationToken = default)
         {
             TenantDetailSnapshot snapshot = await GetTenantAsync(new TenantDetailRequest(tenantId), null, cancellationToken);
+            if (!CorrectionAuthorized)
+            {
+                // The BFF withholds membership, lifecycle and role from an unauthorized principal.
+                return TenantCorrectionProjection.Unavailable(tenantId, targetUserId);
+            }
+
             return new(tenantId, targetUserId, snapshot.Detail?.Status ?? TenantStatus.Unknown,
                 snapshot.Detail?.Members.FirstOrDefault(member => member.UserId == targetUserId)?.Role,
                 snapshot.Detail?.Members.Count == 0, CorrectionAuthorized, false,
@@ -3499,6 +3531,7 @@ public sealed class TenantAuditPageTests : BunitContext
             ["Tenants.Correction.Action.StartAccessible"] = "start correction for audit evidence {0}",
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Correction.Unavailable.AuthorizationIndeterminate"] = "Current access could not be verified. Refresh or request permission before starting correction.",
+            ["Tenants.Correction.Unavailable.CommandSupportUnavailable"] = "The tenant correction command path is not connected.",
             ["Tenants.Correction.Start.GlobalNotReady"] = "The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.",
             ["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"] = "Global administrator correction commands are not connected.",
             ["Tenants.Correction.Domain.GlobalAdministrators"] = "Global administrators",

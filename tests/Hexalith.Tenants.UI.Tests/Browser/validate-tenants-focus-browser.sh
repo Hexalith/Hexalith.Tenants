@@ -144,7 +144,8 @@ mutated = source[:start] + signature + " {\n  return true;\n}" + source[end:]
 Path(sys.argv[2]).write_text(mutated, encoding="utf-8")
 PY
 
-# Export the real EN/FR component markup from the built Debug/source-reference test executable.
+# Export the real EN/FR component markup from the test executable built for $build_configuration
+# (Debug/source-reference locally; Story Guards sets TENANTS_BROWSER_BUILD_CONFIGURATION=Release).
 start_test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
 start_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/TenantCorrectionStartPanel.razor.rz.scp.css"
 if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \

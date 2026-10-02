@@ -191,16 +191,33 @@ public sealed record TenantCorrectionStartIntent(
         }
 
         // The BFF redacts an unavailable authority capture. Do not turn that redaction into a
-        // stack of guesses about lifecycle and membership on the operator surface.
-        IReadOnlyList<TenantCorrectionUnavailableReason> safeReasons = context.Projection is
-            { IsAuthorized: false, HasVerifiedMembership: false } && !context.IsAuthorized
-            && domain is TenantCorrectionCommandDomain.Tenants
-                ? [TenantCorrectionUnavailableReason.AuthorizationIndeterminate]
+        // stack of guesses about lifecycle and membership on the operator surface; blockers that
+        // do not come from the capture stay visible.
+        IReadOnlyList<TenantCorrectionUnavailableReason> safeReasons = IsHiddenRead(context.Projection)
+            && !context.IsAuthorized && domain is TenantCorrectionCommandDomain.Tenants
+                ? WithoutHiddenReadGuesses(reasons)
                 : reasons.Distinct().ToArray();
         return new(reference, scope, target, row.EventType, projectionReference, domain, command,
             context.IntendedRole, safeReasons, inputs,
             domain is TenantCorrectionCommandDomain.Tenants ? context.Projection : null);
     }
+
+    /// <summary>Gets whether the BFF withheld current access, membership and lifecycle from a capture.</summary>
+    /// <param name="projection">The redacted capture, if any.</param>
+    /// <returns><see langword="true"/> when the capture discloses neither authority nor membership.</returns>
+    internal static bool IsHiddenRead(TenantCorrectionProjection? projection)
+        => projection is { IsAuthorized: false, HasVerifiedMembership: false };
+
+    /// <summary>Removes the projection, lifecycle and membership guesses a hidden read produces.</summary>
+    /// <param name="reasons">The evaluated reasons, including the access reason.</param>
+    /// <returns>The distinct reasons an operator can act on.</returns>
+    internal static IReadOnlyList<TenantCorrectionUnavailableReason> WithoutHiddenReadGuesses(
+        IEnumerable<TenantCorrectionUnavailableReason> reasons)
+        => reasons.Where(static reason => reason is not (TenantCorrectionUnavailableReason.CurrentProjectionUnavailable
+                or TenantCorrectionUnavailableReason.TenantLifecycleUnknown
+                or TenantCorrectionUnavailableReason.CurrentStateIndeterminate))
+            .Distinct()
+            .ToArray();
 
     /// <summary>Creates an unarmed receipt intent until current authority and projection are captured.</summary>
     public static TenantCorrectionStartIntent FromReceipt(TenantAuditReceipt receipt, TenantAuditRow row)

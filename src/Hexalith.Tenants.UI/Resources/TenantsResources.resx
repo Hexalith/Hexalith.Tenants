@@ -3577,9 +3577,6 @@
   <data name="Tenants.Audit.Column.Correction" xml:space="preserve">
     <value>Correction</value>
   </data>
-  <data name="Tenants.Correction.Action.PreviewHandoff" xml:space="preserve">
-    <value>Continue to correction preview</value>
-  </data>
   <data name="Tenants.Correction.Action.RestoreAccess" xml:space="preserve">
     <value>restore intended access</value>
   </data>

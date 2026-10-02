@@ -592,13 +592,18 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     public void Receipt_component_shows_only_unsupported_reason_for_uncorrectable_outcomes()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
-        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row()));
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row()) with
+        {
+            IsAuthorized = false,
+            Projection = null,
+        });
 
         IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row()))
             .Add(component => component.CorrectionIntent, intent));
 
         intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.UnsupportedOutcome);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
         cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
             .ShouldBe("This audit outcome is not supported for correction start.");
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
@@ -942,6 +947,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Correction.Unavailable.UnsupportedOutcome"] = "This audit outcome is not supported for correction start.",
+            ["Tenants.Correction.Unavailable.AuthorizationIndeterminate"] = "Current access could not be verified. Refresh or request permission before starting correction.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
             ["Tenants.Audit.Availability.State.Available"] = "Audit available",

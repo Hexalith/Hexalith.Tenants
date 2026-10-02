@@ -365,6 +365,51 @@ public sealed class TenantCorrectionStartIntentTests
     }
 
     [Theory]
+    [InlineData("UserAddedToTenant", "userId: target-user", TenantCorrectionUnavailableReason.UnsupportedOutcome)]
+    [InlineData("TenantConfigurationSet", "key: billing.mode", TenantCorrectionUnavailableReason.UnsupportedOutcome)]
+    [InlineData("GlobalAdministratorRemoved", "userId: admin-user", TenantCorrectionUnavailableReason.CurrentProjectionUnavailable)]
+    public void HiddenReadCollapseAppliesOnlyToTenantCorrections(
+        string eventType,
+        string referenceContext,
+        TenantCorrectionUnavailableReason keptReason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
+        ArgumentException.ThrowIfNullOrWhiteSpace(referenceContext);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row(eventType, referenceContext)) with
+        {
+            IsAuthorized = false,
+            HasCurrentProjectionSnapshot = false,
+            Projection = TenantCorrectionProjection.Unavailable("tenant.alpha", "target-user"),
+        });
+
+        intent.UnavailableReasons.ShouldContain(keptReason);
+        intent.UnavailableReasons.Count.ShouldBeGreaterThan(1);
+    }
+
+    [Fact]
+    public void HiddenReadKeepsBlockersThatDoNotComeFromTheCapture()
+    {
+        TenantAuditRow row = Row("UserRemovedFromTenant", "userId: target-user", freshness: ReadModelFreshnessState.Stale);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(row) with
+        {
+            IsAuthorized = false,
+            IsNarrowViewportSafe = false,
+            HasTenantCommandSupport = false,
+            Projection = TenantCorrectionProjection.Unavailable("tenant.alpha", "target-user"),
+        });
+
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.FreshnessIndeterminate);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.NarrowViewportUnavailable);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.CommandSupportUnavailable);
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.ExplicitRoleRequired);
+        intent.UnavailableReasons.ShouldNotContain(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
+        intent.UnavailableReasons.ShouldNotContain(TenantCorrectionUnavailableReason.TenantLifecycleUnknown);
+        intent.UnavailableReasons.ShouldNotContain(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
+        intent.UnavailableReasons.Count(reason => reason is TenantCorrectionUnavailableReason.AuthorizationIndeterminate).ShouldBe(1);
+    }
+
+    [Theory]
     [InlineData("UserRemovedFromTenant", null, TenantRole.TenantReader, TenantCorrectionCommandType.AddUserToTenant)]
     [InlineData("UserRemovedFromTenant", TenantRole.TenantContributor, TenantRole.TenantReader, TenantCorrectionCommandType.ChangeUserRole)]
     [InlineData("UserRoleChanged", TenantRole.TenantContributor, TenantRole.TenantOwner, TenantCorrectionCommandType.ChangeUserRole)]

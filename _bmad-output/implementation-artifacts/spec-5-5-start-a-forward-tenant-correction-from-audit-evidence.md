@@ -306,3 +306,94 @@ Checks on the merged PR (context, not story findings): Story Guards, Commitlint 
 - BH20b, "spec status `done` vs sprint `review`, `review_loop_iteration: 0`, `/tmp` evidence paths": the split is intentional per the Completion Notes, and the rest are spec edits.
 - AA4/E3, "handoff does not compare the command type or current role": false. The preview re-displays current state and intended command and needs explicit Confirm. `PreviewHandoffRetainsFreshCaptureWhenEarlierDetailDisagrees` pins this deliberately.
 - AA7/E11, "activation shares the projection generation and discards a load's batch capture": low. Start re-reads before any intent arms, the window is narrow, and the fix adds counters.
+
+#### Re-review of fix pass `31c2d2e1` (2026-10-02)
+
+Code review 2026-10-02 (bmad-code-review, full mode), second pass. Diff `9bad98d9..31c2d2e1`: the review-fix commit only, 22 files, +448/−183. That commit is local and not yet on `origin/main`.
+
+Inputs and baseline checks:
+- **Layers:** blind hunter, edge-case hunter, verification gap and acceptance auditor; none failed.
+- **Gitlink validator:** PASS. The fix pass moves no pointer.
+- **Build:** `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-incremental` on a clean tree at `31c2d2e1` → 0 warnings, 0 errors.
+- **Tests:** the full UI project passed 3,761/3,761, with 0 skipped.
+- **Commitlint:** the `31c2d2e1` message passes the pinned commitlint (0 problems).
+- **Prior patches:** each of the 23 first-pass `[x]` items has a matching code or test change. However, four of their new tests cannot fail on the regression they guard (patches 4–7 below).
+
+- [x] [Review][Patch] The single recovery message replaces every start reason, not only the ones caused by the hidden current-state read [src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionStartIntent.cs:195]. Resolved decision (b) said to collapse only the unavailable-capture reasons. Instead, when the BFF withholds the read, `safeReasons` becomes `[AuthorizationIndeterminate]` and nothing else.
+  - **Also dropped:** `AuditEvidenceUnavailable`, the row's `FreshnessIndeterminate`, a row-level `ScopeConflict`, `NarrowViewportUnavailable`, `CommandSupportUnavailable` and `ExplicitRoleRequired`.
+  - **Result:** an operator facing incomplete or stale evidence is told only to request permission.
+  - **Fix:** replace only the reasons that come from the hidden read (`CurrentProjectionUnavailable`, `TenantLifecycleUnknown`, `CurrentStateIndeterminate` and any duplicate `AuthorizationIndeterminate`) with one `AuthorizationIndeterminate`. Keep the other reasons and the domain check. Add an evaluator case that combines a hidden read with incomplete evidence.
+- [x] [Review][Patch] A preview that is already open shows two stacked reasons when a refresh returns a hidden read [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:408].
+  - **Cause:** after a notification refresh, `ResolvedIntent` adds `CurrentProjectionUnavailable` back to the collapsed intent.
+  - **Result:** the preview reads "Current access could not be verified… Current projection evidence is unavailable." The verification-gap probe reproduced this.
+  - **Fix:** skip that reason when `StartProjection` is `{ IsAuthorized: false, HasVerifiedMembership: false }`.
+  - **Test:** add a `CorrectionStartPanelTests` case with `TenantCorrectionProjection.Unavailable(...)` that asserts the reasons are exactly `[AuthorizationIndeterminate]` and checks the rendered text.
+- [x] [Review][Patch] No rendered test shows the single recovery message, because the page stub returns hidden-read captures that production never produces [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3163].
+  - **Stub:** with `CorrectionAuthorized = false`, it still returns verified membership and the current role.
+  - **Production:** the BFF returns `TenantCorrectionProjection.Unavailable` instead (`TenantsBffComposition.cs:562-565`).
+  - **Result:** no page, grid or receipt test reaches the collapsed path.
+  - **Fix:** return `Unavailable(...)` from both stub methods, and assert the exact EN text in the grid.
+- [x] [Review][Patch] `NarrowViewportIgnoresStaleCorrectionReferenceAfterRoleSelectionClosesPanel` passes with the old guard [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2832].
+  - **Evidence:** the verification-gap layer reverted `TenantAuditPage.razor:645`, and the full suite stayed green.
+  - **Why:** the heading `focusElementById` call happens before the guarded block runs.
+  - **Fix:** keep the `focusCorrectionLauncher` handler, and assert its call count does not change after `viewport.Observe(ViewportTier.Phone)`.
+- [x] [Review][Patch] The receipt's unsupported-outcome branch is never exercised [tests/Hexalith.Tenants.UI.Tests/Components/AuditEvidenceReceiptTests.cs:592].
+  - **Why:** `Context(Row())` is authorized and current, so `UnsupportedOutcome` is the only reason, and the old join already renders the same text.
+  - **Evidence:** removing `AuditEvidenceReceipt.razor:376-377` leaves the suite green.
+  - **Fix:** evaluate with `IsAuthorized = false, Projection = null`, as the page does.
+- [x] [Review][Patch] The domain check on the collapse is unpinned [src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionStartIntent.cs:197].
+  - **Evidence:** removing `&& domain is TenantCorrectionCommandDomain.Tenants` leaves the suite green.
+  - **Production risk:** a `UserAddedToTenant` row for the same user picks up that user's hidden read. It would then collapse and lose the unsupported-outcome message.
+  - **Fix:** add an evaluator theory over `UserAddedToTenant` and `TenantConfigurationSet`, with `IsAuthorized = false` and an `Unavailable` capture, that asserts `UnsupportedOutcome` is kept.
+- [x] [Review][Patch] The check that empty-membership recovery shows no bare `true` can never fail [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2553].
+  - **Why:** the page stub's tenant has a member (`target-user`), so the `emptyMembership` input is never emitted, and the stub hard-codes `IsGlobalAdministrator: false`.
+  - **Fix:** add a `CorrectionStartPanelTests` case for a global, empty-membership preview with role Owner. Assert that the visible text shows the localized `EmptyRecovery` value, and contains neither a bare `true` nor `tenant-projection-current`.
+- [x] [Review][Patch] Removing the duplicate preview button left unused artifacts behind [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor.css:58]:
+  - the `.correction-start-panel__preview-action` rule;
+  - `Tenants.Correction.Action.PreviewHandoff` in both resx files (`:3580`);
+  - the stub entry in `CorrectionStartPanelTests.cs:822`.
+- [x] [Review][Patch] The last assertion in the R-V3 test can no longer fail now that Confirm also needs status lookup [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2722].
+  - **Why:** a bare `Substitute.For<ITenantCommandGateway>()` returns `SupportsCommandStatusLookup = false`, so Confirm is already disabled before the notification arrives. The `CanSubmit` transition still pins the refresh.
+  - **Fix:** add `.Returns(true)`, and assert that Confirm is enabled before the notification.
+- [x] [Review][Patch] The focus tests do not catch an extra or competing focus call [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2594].
+  - **Why:** `RegisterServices` sets `JSRuntimeMode.Loose`, so only the handler with exactly matching arguments is counted. The first-pass patches asked for strict JS.
+  - **Fix:** in this test and in the heading-focus assertion at `:2546`, also assert that `JSInterop.Invocations` holds exactly one `focusCorrectionLauncher` call (with the receipt origin) and exactly one heading-focus call.
+- [x] [Review][Patch] The disconnected-command test only checks that controls are absent [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2581].
+  - **Why:** Start never renders, so the start-panel and preview absence checks are always true, and a blank cell would pass.
+  - **Fix:** assert the visible `CommandSupportUnavailable` reason text.
+- [x] [Review][Patch] The fix pass added a third Story 5.5 section to the deferred-work ledger instead of reconciling the existing ones [_bmad-output/implementation-artifacts/deferred-work.md:3449].
+  - **Duplicate entry:** its BH3/EH1 entry repeats the "submitted, tracked preview is still unmounted" entry at `:3434`.
+  - **Heading:** it is the third identical `code review of spec-5-5… (2026-10-02)` heading, although its findings come from the build review.
+  - **Fix:** point the BH3/EH1 entry at the existing entry, and use the ledger's `build review of …` heading with a review-range line.
+- [x] [Review][Patch] The deferred retention entry still says Story 5.6 should reuse "whatever 'submitted' signal" the decision settles [_bmad-output/implementation-artifacts/deferred-work.md:3444]. The decision is now settled: name the signal (`CorrectionStartPanel.HasSubmitted`), and note that it belongs to one panel instance, so any unmount loses it.
+- [x] [Review][Patch] A harness comment is out of date [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:147]. It still describes the export as coming from the built Debug/source-reference test executable. The configuration now comes from `TENANTS_BROWSER_BUILD_CONFIGURATION`, and Story Guards sets it to Release.
+- [x] [Review][Defer] Cancel during an in-flight submission unmounts the preview and loses its `HasSubmitted` flag, which belongs to that one panel. A new Start, handoff and Confirm can then send a second attempt [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:162] — deferred: pre-existing. The Story 5.6 Cancel button was never disabled during submission, and the accepted option (a) ties the flag to the panel. This belongs with the Story 5.6 preview-retention item.
+- [x] [Review][Defer] Ambiguous, FailedWithKey and RejectedWithKey submissions show no localized reason, and the preview offers no retry with the same message ID [src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionPreviewSnapshot.cs:194] — deferred: pre-existing. `ApplySubmissionFailure` is unchanged since the baseline and copies neither `SafeMessageKey` nor `MessageId`, so an `Ambiguous` result stays in `RequestSent` with no message. Confirm was already blocked there by `CanSubmit`, before `_hasSubmitted` existed.
+- [x] [Review][Defer] `Loading_receipt_renders_while_focus_probe_and_authoritative_read_are_pending` fails when run on its own [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:966] — deferred: pre-existing (Story 5.3 `38da46a6`, untouched by this pass). It failed 3 of 3 times alone ("Requests.Count should be 2 but was 1"), and the verification-gap layer saw it fail in 1 of 4 full-suite runs. Its `WaitForAssertion` checks a stub counter, which is only re-read when a render happens.
+
+Fixes applied 2026-10-02, after the user chose "apply every patch". The changes are uncommitted, on top of `31c2d2e1`:
+- **Evaluator:** `TenantCorrectionStartIntent` now has `IsHiddenRead` and `WithoutHiddenReadGuesses`. When the BFF hides current access, the evaluator removes only the guesses that hidden read produces and keeps the other blockers.
+- **Preview:** `CorrectionStartPanel` keeps `CurrentProjectionUnavailable` for the projection marker, but displays one access recovery message.
+- **Domain-check test:** after the collapse was narrowed, removing the domain check no longer changes unsupported rows. The evaluator theory therefore also covers a `GlobalAdministratorRemoved` row, which must keep `CurrentProjectionUnavailable`.
+- **Mutation checks:** each fix was undone in turn, and each new or tightened test failed. The fixes undone were the over-collapse, the preview display filter, the old viewport guard, the receipt's unsupported branch, the domain check, the empty-recovery value, removing the collapse entirely, Confirm forced disabled, and the command-surface term (9 of 9 caught). All sources were restored, then rebuilt with `--no-incremental`.
+- **Build and tests:** the Debug build has 0 warnings and 0 errors. The affected classes passed 421 of 421, and the full UI project passed 3,767 of 3,767 with 0 skipped.
+- **Checks:** `git diff --check` is clean, the gitlink validator passes, and `bash -n` passes on the harness script.
+
+##### Rejected
+
+- E1/BH3/AA4, "Confirm is silently disabled when status lookup is missing": false. With the shipped gateways, `IsCommandSurfaceConnected` (the Start check) is false exactly when `SupportsCommandStatusLookup` is false (`UnavailableTenantCommandGateway`). Start is therefore already blocked with `CommandSupportUnavailable`.
+- BH3 (part), "the `gateway is null` branch in `SubmitAsync` is now dead": low. It is harmless defensive code, and removing it would mean restructuring the nullable handling (a suppression or a reshaped check).
+- EH3, "a missing capture still shows the old stack of reasons": low and transient. The batch gateway returns `Unavailable` captures on every failure path, so a capture is missing only while the read is in flight, or after a cancelled load that a new load replaces. A fix would need a new pending state.
+- EH6, "role changes are ignored while a submitted preview is mounted": low. This is the first pass's rejected BH6/E10, now also reachable for Failed submissions. The fix would still need new disabled-state parameters.
+- EH12/BH15, "the start panel formats with InvariantCulture, the receipt with CurrentCulture": low. Output is identical in EN and FR. It differs only under a host culture with a non-Gregorian calendar or a time separator other than `:`. InvariantCulture is the better choice, and aligning the receipt means changing Story 5.3 code.
+- BH8, "`_hasSubmitted` survives reuse of the panel for another intent, and live update still relies on tracking": false.
+  - A submitted panel cannot receive a different reference: `OpenCorrectionAsync` is blocked, and a notification refresh keeps the same row reference.
+  - Lifecycles after submission (Failed, Rejected, RequestSent, Accepted) are outside the `ShouldLiveUpdatePreview` set.
+  - Losing the flag on remount is the deferred retention item.
+- BH10, "the VG1 stale row does not test staleness": false. With lifecycle `Unknown`, `ResolveFreshness` falls back to `IsStale` and returns `Stale`.
+- BH11/AA10, "triage IDs BH1–BH12 collide with first-pass rejected IDs": the fix would edit the spec under review.
+- BH13, "no fix-pass record, a stale 3,729 test count and no commitlint evidence": these are spec edits. The commit message was validated in this review (0 problems).
+- BH14, "the changed copy is not checked against the resx files": false for EN, because `LocalizerDoubleParityTests` pins stub values to the shipped resx. The mix of straight and curly apostrophes in the FR block existed before this pass.
+- AA5, "the timestamp lost its UTC offset": false. "… UTC" explicitly marks a zero offset, and the resolved patch aligned the start panel with the Story 5.3 receipt.
+- AA7, "Story Guards was never run in Release": false by inspection. The workflow builds Release and now passes `Release`, so the script reads its `bin/Release` and `obj/Release` inputs. The lane's separate Chromium exit-134 abort is already tracked.
+- AA9 (part), "a fact instead of the requested theory row": cosmetic. The assertion gap is covered by the disconnected-command patch above.
