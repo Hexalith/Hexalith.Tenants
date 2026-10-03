@@ -3512,3 +3512,11 @@ Review diff: `11e65e37..17538e07` (story commit `17538e07`).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Execute the correction preview browser assertions in Story Guards CI.
   evidence: The browser fixture passes locally, but the checked Story Guards run aborts Chromium before the preview fixture starts; repair that existing browser environment failure so the narrow-width and focus assertions run in CI.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)
+
+Review diff: `17538e07..93b0b96d` (fix pass `93b0b96d`).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: The story gitlink validator exits 1 on the working tree because `references/Hexalith.Builds` and `references/Hexalith.FrontComposer` were moved outside this story.
+  evidence: The default run reports Builds `3639c8d → c16249a` and FrontComposer `24033f7 → bf40099` as undeclared. Both are unstaged; `--ref 93b0b96d` passes and the committed range moves no pointer. Keep both pointers out of any Story 5.6 commit, or revert them and commit the bump separately as `build(deps)`.

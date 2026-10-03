@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -247,3 +247,108 @@ Inputs and baseline checks:
 - EC13, "a parent live update replaces a Confirm-time block with the older handoff preview": low. Confirm always performs a fresh read and blocks again. The fix needs read-origin tracking.
 - BH4 (sub-claim), "a Failed attempt can never be confirmed again from the same evidence": rejected; Blind 11 decided that starting a new ID from the same evidence is not promised.
 - AA16, "the new ledger entry uses an absolute `source_spec` path": false. Absolute paths are the majority form in `deferred-work.md` (for example `:2808`-`:3346`). Only the Story 5.5 code-review entries are repo-relative.
+
+### Review Findings (pass 2: fix-pass re-review)
+
+Code review 2026-10-03 (bmad-code-review, full mode) of the fix pass `17538e07..93b0b96d`: 23 files, +1,520/−177. That range is commit `bfc10cb6` (status only) plus commit `93b0b96d`, which closed the 27 pass-1 patches. Line anchors refer to `93b0b96d`.
+
+Inputs and baseline checks:
+- **Layers:** blind hunter, edge-case hunter, verification gap and acceptance auditor; none failed.
+- **Gitlink validator:** `python3 scripts/validate-story-gitlinks.py` on this spec → **exit 1**, caused by the working-tree gitlinks for `references/Hexalith.Builds` and `references/Hexalith.FrontComposer`. With `--ref 93b0b96d` it passes, the committed range moves no pointer, and nothing is staged. Recorded as a defer below.
+- **Build:** `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1` → 0 warnings, 0 errors.
+- **Tests:** `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` → 3,845/3,845 passed, 0 skipped. This is local evidence only: CI runs no UI tier, and the run used the drifted FrontComposer gitlink.
+
+- [ ] [Review][Patch] (resolved decision → option (a): align with the member flow, warning that the change can leave no owner and is not blocked; fix the R-B7 resolution text) The last-owner preview copy says the demotion "will be rejected", but the domain allows it — `Tenants.Correction.Preview.OwnerImpact.LastOwner` (`TenantsResources.resx:4240`, FR the same) reads "Demoting the last owner will be rejected."
+  - **Behaviour:** `OwnerImpactLabel` (`CorrectionStartPanel.razor:398`) selects that text when a sole owner is demoted, while `CanSubmit` stays true.
+  - **The domain:** `TenantAggregate.Handle(ChangeUserRole)` (`TenantAggregate.cs:197-218`) and its validator have no last-owner rule. The member flow says so explicitly: `Tenants.ChangeRole.OwnerRisk.LastOwner` reads "…can reduce the visible owner count to zero, but the command is not blocked…".
+  - **The test agrees with the domain:** `Current_role_change_with_same_command_requires_a_second_review` asserts the "last owner" text, then reaches Confirmed on that very demotion.
+  - **Effect:** the operator is told the system will stop the change, and then it leaves the tenant with no owner.
+  - **Why this is a decision:** decision D4 chose "last-owner risk copy matching `ChangeTenantMemberRoleFlow`; the domain rejection stays the hard stop", and that premise is false. The ledger resolution of R-B7 (`deferred-work.md:3430`) repeats the false claim.
+  - **Options:**
+    - (a) Align the copy with the member flow: warn that the change can leave the tenant with no owner and is not blocked. Fix the R-B7 resolution text to match.
+    - (b) Block last-owner demotion in the preview, with a canonical reason and its recovery.
+- [ ] [Review][Patch] (resolved decision → option (a): mirror `TenantLifecycleAttemptTracker`; an expired attempt stops blocking `TryBegin` and the auto-redirect, and stays viewable through Resume with status lookup when correlated until a new attempt replaces it) An expired attempt blocks every later correction on that tenant for the rest of the circuit, behind a false "aggregate busy" notice [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:225].
+  - **Behaviour:** `PruneExpiredLocked` releases the lease but keeps the attempt as non-terminal `UnableToVerify`.
+    - `TryBegin` (`:65`) refuses every new attempt for the tenant while a non-terminal attempt exists, for any audit evidence.
+    - The page restores the attempt on every visit and redirects every Start to it with the competing notice (`TenantAuditPage.razor:1521`).
+  - **What the operator sees:** "Another tenant command is being reconciled. Wait or refresh its status", although the lease is released. Refresh is disabled when the attempt has no correlation (`CanRefresh`, `TryStartRetry`). Correlated attempts whose status never becomes terminal stay stuck in the same way.
+  - **Pattern drift:** D3 chose "retention expiry mirroring `TenantLifecycleAttemptTracker`". That tracker moves expired snapshots to a terminal record so a new attempt can start (`TenantLifecycleAttemptTracker.cs:336-375`). Only a new browser circuit clears the correction block.
+  - **Options:**
+    - (a) Mirror the lifecycle tracker. An expired attempt no longer blocks `TryBegin` and is no longer auto-redirected; it stays viewable through Resume, with status lookup when correlated, until a new attempt replaces it. A fresh preview re-derives from current state, so a command that already landed shows as already applied.
+    - (b) Block only the same audit evidence after expiry; other evidence can start.
+    - (c) Keep the block and add an explicit operator "dismiss expired attempt" action.
+- [ ] [Review][Patch] The competing-attempt busy notice is never cleared. It masks real outcomes and labels fresh previews as busy [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1510]
+  - **Lifecycle:** `_competingCorrectionNotice` is reset only on route load (`:746`) and by a non-competing Resume. `CloseCorrectionAsync`, handoff, a non-redirected open and terminal outcomes leave it set.
+  - **Precedence:** `UnavailableReason` (`CorrectionStartPanel.razor:268`) ranks the notice above `SafeMessageText`.
+  - **Effects:**
+    - A resumed attempt that reaches Confirmed or Rejected keeps saying "Another tenant command is being reconciled".
+    - After that panel closes, a fresh preview on any row mounts with the busy alert and `tenants-correction-aggregate-busy` while Confirm is enabled and readiness says Ready.
+  - **Fix:** clear the flag on close, on handoff and on a non-redirected open; ignore it once the retained attempt is terminal. Add a page test.
+- [ ] [Review][Patch] The operator's own submission is announced as "another tenant command" for the whole dispatch [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:798]
+  - **Cause:** admission now runs on the renderer dispatcher, so `TryAcquireLease` → `NotifyStateChanged` → `OnAdmissionChanged` → `InvokeAsync(StateHasChanged)` renders inline before `_hasSubmitted = true`.
+  - **What renders:** `IsAggregateBusy` is true for the panel's own lease, so the `role="alert"` reason shows `AggregateBusy` and readiness shows Blocked.
+  - **Duration:** the next render is the `finally` in `SubmitAsync`, after the POST and the post-dispatch status read. So that false alert, not RequestSent, stays visible for the whole dispatch.
+  - **Regression:** under the off-dispatcher code of `17538e07` the render was queued until after `_hasSubmitted` was set.
+  - **Fix:** mark the panel as submitting its own attempt before `TryBegin` and revert on refusal, or exclude the panel's own lease from `IsAggregateBusy`. Assert the reason text while the gateway is pending.
+- [ ] [Review][Patch] The Confirm-time re-review gate compares against a live-updated snapshot, not the facts the operator confirmed [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:757]
+  - **Cause:** `preview = _snapshot` is read after the awaited capture. `ShouldLiveUpdatePreview` ignores `_isSubmitting`, so a parent re-render with a newer or equal `StartProjection` during the read replaces `_snapshot` through `OnParametersSet` (`:491`).
+  - **Effect:** if the confirm-time capture equals that replacement, the change gate (`:777-790`) passes. A command is dispatched on role, owner-count or membership facts that were not on screen when the operator clicked, for example the demotion of an owner. This is the bypass that the pass-1 patch "require a second Confirm whenever … differs from what was shown" was meant to close.
+  - **Fix:** capture the reviewed snapshot in `SubmitAsync` before the await and gate (and restore on refusal) against it, or skip live updates while `_isSubmitting`.
+- [ ] [Review][Patch] Typed rejection reasons are dropped, and the operator sees only a generic "was rejected" [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:870]
+  - **Cause:** dispatch now sets `SafeMessage = null` and uses `result.SafeMessageKey ?? FailureMessageKey(...)`. The membership gateway's rejections carry a `RejectionCode` and no key. The status path behaves the same way.
+  - **Effect:** `UserAlreadyInTenant`, `UserNotInTenant`, `RoleEscalation` and `InsufficientPermissions` all render "The tenant correction was rejected. Review current evidence and the rejection…", but no rejection is shown.
+  - **Context:** the pass-1 fix for gateway English on French screens discarded the reason instead of localizing it.
+  - **Fix:** map known rejection codes to localized EN/FR `Tenants.Correction.Rejection.{code}` keys before the generic key, and add a French test per code.
+- [ ] [Review][Patch] The add-member and change-role gateway fallback classification is untested beyond 400 and 503 [src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:762]
+  - **Current test:** the `_` arm combines `Retryable`, `StatusCode < 400` and `IsRetryableStatusCode`, but `Correction_membership_gateway_classifies_only_uncertain_delivery_as_ambiguous` (`TenantCommandGatewayTests.cs:1477`) only has 400 and 503 rows.
+  - **Risk:** dropping either term turns a 5xx that the server may have committed into a terminal `Failed`. The lease is released and same-ID recovery is lost.
+  - **Fix:** add rows for 408, 429, 500, 502, 504 and a transport status (below 400) as ambiguous, and for 409 as non-ambiguous, for both commands.
+- [ ] [Review][Patch] Only the current-role branch of the Confirm-time change gate is tested [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:781]
+  - **Gap:** both existing tests change `CurrentRole`. No test changes only `OwnerCount` (for example 2→1) or only `IsMembershipEmpty` between preview and Confirm.
+  - **Risk:** dropping either comparison dispatches an owner demotion without re-review.
+  - **Fix:** add a theory that asserts no dispatch plus `ChangedAtConfirm` for each case.
+- [ ] [Review][Patch] After confirmation, the owner-impact line describes the post-command capture [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:398]
+  - **Cause:** `CurrentProjectionForDisplay` (`:342`) becomes `LastConfirmedCorrectionProjection`. After a confirmed Owner→Reader correction the current and intended roles match.
+  - **Effect:** the line reads "…This command does not change tenant owner access" next to the post-command count.
+  - **Fix:** once `_hasSubmitted`, derive the impact category and count from the pre-submit capture (`_snapshot.Intent.CurrentProjection`).
+- [ ] [Review][Patch] The new correction copy is unverified on the status path [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:928]
+  - **Missing assertions:** no test asserts `Tenants.Correction.Status.Pending`, `Status.Retryable` or any `Tenants.Correction.Failure.*` key. Reverting to `status.SafeMessage` or deleting the failure-key block still passes.
+  - **Stub gap:** the panel's `StubTenantsLocalizer` lacks `ConfirmReadFailed`, `ProjectionRegressed`, `Failure.*` and `Status.*`, so raw keys render without any test failing.
+  - **Fix:** add a French-culture theory over Pending, retryable, Rejected, PublishFailed and TimedOut that asserts the resource copy and the absence of gateway English, and extend the stub.
+- [ ] [Review][Patch] The "one status read at a time" test never reaches its guard [tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs:232]
+  - **Gap:** the second click happens while `_isSubmitting` is still true, so removing both the `Interlocked.CompareExchange` and the `_statusReadInFlight` term of `CanRefresh` still passes.
+  - **Fix:** after submission completes, click Refresh with an unresolved status task, then assert that Refresh is disabled and a second click adds no status call.
+- [ ] [Review][Patch] The BFF owner count is only asserted for a membership with no owners [src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:571]
+  - **Gap:** `BatchCorrectionCompositionResolvesOnePrincipalForAllSafeTargets` uses a zero-owner fixture, and the page-test fake recomputes the count with the production formula.
+  - **Fix:** add a composition test with one and with two owners, including the target as an owner, that asserts the exact count.
+- [ ] [Review][Patch] The last-owner boundary (`count == 1`) is never exercised with two or more owners [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:412]. Add an Owner→Reader row with `OwnerCount = 2` that asserts the non-last-owner copy. Whatever copy the last-owner decision settles on, this row is needed.
+- [ ] [Review][Patch] Focus after closing a route-restored correction is untested [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:744]. Deleting the restored focus reference and origin lines still passes. Extend `Remount_restores_pending_attempt_on_a_stale_authorized_audit_surface` with a close step and a `focusCorrectionLauncher` assertion.
+- [ ] [Review][Patch] Resume closing another row's start panel is untested [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1508]. Deleting `_activeCorrectionIntent = null;` still passes. Open Start on a second row, click Resume, then assert that only the resumed panel remains.
+- [ ] [Review][Patch] The focus move to the reason element after a refused Confirm is unverified [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:749]. The ConfirmReadFailed, ProjectionRegressed and ChangedAtConfirm tests assert text and `aria-live` only, so deleting `_focusReasonPending = true` still passes. Add the focus-count assertion.
+- [ ] [Review][Patch] An out-of-range current role is no longer blocked by the panel [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:649]. `ResolvedIntent` now strips the start-time `CurrentStateIndeterminate` but re-adds it only for `TenantRole.Unknown`, so an undefined role value becomes an available `ChangeUserRole`. Block anything other than Owner, Contributor or Reader, as `Evaluate` does.
+- [ ] [Review][Patch] The accordion conversion dropped the h4 section headings [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:117]. The two `FluentAccordionItem`s render at the default heading level under the panel's h3, which breaks the outline. The `.correction-start-panel__preview h4` reset and its `fc-css-exception` (`CorrectionStartPanel.razor.css:22`) are now dead. Set `HeadingLevel="4"` and remove the dead selector.
+- [ ] [Review][Patch] The role select is no longer described by the actual reason [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:105]. `aria-describedby` now names only the readiness value ("Resolve the reason above"). Also reference `tenants-correction-unavailable` whenever it is rendered.
+- [ ] [Review][Patch] The expired-without-correlation copy asks the operator to keep an ID that the UI never shows [src/Hexalith.Tenants.UI/Resources/TenantsResources.resx:4259]. MessageIds are support-safe-hidden. Use the canonical `escalate` recovery verb in EN and FR, and align the wording with the expired-attempt decision.
+- [ ] [Review][Patch] `TenantCorrectionUnavailableReason.ProjectionVersionUnavailable` is a dead enum member, inserted mid-enum [src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionUnavailableReason.cs:13]. Nothing adds it to a reasons list, because both blocks use literal `SafeMessageKey` strings. Delete it.
+- [ ] [Review][Patch] Six new French correction strings say "tenant" where the other 21 correction strings say "locataire" [src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:4255]. Affected keys: ConfirmReadFailed, ProjectionRegressed and the four `Failure.*` keys.
+- [ ] [Review][Patch] Two new ledger entries duplicate the existing CI deferrals [_bmad-output/implementation-artifacts/deferred-work.md:3510]. `:3510` and `:3513` restate the `:3504` and `:3507` items ("Restore CI test execution" and the Story Guards Chromium abort). Delete them.
+- [ ] [Review][Patch] Ledger resolutions cite "the Story 5.6 review patch" instead of the commit [_bmad-output/implementation-artifacts/deferred-work.md:3430]. Cite `93b0b96d` at `:3430` and `:3494`.
+- [x] [Review][Defer] The gitlink validator exits 1 on the working tree [references/Hexalith.Builds, references/Hexalith.FrontComposer] — deferred: pre-existing external drift that this story did not cause. Builds is at `3639c8d → c16249a` and FrontComposer at `24033f7 → bf40099`, both unstaged. `--ref 93b0b96d` passes. Keep both pointers out of any story commit, or revert them and commit separately as `build(deps)`.
+
+#### Rejected (pass 2)
+
+- AA3, "timer release contradicts the frozen matrix and AC2; Spec Change Log empty": rejected. The fix edits the spec under review, and the bounded release was the human-approved D3 option.
+- AA8/BH5, "Completed without a valid event count loops on Refresh": low. EventStore sets `EventCount` on every `Completed` status, so this needs malformed or legacy status. A resolvable mapping needs a new terminal outcome, not a direct correction.
+- AA6/BH15, "a verified absent target is reported as indeterminate": low. D1 restored the original guard together with its original `CurrentStateIndeterminate` reason. A dedicated reason needs a new enum member and EN/FR keys for an uncommon path.
+- AA12/BH16, "a collapsed accordion item hides the outcome and swallows focus": low. The operator would have to collapse the lifecycle item by hand, and re-expanding it before focus needs bound state.
+- AA13/BH20, "spec Commands record rewritten, status `done` vs sprint `review`, AC deviation only in notes": rejected. Each fix edits the spec under review, and section 6 of this workflow sets the status.
+- BH2/ECH5, "a lazy prune swallows the expiry notification": low. The window between the deadline and the timer callback is milliseconds. The fix adds event raising to every prune path.
+- BH4, "wall-clock expiry; real-time timers in tests": low. This matches `TenantLifecycleAttemptTracker`'s wall-clock pattern. Migrating to `TimeProvider` is not a direct correction.
+- BH8/ECH6, "dispatch results are handled off the renderer dispatcher": low. `SetSnapshot` and `SetRetainedSnapshot` only write fields, with no `StateHasChanged` and no `EventCallback`. The continuation was already off the dispatcher in `17538e07`, and the race window is microseconds.
+- BH12/ECH8, "a terminal attempt with an in-panel role change disappears on a Stale read": low. It needs an in-panel role change, a terminal outcome and a Stale read before closing. The remounted preview re-reads current state, and the fix needs page-side intent tracking.
+- BH14 (sub-claim), "`Enum.TryParse` accepts numeric roles": low. The BFF rejects undefined roles before the capture reaches the panel.
+- BH10/AA10, "a stored confirm-time message masks a later viewport or busy block; the busy `data-testid` can wrap other text": low. It needs a refused Confirm followed by a new block. Reordering the precedence also changes terminal-message priority.
+- ECH7/ECH15, "the retained panel vanishes on Error, Unavailable or InvalidCursor reads": low. Those reads do not prove authorization, which is consistent with the Blind 10 gate. The attempt is retained and restored once the read recovers.
+- ECH9, "`SetCaptureUnavailable` forces Previewed over a live-updated block": low. It needs a live update and a failed read within one Confirm, and the reviewed-snapshot patch above subsumes it.
+- ECH10, "with no capture provider and no query gateway, Confirm is retried forever": false. `ITenantQueryGateway` is always registered (`TenantQueryGateway` or `UnavailableTenantQueryGateway`, `TenantsUiServiceCollectionExtensions.cs:145/157`).
+- ECH11, "a role change after ChangedAtConfirm reverts to the older `StartProjection` facts": low. This is safe: the next Confirm re-reads and gates again. The fix adds retained-capture state for an uncommon sequence.
