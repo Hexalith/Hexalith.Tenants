@@ -3426,8 +3426,8 @@ Review chunk: `fa489329..78e09184` for `src` and `tests`, plus the full-story di
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Decide and expose redacted last-owner consequence facts in tenant correction previews (medium).
-  evidence: R-B7; the baseline preview contains no owner count or explicit last-owner warning. Domain validation prevents removing the last owner, but the existing Story 5.6 consequence preview cannot warn before that rejection.
-  resolution: Resolved by the Story 5.6 review patch; the authorized capture carries a redacted owner count and the preview warns when a last-owner demotion would be rejected.
+  evidence: R-B7; the baseline preview contains no owner count or explicit last-owner warning. The original review assumed a last-owner domain rejection; ChangeUserRole permits last-owner demotion, so the correction must warn about potentially leaving no owner, matching the member flow.
+  resolution: Resolved by Story 5.6 commit `93b0b96d`; the authorized capture carries a redacted owner count. The follow-up preview copy warns that demoting the last owner can leave no owner and that the command is not blocked, matching the member flow and domain behavior.
 
 ## Deferred from: code review of spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md (2026-10-02)
 
@@ -3491,7 +3491,7 @@ Review diff: `9bad98d9..31c2d2e1` (re-review of the review-fix commit).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Verify whether viewport observation can change concurrently between the final safety check and correction attempt admission.
   evidence: A Fluxor effect writes the circuit-scoped observation while the Razor event reads it; dispatcher scheduling evidence or a controlled concurrency test is needed to establish whether the synchronous admission section can interleave. If reachable, a command could dispatch after the viewport becomes unsafe.
-  resolution: Resolved by the Story 5.6 review patch; the post-read admission section runs on the renderer dispatcher and rechecks viewport safety inside its critical section.
+  resolution: Resolved by Story 5.6 commit `93b0b96d`; the post-read admission section runs on the renderer dispatcher and rechecks viewport safety inside its critical section.
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-03)
 
@@ -3506,12 +3506,6 @@ Review diff: `11e65e37..17538e07` (story commit `17538e07`).
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: The Story 5.6 preview browser validation never runs in CI (pre-existing).
   evidence: Story Guards aborts with exit 134 ("Aborted (core dumped)") at the first Chromium launch in `validate-tenants-focus-browser.sh` (`:266`), before the preview fixture steps (`:330-360`). The rendered EN/FR preview, focus, forced-colors and egress checks therefore run locally only.
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: Execute the correction command-identity guard test in the main CI test tier.
-  evidence: The new unverified-Completed status test passes locally, but the checked main CI run stops at package-consumer validation before Microsoft.Testing.Platform starts; restore that existing CI gate so the test can prevent regressions.
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: Execute the correction preview browser assertions in Story Guards CI.
-  evidence: The browser fixture passes locally, but the checked Story Guards run aborts Chromium before the preview fixture starts; repair that existing browser environment failure so the narrow-width and focus assertions run in CI.
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)
 
