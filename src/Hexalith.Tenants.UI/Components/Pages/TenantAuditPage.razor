@@ -248,14 +248,16 @@
             </nav>
         </section>
     }
-    @if (HasAuthorizedAuditSurface && _previewCorrectionIntent is not null)
+    @if (HasAuthorizedRetainedSurface && _previewCorrectionIntent is not null
+        && (HasAuthorizedAuditSurface || HasDisplayedRetainedCorrection))
     {
         <CorrectionStartPanel Intent="@_previewCorrectionIntent"
                               @ref="_correctionPreview"
                               StartProjection="@_previewCorrectionIntent.CurrentProjection"
+                              ShowCompetingAttemptNotice="@_competingCorrectionNotice"
                               OnClose="CloseCorrectionAsync" />
     }
-    @if (HasAuthorizedAuditSurface && _previewCorrectionIntent is null && RetainedCorrectionAttempt is not null)
+    @if (HasAuthorizedRetainedSurface && _previewCorrectionIntent is null && RetainedCorrectionAttempt is not null)
     {
         <FluentButton Appearance="ButtonAppearance.Outline"
                       data-testid="tenants-correction-resume"
@@ -312,6 +314,7 @@
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
     private TenantCorrectionStartIntent? _previewCorrectionIntent;
+    private bool _competingCorrectionNotice;
     private CorrectionStartPanel? _correctionPreview;
     private readonly Dictionary<string, TenantCorrectionProjection> _correctionProjections = new(StringComparer.Ordinal);
     private string? _activeCorrectionOrigin;
@@ -532,11 +535,20 @@
             && !HasFilterValidation;
 
     private bool HasAuthorizedAuditSurface
-        => (_snapshot.Kind is TenantAuditSurfaceKind.Ready
+        => HasAuthorizedRetainedSurface
+            && (_snapshot.Kind is TenantAuditSurfaceKind.Ready
             or TenantAuditSurfaceKind.Empty
             or TenantAuditSurfaceKind.FilteredEmpty
             or TenantAuditSurfaceKind.ListRefreshed)
-            && _snapshot.Freshness is ReadModelFreshnessState.Current
+            && _snapshot.Freshness is ReadModelFreshnessState.Current;
+
+    private bool HasAuthorizedRetainedSurface
+        => (_snapshot.Kind is TenantAuditSurfaceKind.Ready
+            or TenantAuditSurfaceKind.Empty
+            or TenantAuditSurfaceKind.FilteredEmpty
+            or TenantAuditSurfaceKind.ListRefreshed
+            or TenantAuditSurfaceKind.Stale
+            or TenantAuditSurfaceKind.Degraded)
             && string.Equals(_snapshot.TenantId, TenantId, StringComparison.Ordinal);
 
     private bool HasFilterValidation
@@ -727,7 +739,11 @@
                 _selectedReceiptReference = null;
                 _selectedReceiptFromLauncher = false;
                 _activeCorrectionIntent = null;
-                _previewCorrectionIntent = RetainedCorrectionAttempt?.Snapshot.Intent;
+                TenantCorrectionAttempt? retained = RetainedCorrectionAttempt;
+                _previewCorrectionIntent = retained is { IsTerminal: false } ? retained.Snapshot.Intent : null;
+                _activeCorrectionFocusReference = _previewCorrectionIntent?.OriginalAuditReference;
+                _activeCorrectionOrigin = _previewCorrectionIntent is null ? null : "grid";
+                _competingCorrectionNotice = false;
                 _lastRouteReceiptReference = ReceiptReference;
                 ResolveReceiptSelection();
                 if (ReceiptReference is not null)
@@ -1474,35 +1490,37 @@
     private bool HasDisplayedRetainedCorrection
         => _previewCorrectionIntent is not null
             && RetainedCorrectionAttempt is { } attempt
-            && string.Equals(attempt.Snapshot.OriginalAuditReference,
-                _previewCorrectionIntent.OriginalAuditReference, StringComparison.Ordinal);
+            && attempt.Matches(_previewCorrectionIntent);
 
     private Task ResumeCorrectionAsync()
     {
-        if (!HasAuthorizedAuditSurface || RetainedCorrectionAttempt is not { } attempt)
+        ResumeCorrection(competing: false);
+        return Task.CompletedTask;
+    }
+
+    private void ResumeCorrection(bool competing)
+    {
+        if (!HasAuthorizedRetainedSurface || RetainedCorrectionAttempt is not { } attempt)
         {
-            return Task.CompletedTask;
+            return;
         }
 
+        _activeCorrectionIntent = null;
         _previewCorrectionIntent = attempt.Snapshot.Intent;
+        _competingCorrectionNotice = competing;
         _activeCorrectionFocusReference = attempt.Snapshot.OriginalAuditReference;
         _activeCorrectionOrigin ??= "grid";
         _receiptFocusGeneration++;
         _pendingReceiptFocus = "tenants-correction-title";
-        return Task.CompletedTask;
     }
 
     private async Task<bool> OpenCorrectionAsync(TenantCorrectionStartIntent intent, string origin, bool retainStart = false)
     {
         if (!HasAuthorizedAuditSurface) return false;
 
-        if (RetainedCorrectionAttempt is { } retained
-            && retained.Snapshot.LifecycleState is not TenantCommandLifecycleState.Confirmed
-                and not TenantCommandLifecycleState.Rejected
-                and not TenantCommandLifecycleState.AlreadyApplied
-                and not TenantCommandLifecycleState.Failed)
+        if (RetainedCorrectionAttempt is { IsTerminal: false } retained)
         {
-            await ResumeCorrectionAsync().ConfigureAwait(false);
+            ResumeCorrection(competing: !retained.Matches(intent));
             return false;
         }
 

@@ -91,6 +91,210 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-correction-preview-handoff']").ShouldBeEmpty();
         cut.Markup.ShouldNotContain("POST /api/v1/commands", Case.Insensitive);
         cut.Markup.ShouldNotContain("Success", Case.Insensitive);
+        cut.Find("[data-testid='tenants-correction-consequences']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.Find("[data-testid='tenants-correction-unknowns']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.Find("[data-testid='tenants-correction-audit-expectation']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.Find("[data-testid='tenants-correction-recovery-path']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.FindAll("fluent-accordion").Count.ShouldBe(1);
+        cut.FindAll("fluent-accordion-item").Count.ShouldBe(2);
+        cut.Find("fluent-accordion-item").HasAttribute("expanded").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-role']").GetAttribute("aria-describedby")
+            .ShouldBe("tenants-correction-readiness");
+        cut.Find("#tenants-correction-readiness").ShouldNotBeNull();
+    }
+
+    [Theory]
+    [InlineData(null, TenantRole.TenantReader, false, "Current tenant owner count: 1", true)]
+    [InlineData(TenantRole.TenantContributor, TenantRole.TenantOwner, false, "may grant or change", false)]
+    [InlineData(TenantRole.TenantOwner, TenantRole.TenantReader, false, "Demoting the last owner", false)]
+    [InlineData(null, TenantRole.TenantOwner, true, "empty tenant receives", true)]
+    public void Preview_shows_current_role_owner_count_and_impact_values(
+        TenantRole? currentRole, TenantRole intendedRole, bool empty, string impact, bool targetAbsent)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant"), intendedRole, currentRole);
+        TenantCorrectionProjection projection = context.Projection! with {
+            IsMembershipEmpty = empty,
+            IsGlobalAdministrator = empty,
+            OwnerCount = empty ? 0 : 1,
+        };
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with { Projection = projection });
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent).Add(p => p.StartProjection, projection));
+
+        cut.Find("[data-testid='tenants-correction-owner-impact']").TextContent.ShouldContain(impact);
+        cut.Find("[data-testid='tenants-correction-readiness']").TextContent.ShouldContain("are ready");
+        cut.Find("[data-testid='tenants-correction-current-role']").TextContent.Contains("absent", StringComparison.Ordinal)
+            .ShouldBe(targetAbsent);
+    }
+
+    [Fact]
+    public void Empty_membership_with_nonowner_role_never_promises_owner_bootstrap()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant"), TenantRole.TenantReader);
+        TenantCorrectionProjection projection = context.Projection! with {
+            IsMembershipEmpty = true, IsGlobalAdministrator = true, OwnerCount = 0,
+        };
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with { Projection = projection });
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent).Add(p => p.StartProjection, projection));
+
+        cut.Find("[data-testid='tenants-correction-owner-impact']").TextContent
+            .ShouldContain("does not change tenant owner access");
+        cut.Find("[data-testid='tenants-correction-owner-impact']").TextContent
+            .ShouldNotContain("empty tenant receives");
+    }
+
+    [Fact]
+    public async Task Failed_confirm_read_keeps_an_unsubmitted_preview_retryable()
+    {
+        Services.AddLocalization();
+        StubTenantCommandGateway commands = new();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        int reads = 0;
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent)
+            .Add(p => p.CurrentCaptureProvider, () => ++reads == 1
+                ? Task.FromException<TenantCorrectionProjection>(new HttpRequestException("read failed"))
+                : Task.FromResult(intent.CurrentProjection!)));
+
+        await cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.HasSubmitted.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldContain("Confirm again to retry");
+        commands.AddUserRequests.ShouldBeEmpty();
+
+        await cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        commands.AddUserRequests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void Regressed_confirm_capture_blocks_dispatch_and_keeps_the_preview()
+    {
+        Services.AddLocalization();
+        StubTenantCommandGateway commands = new();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant"), TenantRole.TenantReader);
+        TenantCorrectionProjection baseline = context.Projection! with { ProjectionVersion = "tenant-sequence:2" };
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with { Projection = baseline });
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent)
+            .Add(p => p.CurrentCaptureProvider, () => Task.FromResult(baseline with {
+                ProjectionVersion = "tenant-sequence:1",
+            })));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.Instance.HasSubmitted.ShouldBeFalse();
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldContain("older than the previewed evidence");
+        commands.AddUserRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void French_membership_failure_uses_localized_recovery_instead_of_gateway_english()
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr");
+            Services.AddLocalization();
+            StubTenantCommandGateway commands = new() {
+                AddUserResultTask = Task.FromResult(TenantCommandSubmissionResult.Failed("English gateway failure")),
+            };
+            Services.AddSingleton<ITenantCommandGateway>(commands);
+            TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+                Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+            IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+                .Add(p => p.Intent, intent)
+                .Add(p => p.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection!)));
+
+            cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+            cut.Find("[data-testid='tenants-correction-safe-message']").TextContent
+                .ShouldContain("correction du tenant a échoué");
+            cut.VisibleText().ShouldNotContain("English gateway failure");
+        }
+        finally { CultureInfo.CurrentUICulture = previous; }
+    }
+
+    [Fact]
+    public async Task Refresh_is_disabled_during_submission_and_one_status_read_at_a_time()
+    {
+        Services.AddLocalization();
+        TaskCompletionSource<TenantCommandSubmissionResult> delivery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantCommandStatusResult> status = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway commands = new() { AddUserResultTask = delivery.Task, StatusTask = status.Task };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent)
+            .Add(p => p.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection!)));
+
+        Task submitting = cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => commands.AddUserRequests.ShouldHaveSingleItem());
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+        delivery.SetResult(TenantCommandSubmissionResult.Accepted(commands.LastMessageId!, "tracking-safe"));
+        cut.WaitForAssertion(() => commands.StatusHandles.ShouldHaveSingleItem());
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-refresh']").Click();
+        commands.StatusHandles.ShouldHaveSingleItem();
+        status.SetResult(TenantCommandStatusResult.Pending("English status pending"));
+        await submitting.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Expired_retained_attempt_shows_only_available_status_recovery(bool hasCorrelation)
+    {
+        Services.AddLocalization();
+        DateTimeOffset now = new(2026, 10, 3, 10, 0, 0, TimeSpan.Zero);
+        using TenantCorrectionAttemptTracker tracker = new(() => now, TimeSpan.FromMilliseconds(10));
+        Services.AddSingleton(tracker);
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new() {
+            AmbiguousFirstAdd = !hasCorrelation,
+            Status = TenantCommandStatusResult.Pending("English pending status"),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent)
+            .Add(p => p.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection!)));
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        string messageId = cut.Instance.Snapshot!.MessageId!;
+        now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+
+        cut.WaitForAssertion(() => gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha"))
+            .ShouldBeFalse(), TimeSpan.FromSeconds(2));
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.SafeMessageKey.ShouldBe(hasCorrelation
+            ? "Tenants.Correction.Unavailable.AttemptExpired"
+            : "Tenants.Correction.Unavailable.AttemptExpiredWithoutCorrelation"));
+        cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled")
+            .ShouldBe(!hasCorrelation);
+        if (hasCorrelation)
+        {
+            cut.Find("[data-testid='tenants-correction-refresh']").Click();
+            commands.StatusHandles.Count.ShouldBe(2);
+        }
+        commands.AddUserRequests.ShouldHaveSingleItem();
     }
 
     [Fact]
@@ -461,6 +665,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
         cut.Instance.Snapshot.Intent.IntendedCommandType.ShouldBe(TenantCorrectionCommandType.ChangeUserRole);
         cut.Find("[data-testid='tenants-correction-command']").TextContent.ShouldContain("Change user role");
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldContain("Review this updated preview and confirm again");
+        cut.Find("[data-testid='tenants-correction-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
         commands.AddUserRequests.ShouldBeEmpty();
         commands.ChangeRoleRequests.ShouldBeEmpty();
         cut.Render(parameters => parameters.Add(component => component.Intent, intent)
@@ -760,6 +967,244 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Role_change_with_absent_target_cannot_be_rederived_as_an_add()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commands = new();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRoleChanged"), intendedRole: TenantRole.TenantReader));
+
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.StartProjection, intent.CurrentProjection));
+
+        cut.Instance.Snapshot!.CanSubmit.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-current-role']").TextContent.ShouldContain("absent");
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        commands.AddUserRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Unknown_current_role_never_renders_a_missing_resource_key()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantCorrectionStartContext context = Context(Row("UserRoleChanged"),
+            TenantRole.TenantReader, TenantRole.Unknown);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.StartProjection, context.Projection));
+
+        cut.Find("[data-testid='tenants-correction-current-role']").TextContent.ShouldBe("-");
+        cut.VisibleText().ShouldNotContain("Tenants.Correction.Role.Unknown");
+    }
+
+    [Fact]
+    public void Missing_ordered_projection_version_has_a_localized_block_reason()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant"), TenantRole.TenantReader);
+        TenantCorrectionProjection unversioned = context.Projection! with { ProjectionVersion = null };
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with { Projection = unversioned });
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.StartProjection, unversioned));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldContain("ordered projection version is unavailable");
+    }
+
+    [Fact]
+    public void Current_role_change_with_same_command_requires_a_second_review()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commands = new();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRoleChanged"), TenantRole.TenantReader, TenantRole.TenantContributor));
+        int reads = 0;
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.StartProjection, intent.CurrentProjection)
+            .Add(component => component.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection! with {
+                CurrentRole = ++reads < 3 ? TenantRole.TenantOwner : TenantRole.TenantReader,
+                ProjectionVersion = $"tenant-sequence:{reads + 1}",
+            })));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldContain("Review this updated preview and confirm again");
+        commands.ChangeRoleRequests.ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-owner-impact']").TextContent.ShouldContain("last owner");
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        commands.ChangeRoleRequests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public void Unverified_completed_status_never_reads_projection_or_releases_lease()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new() {
+            Status = new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: false),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        int reads = 0;
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, () => {
+                reads++;
+                return Task.FromResult(intent.CurrentProjection!);
+            }));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        reads.ShouldBe(1);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+    }
+
+    [Fact]
+    public void Mismatched_gateway_message_id_is_announced_assertively_and_retains_admission()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new() {
+            AddUserResultFactory = (_, _) => TenantCommandSubmissionResult.Accepted(
+                "01ARZ3NDEKTSV4RRFFQ69G5FAV", "tracking-safe"),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection!)));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+        cut.Find("[data-testid='tenants-correction-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Definitive_failed_delivery_releases_the_aggregate_lease()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new() {
+            AddUserResultFactory = (messageId, _) => new(TenantCommandLifecycleState.Failed,
+                MessageId: messageId, SafeMessage: "Request refused"),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, CaptureSequence(intent, TenantRole.TenantReader)));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Throwing_dispatch_retains_the_id_and_refresh_retries_only_that_id()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new() { ThrowFirstAdd = true };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, CaptureSequence(intent, TenantRole.TenantReader)));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        string messageId = cut.Instance.Snapshot!.MessageId!;
+        cut.Instance.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+
+        cut.Find("[data-testid='tenants-correction-refresh']").Click();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        commands.AddUserMessageIds.ShouldAllBe(id => id == messageId);
+        commands.AddUserMessageIds.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Throwing_status_lookup_keeps_a_refreshable_attempt()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new() { ThrowFirstStatus = true };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, CaptureSequence(intent, TenantRole.TenantReader)));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        string messageId = cut.Instance.Snapshot!.MessageId!;
+        cut.Instance.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+
+        cut.Find("[data-testid='tenants-correction-refresh']").Click();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        commands.AddUserMessageIds.ShouldHaveSingleItem().ShouldBe(messageId);
+    }
+
+    [Fact]
+    public void Remounted_pending_attempt_keeps_the_role_chosen_inside_the_preview()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton(new TenantCorrectionAttemptTracker());
+        Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
+        StubTenantCommandGateway commands = new() {
+            Status = TenantCommandStatusResult.Pending("Status is still pending."),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> first = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection!)));
+        FluentSelectInterop.ChangeFluentSelect(first, "tenants-correction-role", TenantRole.TenantOwner.ToString());
+        first.Find("[data-testid='tenants-correction-confirm']").Click();
+        first.WaitForAssertion(() => first.Instance.Snapshot!.HasCommandTracking.ShouldBeTrue());
+        string messageId = first.Instance.Snapshot!.MessageId!;
+        first.Dispose();
+
+        IRenderedComponent<CorrectionStartPanel> resumed = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent));
+
+        resumed.Instance.Snapshot!.MessageId.ShouldBe(messageId);
+        resumed.Instance.Snapshot.IntendedRole.ShouldBe(TenantRole.TenantOwner);
+        resumed.Find("[data-testid='tenants-correction-readiness']").TextContent
+            .ShouldContain("was submitted");
+        commands.AddUserRequests.ShouldHaveSingleItem().Role.ShouldBe(TenantRole.TenantOwner);
+    }
+
+    [Fact]
     public void Panel_ambiguous_delivery_retries_only_the_retained_message_id()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -797,7 +1242,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         Services.AddSingleton(gate);
         StubTenantCommandGateway commands = new() {
             AddUserResultFactory = (messageId, count) => count == 1
-                ? new(TenantCommandLifecycleState.Failed, MessageId: messageId, SafeMessage: "Gateway unavailable")
+                ? new(TenantCommandLifecycleState.Failed, MessageId: messageId, SafeMessage: "Gateway unavailable", IsAmbiguousFailure: true)
                 : TenantCommandSubmissionResult.Accepted(messageId!, "tracking-safe"),
         };
         Services.AddSingleton<ITenantCommandGateway>(commands);
@@ -874,7 +1319,8 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-correction-confirm']").Click();
 
-        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.EventCountUnavailable");
         reads.ShouldBe(1);
         commands.StatusHandles.ShouldHaveSingleItem();
         cut.Instance.Snapshot.LastConfirmedCorrectionProjection.ShouldBeNull();
@@ -1034,7 +1480,8 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-correction-confirm']").Click();
 
-        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(afterAdmission
+            ? TenantCommandLifecycleState.UnableToVerify : TenantCommandLifecycleState.Previewed));
         cut.Find("[data-testid='tenants-correction-safe-message']").TextContent.ShouldNotContain("raw provider fault");
         commands.AddUserRequests.Count.ShouldBe(afterAdmission ? 1 : 0);
         commands.StatusHandles.Count.ShouldBe(afterAdmission ? 1 : 0);
@@ -1202,6 +1649,8 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.Instance.Snapshot!.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
         cut.Instance.Snapshot.Intent.RequiredPreviewInputs.ContainsKey("currentRole").ShouldBeFalse();
         cut.Instance.Snapshot.CanSubmit.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-current-role']").TextContent.ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-owner-impact']").TextContent.ShouldBe("-");
     }
 
     [Fact]
@@ -1254,7 +1703,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             Projection: new TenantCorrectionProjection(row.TenantId, row.Narrative?.UserId ?? string.Empty,
                 TenantStatus.Active, currentRole, false, true, false, true, ReadModelFreshnessState.Current,
                 ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)
-                { ProjectionVersion = "tenant-sequence:1" });
+                { ProjectionVersion = "tenant-sequence:1", OwnerCount = 1 });
 
     private static Func<Task<TenantCorrectionProjection>> CaptureSequence(
         TenantCorrectionStartIntent intent,
@@ -1334,6 +1783,10 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         public bool AmbiguousFirstAdd { get; init; }
 
+        public bool ThrowFirstAdd { get; init; }
+
+        public bool ThrowFirstStatus { get; init; }
+
         public List<ChangeUserRole> ChangeRoleRequests { get; } = [];
 
         public List<TenantCommandTrackingHandle> StatusHandles { get; } = [];
@@ -1347,6 +1800,8 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         public TenantCommandStatusResult Status { get; init; }
             = new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true);
 
+        public Task<TenantCommandStatusResult>? StatusTask { get; set; }
+
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
             AddUserToTenant request,
             string? messageId = null,
@@ -1355,6 +1810,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             AddUserRequests.Add(request);
             AddUserMessageIds.Add(messageId);
             LastMessageId = messageId;
+            if (ThrowFirstAdd && AddUserRequests.Count == 1) throw new HttpRequestException("transport failure");
             if (AddUserResultFactory is not null)
             {
                 return Task.FromResult(AddUserResultFactory(messageId, AddUserRequests.Count));
@@ -1380,7 +1836,8 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             CancellationToken cancellationToken = default)
         {
             StatusHandles.Add(handle);
-            return Task.FromResult(Status);
+            if (ThrowFirstStatus && StatusHandles.Count == 1) throw new HttpRequestException("status failure");
+            return StatusTask ?? Task.FromResult(Status);
         }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(
@@ -1424,7 +1881,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
                 TenantStatus.Active, role, false, true, false, true,
                 ReadModelFreshnessState.Current, ProjectionLifecycleState.Current,
                 QueryResponseProvenance.ProjectionBacked)
-                { ProjectionVersion = $"tenant-sequence:{CorrectionCaptureCount}" });
+                { ProjectionVersion = $"tenant-sequence:{CorrectionCaptureCount}", OwnerCount = 1 });
         }
 
         /// <summary>
@@ -1526,6 +1983,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             ["Tenants.Correction.PreviewInput.emptyMembership"] = "Empty membership recovery",
             ["Tenants.Correction.Start.EmptyRecovery"] = "Current membership is empty. Recovery requires current global administrator authority and the explicitly chosen Owner role. This does not establish whether earlier membership existed.",
             ["Tenants.Correction.Start.Projection"] = "Current state from the tenant projection; current authority was checked.",
+            ["Tenants.Correction.Start.TargetAbsent"] = "Target absent from the verified current membership",
             ["Tenants.Correction.PreviewInput.currentRole"] = "Current role",
             ["Tenants.Correction.PreviewInput.domain"] = "Domain",
             ["Tenants.Correction.PreviewInput.aggregateId"] = "Aggregate",
@@ -1550,7 +2008,17 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             ["Tenants.Correction.Preview.IntendedRole"] = "Intended role",
             ["Tenants.Correction.Preview.Readiness"] = "Current authority and admission",
             ["Tenants.Correction.Preview.Readiness.Ready"] = "Current authority, membership, projection version, and command support are ready. Confirm rechecks them.",
-            ["Tenants.Correction.Preview.Readiness.Blocked"] = "Correction is blocked by current evidence, command support, viewport, or another tenant command. Resolve the reason below and refresh.",
+            ["Tenants.Correction.Preview.Readiness.Blocked"] = "Correction is blocked by current evidence, command support, viewport, or another tenant command. Resolve the reason above and refresh.",
+            ["Tenants.Correction.Preview.OwnerImpact"] = "Owner access impact",
+            ["Tenants.Correction.Preview.OwnerImpact.Bootstrap"] = "Current tenant owner count: {0}. The empty tenant receives an explicit owner; current global administrator authority is required.",
+            ["Tenants.Correction.Preview.OwnerImpact.Changes"] = "Current tenant owner count: {0}. This command may grant or change tenant owner access.",
+            ["Tenants.Correction.Preview.OwnerImpact.None"] = "Current tenant owner count: {0}. This command does not change tenant owner access.",
+            ["Tenants.Correction.Preview.OwnerImpact.LastOwner"] = "Current tenant owner count: {0}. Demoting the last owner will be rejected.",
+            ["Tenants.Correction.Preview.OriginalTime"] = "Original evidence time (UTC)",
+            ["Tenants.Correction.Preview.Readiness.Submitted"] = "A command attempt was submitted. See the lifecycle and audit states for its outcome.",
+            ["Tenants.Correction.Preview.ChangedAtConfirm"] = "Current membership or command facts changed. Review this updated preview and confirm again.",
+            ["Tenants.Correction.Unavailable.ProjectionVersionUnavailable"] = "A current ordered projection version is unavailable. Refresh the tenant projection before confirming.",
+            ["Tenants.Correction.Resume"] = "Resume correction status",
             ["Tenants.Correction.Preview.RecoveryPath"] = "Recovery path",
             ["Tenants.Correction.Preview.RecoveryPath.Text"] = "Refresh status, inspect audit evidence, continue read-only, or start a different correction if current projection truth conflicts.",
             ["Tenants.Correction.Preview.Unknown.HistoricalRole"] = "Historical role evidence can be stale; the selected intended role is authoritative for the new command.",
@@ -1577,6 +2045,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             ["Tenants.Correction.Unavailable.AggregateBusy"] = "Another tenant command is being reconciled. Wait or refresh its status before starting a correction.",
             ["Tenants.Correction.Unavailable.NarrowViewportUnavailable"] = "Use a wider viewport to review the required safety context.",
             ["Tenants.Correction.Unavailable.OriginalTimeUnavailable"] = "The original evidence time could not be verified. Refresh the audit evidence before starting correction.",
+            ["Tenants.Correction.Unavailable.OwnerCountUnavailable"] = "The current tenant owner count is unavailable. Refresh the tenant projection before confirming.",
             ["Tenants.Correction.Unavailable.AuthorizationIndeterminate"] = "Current access could not be verified. Refresh or request permission before starting correction.",
             ["Tenants.Correction.Unavailable.CurrentProjectionUnavailable"] = "Current projection evidence is unavailable.",
             ["Tenants.Correction.Title"] = "Start correction",

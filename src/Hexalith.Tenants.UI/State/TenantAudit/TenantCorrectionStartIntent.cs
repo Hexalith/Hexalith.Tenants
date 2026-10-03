@@ -88,7 +88,7 @@ public sealed record TenantCorrectionStartIntent(
                     && string.Equals(projection.TenantId, scope, StringComparison.Ordinal)
                     && string.Equals(projection.TargetUserId, target, StringComparison.Ordinal)
                     && string.Equals(row.Scope, scope, StringComparison.Ordinal);
-                bool verifiedCurrentEvidence = matchingProjection && projection!.IsCurrent
+                bool verifiedCurrentEvidence = matchingProjection && projection!.IsCurrent && projection.IsAuthorized
                     && context.HasCurrentProjectionSnapshot;
                 if (!string.Equals(row.Scope, scope, StringComparison.Ordinal)
                     || projection is not null && (!string.Equals(projection.TenantId, scope, StringComparison.Ordinal)
@@ -124,6 +124,10 @@ public sealed record TenantCorrectionStartIntent(
                     reasons.Add(TenantCorrectionUnavailableReason.ExplicitRoleRequired);
                 }
                 TenantRole? currentRole = verifiedCurrentEvidence ? projection!.CurrentRole : null;
+                if (row.EventType is "UserRoleChanged" && verifiedCurrentEvidence && currentRole is null)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
+                }
                 if (projection?.HasVerifiedMembership is not true
                     || currentRole is not null && currentRole is not (TenantRole.TenantOwner
                         or TenantRole.TenantContributor or TenantRole.TenantReader))

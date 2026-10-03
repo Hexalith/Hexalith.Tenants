@@ -52,6 +52,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
         => Intent.IsAvailable
             && LifecycleState is TenantCommandLifecycleState.Previewed
             && Intent.CurrentProjection is { IsCurrent: true, IsAuthorized: true }
+            && Intent.CurrentProjection.OwnerCount is >= 0
             && TenantLifecycleProjectionVersion.IsOrdered(BaselineProjectionVersion)
             && OriginalTimestampUtc is not null
             && IntendedRole is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;
@@ -62,16 +63,6 @@ public sealed record TenantCorrectionPreviewSnapshot(
 
     public bool HasCommandTracking
         => MessageId is not null && CorrelationId is not null;
-
-    public bool TryGetTrackingHandle(out TenantCommandTrackingHandle handle) {
-        if (MessageId is not null && CorrelationId is not null) {
-            handle = new(MessageId, CorrelationId);
-            return true;
-        }
-
-        handle = new(string.Empty, string.Empty);
-        return false;
-    }
 
     public static TenantCorrectionPreviewSnapshot FromIntent(
         TenantCorrectionStartIntent intent,
@@ -111,6 +102,14 @@ public sealed record TenantCorrectionPreviewSnapshot(
             SafeMessageKey: hasOriginalTime ? null : "Tenants.Correction.Unavailable.OriginalTimeUnavailable");
 
         snapshot = snapshot with { BaselineProjectionVersion = intent.CurrentProjection?.ProjectionVersion };
+        if (canPreview && !TenantLifecycleProjectionVersion.IsOrdered(snapshot.BaselineProjectionVersion))
+        {
+            snapshot = snapshot with { SafeMessageKey = "Tenants.Correction.Unavailable.ProjectionVersionUnavailable" };
+        }
+        else if (canPreview && intent.CurrentProjection?.OwnerCount is not >= 0)
+        {
+            snapshot = snapshot with { SafeMessageKey = "Tenants.Correction.Unavailable.OwnerCountUnavailable" };
+        }
         return currentProjection is null ? snapshot : snapshot.EvaluateCurrentProjection(currentProjection);
     }
 
@@ -256,6 +255,15 @@ public sealed record TenantCorrectionPreviewSnapshot(
                         FocusTarget = TenantCommandFocusTarget.Lifecycle,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
                     },
+            Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed when status.EventCount is null or < 0
+                    => this with {
+                        LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                        SafeMessage = null,
+                        SafeMessageKey = "Tenants.Correction.Unavailable.EventCountUnavailable",
+                        AuditState = TenantCommandAuditState.MissingSupport,
+                        FocusTarget = TenantCommandFocusTarget.Refresh,
+                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    },
             Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsStored
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsPublished
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
@@ -299,12 +307,6 @@ public sealed record TenantCorrectionPreviewSnapshot(
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             },
         };
-    }
-
-    public TenantCorrectionPreviewSnapshot ConfirmProjection(TenantDetailProjection? projection) {
-        // A detail DTO alone has no version or attempt provenance. Keep this compatibility entry
-        // point fail closed for callers that have not adopted the authoritative capture.
-        return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
     }
 
     /// <summary>Confirms only a fresh matching postcondition with ordered causal advancement.</summary>

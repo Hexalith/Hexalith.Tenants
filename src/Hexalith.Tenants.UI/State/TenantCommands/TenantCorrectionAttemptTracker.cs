@@ -3,19 +3,48 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
 /// <summary>Retains one correction attempt per tenant for the lifetime of an interactive circuit.</summary>
-public sealed class TenantCorrectionAttemptTracker
+public sealed class TenantCorrectionAttemptTracker : IDisposable
 {
     private readonly object _sync = new();
     private readonly Dictionary<string, TenantCorrectionAttempt> _attempts = new(StringComparer.Ordinal);
     private readonly HashSet<string> _deliveriesInFlight = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _expired = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, Timer> _expiryTimers = new(StringComparer.Ordinal);
     private readonly object _leaseOwner = new();
+    private readonly Func<DateTimeOffset> _utcNow;
+    private readonly TimeSpan _expiryCheckInterval;
+
+    /// <summary>Raised when a retained attempt reaches its delivery deadline.</summary>
+    internal event EventHandler? StateChanged;
+
+    /// <summary>Creates a circuit-local tracker using UTC time.</summary>
+    public TenantCorrectionAttemptTracker() : this(static () => DateTimeOffset.UtcNow) { }
+
+    internal TenantCorrectionAttemptTracker(Func<DateTimeOffset> utcNow, TimeSpan? expiryCheckInterval = null)
+    {
+        ArgumentNullException.ThrowIfNull(utcNow);
+        _utcNow = utcNow;
+        _expiryCheckInterval = expiryCheckInterval ?? TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+        if (_expiryCheckInterval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(expiryCheckInterval));
+    }
 
     /// <summary>Returns the retained attempt, including uncertain delivery, after a panel is remounted.</summary>
     internal TenantCorrectionAttempt? Find(string tenantId)
     {
         lock (_sync)
         {
+            PruneExpiredLocked();
             return _attempts.GetValueOrDefault(tenantId);
+        }
+    }
+
+    /// <summary>Reports whether delivery has expired; a correlated attempt can still check status.</summary>
+    internal bool IsExpired(string tenantId)
+    {
+        lock (_sync)
+        {
+            PruneExpiredLocked();
+            return _expired.Contains(tenantId);
         }
     }
 
@@ -29,6 +58,7 @@ public sealed class TenantCorrectionAttemptTracker
         ArgumentNullException.ThrowIfNull(gate);
         lock (_sync)
         {
+            PruneExpiredLocked();
             _attempts.TryGetValue(preview.TenantId, out TenantCorrectionAttempt? previous);
             if (previous is not null)
             {
@@ -47,11 +77,12 @@ public sealed class TenantCorrectionAttemptTracker
             }
 
             string messageId = NUlid.Ulid.NewUlid().ToString();
-            DateTimeOffset startedAtUtc = DateTimeOffset.UtcNow;
+            DateTimeOffset startedAtUtc = _utcNow().ToUniversalTime();
             TenantCorrectionPreviewSnapshot requestSent = preview.RequestSent() with {
                 MessageId = messageId, AttemptStartedAtUtc = startedAtUtc };
             attempt = new(preview.TenantId, messageId, requestSent, lease, startedAtUtc);
             _attempts[preview.TenantId] = attempt;
+            _expired.Remove(preview.TenantId);
             _deliveriesInFlight.Add(preview.TenantId);
             if (!lease.TryMarkDispatched(_leaseOwner))
             {
@@ -63,6 +94,12 @@ public sealed class TenantCorrectionAttemptTracker
                 return false;
             }
 
+            if (_expiryTimers.Remove(preview.TenantId, out Timer? previousTimer)) previousTimer.Dispose();
+            _expiryTimers[preview.TenantId] = new Timer(
+                _ => OnExpiryTimer(preview.TenantId), null,
+                _expiryCheckInterval,
+                Timeout.InfiniteTimeSpan);
+
             return true;
         }
     }
@@ -72,7 +109,9 @@ public sealed class TenantCorrectionAttemptTracker
     {
         lock (_sync)
         {
+            PruneExpiredLocked();
             if (_deliveriesInFlight.Contains(tenantId)
+                || _expired.Contains(tenantId)
                 || !_attempts.TryGetValue(tenantId, out TenantCorrectionAttempt? attempt)
                 || !string.Equals(attempt.MessageId, messageId, StringComparison.Ordinal)
                 || !string.IsNullOrWhiteSpace(attempt.Snapshot.CorrelationId)
@@ -120,6 +159,19 @@ public sealed class TenantCorrectionAttemptTracker
                 return false;
             }
 
+            if (_expired.Contains(tenantId) && !IsTerminal(snapshot.LifecycleState))
+            {
+                snapshot = snapshot with {
+                    LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = null,
+                    SafeMessageKey = snapshot.CorrelationId is null
+                        ? "Tenants.Correction.Unavailable.AttemptExpiredWithoutCorrelation"
+                        : "Tenants.Correction.Unavailable.AttemptExpired",
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                };
+            }
+
             _attempts[tenantId] = current with { Snapshot = snapshot with { MessageId = messageId } };
             if (snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed
                 or TenantCommandLifecycleState.Rejected
@@ -127,6 +179,7 @@ public sealed class TenantCorrectionAttemptTracker
                 or TenantCommandLifecycleState.Failed)
             {
                 current.Lease.TryReleaseTerminal(_leaseOwner, snapshot.LifecycleState);
+                if (_expiryTimers.Remove(tenantId, out Timer? timer)) timer.Dispose();
             }
 
             return true;
@@ -138,4 +191,67 @@ public sealed class TenantCorrectionAttemptTracker
             or TenantCommandLifecycleState.Rejected
             or TenantCommandLifecycleState.AlreadyApplied
             or TenantCommandLifecycleState.Failed;
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        lock (_sync)
+        {
+            foreach (Timer timer in _expiryTimers.Values) timer.Dispose();
+            _expiryTimers.Clear();
+        }
+    }
+
+    private void OnExpiryTimer(string tenantId)
+    {
+        bool changed;
+        lock (_sync)
+        {
+            changed = PruneExpiredLocked();
+            if (_attempts.TryGetValue(tenantId, out TenantCorrectionAttempt? attempt)
+                && !_expired.Contains(tenantId) && !attempt.IsTerminal
+                && _expiryTimers.TryGetValue(tenantId, out Timer? timer))
+            {
+                DateTimeOffset now = _utcNow().ToUniversalTime();
+                TimeSpan remaining = attempt.StartedAtUtc + TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration - now;
+                timer.Change(remaining > _expiryCheckInterval ? _expiryCheckInterval : remaining > TimeSpan.Zero
+                    ? remaining : TimeSpan.FromMilliseconds(1),
+                    Timeout.InfiniteTimeSpan);
+            }
+        }
+        if (changed) StateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private bool PruneExpiredLocked()
+    {
+        DateTimeOffset now = _utcNow().ToUniversalTime();
+        bool changed = false;
+        foreach ((string tenantId, TenantCorrectionAttempt attempt) in _attempts.ToArray())
+        {
+            if (_expired.Contains(tenantId) || attempt.IsTerminal
+                || now < attempt.StartedAtUtc
+                || now - attempt.StartedAtUtc < TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration)
+            {
+                continue;
+            }
+
+            // Release bounded circuit admission, but retain the original identity and snapshot.
+            // A later view can inspect status; TryBegin cannot mint a replacement for this intent.
+            attempt.Lease.TryReleaseTerminal(_leaseOwner, TenantCommandLifecycleState.Failed);
+            _attempts[tenantId] = attempt with { Snapshot = attempt.Snapshot with {
+                LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = null,
+                SafeMessageKey = attempt.Snapshot.CorrelationId is null
+                    ? "Tenants.Correction.Unavailable.AttemptExpiredWithoutCorrelation"
+                    : "Tenants.Correction.Unavailable.AttemptExpired",
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            } };
+            _expired.Add(tenantId);
+            _deliveriesInFlight.Remove(tenantId);
+            if (_expiryTimers.Remove(tenantId, out Timer? timer)) timer.Dispose();
+            changed = true;
+        }
+        return changed;
+    }
 }

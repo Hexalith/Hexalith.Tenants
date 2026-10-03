@@ -1468,6 +1468,32 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Theory]
+    [InlineData(false, HttpStatusCode.BadRequest, false, false)]
+    [InlineData(false, HttpStatusCode.BadRequest, true, true)]
+    [InlineData(false, HttpStatusCode.ServiceUnavailable, false, true)]
+    [InlineData(true, HttpStatusCode.BadRequest, false, false)]
+    [InlineData(true, HttpStatusCode.BadRequest, true, true)]
+    [InlineData(true, HttpStatusCode.ServiceUnavailable, false, true)]
+    public async Task Correction_membership_gateway_classifies_only_uncertain_delivery_as_ambiguous(
+        bool changeRole, HttpStatusCode statusCode, bool retryable, bool ambiguous)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        CapturingGatewayClient client = new(new EventStoreGatewayException((int)statusCode, "gateway error",
+            retryable: retryable));
+        TenantCommandGateway gateway = CreateGateway(client);
+
+        TenantCommandSubmissionResult result = changeRole
+            ? await gateway.ChangeUserRoleAsync(new ChangeUserRole("tenant.alpha", "target-user", TenantRole.TenantReader),
+                messageId, CancellationToken.None)
+            : await gateway.AddUserToTenantAsync(new AddUserToTenant("tenant.alpha", "target-user", TenantRole.TenantReader),
+                messageId, CancellationToken.None);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.MessageId.ShouldBe(messageId);
+        result.IsAmbiguousFailure.ShouldBe(ambiguous);
+    }
+
+    [Theory]
     [InlineData("")]
     [InlineData(null)]
     public async Task Add_user_to_tenant_validation_failure_does_not_submit_to_eventstore(string? userId)

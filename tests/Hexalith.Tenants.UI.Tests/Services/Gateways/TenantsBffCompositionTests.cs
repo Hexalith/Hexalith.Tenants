@@ -155,6 +155,7 @@ public sealed class TenantsBffCompositionTests
         captures.Count.ShouldBe(2);
         captures[0].CurrentRole.ShouldBe(TenantRole.TenantContributor);
         captures[1].CurrentRole.ShouldBeNull();
+        captures.ShouldAllBe(capture => capture.OwnerCount == 0);
         captures.ShouldAllBe(capture => capture.IsCurrent);
         resolver.ResolutionCount.ShouldBe(1);
     }

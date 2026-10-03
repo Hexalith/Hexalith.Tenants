@@ -4217,7 +4217,7 @@
     <value>Les droits, les membres, la version de projection et la commande sont prêts. La confirmation les vérifie de nouveau.</value>
   </data>
   <data name="Tenants.Correction.Preview.Readiness.Blocked" xml:space="preserve">
-    <value>La correction est bloquée par les données actuelles, la prise en charge des commandes, la taille de l’écran ou une autre commande du locataire. Résolvez la cause ci-dessous et actualisez.</value>
+    <value>La correction est bloquée par les données actuelles, la prise en charge des commandes, la taille de l’écran ou une autre commande du locataire. Résolvez la cause ci-dessus et actualisez.</value>
   </data>
   <data name="Tenants.Correction.Unavailable.AggregateBusy" xml:space="preserve">
     <value>Une autre commande du locataire est en cours de rapprochement. Attendez ou actualisez son état avant de commencer une correction.</value>
@@ -4226,15 +4226,41 @@
     <value>Effet sur les droits de propriétaire</value>
   </data>
   <data name="Tenants.Correction.Preview.OwnerImpact.Bootstrap" xml:space="preserve">
-    <value>Le locataire vide reçoit un propriétaire choisi explicitement ; les droits actuels d’administrateur global sont requis.</value>
+    <value>Nombre actuel de propriétaires du locataire : {0}. Le locataire vide reçoit un propriétaire choisi explicitement ; les droits actuels d’administrateur global sont requis.</value>
   </data>
   <data name="Tenants.Correction.Preview.OwnerImpact.Changes" xml:space="preserve">
-    <value>Cette commande peut accorder ou modifier les droits de propriétaire du locataire.</value>
+    <value>Nombre actuel de propriétaires du locataire : {0}. Cette commande peut accorder ou modifier les droits de propriétaire.</value>
   </data>
   <data name="Tenants.Correction.Preview.OwnerImpact.None" xml:space="preserve">
-    <value>Cette commande ne modifie pas les droits de propriétaire du locataire.</value>
+    <value>Nombre actuel de propriétaires du locataire : {0}. Cette commande ne modifie pas les droits de propriétaire.</value>
   </data>
   <data name="Tenants.Correction.Resume" xml:space="preserve">
     <value>Reprendre l’état de la correction</value>
   </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact.LastOwner" xml:space="preserve">
+    <value>Nombre actuel de propriétaires du locataire : {0}. La rétrogradation du dernier propriétaire sera refusée.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Readiness.Submitted" xml:space="preserve">
+    <value>Une tentative de commande a été envoyée. Consultez son état de traitement et celui des preuves d’audit pour connaître le résultat.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.ChangedAtConfirm" xml:space="preserve">
+    <value>Les membres ou la commande ont changé. Vérifiez cet aperçu actualisé et confirmez de nouveau.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.ProjectionVersionUnavailable" xml:space="preserve">
+    <value>La version ordonnée de la projection actuelle est indisponible. Actualisez la projection du locataire avant de confirmer.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.OwnerCountUnavailable" xml:space="preserve">
+    <value>Le nombre actuel de propriétaires du locataire est indisponible. Actualisez la projection du locataire avant de confirmer.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.ConfirmReadFailed" xml:space="preserve"><value>Les données actuelles du tenant n’ont pas pu être actualisées. Confirmez à nouveau pour réessayer la lecture avant tout envoi de commande.</value></data>
+  <data name="Tenants.Correction.Unavailable.ProjectionRegressed" xml:space="preserve"><value>La nouvelle projection du tenant est antérieure aux données examinées. Actualisez la projection et vérifiez-la avant de confirmer.</value></data>
+  <data name="Tenants.Correction.Unavailable.EventCountUnavailable" xml:space="preserve"><value>La commande terminée n’a pas fourni de nombre d’événements valide. Actualisez l’état pour vérifier le résultat avant de vous fier à la projection.</value></data>
+  <data name="Tenants.Correction.Unavailable.AttemptExpired" xml:space="preserve"><value>Le délai de livraison est écoulé. Seule la consultation de l’état de cette tentative conservée est disponible ; actualisez son état avant toute autre action.</value></data>
+  <data name="Tenants.Correction.Unavailable.AttemptExpiredWithoutCorrelation" xml:space="preserve"><value>Le délai de livraison est écoulé avant la réception d’une référence de suivi. Conservez l’identifiant de cette tentative et contactez l’assistance ; ne renvoyez pas de correction depuis cet aperçu.</value></data>
+  <data name="Tenants.Correction.Failure.Failed" xml:space="preserve"><value>La correction du tenant a échoué. Actualisez les données courantes avant d’envisager une autre tentative.</value></data>
+  <data name="Tenants.Correction.Failure.Rejected" xml:space="preserve"><value>La correction du tenant a été rejetée. Vérifiez les données courantes et le rejet avant toute autre action.</value></data>
+  <data name="Tenants.Correction.Failure.Degraded" xml:space="preserve"><value>La correction du tenant n’a pas pu être entièrement vérifiée. Actualisez l’état de la commande conservée.</value></data>
+  <data name="Tenants.Correction.Failure.UnableToVerify" xml:space="preserve"><value>Le résultat de la correction du tenant ne peut pas être vérifié. Actualisez l’état de la commande conservée.</value></data>
+  <data name="Tenants.Correction.Status.Pending" xml:space="preserve"><value>L’état de la commande conservée est toujours en attente. Actualisez cette même tentative plus tard.</value></data>
+  <data name="Tenants.Correction.Status.Retryable" xml:space="preserve"><value>L’état de la commande conservée n’a pas pu être lu. Actualisez de nouveau cette même tentative.</value></data>
 </root>

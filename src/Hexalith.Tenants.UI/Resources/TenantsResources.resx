@@ -4217,7 +4217,7 @@
     <value>Current authority, membership, projection version, and command support are ready. Confirm rechecks them.</value>
   </data>
   <data name="Tenants.Correction.Preview.Readiness.Blocked" xml:space="preserve">
-    <value>Correction is blocked by current evidence, command support, viewport, or another tenant command. Resolve the reason below and refresh.</value>
+    <value>Correction is blocked by current evidence, command support, viewport, or another tenant command. Resolve the reason above and refresh.</value>
   </data>
   <data name="Tenants.Correction.Unavailable.AggregateBusy" xml:space="preserve">
     <value>Another tenant command is being reconciled. Wait or refresh its status before starting a correction.</value>
@@ -4226,15 +4226,41 @@
     <value>Owner access impact</value>
   </data>
   <data name="Tenants.Correction.Preview.OwnerImpact.Bootstrap" xml:space="preserve">
-    <value>The empty tenant receives an explicit owner; current global administrator authority is required.</value>
+    <value>Current tenant owner count: {0}. The empty tenant receives an explicit owner; current global administrator authority is required.</value>
   </data>
   <data name="Tenants.Correction.Preview.OwnerImpact.Changes" xml:space="preserve">
-    <value>This command may grant or change tenant owner access.</value>
+    <value>Current tenant owner count: {0}. This command may grant or change tenant owner access.</value>
   </data>
   <data name="Tenants.Correction.Preview.OwnerImpact.None" xml:space="preserve">
-    <value>Tenant owner access is not changed by this command.</value>
+    <value>Current tenant owner count: {0}. This command does not change tenant owner access.</value>
   </data>
   <data name="Tenants.Correction.Resume" xml:space="preserve">
     <value>Resume correction status</value>
   </data>
+  <data name="Tenants.Correction.Preview.OwnerImpact.LastOwner" xml:space="preserve">
+    <value>Current tenant owner count: {0}. Demoting the last owner will be rejected.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.Readiness.Submitted" xml:space="preserve">
+    <value>A command attempt was submitted. See the lifecycle and audit states for its outcome.</value>
+  </data>
+  <data name="Tenants.Correction.Preview.ChangedAtConfirm" xml:space="preserve">
+    <value>Current membership or command facts changed. Review this updated preview and confirm again.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.ProjectionVersionUnavailable" xml:space="preserve">
+    <value>A current ordered projection version is unavailable. Refresh the tenant projection before confirming.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.OwnerCountUnavailable" xml:space="preserve">
+    <value>The current tenant owner count is unavailable. Refresh the tenant projection before confirming.</value>
+  </data>
+  <data name="Tenants.Correction.Unavailable.ConfirmReadFailed" xml:space="preserve"><value>Current tenant evidence could not be refreshed. Confirm again to retry the read before any command is sent.</value></data>
+  <data name="Tenants.Correction.Unavailable.ProjectionRegressed" xml:space="preserve"><value>The new tenant projection is older than the previewed evidence. Refresh the tenant projection and review before confirming.</value></data>
+  <data name="Tenants.Correction.Unavailable.EventCountUnavailable" xml:space="preserve"><value>The completed command did not provide a valid event count. Refresh status to verify the outcome before relying on the projection.</value></data>
+  <data name="Tenants.Correction.Unavailable.AttemptExpired" xml:space="preserve"><value>The delivery window ended. Only status lookup for this retained attempt is available; refresh its status before taking further action.</value></data>
+  <data name="Tenants.Correction.Unavailable.AttemptExpiredWithoutCorrelation" xml:space="preserve"><value>The delivery window ended before a status tracking handle was returned. Keep this attempt ID and contact support; do not send another correction from this preview.</value></data>
+  <data name="Tenants.Correction.Failure.Failed" xml:space="preserve"><value>The tenant correction failed. Refresh current evidence before considering another attempt.</value></data>
+  <data name="Tenants.Correction.Failure.Rejected" xml:space="preserve"><value>The tenant correction was rejected. Review current evidence and the rejection before taking further action.</value></data>
+  <data name="Tenants.Correction.Failure.Degraded" xml:space="preserve"><value>The tenant correction could not be fully verified. Refresh the retained command status.</value></data>
+  <data name="Tenants.Correction.Failure.UnableToVerify" xml:space="preserve"><value>The tenant correction outcome cannot be verified. Refresh the retained command status.</value></data>
+  <data name="Tenants.Correction.Status.Pending" xml:space="preserve"><value>The retained command status is still pending. Refresh this same attempt later.</value></data>
+  <data name="Tenants.Correction.Status.Retryable" xml:space="preserve"><value>The retained command status could not be read. Refresh this same attempt again.</value></data>
 </root>

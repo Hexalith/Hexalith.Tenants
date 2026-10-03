@@ -3422,10 +3422,12 @@ Review chunk: `fa489329..78e09184` for `src` and `tests`, plus the full-story di
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Recheck current circuit authority and membership immediately before tenant correction confirmation dispatch (high).
   evidence: R-B6; the unchanged Story 5.6 CorrectionStartPanel.SubmitAsync dispatches its stored snapshot directly. Story 5.5 refreshes start and handoff and performs no dispatch; a confirmation-time authority loss remains outside those start gates.
+  resolution: Resolved by Story 5.6 commit `17538e07`; Confirm now performs a fresh authorized projection read before admission.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Decide and expose redacted last-owner consequence facts in tenant correction previews (medium).
   evidence: R-B7; the baseline preview contains no owner count or explicit last-owner warning. Domain validation prevents removing the last owner, but the existing Story 5.6 consequence preview cannot warn before that rejection.
+  resolution: Resolved by the Story 5.6 review patch; the authorized capture carries a redacted owner count and the preview warns when a last-owner demotion would be rejected.
 
 ## Deferred from: code review of spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md (2026-10-02)
 
@@ -3442,6 +3444,7 @@ Review diff: `bcfc0788..f44e19e7` (story commits `cefefa26` and `f44e19e7`, merg
   - The operator loses the lifecycle, tracking handle and proof link of a dispatched command.
   - At baseline `bcfc0788` the same paths unmounted the submitting `CorrectionStartPanel`. Commit `f44e19e7` retains submitted previews only on the new role and start paths.
   - Story 5.6 owns preview lifecycle retention. The Story 5.5 review settled the "submitted" signal as `CorrectionStartPanel.HasSubmitted` (set in `SubmitAsync`, never cleared). It is scoped to one panel instance, so any unmount (including these paths and Cancel) loses it; retention needs a page-owned signal.
+  resolution: Resolved by Story 5.6 commit `17538e07`; the circuit-scoped correction attempt tracker retains the submitted snapshot and MessageId across remounts.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: CI still runs no Tenants test tier (already tracked above; reconfirmed).
   evidence: Run 36970095241 on `09c90f08` (`main`, after the PR #51 merge) fails `ci / build-and-test` at "Validate package consumer references". Aspire and performance tests are skipped. All Story 5.5 test evidence is local only. See the 2026-09-29 entry "Restore CI test execution".
@@ -3453,15 +3456,19 @@ Review range: story baseline `4f426e59` to the fix pass later committed as `31c2
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Retain a submitted correction preview across audit refresh, row loss, and viewport changes (already tracked above).
   evidence: BH3/EH1 repeat the "submitted, tracked tenant-correction preview is still unmounted" entry in the code-review section above; track it there.
+  resolution: Resolved by Story 5.6 commit `17538e07`; see the submitted-preview retention entry above.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Require attempt-specific provenance before linking a corrective audit event as proof.
   evidence: BH5; the existing Story 5.6 proof search matches type, tenant, target, and time, so a separate command can produce a false proof match.
+  resolution: Resolved by Story 5.6 commit `17538e07`; the authorized audit DTO has no attempt association, so the panel shows missing support and creates no paired links.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Give the corrective audit proof link a matching destination in the audit grid.
   evidence: BH6; the existing Story 5.6 link points to an audit-reference fragment while the grid renders no matching id.
+  resolution: Resolved by Story 5.6 commit `17538e07`; the unproven fragment link was removed.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Show the original evidence timestamp in the Story 5.6 final preview.
   evidence: BH7; the preview carries originalTimestamp in its intent but filters it from visible preview fields, although the start surface shows it.
+  resolution: Resolved by Story 5.6 commit `17538e07`; the preview shows the verified original evidence time.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Verify the composed audit grid, receipt, start, and preview at narrow widths in an authenticated browser run.
   evidence: BH12; the isolated browser fixture cannot prove the composed layout. This is a medium-impact possibility without demonstrated overflow; a live authenticated browser run across measured widths would settle it when the existing query-gateway authentication limitation is resolved.
@@ -3473,15 +3480,18 @@ Review diff: `9bad98d9..31c2d2e1` (re-review of the review-fix commit).
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Cancelling during an in-flight correction submission loses the panel's `HasSubmitted` flag, so a new attempt can be sent (pre-existing).
   evidence: In `CorrectionStartPanel.razor:162`, the Cancel button is never disabled while `_isSubmitting`. `CloseCorrectionAsync` then unmounts the preview. Because `HasSubmitted` is scoped to the panel (resolved option (a)), `TenantAuditPage.HasSubmittedCorrection` becomes false, and Start → handoff → Confirm can dispatch a second attempt with a new MessageId while the first POST is still in flight. This belongs with the Story 5.6 preview-retention item above.
+  resolution: Resolved by Story 5.6 commit `17538e07`; admission retains the MessageId and lease before gateway I/O, and Cancel invalidates only an unadmitted Confirm.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: Ambiguous, FailedWithKey and RejectedWithKey correction submissions show no localized reason and offer no retry with the same message ID (pre-existing).
   evidence: `TenantCorrectionPreviewSnapshot.ApplySubmissionFailure` (`:194`) is unchanged since the story baseline. It copies neither `SafeMessageKey` nor `MessageId`. `TenantCommandSubmissionResult.Ambiguous` returns `RequestSent` with a key and a reusable MessageId, so the preview stays in "request sent" with no message. Refresh needs tracking, and Confirm is blocked by `CanSubmit`. The gateway contract says a retry with the same ID is safe, but this panel never offers one.
+  resolution: Resolved by Story 5.6 commit `17538e07`; the retained attempt preserves the MessageId and safe key and Refresh retries only the same ID.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
   summary: `TenantAuditPageTests.Loading_receipt_renders_while_focus_probe_and_authoritative_read_are_pending` fails when run alone and is flaky in the full suite (pre-existing, Story 5.3 `38da46a6`).
   evidence: Running `Hexalith.Tenants.UI.Tests -method '*Loading_receipt_renders_while_focus_probe_and_authoritative_read_are_pending'` failed 3 of 3 times at `31c2d2e1` with "gateway.Requests.Count should be 2 but was 1". The verification-gap layer saw 1 failure in 4 full-suite runs. The `WaitForAssertion` at `:990` waits on a stub counter that is only re-checked on renders; use the repository's `SpinWait.SpinUntil` idiom.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Verify whether viewport observation can change concurrently between the final safety check and correction attempt admission.
   evidence: A Fluxor effect writes the circuit-scoped observation while the Razor event reads it; dispatcher scheduling evidence or a controlled concurrency test is needed to establish whether the synchronous admission section can interleave. If reachable, a command could dispatch after the viewport becomes unsafe.
+  resolution: Resolved by the Story 5.6 review patch; the post-read admission section runs on the renderer dispatcher and rechecks viewport safety inside its critical section.
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-03)
 
@@ -3496,3 +3506,9 @@ Review diff: `11e65e37..17538e07` (story commit `17538e07`).
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: The Story 5.6 preview browser validation never runs in CI (pre-existing).
   evidence: Story Guards aborts with exit 134 ("Aborted (core dumped)") at the first Chromium launch in `validate-tenants-focus-browser.sh` (`:266`), before the preview fixture steps (`:330-360`). The rendered EN/FR preview, focus, forced-colors and egress checks therefore run locally only.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Execute the correction command-identity guard test in the main CI test tier.
+  evidence: The new unverified-Completed status test passes locally, but the checked main CI run stops at package-consumer validation before Microsoft.Testing.Platform starts; restore that existing CI gate so the test can prevent regressions.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Execute the correction preview browser assertions in Story Guards CI.
+  evidence: The browser fixture passes locally, but the checked Story Guards run aborts Chromium before the preview fixture starts; repair that existing browser environment failure so the narrow-width and focus assertions run in CI.

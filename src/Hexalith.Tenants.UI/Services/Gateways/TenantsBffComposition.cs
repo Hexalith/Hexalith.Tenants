@@ -568,7 +568,8 @@ internal sealed class TenantsBffComposition(
 
         return targetUserIds.Select(target => new TenantCorrectionProjection(tenantId, target, rawDetail.Status,
             members.FirstOrDefault(member => string.Equals(member.UserId, target, StringComparison.Ordinal))?.Role,
-            members.Count == 0, true, global, true, freshness, lifecycle, provenance)).ToArray();
+            members.Count == 0, true, global, true, freshness, lifecycle, provenance)
+            { OwnerCount = members.Count(member => member.Role is TenantRole.TenantOwner) }).ToArray();
     }
 
     public async ValueTask<TenantConfigurationComposition> ComposeTenantDetailAsync(

@@ -755,10 +755,13 @@ internal sealed class TenantCommandGateway(
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to add members to this tenant.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
-                => TenantCommandSubmissionResult.Failed("The add member request was not accepted. Check the form fields and try again."),
+                => TenantCommandSubmissionResult.Failed("The add member request was not accepted. Check the form fields and try again.")
+                    with { IsAmbiguousFailure = exception.Retryable is true },
             (int)HttpStatusCode.ServiceUnavailable
-                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
-            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable.") with { IsAmbiguousFailure = true },
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified.")
+                with { IsAmbiguousFailure = exception.Retryable is true || exception.StatusCode < 400
+                    || IsRetryableStatusCode((HttpStatusCode)exception.StatusCode) },
         };
     }
 
@@ -772,10 +775,13 @@ internal sealed class TenantCommandGateway(
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to change member roles in this tenant.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
-                => TenantCommandSubmissionResult.Failed("The change role request was not accepted. Check the form fields and try again."),
+                => TenantCommandSubmissionResult.Failed("The change role request was not accepted. Check the form fields and try again.")
+                    with { IsAmbiguousFailure = exception.Retryable is true },
             (int)HttpStatusCode.ServiceUnavailable
-                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
-            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable.") with { IsAmbiguousFailure = true },
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified.")
+                with { IsAmbiguousFailure = exception.Retryable is true || exception.StatusCode < 400
+                    || IsRetryableStatusCode((HttpStatusCode)exception.StatusCode) },
         };
     }
 

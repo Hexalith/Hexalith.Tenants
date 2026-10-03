@@ -33,6 +33,9 @@ public sealed record TenantCorrectionProjection(
     /// <summary>Gets the server-side ordered projection marker; it is never rendered or copied.</summary>
     public string? ProjectionVersion { get; init; }
 
+    /// <summary>Gets the count of owners in the complete authorized membership read.</summary>
+    public int? OwnerCount { get; init; }
+
     /// <summary>Gets whether the direct read carries current projection evidence.</summary>
     public bool IsCurrent => HasVerifiedMembership
         && Freshness is ReadModelFreshnessState.Current

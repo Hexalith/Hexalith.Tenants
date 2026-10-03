@@ -454,20 +454,12 @@ public sealed class TenantCorrectionStartIntentTests
     [InlineData(null)]
     [InlineData(TenantRole.Unknown)]
     [InlineData((TenantRole)999)]
-    public void RoleChangeReDerivesAddForVerifiedAbsentTargetAndBlocksUnknownRoles(TenantRole? current)
+    public void RoleChangeRequiresAKnownCurrentTargetRole(TenantRole? current)
     {
         TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(Row("UserRoleChanged", "userId: target-user"),
             TenantRole.TenantReader, current));
-        if (current is null)
-        {
-            intent.IsAvailable.ShouldBeTrue();
-            intent.IntendedCommandType.ShouldBe(TenantCorrectionCommandType.AddUserToTenant);
-        }
-        else
-        {
-            intent.IsAvailable.ShouldBeFalse();
-            intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
-        }
+        intent.IsAvailable.ShouldBeFalse();
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
     }
 
     [Fact]

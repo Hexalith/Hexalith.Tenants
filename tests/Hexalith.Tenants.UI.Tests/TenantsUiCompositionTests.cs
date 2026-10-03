@@ -192,6 +192,26 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void Correction_attempt_tracker_is_scoped_to_a_circuit()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+
+        ServiceDescriptor descriptor = services.Single(static candidate =>
+            candidate.ServiceType == typeof(TenantCorrectionAttemptTracker));
+        descriptor.Lifetime.ShouldBe(ServiceLifetime.Scoped);
+
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope firstScope = provider.CreateScope();
+        using IServiceScope secondScope = provider.CreateScope();
+        TenantCorrectionAttemptTracker first = firstScope.ServiceProvider.GetRequiredService<TenantCorrectionAttemptTracker>();
+        firstScope.ServiceProvider.GetRequiredService<TenantCorrectionAttemptTracker>().ShouldBeSameAs(first);
+        secondScope.ServiceProvider.GetRequiredService<TenantCorrectionAttemptTracker>().ShouldNotBeSameAs(first);
+    }
+
+    [Fact]
     public void Create_audit_return_state_is_scoped_to_a_circuit()
     {
         // Component tests construct or register this state themselves, so only this pin catches a missing

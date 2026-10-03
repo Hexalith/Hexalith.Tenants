@@ -40,10 +40,19 @@
             @if (!string.IsNullOrWhiteSpace(UnavailableReason))
             {
                 <p class="correction-start-panel__reason"
+                   @ref="_reasonElement"
                    id="tenants-correction-unavailable"
                    data-testid="tenants-correction-unavailable-reason"
+                   tabindex="-1"
                    role="alert">
-                    @UnavailableReason
+                    @if (ShowCompetingAttemptNotice || IsAggregateBusy)
+                    {
+                        <span data-testid="tenants-correction-aggregate-busy">@UnavailableReason</span>
+                    }
+                    else
+                    {
+                        @UnavailableReason
+                    }
                 </p>
             }
 
@@ -82,7 +91,7 @@
                 </div>
                 <div>
                     <dt>@Localizer["Tenants.Correction.Preview.Readiness"]</dt>
-                    <dd data-testid="tenants-correction-readiness">@ReadinessLabel</dd>
+                    <dd id="tenants-correction-readiness" data-testid="tenants-correction-readiness">@ReadinessLabel</dd>
                 </div>
                 <div>
                     <dt>@Localizer["Tenants.Correction.Preview.IntendedRole"]</dt>
@@ -93,7 +102,7 @@
                                       Value="@_roleValue"
                                       ValueChanged="OnRoleChanged"
                                       data-testid="tenants-correction-role"
-                                      aria-describedby="tenants-correction-unavailable"
+                                      aria-describedby="tenants-correction-readiness"
                                       Disabled="@RoleSelectionDisabled">
                             <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</FluentOption>
                             @foreach (TenantRole role in AssignableRoles)
@@ -105,12 +114,13 @@
                 </div>
             </dl>
 
-            <section class="correction-start-panel__preview" aria-labelledby="tenants-correction-preview-data-heading">
-                <h4 id="tenants-correction-preview-data-heading">@Localizer["Tenants.Correction.Field.PreviewData"]</h4>
+            <FluentAccordion ExpandMode="AccordionExpandMode.Multi" Block="true">
+              <FluentAccordionItem Header="@Localizer["Tenants.Correction.Field.PreviewData"].Value" Expanded="true">
+            <section class="correction-start-panel__preview" aria-label="@Localizer["Tenants.Correction.Field.PreviewData"]">
                 <dl data-testid="tenants-correction-preview-data">
                     <div>
                         <dt>@Localizer["Tenants.Correction.Preview.Consequences"]</dt>
-                        <dd>@string.Join(" ", _snapshot.KnownConsequences.Select(ConsequenceLabel))</dd>
+                        <dd data-testid="tenants-correction-consequences">@string.Join(" ", _snapshot.KnownConsequences.Select(ConsequenceLabel))</dd>
                     </div>
                     <div>
                         <dt>@Localizer["Tenants.Correction.Preview.OwnerImpact"]</dt>
@@ -118,15 +128,15 @@
                     </div>
                     <div>
                         <dt>@Localizer["Tenants.Correction.Preview.Unknowns"]</dt>
-                        <dd>@string.Join(" ", _snapshot.KnownUnknowns.Select(UnknownLabel))</dd>
+                        <dd data-testid="tenants-correction-unknowns">@string.Join(" ", _snapshot.KnownUnknowns.Select(UnknownLabel))</dd>
                     </div>
                     <div>
                         <dt>@Localizer["Tenants.Correction.Preview.AuditExpectation"]</dt>
-                        <dd>@Localizer["Tenants.Correction.Preview.AuditExpectation.Text"]</dd>
+                        <dd data-testid="tenants-correction-audit-expectation">@Localizer["Tenants.Correction.Preview.AuditExpectation.Text"]</dd>
                     </div>
                     <div>
                         <dt>@Localizer["Tenants.Correction.Preview.RecoveryPath"]</dt>
-                        <dd>@Localizer["Tenants.Correction.Preview.RecoveryPath.Text"]</dd>
+                        <dd data-testid="tenants-correction-recovery-path">@Localizer["Tenants.Correction.Preview.RecoveryPath.Text"]</dd>
                     </div>
                     @foreach (KeyValuePair<string, string> input in _snapshot.Intent.RequiredPreviewInputs.Where(static input => input.Key is not "originalTimestamp"))
                     {
@@ -137,13 +147,13 @@
                     }
                 </dl>
             </section>
-
+              </FluentAccordionItem>
+              <FluentAccordionItem Header="@Localizer["Tenants.Correction.Lifecycle.Title"].Value" Expanded="true">
             <section class="correction-start-panel__lifecycle"
                      @ref="_lifecycleElement"
                      tabindex="-1"
                      data-testid="tenants-correction-lifecycle"
-                     aria-labelledby="tenants-correction-state-label">
-                <h4 id="tenants-correction-state-label">@Localizer["Tenants.Correction.Lifecycle.Title"]</h4>
+                     aria-label="@Localizer["Tenants.Correction.Lifecycle.Title"]">
                 <p class="correction-start-panel__state correction-start-panel__state--@_snapshot.LifecycleState.ToString().ToLowerInvariant()"
                    data-testid="tenants-correction-state">
                     <span aria-hidden="true">@StateSymbol</span>
@@ -160,6 +170,8 @@
                     </p>
                 }
             </section>
+              </FluentAccordionItem>
+            </FluentAccordion>
 
             <div class="correction-start-panel__actions">
                 <FluentButton Appearance="ButtonAppearance.Primary"
@@ -172,7 +184,7 @@
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               data-testid="tenants-correction-refresh"
                               Disabled="@(!CanRefresh)"
-                              OnClick="RefreshStatusAsync">
+                              OnClick="@(() => RefreshStatusAsync())">
                     @Localizer["Tenants.Correction.Confirm.Refresh"]
                 </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Outline"
@@ -196,10 +208,13 @@
     private TenantCorrectionPreviewSnapshot? _snapshot;
     private string _roleValue = string.Empty;
     private bool _isSubmitting;
+    private int _statusReadInFlight;
     private bool _hasSubmitted;
     private string? _intentReference;
     private ElementReference _lifecycleElement;
+    private ElementReference _reasonElement;
     private bool _focusLifecyclePending;
+    private bool _focusReasonPending;
     private TenantCorrectionAttemptTracker _attemptTracker = new();
     private TenantAggregateCommandAdmissionGate _admissionGate = new();
     private TenantHighImpactViewportObservation? _viewportObservation;
@@ -224,6 +239,10 @@
     [Parameter]
     public Func<Task<TenantCorrectionProjection>>? CurrentCaptureProvider { get; set; }
 
+    /// <summary>Shows why a different row redirects to the retained attempt.</summary>
+    [Parameter]
+    public bool ShowCompetingAttemptNotice { get; set; }
+
     internal TenantCorrectionPreviewSnapshot? Snapshot => _snapshot;
 
     internal bool HasSubmitted => _hasSubmitted;
@@ -246,13 +265,20 @@
     private string? UnavailableReason
         => _snapshot is null
             ? null
-            : SafeMessageText ?? (IsViewportBlocked
+            : ShowCompetingAttemptNotice
+                ? Localizer["Tenants.Correction.Unavailable.AggregateBusy"].Value
+                : SafeMessageText ?? (IsViewportBlocked
                 ? Localizer["Tenants.Correction.Unavailable.NarrowViewportUnavailable"].Value
-                : IsAggregateBusy
+                    : IsAggregateBusy
                     ? Localizer["Tenants.Correction.Unavailable.AggregateBusy"].Value
                     : IsCommandSupportBlocked
                         ? Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"].Value
-                        : string.Join(
+                        : !TenantLifecycleProjectionVersion.IsOrdered(_snapshot.BaselineProjectionVersion)
+                            && _snapshot.Intent.IsAvailable
+                            ? Localizer["Tenants.Correction.Unavailable.ProjectionVersionUnavailable"].Value
+                            : _snapshot.Intent.IsAvailable && _snapshot.Intent.CurrentProjection?.OwnerCount is not >= 0
+                                ? Localizer["Tenants.Correction.Unavailable.OwnerCountUnavailable"].Value
+                            : string.Join(
                 " ",
                 DisplayedUnavailableReasons(_snapshot.Intent)
                     .Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value)));
@@ -290,7 +316,8 @@
             or TenantCommandLifecycleState.Confirmed;
 
     private bool CanRefresh
-        => _snapshot?.MessageId is not null
+        => !_isSubmitting && Volatile.Read(ref _statusReadInFlight) == 0 && _snapshot?.MessageId is not null
+        && (_snapshot.CorrelationId is not null || !_attemptTracker.IsExpired(_snapshot.TenantId))
         && (_snapshot.LifecycleState is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.RequestSent
             or TenantCommandLifecycleState.ProjectionPending
@@ -351,27 +378,48 @@
             : FieldValue(null);
 
     private string ReadinessLabel
-        => _snapshot?.CanSubmit is true && !IsAggregateBusy && !IsCommandSupportBlocked && !IsViewportBlocked
+        => _hasSubmitted
+            ? Localizer["Tenants.Correction.Preview.Readiness.Submitted"]
+            : _snapshot?.CanSubmit is true && !IsAggregateBusy && !IsCommandSupportBlocked && !IsViewportBlocked
             ? Localizer["Tenants.Correction.Preview.Readiness.Ready"]
             : Localizer["Tenants.Correction.Preview.Readiness.Blocked"];
 
     private string CurrentRoleLabel
-        => CurrentProjectionForDisplay is { IsCurrent: true, CurrentRole: null }
+        => HasCurrentFactCapture && CurrentProjectionForDisplay!.CurrentRole is null
             ? Localizer["Tenants.Correction.Start.TargetAbsent"]
-            : _snapshot is null ? FieldValue(null)
-                : RoleLabel(CurrentProjectionForDisplay?.CurrentRole ?? TenantRole.Unknown);
+            : HasCurrentFactCapture ? RoleLabel(CurrentProjectionForDisplay!.CurrentRole ?? TenantRole.Unknown)
+                : FieldValue(null);
+
+    private bool HasCurrentFactCapture
+        => CurrentProjectionForDisplay is { IsCurrent: true, IsAuthorized: true } capture
+            && string.Equals(capture.TenantId, _snapshot?.TenantId, StringComparison.Ordinal)
+            && string.Equals(capture.TargetUserId, _snapshot?.TargetUserId, StringComparison.Ordinal);
 
     private string OwnerImpactLabel
-        => _snapshot?.Intent.CurrentProjection?.IsMembershipEmpty is true
-            ? Localizer["Tenants.Correction.Preview.OwnerImpact.Bootstrap"]
-            : _snapshot?.CurrentRole is TenantRole.TenantOwner
-                || _snapshot?.IntendedRole is TenantRole.TenantOwner
-                ? Localizer["Tenants.Correction.Preview.OwnerImpact.Changes"]
-                : Localizer["Tenants.Correction.Preview.OwnerImpact.None"];
+    {
+        get
+        {
+            if (!HasCurrentFactCapture || _snapshot?.Intent.IntendedCommandType is null
+                || _snapshot.IntendedRole is TenantRole.Unknown
+                || CurrentProjectionForDisplay?.OwnerCount is not { } count)
+            {
+                return FieldValue(null);
+            }
+
+            string category = CurrentProjectionForDisplay.IsMembershipEmpty
+                && _snapshot.IntendedRole is TenantRole.TenantOwner ? "Bootstrap"
+                : CurrentProjectionForDisplay.CurrentRole is TenantRole.TenantOwner
+                    && _snapshot.IntendedRole is not TenantRole.TenantOwner && count == 1 ? "LastOwner"
+                : CurrentProjectionForDisplay.CurrentRole is TenantRole.TenantOwner
+                    || _snapshot.IntendedRole is TenantRole.TenantOwner ? "Changes" : "None";
+            return Localizer[$"Tenants.Correction.Preview.OwnerImpact.{category}", count];
+        }
+    }
 
     protected override void OnInitialized()
     {
         _attemptTracker = Services.GetService<TenantCorrectionAttemptTracker>() ?? _attemptTracker;
+        _attemptTracker.StateChanged += OnAttemptChanged;
         _admissionGate = Services.GetService<TenantAggregateCommandAdmissionGate>() ?? _admissionGate;
         _admissionGate.StateChanged += OnAdmissionChanged;
         _viewportObservation = Services.GetService<TenantHighImpactViewportObservation>();
@@ -380,6 +428,20 @@
 
     private void OnAdmissionChanged(object? sender, EventArgs args)
         => _ = InvokeAsync(StateHasChanged);
+
+    private void OnAttemptChanged(object? sender, EventArgs args)
+    {
+        if (_disposed) return;
+        _ = InvokeAsync(() => {
+            if (_disposed) return;
+            if (_snapshot is not null && _attemptTracker.Find(_snapshot.TenantId) is { } attempt
+                && string.Equals(attempt.MessageId, _snapshot.MessageId, StringComparison.Ordinal))
+            {
+                SetSnapshot(attempt.Snapshot);
+            }
+            StateHasChanged();
+        });
+    }
 
     /// <inheritdoc />
     public void Dispose()
@@ -390,6 +452,7 @@
             Interlocked.Increment(ref _confirmGeneration);
         }
         _admissionGate.StateChanged -= OnAdmissionChanged;
+        _attemptTracker.StateChanged -= OnAttemptChanged;
         if (_viewportObservation is not null) _viewportObservation.StateChanged -= OnAdmissionChanged;
     }
 
@@ -403,9 +466,7 @@
         }
 
         TenantCorrectionAttempt? retained = _attemptTracker.Find(Intent.TenantScope);
-        if (retained is not null && string.Equals(retained.Snapshot.OriginalAuditReference,
-            Intent.OriginalAuditReference, StringComparison.Ordinal)
-            && retained.Snapshot.IntendedRole == Intent.IntendedRole)
+        if (retained?.Matches(Intent) is true)
         {
             _snapshot = retained.Snapshot;
             _intentReference = Intent.OriginalAuditReference;
@@ -416,8 +477,8 @@
 
         // Rebuild the preview only when a different audit-evidence intent is supplied (or on first
         // set). An unchanged intent must never reset an existing snapshot on an unrelated parent
-        // re-render (for example an audit pager navigation or projection refresh that keeps this panel
-        // open): doing so would discard a terminal Rejected/Failed/Degraded/UnableToVerify/AlreadyApplied
+        // re-render (for example a projection refresh while this panel remains open): doing so
+        // would discard a terminal Rejected/Failed/Degraded/UnableToVerify/AlreadyApplied
         // correction and silently re-arm submission (AC4). Role re-selection re-evaluates the preview
         // directly through OnRoleChanged, so it does not depend on this method.
         bool intentChanged = !string.Equals(_intentReference, Intent.OriginalAuditReference, StringComparison.Ordinal);
@@ -446,6 +507,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_focusReasonPending)
+        {
+            _focusReasonPending = false;
+            try { await _reasonElement.FocusAsync().ConfigureAwait(false); }
+            catch (JSDisconnectedException) { }
+        }
         if (_focusLifecyclePending)
         {
             _focusLifecyclePending = false;
@@ -543,7 +610,8 @@
         {
             // Preserve the same redacted read used for start/handoff; cached detail cannot replace it.
             reasons.RemoveAll(reason => reason is TenantCorrectionUnavailableReason.AlreadyApplied
-                or TenantCorrectionUnavailableReason.EmptyMembershipRequiresOwner);
+                or TenantCorrectionUnavailableReason.EmptyMembershipRequiresOwner
+                or TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
             bool matchingProjection = string.Equals(projectionCapture.TenantId, Intent.TenantScope, StringComparison.Ordinal)
                 && string.Equals(projectionCapture.TargetUserId, Intent.TargetUserId, StringComparison.Ordinal);
             if (!projectionCapture.IsCurrent || !projectionCapture.IsAuthorized || !matchingProjection)
@@ -555,7 +623,7 @@
                 reasons.Add(TenantCorrectionUnavailableReason.AuthorizationIndeterminate);
             }
             if (!matchingProjection) reasons.Add(TenantCorrectionUnavailableReason.ScopeConflict);
-            if (!projectionCapture.IsCurrent || !matchingProjection)
+            if (!projectionCapture.IsCurrent || !projectionCapture.IsAuthorized || !matchingProjection)
             {
                 inputs.Remove("currentRole");
                 inputs.Remove("emptyMembership");
@@ -582,6 +650,10 @@
             {
                 reasons.Add(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
             }
+            if (Intent.OutcomeType is "UserRoleChanged" && projectionCapture.CurrentRole is null)
+            {
+                reasons.Add(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
+            }
             if (projectionCapture.CurrentRole is { } currentRole)
             {
                 inputs["currentRole"] = currentRole.ToString();
@@ -598,7 +670,8 @@
             return Intent with
             {
                 IntendedRole = role,
-                IntendedCommandType = projectionCapture.CurrentRole == role ? null
+                IntendedCommandType = Intent.OutcomeType is "UserRoleChanged" && projectionCapture.CurrentRole is null ? null
+                    : projectionCapture.CurrentRole == role ? null
                     : projectionCapture.CurrentRole is null ? TenantCorrectionCommandType.AddUserToTenant
                         : TenantCorrectionCommandType.ChangeUserRole,
                 CurrentProjection = projectionCapture,
@@ -652,73 +725,82 @@
             try { capture = await RefreshCaptureAsync().ConfigureAwait(false); }
             catch (Exception)
             {
-                if (!Volatile.Read(ref _disposed) && confirmGeneration == Volatile.Read(ref _confirmGeneration)
-                    && _snapshot is not null)
-                {
-                    SetSnapshot(_snapshot with {
-                        LifecycleState = TenantCommandLifecycleState.UnableToVerify,
-                        SafeMessage = null,
-                        SafeMessageKey = "Tenants.Correction.Unavailable.CurrentProjectionUnavailable",
-                        AuditState = TenantCommandAuditState.MissingSupport,
-                        FocusTarget = TenantCommandFocusTarget.Refresh,
-                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                    }, focusTerminalState: true);
-                }
+                await InvokeAsync(() => SetCaptureUnavailable(confirmGeneration)).ConfigureAwait(false);
                 return;
             }
-            if (Volatile.Read(ref _disposed)
-                || confirmGeneration != Volatile.Read(ref _confirmGeneration)) return;
-            if (capture is null)
-            {
-                SetSnapshot(_snapshot with
-                {
-                    LifecycleState = TenantCommandLifecycleState.UnableToVerify,
-                    SafeMessageKey = "Tenants.Correction.Unavailable.CurrentProjectionUnavailable",
-                    AuditState = TenantCommandAuditState.MissingSupport,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                }, focusTerminalState: true);
-                return;
-            }
-
-            TenantCorrectionCommandType? previewedCommand = _snapshot.Intent.IntendedCommandType;
-            SetSnapshotFromIntent(capture);
-            if (_snapshot?.CanSubmit is not true)
-            {
-                if (_snapshot is not null) SetSnapshot(_snapshot, focusTerminalState: true);
-                return;
-            }
-
-            // A different supported command needs its own deliberate review and Confirm.
-            if (_snapshot.Intent.IntendedCommandType != previewedCommand) return;
-
-            // The browser can narrow while the direct read is awaited. The preview remains
-            // actionable only when fresh viewport evidence is safe again.
-            if (IsViewportBlocked) return;
-
-            TenantCorrectionAttempt? attempt;
-            lock (_confirmSync)
-            {
-                // Close and admission share this short critical section. A close that wins
-                // before admission cannot be followed by a new logical command.
-                if (_disposed || confirmGeneration != _confirmGeneration) return;
-                if (!_attemptTracker.TryBegin(_snapshot, _admissionGate, out attempt)
-                    || attempt is null)
-                {
-                    // Admission may change during the awaited read. Keep this as a preview:
-                    // the live gate state disables Confirm until the lease releases.
-                    return;
-                }
-
-                _hasSubmitted = true;
-                SetSnapshot(attempt.Snapshot);
-            }
-
-            await DispatchAttemptAsync(attempt).ConfigureAwait(false);
+            await InvokeAsync(() => AdmitAndDispatchAsync(capture, confirmGeneration)).ConfigureAwait(false);
         }
         finally
         {
-            _isSubmitting = false;
+            await InvokeAsync(() => { _isSubmitting = false; StateHasChanged(); }).ConfigureAwait(false);
         }
+    }
+
+    private void SetCaptureUnavailable(long confirmGeneration)
+    {
+        if (_disposed || confirmGeneration != _confirmGeneration || _snapshot is null) return;
+        SetSnapshot(_snapshot with {
+            LifecycleState = TenantCommandLifecycleState.Previewed,
+            SafeMessage = null,
+            SafeMessageKey = "Tenants.Correction.Unavailable.ConfirmReadFailed",
+            FocusTarget = TenantCommandFocusTarget.Submit,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        });
+        _focusReasonPending = true;
+    }
+
+    private async Task AdmitAndDispatchAsync(TenantCorrectionProjection? capture, long confirmGeneration)
+    {
+        if (_disposed || confirmGeneration != _confirmGeneration || _snapshot is null) return;
+        if (capture is null) { SetCaptureUnavailable(confirmGeneration); return; }
+
+        TenantCorrectionPreviewSnapshot preview = _snapshot;
+        if (TenantLifecycleProjectionVersion.CompareSequences(
+            capture.ProjectionVersion, preview.BaselineProjectionVersion)
+            is TenantLifecycleSequenceRelation.IncomingOlder)
+        {
+            SetSnapshot(preview with {
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.Correction.Unavailable.ProjectionRegressed",
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            });
+            _focusReasonPending = true;
+            return;
+        }
+        SetSnapshotFromIntent(capture);
+        if (_snapshot?.CanSubmit is not true)
+        {
+            if (_snapshot is not null) SetSnapshot(_snapshot, focusTerminalState: true);
+            return;
+        }
+
+        TenantCorrectionProjection? prior = preview.Intent.CurrentProjection;
+        if (_snapshot.Intent.IntendedCommandType != preview.Intent.IntendedCommandType
+            || prior?.CurrentRole != capture.CurrentRole
+            || prior?.IsMembershipEmpty != capture.IsMembershipEmpty
+            || prior?.OwnerCount != capture.OwnerCount)
+        {
+            SetSnapshot(_snapshot with {
+                SafeMessageKey = "Tenants.Correction.Preview.ChangedAtConfirm",
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                FocusTarget = TenantCommandFocusTarget.Role,
+            });
+            _focusReasonPending = true;
+            return;
+        }
+
+        // The renderer dispatches this section serially with parameter and viewport updates.
+        if (IsViewportBlocked) return;
+        TenantCorrectionAttempt? attempt;
+        lock (_confirmSync)
+        {
+            if (_disposed || confirmGeneration != _confirmGeneration || IsViewportBlocked) return;
+            if (!_attemptTracker.TryBegin(_snapshot, _admissionGate, out attempt) || attempt is null) return;
+            _hasSubmitted = true;
+            SetSnapshot(attempt.Snapshot);
+        }
+
+        await DispatchAttemptAsync(attempt).ConfigureAwait(false);
     }
 
     private async Task DispatchAttemptAsync(TenantCorrectionAttempt attempt)
@@ -764,8 +846,11 @@
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessageKey = "Tenants.Correction.State.UnableToVerify",
                 AuditState = TenantCommandAuditState.MissingSupport,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             }
             : result.State is TenantCommandLifecycleState.Failed
+                && result.IsAmbiguousFailure
                 && string.Equals(result.MessageId, attempt.MessageId, StringComparison.Ordinal)
                 ? request with {
                     LifecycleState = TenantCommandLifecycleState.UnableToVerify,
@@ -779,17 +864,22 @@
                 && string.Equals(result.MessageId, attempt.MessageId, StringComparison.Ordinal)
                 && !string.IsNullOrWhiteSpace(result.CorrelationId)
                 ? request.Accepted(result)
-                : request.ApplySubmissionFailure(result) with { MessageId = attempt.MessageId };
+                : request.ApplySubmissionFailure(result) with {
+                    MessageId = attempt.MessageId,
+                    SafeMessage = null,
+                    SafeMessageKey = result.SafeMessageKey ?? FailureMessageKey(result.State),
+                };
         _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId);
         SetRetainedSnapshot(attempt, next, focusTerminalState: true);
         if (next.LifecycleState is TenantCommandLifecycleState.Accepted)
         {
-            await RefreshStatusAsync().ConfigureAwait(false);
+            await RefreshStatusAsync(afterDispatch: true).ConfigureAwait(false);
         }
     }
 
-    private async Task RefreshStatusAsync()
+    private async Task RefreshStatusAsync(bool afterDispatch = false)
     {
+        if (!afterDispatch && !CanRefresh) return;
         if (_snapshot?.MessageId is not { } messageId
             || _attemptTracker.Find(_snapshot.TenantId) is not { } attempt
             || !string.Equals(attempt.MessageId, messageId, StringComparison.Ordinal))
@@ -817,6 +907,9 @@
             return;
         }
 
+        if (Interlocked.CompareExchange(ref _statusReadInFlight, 1, 0) != 0) return;
+        try
+        {
         TenantCommandStatusResult status;
         try
         {
@@ -831,7 +924,8 @@
         }
         if (status.IsPending || status.IsRetryableFailure)
         {
-            SetRetainedSnapshot(attempt, _snapshot with { SafeMessage = status.SafeMessage,
+            SetRetainedSnapshot(attempt, _snapshot with { SafeMessage = null,
+                SafeMessageKey = status.IsPending ? "Tenants.Correction.Status.Pending" : "Tenants.Correction.Status.Retryable",
                 FocusTarget = TenantCommandFocusTarget.Refresh });
             return;
         }
@@ -845,6 +939,10 @@
         }
 
         TenantCorrectionPreviewSnapshot next = _snapshot.ApplyStatus(status);
+        if (next.SafeMessageKey is null && FailureMessageKey(next.LifecycleState) is { } failureKey)
+        {
+            next = next with { SafeMessage = null, SafeMessageKey = status.SafeMessageKey ?? failureKey };
+        }
         if (next.LifecycleState is TenantCommandLifecycleState.ProjectionPending
             && status.EventCount is > 0)
         {
@@ -867,7 +965,18 @@
         }
         next = next.WithCorrectiveProof(null);
         SetRetainedSnapshot(attempt, next, focusTerminalState: true);
+        }
+        finally { Volatile.Write(ref _statusReadInFlight, 0); }
     }
+
+    private static string? FailureMessageKey(TenantCommandLifecycleState state)
+        => state switch {
+            TenantCommandLifecycleState.Rejected => "Tenants.Correction.Failure.Rejected",
+            TenantCommandLifecycleState.Failed => "Tenants.Correction.Failure.Failed",
+            TenantCommandLifecycleState.Degraded => "Tenants.Correction.Failure.Degraded",
+            TenantCommandLifecycleState.UnableToVerify => "Tenants.Correction.Failure.UnableToVerify",
+            _ => null,
+        };
 
     private void SetRetainedSnapshot(TenantCorrectionAttempt attempt,
         TenantCorrectionPreviewSnapshot candidate, bool focusTerminalState = false)
@@ -915,7 +1024,7 @@
             ? Localizer["Tenants.Correction.Start.Projection"]
             : key is "emptyMembership" ? Localizer["Tenants.Correction.Start.EmptyRecovery"]
             : key is "intendedRole" or "currentRole"
-            ? Localizer[$"Tenants.Correction.Role.{value}"]
+            ? Enum.TryParse(value, out TenantRole role) ? RoleLabel(role) : FieldValue(null)
             : FieldValue(value);
 
     private string ConsequenceLabel(string value)
