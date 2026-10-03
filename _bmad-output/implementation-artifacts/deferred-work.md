@@ -3482,3 +3482,17 @@ Review diff: `9bad98d9..31c2d2e1` (re-review of the review-fix commit).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Verify whether viewport observation can change concurrently between the final safety check and correction attempt admission.
   evidence: A Fluxor effect writes the circuit-scoped observation while the Razor event reads it; dispatcher scheduling evidence or a controlled concurrency test is needed to establish whether the synchronous admission section can interleave. If reachable, a command could dispatch after the viewport becomes unsafe.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-03)
+
+Review diff: `11e65e37..17538e07` (story commit `17538e07`).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: The global-administrator correction still links corrective proof by event type plus a later timestamp (pre-existing; Story 5.7).
+  evidence: `GlobalAdministratorCorrectionSnapshot.WithCorrectiveProof` (`:679`) builds a `TenantCorrectionProofLink` from any later row. `GlobalAdministratorCorrectionPanel.razor:114` renders it as a `#audit-…` fragment link. Story 5.6's Design Note says that kind of target/time match proves nothing, and the new `TenantCorrectionProofLink.cs:3` doc comment ("backed by attempt-specific evidence") is false for this, its only producer. Story 5.7 must replace it with deterministic attempt provenance or the truthful missing-support state.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: CI still runs no Tenants test tier (already tracked; reconfirmed).
+  evidence: Main CI fails at "Validate package consumer references", so every Tier 1 step is skipped. The 3,797-test UI run cited for Story 5.6 is local evidence only. See the 2026-09-29 entry "Restore CI test execution".
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: The Story 5.6 preview browser validation never runs in CI (pre-existing).
+  evidence: Story Guards aborts with exit 134 ("Aborted (core dumped)") at the first Chromium launch in `validate-tenants-focus-browser.sh` (`:266`), before the preview fixture steps (`:330-360`). The rendered EN/FR preview, focus, forced-colors and egress checks therefore run locally only.
