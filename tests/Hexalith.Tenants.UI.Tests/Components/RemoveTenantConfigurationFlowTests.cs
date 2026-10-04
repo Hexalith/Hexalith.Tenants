@@ -3,8 +3,10 @@ using System.Reflection;
 
 using Bunit;
 
+using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
@@ -28,6 +30,36 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
 {
+    [Fact]
+    public void TenantNamedGlobalAdministratorsConfirmsRemovalThroughStatusGateway()
+    {
+        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new SubmitCommandResponse("correlation-configuration"));
+        using HttpClient statusClient = new(new TenantConfigurationStatusHandler())
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        };
+        TenantCommandGateway gateway = new(client, Substitute.For<IUlidFactory>(), statusClient);
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.Context, Context("global-administrators",
+                new Dictionary<string, string> { ["billing.mode"] = "enabled" }))
+            .Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionEvidenceProvider, intent => Task.FromResult(
+                Proof(intent, TenantConfigurationProjectionProofKind.RemoveConfirmed))));
+
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.Find("[data-testid='tenants-config-remove-state']").TextContent
+            .ShouldContain("Projection confirmed");
+    }
+
     [Fact]
     public void Remove_configuration_flow_blocks_a_target_absent_from_the_safe_rows_without_borrowing_a_value()
     {

@@ -196,7 +196,7 @@
                               data-testid="tenants-correction-refresh"
                               Disabled="@(!CanRefresh)"
                               OnClick="@(() => RefreshStatusAsync())">
-                    @Localizer["Tenants.Correction.Confirm.Refresh"]
+                    @RefreshActionLabel
                 </FluentButton>
                 <FluentButton Appearance="ButtonAppearance.Outline"
                               data-testid="tenants-correction-cancel"
@@ -351,6 +351,10 @@
             or TenantCommandLifecycleState.ProjectionPending
             or TenantCommandLifecycleState.UnableToVerify
             or TenantCommandLifecycleState.Degraded);
+
+    private string RefreshActionLabel
+        => Localizer[_snapshot?.MessageId is not null && string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
+            ? "Tenants.Correction.Confirm.RetryDelivery" : "Tenants.Correction.Confirm.Refresh"].Value;
 
     private string StateText
         => _snapshot is null ? string.Empty : Localizer[$"Tenants.Correction.State.{_snapshot.LifecycleState}"];

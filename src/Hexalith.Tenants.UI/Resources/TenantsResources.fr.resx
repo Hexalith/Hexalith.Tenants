@@ -3787,6 +3787,9 @@
   <data name="Tenants.Correction.Confirm.Refresh" xml:space="preserve">
     <value>Actualiser l'état</value>
   </data>
+  <data name="Tenants.Correction.Confirm.RetryDelivery" xml:space="preserve">
+    <value>Réessayer l’envoi de la correction</value>
+  </data>
   <data name="Tenants.Correction.Confirm.Submit" xml:space="preserve">
     <value>Soumettre la commande corrective</value>
   </data>

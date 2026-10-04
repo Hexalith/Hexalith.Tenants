@@ -3,8 +3,10 @@ using System.Reflection;
 
 using Bunit;
 
+using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
@@ -23,12 +25,59 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 
+using NSubstitute;
+
 using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 {
+    [Theory]
+    [InlineData(TenantStatus.Active, TenantStatus.Disabled, "disable")]
+    [InlineData(TenantStatus.Disabled, TenantStatus.Active, "enable")]
+    public void TenantNamedGlobalAdministratorsConfirmsLifecycleThroughStatusGateway(
+        TenantStatus currentStatus, TenantStatus intendedStatus, string action)
+    {
+        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new SubmitCommandResponse("correlation-configuration"));
+        using HttpClient statusClient = new(new TenantConfigurationStatusHandler())
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        };
+        TenantCommandGateway gateway = new(client, Substitute.For<IUlidFactory>(), statusClient);
+        RegisterServices(gateway);
+        int proofReads = 0;
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.TenantId, "global-administrators")
+            .Add(p => p.Detail, Detail("global-administrators", currentStatus))
+            .Add(p => p.ProjectionVersion, "tenant-sequence:41")
+            .Add(p => p.CurrentStatus, currentStatus)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.IsCommandSurfaceConnected, true)
+            .Add(p => p.IsCommandSurfaceAvailable, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(
+                TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
+                ++proofReads == 1
+                    ? Proof(request.TenantId, currentStatus, "tenant-sequence:41")
+                    : Proof(request.TenantId, intendedStatus, "tenant-sequence:42"))));
+
+        cut.Find($"[data-testid='tenants-lifecycle-{action}']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("global-administrators");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.State
+            .ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.Find("[data-testid='tenants-lifecycle-confirmed-status']").TextContent
+            .ShouldContain(intendedStatus.ToString());
+    }
+
     [Theory]
     [MemberData(nameof(FocusExceptions))]
     public async Task Lifecycle_focus_helpers_swallow_supported_js_failures(Exception exception)

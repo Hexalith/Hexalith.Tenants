@@ -1514,34 +1514,48 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         commands.AddUserRequests.ShouldHaveSingleItem().Role.ShouldBe(TenantRole.TenantOwner);
     }
 
-    [Fact]
-    public void Panel_ambiguous_delivery_retries_only_the_retained_message_id()
+    [Theory]
+    [InlineData("en", "Retry correction delivery", "Refresh status")]
+    [InlineData("fr", "Réessayer l’envoi de la correction", "Actualiser l'état")]
+    public void AmbiguousDeliveryRecoveryNamesRetryAndReusesOnlyTheRetainedMessageId(
+        string culture, string retryLabel, string statusLabel)
     {
-        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
-        StubTenantCommandGateway commandGateway = new() { AmbiguousFirstAdd = true };
-        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
-        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
-            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            StubTenantCommandGateway commandGateway = new() { AmbiguousFirstAdd = true };
+            Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+            TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+                Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+            IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+                .Add(component => component.Intent, intent)
+                .Add(component => component.CurrentCaptureProvider, CaptureSequence(intent, TenantRole.TenantReader)));
 
-        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
-            .Add(component => component.Intent, intent)
-            .Add(component => component.CurrentCaptureProvider, CaptureSequence(intent, TenantRole.TenantReader)));
+            cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe(statusLabel);
+            cut.Find("[data-testid='tenants-correction-confirm']").Click();
+            cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent));
+            string messageId = cut.Instance.Snapshot!.MessageId!;
+            NUlid.Ulid.TryParse(messageId, out _).ShouldBeTrue();
+            commandGateway.AddUserMessageIds.ShouldHaveSingleItem().ShouldBe(messageId);
+            commandGateway.StatusHandles.ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe(retryLabel);
 
-        cut.Find("[data-testid='tenants-correction-confirm']").Click();
-        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent));
-        string messageId = cut.Instance.Snapshot!.MessageId!;
-        NUlid.Ulid.TryParse(messageId, out _).ShouldBeTrue();
-        commandGateway.AddUserMessageIds.ShouldHaveSingleItem().ShouldBe(messageId);
-        commandGateway.StatusHandles.ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-correction-refresh']").Click();
 
-        cut.Find("[data-testid='tenants-correction-refresh']").Click();
-
-        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
-        commandGateway.AddUserMessageIds.Count.ShouldBe(2);
-        commandGateway.AddUserMessageIds.ShouldAllBe(id => id == messageId);
-        commandGateway.StatusHandles.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
-        cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
-        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
+            cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+            commandGateway.AddUserMessageIds.Count.ShouldBe(2);
+            commandGateway.AddUserMessageIds.ShouldAllBe(id => id == messageId);
+            commandGateway.StatusHandles.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
+            cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe(statusLabel);
+            cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+            cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
     }
 
     [Fact]
@@ -2410,6 +2424,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             ["Tenants.Correction.Audit.AuditPending"] = "Corrective audit evidence is pending.",
             ["Tenants.Correction.Confirm.Cancel"] = "Cancel",
             ["Tenants.Correction.Confirm.Refresh"] = "Refresh status",
+            ["Tenants.Correction.Confirm.RetryDelivery"] = "Retry correction delivery",
             ["Tenants.Correction.Confirm.Submit"] = "Submit corrective command",
             ["Tenants.Correction.Close"] = "Close correction start",
             ["Tenants.Correction.Command.AddUserToTenant"] = "Add user to tenant",

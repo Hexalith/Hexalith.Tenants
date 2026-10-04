@@ -987,7 +987,8 @@ public sealed class TenantAuditPageTests : BunitContext
         gateway.Requests.Count.ShouldBe(1);
 
         pendingProbe.SetResult(false);
-        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+        // No render occurs while the authoritative read is pending; observe the request itself.
+        SpinWait.SpinUntil(() => gateway.Requests.Count == 2, TimeSpan.FromSeconds(5)).ShouldBeTrue();
         cut.Find("[data-testid='tenants-audit-receipt-state']").TextContent
             .ShouldContain("loading", Case.Insensitive);
 

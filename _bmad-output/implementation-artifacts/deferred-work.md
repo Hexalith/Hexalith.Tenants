@@ -3528,3 +3528,7 @@ Review diff: `17538e07..93b0b96d` (fix pass `93b0b96d`).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Pin FrontComposer deferred editor-focus preservation when an abandonment warning reopens before its queued callback runs.
   evidence: fc-focus.js:160 guards restoreEditedOrigin, but form-abandonment-guard.spec.ts waits for editor focus before reopening and the bUnit tests only observe JS calls. A controlled requestAnimationFrame case should assert focus stays on the reopened warning; this is a test gap in the separately committed FrontComposer dependency update.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Validate or quarantine malformed persisted envelope ranges before EventStore command-resume publication.
+  evidence: Current-head blind finding BH9 traces ResumeFromEventsStoredAsync through HasVerifiedEventRange and PublishEventsAsync. Wrong envelope tenant/domain/aggregate/sequence/correlation omits correction proof but still publishes; the baseline b51978dd1d2a3721ad239db2623e1560377c7583 already publishes that loaded range unconditionally. Define platform publication rejection/quarantine and evidence-preservation behavior separately from the optional status-proof extension.
