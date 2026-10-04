@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -829,3 +829,64 @@ Inputs and baseline checks:
 - ECH9, "`SetCaptureUnavailable` forces Previewed over a live-updated block": low. It needs a live update and a failed read within one Confirm, and the reviewed-snapshot patch above subsumes it.
 - ECH10, "with no capture provider and no query gateway, Confirm is retried forever": false. `ITenantQueryGateway` is always registered (`TenantQueryGateway` or `UnavailableTenantQueryGateway`, `TenantsUiServiceCollectionExtensions.cs:145/157`).
 - ECH11, "a role change after ChangedAtConfirm reverts to the older `StartProjection` facts": low. This is safe: the next Confirm re-reads and gates again. The fix adds retained-capture state for an uncommon sequence.
+
+### Review Findings (pass 3: closure re-review)
+
+Review date: 2026-10-04.
+
+Diff reviewed:
+- Tenants `c0afce2e..af69f36d`, code only. `_bmad-output/` is excluded. The review is pinned to `af69f36d` because a peer rebase later inserted the unrelated `b6a271ed` underneath it, producing `dc8ce844`.
+- EventStore `b51978dd..b0464255`, plus `ff2fcc9f` and `865cd9e4`.
+
+Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. The gitlink guard passed with 8 pointer changes, all declared. The layers raised 30 findings. Triage grouped them into 1 decision, 8 patches and 2 defers, and rejected 14.
+
+- [x] [Review][Decision] Committed dependency revisions moved past the approved and verified set — Commits `72b8e4f5` and `af69f36d` record revisions that differ from the ones this spec approved:
+
+  | Dependency | Committed | Approved |
+  | --- | --- | --- |
+  | FrontComposer | `9bf23e27` | `c7ad78ad` |
+  | Memories | `15afe385` | `5b43fe2f` |
+  | EventStore | `865cd9e4` | `0dc44e46` |
+  | McpCli | `39f5dda4` | `ff7137ff` |
+  | Platform | `7811d3ed` | `0e602ad6` |
+
+  - EventStore's extra commit is this story's own SSH-exception test.
+  - Every approved revision is an ancestor of the committed one (fast-forward).
+  - The root McpCli and Platform no longer match the pins declared by the committed Memories (`ff7137ff` and `0e602ad6`). That contradicts the 2026-10-04 closure decision to use "the exact commits pinned by the current Memories checkout".
+  - All recorded closure evidence was taken at `72b8e4f5` with the approved set: the 3,948 UI tests, the EventStore Contracts/Client/Server lanes and the browser lane.
+  - FrontComposer builds from source by default, so its two extra commits change the UI build under test.
+  - The gitlink guard checks only that each path is declared, not which revision it points to.
+
+  Options:
+  - (a) Accept the advanced pins, re-run the closure lanes at HEAD, and record the results.
+  - (b) Reset FrontComposer, Memories, McpCli and Platform to the approved revisions in a separate `build(deps)` commit, keeping EventStore at `865cd9e4`.
+  - (c) Defer as user-owned dependency drift.
+  Resolved on 2026-10-04: the user chose option (a), so this decision became the first patch below.
+- [ ] [Review][Patch] Re-verify the closure lanes at the committed dependency revisions and record the results. Run the complete Tenants UI test project, the EventStore Contracts/Client/Server lanes and the rendered EN/FR browser lane at HEAD. Then replace the stale approved-checkout table and closure evidence with the committed revisions and their exact results [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:146]
+- [ ] [Review][Patch] The onboarding docs still list seven root submodules, so a clone that follows CONTRIBUTING or the quickstart misses McpCli and Platform, which Memories requires as `RequiredRootSubmodule` [CONTRIBUTING.md:20] — also `CONTRIBUTING.md:162-166` and `docs/quickstart.md:58,59,79`. Only `README.md` was updated.
+- [ ] [Review][Patch] No gateway test shows that a GA status carrying its real `tenantId`/`domain` is accepted, or that a GA handle rejects `domain:"tenants"`. Comparing against `TenantsDomain` at `TenantCommandGateway.cs:666-669` would break GA grant, remove and correction confirmation without a failing test [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs:189]
+- [ ] [Review][Patch] No test exercises the expiry clause in `HasDisplayedRetainedCorrection`. If it is reverted to plain `Matches`, `Expired_attempt_is_resumable_but_does_not_redirect_or_block_a_fresh_correction` still passes, even though a fresh same-row preview then stays open and confirmable after row loss or a Stale surface. Add a sibling test for row loss and a Stale surface [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3133]
+- [ ] [Review][Patch] The Refresh button reads "Retry correction delivery" whenever the MessageId has no correlation. That includes the in-flight send, synchronous Rejected/Failed results, and an expired attempt with no correlation, where the button is disabled and the copy says escalate. Show the retry label only when a retry is actually possible (`CanRefresh` and no correlation), and make the null and whitespace checks agree [src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor:355]
+- [ ] [Review][Patch] The original receipt opened from the preview shows its own role picker and Start correction for the same evidence. Picking a role discards the unsubmitted preview, and Start does nothing beside a submitted terminal preview. Hide the receipt's correction intent while `_selectedReceiptFromCorrectionPreview` is set and the preview is open [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1674]
+- [ ] [Review][Patch] No test adds `emptyMembership` at confirm time (a non-empty start followed by an empty capture). Deleting the add half of `CorrectionStartPanel.razor:710` leaves every test passing [tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs:348]
+- [ ] [Review][Patch] The EventStore status API reference omits the new public `committedEventSequence` and `domain` response fields, and when they are null (no-op, rejection, legacy, unverified resume) [references/Hexalith.EventStore/docs/reference/command-api.md:307]
+- [ ] [Review][Patch] The `TenantCorrectionAttempt.IsExpired` doc comment says an expired attempt "remains available for status lookup", but an expired attempt with no correlation has none: `CanRefresh` requires a correlation and `TryStartRetry` refuses expired attempts [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttempt.cs:17]
+- [x] [Review][Defer] The older story record still claims audit proof linking and support-safe proof links (AC 8, Completion Notes), but the implementation always clears corrective proof and the copy says the association is unavailable [_bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md:188] — deferred: the fix edits a separate story record, not this spec or the code.
+- [x] [Review][Defer] CI still runs none of this change's tests. The package-boundary failure stops CI before Tier 1, and Story Guards' Chromium aborts with exit 134 before the correction fixtures [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:330] — deferred: pre-existing and already tracked (2026-09-29 "Restore CI test execution"; 2026-10-03 Story 5.6 entries).
+
+#### Rejected (pass 3)
+
+- BH3, "the tracker's `??` proof merge revives cleared proof": false. The only correction `ConfirmProjection` call (`CorrectionStartPanel.razor:1017`) runs on `_snapshot.ApplyStatus(status)`, which re-derives the sequence from the fresh read. A server Completed status is terminal, so a later read cannot reject proof that an earlier read accepted, and the sequence is never rendered.
+- BH4, "CommandProofUnavailable keeps admission until expiry and its copy says 'not yet'": low. It is reachable only with a legacy or version-skewed EventStore, or a rejected resume range. The spec requires a fail-closed UnableToVerify with bounded release, and the copy already offers escalation. An early-release branch would change the approved retention policy.
+- ECH4, "release the lease for server-terminal Completed without proof": low. Same claim and reasoning as BH4.
+- BH6, "only two status writers stamp `Domain`": false. The writers that don't stamp it produce Received, Rejected and drain-failure statuses, which carry no proof. The gateway checks the exact ULID MessageId, the correlation and the aggregate before any outcome, and proof requires an explicit `Domain == tenants`, so a missing domain fails closed.
+- BH8, "the recovery browser fixture lacks machine-token, forced-colors and overflow checks": low. The recovery copy comes from the same parity-tested resources the component tests render. Extending the static harness is more than a direct fix, and it falls in the same scope class as the rejected Blind 12 and Final BH9.
+- BH10, "the TenantDisabled/TenantNotFound copy never states the outcome; FR apostrophes are mixed": false. The assertive live region announces `StateText` ("Corrective command was rejected."). The FR resource file already uses straight apostrophes on about 480 lines against about 140 typographic ones, so these strings add no new inconsistency.
+- BH11, "the tracking handle and submission result keep the generated `ToString`": false. Nothing in Tenants.UI logs, interpolates or renders either record, so nothing is disclosed.
+- BH12, "the commits lack the story scope and `dc8ce844` is typed `fix:`": low. The only fix is rewriting published, user-owned history, which is not a direct correction.
+- ECH1, "a role change after the commit leaves the correction ProjectionPending": low. Carried from Current BH5 and Resumed BH4. It never confirms a conflicting state, and a superseded state would add a branch for a rare race.
+- ECH2, "a same-role terminal attempt restores instead of starting fresh": low. Carried from Blind 11 and Completeness edge 1. A different role, or a new circuit, starts fresh.
+- ECH5, "Start is ignored while a resumed expired panel is open": low. Any displayed submitted panel ignores Start the same way. Closing the panel allows the fresh correction that the expiry decision permits, and adding a notice is more than a direct fix.
+- AA3, "the spec says nothing was committed": rejected, because the fix edits this spec.
+- AA5, "the matrix cites the renamed `Panel_ambiguous_delivery_retries_only_the_retained_message_id`": rejected, because the fix edits this spec.
+- AA6 (File List part), "the File List omits the changed source files": rejected, because the fix edits this spec. The docs part of AA6 is merged into the EventStore API reference patch.

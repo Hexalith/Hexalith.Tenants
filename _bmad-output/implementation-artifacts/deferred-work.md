@@ -3536,3 +3536,14 @@ Review diff: `17538e07..93b0b96d` (fix pass `93b0b96d`).
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Verify whether correction delivery/status continuations outside the renderer can corrupt visible state during remount or expiry (medium, unverified).
   evidence: Final BH4 observes ConfigureAwait(false) continuations assigning component fields. The actual page unmounts on cleared intent and the tracker rejects mismatched or terminal regression, so user-visible corruption was not established. A controlled late status response overlapped with parameter change, expiry notification, and remount must demonstrate or refute a concrete outcome before any state-management patch.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 3 (2026-10-04)
+
+Diff reviewed: Tenants `c0afce2e..af69f36d` (code only) and EventStore `b51978dd..b0464255`, `ff2fcc9f`, `865cd9e4`.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Mark the older Story 5.6 record as superseded on audit proof linking.
+  evidence: `5-6-preview-and-confirm-correction-with-linked-proof.md` is still `Status: done`, and its AC 8 and Completion Notes (`:188-194`) claim audit proof linking and support-safe proof links. The current implementation always applies `WithCorrectiveProof(null)` (`CorrectionStartPanel.razor:1031`), and the tenant confirmation copy says the audit association is unavailable. A reader of the older record gets a false picture of what shipped.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: CI still runs none of Story 5.6's pass-3 tests (already tracked; reconfirmed).
+  evidence: CI at `b6a271ed` fails at package validation (`Hexalith.Tenants.Server` → forbidden `Hexalith.EventStore.ServiceDefaults`) before Tier 1. Story Guards run 37223763857 aborts at the first Chromium launch (`validate-tenants-focus-browser.sh:226`, exit 134). That is before the new recovery-focus, forced-colors and missing-tabindex checks (`:330-375`). This extends the 2026-09-29 "Restore CI test execution" entry and the 2026-10-03 Story 5.6 entries.
