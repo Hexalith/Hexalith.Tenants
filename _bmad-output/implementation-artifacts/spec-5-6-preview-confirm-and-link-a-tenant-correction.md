@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -922,3 +922,47 @@ Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance
 - AA3, "the spec says nothing was committed": rejected, because the fix edits this spec.
 - AA5, "the matrix cites the renamed `Panel_ambiguous_delivery_retries_only_the_retained_message_id`": rejected, because the fix edits this spec.
 - AA6 (File List part), "the File List omits the changed source files": rejected, because the fix edits this spec. The docs part of AA6 is merged into the EventStore API reference patch.
+
+### Review Findings (pass 4: fix-pass re-review)
+
+Review date: 2026-10-05.
+
+Diff reviewed:
+- Tenants `e3e3af7d..560ac28f`: the fix pass that closed the nine pass-3 patches.
+- EventStore `865cd9e4..979de6f3`: the `command-api.md` documentation commit.
+- Root HEAD moved twice during the review. `bbda29fe` pinned EventStore `979de6f3`, which no EventStore remote ref contains: a fresh fetch returns `upload-pack: not our ref`. `88602b9b` then repinned EventStore to `f9d7dde4`, the rebased copy of the same documentation commit on EventStore `origin/main`. Findings are anchored at `88602b9b`.
+
+Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. The gitlink guard passed with 8 pointer changes, all declared. The layers raised 44 findings. Triage grouped them into 8 patches and 4 defers, and rejected 12.
+
+Mutation evidence, from an isolated copy of HEAD built with `-p:UseNuGetDeps=false` (the shared checkout was in active use):
+- Killed: M1 (expiry clause reverted to plain `Matches`), M2 (`emptyMembership` add half deleted), M3 (old `RefreshActionLabel`), M3c (retry label never shown), M4 (receipt keeps its correction intent), M5 (GA status compared against `TenantsDomain`), M6 (gateway clears `OwnerCount`).
+- Survived: M7 (whitespace correlation check in `CanRefresh` reverted to a null check; unreachable, see rejected BH9a), M8, M9 and M10 (see the second and third patches).
+- At EventStore `f9d7dde4`, the complete UI lane built with 0 warnings and 0 errors and passed **3,953/3,953**.
+
+- [ ] [Review][Patch] The committed EventStore pin `f9d7dde4` includes upstream commits `2d88f1fb` and `4d69c101` (84 files, 54 under `src/`), which no recorded closure evidence covers. They change domain-service invocation (`DaprDomainServiceInvoker`, a new bounded V1 response parser) and `EventPersister`/`EventPublisher`, which sit on the command-proof path this story depends on. The dependency table and Verification still name `865cd9e4`. The UI lane already passes at `f9d7dde4` (above). Re-run the EventStore Contracts/Client/Server lanes at `f9d7dde4` and record the committed revisions and results [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:163]
+- [ ] [Review][Patch] The receipt-hiding test runs only after Confirm, so the patch's main stated harm is not pinned: picking a role discards an unsubmitted preview. Mutants M8 (`_selectedReceiptFromCorrectionPreview && HasSubmittedCorrection`) and M9 (`_selectedReceiptFromCorrectionPreview ? null : …`, never restored after Cancel) both pass all 175 `TenantAuditPageTests`. Add an unsubmitted-preview case: open the original receipt without confirming, then assert there is no receipt role picker or Start and the panel stays mounted. Also add a `closePreview=true`/`loseSourceRow=false` assertion that the receipt's role picker and Start return after Cancel [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2808]
+- [ ] [Review][Patch] The new expiry test applies row loss and a Stale surface in a single snapshot. A Stale surface fails `HasAuthorizedAuditSurface`, so the markup gate alone hides the panel. The `CaptureCorrectionAuthority` early return, which handles row loss on a Current surface, is never exercised: mutant M10 (inline plain `Matches` in that guard) passes all 175 page tests. Add a Ready/Current-without-row sibling, as pass 3 asked [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3191]
+- [ ] [Review][Patch] The status API reference shows `"domain": null` in the domain-rejection example and says the domain may be null for rejections, or is null when scope is "not verified". In fact `AggregateActor.WriteAdvisoryStatusAsync` stamps `Domain = command.Domain` on every actor-written status, domain rejections included (`AggregateActor.cs:4859` → `:6254`). Only legacy records and the pre-actor `ConcurrencyConflict` writer (`SubmitCommandHandler.cs:332`) leave it null. Correct the example (`"counter"`), the table row and the note [references/Hexalith.EventStore/docs/reference/command-api.md:357] — also `:317` and `:324`.
+- [ ] [Review][Patch] `command-api.md` still tells readers to poll by correlation ID, which contradicts the new messageId route. The 202 example's `Location` ends in the correlation ID (`:153`), and the prose says Location points to "the new correlation ID" (`:414`), but `CommandsController` builds Location from the MessageId. Step 2 omits `correlationId` (so it defaults to the messageId), yet Step 4 pairs messageId `…A1` with correlation `a1b2…` [references/Hexalith.EventStore/docs/reference/command-api.md:153]
+- [ ] [Review][Patch] The new 409 row says "Correlation ID matches multiple commands; retry with `messageId`". `CommandStatusController.cs:152` also returns 409 when one messageId matches records in more than one authorized tenant, or several legacy records. A messageId retry cannot resolve that case [references/Hexalith.EventStore/docs/reference/command-api.md:389]
+- [ ] [Review][Patch] `QuickstartDocumentationTests` still pins the old seven-path `git submodule update --init` prefix. Dropping McpCli/Platform from the quickstart again would still pass, so extend the pin to all nine paths [tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs:35]
+- [ ] [Review][Patch] The expiry comment in the tracker still says "Resume can inspect status until a fresh current-state preview replaces this attempt". That is the overclaim pass 3 removed from `TenantCorrectionAttempt.cs:17`: an expired attempt with no correlation has no lookup [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:240]
+- [x] [Review][Defer] `GlobalAdministratorCorrectionPanel.RefreshActionText` shows the delivery-retry label whenever `IsSubmissionAmbiguous && CorrelationId: null`, even when no retry is possible. This is the label defect pass 3 fixed in `CorrectionStartPanel` [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:469] — deferred: pre-existing; global-administrator correction belongs to Story 5.7.
+- [x] [Review][Defer] The status response table omits `retryable`, `recoveryReasonCode` and `drainAttemptCount`, which `CommandStatusResponse` serializes. A consumer cannot tell that an automatic retry is armed on `PublishFailed` [references/Hexalith.EventStore/docs/reference/command-api.md:308] — deferred: pre-existing; the fields arrived in EventStore `86308550`, before the story baseline.
+- [x] [Review][Defer] `CommandStatusController` and `CommandDocumentationTransformer` do not declare the status endpoint's 409, so the generated OpenAPI disagrees with the reference [references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs:58] — deferred: pre-existing controller metadata.
+- [x] [Review][Defer] Other EventStore docs still use `/api/v1/commands/status/{correlationId}`: `security-model.md:209-210,280`, `command-lifecycle.md:210`, `first-domain-service.md:277`, and the brownfield docs [references/Hexalith.EventStore/docs/guides/security-model.md:209] — deferred: pre-existing; the route moved to messageId before this story.
+
+#### Rejected (pass 4)
+
+- ECH3, "the CONTRIBUTING PR bullet silently skips newly declared McpCli/Platform": false. For a named uninitialized path, `git submodule update` prints "Submodule path … not initialized / Maybe you want to use 'update --init'?" (reproduced). Memories' `CheckSubmodules` then fails with the exact `--init` remedy.
+- BH9a, "the tracker's `CorrelationId is null` disagrees with the panel's whitespace check": false. `EventStoreGatewayClient` (`:129`, `:172`, `:240`) rejects whitespace correlations, so no snapshot can carry one. The same reason explains why M7 survives.
+- ECH1, "a remount during an in-flight original delivery shows an enabled Retry that does nothing": low. Verified: `TryStartRetry` refuses while `_deliveriesInFlight` holds the tenant. Reaching it needs a remount inside one in-flight POST; the `CanRefresh` logic predates this pass; and the fix adds a new tracker query and guard.
+- AA4, "the disabled button reads Refresh status where no lookup exists, and flips label mid-retry": low. This is cosmetic on a disabled control. Pass 3 deliberately chose the default label for non-retry states, and keeping the retry label during a retry needs new state.
+- AA5/BH7/ECH2, "a same-evidence receipt opened from the grid or route still shows a role picker that discards an unsubmitted preview": low. The grid row's own picker (`AuditDataGrid.razor:119`) calls the same `SelectCorrectionRoleAsync` and restarts the preview the same way, so restart-by-role-pick is the existing design on every launcher. The fix adds a reference-comparison branch.
+- BH14, "the nine-path setup command is copied six times; McpCli/Platform are only needed for source builds": low. Beyond future drift there is no named breakage, and the quickstart pin patch covers the main doc. The fix is a doc restructuring.
+- BH4 (validator part), "the gitlink guard matches paths, not SHAs": low. The validator's contract is declaration. An unreachable SHA would not be caught by a table comparison either, and CI's submodule checkout fails loudly.
+- BH3/AA7, "the pass recorded no mutation evidence": false on substance. This review ran M1–M6 and all were killed. Recording the evidence would edit this spec.
+- AA2/BH1/VG-O1/ECH10, "frontmatter `done`, sprint `review` and the checkpoint text disagree": rejected, because the fix edits this spec. This review resets the status.
+- BH2, "the two pass-4 internal patches (Blind 6, Verification gap 1) have no checklist items": rejected, because the fix edits this spec.
+- BH5, "Completion Notes drop the McpCli/Platform-versus-Memories pin mismatch": rejected, because the fix edits this spec.
+- ECH11, "the closure-remediation security verification block was removed": rejected, because the fix edits this spec.

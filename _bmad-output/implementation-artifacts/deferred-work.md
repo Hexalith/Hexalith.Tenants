@@ -3547,3 +3547,20 @@ Diff reviewed: Tenants `c0afce2e..af69f36d` (code only) and EventStore `b51978dd
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: CI still runs none of Story 5.6's pass-3 tests (already tracked; reconfirmed).
   evidence: CI at `b6a271ed` fails at package validation (`Hexalith.Tenants.Server` → forbidden `Hexalith.EventStore.ServiceDefaults`) before Tier 1. Story Guards run 37223763857 aborts at the first Chromium launch (`validate-tenants-focus-browser.sh:226`, exit 134). That is before the new recovery-focus, forced-colors and missing-tabindex checks (`:330-375`). This extends the 2026-09-29 "Restore CI test execution" entry and the 2026-10-03 Story 5.6 entries.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 4 (2026-10-05)
+
+Diff reviewed: Tenants `e3e3af7d..560ac28f` and EventStore `865cd9e4..979de6f3` (anchored at root `88602b9b`, EventStore `f9d7dde4`).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Show the global-administrator correction panel's delivery-retry label only when a retry is actually possible.
+  evidence: `GlobalAdministratorCorrectionPanel.razor:469` (`RefreshActionText`) picks the delivery-retry text whenever `IsSubmissionAmbiguous && CorrelationId: null`, even when `CanRetryAmbiguousCorrectionDelivery` is false, and uses a null-only pattern. Story 5.6 pass 3 fixed the same defect in `CorrectionStartPanel` (`CanRefresh && no correlation`). Global-administrator correction belongs to Story 5.7.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Document `retryable`, `recoveryReasonCode` and `drainAttemptCount` in the EventStore status API reference.
+  evidence: `CommandStatusResponse` (`src/Hexalith.EventStore/Models/CommandStatusResponse.cs`) serializes all three, but `docs/reference/command-api.md:308-322` lists none of them. A consumer cannot tell that an automatic retry is still armed on `PublishFailed`. The fields arrived in EventStore `86308550`, before the story baseline.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Declare the command-status endpoint's 409 in its OpenAPI metadata.
+  evidence: `CommandStatusController.cs:58-64` declares 200/400/401/403/404/429 but not 409, although `CreateAmbiguityProblemDetails` returns 409 (`:133`, `:152-153`). `CommandDocumentationTransformer` does not add it either, so the generated OpenAPI disagrees with `command-api.md:389`.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Move the remaining EventStore docs from `/status/{correlationId}` to the messageId route.
+  evidence: `docs/guides/security-model.md:209-210,280`, `docs/concepts/command-lifecycle.md:210`, `docs/getting-started/first-domain-service.md:277` and the brownfield docs still name the correlation ID as the status key. `CommandStatusController` routes `{messageId}`, and correlation lookup is a bounded compatibility path that can return 409.
