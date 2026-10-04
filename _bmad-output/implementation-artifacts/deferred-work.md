@@ -3514,3 +3514,10 @@ Review diff: `17538e07..93b0b96d` (fix pass `93b0b96d`).
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: The story gitlink validator exits 1 on the working tree because `references/Hexalith.Builds` and `references/Hexalith.FrontComposer` were moved outside this story.
   evidence: The default run reports Builds `3639c8d → c16249a` and FrontComposer `24033f7 → bf40099` as undeclared. Both are unstaged; `--ref 93b0b96d` passes and the committed range moves no pointer. Keep both pointers out of any Story 5.6 commit, or revert them and commit the bump separately as `build(deps)`.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Decide how an authorized correction result can be inspected after the submitting owner demotes themselves.
+  evidence: TenantsBffComposition.ComposeTenantCorrectionProjectionsAsync returns unavailable captures for nonowners; its owner/global authorization predicate is unchanged from baseline 11e65e3. Correction confirmation properly refuses redacted postconditions, leaving self-demotion unconfirmed until another authorized actor inspects it; a result-read policy must preserve authorization.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Make terminal EventStore advisory status publication recoverable after a failed write or crash.
+  evidence: At EventStore baseline b51978d and in the current tree, CompleteTerminalAsync saves terminal idempotency and removes the pipeline before WriteAdvisoryStatusAsync, which logs ordinary write failures; exact terminal duplicates return cached results without status writes. An outage can leave committed execution without an available terminal proof. Recovery must retain the command's exact range and never substitute the aggregate head.

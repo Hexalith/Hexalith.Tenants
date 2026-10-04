@@ -8,7 +8,6 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
     private readonly object _sync = new();
     private readonly Dictionary<string, TenantCorrectionAttempt> _attempts = new(StringComparer.Ordinal);
     private readonly HashSet<string> _deliveriesInFlight = new(StringComparer.Ordinal);
-    private readonly HashSet<string> _expired = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Timer> _expiryTimers = new(StringComparer.Ordinal);
     private readonly object _leaseOwner = new();
     private readonly Func<DateTimeOffset> _utcNow;
@@ -44,7 +43,7 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
         lock (_sync)
         {
             PruneExpiredLocked();
-            return _expired.Contains(tenantId);
+            return _attempts.GetValueOrDefault(tenantId)?.IsExpired is true;
         }
     }
 
@@ -62,7 +61,7 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
             _attempts.TryGetValue(preview.TenantId, out TenantCorrectionAttempt? previous);
             if (previous is not null)
             {
-                if (!IsTerminal(previous.Snapshot.LifecycleState))
+                if (previous.BlocksAdmission)
                 {
                     attempt = previous;
                     return false;
@@ -82,7 +81,6 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
                 MessageId = messageId, AttemptStartedAtUtc = startedAtUtc };
             attempt = new(preview.TenantId, messageId, requestSent, lease, startedAtUtc);
             _attempts[preview.TenantId] = attempt;
-            _expired.Remove(preview.TenantId);
             _deliveriesInFlight.Add(preview.TenantId);
             if (!lease.TryMarkDispatched(_leaseOwner))
             {
@@ -111,8 +109,8 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
         {
             PruneExpiredLocked();
             if (_deliveriesInFlight.Contains(tenantId)
-                || _expired.Contains(tenantId)
                 || !_attempts.TryGetValue(tenantId, out TenantCorrectionAttempt? attempt)
+                || attempt.IsExpired
                 || !string.Equals(attempt.MessageId, messageId, StringComparison.Ordinal)
                 || !string.IsNullOrWhiteSpace(attempt.Snapshot.CorrelationId)
                 || IsTerminal(attempt.Snapshot.LifecycleState))
@@ -159,7 +157,7 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
                 return false;
             }
 
-            if (_expired.Contains(tenantId) && !IsTerminal(snapshot.LifecycleState))
+            if (current.IsExpired && !IsTerminal(snapshot.LifecycleState))
             {
                 snapshot = snapshot with {
                     LifecycleState = TenantCommandLifecycleState.UnableToVerify,
@@ -209,7 +207,7 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
         {
             changed = PruneExpiredLocked();
             if (_attempts.TryGetValue(tenantId, out TenantCorrectionAttempt? attempt)
-                && !_expired.Contains(tenantId) && !attempt.IsTerminal
+                && attempt.BlocksAdmission
                 && _expiryTimers.TryGetValue(tenantId, out Timer? timer))
             {
                 DateTimeOffset now = _utcNow().ToUniversalTime();
@@ -228,7 +226,7 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
         bool changed = false;
         foreach ((string tenantId, TenantCorrectionAttempt attempt) in _attempts.ToArray())
         {
-            if (_expired.Contains(tenantId) || attempt.IsTerminal
+            if (!attempt.BlocksAdmission
                 || now < attempt.StartedAtUtc
                 || now - attempt.StartedAtUtc < TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration)
             {
@@ -236,9 +234,9 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
             }
 
             // Release bounded circuit admission, but retain the original identity and snapshot.
-            // A later view can inspect status; TryBegin cannot mint a replacement for this intent.
+            // Resume can inspect status until a fresh current-state preview replaces this attempt.
             attempt.Lease.TryReleaseTerminal(_leaseOwner, TenantCommandLifecycleState.Failed);
-            _attempts[tenantId] = attempt with { Snapshot = attempt.Snapshot with {
+            _attempts[tenantId] = attempt with { IsExpired = true, Snapshot = attempt.Snapshot with {
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = null,
                 SafeMessageKey = attempt.Snapshot.CorrelationId is null
@@ -247,7 +245,6 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             } };
-            _expired.Add(tenantId);
             _deliveriesInFlight.Remove(tenantId);
             if (_expiryTimers.Remove(tenantId, out Timer? timer)) timer.Dispose();
             changed = true;

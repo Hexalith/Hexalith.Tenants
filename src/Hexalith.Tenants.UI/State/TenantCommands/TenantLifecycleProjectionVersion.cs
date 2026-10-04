@@ -73,6 +73,12 @@ internal static class TenantLifecycleProjectionVersion
         };
     }
 
+    /// <summary>Requires the exact ordered projection to reach committed proof, or proof to exceed the baseline.</summary>
+    internal static bool HasReached(long? committed, string? version, bool requireBeyond = false)
+        => committed is > 0 && TrySplit(version, out string prefix, out ulong sequence)
+            && string.Equals(prefix, TenantSequencePrefix, StringComparison.Ordinal)
+            && (requireBeyond ? (ulong)committed.Value > sequence : sequence >= (ulong)committed.Value);
+
     private static bool TrySplit(string? value, out string prefix, out ulong sequence)
     {
         prefix = string.Empty;

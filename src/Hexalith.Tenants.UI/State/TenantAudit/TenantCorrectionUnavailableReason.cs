@@ -9,8 +9,6 @@ public enum TenantCorrectionUnavailableReason
     FreshnessIndeterminate,
     /// <summary>CurrentProjectionUnavailable correction classification.</summary>
     CurrentProjectionUnavailable,
-    /// <summary>The direct read has no ordered projection version for causal confirmation.</summary>
-    ProjectionVersionUnavailable,
     /// <summary>AuditEvidenceUnavailable correction classification.</summary>
     AuditEvidenceUnavailable,
     /// <summary>CommandSupportUnavailable correction classification.</summary>

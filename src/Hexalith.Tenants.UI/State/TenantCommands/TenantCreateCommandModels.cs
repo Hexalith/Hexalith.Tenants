@@ -137,6 +137,13 @@ public sealed record TenantCommandStatusResult(
     bool HasVerifiedCommandIdentity = false,
     string? SafeMessageKey = null)
 {
+    /// <summary>Gets server-only command-specific commit proof after identity and aggregate scope validation.</summary>
+    internal long? CommittedEventSequence { get; init; }
+
+    /// <summary>Omits tracking and aggregate proof from copied diagnostics.</summary>
+    public override string ToString()
+        => $"{nameof(TenantCommandStatusResult)} {{ Status = {Status}, IsPending = {IsPending}, IsRetryableFailure = {IsRetryableFailure} }}";
+
     public static TenantCommandStatusResult Unknown(string safeMessage)
         => new(null, safeMessage);
 

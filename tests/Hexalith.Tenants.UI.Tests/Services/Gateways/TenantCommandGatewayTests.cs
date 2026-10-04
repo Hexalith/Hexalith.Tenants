@@ -1468,12 +1468,51 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Theory]
+    [InlineData("system", "tenants", "tenant.alpha", "message-safe", "tracking-safe", 8L, 1, true)]
+    [InlineData("system", "tenants", "tenant.alpha", "message-safe", "tracking-safe", null, 1, false)]
+    [InlineData("other", "tenants", "tenant.alpha", "message-safe", "tracking-safe", 8L, 1, false)]
+    [InlineData("system", "global-administrators", "tenant.alpha", "message-safe", "tracking-safe", 8L, 1, false)]
+    [InlineData("system", "tenants", "other", "message-safe", "tracking-safe", 8L, 1, false)]
+    [InlineData("system", "tenants", "tenant.alpha", "other", "tracking-safe", 8L, 1, false)]
+    [InlineData("system", "tenants", "tenant.alpha", "message-safe", "other", 8L, 1, false)]
+    [InlineData("system", "tenants", "tenant.alpha", "message-safe", "tracking-safe", -1L, 1, false)]
+    [InlineData("system", "tenants", "tenant.alpha", "message-safe", "tracking-safe", 8L, 0, false)]
+    [InlineData("system", "tenants", "tenant.alpha", "message-safe", "tracking-safe", 8L, 9, false)]
+    public async Task Committed_proof_requires_exact_attempt_and_system_tenant_aggregate_scope(
+        string tenant, string domain, string aggregate, string message, string correlation, long? sequence, int count, bool proof)
+    {
+        string json = System.Text.Json.JsonSerializer.Serialize(new {
+            tenantId = tenant, domain, aggregateId = aggregate, messageId = message, correlationId = correlation,
+            status = "Completed", statusCode = (int)CommandStatus.Completed, eventCount = count, committedEventSequence = sequence,
+        });
+        TenantCommandGateway gateway = new(new CapturingGatewayClient(new SubmitCommandResponse("tracking-safe")),
+            new StubUlidFactory("message-safe"), new HttpClient(new StatusHandler(json)) { BaseAddress = new Uri("https://eventstore.example/") });
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(new("message-safe", "tracking-safe", "tenant.alpha"));
+        result.CommittedEventSequence.ShouldBe(proof ? sequence : null);
+        result.ToString().ShouldBe($"TenantCommandStatusResult {{ Status = {result.Status}, IsPending = {result.IsPending}, IsRetryableFailure = {result.IsRetryableFailure} }}");
+    }
+
+    [Theory]
     [InlineData(false, HttpStatusCode.BadRequest, false, false)]
     [InlineData(false, HttpStatusCode.BadRequest, true, true)]
     [InlineData(false, HttpStatusCode.ServiceUnavailable, false, true)]
+    [InlineData(false, HttpStatusCode.RequestTimeout, false, true)]
+    [InlineData(false, HttpStatusCode.TooManyRequests, false, true)]
+    [InlineData(false, HttpStatusCode.InternalServerError, false, true)]
+    [InlineData(false, HttpStatusCode.BadGateway, false, true)]
+    [InlineData(false, HttpStatusCode.GatewayTimeout, false, true)]
+    [InlineData(false, (HttpStatusCode)0, false, true)]
+    [InlineData(false, HttpStatusCode.Conflict, false, false)]
     [InlineData(true, HttpStatusCode.BadRequest, false, false)]
     [InlineData(true, HttpStatusCode.BadRequest, true, true)]
     [InlineData(true, HttpStatusCode.ServiceUnavailable, false, true)]
+    [InlineData(true, HttpStatusCode.RequestTimeout, false, true)]
+    [InlineData(true, HttpStatusCode.TooManyRequests, false, true)]
+    [InlineData(true, HttpStatusCode.InternalServerError, false, true)]
+    [InlineData(true, HttpStatusCode.BadGateway, false, true)]
+    [InlineData(true, HttpStatusCode.GatewayTimeout, false, true)]
+    [InlineData(true, (HttpStatusCode)0, false, true)]
+    [InlineData(true, HttpStatusCode.Conflict, false, false)]
     public async Task Correction_membership_gateway_classifies_only_uncertain_delivery_as_ambiguous(
         bool changeRole, HttpStatusCode statusCode, bool retryable, bool ambiguous)
     {
@@ -1994,7 +2033,7 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
-    public async Task Status_lookup_uses_returned_correlation_id_not_message_id()
+    public async Task Status_lookup_uses_retained_message_id_and_validates_returned_correlation()
     {
         StatusHandler handler = new("""
             {
@@ -2018,9 +2057,80 @@ public sealed class TenantCommandGatewayTests
             new TenantCommandTrackingHandle("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
             CancellationToken.None);
 
-        handler.RequestUri.ShouldNotBeNull().ToString().ShouldEndWith("/api/v1/commands/status/correlation-123");
-        handler.RequestUri.ShouldNotBeNull().AbsoluteUri.ShouldNotContain("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        handler.RequestUri.ShouldNotBeNull().AbsolutePath.ShouldBe("/api/v1/commands/status/01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.Status.ShouldBe(CommandStatus.Completed);
+    }
+
+    [Fact]
+    public async Task Shared_correlation_recovers_each_retained_message_independently()
+    {
+        StatusHandler handler = new("{}", bodyForRequest: request => System.Text.Json.JsonSerializer.Serialize(new {
+            correlationId = "shared-correlation", messageId = request.RequestUri!.Segments.Last(),
+            tenantId = "system", domain = "tenants", aggregateId = "tenant.alpha", status = "Completed",
+            statusCode = (int)CommandStatus.Completed, eventCount = 1,
+            committedEventSequence = request.RequestUri.Segments.Last() == "message-first" ? 6 : 8,
+        }));
+        TenantCommandGateway gateway = new(new CapturingGatewayClient(new SubmitCommandResponse("shared-correlation")),
+            new StubUlidFactory("unused"), new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult first = await gateway.GetStatusAsync(new("message-first", "shared-correlation", "tenant.alpha"));
+        handler.RequestUri!.AbsolutePath.ShouldBe("/api/v1/commands/status/message-first");
+        TenantCommandStatusResult second = await gateway.GetStatusAsync(new("message-second", "shared-correlation", "tenant.alpha"));
+
+        handler.RequestUri!.AbsolutePath.ShouldBe("/api/v1/commands/status/message-second");
+        first.HasVerifiedCommandIdentity.ShouldBeTrue();
+        first.CommittedEventSequence.ShouldBe(6);
+        second.HasVerifiedCommandIdentity.ShouldBeTrue();
+        second.CommittedEventSequence.ShouldBe(8);
+    }
+
+    [Theory]
+    [InlineData("Completed", "tenant")]
+    [InlineData("Completed", "domain")]
+    [InlineData("Completed", "statusCode")]
+    [InlineData("Rejected", "tenant")]
+    [InlineData("Rejected", "domain")]
+    [InlineData("Rejected", "statusCode")]
+    public async Task Explicit_status_contradictions_cannot_prove_noop_or_rejection(string status, string contradiction)
+    {
+        string json = System.Text.Json.JsonSerializer.Serialize(new {
+            correlationId = "tracking-safe", messageId = "message-safe", aggregateId = "tenant.alpha",
+            tenantId = contradiction == "tenant" ? "other" : "system",
+            domain = contradiction == "domain" ? "other" : "tenants", status,
+            statusCode = contradiction == "statusCode" ? (int)CommandStatus.Received : (int)Enum.Parse<CommandStatus>(status),
+            eventCount = 0, rejectionEventType = "TenantDisabledRejection",
+        });
+        TenantCommandGateway gateway = new(new CapturingGatewayClient(new SubmitCommandResponse("tracking-safe")),
+            new StubUlidFactory("unused"), new HttpClient(new StatusHandler(json)) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(new("message-safe", "tracking-safe", "tenant.alpha"));
+
+        result.Status.ShouldBeNull();
+        result.HasVerifiedCommandIdentity.ShouldBeFalse();
+        result.RejectionCode.ShouldBeNull();
+        result.EventCount.ShouldBeNull();
+        result.CommittedEventSequence.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("Completed")]
+    [InlineData("Rejected")]
+    public async Task Absent_optional_legacy_scope_and_status_code_remain_compatible(string status)
+    {
+        string json = System.Text.Json.JsonSerializer.Serialize(new {
+            correlationId = "tracking-safe", messageId = "message-safe", aggregateId = "tenant.alpha",
+            status, eventCount = 0, rejectionEventType = status == "Rejected" ? "TenantDisabledRejection" : null,
+        });
+        TenantCommandGateway gateway = new(new CapturingGatewayClient(new SubmitCommandResponse("tracking-safe")),
+            new StubUlidFactory("unused"), new HttpClient(new StatusHandler(json)) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(new("message-safe", "tracking-safe", "tenant.alpha"));
+
+        result.Status.ShouldBe(Enum.Parse<CommandStatus>(status));
+        result.HasVerifiedCommandIdentity.ShouldBeTrue();
+        result.EventCount.ShouldBe(0);
+        result.RejectionCode.ShouldBe(status == "Rejected" ? "TenantDisabled" : null);
+        result.CommittedEventSequence.ShouldBeNull();
     }
 
     [Fact]
@@ -2144,7 +2254,7 @@ public sealed class TenantCommandGatewayTests
             {
               "correlationId": "correlation-global",
               "status": "{{status}}",
-              "statusCode": 5,
+              "statusCode": {{(int)Enum.Parse<CommandStatus>(status)}},
               "timestamp": "2026-06-06T02:00:00Z",
               "aggregateId": "global-administrators",
               "eventCount": 0,
@@ -2306,7 +2416,7 @@ public sealed class TenantCommandGatewayTests
             {
               "correlationId": "correlation-123",
               "status": "{{statusText}}",
-              "statusCode": 6,
+              "statusCode": {{(int)expectedStatus}},
               "timestamp": "2026-06-06T02:00:00Z",
               "aggregateId": "tenant.alpha",
               "eventCount": 0,
@@ -2638,7 +2748,7 @@ public sealed class TenantCommandGatewayTests
         }
     }
 
-    private sealed class StatusHandler(string body, HttpStatusCode statusCode = HttpStatusCode.OK) : HttpMessageHandler
+    private sealed class StatusHandler(string body, HttpStatusCode statusCode = HttpStatusCode.OK, Func<HttpRequestMessage, string>? bodyForRequest = null) : HttpMessageHandler
     {
         public Uri? RequestUri { get; private set; }
 
@@ -2647,7 +2757,7 @@ public sealed class TenantCommandGatewayTests
             RequestUri = request.RequestUri;
             return Task.FromResult(new HttpResponseMessage(statusCode)
             {
-                Content = new StringContent(body),
+                Content = new StringContent(bodyForRequest?.Invoke(request) ?? body),
             });
         }
     }

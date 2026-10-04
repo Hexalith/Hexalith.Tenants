@@ -45,7 +45,7 @@
                    data-testid="tenants-correction-unavailable-reason"
                    tabindex="-1"
                    role="alert">
-                    @if (ShowCompetingAttemptNotice || IsAggregateBusy)
+                    @if (HasCompetingAttemptNotice || IsAggregateBusy)
                     {
                         <span data-testid="tenants-correction-aggregate-busy">@UnavailableReason</span>
                     }
@@ -102,7 +102,7 @@
                                       Value="@_roleValue"
                                       ValueChanged="OnRoleChanged"
                                       data-testid="tenants-correction-role"
-                                      aria-describedby="tenants-correction-readiness"
+                                      aria-describedby="@RoleDescriptionIds"
                                       Disabled="@RoleSelectionDisabled">
                             <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.Correction.RoleChoice.Placeholder"]</FluentOption>
                             @foreach (TenantRole role in AssignableRoles)
@@ -114,8 +114,8 @@
                 </div>
             </dl>
 
-            <FluentAccordion ExpandMode="AccordionExpandMode.Multi" Block="true">
-              <FluentAccordionItem Header="@Localizer["Tenants.Correction.Field.PreviewData"].Value" Expanded="true">
+            <FluentAccordion ExpandMode="AccordionExpandMode.Multi" Block="true" HeadingLevel="4">
+              <FluentAccordionItem Header="@Localizer["Tenants.Correction.Field.PreviewData"].Value" HeadingLevel="4" Expanded="true">
             <section class="correction-start-panel__preview" aria-label="@Localizer["Tenants.Correction.Field.PreviewData"]">
                 <dl data-testid="tenants-correction-preview-data">
                     <div>
@@ -148,7 +148,7 @@
                 </dl>
             </section>
               </FluentAccordionItem>
-              <FluentAccordionItem Header="@Localizer["Tenants.Correction.Lifecycle.Title"].Value" Expanded="true">
+              <FluentAccordionItem Header="@Localizer["Tenants.Correction.Lifecycle.Title"].Value" HeadingLevel="4" Expanded="true">
             <section class="correction-start-panel__lifecycle"
                      @ref="_lifecycleElement"
                      tabindex="-1"
@@ -174,6 +174,16 @@
             </FluentAccordion>
 
             <div class="correction-start-panel__actions">
+                        @if (OnOpenOriginalReceipt.HasDelegate)
+                        {
+                            <FluentButton Id="tenants-correction-original-receipt"
+                                          Appearance="ButtonAppearance.Outline"
+                                          data-testid="tenants-correction-original-receipt"
+                                          OnClick="@(() => OnOpenOriginalReceipt.InvokeAsync(_snapshot.OriginalAuditReference))">
+                                @Localizer["Tenants.Correction.OpenOriginalReceipt"]
+                            </FluentButton>
+                        }
+
                 <FluentButton Appearance="ButtonAppearance.Primary"
                               Class="correction-start-panel__confirm"
                               data-testid="tenants-correction-confirm"
@@ -235,6 +245,10 @@
     [Parameter]
     public EventCallback OnClose { get; set; }
 
+    /// <summary>Opens original evidence through the page's authorized scoped receipt surface.</summary>
+    [Parameter]
+    public EventCallback<string> OnOpenOriginalReceipt { get; set; }
+
     /// <summary>Gets a fresh authorized, versioned capture from one direct tenant read.</summary>
     [Parameter]
     public Func<Task<TenantCorrectionProjection>>? CurrentCaptureProvider { get; set; }
@@ -242,6 +256,10 @@
     /// <summary>Shows why a different row redirects to the retained attempt.</summary>
     [Parameter]
     public bool ShowCompetingAttemptNotice { get; set; }
+
+    /// <summary>Explicitly resumes an expired retained attempt instead of opening a fresh preview.</summary>
+    [Parameter]
+    public string? RetainedAttemptMessageId { get; set; }
 
     internal TenantCorrectionPreviewSnapshot? Snapshot => _snapshot;
 
@@ -265,7 +283,7 @@
     private string? UnavailableReason
         => _snapshot is null
             ? null
-            : ShowCompetingAttemptNotice
+            : HasCompetingAttemptNotice
                 ? Localizer["Tenants.Correction.Unavailable.AggregateBusy"].Value
                 : SafeMessageText ?? (IsViewportBlocked
                 ? Localizer["Tenants.Correction.Unavailable.NarrowViewportUnavailable"].Value
@@ -282,6 +300,15 @@
                 " ",
                 DisplayedUnavailableReasons(_snapshot.Intent)
                     .Select(reason => Localizer[$"Tenants.Correction.Unavailable.{reason}"].Value)));
+
+    private bool HasCompetingAttemptNotice
+        => ShowCompetingAttemptNotice && _snapshot is not null
+            && _attemptTracker.Find(_snapshot.TenantId) is { BlocksAdmission: true } attempt
+            && string.Equals(attempt.MessageId, _snapshot.MessageId, StringComparison.Ordinal);
+
+    private string RoleDescriptionIds
+        => string.IsNullOrWhiteSpace(UnavailableReason) ? "tenants-correction-readiness"
+            : "tenants-correction-readiness tenants-correction-unavailable";
 
     // A hidden read keeps CurrentProjectionUnavailable for the projection marker, but the operator
     // sees one access recovery instead of the projection, lifecycle and membership guesses.
@@ -399,18 +426,23 @@
     {
         get
         {
-            if (!HasCurrentFactCapture || _snapshot?.Intent.IntendedCommandType is null
+            TenantCorrectionProjection? impactCapture = _hasSubmitted
+                ? _snapshot?.Intent.CurrentProjection : CurrentProjectionForDisplay;
+            if (impactCapture is not { IsCurrent: true, IsAuthorized: true }
+                || !string.Equals(impactCapture.TenantId, _snapshot?.TenantId, StringComparison.Ordinal)
+                || !string.Equals(impactCapture.TargetUserId, _snapshot?.TargetUserId, StringComparison.Ordinal)
+                || _snapshot?.Intent.IntendedCommandType is null
                 || _snapshot.IntendedRole is TenantRole.Unknown
-                || CurrentProjectionForDisplay?.OwnerCount is not { } count)
+                || impactCapture.OwnerCount is not { } count)
             {
                 return FieldValue(null);
             }
 
-            string category = CurrentProjectionForDisplay.IsMembershipEmpty
+            string category = impactCapture.IsMembershipEmpty
                 && _snapshot.IntendedRole is TenantRole.TenantOwner ? "Bootstrap"
-                : CurrentProjectionForDisplay.CurrentRole is TenantRole.TenantOwner
+                : impactCapture.CurrentRole is TenantRole.TenantOwner
                     && _snapshot.IntendedRole is not TenantRole.TenantOwner && count == 1 ? "LastOwner"
-                : CurrentProjectionForDisplay.CurrentRole is TenantRole.TenantOwner
+                : impactCapture.CurrentRole is TenantRole.TenantOwner
                     || _snapshot.IntendedRole is TenantRole.TenantOwner ? "Changes" : "None";
             return Localizer[$"Tenants.Correction.Preview.OwnerImpact.{category}", count];
         }
@@ -466,7 +498,10 @@
         }
 
         TenantCorrectionAttempt? retained = _attemptTracker.Find(Intent.TenantScope);
-        if (retained?.Matches(Intent) is true)
+        if (retained?.Matches(Intent) is true
+            && (!retained.IsExpired
+                || string.Equals(retained.MessageId, RetainedAttemptMessageId, StringComparison.Ordinal)
+                || string.Equals(retained.MessageId, _snapshot?.MessageId, StringComparison.Ordinal)))
         {
             _snapshot = retained.Snapshot;
             _intentReference = Intent.OriginalAuditReference;
@@ -488,7 +523,7 @@
             // stayed open (preserving the user's role selection in _roleValue). ONLY pre-submit preview
             // states are re-derived; submitted/terminal states are preserved so submission is never
             // re-armed (AC4, preserves the P1 guard).
-            if ((StartProjection is not null || CurrentProjection is not null) && ShouldLiveUpdatePreview(_snapshot)
+            if (!_isSubmitting && (StartProjection is not null || CurrentProjection is not null) && ShouldLiveUpdatePreview(_snapshot)
                 && (StartProjection is null || _snapshot.Intent.CurrentProjection is null
                     || TenantLifecycleProjectionVersion.CompareSequences(
                         StartProjection.ProjectionVersion, _snapshot.Intent.CurrentProjection.ProjectionVersion)
@@ -535,7 +570,7 @@
         }
 
         TenantCorrectionStartIntent resolvedIntent = ResolvedIntent(currentCapture);
-        _snapshot = TenantCorrectionPreviewSnapshot.FromIntent(resolvedIntent, StartProjection is null ? CurrentProjection : null);
+        _snapshot = TenantCorrectionPreviewSnapshot.FromIntent(resolvedIntent, currentCapture is null && StartProjection is null ? CurrentProjection : null);
         if (resolvedIntent.UnavailableReasons.Count == 1
             && resolvedIntent.UnavailableReasons[0] is TenantCorrectionUnavailableReason.AlreadyApplied)
         {
@@ -646,7 +681,7 @@
             {
                 reasons.Add(TenantCorrectionUnavailableReason.TenantLifecycleUnknown);
             }
-            if (projectionCapture.CurrentRole is TenantRole.Unknown)
+            if (projectionCapture.CurrentRole is { } observedRole && !AssignableRoles.Contains(observedRole))
             {
                 reasons.Add(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
             }
@@ -663,6 +698,8 @@
             {
                 inputs.Remove("currentRole");
             }
+            if (projectionCapture.IsMembershipEmpty) inputs["emptyMembership"] = "true";
+            else inputs.Remove("emptyMembership");
             if (projectionCapture.IsMembershipEmpty && (role is not TenantRole.TenantOwner || !projectionCapture.IsGlobalAdministrator))
             {
                 reasons.Add(TenantCorrectionUnavailableReason.EmptyMembershipRequiresOwner);
@@ -795,9 +832,14 @@
         lock (_confirmSync)
         {
             if (_disposed || confirmGeneration != _confirmGeneration || IsViewportBlocked) return;
-            if (!_attemptTracker.TryBegin(_snapshot, _admissionGate, out attempt) || attempt is null) return;
             _hasSubmitted = true;
+            if (!_attemptTracker.TryBegin(_snapshot, _admissionGate, out attempt) || attempt is null)
+            {
+                _hasSubmitted = false;
+                return;
+            }
             SetSnapshot(attempt.Snapshot);
+            StateHasChanged();
         }
 
         await DispatchAttemptAsync(attempt).ConfigureAwait(false);
@@ -867,7 +909,8 @@
                 : request.ApplySubmissionFailure(result) with {
                     MessageId = attempt.MessageId,
                     SafeMessage = null,
-                    SafeMessageKey = result.SafeMessageKey ?? FailureMessageKey(result.State),
+                    SafeMessageKey = RejectionMessageKey(result.RejectionCode)
+                        ?? result.SafeMessageKey ?? FailureMessageKey(result.State),
                 };
         _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId);
         SetRetainedSnapshot(attempt, next, focusTerminalState: true);
@@ -939,12 +982,13 @@
         }
 
         TenantCorrectionPreviewSnapshot next = _snapshot.ApplyStatus(status);
-        if (next.SafeMessageKey is null && FailureMessageKey(next.LifecycleState) is { } failureKey)
+        if (FailureMessageKey(next.LifecycleState) is { } failureKey)
         {
-            next = next with { SafeMessage = null, SafeMessageKey = status.SafeMessageKey ?? failureKey };
+            next = next with { SafeMessage = null, SafeMessageKey = RejectionMessageKey(status.RejectionCode)
+                ?? status.SafeMessageKey ?? next.SafeMessageKey ?? failureKey };
         }
         if (next.LifecycleState is TenantCommandLifecycleState.ProjectionPending
-            && status.EventCount is > 0)
+            && status.Status is Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed && status.EventCount is > 0)
         {
             try
             {
@@ -978,11 +1022,17 @@
             _ => null,
         };
 
+    private static string? RejectionMessageKey(string? code)
+        => code is "UserAlreadyInTenant" or "UserNotInTenant" or "RoleEscalation" or "InsufficientPermissions" or "TenantDisabled" or "TenantNotFound"
+            ? $"Tenants.Correction.Rejection.{code}" : null;
+
     private void SetRetainedSnapshot(TenantCorrectionAttempt attempt,
         TenantCorrectionPreviewSnapshot candidate, bool focusTerminalState = false)
     {
         _attemptTracker.TryUpdate(attempt.TenantId, attempt.MessageId, candidate);
-        SetSnapshot(_attemptTracker.Find(attempt.TenantId)?.Snapshot ?? candidate, focusTerminalState);
+        TenantCorrectionAttempt? retained = _attemptTracker.Find(attempt.TenantId);
+        SetSnapshot(string.Equals(retained?.MessageId, attempt.MessageId, StringComparison.Ordinal)
+            ? retained!.Snapshot : candidate, focusTerminalState);
     }
 
     private async Task<TenantCorrectionProjection?> RefreshCaptureAsync()
@@ -1017,7 +1067,7 @@
     }
 
     private string RoleLabel(TenantRole role)
-        => role is TenantRole.Unknown ? FieldValue(null) : Localizer[$"Tenants.Correction.Role.{role}"];
+        => !AssignableRoles.Contains(role) ? FieldValue(null) : Localizer[$"Tenants.Correction.Role.{role}"];
 
     private string PreviewValue(string key, string value)
         => key is "currentProjectionSnapshot" && value is "tenant-projection-current"

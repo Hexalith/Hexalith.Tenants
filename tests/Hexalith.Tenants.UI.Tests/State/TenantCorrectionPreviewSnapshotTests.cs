@@ -118,7 +118,7 @@ public sealed class TenantCorrectionPreviewSnapshotTests
                 SafeMessageKey = "Tenants.Correction.State.UnableToVerify" };
 
         TenantCorrectionPreviewSnapshot stored = uncertain.ApplyStatus(new TenantCommandStatusResult(
-            CommandStatus.EventsStored, EventCount: 1, HasVerifiedCommandIdentity: true));
+            CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
         TenantCorrectionPreviewSnapshot confirmed = stored.ConfirmProjection(intent.CurrentProjection! with {
             CurrentRole = TenantRole.TenantReader,
             ProjectionVersion = "tenant-sequence:2",
@@ -167,7 +167,7 @@ public sealed class TenantCorrectionPreviewSnapshotTests
             .RequestSent() with { AttemptStartedAtUtc = DateTimeOffset.Parse("2026-06-01T10:01:00Z", CultureInfo.InvariantCulture) };
         pending = pending
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
 
         TenantCorrectionPreviewSnapshot notConfirmed = pending.ConfirmProjection(
             pending.Intent.CurrentProjection! with { CurrentRole = TenantRole.TenantContributor,
@@ -177,7 +177,7 @@ public sealed class TenantCorrectionPreviewSnapshotTests
 
         TenantCorrectionPreviewSnapshot withoutAdvance = pending.ConfirmProjection(
             pending.Intent.CurrentProjection! with { CurrentRole = TenantRole.TenantReader });
-        withoutAdvance.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        withoutAdvance.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
 
         TenantCorrectionProjection confirmedCapture = pending.Intent.CurrentProjection! with {
             CurrentRole = TenantRole.TenantReader,
@@ -226,7 +226,7 @@ public sealed class TenantCorrectionPreviewSnapshotTests
         TenantCorrectionPreviewSnapshot confirmed = attempt.Snapshot
             .Accepted(TenantCommandSubmissionResult.Accepted(attempt.MessageId, "tracking-safe"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
-                HasVerifiedCommandIdentity: true))
+                HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
             .ConfirmProjection(preview.Intent.CurrentProjection! with {
                 CurrentRole = TenantRole.TenantReader,
                 ProjectionVersion = "tenant-sequence:2",
@@ -255,9 +255,9 @@ public sealed class TenantCorrectionPreviewSnapshotTests
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
-                HasVerifiedCommandIdentity: true));
+                HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
         pending.ConfirmProjection(intent.CurrentProjection! with { CurrentRole = TenantRole.TenantReader })
-            .LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+            .LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
     }
 
     [Theory]
@@ -273,7 +273,7 @@ public sealed class TenantCorrectionPreviewSnapshotTests
             .RequestSent()
             .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
             .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
-                HasVerifiedCommandIdentity: true));
+                HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
         TenantCorrectionProjection candidate = intent.CurrentProjection! with {
             CurrentRole = TenantRole.TenantReader,
             ProjectionVersion = "tenant-sequence:2",
@@ -301,6 +301,68 @@ public sealed class TenantCorrectionPreviewSnapshotTests
 
         preview.CanSubmit.ShouldBeFalse();
         preview.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.OwnerCountUnavailable");
+    }
+
+    [Fact]
+    public void EarlierRoleCycleMustNotConfirmAnUnprojectedCorrection()
+    {
+        TenantCorrectionStartIntent intent = Intent("UserRoleChanged",
+            currentRole: TenantRole.TenantContributor, intendedRole: TenantRole.TenantReader);
+        intent = intent with { CurrentProjection = intent.CurrentProjection! with { ProjectionVersion = "tenant-sequence:5" } };
+        // Other commands change Contributor -> Reader at 6, then Reader -> Contributor at 7.
+        // Our verified correction changes Contributor -> Reader at 8 and produces one event.
+        // The projection still exposes the earlier Reader state at 6, before 7 or 8 applies.
+        TenantCorrectionPreviewSnapshot pending = TenantCorrectionPreviewSnapshot.FromIntent(intent)
+            .RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("correction-at-sequence-8", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
+                HasVerifiedCommandIdentity: true) { CommittedEventSequence = 8 });
+        TenantCorrectionProjection earlierMatchingProjection = intent.CurrentProjection! with {
+            CurrentRole = TenantRole.TenantReader,
+            ProjectionVersion = "tenant-sequence:6",
+        };
+
+        pending.ConfirmProjection(earlierMatchingProjection).LifecycleState
+            .ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Theory]
+    [InlineData(6L, false)]
+    [InlineData(8L, true)]
+    [InlineData(9L, true)]
+    public void Matching_projection_must_reach_the_exact_committed_command_sequence(int projectionSequence, bool confirmed)
+    {
+        TenantCorrectionStartIntent intent = Intent("UserRoleChanged", TenantRole.TenantContributor, TenantRole.TenantReader);
+        intent = intent with { CurrentProjection = intent.CurrentProjection! with { ProjectionVersion = "tenant-sequence:5" } };
+        TenantCorrectionPreviewSnapshot pending = TenantCorrectionPreviewSnapshot.FromIntent(intent).RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+                { CommittedEventSequence = 8 });
+        TenantCorrectionPreviewSnapshot result = pending.ConfirmProjection(intent.CurrentProjection! with {
+            CurrentRole = TenantRole.TenantReader, ProjectionVersion = $"tenant-sequence:{projectionSequence}",
+        });
+        (result.LifecycleState is TenantCommandLifecycleState.Confirmed).ShouldBe(confirmed);
+        if (!confirmed) result.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.ToString().ShouldBe($"TenantCorrectionPreviewSnapshot {{ LifecycleState = {result.LifecycleState}, AuditState = {result.AuditState}, HasCommandTracking = True }}");
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData(0L, true)]
+    [InlineData(-1L, true)]
+    [InlineData(1L, true)]
+    [InlineData(2L, false)]
+    public void Missing_invalid_preexisting_or_unverified_commit_proof_cannot_confirm(long? sequence, bool verified)
+    {
+        TenantCorrectionStartIntent intent = Intent("UserRemovedFromTenant", intendedRole: TenantRole.TenantReader);
+        TenantCorrectionPreviewSnapshot result = TenantCorrectionPreviewSnapshot.FromIntent(intent).RequestSent()
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: verified)
+                { CommittedEventSequence = sequence })
+            .ConfirmProjection(intent.CurrentProjection! with { CurrentRole = TenantRole.TenantReader, ProjectionVersion = "tenant-sequence:3" });
+        result.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.CommittedEventSequence.ShouldBeNull();
+        result.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CommandProofUnavailable");
     }
 
     private static TenantCorrectionStartIntent Intent(

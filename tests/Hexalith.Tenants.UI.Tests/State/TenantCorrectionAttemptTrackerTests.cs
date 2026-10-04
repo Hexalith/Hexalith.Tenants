@@ -102,7 +102,7 @@ public sealed class TenantCorrectionAttemptTrackerTests
     }
 
     [Fact]
-    public void Expired_uncertain_attempt_releases_the_lease_without_minting_a_new_message_id()
+    public void Expired_uncertain_attempt_remains_viewable_until_a_new_attempt_replaces_it()
     {
         DateTimeOffset now = new(2026, 10, 3, 10, 0, 0, TimeSpan.Zero);
         TenantCorrectionAttemptTracker tracker = new(() => now);
@@ -113,10 +113,17 @@ public sealed class TenantCorrectionAttemptTrackerTests
         now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration + TimeSpan.FromSeconds(1);
 
         tracker.Find(preview.TenantId)!.MessageId.ShouldBe(attempt.MessageId);
+        tracker.Find(preview.TenantId)!.BlocksAdmission.ShouldBeFalse();
         gate.IsLocked(TenantCommandAggregateLock.ForTenant(preview.TenantId)).ShouldBeFalse();
-        tracker.TryBegin(preview, gate, out TenantCorrectionAttempt? retained).ShouldBeFalse();
-        retained!.MessageId.ShouldBe(attempt.MessageId);
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeFalse();
+        tracker.TryBegin(preview, gate, out TenantCorrectionAttempt? replacement).ShouldBeTrue();
+        replacement!.MessageId.ShouldNotBe(attempt.MessageId);
+        replacement.BlocksAdmission.ShouldBeTrue();
+        tracker.IsExpired(preview.TenantId).ShouldBeFalse();
+        tracker.TryUpdate(preview.TenantId, attempt.MessageId, attempt.Snapshot).ShouldBeFalse();
+        tracker.EndDelivery(preview.TenantId, attempt.MessageId);
+        tracker.TryStartRetry(preview.TenantId, replacement.MessageId).ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(preview.TenantId)).ShouldBeTrue();
     }
 
     [Fact]

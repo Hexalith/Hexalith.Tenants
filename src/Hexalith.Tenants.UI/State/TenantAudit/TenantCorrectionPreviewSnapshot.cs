@@ -36,6 +36,9 @@ public sealed record TenantCorrectionPreviewSnapshot(
     /// <summary>Gets the ordered version read with current authority before dispatch.</summary>
     public string? BaselineProjectionVersion { get; init; }
 
+    /// <summary>Gets the hidden committed end sequence for this verified completed command.</summary>
+    internal long? CommittedEventSequence { get; init; }
+
     /// <summary>Gets the time at which the retained command attempt began.</summary>
     public DateTimeOffset? AttemptStartedAtUtc { get; init; }
 
@@ -264,10 +267,25 @@ public sealed record TenantCorrectionPreviewSnapshot(
                         FocusTarget = TenantCommandFocusTarget.Refresh,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                     },
+            Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
+                when !status.HasVerifiedCommandIdentity || status.CommittedEventSequence is not > 0
+                    || !TenantLifecycleProjectionVersion.HasReached(
+                        status.CommittedEventSequence, BaselineProjectionVersion, requireBeyond: true)
+                    => this with {
+                        LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                        CommittedEventSequence = null,
+                        SafeMessage = null,
+                        SafeMessageKey = "Tenants.Correction.Unavailable.CommandProofUnavailable",
+                        AuditState = TenantCommandAuditState.MissingSupport,
+                        FocusTarget = TenantCommandFocusTarget.Refresh,
+                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    },
             Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsStored
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsPublished
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
                     => this with { LifecycleState = TenantCommandLifecycleState.ProjectionPending, SafeMessage = null,
+                        CommittedEventSequence = status.Status is Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
+                            ? status.CommittedEventSequence : null,
                         SafeMessageKey = null, AuditState = TenantCommandAuditState.MissingSupport,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
             Hexalith.EventStore.Contracts.Commands.CommandStatus.Rejected
@@ -323,6 +341,16 @@ public sealed record TenantCorrectionPreviewSnapshot(
             return this;
         }
 
+        if (CommittedEventSequence is not > 0)
+        {
+            return this with {
+                LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.Correction.Unavailable.CommandProofUnavailable",
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
         if (projection is not { IsCurrent: true, IsAuthorized: true }
             || !string.Equals(projection.TenantId, TenantId, StringComparison.Ordinal)
             || !string.Equals(projection.TargetUserId, TargetUserId, StringComparison.Ordinal))
@@ -335,8 +363,14 @@ public sealed record TenantCorrectionPreviewSnapshot(
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
-        if (TenantLifecycleProjectionVersion.Compare(BaselineProjectionVersion, projection.ProjectionVersion)
-            is not TenantLifecycleProjectionVersionComparison.Advanced)
+        TenantLifecycleProjectionVersionComparison advancement = TenantLifecycleProjectionVersion.Compare(
+            BaselineProjectionVersion, projection.ProjectionVersion);
+        if (advancement is TenantLifecycleProjectionVersionComparison.NotAdvanced)
+        {
+            return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
+        }
+
+        if (advancement is not TenantLifecycleProjectionVersionComparison.Advanced)
         {
             return this with {
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
@@ -345,6 +379,11 @@ public sealed record TenantCorrectionPreviewSnapshot(
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
+        }
+
+        if (!TenantLifecycleProjectionVersion.HasReached(CommittedEventSequence, projection.ProjectionVersion))
+        {
+            return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
         return this with {

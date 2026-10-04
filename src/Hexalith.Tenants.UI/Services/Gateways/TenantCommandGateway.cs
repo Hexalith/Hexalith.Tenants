@@ -591,7 +591,7 @@ internal sealed class TenantCommandGateway(
         try
         {
             using HttpResponseMessage response = await statusClient
-                .GetAsync($"api/v1/commands/status/{Uri.EscapeDataString(handle.CorrelationId)}", cancellationToken)
+                .GetAsync($"api/v1/commands/status/{Uri.EscapeDataString(handle.MessageId)}", cancellationToken)
                 .ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.NotFound)
@@ -661,6 +661,19 @@ internal sealed class TenantCommandGateway(
                 };
             }
 
+            string expectedDomain = globalAdministratorStatus ? GlobalAdministratorsDomain : TenantsDomain;
+            if (status.StatusCode is { } statusCode && statusCode != (int)parsedStatus
+                || status.TenantId is not null && !string.Equals(status.TenantId, SystemTenant, StringComparison.Ordinal)
+                || status.Domain is not null && !string.Equals(status.Domain, expectedDomain, StringComparison.Ordinal))
+            {
+                return TenantCommandStatusResult.Unknown("Command status response did not match the tracked command.") with
+                {
+                    SafeMessageKey = globalAdministratorStatus
+                        ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.TrackingMismatch"
+                        : null,
+                };
+            }
+
             bool hasVerifiedCommandIdentity = !string.IsNullOrWhiteSpace(status.MessageId)
                 && string.Equals(status.MessageId, handle.MessageId, StringComparison.Ordinal)
                 && (string.IsNullOrWhiteSpace(handle.AggregateId)
@@ -691,7 +704,17 @@ internal sealed class TenantCommandGateway(
                         CommandStatus.TimedOut => "Tenants.GlobalAdministrators.Grant.Status.TimedOut",
                         _ => null,
                     }
-                    : null);
+                    : null) {
+                        CommittedEventSequence = hasVerifiedCommandIdentity
+                            && parsedStatus is CommandStatus.Completed && status.StatusCode == (int)parsedStatus
+                            && status.EventCount is > 0 && status.CommittedEventSequence is > 0
+                            && status.EventCount <= status.CommittedEventSequence
+                            && !string.IsNullOrWhiteSpace(handle.AggregateId)
+                            && string.Equals(status.TenantId, SystemTenant, StringComparison.Ordinal)
+                            && string.Equals(status.Domain, TenantsDomain, StringComparison.Ordinal)
+                            && string.Equals(status.AggregateId, handle.AggregateId, StringComparison.Ordinal)
+                                ? status.CommittedEventSequence : null,
+                    };
         }
         catch (JsonException)
         {
@@ -1293,12 +1316,15 @@ internal sealed class TenantCommandGateway(
     private sealed record TenantCommandStatusResponse(
         string CorrelationId,
         string Status,
-        int StatusCode,
+        int? StatusCode,
         DateTimeOffset Timestamp,
         string? AggregateId,
         int? EventCount,
         string? RejectionEventType,
         string? FailureReason,
         string? TimeoutDuration,
-        string? MessageId = null);
+        string? MessageId = null,
+        string? TenantId = null,
+        string? Domain = null,
+        long? CommittedEventSequence = null);
 }

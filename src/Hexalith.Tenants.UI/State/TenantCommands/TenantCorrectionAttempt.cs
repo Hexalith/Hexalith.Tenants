@@ -10,6 +10,12 @@ internal sealed record TenantCorrectionAttempt(
     TenantAggregateCommandLease Lease,
     DateTimeOffset StartedAtUtc)
 {
+    /// <summary>Gets whether bounded admission expired while this attempt remains available for status lookup.</summary>
+    internal bool IsExpired { get; init; }
+
+    /// <summary>Gets whether this attempt still prevents a new correction on the tenant.</summary>
+    internal bool BlocksAdmission => !IsTerminal && !IsExpired;
+
     /// <summary>Matches the retained surface without confusing a changed role with a new attempt.</summary>
     internal bool Matches(TenantCorrectionStartIntent intent)
         => string.Equals(TenantId, intent.TenantScope, StringComparison.Ordinal)

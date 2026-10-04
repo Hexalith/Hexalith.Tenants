@@ -255,6 +255,8 @@
                               @ref="_correctionPreview"
                               StartProjection="@_previewCorrectionIntent.CurrentProjection"
                               ShowCompetingAttemptNotice="@_competingCorrectionNotice"
+                              RetainedAttemptMessageId="@_resumedCorrectionMessageId"
+                              OnOpenOriginalReceipt="OpenOriginalCorrectionReceiptAsync"
                               OnClose="CloseCorrectionAsync" />
     }
     @if (HasAuthorizedRetainedSurface && _previewCorrectionIntent is null && RetainedCorrectionAttempt is not null)
@@ -309,12 +311,14 @@
     private string? _lastRouteReceiptReference;
     private string? _dismissedReceiptReference;
     private bool _selectedReceiptFromLauncher;
+    private bool _selectedReceiptFromCorrectionPreview;
     private string? _pendingReceiptFocus;
     private long _receiptFocusGeneration;
     private TenantCorrectionStartIntent? _selectedReceiptCorrectionIntent;
     private TenantCorrectionStartIntent? _activeCorrectionIntent;
     private TenantCorrectionStartIntent? _previewCorrectionIntent;
     private bool _competingCorrectionNotice;
+    private string? _resumedCorrectionMessageId;
     private CorrectionStartPanel? _correctionPreview;
     private readonly Dictionary<string, TenantCorrectionProjection> _correctionProjections = new(StringComparer.Ordinal);
     private string? _activeCorrectionOrigin;
@@ -706,6 +710,7 @@
                 _initialLoadStartedTenantId = null;
                 _selectedReceiptReference = null;
                 _selectedReceiptFromLauncher = false;
+                _selectedReceiptFromCorrectionPreview = false;
                 _selectedReceipt = null;
                 _selectedReceiptCorrectionIntent = null;
                 _activeCorrectionIntent = null;
@@ -738,9 +743,11 @@
                 _dismissedReceiptReference = null;
                 _selectedReceiptReference = null;
                 _selectedReceiptFromLauncher = false;
+                _selectedReceiptFromCorrectionPreview = false;
                 _activeCorrectionIntent = null;
                 TenantCorrectionAttempt? retained = RetainedCorrectionAttempt;
-                _previewCorrectionIntent = retained is { IsTerminal: false } ? retained.Snapshot.Intent : null;
+                _previewCorrectionIntent = retained is { BlocksAdmission: true } ? retained.Snapshot.Intent : null;
+                _resumedCorrectionMessageId = _previewCorrectionIntent is null ? null : retained?.MessageId;
                 _activeCorrectionFocusReference = _previewCorrectionIntent?.OriginalAuditReference;
                 _activeCorrectionOrigin = _previewCorrectionIntent is null ? null : "grid";
                 _competingCorrectionNotice = false;
@@ -773,6 +780,7 @@
                 _dismissedReceiptReference = null;
                 _selectedReceiptReference = null;
                 _selectedReceiptFromLauncher = false;
+                _selectedReceiptFromCorrectionPreview = false;
                 ResolveReceiptSelection();
                 if (ReceiptReference is null && hadReceipt)
                 {
@@ -1458,6 +1466,21 @@
 
         _selectedReceiptReference = currentRow.EventReference;
         _selectedReceiptFromLauncher = true;
+        _selectedReceiptFromCorrectionPreview = false;
+        ResolveReceiptSelection();
+        ScheduleReceiptHeadingFocus();
+        return Task.CompletedTask;
+    }
+
+    private Task OpenOriginalCorrectionReceiptAsync(string reference)
+    {
+        if (!HasAuthorizedRetainedSurface || TenantAuditSupportSafety.SafeApprovedReference(reference) is not { } safeReference)
+        {
+            return Task.CompletedTask;
+        }
+        _selectedReceiptReference = safeReference;
+        _selectedReceiptFromLauncher = true;
+        _selectedReceiptFromCorrectionPreview = true;
         ResolveReceiptSelection();
         ScheduleReceiptHeadingFocus();
         return Task.CompletedTask;
@@ -1466,12 +1489,14 @@
     private Task CloseReceiptAsync()
     {
         string? closedReference = _selectedReceiptReference;
+        bool fromCorrectionPreview = _selectedReceiptFromCorrectionPreview;
         _dismissedReceiptReference = ReceiptReference;
         _selectedReceiptReference = null;
         _selectedReceiptFromLauncher = false;
+        _selectedReceiptFromCorrectionPreview = false;
         _selectedReceipt = null;
         _selectedReceiptCorrectionIntent = null;
-        ScheduleReceiptFocus(closedReference);
+        ScheduleReceiptFocus(closedReference, fromCorrectionPreview);
         return Task.CompletedTask;
     }
 
@@ -1490,7 +1515,10 @@
     private bool HasDisplayedRetainedCorrection
         => _previewCorrectionIntent is not null
             && RetainedCorrectionAttempt is { } attempt
-            && attempt.Matches(_previewCorrectionIntent);
+            && attempt.Matches(_previewCorrectionIntent)
+            && (!attempt.IsExpired
+                || string.Equals(attempt.MessageId, _resumedCorrectionMessageId, StringComparison.Ordinal)
+                || string.Equals(attempt.MessageId, _correctionPreview?.Snapshot?.MessageId, StringComparison.Ordinal));
 
     private Task ResumeCorrectionAsync()
     {
@@ -1507,6 +1535,7 @@
 
         _activeCorrectionIntent = null;
         _previewCorrectionIntent = attempt.Snapshot.Intent;
+        _resumedCorrectionMessageId = attempt.MessageId;
         _competingCorrectionNotice = competing;
         _activeCorrectionFocusReference = attempt.Snapshot.OriginalAuditReference;
         _activeCorrectionOrigin ??= "grid";
@@ -1518,7 +1547,7 @@
     {
         if (!HasAuthorizedAuditSurface) return false;
 
-        if (RetainedCorrectionAttempt is { IsTerminal: false } retained)
+        if (RetainedCorrectionAttempt is { BlocksAdmission: true } retained)
         {
             ResumeCorrection(competing: !retained.Matches(intent));
             return false;
@@ -1531,6 +1560,8 @@
         }
 
         int generation = ++_correctionOpenGeneration;
+        _competingCorrectionNotice = false;
+        _resumedCorrectionMessageId = null;
         InvalidateCorrectionFocus();
         long projectionGeneration = Interlocked.Increment(ref _correctionProjectionGeneration);
         string tenantId = TenantId;
@@ -1587,6 +1618,8 @@
                 && _activeCorrectionIntent.IntendedRole == intent.IntendedRole)
             {
                 _previewCorrectionIntent = _activeCorrectionIntent;
+                _competingCorrectionNotice = false;
+                _resumedCorrectionMessageId = null;
                 _activeCorrectionIntent = null;
                 _receiptFocusGeneration++;
                 _pendingReceiptFocus = "tenants-correction-title";
@@ -1602,6 +1635,8 @@
         _activeCorrectionFocusReference = null;
         _activeCorrectionIntent = null;
         _previewCorrectionIntent = null;
+        _competingCorrectionNotice = false;
+        _resumedCorrectionMessageId = null;
         return Task.CompletedTask;
     }
 
@@ -1718,9 +1753,15 @@
         _pendingCorrectionOrigin = origin;
     }
 
-    private void ScheduleReceiptFocus(string? reference)
+    private void ScheduleReceiptFocus(string? reference, bool fromCorrectionPreview = false)
     {
         _receiptFocusGeneration++;
+        if (fromCorrectionPreview && _previewCorrectionIntent is not null
+            && string.Equals(_previewCorrectionIntent.OriginalAuditReference, reference, StringComparison.Ordinal))
+        {
+            _pendingReceiptFocus = "tenants-correction-original-receipt";
+            return;
+        }
         int index = reference is null ? -1 : _snapshot.Rows.ToList().FindIndex(row =>
             string.Equals(row.EventReference, reference, StringComparison.Ordinal));
         _pendingReceiptFocus = index >= 0 && ShouldRenderRows

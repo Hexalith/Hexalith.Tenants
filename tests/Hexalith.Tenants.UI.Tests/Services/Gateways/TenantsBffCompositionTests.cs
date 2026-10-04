@@ -161,6 +161,28 @@ public sealed class TenantsBffCompositionTests
     }
 
     [Theory]
+    [InlineData(1, false)]
+    [InlineData(2, false)]
+    [InlineData(1, true)]
+    [InlineData(2, true)]
+    public async Task Correction_owner_count_includes_the_target_and_every_other_owner(int ownerCount, bool batch)
+    {
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(), principalResolver:
+            new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")));
+        List<TenantMember> members = [new("target-user", TenantRole.TenantOwner), new("reader-user", TenantRole.TenantReader)];
+        if (ownerCount == 2) members.Add(new("other-owner", TenantRole.TenantOwner));
+        IReadOnlyList<TenantCorrectionProjection> captures = batch
+            ? await composition.ComposeTenantCorrectionProjectionsAsync("tenant.alpha", ["target-user", "reader-user"], Detail(members),
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)
+            : [await composition.ComposeTenantCorrectionProjectionAsync("tenant.alpha", "target-user", Detail(members),
+                ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, QueryResponseProvenance.ProjectionBacked)];
+
+        captures[0].CurrentRole.ShouldBe(TenantRole.TenantOwner);
+        captures.ShouldAllBe(capture => capture.OwnerCount == ownerCount);
+        captures.ShouldAllBe(capture => capture.IsAuthorized && capture.IsCurrent);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task RawTenantMismatchNeverReLabelsMembershipOrAuthorityAsTheRequestedTenant(bool batch)
