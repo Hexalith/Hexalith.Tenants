@@ -83,8 +83,18 @@
             if (innerWidth >= 768 && fieldColumns < 2) throw new Error('Desktop preview fields did not use available width');
             if (parameters.get('forcedColors') === 'active') {
                 if (!matchMedia('(forced-colors: active)').matches) throw new Error('Forced colors is not active');
-                if (getComputedStyle(panel).borderTopStyle === 'none') throw new Error('Forced colors preview boundary disappeared');
-                observations.push('forced-colors-visible-boundary');
+                const panelStyle = getComputedStyle(panel);
+                if (['none', 'hidden'].includes(panelStyle.borderTopStyle) || parseFloat(panelStyle.borderTopWidth) <= 0) throw new Error('Forced colors preview boundary disappeared');
+                const lifecycle = panel.querySelector('[data-testid="tenants-correction-live-region"]');
+                const lifecycleStyle = getComputedStyle(lifecycle);
+                const lifecycleBounds = lifecycle.getBoundingClientRect();
+                if (!lifecycle.textContent.trim() || lifecycleBounds.width <= 0 || lifecycleBounds.height <= 0
+                    || lifecycleStyle.visibility !== 'visible' || parseFloat(lifecycleStyle.opacity) === 0) throw new Error('Forced colors lifecycle status is invisible');
+                confirm.focus();
+                const focusStyle = getComputedStyle(confirm);
+                if (document.activeElement !== confirm || ['none', 'hidden'].includes(focusStyle.outlineStyle)
+                    || parseFloat(focusStyle.outlineWidth) <= 0) throw new Error('Forced colors keyboard focus indicator disappeared');
+                observations.push('forced-colors-visible-boundary-status-focus');
             }
             if (egress !== 0) throw new Error('Preview caused browser command egress');
             observations.push(`responsive-${innerWidth}-zero-egress`);

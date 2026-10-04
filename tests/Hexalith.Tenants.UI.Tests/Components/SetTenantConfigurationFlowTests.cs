@@ -2,9 +2,11 @@ using System.Reflection;
 
 using Bunit;
 
+using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
@@ -18,12 +20,49 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
+using NSubstitute;
+
 using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
 {
+    [Fact]
+    public void TenantNamedGlobalAdministratorsConfirmsConfigurationThroughStatusGateway()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new SubmitCommandResponse("correlation-configuration"));
+        using HttpClient statusClient = new(new TenantConfigurationStatusHandler())
+        {
+            BaseAddress = new Uri("https://eventstore.example/"),
+        };
+        TenantCommandGateway gateway = new(client, Substitute.For<IUlidFactory>(), statusClient);
+        Services.AddLocalization();
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton(new TenantSetConfigurationAttemptTracker());
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "global-administrators", TenantStatus.Active, false, ["billing"], []);
+        IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.PreviewEvidenceProvider, intent => Task.FromResult(
+                Preview(intent, TenantSetConfigurationCurrentState.Different, "tenant-sequence:41")))
+            .Add(p => p.ProjectionEvidenceProvider, intent => Task.FromResult(
+                Proof(intent, TenantConfigurationProjectionProofKind.SetConfirmed, "tenant-sequence:42"))));
+
+        CompleteForm(cut, "mode", "enabled");
+        cut.Find("form").Submit();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.Find("[data-testid='tenants-config-set-lifecycle']").TextContent
+            .ShouldContain("confirmed", Case.Insensitive);
+    }
+
     [Fact]
     public void Audit_entry_with_invalid_detail_return_stays_disabled_instead_of_using_bare_detail()
     {

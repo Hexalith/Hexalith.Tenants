@@ -170,7 +170,10 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
                 };
             }
 
-            _attempts[tenantId] = current with { Snapshot = snapshot with { MessageId = messageId } };
+            _attempts[tenantId] = current with { Snapshot = snapshot with {
+                MessageId = messageId,
+                CommittedEventSequence = snapshot.CommittedEventSequence ?? current.Snapshot.CommittedEventSequence,
+            } };
             if (snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed
                 or TenantCommandLifecycleState.Rejected
                 or TenantCommandLifecycleState.AlreadyApplied

@@ -1,10 +1,13 @@
 using System.Reflection;
 
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantCommands;
+
+using Microsoft.Extensions.Logging;
 
 using Shouldly;
 
@@ -12,6 +15,70 @@ namespace Hexalith.Tenants.UI.Tests.State;
 
 public sealed class TenantCorrectionAttemptTrackerTests
 {
+    [Fact]
+    public void LatePendingStatusCannotDiscardVerifiedCommandProof()
+    {
+        TenantCorrectionPreviewSnapshot preview = Preview();
+        using TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        tracker.TryBegin(preview, gate, out TenantCorrectionAttempt? attempt).ShouldBeTrue();
+        attempt.ShouldNotBeNull();
+        TenantCorrectionPreviewSnapshot accepted = attempt.Snapshot.Accepted(
+            TenantCommandSubmissionResult.Accepted(attempt.MessageId, "tracking-safe"));
+        TenantCorrectionPreviewSnapshot pending = accepted.ApplyStatus(new(
+            CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+        {
+            CommittedEventSequence = 2,
+        });
+        tracker.TryUpdate(preview.TenantId, attempt.MessageId, pending).ShouldBeTrue();
+
+        // A status read started by the previous panel returns after a remounted panel
+        // has retained this command's completion proof.
+        TenantCorrectionPreviewSnapshot late = accepted.ApplyStatus(new(
+            CommandStatus.EventsPublished, HasVerifiedCommandIdentity: true));
+        tracker.TryUpdate(preview.TenantId, attempt.MessageId, late).ShouldBeTrue();
+        TenantCorrectionPreviewSnapshot retained = tracker.Find(preview.TenantId)!.Snapshot;
+        retained.CommittedEventSequence.ShouldBe(2);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(preview.TenantId)).ShouldBeTrue();
+
+        TenantCorrectionPreviewSnapshot confirmed = retained.ConfirmProjection(
+            preview.Intent.CurrentProjection! with
+            {
+                CurrentRole = TenantRole.TenantReader,
+                ProjectionVersion = "tenant-sequence:2",
+            });
+        confirmed.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        tracker.TryUpdate(preview.TenantId, attempt.MessageId, confirmed).ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(preview.TenantId)).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void RetainedAttemptDiagnosticsHideTrackingIdentityInLogSink()
+    {
+        using TenantCorrectionAttemptTracker tracker = new();
+        tracker.TryBegin(Preview(), new TenantAggregateCommandAdmissionGate(),
+            out TenantCorrectionAttempt? attempt).ShouldBeTrue();
+        attempt.ShouldNotBeNull();
+
+        TenantCorrectionDiagnosticLog sink = new();
+        sink.LogInformation("Retained correction {Attempt}", attempt);
+        sink.LogInformation("Disclosure control {MessageId} {TenantId} {TargetUserId} {AuditReference}",
+            attempt.MessageId, attempt.TenantId, attempt.Snapshot.TargetUserId, attempt.Snapshot.OriginalAuditReference);
+        sink.Messages.Count.ShouldBe(2);
+        string diagnostics = sink.Messages[0];
+        string disclosureControl = sink.Messages[1];
+
+        diagnostics.ShouldContain(nameof(TenantCommandLifecycleState.RequestSent));
+        diagnostics.ShouldNotContain(attempt.MessageId);
+        diagnostics.ShouldNotContain(attempt.TenantId);
+        diagnostics.ShouldNotContain(attempt.Snapshot.TargetUserId);
+        diagnostics.ShouldNotContain(attempt.Snapshot.OriginalAuditReference);
+        disclosureControl.ShouldContain(attempt.MessageId);
+        disclosureControl.ShouldContain(attempt.TenantId);
+        disclosureControl.ShouldContain(attempt.Snapshot.TargetUserId);
+        disclosureControl.ShouldContain(attempt.Snapshot.OriginalAuditReference);
+    }
+
     [Fact]
     public void Failed_dispatch_mark_rolls_back_the_attempt_and_lease()
     {

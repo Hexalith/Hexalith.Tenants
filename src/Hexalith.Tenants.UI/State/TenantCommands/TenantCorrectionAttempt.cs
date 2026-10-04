@@ -10,6 +10,10 @@ internal sealed record TenantCorrectionAttempt(
     TenantAggregateCommandLease Lease,
     DateTimeOffset StartedAtUtc)
 {
+    /// <summary>Omits retained identities and original evidence from diagnostic text.</summary>
+    public override string ToString()
+        => $"{nameof(TenantCorrectionAttempt)} {{ LifecycleState = {Snapshot.LifecycleState}, IsExpired = {IsExpired} }}";
+
     /// <summary>Gets whether bounded admission expired while this attempt remains available for status lookup.</summary>
     internal bool IsExpired { get; init; }
 
