@@ -1493,6 +1493,37 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Theory]
+    [InlineData("tenantId")]
+    [InlineData("domain")]
+    [InlineData("statusCode")]
+    public async Task IncompleteStatusScopeCannotAdmitCommittedCorrectionProof(string omittedField)
+    {
+        Dictionary<string, object> envelope = new(StringComparer.Ordinal)
+        {
+            ["tenantId"] = "system",
+            ["domain"] = "tenants",
+            ["aggregateId"] = "tenant.alpha",
+            ["messageId"] = "message-safe",
+            ["correlationId"] = "tracking-safe",
+            ["status"] = "Completed",
+            ["statusCode"] = (int)CommandStatus.Completed,
+            ["eventCount"] = 1,
+            ["committedEventSequence"] = 8L,
+        };
+        envelope.Remove(omittedField);
+        string json = System.Text.Json.JsonSerializer.Serialize(envelope);
+        TenantCommandGateway gateway = new(new CapturingGatewayClient(new SubmitCommandResponse("tracking-safe")),
+            new StubUlidFactory("unused"), new HttpClient(new StatusHandler(json)) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(new("message-safe", "tracking-safe", "tenant.alpha"));
+
+        result.Status.ShouldBe(CommandStatus.Completed);
+        result.HasVerifiedCommandIdentity.ShouldBeTrue();
+        result.EventCount.ShouldBe(1);
+        result.CommittedEventSequence.ShouldBeNull();
+    }
+
+    [Theory]
     [InlineData(false, HttpStatusCode.BadRequest, false, false)]
     [InlineData(false, HttpStatusCode.BadRequest, true, true)]
     [InlineData(false, HttpStatusCode.ServiceUnavailable, false, true)]
