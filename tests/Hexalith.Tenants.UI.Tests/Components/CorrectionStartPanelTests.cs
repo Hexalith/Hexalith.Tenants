@@ -32,7 +32,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
     [Theory]
     [InlineData("en")]
     [InlineData("fr")]
-    public void Preview_exports_localized_rendered_markup_for_browser_validation(string culture)
+    public async Task Preview_exports_localized_rendered_markup_for_browser_validation(string culture)
     {
         CultureInfo previous = CultureInfo.CurrentUICulture;
         try
@@ -45,7 +45,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
                 Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
             IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
                 .Add(component => component.Intent, intent)
-                .Add(component => component.StartProjection, intent.CurrentProjection));
+                .Add(component => component.StartProjection, intent.CurrentProjection)
+                .Add(component => component.CurrentCaptureProvider, () =>
+                    Task.FromException<TenantCorrectionProjection>(new HttpRequestException("read failed"))));
 
             cut.Find("[data-testid='tenants-correction-original-evidence']").TextContent.ShouldBe("event-safe-reference");
             cut.Find("[data-testid='tenants-correction-original-time']").TextContent.ShouldBe("2026-06-01 10:00:00 UTC");
@@ -63,6 +65,63 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
                 Directory.CreateDirectory(directory);
                 File.WriteAllText(Path.Combine(directory, $"tenant-correction-preview-{culture}.html"), cut.Markup);
             }
+
+            await cut.Find("[data-testid='tenants-correction-confirm']")
+                .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+            cut.Instance.HasSubmitted.ShouldBeFalse();
+            cut.WaitForAssertion(() => AssertReasonFocus(cut, 0));
+            cut.Find("[data-testid='tenants-correction-unavailable-reason']").GetAttribute("tabindex").ShouldBe("-1");
+            commands.AddUserRequests.ShouldBeEmpty();
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                File.WriteAllText(Path.Combine(directory, $"tenant-correction-preview-recovery-{culture}.html"), cut.Markup);
+            }
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    /// <summary>Renders lifecycle copy from the evidence actually available for each terminal outcome.</summary>
+    /// <param name="culture">The localized operator language.</param>
+    /// <param name="eventCount">The verified number of command events.</param>
+    /// <param name="expectedCopy">The evidence-specific lifecycle message.</param>
+    [Theory]
+    [InlineData("en", 0, "The intended change was already applied when checked.")]
+    [InlineData("fr", 0, "La modification prévue était déjà appliquée lors de la vérification.")]
+    [InlineData("en", 1, "corrective audit association is unavailable. Inspect audit evidence.")]
+    [InlineData("fr", 1, "l'association avec l'audit correctif est indisponible. Inspectez les preuves d'audit.")]
+    public void TerminalLifecycleCopyUsesAvailableEvidence(string culture, int eventCount, string expectedCopy)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            StubTenantCommandGateway commands = new()
+            {
+                Status = new(CommandStatus.Completed, EventCount: eventCount, HasVerifiedCommandIdentity: true)
+                {
+                    CommittedEventSequence = eventCount > 0 ? 2 : null,
+                },
+            };
+            Services.AddSingleton<ITenantCommandGateway>(commands);
+            TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+                Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+            IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+                .Add(component => component.Intent, intent)
+                .Add(component => component.StartProjection, intent.CurrentProjection)
+                .Add(component => component.CurrentCaptureProvider, CaptureSequence(intent, TenantRole.TenantReader)));
+
+            cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+            cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(eventCount == 0
+                ? TenantCommandLifecycleState.AlreadyApplied : TenantCommandLifecycleState.Confirmed));
+            cut.Find("[data-testid='tenants-correction-live-region']").TextContent.ShouldContain(expectedCopy);
+            cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+            commands.AddUserRequests.ShouldHaveSingleItem();
+            cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
         }
         finally
         {
@@ -2501,8 +2560,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             ["Tenants.Correction.RoleChoice.Label"] = "Choose intended role",
             ["Tenants.Correction.RoleChoice.Placeholder"] = "Select role",
             ["Tenants.Correction.State.Accepted"] = "Command accepted; projection confirmation is pending.",
-            ["Tenants.Correction.State.AlreadyApplied"] = "Current projection already shows the intended state.",
+            ["Tenants.Correction.State.AlreadyApplied"] = "The intended change was already applied when checked.",
             ["Tenants.Correction.State.Confirmed"] = "Projection confirms the intended state; waiting for corrective audit proof.",
+            ["Tenants.Correction.State.ConfirmedWithoutAuditAssociation"] = "Projection confirms the intended state; corrective audit association is unavailable. Inspect audit evidence.",
             ["Tenants.Correction.State.Degraded"] = "Command processing is degraded; refresh status or inspect audit evidence.",
             ["Tenants.Correction.State.Failed"] = "Corrective command failed before acceptance.",
             ["Tenants.Correction.State.Previewed"] = "Preview is ready for deliberate confirmation.",

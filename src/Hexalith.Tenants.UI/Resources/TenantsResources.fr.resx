@@ -3872,10 +3872,13 @@
     <value>Commande acceptée ; la confirmation par projection est en attente.</value>
   </data>
   <data name="Tenants.Correction.State.AlreadyApplied" xml:space="preserve">
-    <value>La projection courante montre déjà l'état prévu.</value>
+    <value>La modification prévue était déjà appliquée lors de la vérification.</value>
   </data>
   <data name="Tenants.Correction.State.Confirmed" xml:space="preserve">
     <value>La projection confirme l'état prévu ; attente de la preuve d'audit corrective.</value>
+  </data>
+  <data name="Tenants.Correction.State.ConfirmedWithoutAuditAssociation" xml:space="preserve">
+    <value>La projection confirme l'état prévu ; l'association avec l'audit correctif est indisponible. Inspectez les preuves d'audit.</value>
   </data>
   <data name="Tenants.Correction.State.Degraded" xml:space="preserve">
     <value>Le traitement de commande est dégradé ; actualisez l'état ou inspectez l'audit.</value>

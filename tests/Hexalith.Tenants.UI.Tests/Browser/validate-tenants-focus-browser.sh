@@ -172,7 +172,7 @@ if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executa
     cat "$validation_tmp/preview-fixture-tests.log" >&2
     exit 1
 fi
-for fixture in tenant-correction-preview-en.html tenant-correction-preview-fr.html; do
+for fixture in tenant-correction-preview-en.html tenant-correction-preview-fr.html tenant-correction-preview-recovery-en.html tenant-correction-preview-recovery-fr.html; do
     if [[ ! -f "$validation_tmp/$fixture" ]]; then
         echo "Correction preview fixture export did not create $fixture." >&2
         cat "$validation_tmp/preview-fixture-tests.log" >&2
@@ -358,7 +358,18 @@ for culture in en fr; do
         fi
     done
 done
-printf '%s\n' "Actual rendered tenant start and preview EN/FR: desktop, narrow and forced colors; handoff/cancel/Escape, exact focus and zero browser egress passed"
+recovery_mutation_output="$validation_tmp/recovery-no-tabindex.html"
+"$browser_path" --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+    --window-size=1024,800 --user-data-dir="$validation_tmp/profile-recovery-no-tabindex" \
+    --virtual-time-budget=3000 --dump-dom \
+    "http://127.0.0.1:${validation_port}/preview.html?culture=en&missingRecoveryTabindex=true" \
+    >"$recovery_mutation_output" 2>"${recovery_mutation_output}.stderr"
+if ! grep -q 'data-validation-status="failed"' "$recovery_mutation_output" \
+    || ! validation_report_contains "$recovery_mutation_output" 'FAIL Recovery reason is not programmatically focusable'; then
+    echo "The missing recovery tabindex mutation did not fail the DOM focus check." >&2
+    exit 1
+fi
+printf '%s\n' "Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed."
 
 browser_version="$($browser_path --version | head -n 1)"
 positive_report="$(grep -o '<output id="validation-report">[^<]*' "$positive_output" | sed 's/.*>//')"

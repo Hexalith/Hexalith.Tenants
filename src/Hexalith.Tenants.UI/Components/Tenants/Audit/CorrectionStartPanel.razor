@@ -357,7 +357,9 @@
             ? "Tenants.Correction.Confirm.RetryDelivery" : "Tenants.Correction.Confirm.Refresh"].Value;
 
     private string StateText
-        => _snapshot is null ? string.Empty : Localizer[$"Tenants.Correction.State.{_snapshot.LifecycleState}"];
+        => _snapshot is null ? string.Empty : Localizer[_snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed
+            ? "Tenants.Correction.State.ConfirmedWithoutAuditAssociation"
+            : $"Tenants.Correction.State.{_snapshot.LifecycleState}"];
 
     private string StateSymbol
         => _snapshot?.LifecycleState switch

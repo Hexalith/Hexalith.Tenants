@@ -2814,7 +2814,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.Correction.State.Accepted"] = "Command accepted; projection confirmation is pending.",
             ["Tenants.Correction.State.ProjectionPending"] = "Command events are stored; projection confirmation is pending.",
             ["Tenants.Correction.State.Confirmed"] = "Projection confirms the intended state; waiting for corrective audit proof.",
-            ["Tenants.Correction.State.AlreadyApplied"] = "Current projection already shows the intended state.",
+            ["Tenants.Correction.State.AlreadyApplied"] = "The intended change was already applied when checked.",
             ["Tenants.Correction.State.Rejected"] = "Corrective command was rejected.",
             ["Tenants.Correction.State.Failed"] = "Corrective command failed before acceptance.",
             ["Tenants.Correction.State.Degraded"] = "Command processing is degraded; refresh status or inspect audit evidence.",

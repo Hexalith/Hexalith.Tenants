@@ -3532,3 +3532,7 @@ Review diff: `17538e07..93b0b96d` (fix pass `93b0b96d`).
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Validate or quarantine malformed persisted envelope ranges before EventStore command-resume publication.
   evidence: Current-head blind finding BH9 traces ResumeFromEventsStoredAsync through HasVerifiedEventRange and PublishEventsAsync. Wrong envelope tenant/domain/aggregate/sequence/correlation omits correction proof but still publishes; the baseline b51978dd1d2a3721ad239db2623e1560377c7583 already publishes that loaded range unconditionally. Define platform publication rejection/quarantine and evidence-preservation behavior separately from the optional status-proof extension.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Verify whether correction delivery/status continuations outside the renderer can corrupt visible state during remount or expiry (medium, unverified).
+  evidence: Final BH4 observes ConfigureAwait(false) continuations assigning component fields. The actual page unmounts on cleared intent and the tracker rejects mismatched or terminal regression, so user-visible corruption was not established. A controlled late status response overlapped with parameter change, expiry notification, and remount must demonstrate or refute a concrete outcome before any state-management patch.
