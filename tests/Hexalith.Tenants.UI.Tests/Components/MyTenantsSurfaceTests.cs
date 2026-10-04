@@ -34,7 +34,9 @@ public sealed class MyTenantsSurfaceTests : BunitContext
     {
         Services.AddScoped<TenantSearchPagingState>();
         Services.AddLocalization();
+#if HFC_ROUTE_OPTIONS
         Services.AddScoped<Hexalith.FrontComposer.Shell.Services.NavigationFailureNotifier>();
+#endif
     }
 
     [Fact]

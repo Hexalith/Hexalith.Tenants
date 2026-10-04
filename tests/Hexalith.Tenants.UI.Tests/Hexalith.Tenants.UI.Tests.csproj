@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <NoWarn>$(NoWarn);ASP0006</NoWarn>
+    <DefineConstants Condition="'$(HexalithFrontComposerFromSource)' == 'true'">$(DefineConstants);HFC_ROUTE_OPTIONS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

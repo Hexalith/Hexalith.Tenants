@@ -19,8 +19,10 @@ builder.Services.AddRazorComponents()
 builder.Services.AddFluentUIComponents();
 builder.Services.AddHttpContextAccessor();
 
+#if HFC_ROUTE_OPTIONS
 builder.Services.Configure<Hexalith.FrontComposer.Shell.Options.FrontComposerRouteOptions>(options =>
     options.ReservedSegments.Add("global-administrators"));
+#endif
 builder.Services.AddHexalithFrontComposerQuickstart(
     o => o.ScanAssemblies(typeof(TenantsFrontComposerDomain).Assembly));
 builder.Services.AddHexalithDomain<TenantsFrontComposerDomain>();
@@ -76,7 +78,7 @@ if (authEnabled) {
 app.UseAntiforgery();
 
 RazorComponentsEndpointConventionBuilder razorComponents = app.MapRazorComponents<App>()
-    .AddAdditionalAssemblies(typeof(Hexalith.FrontComposer.Shell.Components.Layout.FcModuleLandingPage).Assembly);
+    .AddAdditionalAssemblies(typeof(Hexalith.FrontComposer.Shell.Components.Layout.FrontComposerShell).Assembly);
 if (authEnabled) {
     // Route metadata is conditional because the standalone host deliberately has no authentication scheme
     // when OIDC is absent. A static [Authorize] attribute made that topology answer 500 instead of rendering

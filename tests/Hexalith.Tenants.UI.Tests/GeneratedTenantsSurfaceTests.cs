@@ -75,6 +75,7 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
         manifest.FullPageCommands.ShouldBeEmpty();
     }
 
+#if HFC_ROUTE_OPTIONS
     [Fact]
     public void Merged_tenants_manifest_maps_every_legacy_workspace_url_to_its_route_backed_tab()
     {
@@ -114,6 +115,8 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
             target.ShouldBe(expected, $"alias '{source}'");
         }
     }
+
+#endif
 
     [Fact]
     public async Task Three_call_host_renders_generated_projection_route()

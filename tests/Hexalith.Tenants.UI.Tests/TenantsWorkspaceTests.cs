@@ -51,7 +51,9 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddScoped<TenantSearchPagingState>();
         Services.AddScoped<TenantCreateAuditReturnState>();
         Services.AddLocalization();
+#if HFC_ROUTE_OPTIONS
         Services.AddScoped<NavigationFailureNotifier>();
+#endif
     }
 
     [Fact]

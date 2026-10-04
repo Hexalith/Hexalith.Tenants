@@ -39,7 +39,9 @@ public sealed class TenantListSurfaceTests : BunitContext
     public TenantListSurfaceTests()
     {
         Services.AddLocalization();
+#if HFC_ROUTE_OPTIONS
         Services.AddScoped<NavigationFailureNotifier>();
+#endif
     }
 
     [Fact]

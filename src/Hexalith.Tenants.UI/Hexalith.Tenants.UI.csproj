@@ -6,6 +6,8 @@
     <EnableContainer>true</EnableContainer>
     <ContainerRepository>tenants-ui</ContainerRepository>
     <PackageId>Hexalith.Tenants.UI</PackageId>
+    <!-- The published FrontComposer 4.5.0 package predates route options; source builds use the new API. -->
+    <DefineConstants Condition="'$(HexalithFrontComposerFromSource)' == 'true'">$(DefineConstants);HFC_ROUTE_OPTIONS</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>

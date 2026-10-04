@@ -22,6 +22,7 @@ public static class TenantsFrontComposerRegistration {
         NameKey: "Tenants.Navigation.Tenants",
         Resource: typeof(TenantsResources)) {
         FullPageCommands = [],
+#if HFC_ROUTE_OPTIONS
         CanonicalRouteAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
             ["/"] = "/tenants/tenants",
             ["/?tab=users"] = "/tenants/workspace-users",
@@ -30,6 +31,7 @@ public static class TenantsFrontComposerRegistration {
             ["/tenants?tab=users"] = "/tenants/workspace-users",
             ["/tenants?tab=workspace-users"] = "/tenants/workspace-users",
         },
+#endif
     };
 
     public static void RegisterDomain(IFrontComposerRegistry registry) {
