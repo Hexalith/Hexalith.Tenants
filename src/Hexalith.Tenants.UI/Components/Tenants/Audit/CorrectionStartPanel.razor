@@ -344,8 +344,8 @@
             or TenantCommandLifecycleState.Confirmed;
 
     private bool CanRefresh
-        => !_isSubmitting && Volatile.Read(ref _statusReadInFlight) == 0 && _snapshot?.MessageId is not null
-        && (_snapshot.CorrelationId is not null || !_attemptTracker.IsExpired(_snapshot.TenantId))
+        => !_isSubmitting && Volatile.Read(ref _statusReadInFlight) == 0 && !string.IsNullOrWhiteSpace(_snapshot?.MessageId)
+        && (!string.IsNullOrWhiteSpace(_snapshot.CorrelationId) || !_attemptTracker.IsExpired(_snapshot.TenantId))
         && (_snapshot.LifecycleState is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.RequestSent
             or TenantCommandLifecycleState.ProjectionPending
@@ -353,7 +353,7 @@
             or TenantCommandLifecycleState.Degraded);
 
     private string RefreshActionLabel
-        => Localizer[_snapshot?.MessageId is not null && string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
+        => Localizer[CanRefresh && string.IsNullOrWhiteSpace(_snapshot?.CorrelationId)
             ? "Tenants.Correction.Confirm.RetryDelivery" : "Tenants.Correction.Confirm.Refresh"].Value;
 
     private string StateText

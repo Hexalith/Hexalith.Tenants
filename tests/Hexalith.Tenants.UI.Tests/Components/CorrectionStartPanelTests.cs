@@ -319,8 +319,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.VisibleText().ShouldNotContain("Another tenant command");
         cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("request was sent");
         cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe("Refresh status");
         delivery.SetResult(TenantCommandSubmissionResult.Accepted(commands.LastMessageId!, "tracking-safe"));
-        cut.WaitForAssertion(() => commands.StatusHandles.ShouldHaveSingleItem());
+        SpinWait.SpinUntil(() => commands.StatusHandles.Count == 1, TimeSpan.FromSeconds(5)).ShouldBeTrue();
         cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-correction-refresh']").Click();
         commands.StatusHandles.ShouldHaveSingleItem();
@@ -332,7 +333,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         commands.StatusTask = refreshingStatus.Task;
         Task refreshing = cut.Find("[data-testid='tenants-correction-refresh']")
             .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
-        cut.WaitForAssertion(() => commands.StatusHandles.Count.ShouldBe(2));
+        SpinWait.SpinUntil(() => commands.StatusHandles.Count == 2, TimeSpan.FromSeconds(5)).ShouldBeTrue();
         cut.Instance.HasSubmitted.ShouldBeTrue();
         cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-correction-refresh']").Click();
@@ -526,6 +527,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
         cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled")
             .ShouldBe(!hasCorrelation);
+        cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe("Refresh status");
         if (hasCorrelation)
         {
             cut.Find("[data-testid='tenants-correction-refresh']").Click();
@@ -1739,6 +1741,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.Find("[data-testid='tenants-correction-role']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
         commandGateway.StatusHandles.ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe("Refresh status");
         cut.WaitForAssertion(() => JSInterop.Invocations.Count(static invocation =>
             invocation.Identifier.Contains("focus", StringComparison.OrdinalIgnoreCase)).ShouldBeGreaterThan(focusInvocationCount));
     }
@@ -2192,6 +2195,33 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         cut.VisibleText().ShouldNotContain("This does not establish whether earlier membership existed");
         cut.Instance.HasSubmitted.ShouldBeFalse();
         cut.WaitForAssertion(() => AssertReasonFocus(cut, focusCount));
+    }
+
+    [Fact]
+    public void A_fresh_empty_capture_adds_the_empty_membership_preview_row()
+    {
+        Services.AddLocalization();
+        StubTenantCommandGateway commands = new();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartContext context = Context(Row("UserRemovedFromTenant"), TenantRole.TenantOwner);
+        TenantCorrectionProjection nonempty = context.Projection! with {
+            IsMembershipEmpty = false, IsGlobalAdministrator = true, OwnerCount = 1,
+        };
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with { Projection = nonempty });
+        TenantCorrectionProjection empty = nonempty with {
+            IsMembershipEmpty = true, OwnerCount = 0, ProjectionVersion = "tenant-sequence:2",
+        };
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent).Add(p => p.StartProjection, nonempty)
+            .Add(p => p.CurrentCaptureProvider, () => Task.FromResult(empty)));
+        cut.Instance.Snapshot!.Intent.RequiredPreviewInputs.ShouldNotContainKey("emptyMembership");
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.Instance.Snapshot!.Intent.RequiredPreviewInputs["emptyMembership"].ShouldBe("true");
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Preview.ChangedAtConfirm");
+        cut.Instance.HasSubmitted.ShouldBeFalse();
+        commands.AddUserRequests.ShouldBeEmpty();
     }
 
     private void AssertReasonFocus(IRenderedComponent<CorrectionStartPanel> cut, int previousFocusCount)

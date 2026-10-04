@@ -17,7 +17,7 @@ Clone the repository, then initialize root-declared submodules under `references
 ```bash
 git clone https://github.com/Hexalith/Hexalith.Tenants.git
 cd Hexalith.Tenants
-git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories
+git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories references/Hexalith.McpCli references/Hexalith.Platform
 ```
 
 > **Windows users:** If the build fails with path-too-long errors, run `git config --system core.longpaths true` and re-clone.
@@ -159,11 +159,11 @@ dotnet format Hexalith.Tenants.slnx
 
 ## Submodule Management
 
-This repository uses root-declared git submodules under `references/`: `references/Hexalith.EventStore`, `references/Hexalith.Commons`, `references/Hexalith.AI.Tools`, `references/Hexalith.Builds`, `references/Hexalith.FrontComposer`, `references/Hexalith.PolymorphicSerializations`, and `references/Hexalith.Memories`.
+This repository uses root-declared git submodules under `references/`: `references/Hexalith.EventStore`, `references/Hexalith.Commons`, `references/Hexalith.AI.Tools`, `references/Hexalith.Builds`, `references/Hexalith.FrontComposer`, `references/Hexalith.PolymorphicSerializations`, `references/Hexalith.Memories`, `references/Hexalith.McpCli`, and `references/Hexalith.Platform`.
 
-- **Initial clone:** Run `git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories` after cloning
-- **After pulling main:** Run `git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories` to sync root-declared submodules
-- **When a root-declared submodule reference changes in a PR:** Run `git submodule update references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories` to update your local copy
+- **Initial clone:** Run `git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories references/Hexalith.McpCli references/Hexalith.Platform` after cloning
+- **After pulling main:** Run `git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories references/Hexalith.McpCli references/Hexalith.Platform` to sync root-declared submodules
+- **When a root-declared submodule reference changes in a PR:** Run `git submodule update references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories references/Hexalith.McpCli references/Hexalith.Platform` to update your local copy
 - **Nested submodules:** Do not use recursive submodule initialization unless a maintainer explicitly asks for nested submodules
 
 > **Important:** Do NOT modify files inside `references/Hexalith.EventStore/` directly. Changes to the submodule must go through the [EventStore repository](https://github.com/Hexalith/Hexalith.EventStore).

@@ -83,6 +83,39 @@ public sealed class TenantQueryGatewayTests
         gateway.SupportsTenantCorrectionStart.ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task CorrectionGatewayRetainsComposedOwnerCountForBatchAndSingleTargetReads()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        TenantDetail raw = Detail("tenant.alpha") with
+        {
+            Members =
+            [
+                new TenantMember("owner-user", TenantRole.TenantOwner),
+                new TenantMember("second-owner", TenantRole.TenantOwner),
+                new TenantMember("reader-user", TenantRole.TenantReader),
+            ],
+        };
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(raw));
+        var composition = new TenantsBffComposition(Substitute.For<ITenantCommandGateway>(),
+            principalResolver: new StubConfigurationPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.NonAdministrator("owner-user")));
+        TenantQueryGateway gateway = CreateGateway(client, bffComposition: composition);
+
+        IReadOnlyList<TenantCorrectionProjection> batch = await gateway.GetTenantCorrectionProjectionsAsync(
+            "tenant.alpha", ["reader-user", "second-owner"]);
+        TenantCorrectionProjection single = await gateway.GetTenantCorrectionProjectionAsync(
+            "tenant.alpha", "reader-user");
+
+        batch.Count.ShouldBe(2);
+        batch.ShouldAllBe(capture => capture.OwnerCount == 2 && capture.IsAuthorized && capture.HasVerifiedMembership);
+        single.OwnerCount.ShouldBe(2);
+        single.CurrentRole.ShouldBe(TenantRole.TenantReader);
+        single.IsAuthorized.ShouldBeTrue();
+        _ = client.Received(2).GetTenantAsync(Arg.Any<GetTenantQuery>(), null, Arg.Any<CancellationToken>());
+    }
+
     [Theory]
     [InlineData("not-modified")]
     [InlineData("null")]

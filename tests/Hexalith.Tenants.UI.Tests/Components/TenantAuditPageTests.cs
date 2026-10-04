@@ -2835,6 +2835,8 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-correction-original-receipt']").GetAttribute("id")
             .ShouldBe("tenants-correction-original-receipt");
         cut.Find("[data-testid='tenants-correction-original-receipt']").Click();
+        cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-role']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']").ShouldBeEmpty();
         if (closePreview) cut.Find("[data-testid='tenants-correction-cancel']").Click();
         int previousFocusCalls = focus.Invocations.Count;
 
@@ -3183,6 +3185,47 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.WaitForAssertion(() => tracker.Find("tenant.alpha")!.MessageId.ShouldNotBe(retained.MessageId));
         _ = commands.Received(1).ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(),
             Arg.Is<string>(id => id != retained.MessageId), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Expired_attempt_does_not_keep_a_fresh_preview_visible_after_row_loss_on_stale_audit()
+    {
+        TenantAuditRow source = Row("event-correction", AuditEventCategory.Access,
+            "userId: target-user", eventType: "UserRoleChanged");
+        StubTenantQueryGateway query = RegisterServices(ReadySnapshot([source]), ReadySnapshot([source]));
+        DateTimeOffset now = new(2026, 10, 3, 10, 0, 0, TimeSpan.Zero);
+        using TenantCorrectionAttemptTracker tracker = new(() => now);
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantAuditPage> first = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(first, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        first.Find("[data-testid='tenants-correction-start']").Click();
+        first.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        tracker.TryBegin(first.FindComponent<CorrectionStartPanel>().Instance.Snapshot!, gate,
+            out TenantCorrectionAttempt? retained).ShouldBeTrue();
+        first.Dispose();
+        now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        cut.FindComponent<CorrectionStartPanel>().Instance.Snapshot!.MessageId.ShouldBeNull();
+        tracker.Find("tenant.alpha")!.MessageId.ShouldBe(retained!.MessageId);
+
+        TenantAuditSnapshot staleWithoutRow = TenantAuditSnapshot.Stale([], null, false, "\"etag\"",
+            new TenantAuditRequest("tenant.alpha"));
+        query.QueueResponse(Task.FromResult(staleWithoutRow));
+        cut.Find("[data-testid='tenants-audit-refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty());
+        cut.FindAll("[data-testid='tenants-correction-confirm']").ShouldBeEmpty();
+        tracker.Find("tenant.alpha")!.MessageId.ShouldBe(retained.MessageId);
     }
 
     [Fact]

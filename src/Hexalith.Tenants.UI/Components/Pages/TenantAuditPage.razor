@@ -270,7 +270,7 @@
     @if (_selectedReceipt is not null)
     {
         <AuditEvidenceReceipt Receipt="@_selectedReceipt"
-                              CorrectionIntent="@_selectedReceiptCorrectionIntent"
+                              CorrectionIntent="@(_selectedReceiptFromCorrectionPreview && _previewCorrectionIntent is not null ? null : _selectedReceiptCorrectionIntent)"
                               IsCorrectionViewportSafe="@HasMeasuredSafeViewport"
                               OnStartCorrection="OpenReceiptCorrectionAsync"
                               OnRoleSelected="SelectCorrectionRoleAsync"

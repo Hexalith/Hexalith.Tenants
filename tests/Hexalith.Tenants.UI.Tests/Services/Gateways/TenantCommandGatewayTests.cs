@@ -216,6 +216,46 @@ public sealed class TenantCommandGatewayTests
         result.HasVerifiedCommandIdentity.ShouldBeTrue();
     }
 
+    [Theory]
+    [InlineData("global-administrators", true)]
+    [InlineData("tenants", false)]
+    public async Task GlobalAdministratorStatusRequiresItsOwnDomainWhenStatusDeclaresScope(string domain, bool accepted)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        string body = $$"""
+            {
+              "correlationId": "correlation-global-admin",
+              "status": "Completed",
+              "statusCode": 4,
+              "timestamp": "2026-08-31T02:00:00Z",
+              "tenantId": "system",
+              "domain": "{{domain}}",
+              "aggregateId": "global-administrators",
+              "eventCount": 1,
+              "messageId": "{{messageId}}"
+            }
+            """;
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("unused")),
+            new StubUlidFactory(messageId),
+            new HttpClient(new StatusHandler(body)) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle(messageId, "correlation-global-admin", "global-administrators"),
+            CancellationToken.None);
+
+        if (accepted)
+        {
+            result.Status.ShouldBe(CommandStatus.Completed);
+            result.HasVerifiedCommandIdentity.ShouldBeTrue();
+        }
+        else
+        {
+            result.HasVerifiedCommandIdentity.ShouldBeFalse();
+            result.Status.ShouldBeNull();
+        }
+    }
+
     [Fact]
     public async Task Set_global_administrator_submits_fixed_scope_command_with_literal_user_payload()
     {
