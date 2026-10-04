@@ -583,9 +583,12 @@ internal sealed class TenantCommandGateway(
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(handle);
+        string expectedDomain = handle.ExpectedDomain
+            ?? (string.Equals(handle.AggregateId, GlobalAdministratorsAggregateId, StringComparison.Ordinal)
+                ? GlobalAdministratorsDomain : TenantsDomain);
         bool globalAdministratorStatus = string.Equals(
-            handle.AggregateId,
-            GlobalAdministratorsAggregateId,
+            expectedDomain,
+            GlobalAdministratorsDomain,
             StringComparison.Ordinal);
 
         try
@@ -661,7 +664,6 @@ internal sealed class TenantCommandGateway(
                 };
             }
 
-            string expectedDomain = globalAdministratorStatus ? GlobalAdministratorsDomain : TenantsDomain;
             if (status.StatusCode is { } statusCode && statusCode != (int)parsedStatus
                 || status.TenantId is not null && !string.Equals(status.TenantId, SystemTenant, StringComparison.Ordinal)
                 || status.Domain is not null && !string.Equals(status.Domain, expectedDomain, StringComparison.Ordinal))

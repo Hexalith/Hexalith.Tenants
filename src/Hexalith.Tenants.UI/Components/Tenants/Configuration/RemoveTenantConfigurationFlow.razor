@@ -1047,7 +1047,10 @@
                             new TenantCommandTrackingHandle(
                                 _snapshot.MessageId,
                                 _snapshot.CorrelationId,
-                                _snapshot.Intent.TenantId),
+                                _snapshot.Intent.TenantId)
+                            {
+                                ExpectedDomain = Hexalith.Tenants.Contracts.Identity.TenantIdentity.Domain,
+                            },
                             cancellationToken)
                             .WaitAsync(cancellationToken)
                             .ConfigureAwait(false);

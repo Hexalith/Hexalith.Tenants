@@ -796,7 +796,10 @@
             if (gateway is not null && _snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
             {
                 TenantCommandStatusResult status = await gateway.GetStatusAsync(
-                    new(_snapshot.MessageId, _snapshot.CorrelationId, _snapshot.Intent.TenantId), CancellationToken.None)
+                    new(_snapshot.MessageId, _snapshot.CorrelationId, _snapshot.Intent.TenantId)
+                    {
+                        ExpectedDomain = Hexalith.Tenants.Contracts.Identity.TenantIdentity.Domain,
+                    }, CancellationToken.None)
                     .ConfigureAwait(false);
                 if (!IsCurrentAttempt(attemptGeneration, tenantId, messageId)) return;
                 SetSnapshot(_snapshot.ApplyStatus(status));

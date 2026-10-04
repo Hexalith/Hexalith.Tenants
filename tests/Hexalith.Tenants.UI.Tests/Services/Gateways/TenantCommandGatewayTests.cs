@@ -2276,6 +2276,41 @@ public sealed class TenantCommandGatewayTests
         result.SafeMessageKey.ShouldBe(expectedKey);
     }
 
+    [Theory]
+    [InlineData("tenants", true)]
+    [InlineData("global-administrators", false)]
+    public async Task TenantNamedGlobalAdministratorsKeepsItsTenantDomainProof(string responseDomain, bool validScope)
+    {
+        StatusHandler handler = new($$"""
+            {
+              "correlationId": "correlation-123",
+              "status": "Completed",
+              "statusCode": 4,
+              "tenantId": "system",
+              "domain": "{{responseDomain}}",
+              "aggregateId": "global-administrators",
+              "eventCount": 1,
+              "committedEventSequence": 8,
+              "messageId": "message-123"
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-123")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-123", "correlation-123", "global-administrators")
+            {
+                ExpectedDomain = "tenants",
+            },
+            CancellationToken.None);
+
+        result.Status.ShouldBe(validScope ? CommandStatus.Completed : null);
+        result.HasVerifiedCommandIdentity.ShouldBe(validScope);
+        result.CommittedEventSequence.ShouldBe(validScope ? 8 : null);
+    }
+
     [Fact]
     public async Task Lifecycle_status_lookup_verifies_message_and_aggregate_identity()
     {

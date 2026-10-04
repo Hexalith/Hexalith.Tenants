@@ -3521,3 +3521,10 @@ Review diff: `17538e07..93b0b96d` (fix pass `93b0b96d`).
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Make terminal EventStore advisory status publication recoverable after a failed write or crash.
   evidence: At EventStore baseline b51978d and in the current tree, CompleteTerminalAsync saves terminal idempotency and removes the pipeline before WriteAdvisoryStatusAsync, which logs ordinary write failures; exact terminal duplicates return cached results without status writes. An outage can leave committed execution without an available terminal proof. Recovery must retain the command's exact range and never substitute the aggregate head.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Preserve ambiguous delivery identity and aggregate admission in the ordinary add-member and change-role flows.
+  evidence: Those consumers copy the pre-existing Failed result directly and release activity even for uncertain 408/429/5xx or transport delivery; the new correction ambiguity flag does not change their behavior. Add controlled uncertain-delivery and same-ID recovery coverage when implementing this separate flow work.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Pin FrontComposer deferred editor-focus preservation when an abandonment warning reopens before its queued callback runs.
+  evidence: fc-focus.js:160 guards restoreEditedOrigin, but form-abandonment-guard.spec.ts waits for editor focus before reopening and the bUnit tests only observe JS calls. A controlled requestAnimationFrame case should assert focus stays on the reopened warning; this is a test gap in the separately committed FrontComposer dependency update.

@@ -543,6 +543,87 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ReplacingEvidenceDuringConfirmRequiresANewConfirmation(bool clearIntentFirst)
+    {
+        Services.AddLocalization();
+        TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        TenantCorrectionStartIntent replacement = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant", eventReference: "replacement-evidence"), TenantRole.TenantReader));
+        TaskCompletionSource<TenantCorrectionProjection> pendingCapture = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource readStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, () =>
+            {
+                readStarted.SetResult();
+                return pendingCapture.Task;
+            }));
+
+        Task confirming = cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await readStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        if (clearIntentFirst) cut.Render(parameters => parameters.Add(component => component.Intent, null));
+        cut.Render(parameters => parameters.Add(component => component.Intent, replacement));
+        pendingCapture.SetResult(intent.CurrentProjection!);
+        await confirming.WaitAsync(TimeSpan.FromSeconds(5));
+
+        commands.AddUserRequests.ShouldBeEmpty();
+        commands.ChangeRoleRequests.ShouldBeEmpty();
+        commands.StatusHandles.ShouldBeEmpty();
+        tracker.Find("tenant.alpha").ShouldBeNull();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        cut.Instance.Snapshot!.OriginalAuditReference.ShouldBe("replacement-evidence");
+        cut.Instance.HasSubmitted.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(true, "tracking-safe")]
+    [InlineData(false, null)]
+    [InlineData(false, " ")]
+    public void IncompleteAcceptanceReceiptRetainsAnUnverifiedAttempt(bool missingMessageId, string? correlationId)
+    {
+        Services.AddLocalization();
+        TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new()
+        {
+            AddUserResultFactory = (messageId, _) => new(TenantCommandLifecycleState.Accepted,
+                missingMessageId ? null : messageId, correlationId),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection!)));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.State.UnableToVerify");
+        cut.Instance.Snapshot.MessageId.ShouldBe(commands.LastMessageId);
+        tracker.Find("tenant.alpha")!.MessageId.ShouldBe(commands.LastMessageId);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        commands.AddUserRequests.ShouldHaveSingleItem();
+        commands.StatusHandles.ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]
@@ -625,6 +706,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         commandGateway.AddUserRequests[0].UserId.ShouldBe("target-user");
         commandGateway.AddUserRequests[0].Role.ShouldBe(TenantRole.TenantReader);
         TenantCommandTrackingHandle handle = commandGateway.StatusHandles.ShouldHaveSingleItem();
+        handle.ExpectedDomain.ShouldBe("tenants");
         NUlid.Ulid.TryParse(handle.MessageId, out _).ShouldBeTrue();
         handle.CorrelationId.ShouldBe("tracking-safe");
         handle.AggregateId.ShouldBe("tenant.alpha");
