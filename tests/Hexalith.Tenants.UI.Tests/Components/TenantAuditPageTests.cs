@@ -2966,6 +2966,71 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public void TenantRebindingHidesOtherTenantRetainedCorrectionAndRestoresItOnReturn()
+    {
+        TenantAuditRow source = Row("event-correction", AuditEventCategory.Access,
+            "userId: target-user", eventType: "UserRoleChanged");
+        StubTenantQueryGateway query = RegisterServices(ReadySnapshot([source]), ReadySnapshot([source]));
+        using TenantCorrectionAttemptTracker tracker = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        commands.ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "tracking-safe")));
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandStatusResult.Pending("Status is still pending.")));
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        cut.WaitForAssertion(() => cut.FindComponent<CorrectionStartPanel>().Instance.Snapshot!.HasCommandTracking.ShouldBeTrue());
+        string messageId = tracker.Find("tenant.alpha")!.MessageId;
+
+        TaskCompletionSource<TenantAuditSnapshot> pendingBeta = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        query.QueueResponse(pendingBeta.Task);
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.beta"));
+        cut.WaitForAssertion(() =>
+        {
+            query.Requests.Last().TenantId.ShouldBe("tenant.beta");
+            cut.FindAll("[data-testid='tenants-correction-preview']").ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-correction-refresh']").ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+        });
+
+        TenantAuditRow betaRow = Row("event-beta", AuditEventCategory.Access) with
+        {
+            TenantId = "tenant.beta",
+            Scope = "tenant.beta",
+        };
+        pendingBeta.SetResult(ReadySnapshot([betaRow]) with { TenantId = "tenant.beta" });
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-audit-row']").GetAttribute("data-audit-reference").ShouldBe("event-beta");
+            cut.FindAll("[data-testid='tenants-correction-preview']").ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-correction-refresh']").ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+        });
+        tracker.Find("tenant.beta").ShouldBeNull();
+        tracker.Find("tenant.alpha")!.MessageId.ShouldBe(messageId);
+
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() =>
+        {
+            TenantCorrectionPreviewSnapshot restored = cut.FindComponent<CorrectionStartPanel>().Instance.Snapshot!;
+            restored.TenantId.ShouldBe("tenant.alpha");
+            restored.OriginalAuditReference.ShouldBe("event-correction");
+            restored.MessageId.ShouldBe(messageId);
+            cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+        });
+        _ = commands.Received(1).ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(),
+            Arg.Is<string>(id => id == messageId), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Starting_another_row_resumes_the_pending_attempt_with_a_busy_reason()
     {
         TenantAuditRow firstRow = Row("event-first", AuditEventCategory.Access,
