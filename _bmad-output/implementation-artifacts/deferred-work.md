@@ -3571,10 +3571,10 @@ Diff reviewed: Tenants `2306feba..2c04af17` and EventStore `f9d7dde4..7c3243e1` 
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Finish converting the EventStore replay reference to messageId semantics.
-  evidence: `docs/reference/command-api.md:425` says `originalCorrelationId` "matches the path parameter", but `ReplayController` resolves the path value as a messageId first and returns `archivedCommand.CorrelationId ?? correlationId`. So they differ when a messageId is passed. The replay error table (`:448`) omits the correlation-ambiguity 409 that `ReplayController` returns. These rows predate the story; pass 4 converted only the polling guidance.
+  evidence: `docs/reference/command-api.md:425` says `originalCorrelationId` "matches the path parameter", but `ReplayController` resolves the path value as a messageId first and returns `archivedCommand.CorrelationId ?? correlationId`. So they differ when a messageId is passed. The replay error table (`:448`) omits the correlation-ambiguity 409 that `ReplayController` returns. These rows predate the story; pass 4 converted only the polling guidance. Pass-12 BH7 reconfirmed this and notes that `OriginalCorrelationId` and `OriginalMessageId` are separate response fields; pass 13 folds that duplicate entry into this work item.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Make the command-status 409 ProblemDetails detail match every ambiguity it reports.
-  evidence: `CommandStatusController.CreateAmbiguityProblemDetails` (`:209`) always says "The correlation identifier maps to multiple commands. Query again using the command MessageId." It also serves the case where one messageId matches records in several authorized tenants or several legacy records (`:152-153`), where a messageId retry cannot help. The updated `command-api.md` 409 row already gives the general remediation; the runtime copy is pre-existing and EventStore-owned.
+  evidence: `CommandStatusController.CreateAmbiguityProblemDetails` (`:209`) always says "The correlation identifier maps to multiple commands. Query again using the command MessageId." It also serves the case where one messageId matches records in several authorized tenants or several legacy records (`:152-153`), where a messageId retry cannot help. Pass-12 BH9 additionally traces a direct message match in one tenant colliding with another tenant's correlation index; pass 13 folds that duplicate entry into this work item. The updated `command-api.md` 409 row already gives the general remediation; the runtime copy is pre-existing and EventStore-owned.
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 7 (2026-10-05)
 
@@ -3606,6 +3606,10 @@ Diff reviewed: the uncommitted Tenants working tree against root `d8558263`, and
   summary: Carried, with no new work item; see "Restore CI test execution" above. Tenants CI never runs the strengthened same-row correction regression `RoleSelectionAndAnotherStartPreserveASubmittedPreviewAndItsTrackingHandle`.
   evidence: CI run `37298335264` at `d8558263` fails at "Validate package consumer references" and skips both Tier 1 steps. `story-guards.yml:55-59` only builds the UI test project, and `source-reference.yml` runs only the integration tests. So the pass-9 MV1 kill (`TenantAuditPage.razor:1552` forced to `competing: true`) is local evidence only. Pre-existing; not caused by Story 5.6.
 
+## Deferred from: pass 12 workflow review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-05)
+
+Diff reviewed: `/tmp/tenants-56-pass11-review-content-kr6d6_ah.diff` (699,840 bytes), containing the original Tenants story-baseline diff and the EventStore proof-path delta from its preserved `b51978dd` baseline. The claims spec was excluded and supplied separately only to the edge layer. Pass-12 BH7 and BH9 extend the pass-6 replay-reference and runtime-ambiguity work items above; pass 13 removed their duplicate entries here.
+
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Restore content scanning or governed, content-bound retirement for EventStore evidence paths currently skipped by the secret guard (high).
   evidence: Pass-12 BH1: upstream EventStore 38efbefd5da65d538723f9f85eca6a186dfc0a2f added ExplicitEvidenceArtifactPathPattern; ReadTrackedText returns null for every matching evidence CTRF JSON, the named verification directory and previous-candidate.md before examining content. Bind any allowed retirement to verified artifacts and add injected-content controls; this is independent of the exact password-free GitHub SSH-identity exception.
@@ -3613,14 +3617,6 @@ Diff reviewed: the uncommitted Tenants working tree against root `d8558263`, and
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Correct EventStore command-status documentation to include positive event counts on eventful rejections.
   evidence: Pass-12 BH6: command-api.md says eventCount is Completed-only, but CompleteTerminalAsync passes a positive count for Rejected. Both wording and behavior predate the preserved EventStore baseline; correction confirmation remains gated on Completed and verified proof.
-
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: Correct EventStore replay reference identity and ambiguity descriptions.
-  evidence: Pass-12 BH7: ReplayController accepts message identifiers and returns the archived correlation as OriginalCorrelationId separately from OriginalMessageId; the unchanged response table says it equals the path parameter and omits the correlation-ambiguity 409 case.
-
-- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: Make EventStore runtime status-ambiguity recovery text account for cross-tenant MessageId collisions.
-  evidence: Pass-12 BH9: CreateAmbiguityProblemDetails always recommends MessageId, but a direct message match in one authorized tenant can collide with another tenant correlation index and still return 409. The existing status reference was qualified; the unchanged runtime recovery copy needs a separate platform correction.
 
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Add real AggregateActor.GetEventsAsync count and cumulative-payload budget boundary tests.
@@ -3641,3 +3637,9 @@ Diff reviewed: Tenants `d8558263..5a519cd7`, and EventStore `8f34b395..55b2982e`
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Extends the pass-6 entry "Make the command-status 409 ProblemDetails detail match every ambiguity it reports": the served error catalog has the same wrong copy.
   evidence: `src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs:94-97` describes `command-correlation-ambiguous` as "The tenant-scoped correlation identifier maps to multiple live commands" and remediates with "Use the MessageId returned by command submission". Neither covers a cross-tenant `messageId` collision. `docs/reference/problems/` has no page for this type. Pre-existing. EventStore-owned.
+
+## Deferred from: pass 14 workflow review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-05)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Correct EventStore polling guidance that treats recoverable PublishFailed as terminal.
+  evidence: Pass-14 BH10: command-api.md:477 tells callers to stop polling at PublishFailed, although a successful publication drain can later write Completed with command-specific sequence proof. The identical terminal-state sentence exists at preserved EventStore baseline b51978dd1d2a3721ad239db2623e1560377c7583:454, so this is pre-existing EventStore documentation work. Distinguish recoverable publication failure from exhausted recovery without duplicating the existing recovery-field documentation follow-up.

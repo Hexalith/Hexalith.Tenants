@@ -3787,7 +3787,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Detail_page_confirms_metadata_update_from_the_authoritative_proof_read()
+    public async Task Detail_page_confirms_metadata_update_from_the_authoritative_proof_read()
     {
         // End-to-end page handshake. The flow-level tests supply their own version/evidence providers, and
         // the composition test only reads the provider once against a static snapshot -- so nothing pinned
@@ -3836,7 +3836,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Alpha renamed");
-        cut.Find("form").Submit();
+        Task submit = cut.Find("form").SubmitAsync();
 
         EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
         cut.WaitForAssertion(() =>
@@ -3852,6 +3852,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             renamed,
             ProjectionLifecycleState.Current,
             "projection-v2"));
+        // Observe the complete submit/status/proof handshake after releasing the suspended read.
+        await submit;
 
         cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha renamed");
