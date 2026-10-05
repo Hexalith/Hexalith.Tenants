@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -1451,3 +1451,82 @@ No mutation run this pass. The pass-9 MV1 and MX10 kills are recorded under Veri
   - The first expiry timer is due after 5 minutes (`MaximumRetainedAttemptDuration`), and the UI suite finishes in about a minute.
   - The panel unsubscribes in `Dispose` (`CorrectionStartPanel.razor:494`).
   - `:2846` and `CorrectionStartPanelTests.cs:790`/`:1551` use the same registration.
+
+### Review Findings (pass 13: pass-11 fix-pass re-review)
+
+Review date: 2026-10-05. This is pass 13 because the triage log already has an internal "Pass-12 workflow review".
+
+Diff reviewed (410 lines, pinned to a scratch file before the layers ran):
+- Tenants `d8558263..5a519cd7` (`445387e7` + `5a519cd7`, both pushed): spec, ledger, sprint status, `TenantAuditPageTests.cs`, `TenantCorrectionAttemptTrackerTests.cs`, and four gitlinks.
+- EventStore `8f34b395..55b2982e`, story file only: `docs/reference/command-api.md`. The rest of that range (`65ac85a2` and `39809199`, the EventStore Story 6.6 replay-reader merge #366) was checked separately; see D1.
+- The tree did not move during the review: root `5a519cd7` = `origin/main`. All four new pins are on their `origin/main` per GitHub compare (EventStore `main` is 1 ahead, 0 behind `55b2982e`; FrontComposer, McpCli and Memories are identical to `main`).
+
+Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. `validate-story-gitlinks.py` exits 0, but `stated_targets()` returns `{}` for this spec, so the PASS checks paths only (see W1). Triage produced 2 decisions, 4 patches and 3 defers, and rejected 12. Both decisions resolved to option (a). D1 sets the values for the pin-record patch, and D2 adds a fifth patch.
+
+Fresh lanes run by this review against the shipped tree:
+- EventStore story lane at `55b2982e`: `dotnet build tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false` gave 0 warnings and 0 errors. The five-class `--filter-class` lane from the pass-12 verification block passed **165/165**, 0 skipped. The built `Hexalith.EventStore.Server.dll` contains the Story 6.6 `DaprProductionLogicalEventReader`.
+- Tenants UI at `5a519cd7` (FrontComposer `c561b321`, Memories `b31d1352`): the source-mode build gave 0 errors. `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` passed **3,960/3,960**, 0 skipped.
+- The pass-11 witness was checked by reading the code. `_resumedCorrectionMessageId` has a second setter (`TenantAuditPage.razor:750`), but it runs only when `tenantChanged`. The same-row test stays on one tenant, so the mutant still leaves the value `null`, and the recorded mutation log agrees.
+
+- [x] [Review][Decision] D1: Which dependency pins does the story ship?
+  - Pass 11 approved EventStore `8f34b395`. Commit `5a519cd7` ("update tenant correction spec status to done…") instead pins EventStore `55b2982e`, FrontComposer `c561b321`, McpCli `e159f82b` and Memories `b31d1352`.
+  - `55b2982e` is the pass-11 `command-api.md` patch, rebased at 15:44 onto `39809199` (EventStore Story 6.6 replay reader, #366) and `65ac85a2`. Those two change `AggregateActor.cs` by +121 lines on the command rehydration path (`EffectiveEvents`, `logicalReadFailure`), plus `EventStreamReader`, `SnapshotManager` and the new `DaprProductionLogicalEventReader`. Its pre-rebase copy `f1f44418` is on no remote.
+  - The recorded 165-test lane (13:53) and 3,960-test UI lane (14:14) ran before these pins existed. FrontComposer (13:04) and Memories (13:25) were already in the working tree for the UI run; EventStore (15:37–15:44) and McpCli (15:34) were not. This review's fresh lanes (above) pass at the shipped pins.
+  - (a) Adopt the four HEAD pins as the story's accepted pins. Record them, note that `55b2982e` carries Story 6.6, and cite this review's fresh lanes. Recommended: it needs no Git action, and the doc patch exists on a remote only in `55b2982e`.
+  - (b) Re-pin root EventStore to `8f34b395` and reopen pass-11 patch 3 (the `command-api.md:40`/`:297` text). That needs a new EventStore commit on a branch without Story 6.6, plus a root commit and push.
+  - **Resolved 2026-10-05: option (a).** The user adopted the four HEAD pins: EventStore `55b2982e44c4dd01e9fad7002ac0e04d1e1db126`, FrontComposer `c561b3210f15206a90c39c82c58f2e5b1005cd60`, McpCli `e159f82b7528797fc245045625ff387d65294ba9` and Memories `b31d1352c6a6576b8c9d2ec4be48cb19160ed1bd`. Recording them is the first patch below.
+- [x] [Review][Decision] D2: Did the secret-scan closure blocker get remediated, or only stop being scanned?
+  - The four `TrackedReusableContent_DoesNotContainUsableSecrets` locations recorded in Verification (`6-5d-simplification/previous-candidate.md:2593` and `:9269`, and `evidence/6-1-p2-local-2026-10-01/secret-guard{,-rerun}.ctrf.json:1`) are exactly the paths that EventStore `38efbefd` (2026-10-04 16:08, "fix(ci): … secrets scanner false positives") excludes. It does this through `ExplicitEvidenceArtifactPathPattern`, before any content is read.
+  - The same regex also skips every future `_bmad-output/implementation-artifacts/evidence/**.ctrf.json`.
+  - The frozen 2026-10-04 decision says "remediate flagged secret content while preserving enforcement". Completion Notes (`:170`) say "The historical artifact violations no longer reproduce … no secret scan was disabled" without naming the exclusion. Pass-12 BH1 deferred this as "high; independent", and the story then moved to `done`.
+  - (a) Accept `38efbefd` (your own commit) as the resolution of the historical blocker for this story. Correct `:170` to name the path exclusion as the reason those locations stop reproducing. Keep the pass-12 BH1 follow-up (high) deferred and EventStore-owned. Recommended: the exclusion is outside 5.6's code, and the follow-up is already in the ledger.
+  - (b) Keep 5.6 open until EventStore replaces the path exclusion with content-bound retirement (hash-pinned historical files, new content still scanned).
+  - **Resolved 2026-10-05: option (a).** The user accepted `38efbefd` as this story's resolution of the historical blocker. The `:170` correction is the patch below. Pass-12 BH1 stays the deferred, EventStore-owned follow-up (high).
+- [ ] [Review][Patch] Reconcile the pin record with what `5a519cd7` ships [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:176] — values from D1 (a).
+  - The dependency table ("Accepted committed checkout at current HEAD") lists EventStore `8f34b395`, FrontComposer `64f66220`, Memories `ec3601a5` and McpCli `3260812a`. All four are stale at the commit that adds them.
+  - The footnote (`:183`) says the EventStore row is the pin "the next root commit must carry" and that `445387e7` "already records" it. At HEAD neither is true.
+  - `:98` says the pin "carries pass-9 patches 2–4 plus the comment-only `dcc6124a`". It omits `65ac85a2`/`39809199`.
+  - The pass-12 block says "No staging, commit, push, … dependency movement", and the pass-11 block says the doc edit "does not stage, commit or push it". Both are committed in `5a519cd7` alongside four pointer moves.
+  - The "Concurrent closeout change" paragraph ("The root index still pins `46d7b2eb`") sits unmarked among current blocks.
+  - Fix: set the rows to the D1 outcome and name `5a519cd7` as the commit that carried them. Correct `:98` and `:183`. Add a dated note that supersedes the two "no commit/movement" sentences. Label the closeout paragraph historical. Record this review's fresh lanes. Also state each pin in arrow form (`references/X <baseline> -> <accepted>`) in Completion Notes so the existing guard binds them, then rerun `validate-story-gitlinks.py` and confirm it reports the pins as bound.
+- [ ] [Review][Patch] Completion Notes misstate why the historical secret-scan locations stopped reproducing [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:170] — from D2 (a).
+  - The note says "The historical artifact violations no longer reproduce … no secret scan was disabled". They stop reproducing because EventStore `38efbefd` excludes those paths through `ExplicitEvidenceArtifactPathPattern` before reading content. The same exclusion skips every future `evidence/**.ctrf.json`.
+  - Fix: name `38efbefd` and its path exclusion as the mechanism, and say the user accepted it in pass 13 (D2). Keep the claim that the story's own guard change (the GitHub SSH identity) disabled no scan. Point to the pass-12 BH1 ledger follow-up.
+- [ ] [Review][Patch] `command-api.md` overstates cross-tenant counting for legacy records [references/Hexalith.EventStore/docs/reference/command-api.md:297] — also `:40`.
+  - `CommandStatusController.GetStatus` (`:147-163`) adds an unindexed legacy record to `legacyMatches`, which is consulted only when `matches.Count == 0`.
+  - So a `messageId` match in tenant A plus a legacy correlation record in tenant B returns A's status, not 409. Only two or more legacy-only matches return 409.
+  - "Matches across all authorized tenants count together" (`:297`) and "every resolved match counts" (`:40`) are true only for direct and indexed matches.
+  - Fix: say that legacy records are used only when no authorized tenant has a direct or indexed match, and that two such legacy matches also return `409`. This needs an EventStore commit and a root pin bump. Verify reachability (`push.recurseSubmodules=check`) before the root push.
+- [ ] [Review][Patch] Pass-12 ledger entries are filed under the pass-11 heading [_bmad-output/implementation-artifacts/deferred-work.md:3601]
+  - The five pass-12 entries (BH1, BH6, BH7, BH9, VG1) follow the pass-11 heading. That heading's "Diff reviewed" line (`46d7b2eb..8f34b395`, story files only) is not what pass 12 reviewed (the 699,840-byte full-baseline input).
+  - Fix: insert a "pass 12 workflow review (2026-10-05)" heading, with its own diff line, before the BH1 entry.
+- [ ] [Review][Patch] Two pass-12 ledger entries duplicate pass-6 entries [_bmad-output/implementation-artifacts/deferred-work.md:3618]
+  - "Correct EventStore replay reference identity and ambiguity descriptions" (`:3618`) restates "Finish converting the EventStore replay reference to messageId semantics" (`:3573`): `originalCorrelationId` "matches the path parameter", and the replay table omits the ambiguity 409.
+  - "Make EventStore runtime status-ambiguity recovery text account for cross-tenant MessageId collisions" (`:3622`) restates "Make the command-status 409 ProblemDetails detail match every ambiguity it reports" (`:3576`).
+  - So a sweep would bundle the same work twice, and the pass-12 claim "carried findings were not appended again" is false for these two.
+  - Fix: delete `:3618` and `:3622`. Fold any extra evidence into `:3573`/`:3576`.
+- [x] [Review][Defer] The gitlink guard cannot bind the three-column dependency table [scripts/validate-story-gitlinks.py:208] — deferred: pre-existing guard limitation; the table format predates this diff.
+  - `stated_targets()` matches only `ARROW_CHAIN` (`X -> Y`), so `| references/X | base | target |` rows yield no stated target. For this spec the function returns `{}`, and the run PASSes with four stale rows.
+  - The script's docstring says a stale pointer table is exactly what it catches. `tests/scripts/test_validate_story_gitlinks.py` has no pipe-table fixture.
+  - Fix: parse the table's last column (or document tables as non-binding), and add a stale-table fixture that expects `[MISSTATED]`.
+- [x] [Review][Defer] A tenant-B correlation ID can make a known tenant-A `messageId` lookup return 409 [references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs:127] — deferred: pre-existing (`ddccb9b1`); lookup precedence is out of story scope (pass 11).
+  - The body `correlationId` is caller-chosen. A tenant-B submitter who reuses a tenant-A `messageId` as their correlation ID makes `matches.Count == 2` for any caller authorized for both tenants. The status endpoint has no tenant selector, so only a narrower token recovers.
+  - Tenants correction confirmation fails closed (unable to verify), so the impact is availability. The ledger tracks only the wording (`:3576`), not the behaviour.
+- [x] [Review][Defer] The served `command-correlation-ambiguous` catalog entry gives the same wrong remediation [references/Hexalith.EventStore/src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs:94] — deferred: pre-existing; extends the pass-6 ledger entry at `:3576`.
+  - It describes the cause as "The tenant-scoped correlation identifier maps to multiple live commands", and its remediation is "Use the MessageId returned by command submission". Neither covers a cross-tenant `messageId` collision.
+  - `docs/reference/problems/` has no page for this type.
+
+#### Rejected (pass 13)
+
+- BH11/AA5, "spec `done` versus sprint `review`": true, but rejected, because the fix edits this spec. This review resets both.
+- BH12/AA6, "the disposal fix leaves other trackers undisposed (`TenantCorrectionPreviewSnapshotTests.cs:210`, the `AddSingleton(instance)` registrations)": false as a defect. The first expiry timer is due after 5 minutes, and this review's full UI run took 55.1 s. This matches the pass-11 BH11/ECH3 refutation. That pass 12 patched five locals anyway does not create harm at the others.
+- ECH6/BH1, "`5a519cd7`'s message hides four gitlink bumps and test edits": low. The commit is pushed, so a fix would rewrite shared history. The pin-record patch names `5a519cd7` as the carrier.
+- BH1, "no `Story-Owned Gitlink Commits` record": low. File List declaration mode is valid here, and the record mode would chain-gap on the non-story commits that moved pointers first.
+- BH2, "the pass-12 VG1 ledger entry (array budget) needs re-checking at the shipped pin": false. `arrayBudget.Add` is still at `AggregateActor.cs:1876` at `55b2982e`, so the entry stays accurate.
+- BH2, "about 6.5k lines of the EventStore delta were never reviewed": false as a story-review gap. It is EventStore Story 6.6, merged through PR #366 with its own `replay-reader-review/` evidence. Its effect on this story's proof path is covered by the fresh 165/165 lane at `55b2982e`. Its adoption is D1.
+- VG-o1, "FrontComposer fast-forwarded to `c561b321` at 15:43": false. The FrontComposer reflog shows `c561b321` at 13:04, before the 14:14 UI run. The fresh UI run at HEAD also covers it.
+- BH4, "the pass-11 pin decision sits in the 'Pass-9 patches' bullet, and there is no pass-12 Implementation Note": low. The pass-11 patch prescribed that placement, and the pass-12 triage table records the tracker patch.
+- BH5, "mixed relative/absolute `source_spec`, missing severity fields": false as a convention break. Ledger `source_spec` paths are mostly absolute across the file, and severity is not a ledger field.
+- BH5, "the 'Carried, with no new work item' entry contradicts the carried rule": false. It is pass 11's own defer bullet, which the workflow must append, and it points to the existing CI item.
+- BH7, "the EventStore-owned follow-ups never reached EventStore's ledger": low. EventStore-owned items have always been recorded in this ledger (for example, the shared-consumer authority timeout entry). Mirroring them is a cross-repo commit plus a pin bump, which is more than a direct correction. The high BH1 item is handled by D2.
+- BH13, "closure evidence lives only in `/tmp`": low. This review re-ran both lanes. Persisting about 98 logs is a process change, and the real gap is the existing "Restore CI test execution" defer.

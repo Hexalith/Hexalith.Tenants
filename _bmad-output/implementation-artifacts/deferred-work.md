@@ -3625,3 +3625,19 @@ Diff reviewed: the uncommitted Tenants working tree against root `d8558263`, and
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Add real AggregateActor.GetEventsAsync count and cumulative-payload budget boundary tests.
   evidence: Pass-12 VG1: pre-verified gap in independent EventStore evolution commit 974a7fa33d70fdfb9dabb32c7d2416e4f0095853. AggregateActorGetEventsTests uses small arrays, projection tests mock the actor, and the only LegacyArrayLimit assertion calls EventStreamReader.RehydrateAsync. Invoke the real actor for excessive count and cumulative 64-MiB payload cases and require LegacyArrayLimit, so deleting arrayBudget.Add is detected.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 13 (2026-10-05)
+
+Diff reviewed: Tenants `d8558263..5a519cd7`, and EventStore `8f34b395..55b2982e` (story file `docs/reference/command-api.md` only).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Teach `scripts/validate-story-gitlinks.py` to bind three-column dependency-table rows, or document that tables are non-binding.
+  evidence: `stated_targets()` (`:208`) matches only `ARROW_CHAIN` (`X -> Y`). For the 5.6 spec at `5a519cd7` it returns `{}`, so the run PASSes while four `| references/X | base | target |` rows are stale (EventStore `8f34b395` vs shipped `55b2982e`, FrontComposer, McpCli, Memories). The docstring says a stale pointer table is exactly what the guard catches. `tests/scripts/test_validate_story_gitlinks.py` has no pipe-table fixture. Add one that expects `[MISSTATED]`. Pre-existing; not caused by Story 5.6.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: A caller-chosen correlation ID in one tenant can force a 409 on another tenant's `messageId` status lookup.
+  evidence: `CommandStatusController.GetStatus` (`:114-153`) counts a direct match in tenant A and an indexed correlation match in tenant B together, so `matches.Count == 2` returns 409. The body `correlationId` is caller-chosen, and the endpoint has no tenant selector. Tenants correction confirmation fails closed (unable to verify), so the impact is availability for multi-tenant callers. The `:3576` entry tracks only the wording, not the lookup behaviour. Pre-existing (`ddccb9b1`). EventStore-owned.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Extends the pass-6 entry "Make the command-status 409 ProblemDetails detail match every ambiguity it reports": the served error catalog has the same wrong copy.
+  evidence: `src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs:94-97` describes `command-correlation-ambiguous` as "The tenant-scoped correlation identifier maps to multiple live commands" and remediates with "Use the MessageId returned by command submission". Neither covers a cross-tenant `messageId` collision. `docs/reference/problems/` has no page for this type. Pre-existing. EventStore-owned.
