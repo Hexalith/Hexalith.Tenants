@@ -122,15 +122,16 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
         }
     }
 
-    /// <summary>When supplied, retains the delivery outcome before allowing another same-id delivery.</summary>
-    internal void EndDelivery(string tenantId, string messageId, TenantCorrectionPreviewSnapshot? outcome = null)
+    /// <summary>Retains the delivery outcome and ends delivery of the retained message id.</summary>
+    internal void EndDelivery(string tenantId, string messageId, TenantCorrectionPreviewSnapshot outcome)
     {
+        ArgumentNullException.ThrowIfNull(outcome);
         lock (_sync)
         {
             if (_attempts.TryGetValue(tenantId, out TenantCorrectionAttempt? attempt)
                 && string.Equals(attempt.MessageId, messageId, StringComparison.Ordinal))
             {
-                if (outcome is not null) TryUpdate(tenantId, messageId, outcome);
+                _ = TryUpdate(tenantId, messageId, outcome);
                 _deliveriesInFlight.Remove(tenantId);
             }
         }

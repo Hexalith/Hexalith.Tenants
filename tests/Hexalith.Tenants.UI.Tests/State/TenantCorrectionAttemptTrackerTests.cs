@@ -141,9 +141,9 @@ public sealed class TenantCorrectionAttemptTrackerTests
         attempt.ShouldNotBeNull();
 
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeFalse();
-        tracker.EndDelivery(preview.TenantId, "wrong-id");
+        tracker.EndDelivery(preview.TenantId, "wrong-id", attempt.Snapshot);
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeFalse();
-        tracker.EndDelivery(preview.TenantId, attempt.MessageId);
+        tracker.EndDelivery(preview.TenantId, attempt.MessageId, attempt.Snapshot);
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeTrue();
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeFalse();
     }
@@ -209,7 +209,7 @@ public sealed class TenantCorrectionAttemptTrackerTests
         replacement.BlocksAdmission.ShouldBeTrue();
         tracker.IsExpired(preview.TenantId).ShouldBeFalse();
         tracker.TryUpdate(preview.TenantId, attempt.MessageId, attempt.Snapshot).ShouldBeFalse();
-        tracker.EndDelivery(preview.TenantId, attempt.MessageId);
+        tracker.EndDelivery(preview.TenantId, attempt.MessageId, attempt.Snapshot);
         tracker.TryStartRetry(preview.TenantId, replacement.MessageId).ShouldBeFalse();
         gate.IsLocked(TenantCommandAggregateLock.ForTenant(preview.TenantId)).ShouldBeTrue();
     }
@@ -259,7 +259,7 @@ public sealed class TenantCorrectionAttemptTrackerTests
 
         gate.IsLocked(TenantCommandAggregateLock.ForTenant(preview.TenantId)).ShouldBeTrue();
         tracker.IsExpired(preview.TenantId).ShouldBeFalse();
-        tracker.EndDelivery(preview.TenantId, attempt!.MessageId);
+        tracker.EndDelivery(preview.TenantId, attempt!.MessageId, attempt.Snapshot);
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeTrue();
     }
 

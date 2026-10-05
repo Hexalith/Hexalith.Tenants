@@ -2101,6 +2101,8 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
             .Add(p => p.Intent, intent).Add(p => p.StartProjection, projection));
         cut.Instance.Snapshot!.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Instance.Snapshot.Intent.UnavailableReasons.ShouldNotContain(
+            TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
         cut.Instance.Snapshot.Intent.RequiredPreviewInputs.ContainsKey("currentRole").ShouldBeFalse();
         cut.Instance.Snapshot.CanSubmit.ShouldBeFalse();
         cut.Find("[data-testid='tenants-correction-current-role']").TextContent.ShouldBe("-");

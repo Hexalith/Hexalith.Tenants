@@ -218,10 +218,10 @@ public sealed class TenantCorrectionPreviewSnapshotTests
         tracker.TryBegin(preview, gate, out _).ShouldBeFalse();
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeFalse();
 
-        tracker.EndDelivery(preview.TenantId, attempt.MessageId);
+        tracker.EndDelivery(preview.TenantId, attempt.MessageId, attempt.Snapshot);
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeTrue();
         tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBeFalse();
-        tracker.EndDelivery(preview.TenantId, attempt.MessageId);
+        tracker.EndDelivery(preview.TenantId, attempt.MessageId, attempt.Snapshot);
 
         TenantCorrectionPreviewSnapshot confirmed = attempt.Snapshot
             .Accepted(TenantCommandSubmissionResult.Accepted(attempt.MessageId, "tracking-safe"))

@@ -2787,9 +2787,16 @@ public sealed class TenantAuditPageTests : BunitContext
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.Find("[data-testid='tenants-correction-start']").Click();
         cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        query.QueueDetailResponse(Task.FromResult(DetailSnapshot(TenantRole.TenantContributor)));
+        query.QueueDetailResponse(Task.FromResult(TenantDetailSnapshot.Ready(
+            DetailSnapshot(TenantRole.TenantReader).Detail!,
+            "\"detail-etag\"",
+            ReadModelFreshnessState.Current,
+            projectionVersion: "tenant-sequence:2")));
         cut.Find("[data-testid='tenants-correction-confirm']").Click();
         CorrectionStartPanel preview = cut.FindComponent<CorrectionStartPanel>().Instance;
         cut.WaitForAssertion(() => preview.Snapshot!.HasCommandTracking.ShouldBeTrue());
+        cut.WaitForAssertion(() => preview.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
         string? messageId = preview.Snapshot!.MessageId;
         int detailReads = query.DetailRequests.Count;
         FluentSelectInterop.ChangeFluentSelect(cut.FindComponent<AuditDataGrid>(), "tenants-correction-role", TenantRole.TenantOwner.ToString());
@@ -2871,6 +2878,7 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.Find("[data-testid='tenants-correction-original-receipt']").Click();
 
+        cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldHaveSingleItem();
         cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-role']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']").ShouldBeEmpty();
         cut.FindComponent<CorrectionStartPanel>().Instance.ShouldBeSameAs(preview);
@@ -3260,7 +3268,11 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty());
         cut.FindAll("[data-testid='tenants-correction-confirm']").ShouldBeEmpty();
-        if (!stale)
+        if (stale)
+        {
+            cut.FindAll("[data-testid='tenants-audit-stale']").ShouldHaveSingleItem();
+        }
+        else
         {
             cut.FindAll("[data-testid='tenants-audit-ready']").ShouldHaveSingleItem();
         }
