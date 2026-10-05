@@ -2787,16 +2787,10 @@ public sealed class TenantAuditPageTests : BunitContext
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
         cut.Find("[data-testid='tenants-correction-start']").Click();
         cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
-        query.QueueDetailResponse(Task.FromResult(DetailSnapshot(TenantRole.TenantContributor)));
-        query.QueueDetailResponse(Task.FromResult(TenantDetailSnapshot.Ready(
-            DetailSnapshot(TenantRole.TenantReader).Detail!,
-            "\"detail-etag\"",
-            ReadModelFreshnessState.Current,
-            projectionVersion: "tenant-sequence:2")));
         cut.Find("[data-testid='tenants-correction-confirm']").Click();
         CorrectionStartPanel preview = cut.FindComponent<CorrectionStartPanel>().Instance;
         cut.WaitForAssertion(() => preview.Snapshot!.HasCommandTracking.ShouldBeTrue());
-        cut.WaitForAssertion(() => preview.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        preview.Snapshot!.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         string? messageId = preview.Snapshot!.MessageId;
         int detailReads = query.DetailRequests.Count;
         FluentSelectInterop.ChangeFluentSelect(cut.FindComponent<AuditDataGrid>(), "tenants-correction-role", TenantRole.TenantOwner.ToString());
@@ -2805,6 +2799,36 @@ public sealed class TenantAuditPageTests : BunitContext
         preview.Snapshot!.MessageId.ShouldBe(messageId);
         preview.Snapshot.IntendedRole.ShouldBe(TenantRole.TenantReader);
         query.DetailRequests.Count.ShouldBe(detailReads);
+    }
+
+    [Fact]
+    public void QueryCaptureConfirmationRendersTheOutcomeAndConsumesTheCommittedSequenceRead()
+    {
+        StubTenantQueryGateway query = RegisterServices(ReadySnapshot([
+            Row("event-correction", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]));
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        commands.ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "tracking-safe")));
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
+                HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }));
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        int readsBeforeConfirm = query.DetailRequests.Count;
+        query.QueueDetailResponse(Task.FromResult(DetailSnapshot(TenantRole.TenantContributor)));
+        query.QueueDetailResponse(Task.FromResult(TenantDetailSnapshot.Ready(
+            DetailSnapshot(TenantRole.TenantReader).Detail!,
+            "\"detail-etag\"",
+            ReadModelFreshnessState.Current,
+            projectionVersion: "tenant-sequence:2")));
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-correction-state']").TextContent
+            .ShouldContain("Projection confirms the intended state; corrective audit association is unavailable. Inspect audit evidence."));
+        (query.DetailRequests.Count - readsBeforeConfirm).ShouldBe(2);
     }
 
     [Theory]

@@ -95,6 +95,8 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 
 ## Implementation Notes
 
+- Pass-7 patches (2026-10-05): the resume publish-failure writer is now pinned by an in-memory EventsStored resume that fails publication, asserts the drain causation, removes the recoverable idempotency record, and still reports the committed end sequence. Record-carried drain proof now has wrong-identity, legacy, and missing-command-type rows that expect no sequence. The pending same-row Start guard no longer waits for confirmation; a separate page test renders the confirmed outcome and requires the `tenant-sequence:2` detail-read delta. Role-change evaluation refuses `CurrentStateIndeterminate` for a stale capture and a scope conflict. Command API notes keep header tracing and support, carry body correlation on status records and events, look up status by `messageId`, give the walkthrough message `…F6`, and name API or submit-handler concurrency-conflict rejections. The unpublished EventStore pin was not rebased or pushed: this run cannot use remotes, commits, or submodule pointer movement.
+
 - Pass-6 patches (2026-10-05): drain records now carry normalized command causation. Stale-checkpoint handoff and both publish-failure writers set it; drain proof uses it when present and falls back to a recoverable idempotency record only when the field is absent. `EndDelivery` requires the delivery outcome. Command API notes now match Location, `X-Correlation-ID`, domain null cases, and the A1/B2 correlation examples. EventStore revision `ad8fe3ba4ad4804e941bf4ada5852b0b94af3544` is checked out from `d48e1aeb` (already a descendant of `7dcc4756`). The Tenants index at `c0b6f16d` still records `d48e1aeb`; the working tree gitlink now points at `ad8fe3ba` and was not committed.
 - HTTP-proof completeness review (2026-10-04): added three real HTTP-envelope regression cases for otherwise valid committed proof with a missing tenant, domain or numeric status code. Legacy status/identity remains readable, while correction proof is omitted. A control that permits those missing fields makes all three cases fail; the gateway was restored byte-for-byte afterward. The shared proof-link DTO summary now describes stored receipt references without universally promising attempt-specific association. Final review findings and carried decisions are recorded individually below.
 
@@ -137,6 +139,7 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 - tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs
 - tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionAttemptTrackerTests.cs
+- tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionStartIntentTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs
 - tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs
 - references/Hexalith.EventStore/docs/reference/command-api.md
@@ -1132,7 +1135,7 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
   - Fix: rebase `ad8fe3ba` onto EventStore `origin/main` and push it (the push needs the user's go-ahead). Re-pin the root gitlink to the pushed SHA. Re-run the EventStore Contracts/Client/Server and Tenants UI lanes at that revision and record them.
 
   [references/Hexalith.EventStore (gitlink)]
-- [ ] [Review][Patch] Nothing pins the causation the resume publish-failure writer stores.
+- [x] [Review][Patch] Nothing pins the causation the resume publish-failure writer stores.
   - Deleting `CausationId: resumeIdentity.CausationId` survives the whole Server suite (MX5). The same batch writes a `Recoverable` idempotency record with that identity (`:4342`), so the drain silently falls back to it.
   - If that idempotency read then faults or misses, a resumed range loses proof. That contradicts decision (a), which says every drain verifies without an idempotency record.
   - Fix: add a `CreateInMemoryActor` case modelled on `Stale_handoff_drain_reports_committed_sequence_without_an_idempotency_record`:
@@ -1141,7 +1144,7 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
     - remove `idempotency:{id}`, drain, and assert `CommittedEventSequence`.
 
   [references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:4400]
-- [ ] [Review][Patch] Extending `RoleSelectionAndAnotherStartPreserveASubmittedPreviewAndItsTrackingHandle` for pass-6 verification 1 changed the state it guards.
+- [x] [Review][Patch] Extending `RoleSelectionAndAnotherStartPreserveASubmittedPreviewAndItsTrackingHandle` for pass-6 verification 1 changed the state it guards.
   - The test now waits for `Confirmed` before the second role change and Start. `Confirmed` is terminal and has released the lease.
   - So nothing tests same-row preservation of a submitted attempt that is still pending with the aggregate locked:
     - `Starting_another_row_resumes_the_pending_attempt_with_a_busy_reason` covers another row.
@@ -1149,7 +1152,7 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
   - Fix: restore the original pending form, and move query-capture confirmation into its own page test. That test should assert the rendered confirmed outcome and that confirmation consumed the queued `tenant-sequence:2` read (the `DetailRequests` delta).
 
   [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2774]
-- [ ] [Review][Patch] The pass-6 verification-2 assertion cannot see the reason it targets.
+- [x] [Review][Patch] The pass-6 verification-2 assertion cannot see the reason it targets.
   - `StaleOrMismatchedRedactedCaptureCannotShowAlreadyApplied` asserts that the panel snapshot omits `CurrentStateIndeterminate`. But `ResolvedIntent` strips that reason whenever a capture exists (`CorrectionStartPanel.razor:656-658`), and the stale/scope early return never adds it.
   - Putting back `|| row.EventType is "UserRoleChanged" && currentRole is null` on the membership check (`TenantCorrectionStartIntent.cs:131`) survives all 3,957 UI tests (MU4).
   - So a stale or mismatched role-change row could again show the indeterminate-state reason on the receipt and grid (`AuditEvidenceReceipt.razor:376`, `AuditDataGrid.razor:278`).
@@ -1157,27 +1160,27 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
   - Fix: add `UserRoleChanged` rows at the `Evaluate` level. They should assert `ShouldNotContain(CurrentStateIndeterminate)` and the expected `CurrentProjectionUnavailable` or `ScopeConflict`.
 
   [tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionStartIntentTests.cs:498]
-- [ ] [Review][Patch] With a record-carried causation, the drain status write's identity guards are the only identity check, and they are untested.
+- [x] [Review][Patch] With a record-carried causation, the drain status write's identity guards are the only identity check, and they are untested.
   - The `MessageId`/tracking-id/`CommandType` checks (`AggregateActor.cs:2725-2728`) used to duplicate `TryReadDrainCausationIdAsync`'s checks. When `record.CausationId` is set, they are the sole guard.
   - Dropping the tracking-id comparison survives the whole Server suite (MX7). Every identity row in `Durable_drain_proof_uses_its_verified_range_instead_of_the_aggregate_head` runs with a null record causation.
   - Fix: add record-causation variants of `wrong-identity`, `legacy` and `missing-command-type`, each expecting null proof.
 
   [references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/EventDrainRecoveryTests.cs:327]
-- [ ] [Review][Patch] The rewritten Correlation ID paragraph contradicts the rest of the reference.
+- [x] [Review][Patch] The rewritten Correlation ID paragraph contradicts the rest of the reference.
   - `:40` says the command `correlationId` "identifies command status". But status lookup is keyed by `messageId`, a correlation lookup can return 409, and `:56` says `correlationId` identifies the request for tracing.
   - It also drops what the header is for. ProblemDetails `correlationId` carries the middleware value (`ConcurrencyConflictExceptionHandler.cs:93`, `ValidationProblemDetailsFactory`).
   - `:163` repeats the "can differ even when the request sends the header" sentence and names the internal `result.MessageId`.
   - Fix: say that the body `correlationId` is carried on status records and events while lookup uses `messageId`, keep the header's tracing and support use, and state the difference once.
 
   [references/Hexalith.EventStore/docs/reference/command-api.md:40] — also `:163`.
-- [ ] [Review][Patch] `…A1` now has two correlations in one reference.
+- [x] [Review][Patch] `…A1` now has two correlations in one reference.
   - The IncrementCounter POST and the completed-status example pair it with `a1b2c3d4-…` (`:103`, `:335`).
   - The walkthrough submits `…A1` without a `correlationId` and shows correlation `…A1` (`:548`, `:552`, `:566`).
   - The document therefore describes one messageId submitted twice with different bodies.
   - Fix: give the walkthrough its own messageId.
 
   [references/Hexalith.EventStore/docs/reference/command-api.md:548]
-- [ ] [Review][Patch] The `domain` null list still misses conflict rejections written outside the actor.
+- [x] [Review][Patch] The `domain` null list still misses conflict rejections written outside the actor.
   - `ConcurrencyConflictExceptionHandler.cs:51-54` writes `Rejected`/`ConcurrencyConflict` without `Domain` for conflicts the actor throws (`AggregateActor.cs:1734`, `:4483`) and for the one `SubmitCommandHandler.cs:708` raises after the actor result.
   - `SubmitCommandHandler.cs:332` writes the `coordinated_source_conflict` rejection without `Domain` too.
   - Fix: replace "pre-actor concurrency conflicts" with concurrency-conflict rejections written by the API or the submit handler.

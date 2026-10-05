@@ -510,6 +510,25 @@ public sealed class TenantCorrectionStartIntentTests
         intent.RequiredPreviewInputs.ContainsKey("currentRole").ShouldBeFalse();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StaleOrScopeConflictingRoleChangeCannotClaimIndeterminateMembership(bool scopeConflict)
+    {
+        TenantCorrectionStartContext context = Context(Row("UserRoleChanged", "userId: target-user"),
+            TenantRole.TenantReader, TenantRole.TenantReader);
+        TenantCorrectionProjection capture = context.Projection!;
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with
+        {
+            Projection = scopeConflict ? capture with { TenantId = "tenant.beta" }
+                : capture with { Freshness = ReadModelFreshnessState.Stale },
+        });
+        intent.UnavailableReasons.ShouldNotContain(TenantCorrectionUnavailableReason.CurrentStateIndeterminate);
+        intent.UnavailableReasons.ShouldContain(scopeConflict
+            ? TenantCorrectionUnavailableReason.ScopeConflict
+            : TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
+    }
+
     [Fact]
     public void RedactedAuthorityCaptureShowsOneRecoveryWithoutMembershipGuesses()
     {
