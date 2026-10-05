@@ -2853,6 +2853,38 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
+    public void OriginalReceiptHidesCorrectionControlsDuringUnsubmittedPreviewAndRestoresThemAfterCancel()
+    {
+        TenantAuditRow source = Row("event-correction", AuditEventCategory.Access,
+            "userId: target-user", eventType: "UserRoleChanged");
+        RegisterServices(ReadySnapshot([source]));
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        CorrectionStartPanel preview = cut.FindComponent<CorrectionStartPanel>().Instance;
+        preview.HasSubmitted.ShouldBeFalse();
+
+        cut.Find("[data-testid='tenants-correction-original-receipt']").Click();
+
+        cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-role']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.FindComponent<CorrectionStartPanel>().Instance.ShouldBeSameAs(preview);
+        preview.Snapshot!.OriginalAuditReference.ShouldBe("event-correction");
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+
+        cut.Find("[data-testid='tenants-correction-cancel']").Click();
+
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-role']").ShouldHaveSingleItem();
+        cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']").ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public async Task Pending_correction_can_resume_after_cancel_row_loss_and_narrow_viewport()
     {
         var viewport = new TenantHighImpactViewportObservation();
@@ -3187,8 +3219,10 @@ public sealed class TenantAuditPageTests : BunitContext
             Arg.Is<string>(id => id != retained.MessageId), Arg.Any<CancellationToken>());
     }
 
-    [Fact]
-    public void Expired_attempt_does_not_keep_a_fresh_preview_visible_after_row_loss_on_stale_audit()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExpiredAttemptDoesNotKeepFreshPreviewVisibleAfterRowLoss(bool stale)
     {
         TenantAuditRow source = Row("event-correction", AuditEventCategory.Access,
             "userId: target-user", eventType: "UserRoleChanged");
@@ -3218,13 +3252,18 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.FindComponent<CorrectionStartPanel>().Instance.Snapshot!.MessageId.ShouldBeNull();
         tracker.Find("tenant.alpha")!.MessageId.ShouldBe(retained!.MessageId);
 
-        TenantAuditSnapshot staleWithoutRow = TenantAuditSnapshot.Stale([], null, false, "\"etag\"",
-            new TenantAuditRequest("tenant.alpha"));
-        query.QueueResponse(Task.FromResult(staleWithoutRow));
+        TenantAuditSnapshot withoutRow = stale
+            ? TenantAuditSnapshot.Stale([], null, false, "\"etag\"", new TenantAuditRequest("tenant.alpha"))
+            : ReadySnapshot([]);
+        query.QueueResponse(Task.FromResult(withoutRow));
         cut.Find("[data-testid='tenants-audit-refresh']").Click();
 
         cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty());
         cut.FindAll("[data-testid='tenants-correction-confirm']").ShouldBeEmpty();
+        if (!stale)
+        {
+            cut.FindAll("[data-testid='tenants-audit-ready']").ShouldHaveSingleItem();
+        }
         tracker.Find("tenant.alpha")!.MessageId.ShouldBe(retained.MessageId);
     }
 

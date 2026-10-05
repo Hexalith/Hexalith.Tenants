@@ -149,6 +149,27 @@ public sealed class TenantCorrectionAttemptTrackerTests
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void EndingDeliveryRetainsOutcomeBeforeAnotherPanelCanRetry(bool accepted)
+    {
+        TenantCorrectionPreviewSnapshot preview = Preview();
+        using TenantCorrectionAttemptTracker tracker = new();
+        tracker.TryBegin(preview, new TenantAggregateCommandAdmissionGate(), out TenantCorrectionAttempt? attempt).ShouldBeTrue();
+        attempt.ShouldNotBeNull();
+        TenantCorrectionPreviewSnapshot outcome = accepted
+            ? attempt.Snapshot.Accepted(TenantCommandSubmissionResult.Accepted(attempt.MessageId, "tracking-safe"))
+            : attempt.Snapshot with { LifecycleState = TenantCommandLifecycleState.UnableToVerify };
+
+        tracker.EndDelivery(preview.TenantId, attempt.MessageId, outcome);
+
+        TenantCorrectionPreviewSnapshot retained = tracker.Find(preview.TenantId)!.Snapshot;
+        retained.LifecycleState.ShouldBe(outcome.LifecycleState);
+        retained.CorrelationId.ShouldBe(outcome.CorrelationId);
+        tracker.TryStartRetry(preview.TenantId, attempt.MessageId).ShouldBe(!accepted);
+    }
+
+    [Theory]
     [InlineData(TenantCommandLifecycleState.Confirmed)]
     [InlineData(TenantCommandLifecycleState.Rejected)]
     [InlineData(TenantCommandLifecycleState.AlreadyApplied)]

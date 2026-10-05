@@ -32,7 +32,7 @@ public class QuickstartDocumentationTests {
         quickstart.ShouldContain("dapr init --slim");
         quickstart.ShouldContain("Docker");
         quickstart.ShouldContain("docker info");
-        quickstart.ShouldContain("git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories");
+        quickstart.ShouldContain("git submodule update --init references/Hexalith.EventStore references/Hexalith.Commons references/Hexalith.AI.Tools references/Hexalith.Builds references/Hexalith.FrontComposer references/Hexalith.PolymorphicSerializations references/Hexalith.Memories references/Hexalith.McpCli references/Hexalith.Platform");
         quickstart.ShouldContain("Do not run `git submodule update --init --recursive`");
         quickstart.ShouldContain("dotnet build Hexalith.Tenants.slnx --configuration Release");
         quickstart.ShouldContain("dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj");

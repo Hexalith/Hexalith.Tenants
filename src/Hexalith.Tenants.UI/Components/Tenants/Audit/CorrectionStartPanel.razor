@@ -859,14 +859,14 @@
         ITenantCommandGateway? gateway = CommandGateway;
         if (gateway is null)
         {
-            SetSnapshot(attempt.Snapshot with {
+            TenantCorrectionPreviewSnapshot unavailable = attempt.Snapshot with {
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessageKey = "Tenants.Correction.Unavailable.CommandSupportUnavailable",
                 AuditState = TenantCommandAuditState.MissingSupport,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            }, focusTerminalState: true);
-            _attemptTracker.TryUpdate(attempt.TenantId, attempt.MessageId, _snapshot!);
-            _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId);
+            };
+            _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId, unavailable);
+            SetRetainedSnapshot(attempt, unavailable, focusTerminalState: true);
             return;
         }
 
@@ -930,7 +930,7 @@
                     SafeMessageKey = RejectionMessageKey(result.RejectionCode)
                         ?? result.SafeMessageKey ?? FailureMessageKey(result.State),
                 };
-        _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId);
+        _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId, next);
         SetRetainedSnapshot(attempt, next, focusTerminalState: true);
         if (next.LifecycleState is TenantCommandLifecycleState.Accepted)
         {

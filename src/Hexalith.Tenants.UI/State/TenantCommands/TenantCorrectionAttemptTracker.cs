@@ -122,14 +122,15 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
         }
     }
 
-    /// <summary>Ends only delivery of the retained message id.</summary>
-    internal void EndDelivery(string tenantId, string messageId)
+    /// <summary>When supplied, retains the delivery outcome before allowing another same-id delivery.</summary>
+    internal void EndDelivery(string tenantId, string messageId, TenantCorrectionPreviewSnapshot? outcome = null)
     {
         lock (_sync)
         {
             if (_attempts.TryGetValue(tenantId, out TenantCorrectionAttempt? attempt)
                 && string.Equals(attempt.MessageId, messageId, StringComparison.Ordinal))
             {
+                if (outcome is not null) TryUpdate(tenantId, messageId, outcome);
                 _deliveriesInFlight.Remove(tenantId);
             }
         }
@@ -237,7 +238,8 @@ public sealed class TenantCorrectionAttemptTracker : IDisposable
             }
 
             // Release bounded circuit admission, but retain the original identity and snapshot.
-            // Resume can inspect status until a fresh current-state preview replaces this attempt.
+            // A correlated attempt can inspect status until a fresh current-state preview replaces it.
+            // Without correlation, the retained identity remains for escalation but cannot be looked up.
             attempt.Lease.TryReleaseTerminal(_leaseOwner, TenantCommandLifecycleState.Failed);
             _attempts[tenantId] = attempt with { IsExpired = true, Snapshot = attempt.Snapshot with {
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
