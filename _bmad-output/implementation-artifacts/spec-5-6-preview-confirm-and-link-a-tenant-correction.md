@@ -95,6 +95,8 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 
 ## Implementation Notes
 
+- Pass-9 patches (2026-10-05): the same-row pending correction test now shares the page/panel tracker, requires `ProjectionPending`, and refuses a competing-command notice after Start. The drain proof theory now includes a record-carried rejection with a command identity and asserts the `Rejected` status omits committed sequence. API documentation describes message-primary lookup with bounded correlation compatibility and includes domain/committed sequence in the walkthrough terminal response. These changes preserve production behavior, package pins, dependency checkouts and the original baselines. The dependency table records root `d8558263`'s committed pins; earlier pass-specific pointer and publication notes below are historical observations, not this pass's Git actions.
+
 - Pass-7 patches (2026-10-05): the resume publish-failure writer is now pinned by an in-memory EventsStored resume that fails publication, asserts the drain causation, removes the recoverable idempotency record, and still reports the committed end sequence. Record-carried drain proof now has wrong-identity, legacy, and missing-command-type rows that expect no sequence. The pending same-row Start guard no longer waits for confirmation; a separate page test renders the confirmed outcome and requires the `tenant-sequence:2` detail-read delta. Role-change evaluation refuses `CurrentStateIndeterminate` for a stale capture and a scope conflict. Command API notes keep header tracing and support, carry body correlation on status records and events, look up status by `messageId`, give the walkthrough message `…F6`, and name API or submit-handler concurrency-conflict rejections. EventStore `ad8fe3ba` was rebased onto `origin/main` as `738da5c95107d3ad84b3856558bf4a0ba7c3a9ca` and pushed; the Tenants gitlink records that SHA.
 
 - Pass-6 patches (2026-10-05): drain records now carry normalized command causation. Stale-checkpoint handoff and both publish-failure writers set it; drain proof uses it when present and falls back to a recoverable idempotency record only when the field is absent. `EndDelivery` requires the delivery outcome. Command API notes now match Location, `X-Correlation-ID`, domain null cases, and the A1/B2 correlation examples. EventStore revision `ad8fe3ba4ad4804e941bf4ada5852b0b94af3544` is checked out from `d48e1aeb` (already a descendant of `7dcc4756`). The Tenants index at `c0b6f16d` still records `d48e1aeb`; the working tree gitlink now points at `ad8fe3ba` and was not committed.
@@ -168,14 +170,14 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 
 | Dependency | Original story baseline | Accepted committed checkout at current HEAD |
 | --- | --- | --- |
-| references/Hexalith.Builds | 3639c8d9340fc81d6f8e0a90566a97e56d5d8446 | 360a2b9c4e96809365a7de785be9a68152d5ac28 |
+| references/Hexalith.Builds | 3639c8d9340fc81d6f8e0a90566a97e56d5d8446 | ba4ca78c3868a4757cb92d912a54c8a237871b54 |
 | references/Hexalith.Commons | c13dc6679aa91144b6d541078f3f20019d79c2eb | 116d26815eb81e35b3c161e1799e5ee12805fc0a |
-| references/Hexalith.EventStore | 2c58ffda41759e895ace4b9625c9bd931a217672 | ad8fe3ba4ad4804e941bf4ada5852b0b94af3544 |
-| references/Hexalith.FrontComposer | 24033f75357eb16eee9aa8899bb9eaf50f2168ad | 9bf23e2763341c6697ec71108b7ff53960499ee9 |
-| references/Hexalith.Memories | ece4edc4c9a37a62b34d3b7c8aa901fc363c038c | 15afe38536ae97115325ba11d0f1010481e6620f |
+| references/Hexalith.EventStore | 2c58ffda41759e895ace4b9625c9bd931a217672 | 46d7b2eb61864c056a7323fecfa4246b41b1ec3b |
+| references/Hexalith.FrontComposer | 24033f75357eb16eee9aa8899bb9eaf50f2168ad | 64f662201e5f184d0bf0442da8b6c66da98a7f4f |
+| references/Hexalith.Memories | ece4edc4c9a37a62b34d3b7c8aa901fc363c038c | ec3601a532a6779c2c677c9b74e8bba642a8a651 |
 | references/Hexalith.PolymorphicSerializations | 4252c432ca1ba27a8571a082372b9384f3d13299 | 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 |
-| references/Hexalith.McpCli | absent | 39f5dda4754c09c5db7a57f601763a2624064f58 |
-| references/Hexalith.Platform | absent | 7811d3ed5592fd8e0411cfb066d690fbc0ec3268 |
+| references/Hexalith.McpCli | absent | 3260812a565d5a6d915e3343ebe2941df549ee13 |
+| references/Hexalith.Platform | absent | 54920908f15a99b48e69861baf306365353fc6df |
 
 ## Spec Change Log
 
@@ -496,6 +498,25 @@ All three layers reviewed `/tmp/tenants-56-review-52DR70.diff`. Verification-gap
 | Pass 8 edge 7: a blank drain causation skips idempotency | false; reject | carried: same fail-closed omission as pass 6 blind 12. `CausationId is not null` treats `""` as present, so proof is withheld instead of borrowed from another record. |
 | Pass 8 edge 8: expiry unlocks without terminal evidence | low; reject | carried: same matrix rule as pass 6 edge 6. The operator-facing state stays `UnableToVerify` while admission uses the terminal release. |
 
+### Pass-10 review — pass-9 fixes (2026-10-05)
+
+All three workflow layers reviewed `/tmp/tenants-56-review-fw9szxwu.diff` before triage. The input preserves the original root baseline and includes the EventStore proof paths from its recorded baseline, plus the working-tree fixes; this claims spec was excluded from the diff and supplied separately only to the edge layer. Root revision `d8558263a7ee766f2823a4fc3033328f4a5f2c74` and EventStore revision `46d7b2eb61864c056a7323fecfa4246b41b1ec3b` were unchanged. Edge-case review returned no findings; verification-gap review found no gaps. Each blind finding has its own disposition below. Carried findings receive no duplicate patch or deferred-ledger entry.
+
+| Finding | Verdict and route | Evidence |
+| --- | --- | --- |
+| Pass 10 blind 1: late completion displays a rejected candidate | maybe-false; defer (medium, unverified) | carried: same `SetRetainedSnapshot` claim as Checkout BH2, pass-5 Blind 2 and pass-6 edge 2; those branches remain unchanged. The shipped page removes the old component before replacement, while the tracker rejects a replaced message. The existing controlled overlap investigation remains; no new visible replacement-attempt witness was supplied. |
+| Pass 10 blind 2: status continuation mixes a changed intent | maybe-false; defer (medium, unverified) | carried: same mutable-snapshot continuation as Checkout BH3 and pass-5 Blind 1. The submitted component is unmounted by the shipped page rather than rebound to a different preview; the already deferred overlap witness is still required. |
+| Pass 10 blind 3: remounted panel does not automatically observe results | low; reject | carried: same tracker-notification claim as Resumed BH5, Current BH4 and Checkout BH1. Explicit Refresh adopts the retained snapshot and identity. A notification path for every tracker update was previously rejected for this overlapping-panel window. |
+| Pass 10 blind 4: post-await field updates bypass the dispatcher | maybe-false; defer (medium, unverified) | carried: same `ConfigureAwait(false)` continuations as Final BH4, Checkout BH4 and pass-8 blind 4. The existing overlap investigation covers it; assignments alone do not establish a rendered or retained identity corruption. |
+| Pass 10 blind 5: reviewed projection remains current-labelled | low; reject | carried: same immutable reviewed capture and unsuccessful reconciliation behavior as Resumed BH4, Current-head BH5 and Navigation BH8. Lifecycle remains unconfirmed; another observed-read state and authorization policy was previously rejected. |
+| Pass 10 blind 6: recovered capture retains blocking reasons | false; reject | carried: same `ResolvedIntent` claim as Checkout BH5. Page start/handoff admit only an available intent. Subsequent read-time reasons derive from that original intent and are not assigned back to the parameter, so an unavailable read does not permanently poison a shipped eligible handoff. |
+| Pass 10 blind 7: tracker remains mutable after disposal | low; reject | Disposal clears the expiry timers; an already admitted delivery may still finish retaining its outcome while its disposed component unwinds. The only production `TryBegin` caller checks `_disposed` and confirmation generation under `_confirmSync`, and circuit disposal removes ownership. No everyday retained-data or timer leak was demonstrated. Adding terminal-disposal guards and clearing evidence changes lifecycle behavior beyond a direct correction for this teardown-only observation. |
+| Pass 10 blind 8: completed and expired records accumulate | low; reject | carried: same one-record-per-tenant circuit retention as Completeness BH4 and Checkout BH7. The retained expired identity is approved until replacement; circuit ownership ends on disposal. No everyday resource failure justifies introducing a new eviction policy. |
+| Pass 10 blind 9: null causation loses recovered proof | false; reject | carried: same missing-causation case as pass-7 AA7 and the pass-6 fixture correction. Existing entry points supply causation; the maintained null-causation regression deliberately withholds unverifiable proof. A synthetic omitted-causation envelope does not establish a new failure of the shipped correction path. |
+| Pass 10 blind 10: static browser fixture simulates Cancel/Escape | low; reject | carried: same fixture limitation as Blind 12, Checkout BH9 and Current-head BH11. Component tests invoke the shipped Razor handlers; the browser lane verifies rendered EN/FR layout and focus. A hosted authenticated browser lane remains separately deferred. |
+
+Matrix audit: all seven frozen rows retain behavioral coverage in the fresh complete UI/Server/Client/Contracts runs recorded below. The UI run skipped no tests; the Server skips are unrelated DW1 cases. The eligible, conflict, retry/rejection, absent audit association, role-cycle, incomplete/legacy/no-op proof, and durable recovery tests remain exercised. The two strengthened pass-9 regressions also rejected their respective deliberately introduced defects, after which production bytes were restored.
+
 ## Review Decision — Resolved
 
 The new intervening-role-reversal witness demonstrates that generic version advancement is not attempt-specific proof. On 2026-10-03 the user selected option 1: extend EventStore status proof and preserve reliable correction confirmation. The frozen constraint has been amended for this bounded extension; re-derive the implementation and the pending BH2/BH6/ECH4/VG1 patches under the new tasks above.
@@ -507,6 +528,20 @@ The new intervening-role-reversal witness demonstrates that generic version adva
 The authorized audit response drops command correlation. EventStore creates a new event MessageId, exposed as `TenantAuditEntry.EventId`; it cannot identify the command attempt. The existing matcher and `#audit-...` fragment prove nothing. Epic 5 requires missing-support state when association cannot be re-derived.
 
 ## Verification
+
+**Concurrent closeout change (2026-10-05):** After verification and review, an external operation advanced the EventStore checkout from `46d7b2eb61864c056a7323fecfa4246b41b1ec3b` through documentation-only `dcc6124a82fc5c4c97ea7a4febbd58985100a0d0` to `8f34b395d2b05b068ed15635811e5d4adbbf5dc5`, committing the two EventStore test/API-reference fixes. Their complete baseline-to-working-tree diffs match the immutable review input exactly. The additional changes are reminder documentation and comments in source/tests; no executable behavior changed. Test evidence below therefore still covers the final executable code and tests. The root index still pins `46d7b2eb61864c056a7323fecfa4246b41b1ec3b`; the working-tree gitlink reflects the external checkout. This workflow preserved that concurrent state and did not stage, commit, push or move a dependency itself. The dependency table records the root's committed pins, not the external working-tree advance.
+
+**Pass-9 review-fix verification (2026-10-05):** Root `d8558263a7ee766f2823a4fc3033328f4a5f2c74`, EventStore `46d7b2eb61864c056a7323fecfa4246b41b1ec3b`, and the committed dependency pins in the table above were preserved. No production behavior, package pin, dependency checkout, Git index, commit or push changed. The four pass-9 patches are implemented; this block records fresh verification of their current working-tree changes.
+
+- UI restore/build: `dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -p:UseNuGetDeps=false -m:1 -v:q`, then `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` — exit 0, 0 build warnings/errors. The focused maintained MTP command with `--filter-method '*RoleSelectionAndAnotherStartPreserveASubmittedPreviewAndItsTrackingHandle'` passed **1/1**.
+- UI mutation MV1: forcing the page's retained-attempt resume to `competing: true` builds successfully but fails that regression at the new aggregate-busy absence assertion. The production page was restored byte-for-byte in a finally block; structured evidence is `/tmp/tenants-56-pass9-ui-mutation-results.json`.
+- Restored full UI: `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` — final exit 0, **3,960 passed, 0 failed/skipped**. The first run had 3,959 passed and the previously recorded `Detail_page_confirms_metadata_update_from_the_authoritative_proof_read` timeout; its focused rerun passed **1/1**, followed by the successful full rerun. Logs: `/tmp/tenants-56-pass9-ui-{tests,metadata-rerun,rerun}.log`.
+- Browser: `TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh` — exit 0 with Chrome 154.0.8037.57. Rendered EN/FR preview/recovery, desktop/narrow/forced-colors, recovery-reason DOM focus and maintained negative controls pass. This remains the static rendered harness; shipped event handlers are covered by component tests. Log: `/tmp/tenants-56-pass9-browser.log`.
+- EventStore Server restore/build used the corresponding project and the same Debug/source/serialized flags, with exit 0 and 0 build warnings/errors. The focused MTP command with `--filter-method '*Durable_drain_proof_uses_its_verified_range_instead_of_the_aggregate_head'` passed **18/18**. Removing only `!record.IsRejection` builds successfully and fails exactly `record-rejection` (expected null sequence, actual 8). The actor source was restored byte-for-byte in a finally block; structured evidence is `/tmp/tenants-56-pass9-es-mutation-results.json`.
+- Restored full Server: `dotnet test --project tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` from the owning EventStore repository — exit 0, **3,639 passed, 0 failed, 25 existing DW1 skips**, 3,664 total. Log: `/tmp/tenants-56-pass9-es-server-final-tests.log`.
+- EventStore Contracts and Client: each project was restored and built in Debug/source mode with the same per-project flags, exit 0 and 0 build warnings/errors. `dotnet test --project tests/Hexalith.EventStore.Client.Tests/Hexalith.EventStore.Client.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` — exit 0, **917 passed, 0 failed/skipped**. The corresponding full Contracts command — exit 2, **2,235 passed, 2 failed, 2 existing package-inventory skips**, 2,239 total. Failures reproduce the unchanged `ProcessContractDistinguishesOwnedExternalAndExitedProcesses` five-second timeout and `SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` three-minute timeout. The process-contract focused rerun with `--filter-method '*ProcessContractDistinguishesOwnedExternalAndExitedProcesses'` passed **1/1**. Expanded commands and results: `/tmp/tenants-56-pass9-es-final-results.json`; logs: `/tmp/tenants-56-pass9-es-{contracts,client}-final-{restore,build,tests}.log` and `/tmp/tenants-56-pass9-es-contracts-process-rerun.log`.
+- Contracts authority rerun: `dotnet test --project tests/Hexalith.EventStore.Contracts.Tests/Hexalith.EventStore.Contracts.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-method '*SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync'` — exit 0, **1/1 passed** in 2m 38s. Log: `/tmp/tenants-56-pass9-es-contracts-authority-rerun.log`. Both full-suite failures thus pass individually; the original full-suite timeout result is retained above, and no timeout, packaging gate or test source was relaxed.
+- The walkthrough terminal example parses as valid JSON with `domain: counter` and committed sequence 1. Root/EventStore `git diff --check` pass. `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md` passes with eight declared existing pointer changes; this pass's working-tree and staged pointer diffs remain empty.
 
 **Pass-7 pin verification (2026-10-05):** EventStore `ad8fe3ba4ad4804e941bf4ada5852b0b94af3544` rebased cleanly onto `origin/main` (`23680543`, five commits ahead of `f1662b9c`) as `738da5c95107d3ad84b3856558bf4a0ba7c3a9ca` and was pushed. `git ls-remote origin refs/heads/main` returns that SHA, and `git branch -r --contains 738da5c95107d3ad84b3856558bf4a0ba7c3a9ca` includes `origin/main`. Debug source-mode lanes at that revision: Client **917/917**; Server **3,638/3,663** (25 existing DW1 skips); Tenants UI **3,960/3,960**. Contracts first run **2,236/2,239** with 2 existing package-inventory skips and 1 failure: `SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` timed out at 3m 00s. The same filtered command then passed **1/1** in 2m 49s. Logs: `/tmp/tenants-56-repin-{contracts,client,server,ui}-{restore,build,tests}.log`.
 
@@ -1276,7 +1311,7 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
     - (a) set `git config push.recurseSubmodules check` in the root checkout, so a root push whose gitlinks are not on a submodule remote is refused;
     - (b) set `on-demand`, which pushes the submodule commits first;
     - (c) add no guard and rely on the source-reference CI job, which caught it within minutes.
-- [ ] [Review][Patch] The restored pending same-row test never reaches the page's locked-attempt resume branch [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2774]
+- [x] [Review][Patch] The restored pending same-row test never reaches the page's locked-attempt resume branch [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2774]
   - `RegisterServices` registers no `TenantCorrectionAttemptTracker`. So the panel uses its private fallback tracker, `RetainedCorrectionAttempt` is null, and the second Start always leaves through `HasSubmittedCorrection` (`TenantAuditPage.razor:1556`). That is the same branch the pass-6 `Confirmed` form took.
   - Replacing `ResumeCorrection(competing: !retained.Matches(intent))` (`TenantAuditPage.razor:1552`) with `competing: true` survives all 3,960 UI tests (MV1). In production, a same-row Start with a changed role would then tell the operator that another command is being reconciled.
   - `ShouldNotBe(Confirmed)` also passes for terminal states that release the lease.
@@ -1284,16 +1319,16 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
     - register a shared tracker (`Services.AddSingleton(new TenantCorrectionAttemptTracker())`);
     - assert `LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending)` before the second Start;
     - after it, assert that no `tenants-correction-aggregate-busy` element renders.
-- [ ] [Review][Patch] Nothing pins the rejection guard on a drain record that carries its causation [references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/EventDrainRecoveryTests.cs:325]
+- [x] [Review][Patch] Nothing pins the rejection guard on a drain record that carries its causation [references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/EventDrainRecoveryTests.cs:325]
   - When `record.CausationId` is set, `!record.IsRejection` (`AggregateActor.cs:2729`) is the only clause that withholds `CommittedEventSequence` from a rejection drain.
   - Dropping it survives all 3,663 Server tests (MX10). The theory selects only `Completed` writes, and `ReceiveReminder_RejectionEvents_DrainedAndStatusRejected` uses a null `MessageId`.
   - So a `Rejected` status could carry a committed sequence, contradicting `command-api.md` ("null for … a rejection").
   - Fix: add a `record-rejection` case: `IsRejection = true`, `MessageId = "command-8"`, record causation `cause-drain`. Assert that the `Rejected` status write has a null `CommittedEventSequence`.
-- [ ] [Review][Patch] The correlation-ID text still contradicts the rest of the reference [references/Hexalith.EventStore/docs/reference/command-api.md:40] — also `:56`.
+- [x] [Review][Patch] The correlation-ID text still contradicts the rest of the reference [references/Hexalith.EventStore/docs/reference/command-api.md:40] — also `:56`.
   - `:40` now says the body `correlationId` "is not the status lookup key". But `:297` and `:301` accept a correlation ID that resolves to exactly one command, as a compatibility fallback that returns 409 when ambiguous.
   - `:56` still says the body "`correlationId` identifies the current request for tracing", while `:40` gives that role to the `X-Correlation-ID` header.
   - Fix: say `messageId` is the primary lookup key and correlation lookup is a bounded compatibility fallback. Reword `:56` to say the body value is carried on status records and events.
-- [ ] [Review][Patch] The walkthrough's terminal status omits the `domain` an actor-written `Completed` record carries [references/Hexalith.EventStore/docs/reference/command-api.md:566]
+- [x] [Review][Patch] The walkthrough's terminal status omits the `domain` an actor-written `Completed` record carries [references/Hexalith.EventStore/docs/reference/command-api.md:566]
   - The Step 4 JSON for `…F6` has no `domain` or `committedEventSequence`. The field table and "Example — completed command" say actor-written terminal records carry `domain`, and that verified eventful completions carry the sequence.
   - Fix: add `"domain": "counter"` and a `committedEventSequence` value to the Step 4 example.
 - [x] [Review][Defer] The `failureReason` row still says "PublishFailed status only" [references/Hexalith.EventStore/docs/reference/command-api.md:325] — deferred: pre-existing. The row dates from EventStore `6a901adf` (2026-03-01). `ConcurrencyConflictExceptionHandler.cs:51-60` and the `SubmitCommandHandler` coordinated-conflict writer put `FailureReason: "ConcurrencyConflict"` on `Rejected` records.
@@ -1315,3 +1350,64 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
 - BH13/AA8/VG-o5, "the Pass-8 triage section cites an unpinned temp diff, ran three layers, collides with this pass's number and mislabels the off-dispatcher hazard": the bookkeeping part is rejected, because the fix edits this spec. The off-dispatcher part is carried: deferred-work already tracks it ("Verify whether correction delivery/status continuations outside the renderer…"). `SetSnapshot` only assigns fields and does not render, so it cannot crash the circuit.
 - ECH4, "a whitespace-only `CommandType` row is missing, so `IsNullOrWhiteSpace` could weaken to `IsNullOrEmpty`": false as a reachable defect. The `CommandEnvelope.CommandType` initializer rejects whitespace, so no drain record built from a command can carry one.
 - AA9, "the pointer bumps and spec edits are typed `fix:` and pushed straight to `main` instead of `build(deps)`": low. The commits are published, and a fix would rewrite shared history.
+
+### Review Findings (pass 11: pass-9 fix-pass re-review)
+
+Review date: 2026-10-05. This is pass 11 because the triage log already has an internal "Pass-10 review".
+
+Diff reviewed (123 lines, pinned to a scratch file before the layers ran):
+- Tenants working tree against root `d8558263`, uncommitted: `TenantAuditPageTests.cs`, `sprint-status.yaml`, and the EventStore gitlink `46d7b2eb` → `8f34b395`.
+- EventStore `46d7b2eb..8f34b395`, story files only: `docs/reference/command-api.md` and `EventDrainRecoveryTests.cs`. The range also carries the other session's `dcc6124a`. It changes only reminder docs and source comments, so it was left out of the diff and checked separately.
+- The tree did not move during the review: root `d8558263`, EventStore `8f34b395`. A GitHub compare shows EventStore `origin/main` (`65ac85a2`) 1 ahead and 0 behind `8f34b395`, so the working-tree pin can be cloned.
+
+Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. `validate-story-gitlinks.py` passed with 8 declared pointer changes. The layers raised 23 findings. Triage produced 1 decision, 2 patches and 1 defer, and rejected 10.
+
+No mutation run this pass. The pass-9 MV1 and MX10 kills are recorded under Verification. The layers confirmed by reading that each new assertion separates its mutant. Forcing `competing: true` renders the busy span. The `record-rejection` row differs from `record-carried-causation` only by `IsRejection`.
+
+- [x] [Review][Decision] Which EventStore revision does the story ship?
+  - The pass-9 EventStore patches 2–4 exist only in `8f34b395`, behind an uncommitted working-tree gitlink. They are the `record-rejection` row, the `:40`/`:56` wording, and the walkthrough's `domain` and sequence.
+  - Root `d8558263` pins `46d7b2eb`, and the dependency table records `46d7b2eb` as the accepted pin. The pass-9 notes say dependency checkouts were preserved and that pointer diffs are empty.
+  - The 2026-10-03 frozen constraint does not authorize the workflow to move pointers.
+  - (a) Adopt `8f34b395`. Commit the gitlink with the story and update the dependency-table row and the pass-9 claims. This also brings in `dcc6124a`, which changes only comments and docs. Recommended.
+  - (b) Keep `46d7b2eb`. Reset the working-tree gitlink and reopen pass-9 patches 2–4, because the root would not carry them.
+  - **Resolved 2026-10-05: option (a).** The user approved EventStore `8f34b395` as the story's pin. The record update is the patch below. The root commit that carries the gitlink stays the user's action; this workflow does not stage, commit or push.
+- [ ] [Review][Patch] Record EventStore `8f34b395` as the story's accepted pin [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:175]
+  - Set the dependency table's EventStore row to `8f34b395d2b05b068ed15635811e5d4adbbf5dc5`, and say the row is the pin the next root commit must carry.
+  - Correct the pass-9 Implementation Note ("preserve … dependency checkouts") and the pass-9 verification bullet ("working-tree and staged pointer diffs remain empty"). Say that the user approved the move from `46d7b2eb` to `8f34b395` in pass 11, that it carries pass-9 patches 2–4 plus the comment-only `dcc6124a`, and that `8f34b395` is an ancestor of EventStore `origin/main`.
+- [ ] [Review][Patch] The same-row Start test has no positive witness that the resume ran [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2803]
+  - Every assertion after the second Start also holds if the page ignores the Start. The panel, `MessageId` and role are unchanged, detail reads don't change, and no busy span renders.
+  - A mutant `if (retained.Matches(intent)) return false;` placed before `ResumeCorrection` (`TenantAuditPage.razor:1550-1552`) survives this test. It also survives `Starting_another_row_resumes_the_pending_attempt_with_a_busy_reason`, which uses a non-matching row.
+  - In production, a same-row Start would then skip the title focus and leave a stale competing notice in place.
+  - Fix: after the second Start, assert `cut.FindComponent<CorrectionStartPanel>().Instance.RetainedAttemptMessageId.ShouldBe(messageId)`. The first Start nulls `_resumedCorrectionMessageId` (`TenantAuditPage.razor:1564`), and only `ResumeCorrection` sets it (`:1538`). Mutation-verify with the mutant above.
+- [ ] [Review][Patch] "`messageId` is the primary status lookup key" is false for a caller authorized for several tenants [references/Hexalith.EventStore/docs/reference/command-api.md:40] — also `:297`.
+  - `CommandStatusController.cs:114-152` checks one tenant at a time. A direct `messageId` match in tenant A ends that tenant's checks, but tenant B still consults its correlation index for the same string. A resolved match there makes `matches.Count == 2`, which returns `409`.
+  - If tenant B's index is ambiguous, the controller returns `409` immediately, even after A's direct match.
+  - So a valid `messageId` returns 409 whenever another authorized tenant has a command whose `correlationId` equals it.
+  - `:297` ("searches authorized tenants for that exact command first") overstates the same thing.
+  - The loop dates from EventStore `ddccb9b1` (2026-07-12), so changing the lookup precedence is out of story scope. The `:40` sentence came from the pass-9 patch.
+  - Fix: qualify both sentences. Within each authorized tenant, a `messageId` match wins over the correlation index. Across tenants every match counts, so an identifier that is a `messageId` in one authorized tenant and a correlation ID in another returns `409 Conflict`.
+- [x] [Review][Defer] Tenants CI never runs the strengthened same-row regression [.github/workflows/ci.yml:30] — deferred: pre-existing, and already tracked as "Restore CI test execution" (`deferred-work.md:3335`, extended at `:3505` and `:3549`).
+  - CI run `37298335264` at `d8558263` fails at "Validate package consumer references" and skips both Tier 1 steps.
+  - Story Guards only builds the UI test project.
+  - So the MV1 kill is local evidence only.
+
+#### Rejected (pass 11)
+
+- VG-o1/AA1/BH1/ECH4, "spec `done` versus sprint `review`": true, but rejected, because the fix edits this spec. This review resets both.
+- BH3, "the review diff leaves out `dcc6124a`, which the gitlink carries": false as a hidden-change claim. `dcc6124a` changes only `typed-reminders.md`, the XML doc and comment lines in `IReminderIntentSource.cs` and `ReminderCoordinator.cs`, and one test `<summary>`. No executable line changes. The decision above accounts for it.
+- AA4, "the same-row test never asserts a single dispatch": false. `OpenCorrectionAsync` and `ResumeCorrection` never call the command gateway; only the panel's Confirm dispatches. Sibling resume tests already pin `Received(1).ChangeUserRoleAsync` (`:3097`, `:3142`).
+- AA5/BH8, "`command-api.md:88` still calls the body `correlationId` a tracing identifier": false as a contradiction. "Optional cross-system tracing identifier" fits a body value that is carried on status records and events. Pass 9 fixed `:56` because it gave the body value the header's "current request" role, and `:88` does not do that.
+  - AA5's nit, that the walkthrough's sequence 1 and the completed example's sequence 8 share a timestamp: low. They are separate illustrative examples.
+- BH4, "`ShouldBe(ProjectionPending)` does not wait for the state": false. The path has no real async step: the stubs return completed tasks, the panel has no `Task.Delay`/`Yield`/`Run`, and bUnit runs `InvokeAsync` inline. The assertion passed in the recorded full runs.
+- BH6/ECH1, "a drain-recovered `Rejected` status has `RejectionEventType: null` and a non-null `EventCount`, so Tenants shows generic rejection copy": low.
+  - The writer dates from EventStore `cbf367de`/`07486513` (2026-02/03).
+  - The path needs a rejection whose publication failed and that later drained.
+  - The lifecycle still reads `Rejected`.
+  - The fix adds derivation logic to the drain writer.
+- BH7, "the rejection row does not rule out an extra `Completed` write": false. A single `drainStatus` assignment feeds a single write. Flipping it leaves no `Rejected` write, so `.Single()` throws.
+- BH9, "Step 4 omits the always-serialized null fields, and sequence 1 assumes a new aggregate": low. The example was already abbreviated at `46d7b2eb`. The walkthrough's `counter-1` is first used in Step 2.
+- BH10, "the doc fixes ride in a `test:` commit": low. `8f34b395` is published on `origin/main`, so a fix would rewrite shared history.
+- BH11/ECH3, "the tracker registered by instance is never disposed, so its timer can fire against a torn-down fixture": false.
+  - The first expiry timer is due after 5 minutes (`MaximumRetainedAttemptDuration`), and the UI suite finishes in about a minute.
+  - The panel unsubscribes in `Dispose` (`CorrectionStartPanel.razor:494`).
+  - `:2846` and `CorrectionStartPanelTests.cs:790`/`:1551` use the same registration.

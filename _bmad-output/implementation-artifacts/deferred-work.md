@@ -3597,3 +3597,11 @@ Diff reviewed: Tenants `e2c297b2..680bee32` and EventStore `738da5c9..0c6bb5c3`.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Give the EventStore shared-consumer authority Contracts test more headroom, or speed it up.
   evidence: `SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` timed out at 3m 00s in the pass-7 closure's first full Contracts run, then passed alone in 2m 49s. That is 11 s of headroom, so it is likely to flake in full or CI runs. EventStore-owned; not caused by Story 5.6.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 11 (2026-10-05)
+
+Diff reviewed: the uncommitted Tenants working tree against root `d8558263`, and EventStore `46d7b2eb..8f34b395` (story files only).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Carried, with no new work item; see "Restore CI test execution" above. Tenants CI never runs the strengthened same-row correction regression `RoleSelectionAndAnotherStartPreserveASubmittedPreviewAndItsTrackingHandle`.
+  evidence: CI run `37298335264` at `d8558263` fails at "Validate package consumer references" and skips both Tier 1 steps. `story-guards.yml:55-59` only builds the UI test project, and `source-reference.yml` runs only the integration tests. So the pass-9 MV1 kill (`TenantAuditPage.razor:1552` forced to `competing: true`) is local evidence only. Pre-existing; not caused by Story 5.6.

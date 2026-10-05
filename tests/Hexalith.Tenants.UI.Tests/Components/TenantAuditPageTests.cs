@@ -2775,6 +2775,7 @@ public sealed class TenantAuditPageTests : BunitContext
     {
         StubTenantQueryGateway query = RegisterServices(ReadySnapshot([
             Row("event-correction", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged")]));
+        Services.AddSingleton(new TenantCorrectionAttemptTracker());
         ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
         commands.SupportsCommandStatusLookup.Returns(true);
         commands.ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
@@ -2790,7 +2791,7 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-correction-confirm']").Click();
         CorrectionStartPanel preview = cut.FindComponent<CorrectionStartPanel>().Instance;
         cut.WaitForAssertion(() => preview.Snapshot!.HasCommandTracking.ShouldBeTrue());
-        preview.Snapshot!.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        preview.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         string? messageId = preview.Snapshot!.MessageId;
         int detailReads = query.DetailRequests.Count;
         FluentSelectInterop.ChangeFluentSelect(cut.FindComponent<AuditDataGrid>(), "tenants-correction-role", TenantRole.TenantOwner.ToString());
@@ -2799,6 +2800,7 @@ public sealed class TenantAuditPageTests : BunitContext
         preview.Snapshot!.MessageId.ShouldBe(messageId);
         preview.Snapshot.IntendedRole.ShouldBe(TenantRole.TenantReader);
         query.DetailRequests.Count.ShouldBe(detailReads);
+        cut.FindAll("[data-testid='tenants-correction-aggregate-busy']").ShouldBeEmpty();
     }
 
     [Fact]
