@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -1096,3 +1096,106 @@ Mutation evidence, from an isolated `git archive` copy: root `2c04af17` with its
 - AA8/BH11/ECH6, "the nine-path quickstart pin is one literal substring; the second quickstart occurrence and README/CONTRIBUTING are unchecked; it is not derived from `.gitmodules`": low. Pass 4 asked for the nine-path pin and got it. Undetected drift needs a partial edit to one of two identical adjacent commands. The fix that actually prevents drift (deriving the list from `.gitmodules` across four documents) is test hardening beyond a direct correction.
 - BH6b, "`EndDelivery` discards `TryUpdate`'s result and reopens delivery after a refused outcome": false. While delivery is in flight, `TryStartRetry` blocks other panels and the status lookup needs a correlation. Only the expiry prune can change the snapshot, and `TryUpdate` accepts every dispatch outcome after it (non-terminal, correlation-free, not `ProjectionPending`).
 - BH6c, "`SetRetainedSnapshot` calls `TryUpdate` a second time": false as a defect. It re-applies the identical snapshot; `TryReleaseTerminal` and the timer removal are idempotent. No harm was named.
+
+### Review Findings (pass 7: pass-6 fix-pass re-review)
+
+Review date: 2026-10-05.
+
+Diff reviewed (SHAs pinned at the start of the review):
+- Tenants `c0b6f16d..50fc6257` (`545c6b0f`, `50fc6257`): the fix pass that closed the ten pass-6 patches.
+- EventStore `d48e1aeb..ad8fe3ba`: the record-carried drain causation, the new drain and resume tests, and the `command-api.md` corrections.
+- During the review, root `50fc6257` was pushed: `git ls-remote origin refs/heads/main` returns `50fc6257`.
+
+Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. `validate-story-gitlinks.py` passed with 8 declared pointer changes. The layers raised 39 findings. Triage grouped them into 8 patches and 1 defer, and rejected 12.
+
+Verification and mutation evidence came from an isolated rsync copy of the clean checkout: root `50fc6257` and EventStore `ad8fe3ba`, with git metadata kept so MinVer versions match, built Debug with `-p:UseNuGetDeps=false`. An earlier `git archive` copy was discarded: without git metadata it mixed `Hexalith.Commons.UniqueIds` assembly versions and failed 299 Server tests.
+- Baselines: EventStore Server **3,603/3,628** (25 existing DW1 skips). Tenants UI **3,957/3,957**. Both match the recorded pass-6 closure.
+- Killed (focused drain and state-machine classes, 112 tests):
+  - MX1: the drain ignores `record.CausationId`.
+  - MX2: the drain loses the legacy idempotency fallback.
+  - MX3: the first publish-failure writer drops the causation.
+  - MX4: the stale handoff drops the causation.
+  - ME2–ME4, ME6–ME8: the drain identity lookup ignores `Disposition`, `CorrelationId`, `EventCount`, `Accepted`, `MessageId` or `CommandType`.
+  - ME9: the lookup's `catch` is narrowed so the fault escapes.
+  - So the pass-6 drain-theory patch works. ME2–ME4, which survived pass 6, are now killed.
+- Survived (whole suites):
+  - MX5: the resume publish-failure writer drops the causation (3,628 Server tests). See the second patch.
+  - MX7: the drain status write drops the tracking-id comparison (3,628 Server tests). See the fifth patch.
+  - MU4: the removed role-change clause is put back on the membership check (3,957 UI tests). See the fourth patch.
+- MU1/MU3 are now compile errors by construction.
+
+- [ ] [Review][Patch] Tenants `origin/main` pins an EventStore revision that no remote has.
+  - Root `50fc6257` pins EventStore `ad8fe3ba`. After a `git fetch`, `git branch -r --contains ad8fe3ba` is empty.
+  - EventStore `origin/main` is `f1662b9c`, a sibling on `d48e1aeb`, so local EventStore `main` is ahead 1, behind 1.
+  - A fresh clone's `git submodule update` and the CI checkout cannot fetch the pin. This is the pass-4 `979de6f3` "not our ref" failure, now on the published branch.
+  - `git merge-tree f1662b9c ad8fe3ba` shows no textual conflict. `f1662b9c` adds `EventLogicalDigest.RequireMatching` to `EnsureEventsReadableForDomainAsync`, not to the `ReadEventsRangeAsync` path that drain and resume proof use, and adds cancellation checks to `EventPersister`.
+  - Fix: rebase `ad8fe3ba` onto EventStore `origin/main` and push it (the push needs the user's go-ahead). Re-pin the root gitlink to the pushed SHA. Re-run the EventStore Contracts/Client/Server and Tenants UI lanes at that revision and record them.
+
+  [references/Hexalith.EventStore (gitlink)]
+- [ ] [Review][Patch] Nothing pins the causation the resume publish-failure writer stores.
+  - Deleting `CausationId: resumeIdentity.CausationId` survives the whole Server suite (MX5). The same batch writes a `Recoverable` idempotency record with that identity (`:4342`), so the drain silently falls back to it.
+  - If that idempotency read then faults or misses, a resumed range loses proof. That contradicts decision (a), which says every drain verifies without an idempotency record.
+  - Fix: add a `CreateInMemoryActor` case modelled on `Stale_handoff_drain_reports_committed_sequence_without_an_idempotency_record`:
+    - seed an `EventsStored` checkpoint for the same message and fail the resume publish;
+    - assert `drain.CausationId`;
+    - remove `idempotency:{id}`, drain, and assert `CommittedEventSequence`.
+
+  [references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:4400]
+- [ ] [Review][Patch] Extending `RoleSelectionAndAnotherStartPreserveASubmittedPreviewAndItsTrackingHandle` for pass-6 verification 1 changed the state it guards.
+  - The test now waits for `Confirmed` before the second role change and Start. `Confirmed` is terminal and has released the lease.
+  - So nothing tests same-row preservation of a submitted attempt that is still pending with the aggregate locked:
+    - `Starting_another_row_resumes_the_pending_attempt_with_a_busy_reason` covers another row.
+    - `Pending_correction_can_resume_after_cancel_row_loss_and_narrow_viewport` covers Cancel/Resume.
+  - Fix: restore the original pending form, and move query-capture confirmation into its own page test. That test should assert the rendered confirmed outcome and that confirmation consumed the queued `tenant-sequence:2` read (the `DetailRequests` delta).
+
+  [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2774]
+- [ ] [Review][Patch] The pass-6 verification-2 assertion cannot see the reason it targets.
+  - `StaleOrMismatchedRedactedCaptureCannotShowAlreadyApplied` asserts that the panel snapshot omits `CurrentStateIndeterminate`. But `ResolvedIntent` strips that reason whenever a capture exists (`CorrectionStartPanel.razor:656-658`), and the stale/scope early return never adds it.
+  - Putting back `|| row.EventType is "UserRoleChanged" && currentRole is null` on the membership check (`TenantCorrectionStartIntent.cs:131`) survives all 3,957 UI tests (MU4).
+  - So a stale or mismatched role-change row could again show the indeterminate-state reason on the receipt and grid (`AuditEvidenceReceipt.razor:376`, `AuditDataGrid.razor:278`).
+  - The intent-level `StaleOrScopeConflictingCaptureCannotClaimAlreadyApplied` uses only `UserRemovedFromTenant`.
+  - Fix: add `UserRoleChanged` rows at the `Evaluate` level. They should assert `ShouldNotContain(CurrentStateIndeterminate)` and the expected `CurrentProjectionUnavailable` or `ScopeConflict`.
+
+  [tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionStartIntentTests.cs:498]
+- [ ] [Review][Patch] With a record-carried causation, the drain status write's identity guards are the only identity check, and they are untested.
+  - The `MessageId`/tracking-id/`CommandType` checks (`AggregateActor.cs:2725-2728`) used to duplicate `TryReadDrainCausationIdAsync`'s checks. When `record.CausationId` is set, they are the sole guard.
+  - Dropping the tracking-id comparison survives the whole Server suite (MX7). Every identity row in `Durable_drain_proof_uses_its_verified_range_instead_of_the_aggregate_head` runs with a null record causation.
+  - Fix: add record-causation variants of `wrong-identity`, `legacy` and `missing-command-type`, each expecting null proof.
+
+  [references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/EventDrainRecoveryTests.cs:327]
+- [ ] [Review][Patch] The rewritten Correlation ID paragraph contradicts the rest of the reference.
+  - `:40` says the command `correlationId` "identifies command status". But status lookup is keyed by `messageId`, a correlation lookup can return 409, and `:56` says `correlationId` identifies the request for tracing.
+  - It also drops what the header is for. ProblemDetails `correlationId` carries the middleware value (`ConcurrencyConflictExceptionHandler.cs:93`, `ValidationProblemDetailsFactory`).
+  - `:163` repeats the "can differ even when the request sends the header" sentence and names the internal `result.MessageId`.
+  - Fix: say that the body `correlationId` is carried on status records and events while lookup uses `messageId`, keep the header's tracing and support use, and state the difference once.
+
+  [references/Hexalith.EventStore/docs/reference/command-api.md:40] — also `:163`.
+- [ ] [Review][Patch] `…A1` now has two correlations in one reference.
+  - The IncrementCounter POST and the completed-status example pair it with `a1b2c3d4-…` (`:103`, `:335`).
+  - The walkthrough submits `…A1` without a `correlationId` and shows correlation `…A1` (`:548`, `:552`, `:566`).
+  - The document therefore describes one messageId submitted twice with different bodies.
+  - Fix: give the walkthrough its own messageId.
+
+  [references/Hexalith.EventStore/docs/reference/command-api.md:548]
+- [ ] [Review][Patch] The `domain` null list still misses conflict rejections written outside the actor.
+  - `ConcurrencyConflictExceptionHandler.cs:51-54` writes `Rejected`/`ConcurrencyConflict` without `Domain` for conflicts the actor throws (`AggregateActor.cs:1734`, `:4483`) and for the one `SubmitCommandHandler.cs:708` raises after the actor result.
+  - `SubmitCommandHandler.cs:332` writes the `coordinated_source_conflict` rejection without `Domain` too.
+  - Fix: replace "pre-actor concurrency conflicts" with concurrency-conflict rejections written by the API or the submit handler.
+
+  [references/Hexalith.EventStore/docs/reference/command-api.md:321] — also `:328`.
+- [x] [Review][Defer] Making `EndDelivery`'s outcome required checks the argument count, not the value. Passing `request` or `attempt.Snapshot` instead of `next`/`unavailable` (`CorrectionStartPanel.razor:868`, `:933`) still compiles. `SetRetainedSnapshot` re-applies the right snapshot one statement later, and bUnit is single-threaded, so no test can see the window [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:126] — deferred: there is no deterministic seam between the two statements. Closing it needs a production change, such as having `SetRetainedSnapshot` render only what `EndDelivery` retained. Both sites pass the right value today.
+
+#### Rejected (pass 7)
+
+- BH2/ECH7/AA2, "the spec says the `ad8fe3ba` gitlink 'was not committed' and is a 'working-tree pointer only'; the frozen decisions authorized no commits or pushes": true, but rejected, because the fix edits this spec. `50fc6257` committed and pushed the pointer. The first patch has to record the re-pinned revision anyway.
+- BH3/ECH5/AA4, "spec `done` versus sprint `review`": rejected, because the fix edits this spec. This review resets both statuses.
+- BH4/AA3, "the dependency table's 'current HEAD' column is stale for Builds, FrontComposer, McpCli, Memories and Platform": true, because `c0b6f16d` moved those five, but rejected, because the fix edits this spec.
+- BH5, "two rounds are both called pass 6; the input is an unreproducible temp patch; there are no checklist items for its patches": rejected, because the fix edits this spec.
+- BH6/AA5, "the File List omits `UnpublishedEventsRecord.cs` and `TenantCorrectionPreviewSnapshotTests.cs`": rejected, because the fix edits this spec.
+- BH8/AA6, "no record-level tests prove the new field survives copies and that older JSON deserializes": false. Every copy (`IncrementRetry`, `MarkDeadLettered`, `MarkReminderArmed`) is a `with` expression, and the field is a trailing optional parameter with a `null` default, the same pattern already used for `MessageId`, `DeadLettered` and `ReminderArmedAt`.
+- BH11/AA10, "the closure records no mutation evidence; the new identity theory has no positive control and may be vacuous": the evidence part is rejected, because the fix edits this spec. The vacuity claim is false: this review killed ME2–ME4 and ME6–ME9 with that theory.
+- BH10b, "the new `EndDelivery` summary overstates, because `TryUpdate` can refuse": false. As pass-6 BH6b established, `TryUpdate` accepts every dispatch outcome while delivery is in flight. The expiry mapping to `UnableToVerify` is still the retained outcome.
+- ECH1, "a blank record causation skips the fallback and silently withholds proof": false as a regression. The first-writer and handoff causations are never blank. A blank incoming causation on resume also leaves a blank on the idempotency record, which `TryReadDrainCausationIdAsync` rejects, so proof was withheld before this change too.
+- ECH3, "`ThrowIfNull` runs before the in-flight flag is cleared": false. Both callers pass non-null `with` results, and the parameter is non-nullable under `TreatWarningsAsErrors`.
+- ECH8, "the resume writer stores the incoming `CausationId ?? MessageId`, while resume proof checks `existingPipeline.CausationId`": maybe-false, and low if true. It needs a same-messageId resume that carries a different causation. HTTP always sets causation = messageId (`SubmitCommandExtensions.cs:50`). A blank causation fails closed under every source, because `EventPersister` stamps the blank verbatim.
+- AA7, "a null-causation command's persisted causation can never match its events": rejected as carried. Pass-6 patch 5 deliberately pinned this fail-closed withholding (`ProcessCommand_ResumeFromEventsStored_WithholdsProofWhenEnvelopeCausationIsMissing`). It stays latent while every entry point sets a causation.

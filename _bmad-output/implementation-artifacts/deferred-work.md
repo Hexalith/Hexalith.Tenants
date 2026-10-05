@@ -3575,3 +3575,11 @@ Diff reviewed: Tenants `2306feba..2c04af17` and EventStore `f9d7dde4..7c3243e1` 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Make the command-status 409 ProblemDetails detail match every ambiguity it reports.
   evidence: `CommandStatusController.CreateAmbiguityProblemDetails` (`:209`) always says "The correlation identifier maps to multiple commands. Query again using the command MessageId." It also serves the case where one messageId matches records in several authorized tenants or several legacy records (`:152-153`), where a messageId retry cannot help. The updated `command-api.md` 409 row already gives the general remediation; the runtime copy is pre-existing and EventStore-owned.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 7 (2026-10-05)
+
+Diff reviewed: Tenants `c0b6f16d..50fc6257` and EventStore `d48e1aeb..ad8fe3ba` (root `50fc6257` was pushed mid-review).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Pin the value, not just the presence, of the tenant correction delivery outcome passed to `EndDelivery`.
+  evidence: `TenantCorrectionAttemptTracker.EndDelivery` (`src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:126`) now requires an outcome, but passing `request` or `attempt.Snapshot` instead of `next`/`unavailable` at `CorrectionStartPanel.razor:868`/`:933` still compiles and passes. `SetRetainedSnapshot` re-applies the right snapshot one statement later and bUnit is single-threaded, so no test can see the window in which another panel's `TryStartRetry` could send a duplicate same-id delivery. Closing it needs a production change, such as having `SetRetainedSnapshot` render only what `EndDelivery` retained.
