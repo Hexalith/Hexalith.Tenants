@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -95,7 +95,7 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 
 ## Implementation Notes
 
-- Pass-7 patches (2026-10-05): the resume publish-failure writer is now pinned by an in-memory EventsStored resume that fails publication, asserts the drain causation, removes the recoverable idempotency record, and still reports the committed end sequence. Record-carried drain proof now has wrong-identity, legacy, and missing-command-type rows that expect no sequence. The pending same-row Start guard no longer waits for confirmation; a separate page test renders the confirmed outcome and requires the `tenant-sequence:2` detail-read delta. Role-change evaluation refuses `CurrentStateIndeterminate` for a stale capture and a scope conflict. Command API notes keep header tracing and support, carry body correlation on status records and events, look up status by `messageId`, give the walkthrough message `…F6`, and name API or submit-handler concurrency-conflict rejections. The unpublished EventStore pin was not rebased or pushed: this run cannot use remotes, commits, or submodule pointer movement.
+- Pass-7 patches (2026-10-05): the resume publish-failure writer is now pinned by an in-memory EventsStored resume that fails publication, asserts the drain causation, removes the recoverable idempotency record, and still reports the committed end sequence. Record-carried drain proof now has wrong-identity, legacy, and missing-command-type rows that expect no sequence. The pending same-row Start guard no longer waits for confirmation; a separate page test renders the confirmed outcome and requires the `tenant-sequence:2` detail-read delta. Role-change evaluation refuses `CurrentStateIndeterminate` for a stale capture and a scope conflict. Command API notes keep header tracing and support, carry body correlation on status records and events, look up status by `messageId`, give the walkthrough message `…F6`, and name API or submit-handler concurrency-conflict rejections. EventStore `ad8fe3ba` was rebased onto `origin/main` as `738da5c95107d3ad84b3856558bf4a0ba7c3a9ca` and pushed; the Tenants gitlink records that SHA.
 
 - Pass-6 patches (2026-10-05): drain records now carry normalized command causation. Stale-checkpoint handoff and both publish-failure writers set it; drain proof uses it when present and falls back to a recoverable idempotency record only when the field is absent. `EndDelivery` requires the delivery outcome. Command API notes now match Location, `X-Correlation-ID`, domain null cases, and the A1/B2 correlation examples. EventStore revision `ad8fe3ba4ad4804e941bf4ada5852b0b94af3544` is checked out from `d48e1aeb` (already a descendant of `7dcc4756`). The Tenants index at `c0b6f16d` still records `d48e1aeb`; the working tree gitlink now points at `ad8fe3ba` and was not committed.
 - HTTP-proof completeness review (2026-10-04): added three real HTTP-envelope regression cases for otherwise valid committed proof with a missing tenant, domain or numeric status code. Legacy status/identity remains readable, while correction proof is omitted. A control that permits those missing fields makes all three cases fail; the gateway was restored byte-for-byte afterward. The shared proof-link DTO summary now describes stored receipt references without universally promising attempt-specific association. Final review findings and carried decisions are recorded individually below.
@@ -471,6 +471,31 @@ All three layers reviewed `/tmp/tenants-56-diff-9EGdjI.patch`. Verification-gap 
 | Pass 6 verification 1: the audit page never confirms from its query capture | medium; patch | Pre-verified. Page tests stop at tracking or non-confirm outcomes, and the confirming panel test injects `CurrentCaptureProvider`. Extend the page test so the query stub advances to the committed sequence and the preview reaches `Confirmed`. |
 | Pass 6 verification 2: a stale role change does not pin the removed indeterminate reason | medium; patch | Pre-verified. Restoring `UserRoleChanged && currentRole is null` on the membership check would not fail `StaleOrMismatchedRedactedCaptureCannotShowAlreadyApplied`. Assert that both stale and scope-mismatched cases omit `CurrentStateIndeterminate`. |
 
+### Pass-8 review (2026-10-05)
+
+All three layers reviewed `/tmp/tenants-56-review-52DR70.diff`. Verification-gap reported no gaps. Carried rows keep their earlier route and are not patched or deferred again.
+
+| Finding | Verdict and route | Evidence |
+| --- | --- | --- |
+| Pass 8 blind 1: confirmed audit state is always missing support | false; reject | carried: same claim as pass 6 blind 3 and 4. Confirmed lifecycle copy uses `Tenants.Correction.State.ConfirmedWithoutAuditAssociation`. `WithCorrectiveProof` still clears the link because the audit row has no command message id. |
+| Pass 8 blind 2: expiry rewrites a later in-progress status | low; reject | carried: same approved bounded expiry as pass 6 edge 6. `TryUpdate` keeps a non-terminal late status from looking like a live lock. Confirmed, Rejected, AlreadyApplied, and Failed still apply. |
+| Pass 8 blind 3: accepted results discard the response message id | false; reject | This UI sends no separate idempotency key. The submitted ULID is the body message id, and `GetStatusAsync` confirms only when the status record's message id matches it. A mismatch stays unable to verify. |
+| Pass 8 blind 4: status continuations leave the renderer | maybe-false; defer | carried: same `ConfigureAwait(false)` question as Final BH4 and pass 6 edge 4. Not deferred again. |
+| Pass 8 blind 5: the original receipt stays on the current page | low; reject | carried: same scoped-page claim as Committed-revision Blind 5. `OpenOriginalCorrectionReceiptAsync` resolves the loaded page and shows the unavailable receipt. It does not scan hidden pages. |
+| Pass 8 blind 6: a competing row reuses the busy notice | false; reject | carried: same claim as pass 6 blind 10. The redirect uses that canonical notice on purpose. |
+| Pass 8 blind 7: a failed confirm admission returns quietly | low; reject | `TryBegin` failure clears `_hasSubmitted`. A lease that is still held renders `IsAggregateBusy` and the canonical busy reason. A dispatch-mark failure abandons the lease and leaves Confirm available. |
+| Pass 8 blind 8: Escape, refresh focus, and the lifecycle accordion | maybe-false; reject (low if true) | Escape is carried from pass 6 blind 5. The lifecycle item is expanded, and pending copy is already an alert. `FocusTarget.Refresh` is not a separate focus move; adding that branch is more than a direct correction for an unshown miss. |
+| Pass 8 blind 9: degraded publish failure holds the lease | false; reject | `Degraded` stays refreshable and non-terminal. Admission holds until a terminal state or the approved expiry, which is the matrix rule. |
+| Pass 8 blind 10: pending copy is outside the live region | false; reject | Pending and retryable keys render in the `role="alert"` reason. The live region keeps the lifecycle sentence. Submitted readiness after confirm is the approved submitted-state label. Last-owner impact remains the reviewed preview fact. |
+| Pass 8 edge 1: expiry during an in-flight call drops the lease | low; reject | carried: same five-minute release as pass 6 edge 1. The cited in-flight skip is not in `PruneExpiredLocked`; expiry clears admission and the in-flight flag together, as that row already accepted. |
+| Pass 8 edge 2: status mutations can overwrite the snapshot | maybe-false; defer | carried: same off-dispatcher claim as pass 8 blind 4. Not deferred again. |
+| Pass 8 edge 3: admission events invoke a disposed panel | maybe-false; defer | carried: same disposed `InvokeAsync` question as pass 6 edge 4. Not deferred again. |
+| Pass 8 edge 4: confirm's finally throws after dispose | maybe-false; defer | carried: same disposed continuation as pass 6 edge 4. The finally does not add a new demonstrated user outcome. Not deferred again. |
+| Pass 8 edge 5: a blank message id is looked up | false; reject | Correction attempts store a ULID. `RefreshStatusAsync` does not call status lookup when `MessageId` is null. The cited early return is not in `GetStatusAsync`, and this flow does not pass a blank id. |
+| Pass 8 edge 6: a negative owner count is rendered | low; reject | `UnavailableReason` already blocks `OwnerCount` that is not at least zero. A negative member count is not a produced projection, and a second label branch is not a direct correction. |
+| Pass 8 edge 7: a blank drain causation skips idempotency | false; reject | carried: same fail-closed omission as pass 6 blind 12. `CausationId is not null` treats `""` as present, so proof is withheld instead of borrowed from another record. |
+| Pass 8 edge 8: expiry unlocks without terminal evidence | low; reject | carried: same matrix rule as pass 6 edge 6. The operator-facing state stays `UnableToVerify` while admission uses the terminal release. |
+
 ## Review Decision — Resolved
 
 The new intervening-role-reversal witness demonstrates that generic version advancement is not attempt-specific proof. On 2026-10-03 the user selected option 1: extend EventStore status proof and preserve reliable correction confirmation. The frozen constraint has been amended for this bounded extension; re-derive the implementation and the pending BH2/BH6/ECH4/VG1 patches under the new tasks above.
@@ -482,6 +507,8 @@ The new intervening-role-reversal witness demonstrates that generic version adva
 The authorized audit response drops command correlation. EventStore creates a new event MessageId, exposed as `TenantAuditEntry.EventId`; it cannot identify the command attempt. The existing matcher and `#audit-...` fragment prove nothing. Epic 5 requires missing-support state when association cannot be re-derived.
 
 ## Verification
+
+**Pass-7 pin verification (2026-10-05):** EventStore `ad8fe3ba4ad4804e941bf4ada5852b0b94af3544` rebased cleanly onto `origin/main` (`23680543`, five commits ahead of `f1662b9c`) as `738da5c95107d3ad84b3856558bf4a0ba7c3a9ca` and was pushed. `git ls-remote origin refs/heads/main` returns that SHA, and `git branch -r --contains 738da5c95107d3ad84b3856558bf4a0ba7c3a9ca` includes `origin/main`. Debug source-mode lanes at that revision: Client **917/917**; Server **3,638/3,663** (25 existing DW1 skips); Tenants UI **3,960/3,960**. Contracts first run **2,236/2,239** with 2 existing package-inventory skips and 1 failure: `SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` timed out at 3m 00s. The same filtered command then passed **1/1** in 2m 49s. Logs: `/tmp/tenants-56-repin-{contracts,client,server,ui}-{restore,build,tests}.log`.
 
 **Pass-6 review-fix verification (2026-10-05):** At EventStore `ad8fe3ba4ad4804e941bf4ada5852b0b94af3544`, source-mode Debug lanes passed: Contracts **2,237/2,239** (2 existing `EVENTSTORE_PACKAGE_CONTRACT_DIR` skips), Client **914/914**, and Server **3,603/3,628** (25 existing DW1 ATDD skips). Tenants UI passed **3,957/3,957**. A first no-restore build of both trees hit mixed-asset CS1704; `dotnet restore` with `-p:UseNuGetDeps=false -m:1` then a `--no-restore` Debug build cleared it. The new drain, resume, receipt, expiry, and tracker cases are inside those totals. After the pass-6 review patches, the same UI assembly was rebuilt and passed **3,957/3,957** again, including page confirmation from the query capture and the stale role-change reason assertion. EventStore source did not change in that patch, so the EventStore totals above still apply. The Tenants gitlink to `ad8fe3ba` is a working-tree pointer only.
 
@@ -1127,7 +1154,7 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
   - MU4: the removed role-change clause is put back on the membership check (3,957 UI tests). See the fourth patch.
 - MU1/MU3 are now compile errors by construction.
 
-- [ ] [Review][Patch] Tenants `origin/main` pins an EventStore revision that no remote has.
+- [x] [Review][Patch] Tenants `origin/main` pins an EventStore revision that no remote has.
   - Root `50fc6257` pins EventStore `ad8fe3ba`. After a `git fetch`, `git branch -r --contains ad8fe3ba` is empty.
   - EventStore `origin/main` is `f1662b9c`, a sibling on `d48e1aeb`, so local EventStore `main` is ahead 1, behind 1.
   - A fresh clone's `git submodule update` and the CI checkout cannot fetch the pin. This is the pass-4 `979de6f3` "not our ref" failure, now on the published branch.
