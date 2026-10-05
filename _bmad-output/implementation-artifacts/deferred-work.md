@@ -3605,3 +3605,23 @@ Diff reviewed: the uncommitted Tenants working tree against root `d8558263`, and
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Carried, with no new work item; see "Restore CI test execution" above. Tenants CI never runs the strengthened same-row correction regression `RoleSelectionAndAnotherStartPreserveASubmittedPreviewAndItsTrackingHandle`.
   evidence: CI run `37298335264` at `d8558263` fails at "Validate package consumer references" and skips both Tier 1 steps. `story-guards.yml:55-59` only builds the UI test project, and `source-reference.yml` runs only the integration tests. So the pass-9 MV1 kill (`TenantAuditPage.razor:1552` forced to `competing: true`) is local evidence only. Pre-existing; not caused by Story 5.6.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Restore content scanning or governed, content-bound retirement for EventStore evidence paths currently skipped by the secret guard (high).
+  evidence: Pass-12 BH1: upstream EventStore 38efbefd5da65d538723f9f85eca6a186dfc0a2f added ExplicitEvidenceArtifactPathPattern; ReadTrackedText returns null for every matching evidence CTRF JSON, the named verification directory and previous-candidate.md before examining content. Bind any allowed retirement to verified artifacts and add injected-content controls; this is independent of the exact password-free GitHub SSH-identity exception.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Correct EventStore command-status documentation to include positive event counts on eventful rejections.
+  evidence: Pass-12 BH6: command-api.md says eventCount is Completed-only, but CompleteTerminalAsync passes a positive count for Rejected. Both wording and behavior predate the preserved EventStore baseline; correction confirmation remains gated on Completed and verified proof.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Correct EventStore replay reference identity and ambiguity descriptions.
+  evidence: Pass-12 BH7: ReplayController accepts message identifiers and returns the archived correlation as OriginalCorrelationId separately from OriginalMessageId; the unchanged response table says it equals the path parameter and omits the correlation-ambiguity 409 case.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Make EventStore runtime status-ambiguity recovery text account for cross-tenant MessageId collisions.
+  evidence: Pass-12 BH9: CreateAmbiguityProblemDetails always recommends MessageId, but a direct message match in one authorized tenant can collide with another tenant correlation index and still return 409. The existing status reference was qualified; the unchanged runtime recovery copy needs a separate platform correction.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Add real AggregateActor.GetEventsAsync count and cumulative-payload budget boundary tests.
+  evidence: Pass-12 VG1: pre-verified gap in independent EventStore evolution commit 974a7fa33d70fdfb9dabb32c7d2416e4f0095853. AggregateActorGetEventsTests uses small arrays, projection tests mock the actor, and the only LegacyArrayLimit assertion calls EventStreamReader.RehydrateAsync. Invoke the real actor for excessive count and cumulative 64-MiB payload cases and require LegacyArrayLimit, so deleting arrayBudget.Add is detected.

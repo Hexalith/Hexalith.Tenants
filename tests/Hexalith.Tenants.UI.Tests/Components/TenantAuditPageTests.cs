@@ -2797,6 +2797,7 @@ public sealed class TenantAuditPageTests : BunitContext
         FluentSelectInterop.ChangeFluentSelect(cut.FindComponent<AuditDataGrid>(), "tenants-correction-role", TenantRole.TenantOwner.ToString());
         cut.Find("[data-testid='tenants-correction-start']").Click();
         cut.FindComponent<CorrectionStartPanel>().Instance.ShouldBeSameAs(preview);
+        cut.FindComponent<CorrectionStartPanel>().Instance.RetainedAttemptMessageId.ShouldBe(messageId);
         preview.Snapshot!.MessageId.ShouldBe(messageId);
         preview.Snapshot.IntendedRole.ShouldBe(TenantRole.TenantReader);
         query.DetailRequests.Count.ShouldBe(detailReads);

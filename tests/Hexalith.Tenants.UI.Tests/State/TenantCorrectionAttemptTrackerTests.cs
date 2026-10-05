@@ -83,7 +83,7 @@ public sealed class TenantCorrectionAttemptTrackerTests
     public void Failed_dispatch_mark_rolls_back_the_attempt_and_lease()
     {
         TenantCorrectionPreviewSnapshot preview = Preview();
-        TenantCorrectionAttemptTracker tracker = new();
+        using TenantCorrectionAttemptTracker tracker = new();
         TenantAggregateCommandAdmissionGate gate = new();
         bool abandoned = false;
         gate.StateChanged += (_, _) =>
@@ -111,7 +111,7 @@ public sealed class TenantCorrectionAttemptTrackerTests
     public void Updates_refuse_regression_terminal_rewrite_and_lost_correlation()
     {
         TenantCorrectionPreviewSnapshot preview = Preview();
-        TenantCorrectionAttemptTracker tracker = new();
+        using TenantCorrectionAttemptTracker tracker = new();
         TenantAggregateCommandAdmissionGate gate = new();
         tracker.TryBegin(preview, gate, out TenantCorrectionAttempt? attempt).ShouldBeTrue();
         attempt.ShouldNotBeNull();
@@ -136,7 +136,7 @@ public sealed class TenantCorrectionAttemptTrackerTests
     public void Delivery_retry_requires_the_prior_operation_to_end_and_keeps_the_same_id()
     {
         TenantCorrectionPreviewSnapshot preview = Preview();
-        TenantCorrectionAttemptTracker tracker = new();
+        using TenantCorrectionAttemptTracker tracker = new();
         tracker.TryBegin(preview, new TenantAggregateCommandAdmissionGate(), out TenantCorrectionAttempt? attempt).ShouldBeTrue();
         attempt.ShouldNotBeNull();
 
@@ -177,7 +177,7 @@ public sealed class TenantCorrectionAttemptTrackerTests
     public void Every_terminal_state_releases_the_aggregate_lease(TenantCommandLifecycleState terminal)
     {
         TenantCorrectionPreviewSnapshot preview = Preview();
-        TenantCorrectionAttemptTracker tracker = new();
+        using TenantCorrectionAttemptTracker tracker = new();
         TenantAggregateCommandAdmissionGate gate = new();
         tracker.TryBegin(preview, gate, out TenantCorrectionAttempt? attempt).ShouldBeTrue();
         attempt.ShouldNotBeNull();
@@ -193,7 +193,7 @@ public sealed class TenantCorrectionAttemptTrackerTests
     public void Expired_uncertain_attempt_remains_viewable_until_a_new_attempt_replaces_it()
     {
         DateTimeOffset now = new(2026, 10, 3, 10, 0, 0, TimeSpan.Zero);
-        TenantCorrectionAttemptTracker tracker = new(() => now);
+        using TenantCorrectionAttemptTracker tracker = new(() => now);
         TenantAggregateCommandAdmissionGate gate = new();
         TenantCorrectionPreviewSnapshot preview = Preview();
         tracker.TryBegin(preview, gate, out TenantCorrectionAttempt? attempt).ShouldBeTrue();
