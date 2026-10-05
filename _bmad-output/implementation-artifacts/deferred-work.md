@@ -3564,3 +3564,14 @@ Diff reviewed: Tenants `e3e3af7d..560ac28f` and EventStore `865cd9e4..979de6f3` 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Move the remaining EventStore docs from `/status/{correlationId}` to the messageId route.
   evidence: `docs/guides/security-model.md:209-210,280`, `docs/concepts/command-lifecycle.md:210`, `docs/getting-started/first-domain-service.md:277` and the brownfield docs still name the correlation ID as the status key. `CommandStatusController` routes `{messageId}`, and correlation lookup is a bounded compatibility path that can return 409.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 6 (2026-10-05)
+
+Diff reviewed: Tenants `2306feba..2c04af17` and EventStore `f9d7dde4..7c3243e1` (rebased mid-review to `7dcc4756` on EventStore `origin/main`; root still pins `f9d7dde4`).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Finish converting the EventStore replay reference to messageId semantics.
+  evidence: `docs/reference/command-api.md:425` says `originalCorrelationId` "matches the path parameter", but `ReplayController` resolves the path value as a messageId first and returns `archivedCommand.CorrelationId ?? correlationId`. So they differ when a messageId is passed. The replay error table (`:448`) omits the correlation-ambiguity 409 that `ReplayController` returns. These rows predate the story; pass 4 converted only the polling guidance.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Make the command-status 409 ProblemDetails detail match every ambiguity it reports.
+  evidence: `CommandStatusController.CreateAmbiguityProblemDetails` (`:209`) always says "The correlation identifier maps to multiple commands. Query again using the command MessageId." It also serves the case where one messageId matches records in several authorized tenants or several legacy records (`:152-153`), where a messageId retry cannot help. The updated `command-api.md` 409 row already gives the general remediation; the runtime copy is pre-existing and EventStore-owned.
