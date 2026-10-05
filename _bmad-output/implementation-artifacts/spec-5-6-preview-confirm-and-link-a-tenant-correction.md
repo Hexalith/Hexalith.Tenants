@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -1229,3 +1229,89 @@ Verification and mutation evidence came from an isolated rsync copy of the clean
 - ECH3, "`ThrowIfNull` runs before the in-flight flag is cleared": false. Both callers pass non-null `with` results, and the parameter is non-nullable under `TreatWarningsAsErrors`.
 - ECH8, "the resume writer stores the incoming `CausationId ?? MessageId`, while resume proof checks `existingPipeline.CausationId`": maybe-false, and low if true. It needs a same-messageId resume that carries a different causation. HTTP always sets causation = messageId (`SubmitCommandExtensions.cs:50`). A blank causation fails closed under every source, because `EventPersister` stamps the blank verbatim.
 - AA7, "a null-causation command's persisted causation can never match its events": rejected as carried. Pass-6 patch 5 deliberately pinned this fail-closed withholding (`ProcessCommand_ResumeFromEventsStored_WithholdsProofWhenEnvelopeCausationIsMissing`). It stays latent while every entry point sets a causation.
+
+### Review Findings (pass 9: pass-7 fix-pass re-review)
+
+Review date: 2026-10-05. This is pass 9 because the triage log already has an internal "Pass-8 review".
+
+Diff reviewed:
+- Tenants `e2c297b2..680bee32` (`8ee3feae`, `3036f9ce`, `69346e84`, `680bee32`): the fix pass that closed the eight pass-7 patches.
+- EventStore `738da5c9..0c6bb5c3`: the pass-7 drain tests and `command-api.md` corrections.
+
+The tree moved during the review:
+- A peer rebased `0c6bb5c3` to `2f7e044b`; `git range-diff` shows them identical. It pushed that commit and committed root `c3234b10` (pushed), then `6b6338f0` (pushed). `6b6338f0` pins EventStore `46d7b2eb`, which only adds docs and is on `origin/main`.
+- Evidence below is pinned to root `c3234b10` and EventStore `2f7e044b`. The rebase base adds no `src/` or `tests/` change after `738da5c9`.
+
+Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. `validate-story-gitlinks.py` passed with 8 declared pointer changes. The layers raised 41 findings. Triage grouped them into 1 decision, 4 patches and 3 defers, and rejected 10.
+
+Verification and mutation evidence came from an isolated rsync copy of the clean checkout (root `c3234b10`, EventStore `2f7e044b`, FrontComposer `64f66220`, Builds `ba4ca78c`), keeping git metadata. It was built Debug with `-p:UseNuGetDeps=false -m:1`; both builds had 0 warnings and 0 errors.
+- Full suites at those pins: Tenants UI **3,960/3,960**; EventStore Server **3,638/3,663** (25 existing DW1 skips). These match the recorded pass-7 totals. The recorded run predates `680bee32`'s FrontComposer move, so these now cover the pins the root actually records.
+- Killed:
+  - MU4: the removed role-change clause is put back on the membership check. Both new `StaleOrScopeConflictingRoleChangeCannotClaimIndeterminateMembership` rows fail.
+  - MX5: the resume writer drops the drain causation. The new resume test fails.
+  - MX7: the drain status write drops the tracking-id check. The `record-wrong-identity` row fails.
+  - MX9: the drain status write drops the `CommandType` check. The `record-missing-command-type` row fails.
+  - MS1: the committed-sequence `HasReached` gate is disabled. Three existing snapshot and panel tests fail.
+  - So pass-7 patches 2, 4 and 5 work.
+- Survived (whole suites):
+  - MV1: `OpenCorrectionAsync` resumes a same-row pending attempt as `competing: true` (3,960 UI tests). See the second patch.
+  - MX10: the drain status write drops `!record.IsRejection` (3,663 Server tests). See the third patch.
+- The restored pending page test reaches `ProjectionPending`, a non-terminal state, through the panel's private tracker.
+- CI: the `680bee32` source-reference job failed with `upload-pack: not our ref 0c6bb5c3…`, and the same job is green at `c3234b10`. The `c3234b10` CI and Story Guards failures are the known ones that predate this story: the `Tenants.Server` → `EventStore.ServiceDefaults` package boundary, and Chromium exit 134. The CI `validate-story-gitlinks` job passed.
+
+- [x] [Review][Decision] How to stop publishing root commits whose EventStore pin no remote has — this has now happened three times.
+  - **Resolved 2026-10-05: option (a).**
+    - Applied `git config push.recurseSubmodules check` to the root checkout's `.git/config` only. It is not global and is not a tracked change.
+    - Sandbox-verified on git 2.53:
+      - it refuses a root push whose pinned commit is on no submodule remote, and pushes nothing;
+      - it never pushes a submodule itself;
+      - `--no-recurse-submodules` overrides it for one push;
+      - a stale submodule tracking ref causes a false refusal that `git -C references/<X> fetch` clears;
+      - submodules that are not checked out are skipped.
+    - Replaying its reachability test (`rev-list <pin> --not --remotes`) refuses `680bee32` (`0c6bb5c3`) and passes HEAD (`46d7b2eb`).
+    - Option (b) `on-demand` was rejected. It publishes the whole submodule branch, including unpinned commits, and it would still have aborted on the diverged EventStore checkout.
+  - Pass 4 `979de6f3`, pass 7 `ad8fe3ba`, and now `680bee32` → `0c6bb5c3`. Each time the root was pushed before the submodule commit it pins.
+  - `680bee32` remains on `origin/main` and cannot be checked out with submodules. Its source-reference CI job failed. HEAD is already repaired, by `c3234b10` and then `6b6338f0`.
+  - The code needs no change; the open question is whether to add a guard, and which one:
+    - (a) set `git config push.recurseSubmodules check` in the root checkout, so a root push whose gitlinks are not on a submodule remote is refused;
+    - (b) set `on-demand`, which pushes the submodule commits first;
+    - (c) add no guard and rely on the source-reference CI job, which caught it within minutes.
+- [ ] [Review][Patch] The restored pending same-row test never reaches the page's locked-attempt resume branch [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2774]
+  - `RegisterServices` registers no `TenantCorrectionAttemptTracker`. So the panel uses its private fallback tracker, `RetainedCorrectionAttempt` is null, and the second Start always leaves through `HasSubmittedCorrection` (`TenantAuditPage.razor:1556`). That is the same branch the pass-6 `Confirmed` form took.
+  - Replacing `ResumeCorrection(competing: !retained.Matches(intent))` (`TenantAuditPage.razor:1552`) with `competing: true` survives all 3,960 UI tests (MV1). In production, a same-row Start with a changed role would then tell the operator that another command is being reconciled.
+  - `ShouldNotBe(Confirmed)` also passes for terminal states that release the lease.
+  - Fix:
+    - register a shared tracker (`Services.AddSingleton(new TenantCorrectionAttemptTracker())`);
+    - assert `LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending)` before the second Start;
+    - after it, assert that no `tenants-correction-aggregate-busy` element renders.
+- [ ] [Review][Patch] Nothing pins the rejection guard on a drain record that carries its causation [references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Actors/EventDrainRecoveryTests.cs:325]
+  - When `record.CausationId` is set, `!record.IsRejection` (`AggregateActor.cs:2729`) is the only clause that withholds `CommittedEventSequence` from a rejection drain.
+  - Dropping it survives all 3,663 Server tests (MX10). The theory selects only `Completed` writes, and `ReceiveReminder_RejectionEvents_DrainedAndStatusRejected` uses a null `MessageId`.
+  - So a `Rejected` status could carry a committed sequence, contradicting `command-api.md` ("null for … a rejection").
+  - Fix: add a `record-rejection` case: `IsRejection = true`, `MessageId = "command-8"`, record causation `cause-drain`. Assert that the `Rejected` status write has a null `CommittedEventSequence`.
+- [ ] [Review][Patch] The correlation-ID text still contradicts the rest of the reference [references/Hexalith.EventStore/docs/reference/command-api.md:40] — also `:56`.
+  - `:40` now says the body `correlationId` "is not the status lookup key". But `:297` and `:301` accept a correlation ID that resolves to exactly one command, as a compatibility fallback that returns 409 when ambiguous.
+  - `:56` still says the body "`correlationId` identifies the current request for tracing", while `:40` gives that role to the `X-Correlation-ID` header.
+  - Fix: say `messageId` is the primary lookup key and correlation lookup is a bounded compatibility fallback. Reword `:56` to say the body value is carried on status records and events.
+- [ ] [Review][Patch] The walkthrough's terminal status omits the `domain` an actor-written `Completed` record carries [references/Hexalith.EventStore/docs/reference/command-api.md:566]
+  - The Step 4 JSON for `…F6` has no `domain` or `committedEventSequence`. The field table and "Example — completed command" say actor-written terminal records carry `domain`, and that verified eventful completions carry the sequence.
+  - Fix: add `"domain": "counter"` and a `committedEventSequence` value to the Step 4 example.
+- [x] [Review][Defer] The `failureReason` row still says "PublishFailed status only" [references/Hexalith.EventStore/docs/reference/command-api.md:325] — deferred: pre-existing. The row dates from EventStore `6a901adf` (2026-03-01). `ConcurrencyConflictExceptionHandler.cs:51-60` and the `SubmitCommandHandler` coordinated-conflict writer put `FailureReason: "ConcurrencyConflict"` on `Rejected` records.
+- [x] [Review][Defer] A whitespace causation on resume throws before the drain record is written [references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:4346] — deferred: pre-existing and unverified medium.
+  - `CreateCommandProcessingIdentity` normalizes only `null` (`CausationId ?? MessageId`, `:4709`). The admission path normalizes whitespace (`:652`). `IdempotencyChecker` calls `identity.Validate()`, which throws on whitespace.
+  - The same call already existed at the EventStore story baseline `2c58ffda`. HTTP always sets causation = messageId.
+  - What would settle it: list every non-HTTP entry point that builds a `CommandEnvelope` with a caller-supplied `CausationId`.
+- [x] [Review][Defer] A Contracts test runs within 11 s of its timeout [references/Hexalith.EventStore/tests/Hexalith.EventStore.Contracts.Tests] — deferred: pre-existing and EventStore-owned. `SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` timed out at 3m 00s in the first full Contracts run, then passed alone in 2m 49s. Not caused by this change.
+
+#### Rejected (pass 9)
+
+- BH1/BH2/ECH9/ECH10/AA2/VG-o2, "the spec says the gitlink records `738da5c9`, the lanes ran 'at that revision', `ad8fe3ba` is 'five commits ahead of `f1662b9c`' (it is 4), and no lane is recorded at the committed pin": true, but rejected, because the fix edits this spec. The full-suite totals above now cover the pins the root records.
+- BH3/AA3/ECH11/VG-o3, "`680bee32` moved Builds, FrontComposer, McpCli and Platform with no note or re-verification, and the dependency table is stale in 6 of 8 rows": the re-verification claim is false. The full UI and Server suites pass at those pins. The Builds bump only drops the `Npgsql` `PackageVersion`, which Tenants does not reference. The table part is rejected, because the fix edits this spec.
+- BH4/ECH8/AA4/VG-o4, "spec `done` versus sprint `review`": rejected, because the fix edits this spec. This review resets both.
+- BH5/AA5a, "the pass-6 notes still call the `ad8fe3ba` gitlink uncommitted, or a working-tree pointer only": rejected, because the fix edits this spec.
+- BH6/AA5b, "the File List omits `TenantCorrectionStartIntent.cs`, `TenantCorrectionPreviewSnapshot.cs`, `TenantCorrectionPreviewSnapshotTests.cs`, `UnpublishedEventsRecord.cs` and `CommandStatusRecord.cs`": rejected, because the fix edits this spec. The gitlink declaration rule covers submodule paths, and those all pass.
+- BH7/AA5c, "no mutation evidence is recorded for the pass-7 closures": rejected, because the fix edits this spec. This review killed MU4, MX5, MX7 and MX9.
+- BH9, "the new page test has no negative control, so removing the sequence gate would pass": false. MS1 (the `HasReached` gate disabled) is killed by `EarlierRoleCycleMustNotConfirmAnUnprojectedCorrection`, `Matching_projection_must_reach_the_exact_committed_command_sequence(6, false)` and `An_earlier_matching_role_stays_pending_until_the_commands_commit_is_projected`. Pass 7 asked this test only to pin the detail-read consumption.
+- BH13/AA8/VG-o5, "the Pass-8 triage section cites an unpinned temp diff, ran three layers, collides with this pass's number and mislabels the off-dispatcher hazard": the bookkeeping part is rejected, because the fix edits this spec. The off-dispatcher part is carried: deferred-work already tracks it ("Verify whether correction delivery/status continuations outside the renderer…"). `SetSnapshot` only assigns fields and does not render, so it cannot crash the circuit.
+- ECH4, "a whitespace-only `CommandType` row is missing, so `IsNullOrWhiteSpace` could weaken to `IsNullOrEmpty`": false as a reachable defect. The `CommandEnvelope.CommandType` initializer rejects whitespace, so no drain record built from a command can carry one.
+- AA9, "the pointer bumps and spec edits are typed `fix:` and pushed straight to `main` instead of `build(deps)`": low. The commits are published, and a fix would rewrite shared history.

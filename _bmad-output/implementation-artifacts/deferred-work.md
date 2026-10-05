@@ -3583,3 +3583,17 @@ Diff reviewed: Tenants `c0b6f16d..50fc6257` and EventStore `d48e1aeb..ad8fe3ba` 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Pin the value, not just the presence, of the tenant correction delivery outcome passed to `EndDelivery`.
   evidence: `TenantCorrectionAttemptTracker.EndDelivery` (`src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:126`) now requires an outcome, but passing `request` or `attempt.Snapshot` instead of `next`/`unavailable` at `CorrectionStartPanel.razor:868`/`:933` still compiles and passes. `SetRetainedSnapshot` re-applies the right snapshot one statement later and bUnit is single-threaded, so no test can see the window in which another panel's `TryStartRetry` could send a duplicate same-id delivery. Closing it needs a production change, such as having `SetRetainedSnapshot` render only what `EndDelivery` retained.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 9 (2026-10-05)
+
+Diff reviewed: Tenants `e2c297b2..680bee32` and EventStore `738da5c9..0c6bb5c3`. During the review a peer rebased `0c6bb5c3` to `2f7e044b` (identical patch) and re-pinned the root in `c3234b10`, then `6b6338f0`.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Correct the EventStore `failureReason` row, which says "PublishFailed status only".
+  evidence: `docs/reference/command-api.md:325` dates from EventStore `6a901adf` (2026-03-01). `ConcurrencyConflictExceptionHandler.cs:51-60` and the `SubmitCommandHandler` coordinated-conflict writer put `FailureReason: "ConcurrencyConflict"` on `Rejected` records. Pre-existing; not caused by Story 5.6.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Normalize whitespace causation in `AggregateActor.CreateCommandProcessingIdentity` (medium, unverified).
+  evidence: `CreateCommandProcessingIdentity` (`AggregateActor.cs:4704-4710`) maps only `null` to `MessageId`, while admission (`:652`) also maps whitespace. On the resume publish-failure path (`:4346`), a whitespace `CausationId` makes `IdempotencyChecker` → `identity.Validate()` throw before the drain record and reminder are written. The same call already existed at the EventStore story baseline `2c58ffda`. HTTP always sets causation = messageId. To settle it, list every non-HTTP entry point that builds a `CommandEnvelope` with a caller-supplied `CausationId`.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Give the EventStore shared-consumer authority Contracts test more headroom, or speed it up.
+  evidence: `SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` timed out at 3m 00s in the pass-7 closure's first full Contracts run, then passed alone in 2m 49s. That is 11 s of headroom, so it is likely to flake in full or CI runs. EventStore-owned; not caused by Story 5.6.
