@@ -262,8 +262,11 @@ public class TenantAggregate : EventStoreAggregate<TenantState> {
             _ => false,
         };
 
-    // SECURITY: "actor:globalAdmin" extension MUST be server-populated only (SEC-4).
-    // CommandsController strips client-provided reserved extensions and only repopulates this key from trusted claims.
+    // SECURITY (EventStore Story 5.5, FR28): "actor:globalAdmin" is an untrusted wire hint, never authority on its own.
+    // The gateway sets it only from the authenticated human principal, and the EventStore domain-service SDK removes it
+    // at the /process boundary unless TenantsGlobalAdministratorVerifier confirms that the acting user is a current
+    // member of the Tenants global-administrators read model. The aggregate therefore only sees a value rebuilt from
+    // verified, current authorization; an envelope processed outside that boundary must apply the same verification.
     private static bool IsGlobalAdmin(CommandEnvelope envelope)
         => envelope.Extensions?.TryGetValue(GlobalAdminExtensionKey, out string? value) == true
            && string.Equals(value, "true", StringComparison.Ordinal);

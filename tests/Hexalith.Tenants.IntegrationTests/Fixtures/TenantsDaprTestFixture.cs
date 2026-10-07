@@ -1,12 +1,16 @@
 using System.Collections.Concurrent;
 
 using Hexalith.EventStore.Client.Registration;
+using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.Server.Configuration;
 using Hexalith.EventStore.Server.Events;
 using Hexalith.EventStore.Testing.Fakes;
+using Hexalith.Tenants.Authorization;
 using Hexalith.Tenants.Contracts.Identity;
+using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Aggregates;
+using Hexalith.Tenants.Server.Projections;
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
@@ -42,6 +46,16 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
 
     /// <summary>Gets the in-memory command status store for tracking command lifecycle.</summary>
     public InMemoryCommandStatusStore CommandStatusStore { get; } = new();
+
+    /// <summary>Gets the user the end-to-end tests send the wire administrator flag for.</summary>
+    public const string VerifiedGlobalAdministrator = "test-user";
+
+    /// <summary>
+    /// Gets the global-administrators read model consulted by the harness <c>/process</c> boundary (EventStore Story
+    /// 5.5). It lists <see cref="VerifiedGlobalAdministrator"/>, so the administrator flag those tests send survives
+    /// verification while a flag for any other user is removed.
+    /// </summary>
+    public InMemoryReadModelStore GlobalAdministratorsReadModel { get; } = CreateGlobalAdministratorsReadModel();
 
     /// <summary>Gets the isolated aggregate actor type name registered by this fixture run.</summary>
     public string AggregateActorTypeName { get; } = $"TenantsAggregateActorTests{Guid.NewGuid():N}";
@@ -100,9 +114,25 @@ public sealed class TenantsDaprTestFixture : DaprDomainServiceTestFixtureBase {
         // IDomainProcessor registrations back the SDK /process router (DomainServiceRequestRouter).
         _ = builder.Services.AddEventStore(typeof(TenantAggregate).Assembly);
 
+        // Wire administrator flags are untrusted at /process (EventStore Story 5.5): the harness keeps them only when
+        // the Tenants verifier confirms the acting user from the global-administrators read model.
+        _ = builder.Services.AddScoped<IDomainServiceAdministratorVerifier>(
+            _ => new TenantsGlobalAdministratorVerifier(GlobalAdministratorsReadModel));
+
         _ = builder.Services.AddDataProtection()
             .SetApplicationName("Hexalith.Tenants.IntegrationTests");
         builder.Services.AddEventStoreQueryCursorCodec("Hexalith.Tenants.QueryCursor.v1");
+    }
+
+    private static InMemoryReadModelStore CreateGlobalAdministratorsReadModel() {
+        var store = new InMemoryReadModelStore();
+        store.SeedRaw(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey,
+            new GlobalAdministratorReadModel {
+                Administrators = new HashSet<string>([VerifiedGlobalAdministrator], StringComparer.Ordinal),
+            });
+        return store;
     }
 
     private sealed class SupportSafeDiagnosticLogProvider(ConcurrentQueue<string> sink) : ILoggerProvider {

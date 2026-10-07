@@ -405,14 +405,15 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         return await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false);
     }
 
-    private protected Task<bool> IsGlobalAdminAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
-        if (envelope.IsGlobalAdmin) {
-            cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(true);
-        }
-
-        return IsGlobalAdminAsync(envelope.UserId, cancellationToken);
-    }
+    /// <summary>
+    /// Re-evaluates global-administrator authority from the current global-administrators read model.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="QueryEnvelope.IsGlobalAdmin"/> is untrusted wire data (EventStore Story 5.5, FR28) and never grants
+    /// access on its own: the acting user must be a current member of the persisted global-administrators read model.
+    /// </remarks>
+    private protected Task<bool> IsGlobalAdminAsync(QueryEnvelope envelope, CancellationToken cancellationToken)
+        => IsGlobalAdminAsync(envelope.UserId, cancellationToken);
 
     private protected async Task<bool> IsGlobalAdminAsync(string userId, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();

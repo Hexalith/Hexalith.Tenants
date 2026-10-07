@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 using Dapr.Client;
@@ -14,6 +16,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
 
 using NSubstitute;
 
@@ -38,7 +42,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
+        var service = CreateService(scopeFactory, options, lifetime, logger);
 
         // Act
         await service.StartAsync(CancellationToken.None);
@@ -81,12 +85,7 @@ public class TenantBootstrapHostedServiceTests {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
-        var service = new TenantBootstrapHostedService(
-            scopeFactory,
-            options,
-            new ConfigurationBuilder().Build(),
-            lifetime,
-            NullLogger<TenantBootstrapHostedService>.Instance);
+        var service = CreateService(scopeFactory, options, lifetime, NullLogger<TenantBootstrapHostedService>.Instance);
 
         await service.StartAsync(CancellationToken.None);
         await Task.Delay(50);
@@ -114,12 +113,7 @@ public class TenantBootstrapHostedServiceTests {
             BootstrapGlobalAdminUserId = userId,
         });
 
-        var service = new TenantBootstrapHostedService(
-            scopeFactory,
-            options,
-            new ConfigurationBuilder().Build(),
-            lifetime,
-            NullLogger<TenantBootstrapHostedService>.Instance);
+        var service = CreateService(scopeFactory, options, lifetime, NullLogger<TenantBootstrapHostedService>.Instance);
 
         // Act
         await service.StartAsync(CancellationToken.None);
@@ -140,12 +134,7 @@ public class TenantBootstrapHostedServiceTests {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
-        var service = new TenantBootstrapHostedService(
-            scopeFactory,
-            options,
-            new ConfigurationBuilder().Build(),
-            lifetime,
-            NullLogger<TenantBootstrapHostedService>.Instance);
+        var service = CreateService(scopeFactory, options, lifetime, NullLogger<TenantBootstrapHostedService>.Instance);
 
         // Act & Assert — should not throw
         await Should.NotThrowAsync(
@@ -168,7 +157,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
+        var service = CreateService(scopeFactory, options, lifetime, logger);
 
         // Act
         await service.StartAsync(CancellationToken.None);
@@ -194,7 +183,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
+        var service = CreateService(scopeFactory, options, lifetime, logger);
 
         await service.StartAsync(CancellationToken.None);
         lifetime.StartApplication();
@@ -223,7 +212,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
+        var service = CreateService(scopeFactory, options, lifetime, logger);
 
         await service.StartAsync(CancellationToken.None);
         lifetime.StartApplication();
@@ -250,7 +239,7 @@ public class TenantBootstrapHostedServiceTests {
         });
 
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        var service = new TenantBootstrapHostedService(scopeFactory, options, new ConfigurationBuilder().Build(), lifetime, logger);
+        var service = CreateService(scopeFactory, options, lifetime, logger);
 
         await service.StartAsync(CancellationToken.None);
         lifetime.StartApplication();
@@ -280,12 +269,7 @@ public class TenantBootstrapHostedServiceTests {
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        var service = new TenantBootstrapHostedService(
-            scopeFactory,
-            options,
-            new ConfigurationBuilder().Build(),
-            lifetime,
-            NullLogger<TenantBootstrapHostedService>.Instance);
+        var service = CreateService(scopeFactory, options, lifetime, NullLogger<TenantBootstrapHostedService>.Instance);
 
         // Act
         await service.StartAsync(cts.Token);
@@ -294,6 +278,160 @@ public class TenantBootstrapHostedServiceTests {
 
         // Assert
         httpCalled.ShouldBeFalse();
+    }
+
+    // EventStore Story 5.5: the bootstrap is authorized only by the configured administrator's delegated credential.
+    [Fact]
+    public async Task Development_symmetric_credential_is_a_short_lived_delegated_token_for_the_configured_administrator() {
+        string? authorization = null;
+        var handler = new TestHttpMessageHandler((request, _) => {
+            authorization = request.Headers.Authorization?.ToString();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+        var lifetime = new TestHostApplicationLifetime();
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = "admin-user-1" }),
+            lifetime,
+            NullLogger<TenantBootstrapHostedService>.Instance);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => authorization is not null);
+
+        authorization.ShouldStartWith("Bearer ");
+        string token = authorization!["Bearer ".Length..];
+        TokenValidationResult validation = await new JsonWebTokenHandler().ValidateTokenAsync(token, new TokenValidationParameters {
+            ValidIssuer = DevelopmentIssuer,
+            ValidAudience = DevelopmentAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(DevelopmentSigningKey)),
+            ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
+            ClockSkew = TimeSpan.FromSeconds(60),
+        });
+        validation.IsValid.ShouldBeTrue(validation.Exception?.Message);
+        var jwt = (JsonWebToken)validation.SecurityToken;
+        jwt.Subject.ShouldBe("admin-user-1");
+        jwt.GetClaim("global_admin").Value.ShouldBe("true");
+        jwt.GetClaim("eventstore:tenant").Value.ShouldBe("system");
+        (jwt.ValidTo - jwt.IssuedAt).ShouldBeLessThanOrEqualTo(TimeSpan.FromSeconds(TenantBootstrapCredentialProvider.DevelopmentTokenLifetimeSeconds));
+    }
+
+    [Theory]
+    [InlineData("no-credential")]
+    [InlineData("production-signing-key")]
+    [InlineData("authority-without-password")]
+    public async Task Without_a_delegated_credential_the_command_is_not_sent(string scenario) {
+        ArgumentNullException.ThrowIfNull(scenario);
+        bool commandSent = false;
+        var handler = new TestHttpMessageHandler((request, _) => {
+            commandSent = true;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+        var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        Dictionary<string, string?> settings = scenario switch {
+            "no-credential" => [],
+            "production-signing-key" => DevelopmentContract(),
+            _ => new() {
+                ["EventStore:Authentication:Authority"] = "https://identity.example.test/realms/hexalith",
+                ["EventStore:Authentication:Username"] = "admin",
+            },
+        };
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = "admin-user-1" }),
+            lifetime,
+            logger,
+            settings,
+            scenario == "production-signing-key" ? Environments.Production : Environments.Development);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id == 2006));
+
+        commandSent.ShouldBeFalse(scenario);
+        logger.Messages.ShouldNotContain(static message => message.Contains("admin-user-1", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Authority_mode_sends_only_the_configured_administrators_own_token(bool subjectMatches) {
+        string adminToken = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor {
+            Issuer = "https://identity.example.test/realms/hexalith",
+            Claims = new Dictionary<string, object>(StringComparer.Ordinal) { ["sub"] = subjectMatches ? "admin-user-1" : "someone-else" },
+        });
+        string? tokenRequest = null;
+        string? commandAuthorization = null;
+        var handler = new TestHttpMessageHandler(async (request, cancellationToken) => {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/protocol/openid-connect/token", StringComparison.Ordinal)) {
+                tokenRequest = await request.Content!.ReadAsStringAsync(cancellationToken);
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent(JsonSerializer.Serialize(new Dictionary<string, object> { ["access_token"] = adminToken, ["expires_in"] = 300 })),
+                };
+            }
+
+            commandAuthorization = request.Headers.Authorization?.ToString();
+            return new HttpResponseMessage(HttpStatusCode.Accepted);
+        });
+        var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = "admin-user-1" }),
+            lifetime,
+            logger,
+            new Dictionary<string, string?> {
+                ["EventStore:Authentication:Authority"] = "https://identity.example.test/realms/hexalith",
+                ["EventStore:Authentication:ClientId"] = "hexalith-eventstore",
+                ["EventStore:Authentication:Username"] = "admin",
+                ["EventStore:Authentication:Password"] = Guid.NewGuid().ToString("N"),
+            });
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => commandAuthorization is not null || logger.Entries.Any(static entry => entry.EventId.Id == 2006));
+
+        tokenRequest.ShouldNotBeNull();
+        tokenRequest.ShouldContain("grant_type=password");
+        if (subjectMatches) {
+            commandAuthorization.ShouldBe("Bearer " + adminToken);
+        }
+        else {
+            commandAuthorization.ShouldBeNull();
+            logger.Messages.ShouldContain(static message => message.Contains("authority-subject-mismatch", StringComparison.Ordinal));
+        }
+    }
+
+    private const string DevelopmentIssuer = "hexalith-dev";
+    private const string DevelopmentAudience = "hexalith-eventstore";
+    private static readonly string DevelopmentSigningKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+
+    private static Dictionary<string, string?> DevelopmentContract()
+        => new(StringComparer.Ordinal) {
+            ["Authentication:JwtBearer:Issuer"] = DevelopmentIssuer,
+            ["Authentication:JwtBearer:Audience"] = DevelopmentAudience,
+            ["Authentication:JwtBearer:SigningKey"] = DevelopmentSigningKey,
+            ["Authentication:JwtBearer:AllowedAlgorithms:0"] = "HS256",
+            ["Authentication:JwtBearer:RequireHttpsMetadata"] = "false",
+        };
+
+    private static TenantBootstrapHostedService CreateService(
+        IServiceScopeFactory scopeFactory,
+        IOptions<TenantBootstrapOptions> options,
+        IHostApplicationLifetime lifetime,
+        ILogger<TenantBootstrapHostedService> logger,
+        Dictionary<string, string?>? settings = null,
+        string environmentName = "Development") {
+        IHostEnvironment environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns(environmentName);
+        return new TenantBootstrapHostedService(
+            scopeFactory,
+            options,
+            new ConfigurationBuilder().AddInMemoryCollection(settings ?? DevelopmentContract()).Build(),
+            environment,
+            lifetime,
+            logger);
     }
 
     private static async Task WaitUntilAsync(Func<bool> condition) {

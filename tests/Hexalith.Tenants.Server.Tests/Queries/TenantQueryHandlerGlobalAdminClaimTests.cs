@@ -19,25 +19,21 @@ using Shouldly;
 namespace Hexalith.Tenants.Server.Tests.Queries;
 
 /// <summary>
-/// Verifies that the trusted, JWT-derived <see cref="QueryEnvelope.IsGlobalAdmin"/> claim authorizes the
-/// tenant query handlers even when the persisted <see cref="GlobalAdministratorReadModel"/> projection does
-/// not list the caller.
-/// <para>
-/// This is the production failure mode behind the "No visible tenants" display bug: the global-administrator
-/// bootstrap projection is empty, so before the fix a genuine global administrator was treated as an ordinary
-/// user and saw an empty tenant list. Each claim-path test is paired with a claim-absent regression guard that
-/// proves the persisted-projection fallback (the prior behavior) is unchanged.
-/// </para>
+/// EventStore Story 5.5 (FR28): the wire <see cref="QueryEnvelope.IsGlobalAdmin"/> hint never authorizes the tenant
+/// query handlers on its own. Global-administrator authority is re-evaluated from the current persisted
+/// <see cref="GlobalAdministratorReadModel"/>: a caller absent from it is treated as an ordinary user even when the
+/// hint is set, and a caller listed in it is authorized even when the hint is absent.
 /// </summary>
 public sealed class TenantQueryHandlerGlobalAdminClaimTests {
-    // A principal that is NOT a member of any tenant and is absent from the persisted admin projection.
+    // A principal that is NOT a member of any tenant.
     private const string ClaimAdmin = "claim-admin";
     private const string TargetUser = "target-user";
 
     [Fact]
-    public async Task List_tenants_shows_all_tenants_to_global_admin_claim_when_bootstrap_projection_is_empty() {
+    public async Task List_tenants_wire_admin_hint_alone_does_not_reveal_tenants() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SeedTenantIndex(store);
+        SeedEmptyGlobalAdministrators(store);
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
@@ -45,13 +41,10 @@ public sealed class TenantQueryHandlerGlobalAdminClaimTests {
             ListTenantsEnvelope(ClaimAdmin, isGlobalAdmin: true));
 
         result.Success.ShouldBeTrue();
-        PaginatedResult<TenantSummary> page = Deserialize<PaginatedResult<TenantSummary>>(result);
-        page.Items.Select(static i => i.TenantId).ShouldBe(["tenant.alpha", "tenant.beta"], ignoreOrder: true);
-
-        // The claim must authorize without depending on the (broken/empty) bootstrap projection at all.
-        _ = await store.DidNotReceive().GetAsync<GlobalAdministratorReadModel>(
-            Arg.Any<string>(),
-            Arg.Any<string>(),
+        Deserialize<PaginatedResult<TenantSummary>>(result).Items.ShouldBeEmpty();
+        _ = await store.Received().GetAsync<GlobalAdministratorReadModel>(
+            TenantQueryHandlerBase.StateStoreName,
+            TenantQueryHandlerBase.GlobalAdminProjectionKey,
             Arg.Any<CancellationToken>());
     }
 
@@ -71,8 +64,10 @@ public sealed class TenantQueryHandlerGlobalAdminClaimTests {
         page.Items.ShouldBeEmpty();
     }
 
-    [Fact]
-    public async Task List_tenants_without_claim_falls_back_to_persisted_admin_projection() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task List_tenants_current_global_administrator_sees_all_tenants(bool isGlobalAdmin) {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SeedTenantIndex(store);
         SeedGlobalAdministrators(store, ClaimAdmin);
@@ -80,28 +75,17 @@ public sealed class TenantQueryHandlerGlobalAdminClaimTests {
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
-            ListTenantsEnvelope(ClaimAdmin, isGlobalAdmin: false));
+            ListTenantsEnvelope(ClaimAdmin, isGlobalAdmin));
 
         result.Success.ShouldBeTrue();
         PaginatedResult<TenantSummary> page = Deserialize<PaginatedResult<TenantSummary>>(result);
         page.Items.Select(static i => i.TenantId).ShouldBe(["tenant.alpha", "tenant.beta"], ignoreOrder: true);
     }
 
-    [Fact]
-    public async Task Get_tenant_authorizes_non_member_global_admin_claim() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        SeedTenant(store);
-
-        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
-            store,
-            CreateCursorCodec(),
-            GetTenantEnvelope(ClaimAdmin, isGlobalAdmin: true));
-
-        result.Success.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task Get_tenant_forbids_non_member_without_claim() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Get_tenant_forbids_non_member_who_is_not_a_current_global_administrator(bool isGlobalAdmin) {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SeedTenant(store);
         SeedEmptyGlobalAdministrators(store);
@@ -109,90 +93,109 @@ public sealed class TenantQueryHandlerGlobalAdminClaimTests {
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
-            GetTenantEnvelope(ClaimAdmin, isGlobalAdmin: false));
+            GetTenantEnvelope(ClaimAdmin, isGlobalAdmin));
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe("Forbidden");
     }
 
     [Fact]
-    public async Task Get_tenant_with_claim_querying_missing_tenant_is_not_found_not_forbidden() {
+    public async Task Get_tenant_authorizes_non_member_current_global_administrator() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
-        // No tenant seeded: the model is null. A claim admin must be told "not found", not "Forbidden",
-        // since the claim authorizes them to know the tenant does not exist.
-
-        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
-            store,
-            CreateCursorCodec(),
-            GetTenantEnvelope(ClaimAdmin, isGlobalAdmin: true));
-
-        result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Tenant not found");
-    }
-
-    [Fact]
-    public async Task Get_tenant_without_claim_querying_missing_tenant_is_forbidden() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-        SeedEmptyGlobalAdministrators(store);
+        SeedTenant(store);
+        SeedGlobalAdministrators(store, ClaimAdmin);
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
             GetTenantEnvelope(ClaimAdmin, isGlobalAdmin: false));
 
-        // A non-admin must not be able to distinguish "missing" from "exists-but-unauthorized".
+        result.Success.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Get_tenant_wire_admin_hint_cannot_probe_missing_tenants() {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SeedEmptyGlobalAdministrators(store);
+
+        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
+            store,
+            CreateCursorCodec(),
+            GetTenantEnvelope(ClaimAdmin, isGlobalAdmin: true));
+
+        // Without current authority the caller must not distinguish "missing" from "exists-but-unauthorized".
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
     }
 
     [Fact]
-    public async Task Get_tenant_users_authorizes_non_member_global_admin_claim() {
+    public async Task Get_tenant_current_global_administrator_querying_missing_tenant_is_not_found() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
-        SeedTenant(store);
+        SeedGlobalAdministrators(store, ClaimAdmin);
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
-            GetTenantUsersEnvelope(ClaimAdmin, isGlobalAdmin: true));
+            GetTenantEnvelope(ClaimAdmin, isGlobalAdmin: false));
 
-        result.Success.ShouldBeTrue();
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Tenant not found");
     }
 
-    [Fact]
-    public async Task Get_tenant_users_forbids_non_member_without_claim() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Get_tenant_users_forbids_non_member_who_is_not_a_current_global_administrator(bool isGlobalAdmin) {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SeedTenant(store);
         SeedEmptyGlobalAdministrators(store);
+
+        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
+            store,
+            CreateCursorCodec(),
+            GetTenantUsersEnvelope(ClaimAdmin, isGlobalAdmin));
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe("Forbidden");
+    }
+
+    [Fact]
+    public async Task Get_tenant_users_authorizes_current_global_administrator() {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SeedTenant(store);
+        SeedGlobalAdministrators(store, ClaimAdmin);
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
             GetTenantUsersEnvelope(ClaimAdmin, isGlobalAdmin: false));
 
-        result.Success.ShouldBeFalse();
-        result.ErrorMessage.ShouldBe("Forbidden");
+        result.Success.ShouldBeTrue();
     }
 
-    [Fact]
-    public async Task Get_user_tenants_global_admin_claim_sees_other_users_memberships() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Get_user_tenants_cannot_see_other_users_memberships_without_current_authority(bool isGlobalAdmin) {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SeedTenantIndex(store);
+        SeedEmptyGlobalAdministrators(store);
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
-            GetUserTenantsEnvelope(ClaimAdmin, TargetUser, isGlobalAdmin: true));
+            GetUserTenantsEnvelope(ClaimAdmin, TargetUser, isGlobalAdmin));
 
         result.Success.ShouldBeTrue();
         PaginatedResult<UserTenantMembership> page = Deserialize<PaginatedResult<UserTenantMembership>>(result);
-        page.Items.Select(static i => i.TenantId).ShouldBe(["tenant.alpha"]);
+        page.Items.ShouldBeEmpty();
     }
 
     [Fact]
-    public async Task Get_user_tenants_without_claim_cannot_see_other_users_memberships() {
+    public async Task Get_user_tenants_current_global_administrator_sees_other_users_memberships() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SeedTenantIndex(store);
-        SeedEmptyGlobalAdministrators(store);
+        SeedGlobalAdministrators(store, ClaimAdmin);
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
@@ -201,39 +204,42 @@ public sealed class TenantQueryHandlerGlobalAdminClaimTests {
 
         result.Success.ShouldBeTrue();
         PaginatedResult<UserTenantMembership> page = Deserialize<PaginatedResult<UserTenantMembership>>(result);
-        page.Items.ShouldBeEmpty();
+        page.Items.Select(static i => i.TenantId).ShouldBe(["tenant.alpha"]);
     }
 
-    [Fact]
-    public async Task Get_tenant_audit_authorizes_global_admin_claim() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
-
-        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
-            store,
-            CreateCursorCodec(),
-            GetTenantAuditEnvelope(ClaimAdmin, isGlobalAdmin: true));
-
-        result.Success.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task Get_tenant_audit_forbids_without_claim() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Get_tenant_audit_forbids_without_current_authority(bool isGlobalAdmin) {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SeedEmptyGlobalAdministrators(store);
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
             store,
             CreateCursorCodec(),
-            GetTenantAuditEnvelope(ClaimAdmin, isGlobalAdmin: false));
+            GetTenantAuditEnvelope(ClaimAdmin, isGlobalAdmin));
 
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe("Forbidden");
     }
 
     [Fact]
-    public async Task Get_global_administrators_claim_authorizes_user_absent_from_projection() {
+    public async Task Get_tenant_audit_authorizes_current_global_administrator() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
-        // Projection exists but does NOT list the caller; the claim alone must authorize.
+        SeedGlobalAdministrators(store, ClaimAdmin);
+
+        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
+            store,
+            CreateCursorCodec(),
+            GetTenantAuditEnvelope(ClaimAdmin, isGlobalAdmin: false));
+
+        result.Success.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_wire_admin_hint_alone_is_forbidden() {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        // Projection exists but does NOT list the caller; the wire hint must not authorize.
         SeedGlobalAdministrators(store, "someone-else");
 
         QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
@@ -241,11 +247,12 @@ public sealed class TenantQueryHandlerGlobalAdminClaimTests {
             CreateCursorCodec(),
             GetGlobalAdministratorsEnvelope(ClaimAdmin, isGlobalAdmin: true));
 
-        result.Success.ShouldBeTrue();
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
     }
 
     [Fact]
-    public async Task Get_global_administrators_claim_still_fails_closed_when_projection_is_missing() {
+    public async Task Get_global_administrators_fails_closed_when_projection_is_missing() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SeedNoGlobalAdministrators(store);
 
@@ -254,9 +261,21 @@ public sealed class TenantQueryHandlerGlobalAdminClaimTests {
             CreateCursorCodec(),
             GetGlobalAdministratorsEnvelope(ClaimAdmin, isGlobalAdmin: true));
 
-        // A null projection means there is nothing to enumerate: deliberately Forbidden even for a claim admin.
         result.Success.ShouldBeFalse();
         result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+    }
+
+    [Fact]
+    public async Task Get_global_administrators_authorizes_current_member() {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SeedGlobalAdministrators(store, ClaimAdmin, "someone-else");
+
+        QueryResult result = await TenantQueryTestHarness.ExecuteAsync(
+            store,
+            CreateCursorCodec(),
+            GetGlobalAdministratorsEnvelope(ClaimAdmin, isGlobalAdmin: false));
+
+        result.Success.ShouldBeTrue();
     }
 
     private static QueryEnvelope ListTenantsEnvelope(string userId, bool isGlobalAdmin)

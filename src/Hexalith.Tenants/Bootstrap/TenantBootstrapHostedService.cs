@@ -14,12 +14,22 @@ using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.Bootstrap;
 
+/// <summary>
+/// Submits <c>BootstrapGlobalAdmin</c> for <c>Tenants:BootstrapGlobalAdminUserId</c> once the host is listening.
+/// </summary>
+/// <remarks>
+/// EventStore Story 5.5: the command is authorized only by the configured administrator's delegated human credential
+/// (see <see cref="TenantBootstrapCredentialProvider"/>), never by this service's Dapr application id. Without that
+/// credential the command is not sent.
+/// </remarks>
 public partial class TenantBootstrapHostedService(
     IServiceScopeFactory scopeFactory,
     IOptions<TenantBootstrapOptions> options,
     IConfiguration configuration,
+    IHostEnvironment environment,
     IHostApplicationLifetime lifetime,
-    ILogger<TenantBootstrapHostedService> logger) : IHostedService {
+    ILogger<TenantBootstrapHostedService> logger,
+    TimeProvider? timeProvider = null) : IHostedService {
     private const string EventStoreAppId = "eventstore";
     private const string CommandEndpoint = "api/v1/commands";
     private const long MaxExpectedRejectionProbeBytes = 8192;
@@ -70,22 +80,27 @@ public partial class TenantBootstrapHostedService(
                     correlationId = UniqueIdHelper.GenerateSortableUniqueStringId(),
                 };
 
+                HttpClient httpClient = httpClientFactory.CreateClient();
+
+                // The EventStore command endpoint requires the configured administrator's own delegated credential
+                // (EventStore Story 5.5): no app-id grant exists. Dapr service invocation relays the Authorization
+                // header to the eventstore app. Without a credential nothing is sent.
+                var credentialProvider = new TenantBootstrapCredentialProvider(
+                    configuration,
+                    environment,
+                    timeProvider ?? TimeProvider.System,
+                    logger);
+                string? accessToken = await credentialProvider.AcquireAsync(userId, httpClient, cancellationToken).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(accessToken)) {
+                    return;
+                }
+
                 using HttpRequestMessage httpRequest = daprClient.CreateInvokeMethodRequest(
                     HttpMethod.Post,
                     EventStoreAppId,
                     CommandEndpoint);
                 httpRequest.Content = JsonContent.Create(commandBody);
-
-                HttpClient httpClient = httpClientFactory.CreateClient();
-
-                // The EventStore command endpoint requires a JWT. The bootstrap runs without a user
-                // context, so acquire a service token via Keycloak (resource-owner-password grant) and
-                // forward it as a Bearer header — Dapr service invocation relays the Authorization header
-                // to the eventstore app. Without a token the command is rejected 401 (MissingToken).
-                string? accessToken = await TryAcquireAccessTokenAsync(httpClient, cancellationToken).ConfigureAwait(false);
-                if (!string.IsNullOrWhiteSpace(accessToken)) {
-                    httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                }
+                httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
                 using HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
@@ -118,45 +133,6 @@ public partial class TenantBootstrapHostedService(
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
-
-    // Resource-owner-password grant against Keycloak using the configured service credentials,
-    // mirroring how the EventStore Admin UI obtains its service token. Returns null when no
-    // authority is configured (non-Keycloak/dev signing-key mode), letting the caller send the
-    // command without a bearer header.
-    private async Task<string?> TryAcquireAccessTokenAsync(HttpClient httpClient, CancellationToken cancellationToken) {
-        string? authority = configuration["EventStore:Authentication:Authority"];
-        string? username = configuration["EventStore:Authentication:Username"];
-        string? password = configuration["EventStore:Authentication:Password"];
-        string clientId = configuration["EventStore:Authentication:ClientId"] ?? "hexalith-eventstore";
-
-        if (string.IsNullOrWhiteSpace(authority)
-            || string.IsNullOrWhiteSpace(username)
-            || string.IsNullOrWhiteSpace(password)) {
-            return null;
-        }
-
-        using var form = new FormUrlEncodedContent(new Dictionary<string, string> {
-            ["grant_type"] = "password",
-            ["client_id"] = clientId,
-            ["username"] = username,
-            ["password"] = password,
-        });
-
-        string tokenEndpoint = $"{authority.TrimEnd('/')}/protocol/openid-connect/token";
-        using HttpResponseMessage response = await httpClient.PostAsync(tokenEndpoint, form, cancellationToken).ConfigureAwait(false);
-        if (!response.IsSuccessStatusCode) {
-            Log.BootstrapTokenRequestFailed(logger, (int)response.StatusCode);
-            return null;
-        }
-
-        Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-        await using (stream.ConfigureAwait(false)) {
-            using JsonDocument document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return document.RootElement.TryGetProperty("access_token", out JsonElement token)
-                ? token.GetString()
-                : null;
-        }
-    }
 
     private static async Task<string> ReadExpectedRejectionProbeAsync(HttpContent content, CancellationToken cancellationToken) {
         try {
@@ -201,11 +177,5 @@ public partial class TenantBootstrapHostedService(
             Level = LogLevel.Information,
             Message = "Bootstrap skipped: initial global administrator is already registered")]
         public static partial void BootstrapAlreadyDone(ILogger logger);
-
-        [LoggerMessage(
-            EventId = 2005,
-            Level = LogLevel.Warning,
-            Message = "Bootstrap service token request failed: StatusCode={StatusCode}. The bootstrap command will be sent unauthenticated and likely rejected")]
-        public static partial void BootstrapTokenRequestFailed(ILogger logger, int statusCode);
     }
 }

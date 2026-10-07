@@ -62,6 +62,19 @@ If your IdP cannot emit `eventstore:*` claims directly, EventStore can normalize
 
 The local Aspire Keycloak realm at `src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json` is sample evidence only. It maps local sample attributes to direct `eventstore:tenant`, `eventstore:domain`, and `eventstore:permission` claims. Do not treat the sample users, passwords, realm settings, or `sslRequired` value as production guidance.
 
+## Global Administrator Bootstrap Credential
+
+When `Tenants:BootstrapGlobalAdminUserId` is set, the Tenants host submits `BootstrapGlobalAdmin` to EventStore once it is listening. EventStore no longer admits any internal caller by its Dapr application id (EventStore Story 5.5), so the command is authorized only by the configured administrator's own delegated credential:
+
+| Mode | Credential | Settings |
+| --- | --- | --- |
+| Authority (production) | The administrator's own access token, obtained with the resource-owner password grant. It is sent only when its `sub` equals `Tenants:BootstrapGlobalAdminUserId`. | `EventStore:Authentication:Authority`, `EventStore:Authentication:ClientId`, `EventStore:Authentication:Username`, `EventStore:Authentication:Password` |
+| Symmetric (`Development` only) | A 120-second token for the configured administrator, signed with the shared development key. | `Authentication:JwtBearer` symmetric contract |
+
+In production, supply the administrator password from a secret store for the bootstrap run only and remove it afterwards. Alternatively, leave `Tenants:BootstrapGlobalAdminUserId` unset and have the designated administrator submit `BootstrapGlobalAdmin` once through the EventStore API with their own token, which must carry the `global_admin` claim. Without a delegated credential, Tenants logs event `2006` and does not send the command.
+
+Global-administrator authority is then verified from the `global-administrators` read model, which is a projection. It is eventually consistent: the bootstrapped administrator is verified once `GlobalAdministratorSet` has been projected, and wire administrator hints are ignored until then.
+
 ## Deployment Readiness Checklist
 
 Run these checks before release. Store only the pass/fail result, test name, HTTP status, and safe reason code.

@@ -16,7 +16,10 @@ using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.EventStore.Contracts.Results;
 using Hexalith.EventStore.Models;
 using Hexalith.EventStore.Server.Actors;
+using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Server.Commands;
+using Hexalith.EventStore.ServiceDefaults.Authentication;
+using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -24,6 +27,7 @@ using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.Server.Aggregates;
+using Hexalith.Tenants.Server.Projections;
 
 using CommandApiResponse = Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse;
 using SubmitPipelineCommand = Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand;
@@ -328,6 +332,23 @@ public class CommandApiRuntimeIntegrationTests {
         TenantConfigurationSet payload = DeserializeEvent<TenantConfigurationSet>(result);
         payload.TenantId.ShouldBe("acme");
         payload.Key.ShouldBe("feature.global-admin");
+    }
+
+    [Fact]
+    public async Task Process_endpoint_ignores_unverified_global_admin_envelope_flag() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: true);
+        using HttpClient client = factory.CreateClient();
+        DomainServiceRequest request = CreateProcessRequest(
+            nameof(SetTenantConfiguration),
+            JsonSerializer.SerializeToUtf8Bytes(new SetTenantConfiguration("acme", "feature.forged-admin", "denied")),
+            CreateRoleBehaviorState(),
+            "forged-global-admin",
+            extensions: GlobalAdminExtensions());
+
+        DomainServiceWireResult result = await PostProcessAsync(client, request);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.ShouldHaveSingleItem().EventTypeName.ShouldEndWith(nameof(InsufficientPermissionsRejection));
     }
 
     [Fact]
@@ -1935,15 +1956,40 @@ public class CommandApiRuntimeIntegrationTests {
             Arg.Any<CancellationToken>());
     }
 
-    // AUTH-INT-001 — Pins the DAPR callback contract: AggregateActor invokes /process via
-    // DAPR service-to-service after EventStore's auth boundary. Adding .RequireAuthorization()
-    // on /process would silently stall the AggregateActor 5-step checkpoint at Step 4.
-    // Source: 11-3 review deferred-work in _bmad-output/implementation-artifacts/deferred-work.md.
+    // AUTH-INT-001 — EventStore Story 5.5 (FR28) supersedes the former anonymous DAPR callback contract:
+    // AggregateActor still invokes /process via DAPR service-to-service, but the EventStore outbound handler now
+    // attaches a short-lived workload assertion and the sidecar presents the app-channel token. An anonymous or
+    // forged-header request is denied before any domain processing.
     [Fact]
-    public async Task Process_endpoint_accepts_anonymous_request_to_preserve_dapr_callback_contract() {
+    public async Task Process_endpoint_denies_anonymous_and_forged_dapr_callbacks() {
+        await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: false, presentWorkloadAssertion: false);
+        using HttpClient client = factory.CreateClient();
+        DomainServiceRequest forgedRequest = CreateProcessRequest(
+            nameof(CreateTenant),
+            JsonSerializer.SerializeToUtf8Bytes(new CreateTenant("acme-forged", "Acme Forged", "Forged DAPR callback")),
+            null,
+            "dapr-callback",
+            aggregateId: "acme-forged",
+            extensions: GlobalAdminExtensions());
+
+        HttpResponseMessage anonymous = await client.PostAsJsonAsync("/process", forgedRequest);
+        using var forged = new HttpRequestMessage(HttpMethod.Post, "/process") {
+            Content = JsonContent.Create(forgedRequest),
+        };
+        forged.Headers.Add(DaprAppChannelToken.HeaderName, WorkloadChannelToken);
+        forged.Headers.Add(EventStoreWorkloadAuthenticationDefaults.DaprCallerHeaderName, "eventstore");
+        HttpResponseMessage forgedResponse = await client.SendAsync(forged);
+
+        anonymous.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await anonymous.Content.ReadAsStringAsync()).ShouldBeEmpty();
+        forgedResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await forgedResponse.Content.ReadAsStringAsync()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Process_endpoint_accepts_eventstore_workload_callback() {
         await using var factory = new CommandApiWebApplicationFactory(useTestAuthentication: false);
         using HttpClient client = factory.CreateClient();
-        // NOTE: no Authorization header — proves the route does NOT enforce authentication.
 
         var request = new DomainServiceRequest(
             new CommandEnvelope(
@@ -1955,7 +2001,7 @@ public class CommandApiRuntimeIntegrationTests {
                 JsonSerializer.SerializeToUtf8Bytes(new CreateTenant("acme-anon", "Acme Anonymous", "Anonymous DAPR callback path")),
                 UniqueIdHelper.GenerateSortableUniqueStringId(),
                 null,
-                "dapr-callback",
+                "test-user",
                 GlobalAdminExtensions()),
             null);
 
@@ -2384,6 +2430,35 @@ public class CommandApiRuntimeIntegrationTests {
             payload);
     }
 
+    private const string WorkloadAudience = "tenants";
+    private const string WorkloadChannelToken = "tenants-command-api-channel";
+    private static readonly string[] VerifiedGlobalAdministrators = ["test-user", "external-global-admin"];
+
+    private static string CreateWorkloadAssertion() {
+        DateTime now = DateTime.UtcNow;
+        var descriptor = new SecurityTokenDescriptor {
+            Issuer = JwtIssuer,
+            Audience = WorkloadAudience,
+            IssuedAt = now,
+            NotBefore = now,
+            Expires = now.AddMinutes(4),
+            Claims = new Dictionary<string, object>(StringComparer.Ordinal) {
+                [EventStoreWorkloadAuthenticationDefaults.CallerClaimType] = "eventstore",
+                [EventStoreWorkloadAuthenticationDefaults.OperationClaimType] = new[] {
+                    EventStoreWorkloadOperations.DomainServiceProcess,
+                    EventStoreWorkloadOperations.DomainServiceReplayState,
+                    EventStoreWorkloadOperations.DomainServiceQuery,
+                    EventStoreWorkloadOperations.DomainServiceProject,
+                    EventStoreWorkloadOperations.DomainServiceMetadata,
+                },
+            },
+            SigningCredentials = new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)),
+                SecurityAlgorithms.HmacSha256),
+        };
+        return new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler().CreateToken(descriptor);
+    }
+
     private static Dictionary<string, string> GlobalAdminExtensions()
         => new(StringComparer.OrdinalIgnoreCase) { [GlobalAdminExtensionKey] = "true" };
 
@@ -2395,8 +2470,38 @@ public class CommandApiRuntimeIntegrationTests {
         ICommandRouter? router = null,
         ICommandStatusStore? statusStore = null,
         ICommandArchiveStore? archiveStore = null,
-        bool useTestAuthentication = false) : WebApplicationFactory<TenantBootstrapOptions> {
-        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder.ConfigureServices(services => {
+        bool useTestAuthentication = false,
+        bool presentWorkloadAssertion = true) : WebApplicationFactory<TenantBootstrapOptions> {
+        /// <summary>
+        /// EventStore Story 5.5: the domain-service routes accept only EventStore's app-channel token plus a
+        /// short-lived workload assertion. The test client presents both, as the EventStore outbound handler does.
+        /// </summary>
+        protected override void ConfigureClient(HttpClient client) {
+            ArgumentNullException.ThrowIfNull(client);
+            base.ConfigureClient(client);
+            if (presentWorkloadAssertion) {
+                client.DefaultRequestHeaders.Add(DaprAppChannelToken.HeaderName, WorkloadChannelToken);
+                client.DefaultRequestHeaders.Add(
+                    EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName,
+                    CreateWorkloadAssertion());
+            }
+        }
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder) => builder
+            .UseSetting("EventStore:DomainService:AppId", WorkloadAudience)
+            .UseSetting(DaprAppChannelToken.ConfigurationKey, WorkloadChannelToken)
+            .ConfigureServices(services => {
+            // The wire administrator flag is honored only for current members of the global-administrators read model.
+            var store = new InMemoryReadModelStore();
+            store.SeedRaw(
+                "statestore",
+                "projection:global-administrators:singleton",
+                new GlobalAdministratorReadModel {
+                    Administrators = new HashSet<string>(VerifiedGlobalAdministrators, StringComparer.Ordinal),
+                });
+            _ = services.RemoveAll<IReadModelStore>();
+            _ = services.AddSingleton<IReadModelStore>(store);
+
             if (useTestAuthentication) {
                 _ = services.AddAuthentication(TestAuthHandler.SchemeName)
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(TestAuthHandler.SchemeName, _ => { });

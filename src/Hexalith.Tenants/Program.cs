@@ -61,6 +61,9 @@ builder.Services.TryAddSingleton(TimeProvider.System);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddHostedService<TenantBootstrapHostedService>();
+// Wire administrator flags are untrusted at the domain-service boundary (EventStore Story 5.5): the SDK keeps
+// them only when the acting user is a current member of the global-administrators read model.
+builder.Services.AddScoped<IDomainServiceAdministratorVerifier, TenantsGlobalAdministratorVerifier>();
 // Domain telemetry instruments (query/projection duration histograms), sourced from the platform
 // convention-named diagnostics registered by AddEventStoreDomainService. Tenants hosts more than one
 // domain, so resolve the keyed tenants diagnostics instead of the single-domain unkeyed shortcut.
@@ -158,6 +161,8 @@ app.UseAuthorization();
 app.MapControllers();
 // Bespoke multi-read-model projection build path stays Tenants-mapped (persisted TenantReadModel +
 // cross-aggregate index + audit, merge-on-write); the SDK yields /project because it is already mapped.
+// The override carries the SDK /project policy (EventStore Story 5.5): only an EventStore workload assertion granting
+// the projection operation, plus the Dapr app-channel token, reaches it; the startup route inventory refuses weaker.
 app.MapPost("/project", async (
     ProjectionRequest request,
     IReadModelStore readModelStore,
@@ -165,13 +170,15 @@ app.MapPost("/project", async (
     ILoggerFactory loggerFactory,
     TimeProvider timeProvider,
     CancellationToken cancellationToken)
-    => await new ProjectionDispatcher(readModelStore, telemetry, loggerFactory, timeProvider).DispatchAsync(request, cancellationToken).ConfigureAwait(false));
+    => await new ProjectionDispatcher(readModelStore, telemetry, loggerFactory, timeProvider).DispatchAsync(request, cancellationToken).ConfigureAwait(false))
+    .RequireAuthorization(EventStoreDomainServicePolicies.Project);
 // Canonical DAPR-invoked domain-service endpoints from the SDK: /process (keyed domain processor),
 // /replay-state, /query (in-process IDomainQueryHandler dispatch), and /admin/operational-index-metadata
 // (now reporting handler-served query types). Replaces the hand-rolled DomainServiceRequestHandler and
 // the host AdminOperationalIndexMetadata copy.
 app.UseEventStoreDomainService();
-app.MapSubscribeHandler();
+// Subscription discovery is sidecar-originated: it presents the Dapr app-channel token only.
+app.MapSubscribeHandler().RequireEventStoreSidecarChannel();
 
 await app.RunAsync().ConfigureAwait(false);
 

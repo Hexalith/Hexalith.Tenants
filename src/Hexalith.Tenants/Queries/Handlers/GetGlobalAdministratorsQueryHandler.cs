@@ -54,7 +54,8 @@ public sealed class GetGlobalAdministratorsQueryHandler(
         GlobalAdministratorReadModel? model = adminEntry?.Value;
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (model is null || (!envelope.IsGlobalAdmin && !model.Administrators.Contains(envelope.UserId))) {
+        // The wire administrator hint is untrusted (EventStore Story 5.5, FR28): only current membership authorizes.
+        if (model is null || !model.Administrators.Contains(envelope.UserId)) {
             return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
         }
 
