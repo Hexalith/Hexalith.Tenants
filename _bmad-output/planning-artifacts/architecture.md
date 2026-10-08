@@ -368,7 +368,7 @@ dotnet new blazor -n Hexalith.Tenants.UI -o src/Hexalith.Tenants.UI \
 **Language & Runtime:** C# / .NET 10 (`net10.0`, SDK `10.0.401` pinned), `Microsoft.NET.Sdk.Web`;
 Nullable + ImplicitUsings + `TreatWarningsAsErrors` + `ConfigureAwait(false)` per repo props.
 
-**UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.0.0-rc.5-26219.1`, RC — no GA yet), inherited
+**UI / Styling:** Microsoft Fluent UI Blazor v5 (`5.0.0`, GA), inherited
 through the FrontComposer shell; semantic theme roles, no bespoke palette; Fluent type ramp /
 shapes / elevation. Tenants tracks FrontComposer's transitive Fluent pin; tokens/ARIA verified
 against the pinned package at build. UI uses FrontComposer or Fluent v5 components, never raw
@@ -838,7 +838,7 @@ redaction, and D9 cursors, so tokens/payloads never reach the browser and reconn
 server state. No contradictory decisions. One **recorded divergence** (not a contradiction): D1
 InteractiveServer vs. the UX `EXPERIENCE.md` "Auto" assumption — logged as a reconciliation action
 item (the UX named an assumption, not a hard requirement; NFR-3 holds either way, more simply under
-InteractiveServer). Versions consistent: .NET 10 (10.0.401) + Fluent v5 RC pin inherited from
+InteractiveServer). Versions consistent: .NET 10 (10.0.401) + Fluent v5 GA pin inherited from
 FrontComposer.
 
 **Pattern Consistency:** patterns enforce the decisions — Vocabulary-verbatim (CP-10), BFF-only
