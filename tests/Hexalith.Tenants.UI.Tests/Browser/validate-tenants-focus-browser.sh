@@ -230,6 +230,28 @@ if [[ "$server_ready" != true ]]; then
     exit 1
 fi
 
+# Bound real time as well as Chromium's virtual-time budget: a wedged browser must fail the lane.
+browser_timeout_seconds="${TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS:-30}"
+if [[ ! "$browser_timeout_seconds" =~ ^[1-9][0-9]*$ ]]; then
+    echo "TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS must be a positive whole number." >&2
+    exit 1
+fi
+run_chromium() {
+    local scenario_name="$1"
+    local output_path="$2"
+    shift 2
+    local exit_status
+    if timeout --kill-after=5s "${browser_timeout_seconds}s" "$browser_path" "$@" \
+        >"$output_path" 2>"${output_path}.stderr"; then
+        return 0
+    else
+        exit_status="$?"
+        echo "Chromium scenario ${scenario_name} failed (exit ${exit_status}; bound ${browser_timeout_seconds}s)." >&2
+        sed -n '1,120p' "${output_path}.stderr" >&2
+        return "$exit_status"
+    fi
+}
+
 run_browser() {
     local module_name="$1"
     local profile_name="$2"
@@ -247,7 +269,7 @@ run_browser() {
     if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
         printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
     fi
-    "$browser_path" \
+    run_chromium "$profile_name" "$output_path" \
         --no-sandbox \
         --headless=new \
         --disable-dev-shm-usage \
@@ -259,7 +281,7 @@ run_browser() {
         --user-data-dir="$validation_tmp/$profile_name" \
         --virtual-time-budget=3000 \
         --dump-dom \
-        "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}&availabilityCss=./${availability_css_name}&forcedColors=${forced_colors}" >"$output_path" 2>"${output_path}.stderr"
+        "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}&availabilityCss=./${availability_css_name}&forcedColors=${forced_colors}"
 }
 
 # The dumped DOM also serializes the harness script, its error messages, and its element ids, so a check for
@@ -343,22 +365,20 @@ for culture in en fr; do
         if [[ "$scenario" != desktop ]]; then start_width=390; fi
         if [[ "$scenario" == forced-colors ]]; then start_color_args+=(--force-high-contrast); start_colors=active; fi
         start_output="$validation_tmp/start-${culture}-${scenario}.html"
-        "$browser_path" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+        run_chromium "correction start ${culture}/${scenario}" "$start_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
             "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-start-${culture}-${scenario}" \
             --virtual-time-budget=3000 --dump-dom \
-            "http://127.0.0.1:${validation_port}/start.html?culture=${culture}&forcedColors=${start_colors}" \
-            >"$start_output" 2>"${start_output}.stderr"
+            "http://127.0.0.1:${validation_port}/start.html?culture=${culture}&forcedColors=${start_colors}"
         if ! grep -q 'data-validation-status="passed"' "$start_output"; then
             echo "Rendered correction start ${culture}/${scenario} failed:" >&2
             grep -o '<output id="validation-report">[^<]*' "$start_output" >&2 || true
             exit 1
         fi
         preview_output="$validation_tmp/preview-${culture}-${scenario}.html"
-        "$browser_path" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+        run_chromium "correction preview ${culture}/${scenario}" "$preview_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
             "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-preview-${culture}-${scenario}" \
             --virtual-time-budget=3000 --dump-dom \
-            "http://127.0.0.1:${validation_port}/preview.html?culture=${culture}&forcedColors=${start_colors}" \
-            >"$preview_output" 2>"${preview_output}.stderr"
+            "http://127.0.0.1:${validation_port}/preview.html?culture=${culture}&forcedColors=${start_colors}"
         if ! grep -q 'data-validation-status="passed"' "$preview_output"; then
             echo "Rendered correction preview ${culture}/${scenario} failed:" >&2
             grep -o '<output id="validation-report">[^<]*' "$preview_output" >&2 || true
@@ -367,11 +387,10 @@ for culture in en fr; do
     done
 done
 recovery_mutation_output="$validation_tmp/recovery-no-tabindex.html"
-"$browser_path" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+run_chromium "recovery missing tabindex mutation" "$recovery_mutation_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
     --window-size=1024,800 --user-data-dir="$validation_tmp/profile-recovery-no-tabindex" \
     --virtual-time-budget=3000 --dump-dom \
-    "http://127.0.0.1:${validation_port}/preview.html?culture=en&missingRecoveryTabindex=true" \
-    >"$recovery_mutation_output" 2>"${recovery_mutation_output}.stderr"
+    "http://127.0.0.1:${validation_port}/preview.html?culture=en&missingRecoveryTabindex=true"
 if ! grep -q 'data-validation-status="failed"' "$recovery_mutation_output" \
     || ! validation_report_contains "$recovery_mutation_output" 'FAIL Recovery reason is not programmatically focusable'; then
     echo "The missing recovery tabindex mutation did not fail the DOM focus check." >&2
@@ -379,7 +398,8 @@ if ! grep -q 'data-validation-status="failed"' "$recovery_mutation_output" \
 fi
 printf '%s\n' "Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed."
 
-browser_version="$($browser_path --version | head -n 1)"
+run_chromium "browser version" "$validation_tmp/browser-version.txt" --version
+browser_version="$(head -n 1 "$validation_tmp/browser-version.txt")"
 positive_report="$(grep -o '<output id="validation-report">[^<]*' "$positive_output" | sed 's/.*>//')"
 desktop_report="$(grep -o '<output id="validation-report">[^<]*' "$desktop_output" | sed 's/.*>//')"
 forced_colors_report="$(grep -o '<output id="validation-report">[^<]*' "$forced_colors_output" | sed 's/.*>//')"

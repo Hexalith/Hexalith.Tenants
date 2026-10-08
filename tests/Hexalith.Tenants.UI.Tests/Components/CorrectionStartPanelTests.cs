@@ -408,6 +408,74 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
     }
 
     [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task ConfirmReadBehindNewerSameReferenceParentCaptureRequiresFreshReviewBeforeLastOwnerDemotion(
+        bool refreshStartProjection, bool refreshIntent)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        StubTenantCommandGateway commands = new()
+        {
+            Status = new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+                { CommittedEventSequence = 3 },
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartContext context = Context(Row("UserRoleChanged"), TenantRole.TenantReader, TenantRole.TenantOwner);
+        TenantCorrectionProjection baseline = context.Projection! with { OwnerCount = 2, ProjectionVersion = "tenant-sequence:1" };
+        TenantCorrectionProjection newer = baseline with { OwnerCount = 1, ProjectionVersion = "tenant-sequence:2" };
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(context with { Projection = baseline });
+        TaskCompletionSource<TenantCorrectionProjection> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantQueryGateway query = new(Detail(), Audit("event-safe-reference", "UserRoleChanged"))
+        {
+            CorrectionCaptureProvider = read => read switch
+            {
+                1 => pending.Task,
+                2 or 3 => Task.FromResult(newer),
+                _ => Task.FromResult(newer with
+                {
+                    CurrentRole = TenantRole.TenantReader, OwnerCount = 0, ProjectionVersion = "tenant-sequence:3",
+                }),
+            },
+        };
+        Services.AddSingleton<ITenantQueryGateway>(query);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent).Add(p => p.StartProjection, baseline));
+        Task confirming = cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => query.CorrectionCaptureCount.ShouldBe(1));
+        cut.Render(parameters => parameters
+            .Add(p => p.StartProjection, refreshStartProjection ? newer : baseline)
+            .Add(p => p.Intent, refreshIntent
+                ? TenantCorrectionStartIntent.Evaluate(context with { Projection = newer }) : intent));
+        cut.Instance.Snapshot!.Intent.OriginalAuditReference.ShouldBe(intent.OriginalAuditReference);
+        cut.Instance.Snapshot.Intent.CurrentProjection.ShouldBe(baseline);
+        cut.Find("[data-testid='tenants-correction-owner-impact']").TextContent.ShouldContain("Current tenant owner count: 2");
+
+        pending.SetResult(baseline);
+        await confirming.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.ProjectionRegressed");
+        cut.Instance.Snapshot.Intent.CurrentProjection.ShouldBe(baseline);
+        cut.Instance.HasSubmitted.ShouldBeFalse();
+        commands.ChangeRoleRequests.ShouldBeEmpty();
+        await cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Preview.ChangedAtConfirm");
+        cut.Instance.Snapshot.Intent.CurrentProjection.ShouldBe(newer);
+        cut.Find("[data-testid='tenants-correction-owner-impact']").TextContent
+            .ShouldContain("Demoting the last owner can leave this tenant with no owner");
+        commands.ChangeRoleRequests.ShouldBeEmpty();
+
+        await cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+
+        commands.ChangeRoleRequests.ShouldHaveSingleItem().NewRole.ShouldBe(TenantRole.TenantReader);
+        cut.Instance.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        query.CorrectionCaptureCount.ShouldBe(4);
+    }
+
+    [Theory]
     [InlineData("UserAlreadyInTenant", false, "déjà membre")]
     [InlineData("UserNotInTenant", false, "n’est plus membre")]
     [InlineData("RoleEscalation", false, "rôle souhaité")]
@@ -2418,10 +2486,13 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         public int CorrectionCaptureCount { get; private set; }
 
+        public Func<int, Task<TenantCorrectionProjection>>? CorrectionCaptureProvider { get; init; }
+
         public Task<TenantCorrectionProjection> GetTenantCorrectionProjectionAsync(
             string tenantId, string targetUserId, CancellationToken cancellationToken = default)
         {
             CorrectionCaptureCount++;
+            if (CorrectionCaptureProvider is not null) return CorrectionCaptureProvider(CorrectionCaptureCount);
             TenantRole? role = CorrectionCaptureCount == 1
                 ? InitialRole
                 : detail.Members.FirstOrDefault(member => member.UserId == targetUserId)?.Role;

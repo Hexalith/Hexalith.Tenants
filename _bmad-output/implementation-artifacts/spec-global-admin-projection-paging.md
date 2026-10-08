@@ -78,6 +78,10 @@ deferred: []
 
 ## Review Triage Log
 
+### 2026-10-08 — Blocking scope correction from Story 5.6, pass 17
+
+Story 5.6's pass-17 D1 decision selected option (a): restore the tenant audit page's read-only global-administrator gate. The paging implementation's re-enablement of `GlobalAdministratorCorrectionPanel` in root `5a3bc6dd4c1aa77cec50d0a960e986aa89c08cbe` exceeded this spec's complete-evidence loading intent and violated the frozen Story 5.5/5.6 boundary. That audit-page branch and its submission expectations are reverted by the Story 5.6 remediation. The standalone panel, snapshot, complete-evidence loader and their independent tests remain available for Story 5.7, which still owns enabling global-administrator correction and deterministic linked proof. This spec remains `in-review`; its earlier passing page-submission evidence is historical and cannot authorize restoring that branch. Any future re-enablement must resolve the Story 5.7 acceptance requirements first.
+
 ### 2026-10-08 — Independent review
 
 - Blind B1 — `medium`, `patch`: stale/degraded audit reads fail the current-surface gate, and the retained-display predicate only recognizes tenant attempts. Include the mounted submitted global snapshot in retained display so status and recovery remain available.

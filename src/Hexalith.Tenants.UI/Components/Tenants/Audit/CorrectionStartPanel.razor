@@ -801,9 +801,13 @@
         if (capture is null) { SetCaptureUnavailable(confirmGeneration); return; }
 
         TenantCorrectionPreviewSnapshot preview = _snapshot;
+        // The reviewed snapshot stays frozen during the read, but a newer parent capture still
+        // establishes the minimum sequence the confirmation read must reach in this scope.
         if (TenantLifecycleProjectionVersion.CompareSequences(
             capture.ProjectionVersion, preview.BaselineProjectionVersion)
-            is TenantLifecycleSequenceRelation.IncomingOlder)
+            is TenantLifecycleSequenceRelation.IncomingOlder
+            || IsOlderThanParentCapture(capture, StartProjection)
+            || IsOlderThanParentCapture(capture, Intent?.CurrentProjection))
         {
             SetSnapshot(preview with {
                 SafeMessage = null,
@@ -853,6 +857,15 @@
 
         await DispatchAttemptAsync(attempt).ConfigureAwait(false);
     }
+
+    private static bool IsOlderThanParentCapture(
+        TenantCorrectionProjection capture, TenantCorrectionProjection? parentCapture)
+        => parentCapture is not null
+            && string.Equals(capture.TenantId, parentCapture.TenantId, StringComparison.Ordinal)
+            && string.Equals(capture.TargetUserId, parentCapture.TargetUserId, StringComparison.Ordinal)
+            && TenantLifecycleProjectionVersion.CompareSequences(
+                capture.ProjectionVersion, parentCapture.ProjectionVersion)
+                is TenantLifecycleSequenceRelation.IncomingOlder;
 
     private async Task DispatchAttemptAsync(TenantCorrectionAttempt attempt)
     {

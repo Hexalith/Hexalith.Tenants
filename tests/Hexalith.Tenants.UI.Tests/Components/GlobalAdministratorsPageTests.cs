@@ -4464,6 +4464,74 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task RealChromiumFocusValidatorStopsWithinItsBoundWhenChromiumHangs()
+    {
+        static bool HasCommand(string name)
+            => (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
+                .Split(Path.PathSeparator)
+                .Any(directory => File.Exists(Path.Combine(directory, name)));
+
+        string projectRoot = ProjectRoot();
+        string assets = Path.Combine(projectRoot, "src", "Hexalith.Tenants.UI", "obj", "project.assets.json");
+        Assert.SkipUnless(
+            OperatingSystem.IsLinux() && File.Exists(assets)
+                && HasCommand("bash") && HasCommand("python3") && HasCommand("timeout"),
+            "The restored UI assets, Linux, bash, python3, and timeout are required for this browser subprocess check.");
+
+        string validationDirectory = Directory.CreateTempSubdirectory("tenants-focus-hanging-browser-").FullName;
+        string browser = Path.Combine(validationDirectory, "chromium-stub");
+        string browserMarker = Path.Combine(validationDirectory, "browser-invoked");
+        await File.WriteAllTextAsync(browser, "#!/usr/bin/env bash\nwhile :; do sleep 60; done\n");
+        if (OperatingSystem.IsLinux())
+        {
+            File.SetUnixFileMode(browser, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+        var startInfo = new ProcessStartInfo("bash")
+        {
+            WorkingDirectory = projectRoot,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+        };
+        startInfo.ArgumentList.Add(Path.Combine(projectRoot, "tests", "Hexalith.Tenants.UI.Tests", "Browser",
+            "validate-tenants-focus-browser.sh"));
+        startInfo.Environment["CHROMIUM_BIN"] = browser;
+        startInfo.Environment["TENANTS_BROWSER_BUILD_CONFIGURATION"] = typeof(GlobalAdministratorsPageTests).Assembly
+            .GetCustomAttribute<AssemblyConfigurationAttribute>().ShouldNotBeNull().Configuration;
+        startInfo.Environment["TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS"] = "1";
+        startInfo.Environment["TENANTS_FOCUS_TEST_SERVER_START_FAILURE"] = "false";
+        startInfo.Environment["TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"] = browserMarker;
+
+        try
+        {
+            using Process process = Process.Start(startInfo).ShouldNotBeNull();
+            Task<string> output = process.StandardOutput.ReadToEndAsync();
+            Task<string> error = process.StandardError.ReadToEndAsync();
+            Stopwatch elapsed = Stopwatch.StartNew();
+            try
+            {
+                await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(15));
+            }
+            catch (TimeoutException)
+            {
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync();
+                throw;
+            }
+
+            string combinedOutput = await output + await error;
+            elapsed.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(15));
+            process.ExitCode.ShouldNotBe(0);
+            combinedOutput.ShouldContain("Chromium scenario profile-shipped failed (exit 124; bound 1s).");
+            File.Exists(browserMarker).ShouldBeTrue();
+        }
+        finally
+        {
+            Directory.Delete(validationDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void RemoveStartSentinelFallsBackToAcknowledgementWhenRenderedCancelCannotBeFocused()
     {
         Services.AddSingleton<ITenantsBffComposition>(

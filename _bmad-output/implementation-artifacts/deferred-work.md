@@ -3644,11 +3644,11 @@ Diff reviewed: `/tmp/tenants-56-review-content-3sylhkc4.diff`, 626,873 bytes; ro
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Correct EventStore polling guidance that treats recoverable PublishFailed as terminal.
-  evidence: Pass-14 BH10: at EventStore `9542d3c9f48bf9ce1c57f2ef68904703eaba56cc`, command-api.md labels PublishFailed terminal at :380, :383, :470, :473, :475, and :477. Line :477 tells callers to stop polling at PublishFailed, although a successful publication drain can later write Completed with command-specific sequence proof. Correcting :477 alone leaves the other five sites contradictory. The identical terminal-state sentence exists at preserved EventStore baseline b51978dd1d2a3721ad239db2623e1560377c7583:454, so this is pre-existing EventStore documentation work. Distinguish recoverable publication failure from exhausted recovery without duplicating the existing recovery-field documentation follow-up.
-
-
+  evidence: Pass-14 BH10, extended by pass 17 at EventStore `07d1e23a6c5b06bbbb1fc8ddb5174cc3382d3d93`: command-api.md labels PublishFailed terminal at :380, :383, :400 (replay of terminal failure states), :470, :473, :475, and :477; docs/brownfield/architecture.md:152 and docs/brownfield/api-contracts.md:23 make the same claim. The runtime CommandStatusExtensions.IsTerminal also classifies PublishFailed as terminal, and CommandStatusController.cs:201-202 therefore omits Retry-After. Line :477 tells callers to stop polling, although a successful publication drain can later write Completed with command-specific sequence proof. Correcting :477 alone leaves the other documentation sites and runtime polling behavior inconsistent. Story 5.6's consumer maps PublishFailed to Degraded with refresh recovery, so it remains pending for verification rather than claiming correction success. The identical terminal-state sentence exists at preserved EventStore baseline b51978dd1d2a3721ad239db2623e1560377c7583:454, so this is pre-existing EventStore documentation work. Distinguish recoverable publication failure from exhausted recovery without duplicating the existing recovery-field documentation follow-up.
 
 ## Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)
+
+Diff reviewed: the dependency refresh from its recorded baseline `8f6f8cb813255cc94ada95cda1a5e224c3b6bed0`, and the EventStore 3.117.1 continuation from `1846c7128cf0f6b16f9e62f38032bcab78e26e38`, with each spec's separate evidence/triage supplement. Both final evidence reports record root `1846c7128cf0f6b16f9e62f38032bcab78e26e38`; concurrent owning dependency checkouts are identified in those reports. This heading groups those existing findings, not a new combined review.
 
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
   summary: medium; tenant index replay can overwrite newer index values while detail skips older sequences.
@@ -3728,32 +3728,34 @@ Diff reviewed: `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
   summary: high; on `main` (`5bfe0715`, run 37782396626) `ci / build-and-test` fails, so `ci / aspire-tests` is skipped and the hosted smoke class never runs in CI.
-  evidence: The job log shows two failures: `GlobalAdministratorsPageTests.RealChromiumFocusValidatorStopsBeforeChromiumWhenServerStartupFails` and `StatelessHostStateTests.TenantsHostAssembly_HasNoWritableStaticFields_HoldingInstanceLocalState` (coverage-instrumentation statics). At review time, uncommitted working-tree edits to both test files existed from a concurrent session; re-check before acting.
+  evidence: The job log shows two failures: `GlobalAdministratorsPageTests.RealChromiumFocusValidatorStopsBeforeChromiumWhenServerStartupFails` and `StatelessHostStateTests.TenantsHostAssembly_HasNoWritableStaticFields_HoldingInstanceLocalState` (coverage-instrumentation statics). At review time, uncommitted working-tree edits to both test files existed from a concurrent session; re-check before acting. Update from Story 5.6 pass 17 (2026-10-08): both fixes landed in root `9ee73062b7e540b69f824803d182f151c96ddb24` (browser configuration forwarding and coverage-tracker field recognition). The recorded HEAD run 37816323193 at `0ac7c126ea0654edfeaa867b108749fa463e7287` passes build-and-test, so the former skip condition is resolved. aspire-tests now runs and fails with 14 errors: fixture initialization rejects JwtBearer configuration unless exactly one of Authority or SigningKey is set, and the client-supplied actor:globalAdmin test still expects 400 although the gateway ignores the reserved key and returns 202. The lane remains masked by aspire-continue-on-error. The command-API expectation is tracked in the pass-17 defer below; these are historical review observations, not a fresh CI run by this remediation.
 
 ## Deferred from: pass 16 review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-08)
 
+Diff reviewed: baseline `11e65e37f0fbf6649642a512052eebd37d50166d` through the pass-15 patches committed in `2b91b05be9c927319fd207b02552d1213997776b`; the spec retains the immutable review-input path and the 15-finding triage tally.
+
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: Bootstrap token retrieval buffers the response before applying its 64 KiB cap.
+  summary: medium; bootstrap token retrieval buffers the response before applying its 64 KiB cap.
   evidence: `TenantBootstrapCredentialProvider` calls `HttpClient.PostAsync` and only then `LoadIntoBufferAsync`. The password grant and subject check sit on that same path. This is outside the tenant-correction story.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: Tenant command admission still treats `actor:globalAdmin=true` as authority.
-  evidence: `TenantAggregate.IsGlobalAdmin` returns true from that extension, while `TenantsGlobalAdministratorVerifier` documents the extension as untrusted. That command path is not the correction preview.
+  summary: high claim superseded by pass-17 gateway tracing; see the medium command-API test-expectation defer below.
+  evidence: The pass-16 aggregate-only trace did not cover the gateway: EventStore ignores and strips the client-supplied reserved extension, then adds it only from the JWT claim. Pass 17 rejects the client-authority claim as false at that gateway and records the stale integration-test expectation instead; this entry creates no second authority work item.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: NuGet validation allowlists two ServiceDefaults package ids at any version.
+  summary: medium; NuGet validation allowlists two ServiceDefaults package ids at any version.
   evidence: `scripts/validate-nuget-packages.py` names `Hexalith.EventStore.ServiceDefaults` and `Hexalith.Commons.ServiceDefaults` before the `.ServiceDefaults` fragment check. A wrong version of those ids is a dependency-governance gap, not a correction-flow change.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: Duplicate global-administrator ids are dropped and the page is still marked complete.
+  summary: medium; duplicate global-administrator ids are dropped and the page is still marked complete.
   evidence: `GlobalAdministratorsProjectionLoader` ignores a failed `TryAdd` and sets `IsCompleteEvidence`. Conflicting administrator rows can disappear from a ready page. That loader is the global-administrator read, not this correction.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: A loading audit surface may drop an in-flight global-administrator correction. Unverified; high if true.
+  summary: maybe-false; a loading audit surface may drop an in-flight global-administrator correction. Unverified; high if true.
   evidence: The audit page mounts `GlobalAdministratorCorrectionPanel` only while the audit surface or retained display remains. Settle whether a loading snapshot clears that panel before its message id is stored. Story 5.7 owns that panel.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: The tenant audit page can open and submit a global-administrator correction.
+  summary: medium; the tenant audit page can open and submit a global-administrator correction. Superseded by pass-17 D1 option (a), which makes restoring the read-only gate a blocking Story 5.6 patch.
   evidence: `TenantAuditPage.razor` renders `GlobalAdministratorCorrectionPanel` for system evidence. Pass 15 traced that behavior to `5a3bc6dd` and the global-administrator projection spec, not to this correction story.
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 17 (2026-10-08)
@@ -3767,3 +3769,25 @@ Diff reviewed: Tenants `fe5f6aa2..0ac7c126`, story files only (HEAD `0ac7c126` =
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md`
   summary: Carried, with no new work item; see DW-198. `validate-story-gitlinks.py` exits 1 on the historical reverification `-2.md` at HEAD.
   evidence: At `0ac7c126` it reports 4× `[UNDECLARED]` (Builds, Commons, EventStore, McpCli) and 2× `[MISSTATED]` (Memories `906bc07a`, Platform `f5a0d72f`). The `-2.md` File List records `5bfe0715` values. `-3.md` calls `-2.md` historical, but the guard has no story-end ref, and `-3.md` will fail the same way at the next bump.
+
+## Deferred from: Story 5.6 remediation workflow review, pass 18 (2026-10-08)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: high; bootstrap administrator credential acquisition permits an HTTP authority outside Development.
+  evidence: `TenantBootstrapCredentialProvider.AcquireFromAuthorityAsync` posts the password form to `EventStore:Authentication:Authority` without validating its scheme or environment. Production host validation covers the separate `Authentication:JwtBearer:Authority` setting. The bootstrap hosted service passes the independent authority through unchanged; require production transport validation in the bootstrap owner's work.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; bootstrap authority mode hardcodes the Keycloak token endpoint despite its generic authority contract.
+  evidence: `TenantBootstrapCredentialProvider` appends `/protocol/openid-connect/token`; an OIDC authority with a different advertised endpoint cannot bootstrap. The provider documentation does not restrict authority mode to Keycloak. Resolve or explicitly configure and validate the endpoint in separate bootstrap compatibility work.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; partial-release recovery consumes temporary NuGet credential lifetime while preparing artifacts.
+  evidence: `recover-partial-release.yml` exchanges the documented one-hour key before `publish-partial-release.sh` builds, packs, validates, and compares package hashes. A long preparation leaves an expired key at publication. Prepare artifacts before exchanging credentials in the release recovery owner's work.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; release credential exchange executes a mutable NuGet action tag with OIDC issuance permission.
+  evidence: `release.yml` and `recover-partial-release.yml` invoke `NuGet/login@v1.2.0` in jobs with `id-token: write`. Moving that tag changes credential-exchange code independently of the reviewed source and Builds checkout identity. Pin the credential action to a reviewed commit in separate release governance work.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; technical ServiceDefaults package exceptions are not scoped to published package layers.
+  evidence: `scripts/validate-nuget-packages.py` allows both exact technical ServiceDefaults IDs for every package whose restore evidence includes them, including Contracts, Client, and Testing. Define and enforce the intended dependency layers in package architecture work; Story 5.6 adds executable exact-ID boundary coverage without changing that policy.

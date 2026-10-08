@@ -251,24 +251,13 @@
     @if (HasAuthorizedRetainedSurface && _previewCorrectionIntent is not null
         && (HasAuthorizedAuditSurface || HasDisplayedRetainedCorrection))
     {
-        @if (_previewCorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
-        {
-            <GlobalAdministratorCorrectionPanel Intent="@_previewCorrectionIntent"
-                                                @ref="_globalCorrectionPreview"
-                                                CurrentProjection="@_globalAdministratorsSnapshot"
-                                                ProjectionRefreshProvider="RefreshGlobalAdministratorProjectionAsync"
-                                                OnClose="CloseCorrectionAsync" />
-        }
-        else
-        {
-            <CorrectionStartPanel Intent="@_previewCorrectionIntent"
-                                  @ref="_correctionPreview"
-                                  StartProjection="@_previewCorrectionIntent.CurrentProjection"
-                                  ShowCompetingAttemptNotice="@_competingCorrectionNotice"
-                                  RetainedAttemptMessageId="@_resumedCorrectionMessageId"
-                                  OnOpenOriginalReceipt="OpenOriginalCorrectionReceiptAsync"
-                                  OnClose="CloseCorrectionAsync" />
-        }
+        <CorrectionStartPanel Intent="@_previewCorrectionIntent"
+                              @ref="_correctionPreview"
+                              StartProjection="@_previewCorrectionIntent.CurrentProjection"
+                              ShowCompetingAttemptNotice="@_competingCorrectionNotice"
+                              RetainedAttemptMessageId="@_resumedCorrectionMessageId"
+                              OnOpenOriginalReceipt="OpenOriginalCorrectionReceiptAsync"
+                              OnClose="CloseCorrectionAsync" />
     }
     @if (HasAuthorizedRetainedSurface && _previewCorrectionIntent is null && RetainedCorrectionAttempt is not null)
     {
@@ -331,7 +320,6 @@
     private bool _competingCorrectionNotice;
     private string? _resumedCorrectionMessageId;
     private CorrectionStartPanel? _correctionPreview;
-    private GlobalAdministratorCorrectionPanel? _globalCorrectionPreview;
     private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
     private TenantLifecycleAuthorizationReflectionState _globalAdministratorsAuthorization
         = TenantLifecycleAuthorizationReflectionState.Indeterminate;
@@ -353,7 +341,6 @@
     private long _loadGeneration;
     private long _routeGeneration;
     private CancellationTokenSource? _loadCancellation;
-    private CancellationTokenSource? _globalCorrectionOpenCancellation;
     // Serialises the active-cancellation swap. A superseded source is cancelled immediately -- which is what
     // callers observe -- but NOT disposed there: disposing one at the moment it is replaced races the
     // request still inside SendAsync, where a CancellationToken.Register after Dispose throws
@@ -687,7 +674,6 @@
 
                 if (!HasMeasuredSafeViewport && !HasSubmittedCorrection && !HasDisplayedRetainedCorrection)
                 {
-                    CancelGlobalCorrectionOpening();
                     _correctionOpenGeneration++;
                     if (_activeCorrectionIntent is not null || _previewCorrectionIntent is not null)
                     {
@@ -1458,7 +1444,6 @@
 
     private void ClearPaging()
     {
-        CancelGlobalCorrectionOpening();
         _cursorHistory.Clear();
         _pagingHistoryTruncated = false;
         _pagingJumpedToFirstPage = false;
@@ -1527,22 +1512,18 @@
         => OpenCorrectionAsync(intent, "receipt");
 
     private bool HasSubmittedCorrection => _previewCorrectionIntent is not null
-        && (_previewCorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
-            ? _globalCorrectionPreview?.Snapshot?.MessageId is not null
-            : _correctionPreview?.HasSubmitted is true);
+        && _correctionPreview?.HasSubmitted is true;
 
     private TenantCorrectionAttempt? RetainedCorrectionAttempt
         => Services.GetService<TenantCorrectionAttemptTracker>()?.Find(TenantId);
 
     private bool HasDisplayedRetainedCorrection
         => _previewCorrectionIntent is not null
-            && (_previewCorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
-                && _globalCorrectionPreview?.Snapshot?.MessageId is not null
-                || RetainedCorrectionAttempt is { } attempt
+            && RetainedCorrectionAttempt is { } attempt
             && attempt.Matches(_previewCorrectionIntent)
             && (!attempt.IsExpired
                 || string.Equals(attempt.MessageId, _resumedCorrectionMessageId, StringComparison.Ordinal)
-                || string.Equals(attempt.MessageId, _correctionPreview?.Snapshot?.MessageId, StringComparison.Ordinal)));
+                || string.Equals(attempt.MessageId, _correctionPreview?.Snapshot?.MessageId, StringComparison.Ordinal));
 
     private Task ResumeCorrectionAsync()
     {
@@ -1570,11 +1551,6 @@
     private async Task<bool> OpenCorrectionAsync(TenantCorrectionStartIntent intent, string origin, bool retainStart = false)
     {
         if (!HasAuthorizedAuditSurface) return false;
-
-        if (intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators)
-        {
-            return await OpenGlobalAdministratorCorrectionAsync(intent, origin).ConfigureAwait(false);
-        }
 
         if (RetainedCorrectionAttempt is { BlocksAdmission: true } retained)
         {
@@ -1634,70 +1610,6 @@
         return installed;
     }
 
-    private async Task<bool> OpenGlobalAdministratorCorrectionAsync(TenantCorrectionStartIntent intent, string origin)
-    {
-        if (HasSubmittedCorrection || !HasMeasuredSafeViewport || TenantId is not "system")
-        {
-            return false;
-        }
-
-        CancellationTokenSource source = BeginGlobalCorrectionOpening();
-        try
-        {
-            int generation = ++_correctionOpenGeneration;
-            long projectionGeneration = Interlocked.Increment(ref _correctionProjectionGeneration);
-            string tenantId = TenantId;
-            long loadGeneration = Volatile.Read(ref _loadGeneration);
-            InvalidateCorrectionFocus();
-            _activeCorrectionIntent = null;
-            _previewCorrectionIntent = null;
-            var evidence = await LoadGlobalAdministratorCorrectionEvidenceAsync(source.Token).ConfigureAwait(false);
-            bool installed = false;
-            await InvokeAsync(() =>
-            {
-                if (source.IsCancellationRequested || _disposed || generation != _correctionOpenGeneration
-                    || projectionGeneration != Volatile.Read(ref _correctionProjectionGeneration)
-                    || !CanApply(tenantId, loadGeneration) || !HasMeasuredSafeViewport || !HasAuthorizedAuditSurface)
-                {
-                    return;
-                }
-
-                _globalAdministratorsSnapshot = evidence.Projection;
-                _globalAdministratorsAuthorization = evidence.Authorization;
-                TenantAuditRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
-                    string.Equals(candidate.EventReference, intent.OriginalAuditReference, StringComparison.Ordinal));
-                TenantCorrectionStartIntent? refreshed = row is null ? null : CreateCorrectionIntent(row);
-                _activeCorrectionFocusReference = intent.OriginalAuditReference;
-                _activeCorrectionOrigin = origin;
-                if (refreshed?.IsAvailable is true)
-                {
-                    _previewCorrectionIntent = refreshed;
-                    _competingCorrectionNotice = false;
-                    _resumedCorrectionMessageId = null;
-                    installed = true;
-                    _receiptFocusGeneration++;
-                    _pendingReceiptFocus = "tenants-correction-title";
-                }
-                else
-                {
-                    ScheduleCorrectionFocus(intent.OriginalAuditReference, origin);
-                }
-
-                ResolveReceiptSelection();
-                StateHasChanged();
-            }).ConfigureAwait(false);
-            return installed;
-        }
-        catch (OperationCanceledException) when (source.IsCancellationRequested)
-        {
-            return false;
-        }
-        finally
-        {
-            CompleteGlobalCorrectionOpening(source);
-        }
-    }
-
     private async Task HandoffCorrectionAsync(TenantCorrectionStartIntent intent)
     {
         // Handoff refreshes the same safety gates, then opens the existing preview. It never dispatches.
@@ -1723,7 +1635,6 @@
 
     private Task CloseCorrectionAsync()
     {
-        CancelGlobalCorrectionOpening();
         _correctionOpenGeneration++;
         ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
         _activeCorrectionFocusReference = null;
@@ -1761,13 +1672,6 @@
 
         TenantAuditRow? selectedRow = _snapshot.Rows.FirstOrDefault(row =>
             string.Equals(row.EventReference, _selectedReceiptReference, StringComparison.Ordinal));
-        if (selectedRow is null && TenantId is "system" && HasAuthorizedAuditSurface
-            && _globalAdministratorsAuthorization is TenantLifecycleAuthorizationReflectionState.Authorized
-            && _globalCorrectionPreview?.CorrectiveAuditEvidence is { } correctiveRow
-            && string.Equals(correctiveRow.EventReference, _selectedReceiptReference, StringComparison.Ordinal))
-        {
-            selectedRow = correctiveRow;
-        }
         _selectedReceipt = selectedRow is null
             ? TenantAuditReceipt.Unavailable(
                 surfaceKind: _snapshot.Kind, checkedPage: IsCheckedPage(_snapshot.Kind))
@@ -1954,7 +1858,7 @@
                 HasCurrentProjectionSnapshot: complete,
                 CurrentProjectionSnapshotReference: complete ? "global-administrators-projection-current" : string.Empty,
                 HasTenantCommandSupport: false,
-                HasGlobalAdministratorCommandSupport: HasGlobalAdministratorCorrectionSupport(row.EventType),
+                HasGlobalAdministratorCommandSupport: false,
                 IsNarrowViewportSafe: HasMeasuredSafeViewport));
             return TenantId is "system" && row.TenantId is "system" && row.Scope is "global-administrators"
                 ? globalIntent
@@ -1986,22 +1890,6 @@
             Projection: projection));
     }
 
-    private bool HasGlobalAdministratorCorrectionSupport(string eventType)
-    {
-        ITenantCommandGateway? gateway = Services.GetService<ITenantCommandGateway>();
-        return QueryGateway is not UnavailableTenantQueryGateway
-            && Services.GetService<AuthenticationStateProvider>() is not null
-            && BffComposition.IsReadSurfaceConnected
-            && BffComposition.IsGlobalAdministratorDispatchConnected
-            && BffComposition.IsGlobalAdministratorStatusConnected
-            && BffComposition.IsGlobalAdministratorRequeryConnected
-            && gateway?.SupportsGlobalAdministratorDispatch == true
-            && gateway.SupportsCommandStatusLookup
-            && (eventType is "GlobalAdministratorRemoved"
-                ? gateway.SupportsTrackedGlobalAdministratorDispatch && BffComposition.IsGlobalAdministratorGrantPreviewReady
-                : gateway.SupportsTrackedGlobalAdministratorRemoveDispatch && BffComposition.IsGlobalAdministratorRemovePreviewReady);
-    }
-
     private async Task<(GlobalAdministratorsSnapshot Projection, TenantLifecycleAuthorizationReflectionState Authorization)>
         LoadGlobalAdministratorCorrectionEvidenceAsync(CancellationToken cancellationToken)
     {
@@ -2025,32 +1913,6 @@
         {
             return (GlobalAdministratorsSnapshot.Unavailable(), TenantLifecycleAuthorizationReflectionState.Indeterminate);
         }
-    }
-
-    private async Task<GlobalAdministratorsSnapshot?> RefreshGlobalAdministratorProjectionAsync()
-    {
-        string tenantId = TenantId;
-        long generation = Volatile.Read(ref _loadGeneration);
-        long projectionGeneration = Interlocked.Increment(ref _correctionProjectionGeneration);
-        int openingGeneration = _correctionOpenGeneration;
-        var evidence = await LoadGlobalAdministratorCorrectionEvidenceAsync(CancellationToken.None).ConfigureAwait(false);
-        bool applied = false;
-        await InvokeAsync(() =>
-        {
-            if (!CanApply(tenantId, generation) || tenantId is not "system"
-                || projectionGeneration != Volatile.Read(ref _correctionProjectionGeneration)
-                || openingGeneration != _correctionOpenGeneration)
-            {
-                return;
-            }
-
-            _globalAdministratorsSnapshot = evidence.Projection;
-            _globalAdministratorsAuthorization = evidence.Authorization;
-            ResolveReceiptSelection();
-            applied = true;
-            StateHasChanged();
-        }).ConfigureAwait(false);
-        return applied ? evidence.Projection : null;
     }
 
     private Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
@@ -2276,7 +2138,6 @@
 
     private PendingOperation BeginLoad()
     {
-        CancelGlobalCorrectionOpening();
         var source = new CancellationTokenSource();
         lock (_cancellationLock)
         {
@@ -2296,46 +2157,11 @@
 
     private void CancelActiveCancellation()
     {
-        CancelGlobalCorrectionOpening();
         lock (_cancellationLock)
         {
             RetireCancellationCore(_loadCancellation);
             _loadCancellation = null;
         }
-    }
-
-    private CancellationTokenSource BeginGlobalCorrectionOpening()
-    {
-        var source = new CancellationTokenSource();
-        lock (_cancellationLock)
-        {
-            RetireCancellationCore(_globalCorrectionOpenCancellation);
-            _globalCorrectionOpenCancellation = source;
-        }
-
-        return source;
-    }
-
-    private void CancelGlobalCorrectionOpening()
-    {
-        lock (_cancellationLock)
-        {
-            RetireCancellationCore(_globalCorrectionOpenCancellation);
-            _globalCorrectionOpenCancellation = null;
-        }
-    }
-
-    private void CompleteGlobalCorrectionOpening(CancellationTokenSource source)
-    {
-        lock (_cancellationLock)
-        {
-            if (ReferenceEquals(_globalCorrectionOpenCancellation, source))
-            {
-                _globalCorrectionOpenCancellation = null;
-            }
-        }
-
-        source.Dispose();
     }
 
     private void RetireCancellationCore(CancellationTokenSource? source)

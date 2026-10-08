@@ -457,6 +457,36 @@ public class CiQualityGateScriptTests {
         result.Error.ShouldContain("hexalith.tenants.apphost");
     }
 
+    [Theory]
+    [InlineData("Hexalith.EventStore.ServiceDefaults", true)]
+    [InlineData("hexalith.eventstore.servicedefaults", true)]
+    [InlineData("Hexalith.Commons.ServiceDefaults", true)]
+    [InlineData("HEXALITH.COMMONS.SERVICEDEFAULTS", true)]
+    [InlineData("Other.Module.ServiceDefaults", false)]
+    [InlineData("Hexalith.Tenants.ServiceDefaults", false)]
+    public async Task PackageValidatorAllowsOnlyExactSharedServiceDefaultsDependencies(
+        string dependencyId, bool allowed) {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Fixture.Package/Fixture.Package.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Fixture.Package", project);
+        WriteRestoreEvidence(temp.Path, project, "Fixture.Package", [dependencyId], []);
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(packageDirectory, "Fixture.Package", "1.2.3", includeLicense: true, dependencyIds: [dependencyId]);
+
+        CommandResult result = await RunAsync(repoRoot, "python3",
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(allowed ? 0 : 1, result.Output + result.Error);
+        if (allowed) {
+            result.Output.ShouldContain($"- Fixture.Package dependencies: {dependencyId}");
+        }
+        else {
+            result.Error.ShouldContain("forbidden projects");
+            result.Error.ShouldContain(dependencyId);
+        }
+    }
+
     private static string CoverageClass(string filename, string[] lines)
         => $"""
                     <class name="{Path.GetFileNameWithoutExtension(filename)}" filename="{filename}" line-rate="1" branch-rate="1">

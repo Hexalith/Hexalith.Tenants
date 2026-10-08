@@ -90,6 +90,7 @@ public class StatelessHostStateTests {
             .DefineType(
                 $"{CoverageTrackerNamespace}.{CoverageTrackerTypePrefix}{Guid.NewGuid():D}",
                 TypeAttributes.Class | TypeAttributes.Abstract | TypeAttributes.Sealed);
+        _ = builder.DefineField("_file", typeof(string), FieldAttributes.Public | FieldAttributes.Static);
         _ = builder.DefineField(identifierFieldName, typeof(string), FieldAttributes.Public | FieldAttributes.Static);
         Type lookalike = builder.CreateType();
 
