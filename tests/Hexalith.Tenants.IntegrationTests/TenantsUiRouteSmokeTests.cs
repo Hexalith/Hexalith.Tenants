@@ -185,10 +185,15 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
         markup.ShouldNotContain("access_token", Case.Insensitive);
     }
 
+    // The fixture declares tenants-ui with WaitForAliveness: false, so it only proves the resource is Running
+    // with its endpoint published -- not that the route has rendered its fail-closed content. CI run
+    // 28953291798 saw these routes answer HTTP 200 before the unauthorized marker appeared. Polling for the
+    // route-specific marker absorbs that first-paint gap; it never accepts shell-only markup as success.
     private async Task<string> GetHostedUiMarkupWhenReadyAsync(string requestUri, string readinessMarker) {
         ArgumentException.ThrowIfNullOrWhiteSpace(requestUri);
         ArgumentException.ThrowIfNullOrWhiteSpace(readinessMarker);
 
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(UiRouteReadinessTimeout);
         HttpStatusCode? lastStatusCode = null;
         Uri? lastLocation = null;
@@ -196,12 +201,12 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
 
         while (true) {
             using HttpResponseMessage response = await _fixture.TenantsUiClient
-                .GetAsync(requestUri)
+                .GetAsync(requestUri, cancellationToken)
                 .ConfigureAwait(false);
 
             lastStatusCode = response.StatusCode;
             lastLocation = response.Headers.Location;
-            lastMarkup = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            lastMarkup = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.OK
                 && lastMarkup.Contains(readinessMarker, StringComparison.OrdinalIgnoreCase)) {
@@ -212,7 +217,7 @@ public sealed class TenantsUiRouteSmokeTests : IDisposable {
                 break;
             }
 
-            await Task.Delay(UiRouteReadinessDelay).ConfigureAwait(false);
+            await Task.Delay(UiRouteReadinessDelay, cancellationToken).ConfigureAwait(false);
         }
 
         lastStatusCode.ShouldBe(

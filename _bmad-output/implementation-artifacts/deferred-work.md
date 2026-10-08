@@ -3680,3 +3680,35 @@ Diff reviewed: Tenants `d8558263..5a519cd7`, and EventStore `8f34b395..55b2982e`
 - source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
   summary: Clarify the non-EventStore preservation statement as structural equality of parsed rows rather than byte equality.
   evidence: The refresh verification compares JSON package/family lists with Python equality; separate catalog byte/hash checks prove file-byte preservation. The focused review's R7 records this distinction and the one-shot workflow routes fixes to specs into deferred work.
+
+## Deferred from: code review of spec-gh-actions-28953291798-85906522208.md (2026-10-08)
+
+Diff reviewed: `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs` at `3d96d0aa..HEAD` (`5bfe0715`). The spec's own change is `2e82d0d6`; these entries come from later commits to the same file or from pre-existing CI state.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
+  summary: medium; no blocking test asserts that the audit Unauthorized state is announced with `role="alert"` and `aria-live="assertive"`.
+  evidence: `96bdfd8a` removed `markup.ShouldContain("role=\"alert\"")` from the audit route smoke test. The only Tier 1 check, `TenantAuditPageTests.Tenant_audit_page_renders_distinct_accessible_states` (`tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2108-2129`), asserts only `GetAttribute("role").ShouldNotBeNull()`, so a regression of `TenantAuditPage.razor:632` `StatusRole` to `status`/`polite` passes everywhere. Fix: mirror `TenantDetailSurfaceTests.cs:2945-2947` and assert `alert` plus `assertive` for Unauthorized.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
+  summary: low; the localized detail Unauthorized title "Tenant detail unauthorized" is not pinned exactly by any test.
+  evidence: The hosted smoke assertion was removed around `2e61f57b`/`62eb3607`. Tier 1 `Detail_page_renders_distinct_safe_states` (`TenantDetailSurfaceTests.cs:2923`) matches only the case-insensitive substring `"authorized"`, which an unresolved resx key name (`Tenants.Detail.State.Unauthorized.Title`) would also satisfy.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
+  summary: low; the detail smoke test asserts the unauthorized marker twice, and the comment above the duplicate describes a source-order form that never existed in this file.
+  evidence: `TenantsUiRouteSmokeTests.cs` line 84 (`TenantsDetailUnauthorizedMarker`) and line 92 (literal `data-testid="tenants-detail-unauthorized"`) are the same check. `git log -p` on the file shows no combined `unauthorized" role=` assertion that "pinned their source order". Delete the duplicate and trim the comment.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
+  summary: low; the audit smoke assertion "Return to tenant detail" cannot tell the focus-return hint from the NoFocus variant, and no test asserts the hint text.
+  evidence: `TenantsResources.resx:3547-3552`: `Tenants.Audit.ReturnContext` = "Return to {0}. The originating control will receive focus when available."; `.NoFocus` = "Return to {0}." Both start with the asserted prefix. The test passes a `returnFocus`, so it should assert the full sentence. A search of `tests/Hexalith.Tenants.UI.Tests` finds the sentence only in a resource dictionary (`AuditEvidenceEntryPointTests.cs:514`), never in an assertion.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
+  summary: low; the user-lookup smoke comment says the compatibility route "redirects before issuing the lookup", but the code issues the lookup first.
+  evidence: `UserMembershipLookupPanel.razor:520-548` awaits `QueryGateway.GetUserTenantsAsync` and only then calls `Navigation.NavigateTo(UserLookupNavigationUrl, replace: true)`. `UserMembershipLookupPage.razor` and the server have no earlier redirect, and `UserMembershipLookupSurfaceTests.cs:218-225` shows the request is issued before the URL rewrite. Correct the comment at `TenantsUiRouteSmokeTests.cs:154-155`.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
+  summary: medium; Aspire-lane failures are hidden because the reusable `domain-ci.yml` defaults `aspire-continue-on-error` to true.
+  evidence: Run 28953291798 concluded `success` although `ci / aspire-tests` failed; Tenants `ci.yml` does not override the default. A red hosted smoke test therefore never blocks a merge. Changing this is a workflow-definition decision (Ask First in the spec).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
+  summary: high; on `main` (`5bfe0715`, run 37782396626) `ci / build-and-test` fails, so `ci / aspire-tests` is skipped and the hosted smoke class never runs in CI.
+  evidence: The job log shows two failures: `GlobalAdministratorsPageTests.RealChromiumFocusValidatorStopsBeforeChromiumWhenServerStartupFails` and `StatelessHostStateTests.TenantsHostAssembly_HasNoWritableStaticFields_HoldingInstanceLocalState` (coverage-instrumentation statics). At review time, uncommitted working-tree edits to both test files existed from a concurrent session; re-check before acting.
