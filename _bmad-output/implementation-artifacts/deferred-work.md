@@ -3755,3 +3755,15 @@ Diff reviewed: `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: The tenant audit page can open and submit a global-administrator correction.
   evidence: `TenantAuditPage.razor` renders `GlobalAdministratorCorrectionPanel` for system evidence. Pass 15 traced that behavior to `5a3bc6dd` and the global-administrator projection spec, not to this correction story.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 17 (2026-10-08)
+
+Diff reviewed: Tenants `fe5f6aa2..0ac7c126`, story files only (HEAD `0ac7c126` = `origin/main`), plus EventStore `9542d3c9..07d1e23a` story paths.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; `CommandApiRuntimeIntegrationTests.Commands_endpoint_rejects_client_supplied_globalAdmin_extension_metadata` expects `400`, but EventStore deliberately ignores the reserved key and returns `202`. The test is red in the masked `ci / aspire-tests` lane.
+  evidence: It fails at `CommandApiRuntimeIntegrationTests.cs:1629` in job 113448120420 (HEAD `0ac7c126`), and earlier at `416ab32c`, `390da330` and `03257338`. EventStore `CommandsController.cs:244` logs and skips `actor:globalAdmin`, and `SubmitCommandExtensions.cs:33` re-adds it only from the JWT claim. The client therefore cannot set global-admin authority through this endpoint. The pass-16 entry "Tenant command admission still treats `actor:globalAdmin=true` as authority" is a false positive at this gateway. Align the test with the ignore-and-log contract, or change the contract to reject, in the command-API owner's spec.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md`
+  summary: Carried, with no new work item; see DW-198. `validate-story-gitlinks.py` exits 1 on the historical reverification `-2.md` at HEAD.
+  evidence: At `0ac7c126` it reports 4× `[UNDECLARED]` (Builds, Commons, EventStore, McpCli) and 2× `[MISSTATED]` (Memories `906bc07a`, Platform `f5a0d72f`). The `-2.md` File List records `5bfe0715` values. `-3.md` calls `-2.md` historical, but the guard has no story-end ref, and `-3.md` will fail the same way at the next bump.

@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -1723,3 +1723,131 @@ Review date: 2026-10-08. Diff: `/tmp/tenants-56-baseline-nMLHFh.diff` (1,571,149
 | Edge: loading audit drops a submitted global-administrator panel | maybe-false; defer | The page mounts `GlobalAdministratorCorrectionPanel` only while authorized audit or retained display holds. Whether a loading snapshot clears that panel before its message id is stored was not traced. If true, the in-flight global correction would be lost; settle it on that panel's tracker, which Story 5.7 owns. |
 | Edge: the audit page can submit a global-administrator correction | medium; defer | `TenantAuditPage.razor` opens `GlobalAdministratorCorrectionPanel` for `system` evidence. Pass 15 traced that to `5a3bc6dd` and `spec-global-admin-projection-paging.md`, not to this correction. |
 | Edge: expiry releases the lease before terminal evidence | low; reject | carried: the approved bounded-expiry decision releases admission and keeps the attempt id. |
+
+### Review Findings (pass 17: pass-15 fix pass + `-3.md` reverification and closeout)
+
+Review date: 2026-10-08. This is pass 17 because pass 16 already ran inside the fix pass `2b91b05b`.
+
+Diff reviewed: Tenants `fe5f6aa2..0ac7c126`, story files only (1,507 lines, pinned to a scratch file before the layers ran). HEAD `0ac7c126` = `origin/main`.
+- In scope:
+  - `9ee73062` (pass-15 record).
+  - `2b91b05b` (pass-15 fix pass and pass-16 internal review).
+  - `57ee33ef`/`0ac7c126` (`-3.md` reverification at root `03257338`, then closeout at `57ee33ef`).
+  - The six gitlink moves in the range.
+  - The four test files touched by `9ee73062`/`2b91b05b`.
+  - EventStore `9542d3c9..07d1e23a` story paths: only `AggregateActor.cs` changed (+5 lines).
+  - The closeout archive's `README.txt`, `results.json` and `before`/`after.json`.
+- Out of scope by agreed scope: `390da330` (trusted publishing) and `fe5f6aa2` (route smoke), which belong to other specs.
+
+Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed.
+- Re-verified by this review:
+  - Every recorded evidence hash: both JSON reports, both zips, every closeout log, and frozen block `f4cc2b4f…`.
+  - The closeout lanes resolved EventStore, Commons and FrontComposer as project references.
+- `validate-story-gitlinks.py` at HEAD:
+  - This spec and `-3.md` exit 0.
+  - `-2.md` exits 1 (4× `[UNDECLARED]`, 2× `[MISSTATED]`); see the DW-198 defer.
+  - Run with `--ref 2b91b05b` on the copies committed in `2b91b05b`, both this spec and `-2.md` exit 1.
+- Triage: 1 decision, 6 patches, 2 defers, 15 rejected.
+
+- [x] [Review][Decision] D1: The audit page submits global-administrator corrections again, against the frozen Never of Story 5.5 and Story 5.6 — high.
+  - **History.**
+    - Story 5.5's `cefefa26` (2026-10-02) removed `GlobalAdministratorCorrectionPanel` from `TenantAuditPage.razor` under its frozen Never ("enable global-administrator correction through this tenant start flow").
+    - The same story added `TenantAuditPageKeepsGlobalAdministratorCorrectionReadOnlyEvenWithAuthority` and kept the component file "for Story 5.7", which is still `backlog`.
+    - This story's frozen Never repeats "enable global-admin correction".
+  - **Regression.** `5a3bc6dd` ("chore: clean up empty code change sections…", owned by `spec-global-admin-projection-paging.md`, `in-review`) did three things:
+    - It re-wired the panel for `system` evidence (`TenantAuditPage.razor:254-261`). The audit page is the panel's only consumer.
+    - It turned the guard into `TenantAuditPageOpensGlobalAdministratorRestoreFromCompleteCurrentEvidence`, which asserts `CanSubmit`.
+    - That paging spec's intent is complete-evidence loading. It never authorizes re-enabling the flow.
+  - **Inherited proof defect.** The re-enabled flow links proof by event type plus a later timestamp (`GlobalAdministratorCorrectionSnapshot.cs:679`, pass-1 defer at `:1029`). This story's Never forbids that ("link from target/time coincidence").
+  - **Contradicted records.**
+    - `-3.md` ("no demonstrated unmet frozen acceptance criterion").
+    - The closeout paragraph ("Original acceptance … remain intact").
+    - The 3,986-test lane, which now includes the inverted test.
+  - **Prior routing.** Pass 15 noted this as out of scope. Pass 16 deferred it twice: as a medium "audit page can submit" item, and as an untraced, high-if-true item ("loading audit drops a submitted panel").
+  - **(a) Restore the read-only gate (recommended).** Remove the audit-page panel branch, keep the component and the paging helper for Story 5.7, restore the original guard test, and correct the two "acceptance intact" records. Global-administrator correction then waits for Story 5.7, as 5.5 and 5.6 decided.
+  - **(b) Renegotiate.** Record a dated user decision that pulls audit-page global-administrator correction forward from Story 5.7. Annotate the 5.5/5.6 Never rules as story-scoped. Promote the type-plus-timestamp proof link from defer to a blocking fix, because the flow now ships.
+  - **(c) Hold it in the paging spec.** Leave this story unchanged and add a blocking finding to `spec-global-admin-projection-paging.md` (`in-review`), so the behavior is decided in that spec's review. This story's records then name the breach instead of claiming acceptance is intact.
+  - **Resolved 2026-10-08: option (a).** The user chose to restore the read-only gate. That is the first patch below.
+- [ ] [Review][Patch] Restore the read-only global-administrator gate on the tenant audit page [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:254] — high; from D1 (a).
+  - Remove the `GlobalAdministratorCorrectionPanel` branch that `5a3bc6dd` added, so `system` evidence again shows the read-only unavailable reason with no correction start or panel.
+  - Keep `GlobalAdministratorCorrectionPanel.razor`, `GlobalAdministratorCorrectionSnapshot` and the complete-evidence paging helper for Story 5.7.
+  - Restore `TenantAuditPageKeepsGlobalAdministratorCorrectionReadOnlyEvenWithAuthority` in place of `TenantAuditPageOpensGlobalAdministratorRestoreFromCompleteCurrentEvidence`.
+  - Mutation-verify the guard: put the panel branch back and confirm the restored test fails.
+  - Correct the `-3.md` claim "no demonstrated unmet frozen acceptance criterion" and the closeout paragraph's "Original acceptance … remain intact".
+  - Add a blocking note to `spec-global-admin-projection-paging.md` (`in-review`) that its audit-page re-enablement was reverted under this decision.
+- [ ] [Review][Patch] The Story Guards Chromium lane now hangs until its 15-minute cancellation instead of failing [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:250] — medium.
+  - `9ee73062` added `--no-sandbox` to all four Chrome launches in this story's browser harness, at `:251`, `:346`, `:357` and `:370`.
+  - Before that change, the step aborted in about 4 s with Chrome exit 134 (run 37782396168).
+  - Since then, every run that reached the step was cancelled at 15 minutes with no output: `416ab32c` (run 37800414047), `03257338` (run 37808806319), and HEAD `0ac7c126` (job 113446227148, 17:25:39 → 17:40:55).
+  - The only automated full run of the EN/FR harness therefore never asserts anything. The story's browser evidence comes from local runs only.
+  - Fix:
+    - Wrap every Chrome launch in `timeout --kill-after=5s <N>s` and print the scenario name on failure.
+    - Add a subprocess test next to `RealChromiumFocusValidatorStopsBeforeChromiumWhenServerStartupFails`. It points `CHROMIUM_BIN` at a stub that sleeps forever and asserts a non-zero exit within the bound.
+- [ ] [Review][Patch] No record names the pointer moves and test edits bundled into `9ee73062` and `416ab32c` [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:646] — low.
+  - **What the commits carried.**
+    - `9ee73062` ("chore: update tenant correction spec status and review findings") moved Builds `f717a87c→a283481c`, Memories `c4697367→dbe4ce0a` and Platform `495d1d0d→2c4f788a`.
+    - The same commit carried three unowned test edits: `StatelessHostStateTests` (`SetEquals`→`IsSubsetOf` plus 7 names), `validate-tenants-focus-browser.sh` (`--no-sandbox` and configuration auto-detection) and `GlobalAdministratorsPageTests` (configuration forwarding).
+    - `416ab32c` ("/pushall") moved Platform again, to `3a99380e`.
+  - **Why the record missed them.**
+    - The pass-15 check ran the guard with `--ref 5bfe0715`. That ref predates these moves.
+    - So `2b91b05b` recorded "adopted" pins that its own tree no longer had. Running the guard with `--ref 2b91b05b` fails both specs.
+    - The records name only the last movers (`a30ae90b`, `03257338`). The pass-15 ledger still says "10th recurrence". These are the 11th (`9ee73062`) and 12th (`57ee33ef`) recurrences.
+  - **Impact.** HEAD passes, because later records superseded these values. The miss is in the record, and these test edits have no owner.
+  - **Fix:**
+    - Add one dated sentence after `:646`. It names both commits and their intermediate targets, says they were superseded by `a30ae90b`/`03257338`, and says the pass-15 `--ref 5bfe0715` check did not cover the carrying commit.
+    - Extend the `spec-gh-actions-28953291798-85906522208.md` CI ledger entry (`deferred-work.md:3730`). The two test fixes landed in `9ee73062`, and `build-and-test` passes at HEAD (run 37816323193). `aspire-tests` now runs and fails with 14 errors, from fixture-init `JwtBearer` "exactly one of Authority or SigningKey" plus the stale `actor:globalAdmin` test (defer below).
+- [ ] [Review][Patch] The pass-16 record lacks its review boundary, triage tally and severities [_bmad-output/implementation-artifacts/deferred-work.md:3733] — low.
+  - The "Deferred from: pass 16 review…" heading has no "Diff reviewed:" line. Pass 15 patched the same gap for pass 14, and pass 13 did for pass 12.
+  - The inserted "spec-refresh-dependencies.md and spec-eventstore-3-117-1.md" heading (`:3651`) has no diff line either, and it is preceded by three blank lines.
+  - The pass-16 spec section cites a `/tmp` diff "through the pass-15 record patches". Those patches were uncommitted at the time and landed in `2b91b05b`. The section also has no tally.
+  - The six pass-16 ledger summaries drop the severities from the pass-16 table.
+  - Fix:
+    - Add `Diff reviewed: baseline 11e65e37 through the pass-15 patches committed in 2b91b05b`.
+    - Add a tally line to the pass-16 spec section.
+    - Prefix each summary with its table severity. For the `actor:globalAdmin` entry, instead point to the pass-17 defer below, which shows the gateway ignores the client key.
+    - Collapse the blank lines.
+- [ ] [Review][Patch] The "Current dependency record" names a later commit as last mover at an earlier HEAD [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:201] — low.
+  - The record says "Root HEAD is `fcdcb420…`", then "Memories and Platform last moved in `5bfe0715…`". `5bfe0715` is a descendant of that HEAD.
+  - The pass-15 patch introduced this by rewriting the arrows in place.
+  - Fix: say "Root HEAD was `fcdcb420…` when measured; amended at `5bfe0715…` for the Memories and Platform pins."
+- [ ] [Review][Patch] The looser coverage-tracker exemption has no test for mixed field names [tests/Hexalith.Tenants.Server.Tests/Architecture/StatelessHostStateTests.cs:93] — low.
+  - `9ee73062` changed `IsCoverageInstrumentationType` (`:118`) from `SetEquals` to `Count > 0 && IsSubsetOf`.
+  - The only negative test emits a tracker-shaped type with a single `TenantId`/`UserId` field. So the mutant `IsSubsetOf`→`Overlaps` survives: a tracker-shaped type with `_file` plus `TenantId` would hide `TenantId`.
+  - The namespace and GUID-name gate still applies.
+  - Fix: also define `_file` on the lookalike, so each case is "allowlisted name plus identifier" and must still not be exempt.
+- [ ] [Review][Patch] The PublishFailed deferral still misses sites that call PublishFailed terminal [_bmad-output/implementation-artifacts/deferred-work.md:3646] — low.
+  - At EventStore `07d1e23a` (line numbers unchanged since `9542d3c9`), more places treat PublishFailed as terminal:
+    - `command-api.md:400`: replay of "terminal failure states".
+    - `docs/brownfield/architecture.md:152`.
+    - `docs/brownfield/api-contracts.md:23`.
+    - The runtime: `CommandStatusExtensions.IsTerminal` drives the controller's `Retry-After` omission.
+  - This story's consumer is not affected: `TenantCorrectionPreviewSnapshot.cs:301` maps PublishFailed to `Degraded` with Refresh focus.
+  - Fix: extend the evidence line to these sites and name `07d1e23a`.
+- [x] [Review][Defer] The integration test expects 400 for a client-supplied `actor:globalAdmin`, but EventStore deliberately ignores the key [tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs:1629] — deferred, pre-existing.
+  - The test fails in CI (`ci / aspire-tests`, job 113448120420 at HEAD, and earlier at `416ab32c`/`390da330`/`03257338`): it gets `202` instead of `400`. The lane is masked by `aspire-continue-on-error`.
+  - EventStore `CommandsController.cs:244` logs and skips the reserved key. `SubmitCommandExtensions.cs:33` removes it and re-adds it only from the JWT claim.
+  - So the client cannot set global-admin authority this way. Pass 16's "high" defer, "Tenant command admission still treats `actor:globalAdmin=true` as authority", is a false positive at this gateway.
+  - What remains is a stale test expectation, owned by the command-API contract and not by this story.
+- [x] [Review][Defer] `-2.md` fails the gitlink guard at HEAD [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md:80] — deferred, carried DW-198.
+  - Its File List covers only Memories and Platform at `5bfe0715` values.
+  - HEAD gives 4× `[UNDECLARED]` (Builds, Commons, EventStore, McpCli) and 2× `[MISSTATED]` (Memories `906bc07a`, Platform `f5a0d72f`).
+  - `-3.md` calls `-2.md` historical, but `-2.md` itself does not say so. `-3.md` will fail the same way at the next bump.
+  - This is the DW-198 problem: the guard compares a closed story's baseline to HEAD, and it has no durable story-end ref. Fixing it means changing the guard or the specs, not this story.
+
+#### Rejected (pass 17)
+
+- AA4, "the pass-15 test check ran `--no-build`, so a stale DLL may have passed": low. Both `-3.md` lanes rebuilt from source (`ui-build.log` "Build succeeded", 0 warnings) at trees containing `WaitAsync(TimeSpan.FromSeconds(5))`, and passed 3,986. Amending the older record adds nothing.
+- VG-O2 + BH13 + AA8 + ECH20, "the closeout never assesses the `AggregateActor` pre-write registration hook, and the five-class lane skips it": low. No host registers `ISourcePublicationWriterRegistration`: it is defined but never added to DI in EventStore, Tenants, Memories or Platform `src`. `GetService` therefore returns null and the branch never runs. The status-proof contract files are unchanged in the range. Rerunning the Contracts and Client lanes for a dormant branch is more than a direct correction.
+- ECH1 + ECH2 + ECH3, "silently skipped enforcement, unhandled deadline cancellation, orphaned sources filling the cap": false for every shipped host. Each requires a registered `ISourcePublicationWriterRegistration`, and none exists. EventStore owns these concerns when it wires the feature.
+- BH12 + ECH7, "`--no-sandbox` is unconditional, developer machines included": low. The harness loads only `127.0.0.1` fixture pages and package-cache scripts. Gating the flag adds a branch.
+- BH12 + ECH6 + ECH9, "the script's and the C# fallback's configuration rules disagree": false. The SDK always emits `AssemblyConfigurationAttribute`, so the C# fallback is unreachable, and every recorded lane and CI job sets `TENANTS_BROWSER_BUILD_CONFIGURATION`.
+- ECH8, "an inherited configuration variable beats the assembly configuration": low. It needs a developer to export a mismatched variable, and the fix adds precedence logic.
+- ECH10, "nested fixture exports can exceed the 15 s `WaitAsync` in Release CI": maybe-false, and only low if true. The test passes in CI at HEAD (3,986/0).
+- ECH5, "a future coverage-tracker field turns the guard red": low. It fails loudly, which is correct behavior.
+- ECH4, "a tracker-shaped type with one allowlisted field is exempt": low. That is what a real tracker looks like, and the namespace and GUID-name gate remains. The mixed-field gap is the patch above.
+- BH14, "the `-3.md` triage claims R1/R2 additions that the current-head JSON lacks": false. The `-3.md` Completion Notes say the closeout artifacts "complete the review evidence additions without overwriting the committed first-pass report/archive", and the closeout JSON contains them. `review_loop_iteration` is cosmetic.
+- BH15, "the logs are thinner than 'complete' (empty restore logs, identical `browser.log`, no Chrome version)": low. `-v:q` restore prints nothing, so an empty log is the complete output. `results.json` binds each log hash to its command and root.
+- BH16, "provenance gaps (`0ac7c126` unnamed, mixed paragraph order, no superseded marker)": low. A record cannot name the commit that carries it, and each newer dependency record states that it supersedes the earlier one.
+- BH17, "the protected-content set excludes `scripts/` and `.github/`": false. This review re-ran the committed guard at HEAD and got PASS on this spec and `-3.md`, the same results as the archived logs.
+- ECH16 + ECH18 + ECH19, "commit messages misdescribe their content" (`9ee73062`, `57ee33ef` typed `feat:`, `0ac7c126`): low. All are pushed, so fixing them means rewriting published history. The pointer content is in the patch above, and no release ran for `57ee33ef`.
+- BH9 (consumer part), "this story's consumer treats PublishFailed as terminal": false. `TenantCorrectionPreviewSnapshot.cs:301` maps PublishFailed to `Degraded` with Refresh focus. The documentation part is the patch above.
