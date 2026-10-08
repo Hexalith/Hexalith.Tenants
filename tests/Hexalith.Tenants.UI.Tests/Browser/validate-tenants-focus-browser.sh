@@ -4,7 +4,14 @@ set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(cd -- "$script_dir/../../.." && pwd)"
 harness_path="$script_dir/tenants-focus-browser-validation.html"
-build_configuration="${TENANTS_BROWSER_BUILD_CONFIGURATION:-Debug}"
+build_configuration="${TENANTS_BROWSER_BUILD_CONFIGURATION:-}"
+if [[ -z "$build_configuration" ]]; then
+    if [[ ! -d "$project_root/src/Hexalith.Tenants.UI/obj/Debug" && -d "$project_root/src/Hexalith.Tenants.UI/obj/Release" ]]; then
+        build_configuration="Release"
+    else
+        build_configuration="Debug"
+    fi
+fi
 focus_module_path="$project_root/src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js"
 correction_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor.rz.scp.css"
 receipt_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/AuditEvidenceReceipt.razor.rz.scp.css"
@@ -241,6 +248,7 @@ run_browser() {
         printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
     fi
     "$browser_path" \
+        --no-sandbox \
         --headless=new \
         --disable-dev-shm-usage \
         --disable-gpu \
@@ -335,7 +343,7 @@ for culture in en fr; do
         if [[ "$scenario" != desktop ]]; then start_width=390; fi
         if [[ "$scenario" == forced-colors ]]; then start_color_args+=(--force-high-contrast); start_colors=active; fi
         start_output="$validation_tmp/start-${culture}-${scenario}.html"
-        "$browser_path" --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+        "$browser_path" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
             "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-start-${culture}-${scenario}" \
             --virtual-time-budget=3000 --dump-dom \
             "http://127.0.0.1:${validation_port}/start.html?culture=${culture}&forcedColors=${start_colors}" \
@@ -346,7 +354,7 @@ for culture in en fr; do
             exit 1
         fi
         preview_output="$validation_tmp/preview-${culture}-${scenario}.html"
-        "$browser_path" --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+        "$browser_path" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
             "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-preview-${culture}-${scenario}" \
             --virtual-time-budget=3000 --dump-dom \
             "http://127.0.0.1:${validation_port}/preview.html?culture=${culture}&forcedColors=${start_colors}" \
@@ -359,7 +367,7 @@ for culture in en fr; do
     done
 done
 recovery_mutation_output="$validation_tmp/recovery-no-tabindex.html"
-"$browser_path" --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+"$browser_path" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
     --window-size=1024,800 --user-data-dir="$validation_tmp/profile-recovery-no-tabindex" \
     --virtual-time-budget=3000 --dump-dom \
     "http://127.0.0.1:${validation_port}/preview.html?culture=en&missingRecoveryTabindex=true" \

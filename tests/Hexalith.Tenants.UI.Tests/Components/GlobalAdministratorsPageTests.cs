@@ -4425,6 +4425,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             UseShellExecute = false,
         };
         startInfo.ArgumentList.Add(runner);
+        string currentConfiguration = typeof(GlobalAdministratorsPageTests).Assembly
+            .GetCustomAttribute<AssemblyConfigurationAttribute>()?
+            .Configuration
+            ?? (Directory.Exists(Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI", "obj", "Release")) ? "Release" : "Debug");
+        startInfo.Environment["TENANTS_BROWSER_BUILD_CONFIGURATION"] =
+            Environment.GetEnvironmentVariable("TENANTS_BROWSER_BUILD_CONFIGURATION")
+            ?? currentConfiguration;
         startInfo.Environment["TENANTS_FOCUS_TEST_SERVER_START_FAILURE"] = "true";
         startInfo.Environment["TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"] = browserMarker;
 

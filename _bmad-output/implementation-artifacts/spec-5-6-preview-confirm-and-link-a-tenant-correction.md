@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -1606,3 +1606,66 @@ Fresh lanes run by this review against the shipped tree:
 - BH5, "the 'Carried, with no new work item' entry contradicts the carried rule": false. It is pass 11's own defer bullet, which the workflow must append, and it points to the existing CI item.
 - BH7, "the EventStore-owned follow-ups never reached EventStore's ledger": low. EventStore-owned items have always been recorded in this ledger (for example, the shared-consumer authority timeout entry). Mirroring them is a cross-repo commit plus a pin bump, which is more than a direct correction. The high BH1 item is handled by D2.
 - BH13, "closure evidence lives only in `/tmp`": low. This review re-ran both lanes. Persisting about 98 logs is a process change, and the real gap is the existing "Restore CI test execution" defer.
+
+### Review Findings (pass 15: pass-14 fix pass + 2026-10-08 reverification)
+
+Review date: 2026-10-08. This is pass 15 because the triage log already has an internal "Pass-14 workflow review".
+
+Diff reviewed (623 lines, pinned to a scratch file before the layers ran):
+- Tenants `bfaa770e` (pass-14 fix pass: spec, ledger, sprint status, `TenantsBffComposition.cs`, `TenantDetailSurfaceTests.cs`) and `5bfe0715` (2026-10-08 reverification: this spec, `-2.md`, the reverification JSON, `epic-5-context.md`, and two gitlinks). Both are pushed; HEAD `5bfe0715` = `origin/main`.
+- Not reviewed, by agreed scope: the other commits in `f9dc75c1..5bfe0715`, which belong to other specs. EventStore `55b2982e..9542d3c9` was checked only for story files: `d87c969b` is the sole commit touching them, and it carries the pass-13 `command-api.md` patch and the pass-14 publication-test patch.
+- Out-of-scope note: `5a3bc6dd` ("chore: clean up empty code change sections…", `spec-global-admin-projection-paging.md`, `in-review`) changes this story's correction path in `TenantAuditPage.razor` (panel branch, `HasSubmittedCorrection`, `HasDisplayedRetainedCorrection`), makes the audit page open `GlobalAdministratorCorrectionPanel` for `system` evidence, and deletes this story's test `TenantAuditPageKeepsGlobalAdministratorCorrectionReadOnlyEvenWithAuthority`. Sprint status still lists `5-7` as `backlog`. Review it with that spec.
+
+Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. `validate-story-gitlinks.py` exits 1 on this spec (2× `[MISSTATED]`) and on `-2.md` (2× `[UNDECLARED]`); see D1. The reverification JSON hash (`6ec3b0a0…`) and the frozen-block hash (`f4cc2b4f…`, unchanged since pass 13) were recomputed and match. The owner-count hoist is behavior-identical. Triage produced 1 decision, 6 patches and 2 defers, and rejected 5. D1 resolved to option (a), which adds a seventh patch.
+
+- [x] [Review][Decision] D1: Adopt or revert the Memories and Platform pointers that `5bfe0715` moved — medium.
+  - `5bfe0715` ("chore: reverify tenant correction flow and update dependency records") moves Memories `3e18d0dc → c4697367` and Platform `eb864b75 → 495d1d0d`. Its message does not mention them.
+  - The record it adds says the opposite. The "Current dependency record (2026-10-08)" arrows (`:207`, `:210`) name the old targets. Verification `:613` says "all dependency pointers are unchanged" and "No staging, commits, pushes … occurred". `-2.md:32` says the guard "exits 0 with no pointer changes". The JSON `invariants_after` (`:21`) lists the old values with `all_invariants_equal: true`.
+  - At HEAD the guard fails on both specs: 2× `[MISSTATED]` here, 2× `[UNDECLARED]` on `-2.md`, which has no File List. This is the 10th recurrence of the silent-bump pattern.
+  - The impact is record-only. Memories `c4697367` touches only `_bmad-output/`, `tools/` and nested pointers, so the `Memories.Contracts`/`Client.Rest` project references are unchanged. No Tenants project references `Hexalith.Platform`; `495d1d0d` changes `Platform.Custody`. Both SHAs are on their `origin/main`. The recorded 3,986-test UI and 165-test EventStore lanes ran against the old pins but still represent the shipped code.
+  - (a) Adopt the shipped pins. Set the `:207`/`:210` arrows to `c46973679fcf09bdc5aab19928f2fe03dae82226`/`495d1d0dfceb33e6bb628809a42a284526707ff6` and name `5bfe0715` as their last mover. Add a File List and a Completion Notes List to `-2.md` that declare both pointers and why. Add a dated post-commit reconciliation note that supersedes `:613`, `-2.md:32`/`:35` and the JSON after-state; keep the JSON unchanged as the hashed pre-commit snapshot. Rerun both guards. Recommended: same choice as pass-13 D1, no Git action, no executable input changed.
+  - (b) Revert. A new root commit restores Memories `3e18d0dc` and Platform `eb864b75`, then a push. The record then holds, except for the "no commits" sentences.
+  - **Resolved 2026-10-08: option (a).** The user adopted the shipped pins: Memories `c46973679fcf09bdc5aab19928f2fe03dae82226` and Platform `495d1d0dfceb33e6bb628809a42a284526707ff6`. A revert would move both backwards, against remotes that are already ahead (Memories +1, Platform +5), and the checks against the original baseline go stale at every later bump anyway (DW-198). Recording them is the first patch below. Apply it together with the `:606`/`:613` wording patch, since both rewrite `:613`.
+- [ ] [Review][Patch] Record the adopted Memories and Platform pins that `5bfe0715` ships [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:207] — values from D1 (a).
+  - Set the `:207`/`:210` arrow targets to `c46973679fcf09bdc5aab19928f2fe03dae82226`/`495d1d0dfceb33e6bb628809a42a284526707ff6` and name `5bfe0715` as their last mover in `:201`.
+  - Add a dated post-commit note to Verification. `5bfe0715` carried both moves after the reverification run. The lanes ran at `3e18d0dc`/`eb864b75`, and no built input changed. The note supersedes `:613`, `-2.md:32`/`:35` and the JSON `invariants_after`. Leave the JSON unchanged; it is the hashed pre-commit snapshot.
+  - Add a File List and a Completion Notes List to `-2.md` that declare both pointers. The user's commit carried them, not the reverification run.
+  - Rerun `validate-story-gitlinks.py --ref 5bfe0715` on both specs; both must exit 0.
+- [ ] [Review][Patch] The record never closes the EventStore publication follow-up [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:622] — low.
+  - `bfaa770e` checked off the pass-13 `command-api.md` patch (`:1575`) and the pass-14 `EventPublicationIntegrationTests` patch while still pinning EventStore `55b2982e`, which contains neither.
+  - Both shipped in EventStore `d87c969b` (2026-10-05 19:46:55), first pinned by root `3a90342d`, an ancestor of the current pin `9542d3c9`.
+  - `:622`, `:630` and `:1575` still call the publication, root pin bump and reachability check "pending user-owned follow-up". The 2026-10-08 record never names `d87c969b` or `3a90342d`.
+  - Fix: one dated sentence naming both commits and marking the follow-up done.
+- [ ] [Review][Patch] `await submit;` has no time bound [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:3856] — low.
+  - bUnit's `SubmitAsync` task completes only when the async submit handler finishes. The UI test project sets no runner or `[Fact]` timeout.
+  - A stalled submit/status/proof handler now hangs the run instead of failing in the following `WaitForAssertion`.
+  - Fix: `await submit.WaitAsync(TimeSpan.FromSeconds(5));`, the pattern at `GlobalAdministratorsPageTests.cs:4666`.
+- [ ] [Review][Patch] The record cites root `aeb23ad1`, which is not in HEAD's history [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:574] — low; also `:628`.
+  - `aeb23ad1` was rebased to `f9dc75c1`; `git range-diff` shows the two identical.
+  - Fix: add "(rebased as `f9dc75c1`)" at both sites.
+- [ ] [Review][Patch] The pass-14 ledger heading has no "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3641] — low.
+  - Pass 13 patched the same gap for pass 12.
+  - With no boundary, `1dffe336` appended its `spec-refresh-dependencies.md` and `spec-eventstore-3-117-1.md` entries directly under it, so they read as 5.6 pass-14 deferrals. Each still carries its own `source_spec`.
+  - Fix: add the line (`/tmp/tenants-56-review-content-3sylhkc4.diff`, 626,873 bytes; root `aeb23ad1` = `f9dc75c1`; EventStore `55b2982e` story paths). Insert a heading before the first `spec-refresh-dependencies.md` entry.
+- [ ] [Review][Patch] The PublishFailed deferral cites one of six "terminal" sentences [_bmad-output/implementation-artifacts/deferred-work.md:3645] — low.
+  - At `9542d3c9`, `command-api.md` also labels PublishFailed terminal at `:380`, `:383`, `:470`, `:473` and `:475`. Fixing `:477` alone leaves contradictory guidance.
+  - Fix: extend the evidence line to all six sites.
+- [ ] [Review][Patch] The reverification claims preserved checkouts, but its evidence measures only committed gitlinks [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:606] — low.
+  - `:606` says EventStore `9542d3c9` was "preserved". The `-2.md` Approach promises to keep "dependency checkouts".
+  - The JSON records only root HEAD, the root index and `git ls-tree` gitlinks. It has no submodule HEADs and no `git submodule status`. That blind spot is how the Memories/Platform checkout drift went unnoticed until it was committed.
+  - Fix: reword `:606`/`:613` to say "committed gitlinks", which is what was measured.
+- [x] [Review][Defer] The regenerated `epic-5-context.md` drops Epic 5 rules that the planning docs still require [_bmad-output/implementation-artifacts/epic-5-context.md:21] — deferred: agent-context file (medium). The regression was introduced by `5bfe0715`; fix it before Story 5.7 is specified.
+  - The 9,595 → 6,688-byte rewrite removes "never announce success before projection confirm" (`architecture.md:691`) and McpCli-only CLI/MCP exposure (`architecture.md:66`).
+  - It also removes "5.7a/5.7b, complete only as a whole" (`epics.md:2671`), the `LastGlobalAdministrator` hard stop (`epics.md:2730`), the exclusive `Set`/`RemoveGlobalAdministrator` mapping and the `/api/global-administrators` read.
+  - Also gone: the Informative/Warning/Severe/Subtle availability styling and the receipt's "seven fields only". The recovery-verb, origin-state and entry-point lists became unverifiable phrases.
+  - The stated trigger ("canonical architecture is newer") is only the SDK-version commits `bd87d68e`/`ade4e04f`.
+  - The R1–R4 additions come from the 5.5/5.6 specs, not the planning docs, so the next `compile-epic-context` run drops them again. To settle it, restore the `1cdcc0a9` content and add R1–R4 with source citations.
+- [x] [Review][Defer] CI never runs the gitlink guard against real story files [.github/workflows/story-guards.yml:34] — deferred: pre-existing and carried (DW-162 family). Story Guards runs only the synthetic regression lane, so `5bfe0715` reached `main` green with both 5.6 guards failing.
+
+#### Rejected (pass 15)
+
+- AA4 + BH13, "the pass-14 EventStore test does not assert the second command's stored identity": low. The status is read by its `MessageId` key. The same `CompleteTerminalAsync` writer is fully scope-asserted for the first command in the same test (`EventPublicationIntegrationTests.cs:142-146`). Adding the assertions needs an EventStore commit plus a root pin bump.
+- BH10, "the de-flake has no mutation check and could hide the regression the test exists for": false. Every assertion is unchanged. A page that fails to produce post-refresh evidence leaves the flow `UnableToVerify`, so the following `WaitForAssertion(Confirmed)` still fails after `await submit`.
+- BH11, "the owner-count hoist is half done; the per-target `FirstOrDefault` remains": low. A capture has a handful of distinct targets over a bounded member list, so a dictionary adds structure for no measurable gain.
+- BH14 + ECH13, "the commit messages misdescribe their content" (`bfaa770e` claims an EventStore gitlink it does not contain): low. Both commits are pushed, so fixing them means rewriting published history. The pointer moves hidden in `5bfe0715` are D1.
+- BH16, "no criterion-to-test map; 3,960 → 3,986 unexplained": low. The +26 tests come from other stories' commits (`695e9658`, `c3c2b546`, `b5821e2d`, `5a3bc6dd`). The pass-14 Verification maps the seven matrix rows, and a new map is more than a direct correction.

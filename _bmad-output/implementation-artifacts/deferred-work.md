@@ -3681,6 +3681,18 @@ Diff reviewed: Tenants `d8558263..5a519cd7`, and EventStore `8f34b395..55b2982e`
   summary: Clarify the non-EventStore preservation statement as structural equality of parsed rows rather than byte equality.
   evidence: The refresh verification compares JSON package/family lists with Python equality; separate catalog byte/hash checks prove file-byte preservation. The focused review's R7 records this distinction and the one-shot workflow routes fixes to specs into deferred work.
 
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 15 (2026-10-08)
+
+Diff reviewed: Tenants `bfaa770e` + `5bfe0715` (story files only; HEAD `5bfe0715` = `origin/main`).
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; restore the Epic 5 rules that the 2026-10-08 regeneration dropped from `epic-5-context.md`, before Story 5.7 is specified.
+  evidence: `5bfe0715` rewrote the context 9,595 → 6,688 bytes. It removed "never announce success before projection confirm" (`architecture.md:691`), McpCli-only CLI/MCP exposure (`architecture.md:66`), "5.7a/5.7b, complete only as a whole" (`epics.md:2671`), the `LastGlobalAdministrator` hard stop (`epics.md:2730`), the exclusive Set/RemoveGlobalAdministrator mapping, the `/api/global-administrators` read, the availability severity styling and "seven fields only" receipts, and it vaguened the recovery-verb, origin-state and entry-point lists. The R1–R4 additions come from the 5.5/5.6 specs, not the planning docs, so the next `compile-epic-context` run drops them again. Restore the `1cdcc0a9` content and add R1–R4 with source citations.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Carried, with no new work item; see DW-162. CI still never runs `validate-story-gitlinks.py` against real story files.
+  evidence: `.github/workflows/story-guards.yml:34` runs only `tests/scripts/test_validate_story_gitlinks.py` on synthetic repositories. `5bfe0715` reached `main` green while the guard exits 1 on both 5.6 specs (Memories `c4697367`, Platform `495d1d0d`). 10th recurrence of the silent-bump pattern.
+
 ## Deferred from: code review of spec-gh-actions-28953291798-85906522208.md (2026-10-08)
 
 Diff reviewed: `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs` at `3d96d0aa..HEAD` (`5bfe0715`). The spec's own change is `2e82d0d6`; these entries come from later commits to the same file or from pre-existing CI state.

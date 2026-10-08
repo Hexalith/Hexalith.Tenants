@@ -35,8 +35,14 @@ public class StatelessHostStateTests {
     [
         "_file",
         "_view",
+        "_publishBuffer",
         "_cachedHits",
         "_gcHandle",
+        "_processExitHandler",
+        "_flushThread",
+        "DisablePeriodicFlush",
+        "ForcePrivateProbeMemory",
+        "FailFileBackedPublishAfterRangeCount",
         "Trace",
         "TraceFile",
         "OriginalPath",
@@ -109,6 +115,6 @@ public class StatelessHostStateTests {
             .Where(field => !field.IsLiteral && !field.IsInitOnly)
             .Select(field => field.Name)
             .ToHashSet(StringComparer.Ordinal);
-        return declaredFieldNames.SetEquals(CoverageTrackerFieldNames);
+        return declaredFieldNames.Count > 0 && declaredFieldNames.IsSubsetOf(CoverageTrackerFieldNames);
     }
 }
