@@ -2,8 +2,9 @@
 title: 'Replace brittle UI source guards with behavioral tests'
 type: 'refactor'
 created: '2026-09-02'
-status: ready-for-dev
+status: done
 baseline_revision: d2b7ede359830c27934ac9f577e3073955c3e2c2
+baseline_commit: 23b2a7691ae667fd160a48a5d7293f3cf38d48fe
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -50,9 +51,9 @@ deferred: []
 ## Tasks & Acceptance
 
 **Execution:**
-- `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs` -- replace cursor/source-count checks with rendered detail/audit return-URL and sentinel non-disclosure assertions; replace the `ConfigureAwait(false)` scan with a worker-thread completion test that observes `Renderer.Dispatcher.CheckAccess()` during state-driven navigation; retain unrelated gateway telemetry guards.
-- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs` -- generate the localizer double's values and enumeration from the production resource set for `CultureInfo.CurrentUICulture`, format arguments using the active culture, and throw for unknown keys.
-- `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` -- make exactly these six `StubTenantsLocalizer` entries match the shipped neutral resource values, and update only directly affected assertions in this file: `Remove.Preview.Target.Value` = `Exact target: “{0}”`; `Remove.Preview.CallerTargetContext.Other.Value` = `This removes another administrator’s global authority.`; `Remove.Preview.Acknowledge` = `Type the exact target “{0}” to acknowledge this removal.`; `Remove.Preview.Confirm` = `Confirm removal`; `Remove.Status.Rejected.LastAdministrator` = `The server rejected removal of the last global administrator.`; and `Remove.Status.Rejected.NotFound` = `The server could not find the exact administrator target.` All keys have the `Tenants.GlobalAdministrators.` prefix.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs` -- replace cursor/source-count checks with rendered detail/audit return-URL and sentinel non-disclosure assertions; replace the `ConfigureAwait(false)` scan with a worker-thread completion test that observes `Renderer.Dispatcher.CheckAccess()` during state-driven navigation; retain unrelated gateway telemetry guards.
+- [x] `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs` -- generate the localizer double's values and enumeration from the production resource set for `CultureInfo.CurrentUICulture`, format arguments using the active culture, and throw for unknown keys.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs` -- make exactly these six `StubTenantsLocalizer` entries match the shipped neutral resource values, and update only directly affected assertions in this file: `Remove.Preview.Target.Value` = `Exact target: “{0}”`; `Remove.Preview.CallerTargetContext.Other.Value` = `This removes another administrator’s global authority.`; `Remove.Preview.Acknowledge` = `Type the exact target “{0}” to acknowledge this removal.`; `Remove.Preview.Confirm` = `Confirm removal`; `Remove.Status.Rejected.LastAdministrator` = `The server rejected removal of the last global administrator.`; and `Remove.Status.Rejected.NotFound` = `The server could not find the exact administrator target.` All keys have the `Tenants.GlobalAdministrators.` prefix.
 
 **Acceptance Criteria:**
 - Given an opaque cursor and ETag plus safe list query state, when tenant detail and audit navigation are rendered, then no protected sentinel is present in markup and both decoded return URLs start at page one while retaining the intended non-cursor context.
@@ -66,6 +67,8 @@ deferred: []
 - 2026-09-02: Resolved the verification-boundary contradiction by allowing a narrow third-file exception for the six baseline `GlobalAdministratorsPageTests.StubTenantsLocalizer` copy mismatches and only their directly affected assertions; retained the full-suite pass requirement.
 
 ## Review Triage Log
+
+- 2026-10-08: No findings — Blind Hunter, Edge Case Hunter, and Verification Gap layers were skipped because the diff since `baseline_commit` contains no code. Every task had already landed (`d2b7ede359830c27934ac9f577e3073955c3e2c2` for the cursor/dispatcher/localizer tests; the six `GlobalAdministratorsPageTests.StubTenantsLocalizer` values already matched `TenantsResources.resx`). Verified at `23b2a7691ae667fd160a48a5d7293f3cf38d48fe` with a `--no-incremental` Release build (0 warnings/0 errors), `TenantListSurfaceTests` 112/112, workspace + parity 50/50, full UI assembly 3960/3960; a concurrent session then rebased `main` to `3a90342da043877f189c09a8ed3e98dff44b90b8` with server/domain-only changes (no `Tenants.UI`, `Tenants.Client`, UI-test, or FrontComposer files).
 
 ## Design Notes
 
