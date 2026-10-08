@@ -234,6 +234,25 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Fact]
+    public void RestoreCannotConfirmFromCurrentEnvelopeWithNonCurrentRowEvidence()
+    {
+        GlobalAdministratorCorrectionSnapshot accepted = GlobalAdministratorCorrectionSnapshot
+            .FromIntent(RestoreIntent(), ProjectionReady("other-admin"))
+            .RequestSent("message-safe")
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
+        GlobalAdministratorsSnapshot projection = ProjectionReadyAtVersion("ga-v2", "admin-user", "other-admin") with
+        {
+            Rows = [new GlobalAdministratorRow("admin-user", ReadModelFreshnessState.Current, ProjectionLifecycleState.Unknown)],
+        };
+
+        GlobalAdministratorCorrectionSnapshot result = accepted.ConfirmProjection(projection);
+
+        result.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        result.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
+    }
+
+    [Fact]
     public void RestoreConfirmationUsesOpaqueVersionInequalityWithExactCommandEventEvidence()
     {
         GlobalAdministratorCorrectionSnapshot eventBacked = GlobalAdministratorCorrectionSnapshot

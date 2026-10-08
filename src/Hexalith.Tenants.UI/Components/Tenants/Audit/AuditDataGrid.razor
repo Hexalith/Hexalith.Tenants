@@ -259,7 +259,7 @@
         => intent?.UnavailableReasons.Count > 0;
 
     private static bool IsSupportedCorrection(TenantCorrectionStartIntent? intent)
-        => intent?.IntendedCommandDomain is TenantCorrectionCommandDomain.Tenants
+        => intent?.IntendedCommandDomain is TenantCorrectionCommandDomain.Tenants or TenantCorrectionCommandDomain.GlobalAdministrators
             && intent.IntendedCommandType is not null;
 
     private string CorrectionActionLabel(TenantCorrectionStartIntent intent)
@@ -273,9 +273,7 @@
             : Localizer["Tenants.Correction.Action.StartAccessible", intent.OriginalAuditReference];
 
     private string CorrectionUnavailableReason(TenantCorrectionStartIntent intent)
-        => intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
-            ? Localizer["Tenants.Correction.Start.GlobalNotReady"]
-            : intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome)
+        => intent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome)
                 ? Localizer["Tenants.Correction.Unavailable.UnsupportedOutcome"]
             : string.Join(
             " ",

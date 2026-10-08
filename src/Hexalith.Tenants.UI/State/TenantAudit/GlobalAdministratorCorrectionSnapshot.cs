@@ -618,6 +618,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             || string.IsNullOrWhiteSpace(projection.ProjectionVersion)
             || projection.HasMore
             || !projection.IsCompleteEvidence
+            || !ProjectionIsReadable(projection)
             || LifecycleState is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending) {
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }

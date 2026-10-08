@@ -1,0 +1,1380 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-10-08T08:13:23.751649+00:00",
+  "spec": "_bmad-output/implementation-artifacts/spec-refresh-dependencies.md",
+  "status": "in-progress",
+  "baselineCommit": "8f6f8cb813255cc94ada95cda1a5e224c3b6bed0",
+  "centralAudit": {
+    "path": "references/Hexalith.Builds/Tools/package-version-audit.json",
+    "generatedFromRevision": "520abb5898ad44b30c0744e707b53cd94741e6b1",
+    "auditedAtUtc": "2026-10-08T08:04:22.3574452+00:00",
+    "mode": "complete",
+    "packageCount": 304,
+    "familyCount": 146,
+    "sha256": "52c91afa33449f08724ea940f81bc121afd2a28b482595bdf4e7245d4d9c6a48"
+  },
+  "directPackageCount": 41,
+  "directPackagesAtLatestStable": 41,
+  "directFreshnessHolds": [],
+  "policyExclusions": [
+    "Dapr 1.19.0-rc.2 exceeds the stable channel",
+    "Shouldly 5.0.0-preview.2 exceeds the stable channel",
+    ".NET 11 candidates require an approved framework migration",
+    "Microsoft.OpenApi remains on the ASP.NET Core 10-compatible 2.x family"
+  ],
+  "directPackages": [
+    {
+      "id": "Aspire.Hosting",
+      "selectedVersion": "13.6.1",
+      "latestStable": "13.6.1",
+      "latestPrerelease": "9.0.0-rc.1.24511.1",
+      "listingState": "listed",
+      "family": "aspire",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "13.6.1",
+          "latestPrerelease": "9.0.0-rc.1.24511.1",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Aspire.Hosting.Testing",
+      "selectedVersion": "13.6.1",
+      "latestStable": "13.6.1",
+      "latestPrerelease": "9.0.0-rc.1.24511.1",
+      "listingState": "listed",
+      "family": "aspire",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "13.6.1",
+          "latestPrerelease": "9.0.0-rc.1.24511.1",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "bunit",
+      "selectedVersion": "2.11.3",
+      "latestStable": "2.11.3",
+      "latestPrerelease": "2.8.4-preview",
+      "listingState": "listed",
+      "family": "bunit-html",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "2.11.3",
+          "latestPrerelease": "2.8.4-preview",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Dapr.AspNetCore",
+      "selectedVersion": "1.18.10",
+      "latestStable": "1.18.10",
+      "latestPrerelease": "1.19.0-rc.2",
+      "listingState": "listed",
+      "family": "dapr",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "1.18.10",
+          "latestPrerelease": "1.19.0-rc.2",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Dapr.Client",
+      "selectedVersion": "1.18.10",
+      "latestStable": "1.18.10",
+      "latestPrerelease": "1.19.0-rc.2",
+      "listingState": "listed",
+      "family": "dapr",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "1.18.10",
+          "latestPrerelease": "1.19.0-rc.2",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "FluentValidation",
+      "selectedVersion": "12.1.1",
+      "latestStable": "12.1.1",
+      "latestPrerelease": "12.0.0-preview1",
+      "listingState": "listed",
+      "family": "package:fluentvalidation",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "12.1.1",
+          "latestPrerelease": "12.0.0-preview1",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "FluentValidation.DependencyInjectionExtensions",
+      "selectedVersion": "12.1.1",
+      "latestStable": "12.1.1",
+      "latestPrerelease": "12.0.0-preview1",
+      "listingState": "listed",
+      "family": "package:fluentvalidation.dependencyinjectionextensions",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "12.1.1",
+          "latestPrerelease": "12.0.0-preview1",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.Commons.Aspire",
+      "selectedVersion": "2.30.1",
+      "latestStable": "2.30.1",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-commons",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "2.30.1",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.Aspire",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.Client",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.Contracts",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.DomainService",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.Gateway",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.RestApi.Generators",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.Server",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.ServiceDefaults",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.Testing",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.EventStore.Testing.Integration",
+      "selectedVersion": "3.115.0",
+      "latestStable": "3.115.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-eventstore",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.115.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.FrontComposer.Contracts",
+      "selectedVersion": "4.6.0",
+      "latestStable": "4.6.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-frontcomposer",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "4.6.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.FrontComposer.Shell",
+      "selectedVersion": "4.6.0",
+      "latestStable": "4.6.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-frontcomposer",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "4.6.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.FrontComposer.SourceTools",
+      "selectedVersion": "4.6.0",
+      "latestStable": "4.6.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-frontcomposer",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "4.6.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.FrontComposer.Testing",
+      "selectedVersion": "4.6.0",
+      "latestStable": "4.6.0",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-frontcomposer",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "4.6.0",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.Memories.Aspire",
+      "selectedVersion": "2.27.1",
+      "latestStable": "2.27.1",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-memories",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "2.27.1",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.Memories.Client.Rest",
+      "selectedVersion": "2.27.1",
+      "latestStable": "2.27.1",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-memories",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "2.27.1",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Hexalith.Memories.Contracts",
+      "selectedVersion": "2.27.1",
+      "latestStable": "2.27.1",
+      "latestPrerelease": null,
+      "listingState": "listed",
+      "family": "hexalith-memories",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "2.27.1",
+          "latestPrerelease": null,
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "MediatR",
+      "selectedVersion": "14.2.0",
+      "latestStable": "14.2.0",
+      "latestPrerelease": "14.0.0-beta-1",
+      "listingState": "listed",
+      "family": "package:mediatr",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "14.2.0",
+          "latestPrerelease": "14.0.0-beta-1",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Authentication.JwtBearer",
+      "selectedVersion": "10.0.12",
+      "latestStable": "10.0.12",
+      "latestPrerelease": "11.0.0-rc.1.26425.128",
+      "listingState": "listed",
+      "family": "dotnet-10",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "10.0.12",
+          "latestPrerelease": "11.0.0-rc.1.26425.128",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.Mvc.Testing",
+      "selectedVersion": "10.0.12",
+      "latestStable": "10.0.12",
+      "latestPrerelease": "11.0.0-rc.1.26425.128",
+      "listingState": "listed",
+      "family": "dotnet-10",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "10.0.12",
+          "latestPrerelease": "11.0.0-rc.1.26425.128",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.AspNetCore.OpenApi",
+      "selectedVersion": "10.0.12",
+      "latestStable": "10.0.12",
+      "latestPrerelease": "11.0.0-rc.1.26425.128",
+      "listingState": "listed",
+      "family": "dotnet-10",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "10.0.12",
+          "latestPrerelease": "11.0.0-rc.1.26425.128",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.FluentUI.AspNetCore.Components",
+      "selectedVersion": "5.0.0",
+      "latestStable": "5.0.0",
+      "latestPrerelease": "5.0.0-rc.5-26219.1",
+      "listingState": "listed",
+      "family": "fluent-ui",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "5.0.0",
+          "latestPrerelease": "5.0.0-rc.5-26219.1",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.NET.Test.Sdk",
+      "selectedVersion": "18.10.1",
+      "latestStable": "18.10.1",
+      "latestPrerelease": "17.14.0-preview-25107-01",
+      "listingState": "listed",
+      "family": "package:microsoft.net.test.sdk",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "18.10.1",
+          "latestPrerelease": "17.14.0-preview-25107-01",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Microsoft.Testing.Extensions.CodeCoverage",
+      "selectedVersion": "18.12.0",
+      "latestStable": "18.12.0",
+      "latestPrerelease": "18.1.0-preview.25412.3",
+      "listingState": "listed",
+      "family": "package:microsoft.testing.extensions.codecoverage",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "18.12.0",
+          "latestPrerelease": "18.1.0-preview.25412.3",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "NSubstitute",
+      "selectedVersion": "6.2.0",
+      "latestStable": "6.2.0",
+      "latestPrerelease": "6.0.0-rc.1",
+      "listingState": "listed",
+      "family": "package:nsubstitute",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "6.2.0",
+          "latestPrerelease": "6.0.0-rc.1",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "NUlid",
+      "selectedVersion": "1.7.3",
+      "latestStable": "1.7.3",
+      "latestPrerelease": "0.9.0-rc",
+      "listingState": "listed",
+      "family": "package:nulid",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "1.7.3",
+          "latestPrerelease": "0.9.0-rc",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Shouldly",
+      "selectedVersion": "4.3.0",
+      "latestStable": "4.3.0",
+      "latestPrerelease": "5.0.0-preview.2",
+      "listingState": "listed",
+      "family": "package:shouldly",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "4.3.0",
+          "latestPrerelease": "5.0.0-preview.2",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "StackExchange.Redis",
+      "selectedVersion": "3.3.1",
+      "latestStable": "3.3.1",
+      "latestPrerelease": "1.2.0-alpha1",
+      "listingState": "listed",
+      "family": "package:stackexchange.redis",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "3.3.1",
+          "latestPrerelease": "1.2.0-alpha1",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "Swashbuckle.AspNetCore.SwaggerUI",
+      "selectedVersion": "10.3.0",
+      "latestStable": "10.3.0",
+      "latestPrerelease": "6.6.0-preview.322",
+      "listingState": "listed",
+      "family": "package:swashbuckle.aspnetcore.swaggerui",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "10.3.0",
+          "latestPrerelease": "6.6.0-preview.322",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "xunit.runner.visualstudio",
+      "selectedVersion": "4.0.0",
+      "latestStable": "4.0.0",
+      "latestPrerelease": "4.0.0-pre.5",
+      "listingState": "listed",
+      "family": "xunit",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "4.0.0",
+          "latestPrerelease": "4.0.0-pre.5",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "xunit.v3",
+      "selectedVersion": "4.0.1",
+      "latestStable": "4.0.1",
+      "latestPrerelease": "4.0.0-pre.154",
+      "listingState": "listed",
+      "family": "xunit",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "4.0.1",
+          "latestPrerelease": "4.0.0-pre.154",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "xunit.v3.assert",
+      "selectedVersion": "4.0.1",
+      "latestStable": "4.0.1",
+      "latestPrerelease": "4.0.0-pre.154",
+      "listingState": "listed",
+      "family": "xunit",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "4.0.1",
+          "latestPrerelease": "4.0.0-pre.154",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    },
+    {
+      "id": "YamlDotNet",
+      "selectedVersion": "18.1.0",
+      "latestStable": "18.1.0",
+      "latestPrerelease": "11.1.3-nullable-enums-0003",
+      "listingState": "listed",
+      "family": "package:yamldotnet",
+      "rationale": "Current pin is the latest listed stable release on the configured sources.",
+      "sourceResults": [
+        {
+          "source": "https://api.nuget.org/v3/index.json",
+          "listingState": "listed",
+          "latestStable": "18.1.0",
+          "latestPrerelease": "11.1.3-nullable-enums-0003",
+          "diagnostic": "Registration metadata resolved."
+        }
+      ]
+    }
+  ],
+  "rootSubmoduleObservation": {
+    "observedAtUtc": "2026-10-08T08:06:00.884895+00:00",
+    "rootSubmodules": [
+      {
+        "path": "references/Hexalith.EventStore",
+        "head": "3600d196799b7bbc5398a6d126e918171f07a2d3",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "3600d196799b7bbc5398a6d126e918171f07a2d3",
+        "dirtyFiles": [],
+        "nestedStatus": [
+          "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools",
+          "-af20682ac8fc420068a731ecb87cff84727a3d53 references/Hexalith.Builds",
+          "-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons",
+          "-c561b3210f15206a90c39c82c58f2e5b1005cd60 references/Hexalith.FrontComposer",
+          "-e159f82b7528797fc245045625ff387d65294ba9 references/Hexalith.McpCli",
+          "-e1c72dabc7a2a2464e34a1b46422ec2ddfbb1cda references/Hexalith.Memories",
+          "-7192c313edc39c6f698bc25c5475ff41d12197cd references/Hexalith.Platform",
+          "-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations",
+          "-bd87d68ed5fcf10eb5177286da6cc4bbe8907222 references/Hexalith.Tenants"
+        ],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "observedLaterConcurrentAdvance": true,
+        "baselineGitlink": "94591f3539ce30372db58e5fdd3ba017ea8c07b8"
+      },
+      {
+        "path": "references/Hexalith.Commons",
+        "head": "116d26815eb81e35b3c161e1799e5ee12805fc0a",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "116d26815eb81e35b3c161e1799e5ee12805fc0a",
+        "dirtyFiles": [],
+        "nestedStatus": [
+          "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools",
+          "-c16249a6a0c88b903e14c7f6612632e2c70d4e94 references/Hexalith.Builds",
+          "-4252c432ca1ba27a8571a082372b9384f3d13299 references/Hexalith.PolymorphicSerializations"
+        ],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "baselineGitlink": "5ff390a46685c72145de2337893f71ec8bc6a62c"
+      },
+      {
+        "path": "references/Hexalith.AI.Tools",
+        "head": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "dirtyFiles": [],
+        "nestedStatus": [],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "baselineGitlink": "de38f78ef7672df2a0997ddc60bf35ba0d02fa25"
+      },
+      {
+        "path": "references/Hexalith.FrontComposer",
+        "head": "c561b3210f15206a90c39c82c58f2e5b1005cd60",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "c561b3210f15206a90c39c82c58f2e5b1005cd60",
+        "dirtyFiles": [],
+        "nestedStatus": [
+          "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools",
+          "-ba4ca78c3868a4757cb92d912a54c8a237871b54 references/Hexalith.Builds",
+          "-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons",
+          "-738da5c95107d3ad84b3856558bf4a0ba7c3a9ca references/Hexalith.EventStore",
+          "-ec3601a532a6779c2c677c9b74e8bba642a8a651 references/Hexalith.Memories",
+          "-b3794a4dcbe2fff3e9ea5c420a3c4695e2d1a8ca references/Hexalith.Parties",
+          "-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations",
+          "-e2c297b2b3827bf2a0390eaf72ce3b4353f36246 references/Hexalith.Tenants"
+        ],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "baselineGitlink": "7a337a21d4ba261bf27aeb3feedde47789f0160a"
+      },
+      {
+        "path": "references/Hexalith.Builds",
+        "head": "520abb5898ad44b30c0744e707b53cd94741e6b1",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "520abb5898ad44b30c0744e707b53cd94741e6b1",
+        "dirtyFiles": [
+          "M Tools/package-version-audit.json"
+        ],
+        "nestedStatus": [
+          "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools"
+        ],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "baselineGitlink": "307a043efac96208494ce8e9651920fe236d6d47"
+      },
+      {
+        "path": "references/Hexalith.PolymorphicSerializations",
+        "head": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "dirtyFiles": [],
+        "nestedStatus": [
+          "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools",
+          "-688eec9a4333245cc0ff7772115c769094471863 references/Hexalith.Builds"
+        ],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "baselineGitlink": "93bcc44a65cd42fcc4558de8f8a8e4d523486157"
+      },
+      {
+        "path": "references/Hexalith.Memories",
+        "head": "aac6d9054cb138881e6e49c8e48233553123ffce",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "aac6d9054cb138881e6e49c8e48233553123ffce",
+        "dirtyFiles": [],
+        "nestedStatus": [
+          "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools",
+          "-af20682ac8fc420068a731ecb87cff84727a3d53 references/Hexalith.Builds",
+          "-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons",
+          "-4cc77f9554395e84539e173e94b8f0b4df14d643 references/Hexalith.EventStore",
+          "-c561b3210f15206a90c39c82c58f2e5b1005cd60 references/Hexalith.FrontComposer",
+          "-e159f82b7528797fc245045625ff387d65294ba9 references/Hexalith.McpCli",
+          "-794e8c63fe945bf689064edb8a406801810cb4cf references/Hexalith.Platform",
+          "-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations",
+          "-ade4e04f2c3f3389ba9dc5286480e8d4951ddd13 references/Hexalith.Tenants"
+        ],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "baselineGitlink": "003fd21488d60307cd932a3139f69319a25cea66"
+      },
+      {
+        "path": "references/Hexalith.McpCli",
+        "head": "e159f82b7528797fc245045625ff387d65294ba9",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "e159f82b7528797fc245045625ff387d65294ba9",
+        "dirtyFiles": [],
+        "nestedStatus": [
+          "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools",
+          "-ecb092449c95abf6de2c3d348dc086bb368eb556 references/Hexalith.Agents",
+          "-ba4ca78c3868a4757cb92d912a54c8a237871b54 references/Hexalith.Builds",
+          "-c7de36b2a4c72d2b3e2d867cffe3cdddec597547 references/Hexalith.ChatBot",
+          "-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons",
+          "-90c1fc8942a390bfd558b5d53767c0fd7bc74e61 references/Hexalith.Conversations",
+          "-738da5c95107d3ad84b3856558bf4a0ba7c3a9ca references/Hexalith.EventStore",
+          "-18cf524bc4e6943b5141afb9a79b976abce5fb2b references/Hexalith.Folders",
+          "-64f662201e5f184d0bf0442da8b6c66da98a7f4f references/Hexalith.FrontComposer",
+          "-ec3601a532a6779c2c677c9b74e8bba642a8a651 references/Hexalith.Memories",
+          "-b3794a4dcbe2fff3e9ea5c420a3c4695e2d1a8ca references/Hexalith.Parties",
+          "-91d6ed23c9b68e734ac4b82b3c2d83cbe1ab906a references/Hexalith.Platform",
+          "-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations",
+          "-1152c8397f35fed1580e20915833dd958e8dbe07 references/Hexalith.Projects",
+          "-e2c297b2b3827bf2a0390eaf72ce3b4353f36246 references/Hexalith.Tenants",
+          "-aef3f4ed4b4bb9bfee270d75361d637013c13551 references/Hexalith.Timesheets",
+          "-0a70f6d14db69c51848fa4799b05f8994f7ab77b references/Hexalith.Works"
+        ],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "baselineGitlink": null
+      },
+      {
+        "path": "references/Hexalith.Platform",
+        "head": "f043a2f242762233091abdaa5bbe1ab777bd0f12",
+        "defaultBranch": "refs/heads/main",
+        "liveTip": "f043a2f242762233091abdaa5bbe1ab777bd0f12",
+        "dirtyFiles": [],
+        "nestedStatus": [
+          "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools",
+          "-9d74ff9b9ddcd4981ea70b7773db5034966ff585 references/Hexalith.Agents",
+          "-520abb5898ad44b30c0744e707b53cd94741e6b1 references/Hexalith.Builds",
+          "-c47137f6759d993ff7e0f0f83082cdf09d0f3ce2 references/Hexalith.ChatBot",
+          "-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons",
+          "-e8e6bedbad39198490a1a2285746af6c1a100275 references/Hexalith.Conversations",
+          "-d87c969b6518751fafec9fbd01733d885b2efbfe references/Hexalith.EventStore",
+          "-b7f445becca270e176c54f7f6fe19c5d2940ff20 references/Hexalith.Folders",
+          "-c561b3210f15206a90c39c82c58f2e5b1005cd60 references/Hexalith.FrontComposer",
+          "-e159f82b7528797fc245045625ff387d65294ba9 references/Hexalith.McpCli",
+          "-289773387e0c6b665b669031616c1e84cc079297 references/Hexalith.Memories",
+          "-60b9836ea23151c5319dd06fd3deb80122f7abc3 references/Hexalith.Parties",
+          "-7a2134eefa689d026a3fac814dd8732b22a43723 references/Hexalith.PolymorphicSerializations",
+          "-b42beb3aa8344632ebafc11906f89337b65c5734 references/Hexalith.Projects",
+          "-4fa38dad5af0387a41792ee64494c5c767950eff references/Hexalith.Tenants",
+          "-2b37306bc91106bd918a3a75304bc0b57b6c22ff references/Hexalith.Timesheets",
+          "-89e973a961f43c4bbd3fbea9fa41d829f3dfb93d references/Hexalith.Works"
+        ],
+        "matchesLiveTip": true,
+        "nestedRemainUninitialized": true,
+        "baselineGitlink": null
+      }
+    ]
+  },
+  "sourcePackageMatrix": {
+    "debug": {
+      "properties": {
+        "Configuration": "Debug",
+        "UseNuGetDeps": "false",
+        "UseHexalithProjectReferences": "true",
+        "HexalithEventStoreFromSource": "true"
+      },
+      "eventStorePackageReferences": [],
+      "eventStoreProjectReferences": [
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Gateway/Hexalith.EventStore.Gateway.csproj",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/Hexalith.EventStore.DomainService.csproj"
+      ]
+    },
+    "release": {
+      "properties": {
+        "Configuration": "Release",
+        "UseNuGetDeps": "true",
+        "UseHexalithProjectReferences": "false",
+        "HexalithEventStoreFromSource": ""
+      },
+      "eventStorePackageReferences": [
+        "Hexalith.EventStore.Gateway",
+        "Hexalith.EventStore.DomainService"
+      ],
+      "eventStoreProjectReferences": []
+    }
+  },
+  "appHostSdk": "13.6.1",
+  "passingSourceChecksEventStoreRevision": "d87c969b6518751fafec9fbd01733d885b2efbfe",
+  "laterConcurrentEventStoreRevision": "3600d196799b7bbc5398a6d126e918171f07a2d3",
+  "npm": {
+    "nodeVersion": "26.4.0",
+    "npmVersion": "11.18.0",
+    "directRegistryVersions": [
+      {
+        "package": "@commitlint/cli",
+        "requested": "^21.2.3",
+        "version": "21.2.3",
+        "engines": {
+          "node": ">=22.12.0"
+        }
+      },
+      {
+        "package": "@commitlint/config-conventional",
+        "requested": "^21.2.3",
+        "version": "21.2.3",
+        "engines": {
+          "node": ">=22.12.0"
+        }
+      },
+      {
+        "package": "@semantic-release/changelog",
+        "requested": "^7.0.0",
+        "version": "7.0.0",
+        "engines": {
+          "node": "^22.22.2 || >=24.15"
+        }
+      },
+      {
+        "package": "@semantic-release/commit-analyzer",
+        "requested": "^13.0.1",
+        "version": "13.0.1",
+        "engines": {
+          "node": ">=20.8.1"
+        }
+      },
+      {
+        "package": "@semantic-release/exec",
+        "requested": "^7.1.0",
+        "version": "7.1.0",
+        "engines": {
+          "node": ">=20.8.1"
+        }
+      },
+      {
+        "package": "@semantic-release/git",
+        "requested": "^11.0.1",
+        "version": "11.0.1",
+        "engines": {
+          "node": "^22.22.2 || >=24.15"
+        }
+      },
+      {
+        "package": "@semantic-release/github",
+        "requested": "^12.0.10",
+        "version": "12.0.10",
+        "engines": {
+          "node": "^22.14.0 || >= 24.10.0"
+        }
+      },
+      {
+        "package": "@semantic-release/release-notes-generator",
+        "requested": "^14.1.1",
+        "version": "14.1.1",
+        "engines": {
+          "node": ">=20.8.1"
+        }
+      },
+      {
+        "package": "semantic-release",
+        "requested": "^25.0.9",
+        "version": "25.0.9",
+        "engines": {
+          "node": "^22.14.0 || >= 24.10.0"
+        }
+      }
+    ],
+    "verifiedSignatures": 503,
+    "verifiedAttestations": 134,
+    "remainingAdvisories": {
+      "moderate": 2,
+      "high": 13,
+      "total": 15
+    },
+    "lockfileSha256": "ddf32e27c975f196ba093363b25d087711a8807eb2b8db115af79ba4206f0dbc"
+  },
+  "validation": [
+    {
+      "id": "audit-generation",
+      "command": "pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1",
+      "exitCode": 0,
+      "result": "304 packages in 146 families; executed from Builds",
+      "rawLog": "/tmp/tenants-refresh-audit.log",
+      "rawLogSha256": "e4def36bb68df9a735802c2e85e76e45b46263eace87ecb4603acf9426f4f886"
+    },
+    {
+      "id": "audit-aspire-reconciliation",
+      "command": "pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1 -PriorAuditPath ./Tools/package-version-audit.json -Family aspire",
+      "exitCode": 0,
+      "result": "Aspire family refreshed against concurrent committed Builds upgrade; another session subsequently regenerated the full audit against the same committed catalog",
+      "rawLog": "/tmp/tenants-refresh-audit-aspire.log",
+      "rawLogSha256": "18b6831b0c32d935009203a5cf4a9745b221ce3c51bb8dab6611b6fa019946ee"
+    },
+    {
+      "id": "audit",
+      "command": "pwsh -NoProfile -File ./Tools/validate-package-version-audit.ps1",
+      "exitCode": 0,
+      "result": "304 packages; 146 families; 1 source; executed from Builds",
+      "rawLog": "/tmp/tenants-refresh-audit-validator-final.log",
+      "rawLogSha256": "1025bcf8fb6aa9aae0f3a6327edd0d58317fbcab61398e944b02f18e0dae1f14"
+    },
+    {
+      "id": "catalog",
+      "command": "pwsh -NoProfile -File ./Tools/validate-central-package-versions.ps1",
+      "exitCode": 0,
+      "result": "304 catalog entries; executed from Builds",
+      "rawLog": "/tmp/tenants-refresh-central.log",
+      "rawLogSha256": "b69fe13defdfc0d9b747bceaff9e06ecf31012255eb9924f561c9ed19e5b96c8"
+    },
+    {
+      "id": "exceptions",
+      "command": "pwsh -NoProfile -File ./Tools/validate-package-version-exceptions.ps1 -InventoryPath ./Tools/package-version-exceptions.json -CatalogPath ./Props/Directory.Packages.props",
+      "exitCode": 0,
+      "result": "15 SDK/tool exceptions; executed from Builds",
+      "rawLog": "/tmp/tenants-refresh-exceptions-final.log",
+      "rawLogSha256": "6ef800d670a4228bfe7d0b687ac1e1f50a178e82b7f2700a663902839dad4d49"
+    },
+    {
+      "id": "dapr",
+      "command": "pwsh -NoProfile -File ./Tools/validate-dapr-package-versions.ps1",
+      "exitCode": 0,
+      "result": "8 aligned packages at 1.18.10; executed from Builds",
+      "rawLog": "/tmp/tenants-refresh-dapr.log",
+      "rawLogSha256": "bbdb295e22e4369955e64e57dcdfc7404dbc75f977368a9fec9dfc0dda3fc97c"
+    },
+    {
+      "id": "source-restore",
+      "command": "dotnet restore Hexalith.Tenants.slnx -p:Configuration=Release",
+      "exitCode": 0,
+      "result": "Restore passed",
+      "rawLog": "/tmp/tenants-refresh-source-restore.log",
+      "rawLogSha256": "c759f641c7b71cea60186b2f30c2e9291256dcae8fb1e02325971416e5835f4a"
+    },
+    {
+      "id": "source-release-build",
+      "command": "dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror",
+      "exitCode": 1,
+      "result": "CS0246: IDomainServiceAdministratorVerifier and DomainServiceAdministratorClaim missing from latest published EventStore 3.115.0; TenantsGlobalAdministratorVerifier.cs lines 19 and 22; cascading MSB4181 errors",
+      "rawLog": "/tmp/tenants-refresh-source-build.log",
+      "rawLogSha256": "fff51909478fd1d890b934edfcc81e1d2fdcb96eb8b9f991e7e3484ab036f059"
+    },
+    {
+      "id": "standalone-restore",
+      "command": "dotnet restore Hexalith.Tenants.Standalone.slnx -p:Configuration=Release -p:UseNuGetDeps=true",
+      "exitCode": 0,
+      "result": "Restore passed",
+      "rawLog": "/tmp/tenants-refresh-standalone-restore.log",
+      "rawLogSha256": "c759f641c7b71cea60186b2f30c2e9291256dcae8fb1e02325971416e5835f4a"
+    },
+    {
+      "id": "standalone-release-build",
+      "command": "dotnet build Hexalith.Tenants.Standalone.slnx --no-restore --configuration Release -warnaserror -p:UseNuGetDeps=true",
+      "exitCode": 1,
+      "result": "CS0246: IDomainServiceAdministratorVerifier and DomainServiceAdministratorClaim missing from latest published EventStore 3.115.0; TenantsGlobalAdministratorVerifier.cs lines 19 and 22; cascading MSB4181 errors; concurrent TenantAuditPage.razor CS0136 at line 1921: projection shadows enclosing local",
+      "rawLog": "/tmp/tenants-refresh-standalone-build.log",
+      "rawLogSha256": "1b6916f9168e14f48834b994867fb303d6fa8e6ce1f32b678a240588b08bcee4"
+    },
+    {
+      "id": "debug-source-host",
+      "command": "dotnet build src/Hexalith.Tenants/Hexalith.Tenants.csproj --configuration Debug -warnaserror -p:UseNuGetDeps=false -m:1",
+      "exitCode": 0,
+      "result": "0 warnings and errors after retrying a transient concurrent EventStore.Server copy lock",
+      "rawLog": "/tmp/tenants-refresh-debug-source-build-retry.log",
+      "rawLogSha256": "58a6ebd96a39dd9b4282f428c0f3b5b329dca002d36ecb397c6f1c59cc3ceef1"
+    },
+    {
+      "id": "apphost-sdk",
+      "command": "dotnet build src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --configuration Release -warnaserror",
+      "exitCode": 0,
+      "result": "SDK 13.6.1; 0 warnings and errors",
+      "rawLog": "/tmp/tenants-refresh-apphost-build.log",
+      "rawLogSha256": "c8a7370103c277ceb21d777c398f376b5f7a39c8f56cf229f5fe65e34ccfc897"
+    },
+    {
+      "id": "npm-lock-update",
+      "command": "npm update --ignore-scripts",
+      "exitCode": 0,
+      "result": "Updated compatible transitive lock graph; preserved direct version edits",
+      "rawLog": "/tmp/tenants-refresh-npm-update.log",
+      "rawLogSha256": "4366129233ba09cb3019b08116a7f7a7f4564c36206ca2373ebaaa6f2b53e34f"
+    },
+    {
+      "id": "npm-advisory-remediation",
+      "command": "npm audit fix --ignore-scripts",
+      "exitCode": 1,
+      "result": "15 advisories remain: bundled npm dependencies cannot be replaced automatically; braces/micromatch remedies require incompatible tooling downgrades",
+      "rawLog": "/tmp/tenants-refresh-npm-fix.log",
+      "rawLogSha256": "7e436ab42b158d97e3c464f31926d38529c471fadbe040435e45507c81b1434a"
+    },
+    {
+      "id": "npm-clean-install",
+      "command": "npm ci --ignore-scripts",
+      "exitCode": 0,
+      "result": "Lockfile installed successfully",
+      "rawLog": "/tmp/tenants-refresh-npm-install-final.log",
+      "rawLogSha256": "0dec7821cc4723704babe77888bedf4cc9e161a825e3e5df4ff627765ea0260a"
+    },
+    {
+      "id": "npm-signatures",
+      "command": "npm audit signatures",
+      "exitCode": 0,
+      "result": "503 verified signatures and 134 attestations",
+      "rawLog": "/tmp/tenants-refresh-npm-signatures-final.log",
+      "rawLogSha256": "a828c2c1e1a406b475ba9fe01dc3c4624533d9c69584caddd1b4044384571c94"
+    },
+    {
+      "id": "npm-freshness",
+      "command": "npm outdated --json",
+      "exitCode": 0,
+      "result": "{}; all nine direct packages are registry latest stable",
+      "rawLog": "/tmp/tenants-refresh-npm-outdated.json",
+      "rawLogSha256": "ca3d163bab055381827226140568f3bef7eaac187cebd76878e0b63e9e442356"
+    },
+    {
+      "id": "gitlink-regressions",
+      "command": "python3 -m unittest tests/scripts/test_validate_story_gitlinks.py",
+      "exitCode": 0,
+      "result": "23 regression tests passed",
+      "rawLog": null
+    },
+    {
+      "id": "gitlink-declarations",
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-refresh-dependencies.md",
+      "exitCode": 0,
+      "result": "All nine true-baseline gitlink changes declared; RESULT: PASS",
+      "rawLog": "/tmp/tenants-refresh-gitlinks-final.log",
+      "rawLogSha256": "dbe59c44ee0c2a7a05133cb29d904b36f6cfb0485e29e2ee2dd5a5a2d9948b2a"
+    },
+    {
+      "id": "whitespace",
+      "command": "git diff --check",
+      "exitCode": 0,
+      "result": "Passed; unrelated existing TenantAuditPage.razor EOL conversion notice only",
+      "rawLog": "/tmp/tenants-refresh-whitespace-final.log",
+      "rawLogSha256": "71f8d497514f30663c047bc05c4297c0fc722928c6f1123fedcdbc0acc89dd30"
+    }
+  ],
+  "testSuites": [
+    {
+      "name": "contracts",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release",
+      "exitCode": 0,
+      "passed": 144,
+      "failed": 0,
+      "skipped": 0,
+      "rawLog": "/tmp/tenants-refresh-test-contracts.log",
+      "rawLogSha256": "8fab9e0896583d4e8d4673c976375a7d72bafa8aefc5723d28c276ee1b8c6cd3"
+    },
+    {
+      "name": "client",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj --configuration Release",
+      "exitCode": 0,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0,
+      "rawLog": "/tmp/tenants-refresh-test-client.log",
+      "rawLogSha256": "be382ac7b00a219c0a1b4a9aac3b5c3fbcf57d3bbaad9865490876cc22553e34"
+    },
+    {
+      "name": "testing",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj --configuration Release",
+      "exitCode": 0,
+      "passed": 181,
+      "failed": 0,
+      "skipped": 0,
+      "rawLog": "/tmp/tenants-refresh-test-testing.log",
+      "rawLogSha256": "d1c684f7863c5300214e1e21490e4e853fd8c0d4e471c8842cdf28db29956839"
+    },
+    {
+      "name": "sample",
+      "command": "dotnet test --project samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj --configuration Release",
+      "exitCode": 0,
+      "passed": 39,
+      "failed": 0,
+      "skipped": 0,
+      "rawLog": "/tmp/tenants-refresh-test-sample.log",
+      "rawLogSha256": "5b1401700af86bc4fc827f7709f65788f4e2acea4f24c11540b700f8dad6bfbd"
+    },
+    {
+      "name": "server-source",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Debug -p:UseNuGetDeps=false",
+      "exitCode": 0,
+      "passed": 825,
+      "failed": 0,
+      "skipped": 0,
+      "rawLog": "/tmp/tenants-refresh-test-server-source.log",
+      "rawLogSha256": "818b19ac32de0d66a49d3c470f1908f2f780fff968cd6a8a71f995dfb99af9c3"
+    }
+  ],
+  "testTotalPassed": 1239,
+  "uiTests": "Not rerun: standalone build found concurrent TenantAuditPage.razor compilation failure; product edits preserved.",
+  "runtimeObservation": {
+    "command": "aspire describe --apphost src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj --format Json",
+    "resources": [
+      {
+        "name": "eventstore-admin-dapr-cli-ghrxfdxv",
+        "state": "Running"
+      },
+      {
+        "name": "eventstore-admin-ui-dapr-cli-vchrxwxa",
+        "state": "Running"
+      },
+      {
+        "name": "eventstore-admin-ui-rbwrsweh",
+        "state": "Running"
+      },
+      {
+        "name": "eventstore-admin-yeszgekz",
+        "state": "Running"
+      },
+      {
+        "name": "eventstore-bhwgkymz",
+        "state": "Finished"
+      },
+      {
+        "name": "eventstore-dapr-cli-sqffkcgy",
+        "state": "Running"
+      },
+      {
+        "name": "memories-bzragyru",
+        "state": "Running"
+      },
+      {
+        "name": "memories-dapr-cli-xtmucsdy",
+        "state": "Running"
+      },
+      {
+        "name": "memories-graphs-txpfuzgb",
+        "state": "Running"
+      },
+      {
+        "name": "memories-vectors-napvrdus",
+        "state": "Running"
+      },
+      {
+        "name": "sample-dapr-cli-gkvfsvcv",
+        "state": "Running"
+      },
+      {
+        "name": "sample-wgbystca",
+        "state": "Running"
+      },
+      {
+        "name": "security-eventstore-client-password",
+        "state": "Running"
+      },
+      {
+        "name": "security-eventstore-client-username",
+        "state": "Running"
+      },
+      {
+        "name": "security-vkmgyert",
+        "state": "Running"
+      },
+      {
+        "name": "tenants-api-dapr-cli-zuprymzb",
+        "state": "Running"
+      },
+      {
+        "name": "tenants-api-jgsewxur",
+        "state": "Running"
+      },
+      {
+        "name": "tenants-dapr-cli-pmmeykfa",
+        "state": "Running"
+      },
+      {
+        "name": "tenants-rpebxcdm",
+        "state": "Running"
+      },
+      {
+        "name": "tenants-ui-fffggyyz",
+        "state": "Running"
+      }
+    ],
+    "interpretation": "Existing shared topology observation; not restarted or qualified against the new SDK during concurrent product edits."
+  },
+  "mutationProvenance": {
+    "performedHere": [
+      "Supported Builds audit generation",
+      "Compatible npm lockfile refresh",
+      "Clean Platform fast-forward from 794e8c63fe945bf689064edb8a406801810cb4cf to f043a2f242762233091abdaa5bbe1ab777bd0f12",
+      "Spec record and dependency evidence"
+    ],
+    "concurrentPreserved": [
+      "Existing package.json direct-version edits",
+      "Upstream Builds catalog/SDK exception upgrade at 520abb5898ad44b30c0744e707b53cd94741e6b1",
+      "AppHost SDK alignment and project-context reconciliation",
+      "UI/product/test work",
+      "Later EventStore source advancement to 3600d196799b7bbc5398a6d126e918171f07a2d3"
+    ],
+    "commitsStagingOrPushPerformedHere": false
+  }
+}

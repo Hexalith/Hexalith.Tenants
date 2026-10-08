@@ -150,6 +150,22 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void PreviewAndLifecycleUseExpandedFluentAccordionSections()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.FindAll("fluent-accordion").ShouldHaveSingleItem();
+        cut.FindAll("fluent-accordion-item").Count.ShouldBe(2);
+        cut.FindAll("fluent-accordion-item").ShouldAllBe(item => item.HasAttribute("expanded")
+            && item.GetAttribute("heading-level") == "4");
+        cut.Find("#tenants-correction-title").GetAttribute("tabindex").ShouldBe("-1");
+    }
+
+    [Fact]
     public void Restore_submits_set_command_once_and_links_projection_confirmed_corrective_proof()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -177,7 +193,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("system");
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
         cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirms the intended state", Case.Insensitive);
-        cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
+        cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("/tenants/system/audit?receiptReference=event-corrective");
         cut.Find("[data-testid='tenants-correction-proof-link']").TextContent.ShouldContain("2026-06-01 10:05:00 UTC");
         cut.Markup.ShouldNotContain("undone", Case.Insensitive);
         cut.Markup.ShouldNotContain("raw payload", Case.Insensitive);
@@ -211,7 +227,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         queryGateway.GlobalAdminRequests.ShouldBeEmpty();
         queryGateway.AuditRequests.ShouldHaveSingleItem().TenantId.ShouldBe("system");
         cut.Find("[data-testid='tenants-correction-state']").TextContent.ShouldContain("Projection confirms the intended state", Case.Insensitive);
-        cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
+        cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("/tenants/system/audit?receiptReference=event-corrective");
     }
 
     [Fact]
@@ -334,7 +350,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         commandGateway.RemoveRequests[0].UserId.ShouldBe("admin-user");
         commandGateway.SetRequests.ShouldBeEmpty();
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
-        cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("#audit-event-corrective");
+        cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("/tenants/system/audit?receiptReference=event-corrective");
     }
 
     [Fact]

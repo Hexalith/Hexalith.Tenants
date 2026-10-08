@@ -1,7 +1,7 @@
 ---
 project_name: 'Hexalith.Tenants'
 user_name: 'Administrator'
-date: '2026-08-21'
+date: '2026-10-08'
 sections_completed:
   [
     'technology_stack',
@@ -31,14 +31,14 @@ _This file contains critical rules and patterns that AI agents must follow when 
 
 - **.NET 10 / C#** — SDK pinned to `10.0.401` with `rollForward: latestPatch`; all owned projects target `net10.0`; `Nullable`, `ImplicitUsings`, `LangVersion=latest`, and `TreatWarningsAsErrors=true` are root defaults.
 - **Solution/build** — `Hexalith.Tenants.slnx` only; `MSBuild.rsp` and `Directory.Solution.*` force single-node serialized builds (`-m:1`, `BuildInParallel=false`, `RestoreBuildInParallel=false`).
-- **Hexalith platform dependencies** — `Hexalith.EventStore` packages pinned to `3.115.0`; `Hexalith.Memories` packages pinned to `2.27.1`. Package-capable libraries use NuGet packages by default; intentional source sessions set `UseHexalithProjectReferences=true` when the source graph is available.
-- **DAPR** — DAPR SDK packages `1.18.10`; CI installs DAPR CLI/runtime `1.18.0` (the shared `domain-ci` default). The `1.19.0-preview.2` SDK family is intentionally held because stable pins do not move to prerelease channels in a dependency refresh.
-- **Aspire** — Aspire packages `13.6.0`; Keycloak/Kubernetes packages use `13.6.0-preview.1.26479.8`; DAPR hosting uses `CommunityToolkit.Aspire.Hosting.Dapr` `13.6.0-preview.1.261001-0243`.
-- **Backend stack** — MediatR `14.2.0`, FluentValidation `12.1.1`, JWT/OpenID Connect IdentityModel `8.23.0`, OpenAPI `10.0.12`, Swagger UI `10.2.3`, and OpenTelemetry `1.19.1` with ASP.NET/HTTP/Runtime instrumentation `1.19.0`.
+- **Hexalith platform dependencies** — EventStore packages `3.115.0`, FrontComposer packages `4.6.0`, Memories packages `2.27.1`, and Commons packages `2.30.1`. Package-capable libraries use NuGet packages by default; intentional source sessions set `UseHexalithProjectReferences=true` or `UseNuGetDeps=false` when the source graph is available. The UI and UI tests retain their available-FrontComposer-source exception. EventStore source at the verified live `main` tip exposes administrator-verification types absent from published `3.115.0`; package-only validation remains blocked until that source/package gap is resolved.
+- **DAPR** — DAPR SDK packages `1.18.10`; shared `domain-ci` defaults install CLI `1.18.0` and runtime `1.18.2`. The `1.19.0-rc.2` SDK candidate is held because stable pins do not move to prerelease channels in a dependency refresh.
+- **Aspire** — Aspire packages and AppHost SDK `13.6.1`; Keycloak/Kubernetes packages `13.6.1-preview.1.26506.6`; DAPR hosting `CommunityToolkit.Aspire.Hosting.Dapr` `13.6.0-preview.1.261001-0243`. The aligned family and SDK exceptions come from published Builds commit `520abb5898ad44b30c0744e707b53cd94741e6b1`; live audit generation binds that committed catalog.
+- **Backend stack** — MediatR `14.2.0`, FluentValidation `12.1.1`, JWT/OpenID Connect IdentityModel `8.23.0`, ASP.NET Core OpenAPI `10.0.12`, Swagger UI `10.3.0`, and OpenTelemetry `1.19.1` with ASP.NET/HTTP/Runtime instrumentation `1.19.0`. Microsoft.OpenApi stays on its compatible `2.12.2` catalog pin.
 - **UI stack** — Blazor InteractiveServer, FrontComposer Shell/Contracts source references, Fluent UI Blazor V5 `5.0.0`, bUnit `2.11.3`.
 - **Memories search** — Tenants UI uses `MemoriesClient.SearchAsync` as an index lookup only; rows are hydrated from Tenants REST query endpoints.
 - **Testing** — xUnit v3 `4.0.1` / Visual Studio runner `4.0.0` on Microsoft.Testing.Platform, Shouldly `4.3.0`, NSubstitute `6.2.0`, Testcontainers `4.15.0`, Microsoft.Testing.Extensions.CodeCoverage `18.12.0`, Microsoft.NET.Test.Sdk `18.10.1`, and YamlDotNet `18.1.0`. Shouldly `5.0.0-preview.2` is held because stable pins do not move to prerelease channels in a dependency refresh.
-- **Release tooling** — semantic-release `25.0.9`, commitlint `21.2.2`, `@semantic-release/changelog` `7.0.0`, and `@semantic-release/git` `11.0.1`; five NuGet packages are released: `Hexalith.Tenants.Contracts`, `.Client`, `.Server`, `.Testing`, `.Aspire`.
+- **Release tooling** — semantic-release `25.0.9`, commitlint `21.2.3`, `@semantic-release/changelog` `7.0.0`, `@semantic-release/git` `11.0.1`, and `@semantic-release/github` `12.0.10`; five NuGet packages are released: `Hexalith.Tenants.Contracts`, `.Client`, `.Server`, `.Testing`, `.Aspire`.
 - **Framework family held at .NET 10.** `Microsoft.AspNetCore.*`, `Microsoft.Extensions.*`, `System.Text.Json`, and `System.Collections.Immutable` stay on .NET 10-compatible stable versions (`10.0.x` servicing; resilience/service-discovery extensions `10.10.0`). Their higher versions are .NET 11 prereleases, and several publish only `net11.0` assets that cannot restore against `net10.0` / SDK `10.0.401`. Do not update this family without an approved platform migration.
 
 ## Critical Implementation Rules
@@ -194,4 +194,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Update when the technology stack, analyzer policy, MediatR pipeline, test tiers, or coverage gates change
 - Remove rules that become obvious over time
 
-Last Updated: 2026-08-21
+Last Updated: 2026-10-08

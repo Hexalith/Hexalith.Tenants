@@ -23,7 +23,7 @@
         <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.75rem" data-testid="tenants-correction-preview">
             <header class="ga-correction-panel__header">
                 <FluentStack Orientation="Orientation.Vertical" VerticalGap="0.25rem">
-                    <h3 id="tenants-correction-title">@Localizer["Tenants.Correction.Title"]</h3>
+                    <h3 id="tenants-correction-title" tabindex="-1">@Localizer["Tenants.Correction.Title"]</h3>
                     <p class="ga-correction-panel__live"
                        data-testid="tenants-correction-live-region"
                        aria-live="@LiveRegionMode"
@@ -77,53 +77,58 @@
                 <dd data-testid="tenants-correction-current-state">@CurrentStateLabel</dd>
             </dl>
 
-            <section class="ga-correction-panel__preview" aria-labelledby="tenants-correction-preview-data-heading">
-                <h4 id="tenants-correction-preview-data-heading">@Localizer["Tenants.Correction.Field.PreviewData"]</h4>
-                <dl data-testid="tenants-correction-preview-data">
-                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Consequences"]</dt>
-                    <dd>@ConsequencesText</dd>
+            <FluentAccordion ExpandMode="AccordionExpandMode.Multi" Block="true" HeadingLevel="4">
+                <FluentAccordionItem Header="@Localizer["Tenants.Correction.Field.PreviewData"].Value" HeadingLevel="4" Expanded="true">
+                    <section class="ga-correction-panel__preview" aria-label="@Localizer["Tenants.Correction.Field.PreviewData"]">
+                        <dl data-testid="tenants-correction-preview-data">
+                            <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Consequences"]</dt>
+                            <dd>@ConsequencesText</dd>
 
-                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact"]</dt>
-                    <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value"]</dd>
+                            <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact"]</dt>
+                            <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value"]</dd>
 
-                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Unknowns"]</dt>
-                    <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Unknowns.Value"]</dd>
+                            <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Unknowns"]</dt>
+                            <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Unknowns.Value"]</dd>
 
-                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation"]</dt>
-                    <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation.Value"]</dd>
+                            <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation"]</dt>
+                            <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AuditExpectation.Value"]</dd>
 
-                    <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath"]</dt>
-                    <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value"]</dd>
-                </dl>
-            </section>
+                            <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath"]</dt>
+                            <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value"]</dd>
+                        </dl>
+                    </section>
 
-            <section class="ga-correction-panel__lifecycle"
-                     @ref="_lifecycleElement"
-                     tabindex="-1"
-                     data-testid="tenants-correction-lifecycle"
-                     aria-labelledby="tenants-correction-state-label">
-                <h4 id="tenants-correction-state-label">@Localizer["Tenants.Correction.Lifecycle.Title"]</h4>
-                <p class="ga-correction-panel__state ga-correction-panel__state--@_snapshot.LifecycleState.ToString().ToLowerInvariant()"
-                   data-testid="tenants-correction-state">
-                    @StateText
-                </p>
-                @if (!string.IsNullOrWhiteSpace(SafeMessageText))
-                {
-                    <p data-testid="tenants-correction-safe-message">@SafeMessageText</p>
-                }
-                @if (_snapshot.ProofLink is not null)
-                {
-                    <a href="@ProofHref" data-testid="tenants-correction-proof-link">
-                        @Localizer["Tenants.Correction.Proof.Link", ProofTimestampLabel]
-                    </a>
-                }
-                else if (_snapshot.AuditState is not TenantCommandAuditState.NotStarted)
-                {
-                    <p data-testid="tenants-correction-audit-state">
-                        @Localizer[$"Tenants.Correction.Audit.{_snapshot.AuditState}"]
-                    </p>
-                }
-            </section>
+                </FluentAccordionItem>
+                <FluentAccordionItem Header="@Localizer["Tenants.Correction.Lifecycle.Title"].Value" HeadingLevel="4" Expanded="true">
+                    <section class="ga-correction-panel__lifecycle"
+                             @ref="_lifecycleElement"
+                             tabindex="-1"
+                             data-testid="tenants-correction-lifecycle"
+                             aria-label="@Localizer["Tenants.Correction.Lifecycle.Title"]">
+                        <p class="ga-correction-panel__state ga-correction-panel__state--@_snapshot.LifecycleState.ToString().ToLowerInvariant()"
+                           data-testid="tenants-correction-state">
+                            @StateText
+                        </p>
+                        @if (!string.IsNullOrWhiteSpace(SafeMessageText))
+                        {
+                            <p data-testid="tenants-correction-safe-message">@SafeMessageText</p>
+                        }
+                        @if (_snapshot.ProofLink is not null)
+                        {
+                            <a href="@ProofHref" data-testid="tenants-correction-proof-link">
+                                @Localizer["Tenants.Correction.Proof.Link", ProofTimestampLabel]
+                            </a>
+                        }
+                        else if (_snapshot.AuditState is not TenantCommandAuditState.NotStarted)
+                        {
+                            <p data-testid="tenants-correction-audit-state">
+                                @Localizer[$"Tenants.Correction.Audit.{_snapshot.AuditState}"]
+                            </p>
+                        }
+                    </section>
+
+                </FluentAccordionItem>
+            </FluentAccordion>
 
             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="ga-correction-panel__actions">
                 <FluentButton Appearance="ButtonAppearance.Primary"
@@ -158,6 +163,7 @@
 
 @code {
     private GlobalAdministratorCorrectionSnapshot? _snapshot;
+    private TenantAuditRow? _correctiveAuditEvidence;
     private bool _isSubmitting;
     private ElementReference _lifecycleElement;
     private bool _focusLifecyclePending;
@@ -190,6 +196,17 @@
     public Func<Task<GlobalAdministratorsSnapshot?>>? ProjectionRefreshProvider { get; set; }
 
     internal GlobalAdministratorCorrectionSnapshot? Snapshot => _snapshot;
+
+    /// <summary>Gets the exact corrective row while its proof and circuit authority remain available.</summary>
+    internal TenantAuditRow? CorrectiveAuditEvidence
+        => !_disposed
+            && _authorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+            && _snapshot?.ProofLink is { } proof
+            && _correctiveAuditEvidence is { TenantId: "system", Scope: "global-administrators" } row
+            && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal)
+            && string.Equals(row.EventType, _snapshot.CorrectiveEventType, StringComparison.Ordinal)
+            && string.Equals(proof.CorrectiveAuditReference, row.EventReference, StringComparison.Ordinal)
+                ? row : null;
 
     private ITenantCommandGateway? CommandGateway
         => Services.GetService<ITenantCommandGateway>();
@@ -505,7 +522,7 @@
     private string ProofHref
         => _snapshot?.ProofLink is null
             ? "#"
-            : $"#audit-{Uri.EscapeDataString(_snapshot.ProofLink.CorrectiveAuditReference)}";
+            : $"/tenants/system/audit?receiptReference={Uri.EscapeDataString(_snapshot.ProofLink.CorrectiveAuditReference)}";
 
     private string ProofTimestampLabel
         => _snapshot?.ProofLink?.CorrectiveTimestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
@@ -1530,9 +1547,9 @@
         }
 
         GlobalAdministratorCorrectionSnapshot projectionSnapshot = statusSnapshot.ConfirmProjection(projection);
+        TenantAuditRow? proof = null;
         if (projectionSnapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
         {
-            TenantAuditRow? proof;
             try
             {
                 proof = await QueryCorrectiveProofAsync(projectionSnapshot).ConfigureAwait(false);
@@ -1563,6 +1580,7 @@
                 }
 
                 CurrentProjection = projection;
+                _correctiveAuditEvidence = proof;
                 SetSnapshot(projectionSnapshot, focusTerminalState: true);
                 StateHasChanged();
             }).ConfigureAwait(false)

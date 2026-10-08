@@ -177,8 +177,10 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
         AssertCanonicalIncomplete(result);
     }
 
-    [Fact]
-    public async Task LoadAsyncPropagatesCancellationBeforeStartingAnotherPage()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LoadAsyncPropagatesCancellationBeforeAcceptingAnyPage(bool hasMore)
     {
         using var source = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -192,7 +194,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 calls++;
                 source.Cancel();
                 GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
-                return Task.FromResult(Page(["admin-a"], "page-2", hasMore: true, request: request));
+                return Task.FromResult(Page(["admin-a"], hasMore ? "page-2" : null, hasMore, request: request));
             });
 
         await Should.ThrowAsync<OperationCanceledException>(() => GlobalAdministratorsProjectionLoader.LoadAsync(
@@ -238,7 +240,6 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
     [InlineData("oversized-page")]
     [InlineData("wrong-request-cursor")]
     [InlineData("wrong-request-page-size")]
-    [InlineData("duplicate-identity")]
     [InlineData("blank-identity")]
     [InlineData("control-character-identity")]
     [InlineData("oversized-identity")]
@@ -276,10 +277,6 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                     },
                     "wrong-request-cursor" => valid with { RequestCursor = "unexpected" },
                     "wrong-request-page-size" => valid with { RequestPageSize = request.PageSize + 1 },
-                    "duplicate-identity" => valid with
-                    {
-                        Rows = [CurrentRow("admin-a"), CurrentRow("admin-a")],
-                    },
                     "blank-identity" => valid with { Rows = [CurrentRow(" ")] },
                     "control-character-identity" => valid with { Rows = [CurrentRow("admin\u0001")] },
                     "oversized-identity" => valid with
@@ -300,7 +297,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
     }
 
     [Fact]
-    public async Task LoadAsyncRejectsDuplicateIdentityAcrossPagesWithoutReadingPastTheConflict()
+    public async Task LoadAsyncDeduplicatesIdentitiesWithinAndAcrossPagesWithOrdinalComparison()
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         int calls = 0;
@@ -313,15 +310,16 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
                 calls++;
                 GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
                 return Task.FromResult(calls == 1
-                    ? Page(["admin-a"], "page-2", hasMore: true, request: request)
-                    : Page(["admin-a"], null, hasMore: false, request: request));
+                    ? Page(["admin-a", "admin-a"], "page-2", hasMore: true, request: request)
+                    : Page(["admin-a", "Admin-a", "admin-b"], null, hasMore: false, request: request));
             });
 
         GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
             gateway,
             cancellationToken: TestContext.Current.CancellationToken);
 
-        AssertCanonicalIncomplete(result);
+        result.IsCompleteEvidence.ShouldBeTrue();
+        result.Rows.Select(static row => row.UserId).ShouldBe(["admin-a", "Admin-a", "admin-b"]);
         calls.ShouldBe(2);
     }
 

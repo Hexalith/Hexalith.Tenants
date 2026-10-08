@@ -168,7 +168,7 @@ public sealed record TenantCorrectionStartIntent(
                 break;
             case "GlobalAdministratorRemoved":
             case "GlobalAdministratorSet":
-                // Compatibility for Story 5.7. The tenant page always passes support=false.
+                // Fixed platform authority corrections use separate complete projection evidence.
                 domain = TenantCorrectionCommandDomain.GlobalAdministrators;
                 command = row.EventType is "GlobalAdministratorRemoved"
                     ? TenantCorrectionCommandType.SetGlobalAdministrator : TenantCorrectionCommandType.RemoveGlobalAdministrator;

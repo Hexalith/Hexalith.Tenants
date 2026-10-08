@@ -264,6 +264,7 @@ public sealed class DomainUiFluentConformanceTests
             Path.Combine(componentsRoot, "Pages", "TenantAuditPage.razor"),
             Path.Combine(componentsRoot, "Pages", "TenantDetailPage.razor"),
             Path.Combine(componentsRoot, "Tenants", "TenantConfigurationView.razor"),
+            Path.Combine(componentsRoot, "Tenants", "Audit", "GlobalAdministratorCorrectionPanel.razor"),
             Path.Combine(componentsRoot, "Users", "UserMembershipLookupPanel.razor"),
         ];
 

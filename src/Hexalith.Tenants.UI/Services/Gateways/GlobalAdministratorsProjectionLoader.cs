@@ -45,6 +45,7 @@ internal static class GlobalAdministratorsProjectionLoader
             page = await gateway
                 .GetGlobalAdministratorsAsync(request, previous: null, cancellationToken)
                 .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             if (page is null)
             {
                 return ToIncomplete(GlobalAdministratorsSnapshot.Invalid());
@@ -63,10 +64,7 @@ internal static class GlobalAdministratorsProjectionLoader
             projectionVersion ??= page.ProjectionVersion;
             foreach (GlobalAdministratorRow row in page.Rows)
             {
-                if (!rows.TryAdd(row.UserId, row))
-                {
-                    return ToIncomplete(page);
-                }
+                _ = rows.TryAdd(row.UserId, row);
             }
 
             if (!page.HasMore)
