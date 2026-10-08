@@ -407,7 +407,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
-        FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
+        FcPageTabs tabs = cut.FindComponent<FcPageTabs>().Instance;
 
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
 
@@ -415,8 +415,11 @@ public sealed class TenantListSurfaceTests : BunitContext
         {
             navigation.Uri.ShouldContain("/tenants/workspace-users");
             navigation.Uri.ShouldNotContain("tenant-list-cursor");
+            cut.FindComponent<FcPageTabs>().Instance.ActiveTabId.ShouldBe("workspace-users");
             cut.Find("#workspace-users").GetAttribute("aria-controls").ShouldBe("workspace-users-panel");
-            cut.Find("#workspace-users-panel").GetAttribute("role").ShouldBe("tabpanel");
+            IElement usersPanel = cut.FindAll("#workspace-users-panel").ShouldHaveSingleItem();
+            usersPanel.GetAttribute("role").ShouldBe("tabpanel");
+            usersPanel.QuerySelector("[data-testid='tenants-user-lookup-input']").ShouldNotBeNull();
             cut.FindComponent<UserMembershipLookupPanel>().Instance.InitialCursor.ShouldBeNull();
         });
     }
@@ -436,8 +439,13 @@ public sealed class TenantListSurfaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
         await ChangeSearchAsync(cut, "filtered");
-        FluentTabs tabs = cut.FindComponent<FluentTabs>().Instance;
+        FcPageTabs tabs = cut.FindComponent<FcPageTabs>().Instance;
+        int tenantRequestsBeforeUsers = requests.Count;
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync("workspace-users"));
+        cut.WaitForAssertion(() => cut.FindComponent<FcPageTabs>().Instance.ActiveTabId.ShouldBe("workspace-users"));
+        requests.Count.ShouldBe(tenantRequestsBeforeUsers);
+        _ = Services.GetRequiredService<ITenantQueryGateway>().DidNotReceive()
+            .GetUserTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>());
         await cut.InvokeAsync(() => tabs.ActiveTabIdChanged.InvokeAsync(TenantWorkspaceState.TenantsTab));
 
         cut.WaitForAssertion(() =>
@@ -445,6 +453,8 @@ public sealed class TenantListSurfaceTests : BunitContext
             requests.Count.ShouldBeGreaterThanOrEqualTo(3);
             requests[^1].Search.ShouldBe("filtered");
             requests[^1].Cursor.ShouldBeNull();
+            cut.FindComponent<FcPageTabs>().Instance.ActiveTabId.ShouldBe(TenantWorkspaceState.TenantsTab);
+            cut.Find("#tenants-panel").TextContent.ShouldContain("tenant.filtered");
             cut.Markup.ShouldContain("tenant.filtered");
             cut.Markup.ShouldNotContain("tenant.default");
         });

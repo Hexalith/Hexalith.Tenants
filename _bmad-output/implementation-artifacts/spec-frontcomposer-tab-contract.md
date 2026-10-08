@@ -5,11 +5,15 @@ created: '2026-08-28'
 status: in-progress
 baseline_revision: 'b5d2734f1774923c5f4334b898653cfc49abf369'
 baseline_commit: 'b011873a2cae73718f5054a83569ea6ac92e3bdb'
+resumed_revision: '94c6a89c01bedce23cbeacfae5dae3b4c49cd2fa'
+resumed_frontcomposer_revision: 'c561b3210f15206a90c39c82c58f2e5b1005cd60'
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
   - '{project-root}/references/Hexalith.AI.Tools/hexalith-ux-instructions.md'
-warnings: []
+warnings:
+  - 'Current Builds revision and aligned xUnit 4.0.1 predate this resumed run but differ from the approved exact dependency acceptance; clarification is pending.'
+  - 'The preserved baseline_commit includes nine later committed gitlink changes; the story gitlink validation fails before any resumed-run pointer changes.'
 deferred: []
 ---
 
@@ -57,11 +61,11 @@ deferred: []
 ## Tasks & Acceptance
 
 **Execution:**
-- Tenants dependency gitlink -- advance only root-declared `references/Hexalith.Builds` to `fd606d51826a8282cacecace965ed502461a2e33`; make no package edits or other dependency-pointer changes.
-- FrontComposer layout source -- implement the additive body-level tab/panel API with XML docs and Fluent child content; keep each C# type in its own file.
-- FrontComposer component/specimen/docs/e2e files -- prove deterministic association and real Chromium keyboard behavior; document the derived panel id and body-placement rule.
-- `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` -- recompose existing fragments under their owning panels without changing gateway, route, support-safety, or command-admission logic.
-- Tenants UI tests -- replace presence-only/raw-component coupling with shared-contract association and transition evidence; retain all create/freshness locks.
+- [ ] Tenants dependency gitlink -- advance only root-declared `references/Hexalith.Builds` to `fd606d51826a8282cacecace965ed502461a2e33`; make no package edits or other dependency-pointer changes. The approved advance was committed previously; current dependencies are newer, so the exact current-state acceptance remains unresolved.
+- [x] FrontComposer layout source -- implement the additive body-level tab/panel API with XML docs and Fluent child content; keep each C# type in its own file. Already present at the resumed FrontComposer revision; verified without production changes.
+- [x] FrontComposer component/specimen/docs/e2e files -- prove deterministic association and real Chromium keyboard behavior; document the derived panel id and body-placement rule.
+- [x] `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` -- recompose existing fragments under their owning panels without changing gateway, route, support-safety, or command-admission logic. Already present at the resumed Tenants revision; preserved and verified.
+- [x] Tenants UI tests -- replace presence-only/raw-component coupling with shared-contract association and transition evidence; retain all create/freshness locks.
 
 **Acceptance Criteria:**
 - Given the FrontComposer Shell.Tests verification lane, when its project restores through the Tenants root dependency graph, then `references/Hexalith.Builds` is exactly `fd606d51826a8282cacecace965ed502461a2e33`, the three xUnit v3 packages resolve at `4.0.0`, and no local package override or restore-policy bypass is present.
@@ -73,6 +77,7 @@ deferred: []
 ## Spec Change Log
 
 - 2026-08-28: Human resolution approved only the exact Tenants `Hexalith.Builds` gitlink advance to `fd606d51826a8282cacecace965ed502461a2e33` so the required xUnit test graph aligns at `4.0.0`; all other dependency changes and restore bypasses remain forbidden.
+- 2026-10-08: Resumed from the recorded revisions above. The production contract and workspace migration were already present; strengthened component/browser association, transition, lazy-loading, header-placement, query, and cursor evidence. Preserved the original dependency constraint and baseline while recording the current-state mismatch for human resolution.
 
 ## Review Triage Log
 
@@ -88,3 +93,32 @@ The pinned Fluent package hard-codes panel ids and splats `AdditionalAttributes`
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false` then the built UI test executable -- expected: full UI suite passes against modified FrontComposer source.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-frontcomposer-tab-contract.md` -- expected: no undeclared moved gitlink.
 
+**2026-10-08 resumed-run results:**
+
+Commands from `references/Hexalith.FrontComposer`:
+- `dotnet build tests/Hexalith.FrontComposer.Shell.Tests/Hexalith.FrontComposer.Shell.Tests.csproj --configuration Debug -m:1` -- passed, 0 warnings and 0 errors.
+- `tests/Hexalith.FrontComposer.Shell.Tests/bin/Debug/net10.0/Hexalith.FrontComposer.Shell.Tests -class Hexalith.FrontComposer.Shell.Tests.Components.Layout.FcPageTabsTests` -- 27 passed, 0 failed, 0 skipped.
+- `npm --prefix tests/e2e run typecheck` -- passed.
+- `PLAYWRIGHT_SKIP_WEBSERVER=1 npm --prefix tests/e2e run test:fc-page-toolbar` -- 7 Chromium tests passed, including reciprocal associations, every keyboard transition, lazy retention, and axe. Used a separately started Debug Counter.Web host with specimens enabled; stopped it after verification. [JUnit report](../../references/Hexalith.FrontComposer/tests/e2e/test-results/junit.xml) and [HTML report](../../references/Hexalith.FrontComposer/tests/e2e/playwright-report/index.html).
+
+Commands from Tenants:
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false` -- passed, 0 warnings and 0 errors.
+- `tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests` -- 3,986 passed, 0 failed, 0 skipped. Includes initial/direct/invalid selection, canonical state and query preservation, cursor isolation, no eager requests, and all existing create/freshness/authorization regressions.
+- `git diff --check` -- passed in both owning repositories.
+- `git diff --ignore-submodules=dirty --raw 94c6a89c01bedce23cbeacfae5dae3b4c49cd2fa -- references/` -- empty: no gitlink moved during the resumed run.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-frontcomposer-tab-contract.md` -- failed on nine pre-existing, undeclared committed pointer differences from the preserved baseline. No pointer was reverted or newly advanced to hide that failure.
+
+The current unmodified Builds revision is `870bd6b85ec5cd841da6fbcc7dbc71b8e4ad764b`; all three xUnit v3 packages resolve at `4.0.1`. This passes the verification lanes but does not satisfy the original exact `fd606d51826a8282cacecace965ed502461a2e33` / `4.0.0` acceptance. The prior approved dependency advance is recorded in commit `eb965727329c7d7335be4cd341db4e2f9bf57b56`, which predates the preserved `baseline_commit`. Asked whether to retain current dependencies and revise the acceptance or explicitly return to the older approved catalog; no answer has been assumed. Formal review/completion remains pending these acceptance and provenance constraints.
+
+The required Aspire baseline attempt, `aspire start --apphost src/Hexalith.FrontComposer.AppHost/Hexalith.FrontComposer.AppHost.csproj --isolated` from FrontComposer, failed with 26 CS0234/RZ10012 errors caused by absent nested Tenants/Parties UI projects. No nested submodules were initialized; the narrow Debug build and browser lanes above passed independently.
+
+## File List
+
+Changes during the 2026-10-08 resumed run only; FrontComposer owns its three nested files. No production file or dependency gitlink changed.
+
+- `_bmad-output/implementation-artifacts/spec-frontcomposer-tab-contract.md`
+- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
+- `tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs`
+- `references/Hexalith.FrontComposer/docs/reference/components/page-tabs.md`
+- `references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcPageTabsTests.cs`
+- `references/Hexalith.FrontComposer/tests/e2e/specs/page-toolbar.spec.ts`
