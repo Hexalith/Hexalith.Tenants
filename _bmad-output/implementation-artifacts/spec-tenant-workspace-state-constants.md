@@ -2,12 +2,15 @@
 title: 'Centralize tenant workspace state identifiers'
 type: 'refactor'
 created: '2026-09-06'
-status: ready-for-dev
+status: done
+baseline_commit: 23b2a7691ae667fd160a48a5d7293f3cf38d48fe
 baseline_revision: e1667e694acf6a2b35e21f90b7da73380d75f4ca
 review_loop_iteration: 0
 followup_review_recommended: false
 context: []
-warnings: []
+warnings:
+  - >-
+      An external rebase during this run made the preserved baseline_commit a non-ancestor of HEAD. The repository-wide gitlink validator cannot assess that baseline; the bundle commit is limited to its spec and workspace test, and unrelated dependency/audit changes remain separately owned.
 deferred:
   - summary: >-
       Concurrent Story 4.3 review edits appeared after this run's clean baseline and remain owned by that separate workflow.
@@ -15,6 +18,69 @@ deferred:
       The repository was clean at this run's sanity gate. The Story 4.3 spec and deferred-work ledger were written at 10:58:58, before this bundle's implementation files at 11:00:34; the implementation subagent also reported leaving both paths untouched. Their transient status/deferred consistency can only be assessed after that other workflow finishes.
     location: >-
       _bmad-output/implementation-artifacts/deferred-work.md:2832; _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md:129
+    severity: medium
+  - summary: >-
+      Bootstrap token response bound
+    evidence: >-
+      B1/E2/V2: PostAsync buffers the response before the 64 KiB guard; introduced by the external authentication rebase, not this bundle.
+    location: >-
+      src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:86
+    severity: medium
+  - summary: >-
+      Bootstrap authority HTTPS guard
+    evidence: >-
+      B2/E1: The authority credential flow does not enforce HTTPS outside Development; belongs to the external authentication work.
+    location: >-
+      src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:85
+    severity: high
+  - summary: >-
+      Retained global correction visibility
+    evidence: >-
+      B3: Concurrent audit composition can hide a submitted global correction when the audit surface becomes stale.
+    location: >-
+      src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:252
+    severity: medium
+  - summary: >-
+      Audit projection walk cancellation
+    evidence: >-
+      B5: Concurrent audit evidence requests use CancellationToken.None; generation checks prevent application but do not cancel obsolete I/O.
+    location: >-
+      src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1646
+    severity: low
+  - summary: >-
+      Parent global projection evidence
+    evidence: >-
+      B6: The concurrent refresh callback returns new evidence without updating parent projection/authorization state.
+    location: >-
+      src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:2003
+    severity: medium
+  - summary: >-
+      Global correction entry focus
+    evidence: >-
+      B7: The concurrent global preview-open success branch does not schedule entry focus.
+    location: >-
+      src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1666
+    severity: medium
+  - summary: >-
+      Architecture Fluent pin reconciliation
+    evidence: >-
+      B8: Rebase-owned architecture passages disagree about the Fluent RC versus GA version.
+    location: >-
+      _bmad-output/planning-artifacts/architecture.md:371
+    severity: low
+  - summary: >-
+      Production domain-service startup guidance
+    evidence: >-
+      B9: Rebase-owned readiness guidance omits SDK app-channel token and workload configuration prerequisites.
+    location: >-
+      docs/production-auth-readiness.md:84
+    severity: medium
+  - summary: >-
+      Audit parent confirmation coverage
+    evidence: >-
+      V1: Concurrent audit tests cover preview but not submit-to-confirmation through the real parent projection refresh callback.
+    location: >-
+      tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:1114
     severity: medium
 ---
 
@@ -64,7 +130,7 @@ deferred:
 **Execution:**
 - [x] `src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` -- replace all `TenantsTabId`, `UsersTabId`, `AllTenantsScope`, and `MyTenantsScope` uses with the corresponding `TenantWorkspaceState` constants, then remove the four local declarations -- eliminates production drift without changing behavior.
 - [x] `tests/Hexalith.Tenants.UI.Tests/State/TenantWorkspaceStateTests.cs` -- add a state vocabulary contract test for the four exact architecture-owned route values -- detects accidental public route drift.
-- [x] `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs` -- add routing tests for all-tenants, my-tenants, and users URLs built from the state constants, asserting active tab and the corresponding rendered outer surface -- detects a component/state integration split.
+- [x] `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs` -- add routing tests for all-tenants, my-tenants, and users URLs built from the state constants, asserting active tab and the corresponding rendered outer surface -- detects a component/state integration split. The 2026-10-08 re-drive also verifies users/mine normalization to all, canonical users navigation, and absence of the my-tenants surface.
 
 **Acceptance Criteria:**
 - Given the production UI source, when tab and scope identifiers are inspected, then only `TenantWorkspaceState` declares the four canonical literal values and `TenantsWorkspace` consumes those constants everywhere.
@@ -76,6 +142,7 @@ deferred:
 
 ## Spec Change Log
 
+- 2026-10-08: Preserved the conforming production refactor and value contract; extended the existing routing theory with the missing users/mine normalization case and an explicit expected normalized scope. Existing route-backed navigation behavior is preserved.
 - 2026-09-06: Resolved re-drive ambiguity by making the intent contract authoritative over historical task/review records, defining `users&mine` normalization, and separating focused source ownership inspection from automated value/behavior coverage.
 
 ## Review Triage Log
@@ -98,9 +165,58 @@ deferred:
   - `[medium]` `[defer]` The combined diff diverges from intent through concurrent ledger and Story 4.3 edits — temporal evidence attributes those files to another workflow, so they remain separately owned and untouched.
   - `[low]` `[reject]` The bUnit theory proves value equality but not constant ownership against future equal-value duplication — the intent requires failures on identifier divergence, which the state-value, rendered-option, interactive-routing, and surface assertions cover; a source parser/grep test would be disproportionate.
 
+### 2026-10-08 — Re-drive review
+
+- All three required review layers completed against the aggregate baseline diff. The bundle-owned source diff is limited to the workspace routing theory; the production refactor and vocabulary contract were already present.
+- Verdicts before grouping: 14 findings — high 2, medium 8, low 3, false 1. No intent-gap, bad-spec, or patch entry remains for this bundle.
+- Each external finding is recorded here rather than appended to the deferred-work ledger, honoring the intent contract's explicit prohibition on editing that ledger. These records do not assign unrelated changes to this bundle.
+- `B1` [medium] [defer] The authority response is buffered by PostAsync before the 64 KiB check. This is in the bootstrap implementation brought into the aggregate diff by the external rebase, not this bundle.
+- `B2` [high] [defer] AcquireFromAuthorityAsync sends configured credentials without an environment-sensitive HTTPS check. The rebase-owned bootstrap flow is expressly outside this identifier-centralization intent.
+- `B3` [medium] [defer] The audit parent displays the global panel only while authorized/current or while the tenant-only retained-attempt predicate succeeds; a stale audit can hide a submitted global correction. These are concurrent audit edits, not bundle changes.
+- `B4` [false] [reject] The claim that global corrections have no resume path is disproved by GlobalAdministratorCorrectionPanel.TryAdoptEligibleReconciliation, called on initialization and parameter updates when the compatible audit correction is reopened. A dedicated parent Resume button is a separate enhancement.
+- `B5` [low] [defer] The concurrent audit projection walks use CancellationToken.None. Generation/disposal checks prevent stale application, but obsolete requests can continue consuming resources; cancellation ownership belongs to that audit workflow.
+- `B6` [medium] [defer] The concurrent parent refresh callback returns new projection evidence without replacing the parent snapshot/authorization. Child OnParametersSet preserves tracked/terminal snapshots, but parent eligibility still reads old evidence until another parent refresh.
+- `B7` [medium] [defer] The successful concurrent global-correction open branch sets its preview without the tenant branch's entry-focus scheduling. Keyboard entry-focus verification belongs to the audit correction implementation.
+- `B8` [low] [defer] Architecture line 371 names Fluent GA while older passages still name the RC pin and RC-to-GA actions. Those documentation changes were brought in by the external rebase and are read-only for this bundle.
+- `B9` [medium] [defer] The production readiness document omits the new SDK app-channel token/workload settings; EventStoreDomainServiceSecurityStartupValidator checks APP_API_TOKEN and Authentication:Workload outside Development. This is part of the rebase-owned authentication migration.
+- `B10` [low] [reject] The proposed universal DOM-absence assertions go beyond the intended visible-surface contract: FcPageTab intentionally retains previously activated panels. Active Fluent tab, normalized state, expected surface, and all/mine scope transitions already pin the contract; mutually exclusive scope branches are confirmed by production inspection. No regression requiring extra assertions was demonstrated.
+- `E1` [high] [defer] The missing production HTTPS guard repeats B2; verified against the rebase-owned credential provider. Grouped with B2, without patching unrelated code.
+- `E2` [medium] [defer] The post-buffering size check repeats B1; verified against the rebase-owned provider call order. Grouped with B1 and V2.
+- `V1` [medium] [defer] The verification reviewer traced the real audit-parent refresh callback and found no rendered-parent submit-to-confirmation test; standalone panel callbacks/fallback tests cannot cover that caller path. This gap was added by concurrent audit work and is excluded by this bundle's intent.
+- `V2` [medium] [defer] The reviewer's isolated SDK 10.0.401 probe accepted 71,680 bytes after LoadIntoBufferAsync(65,536), corroborating B1/E2. The bootstrap implementation is outside this bundle.
+
+Grouped external follow-ups: bootstrap response bound (B1/E2/V2); bootstrap HTTPS (B2/E1); retained global panel (B3); projection-walk cancellation (B5); parent projection evidence (B6); correction entry focus (B7); architecture pin reconciliation (B8); production startup guidance (B9); audit-parent confirmation coverage (V1). All remain with their separate owners.
+
 ## Verification
 
 **Commands:**
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore --warnaserror` -- expected: build succeeds with zero warnings.
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-build --no-restore` -- expected: the complete UI test project passes, including new identifier state and routing guards.
 - `rg -n 'TenantsTabId|UsersTabId|AllTenantsScope|MyTenantsScope' src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` -- expected: no matches.
+
+
+## Auto Run Result — 2026-10-08
+
+- Production inspection confirms `TenantWorkspaceState` owns the four tab/scope constants and `TenantsWorkspace` consumes them. The existing vocabulary test already pins their canonical values. The missing users/mine render case was added to the existing theory with explicit normalized-scope, users-route, and surface assertions.
+- `dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --property:Configuration=Release` — passed; all projects up to date, without changing tracked dependency configuration.
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore --warnaserror -m:1` — passed; 0 warnings, 0 errors, 2.89 seconds. This unmodified full project graph passed after concurrent compile errors and overwritten dependency assets were resolved.
+- `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-build --no-restore` — passed; 3,972 succeeded, 0 failed, 0 skipped, 55.253 seconds, with every test file included. Earlier fallback runs are not used as full-lane acceptance evidence.
+- `rg -n 'TenantsTabId|UsersTabId|AllTenantsScope|MyTenantsScope' src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor` — expected exit 1, no matches. Source inspection of the four literals and current render/transition call sites confirms single tab/scope ownership.
+- Three independent review layers completed. Their 14 findings were individually triaged before grouping; no bundle-owned patch or unresolved intent/spec finding remained. Nine grouped external follow-ups are retained in frontmatter and the triage log. The deferred-work ledger remains outside this run.
+- `./node_modules/.bin/commitlint --edit /tmp/tenant-workspace-state-constants-commit-9okn3x_j.txt --verbose` — passed using the installed and lockfile-pinned CLI 21.2.3; exact candidate `test(ui): cover normalized tenant workspace scope`; 0 problems, 0 warnings.
+- `git diff --check -- _bmad-output/implementation-artifacts/spec-tenant-workspace-state-constants.md tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs` — passed for the owned changes.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-tenant-workspace-state-constants.md` — failed: `baseline_commit 23b2a76 is not an ancestor of HEAD (c3c2b54)`. Reflog established an external rebase from the original captured baseline to `3a90342da043877f189c09a8ed3e98dff44b90b8`; the original full `baseline_commit` is preserved per the workflow. This repository-wide provenance check remains a residual limitation, distinct from the passed UI checks and path-restricted bundle commit.
+- Finalization parent observed directly from version control: `c3c2b546e0d80e5793645e6926e5169d821a4738`.
+
+### Concurrent ownership
+
+The remaining edits are outside this bundle. They are excluded from its commit; the intent contract allows completion once the owned paths are committed and clean and required UI verification passes.
+
+- The separate global-administrator paging/audit workflow owns `spec-global-admin-projection-paging.md`, `TenantAuditPage.razor`, the audit grids/receipts/global correction panel, `GlobalAdministratorsProjectionLoader`, global correction snapshot/intent, and their associated audit/grid/panel/loader/state/conformance tests.
+- The separate dependency-refresh workflow and pre-existing package edits own `spec-refresh-dependencies.md`, both dependency-refresh evidence JSON files, `_bmad-output/project-context.md`, `package.json`, `package-lock.json`, `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj`, and the externally moved Builds/EventStore/Platform gitlinks. No part of those edits is staged or committed by this bundle.
+- Badge accessibility and behavioral guard spec finalizations were committed by other workflows during the run; the historical bootstrap/authorization and architecture/readiness changes entered through the external rebase. They are not attributed to this bundle.
+
+## File List
+
+- `tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs`
+- `_bmad-output/implementation-artifacts/spec-tenant-workspace-state-constants.md`

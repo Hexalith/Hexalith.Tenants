@@ -146,18 +146,27 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [InlineData(
         TenantWorkspaceState.TenantsTab,
         TenantWorkspaceState.AllScope,
+        TenantWorkspaceState.AllScope,
         "[data-testid='tenants-list-refresh']")]
     [InlineData(
         TenantWorkspaceState.TenantsTab,
+        TenantWorkspaceState.MyScope,
         TenantWorkspaceState.MyScope,
         "[data-testid='tenants-my-list']")]
     [InlineData(
         TenantWorkspaceState.UsersTab,
         TenantWorkspaceState.AllScope,
+        TenantWorkspaceState.AllScope,
+        "[data-testid='tenants-user-lookup-input']")]
+    [InlineData(
+        TenantWorkspaceState.UsersTab,
+        TenantWorkspaceState.MyScope,
+        TenantWorkspaceState.AllScope,
         "[data-testid='tenants-user-lookup-input']")]
     public void WorkspaceCanonicalStateIdentifiersActivateTheMatchingTabAndSurface(
         string tab,
         string scope,
+        string expectedNormalizedScope,
         string expectedSurfaceSelector)
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -186,7 +195,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
         cut.Find(expectedSurfaceSelector).ShouldNotBeNull();
         TenantWorkspaceState normalizedState = PrivateField<TenantWorkspaceState>(cut.Instance, "_workspaceState");
         normalizedState.Tab.ShouldBe(tab);
-        normalizedState.Scope.ShouldBe(scope);
+        normalizedState.Scope.ShouldBe(expectedNormalizedScope);
+
+        if (tab == TenantWorkspaceState.UsersTab)
+        {
+            Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users");
+            cut.FindAll("[data-testid='tenants-my-list']").ShouldBeEmpty();
+        }
 
         if (tab == TenantWorkspaceState.TenantsTab)
         {
