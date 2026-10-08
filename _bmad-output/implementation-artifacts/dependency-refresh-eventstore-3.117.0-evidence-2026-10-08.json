@@ -409,5 +409,445 @@
   ],
   "stagedCommittedPushed": false,
   "updatedGitlinks": false,
-  "initializedNestedSubmodules": false
+  "initializedNestedSubmodules": false,
+  "committedCatalogRevalidation": {
+    "capturedAtUtc": "2026-10-08T09:41:44.801929+00:00",
+    "status": "focused-complete-broad-gates-pending",
+    "supersedesEarlierPendingCatalogProvenanceBlocker": true,
+    "rootHead": "1846c7128cf0f6b16f9e62f38032bcab78e26e38",
+    "buildsHead": "893db14b25843db140942d839e4d659584221315",
+    "catalogUpgradeCommittedExternallyBeforeThisRun": true,
+    "requestedEventStoreVersion": "3.117.0",
+    "latestListedStableCandidate": "3.117.1",
+    "versionHold": "The continuation explicitly requests 3.117.0; 3.117.1 is recorded as the newly available patch, not adopted or claimed as selected.",
+    "authoritativeAudit": {
+      "generatedFromRevision": "893db14b25843db140942d839e4d659584221315",
+      "snapshot": {
+        "mode": "incremental",
+        "auditedAtUtc": "2026-10-08T09:37:07.9735246+00:00",
+        "refreshedFamilies": [
+          "hexalith-eventstore"
+        ],
+        "preservedFamilyCount": 145
+      },
+      "catalogSha256": "6403d1f6bf03e230041c13ccae36caee1304111f9e180356787a49fac3f3f642",
+      "catalogRawSha256": "ab7b1ad147a6288574616dccaf52035c907f7ed49ede1cb819b3d90c063a722c",
+      "initialAuditSha256": "06221508a9e2b6cca03bbda82f6a987d365e371b7758aedd2418134bdbf4fcc0",
+      "resultingAuditSha256": "239861ce794b2f0696cc844ffeb13fd18add26c9055ed17300827f4a97257ca7",
+      "packageRows": [
+        {
+          "id": "Hexalith.EventStore.Admin.Abstractions",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.Admin.Server",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.Aspire",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.Client",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.Contracts",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.DomainService",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.Gateway",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.RestApi.Generators",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.Server",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.ServiceDefaults",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.SignalR",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.Testing",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        },
+        {
+          "id": "Hexalith.EventStore.Testing.Integration",
+          "auditedVersion": "3.117.0",
+          "selectedVersion": "3.117.0",
+          "latestStable": "3.117.1",
+          "listingState": "listed",
+          "disposition": "retained"
+        }
+      ],
+      "allPackageRowsUnchangedFromInheritedAudit": true,
+      "allNonEventStoreFamilyDecisionsUnchanged": true,
+      "eventStoreFamilyDecisionChange": "Only origin.auditedAtUtc changed on identical candidate/selection evidence; no duplicate historical snapshot was added."
+    },
+    "checks": [
+      {
+        "command": "pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1 -PriorAuditPath ./Tools/package-version-audit.json -ChangedFamily hexalith-eventstore",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+        "exitCode": 0,
+        "result": "Supported incremental refresh passed: 304 packages; EventStore refreshed; 145 other families preserved.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-generation.log",
+        "logSha256": "18b6831b0c32d935009203a5cf4a9745b221ce3c51bb8dab6611b6fa019946ee"
+      },
+      {
+        "command": "pwsh -NoProfile -File ./Tools/validate-package-version-audit.ps1",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+        "exitCode": 0,
+        "result": "304 packages, 146 families and one source validated; committed catalog provenance blocker resolved.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-audit-final.log",
+        "logSha256": "1025bcf8fb6aa9aae0f3a6327edd0d58317fbcab61398e944b02f18e0dae1f14"
+      },
+      {
+        "command": "pwsh -NoProfile -File ./Tools/validate-central-package-versions.ps1",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+        "exitCode": 0,
+        "result": "304 centralized entries validated.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-central.log",
+        "logSha256": "b69fe13defdfc0d9b747bceaff9e06ecf31012255eb9924f561c9ed19e5b96c8"
+      },
+      {
+        "command": "pwsh -NoProfile -File ./Tools/validate-package-version-exceptions.ps1 -InventoryPath ./Tools/package-version-exceptions.json -CatalogPath ./Props/Directory.Packages.props",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+        "exitCode": 0,
+        "result": "15 SDK/tool exceptions validated.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-exceptions.log",
+        "logSha256": "6ef800d670a4228bfe7d0b687ac1e1f50a178e82b7f2700a663902839dad4d49"
+      },
+      {
+        "command": "dotnet restore src/Hexalith.Tenants/Hexalith.Tenants.csproj -p:Configuration=Release -p:UseNuGetDeps=true",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "result": "Package consumer restore passed.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-host-restore.log",
+        "logSha256": "40d104602671164ab3958225da3e1c8cabd55f0251d6df6bc911d9d5a24f44ce"
+      },
+      {
+        "command": "dotnet build src/Hexalith.Tenants/Hexalith.Tenants.csproj --no-restore --configuration Release -warnaserror -p:UseNuGetDeps=true -m:1",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "result": "Package-only Release host build passed with zero warnings/errors.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-host-build.log",
+        "logSha256": "0f462a4a3fad213d14c7e0eb97d87f6e2f12337f62c8319e8e43c38c2fd4ffb4"
+      },
+      {
+        "command": "dotnet test --project tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "result": "825 passed; zero failed/skipped; current package-mode build/test without --no-build.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-server-tests.log",
+        "logSha256": "dcfbcb6305802fc7f40b433ee470701c9718c57aae930714efccd58a6ad332d3"
+      },
+      {
+        "command": "dotnet test --project tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "result": "144 passed; zero failed/skipped; current package-mode build/test without --no-build.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-contracts-tests.log",
+        "logSha256": "c2597f19c720391f388295d03ca4b979f26bba8409d682475876234d0be5d7f4"
+      },
+      {
+        "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-refresh-dependencies.md",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 1,
+        "result": "Initial validator found three stale declared tips: Builds, EventStore and FrontComposer; reconciled documentation to current tree without changing the true baseline or any gitlink.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-gitlinks.log",
+        "logSha256": "592d946ce7e91b9d16865958fa61f486f5e92813ffe28f684ddd43cb8c4817c0"
+      },
+      {
+        "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-refresh-dependencies.md",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "result": "All nine root pointer changes are declared accurately against true baseline 8f6f8cb813255cc94ada95cda1a5e224c3b6bed0.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-gitlinks-final.log",
+        "logSha256": "7fda40b2cdc4a986c60322428e732ac6da198731fb78e57a57dbd79f988c0fec"
+      },
+      {
+        "command": "git diff --check",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+        "exitCode": 0,
+        "result": "Root whitespace check passed.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-whitespace-root.log",
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "command": "git diff --check",
+        "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+        "exitCode": 0,
+        "result": "Builds whitespace check passed.",
+        "log": "/tmp/tenants-eventstore-3117-revalidation-whitespace-builds.log",
+        "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "sourcePackageEvaluation": {
+      "Debug-source": {
+        "command": [
+          "dotnet",
+          "msbuild",
+          "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+          "-nologo",
+          "-p:Configuration=Debug",
+          "-p:UseNuGetDeps=false",
+          "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithEventStoreFromSource,UseNuGetDeps,UseHexalithProjectReferences",
+          "-getItem:PackageReference,ProjectReference"
+        ],
+        "exitCode": 0,
+        "evaluation": {
+          "Properties": {
+            "TargetFramework": "net10.0",
+            "HexalithEventStoreVersion": "3.117.0",
+            "HexalithEventStoreFromSource": "true",
+            "UseNuGetDeps": "false",
+            "UseHexalithProjectReferences": "true"
+          },
+          "Items": {
+            "PackageReference": [],
+            "ProjectReference": [
+              "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Gateway/Hexalith.EventStore.Gateway.csproj",
+              "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/Hexalith.EventStore.DomainService.csproj"
+            ]
+          }
+        },
+        "log": "/tmp/tenants-eventstore-3117-revalidation-eval-debug.json",
+        "logSha256": "82e9560b2c5b834385d283e6e1b6af5419a9102c798c08e91af3e524ad86fc43"
+      },
+      "Release-package": {
+        "command": [
+          "dotnet",
+          "msbuild",
+          "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+          "-nologo",
+          "-p:Configuration=Release",
+          "-p:UseNuGetDeps=true",
+          "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithEventStoreFromSource,UseNuGetDeps,UseHexalithProjectReferences",
+          "-getItem:PackageReference,ProjectReference"
+        ],
+        "exitCode": 0,
+        "evaluation": {
+          "Properties": {
+            "TargetFramework": "net10.0",
+            "HexalithEventStoreVersion": "3.117.0",
+            "HexalithEventStoreFromSource": "",
+            "UseNuGetDeps": "true",
+            "UseHexalithProjectReferences": "false"
+          },
+          "Items": {
+            "PackageReference": [
+              "Hexalith.EventStore.Gateway",
+              "Hexalith.EventStore.DomainService"
+            ],
+            "ProjectReference": []
+          }
+        },
+        "log": "/tmp/tenants-eventstore-3117-revalidation-eval-release.json",
+        "logSha256": "5cd730be8b395d79dbfaf7404a2fa3aadf46c218884b063f5de26ffe652e7ef8"
+      }
+    },
+    "resolvedPackageConsumerAssets": {
+      "Hexalith.Tenants": [
+        "Hexalith.EventStore.Admin.Abstractions/3.117.0",
+        "Hexalith.EventStore.Client/3.117.0",
+        "Hexalith.EventStore.Contracts/3.117.0",
+        "Hexalith.EventStore.DomainService/3.117.0",
+        "Hexalith.EventStore.Gateway/3.117.0",
+        "Hexalith.EventStore.Server/3.117.0",
+        "Hexalith.EventStore.ServiceDefaults/3.117.0"
+      ],
+      "Hexalith.Tenants.Server": [
+        "Hexalith.EventStore.Client/3.117.0",
+        "Hexalith.EventStore.Contracts/3.117.0",
+        "Hexalith.EventStore.DomainService/3.117.0",
+        "Hexalith.EventStore.Server/3.117.0",
+        "Hexalith.EventStore.ServiceDefaults/3.117.0"
+      ],
+      "Hexalith.Tenants.Contracts": [
+        "Hexalith.EventStore.Contracts/3.117.0"
+      ]
+    },
+    "rootSubmodules": [
+      {
+        "path": "references/Hexalith.EventStore",
+        "head": "0dad344d37343f589d859d6d8d6701283122b338",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "0dad344d37343f589d859d6d8d6701283122b338",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.EventStore.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.EventStore.git (push)",
+        "recentHistory": "0dad344d fix(ci): restore current source validation for release\nb830d982 feat: add serialization and build logs for SDK 10.0.401 resume\n3600d196 fix: sanitize sensitive data in logs and update related files",
+        "nestedSubmoduleStatus": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-ad52c5bdd4361c59eedf12a16620150006403584 references/Hexalith.Builds\n-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons\n-c561b3210f15206a90c39c82c58f2e5b1005cd60 references/Hexalith.FrontComposer\n-e159f82b7528797fc245045625ff387d65294ba9 references/Hexalith.McpCli\n-aac6d9054cb138881e6e49c8e48233553123ffce references/Hexalith.Memories\n-f043a2f242762233091abdaa5bbe1ab777bd0f12 references/Hexalith.Platform\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-86aa888301b40cda12b000f68d9292d53cd93efe references/Hexalith.Tenants",
+        "nestedSubmodulesUninitialized": true
+      },
+      {
+        "path": "references/Hexalith.Commons",
+        "head": "116d26815eb81e35b3c161e1799e5ee12805fc0a",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "116d26815eb81e35b3c161e1799e5ee12805fc0a",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Commons.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Commons.git (push)",
+        "recentHistory": "116d268 fix(pack): resolve package assets from the commons root\nb8ad13c build: update subproject references for Hexalith.AI.Tools, Hexalith.Builds, and Hexalith.PolymorphicSerializations\na6beb5e build: update subproject reference for Hexalith.PolymorphicSerializations",
+        "nestedSubmoduleStatus": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-c16249a6a0c88b903e14c7f6612632e2c70d4e94 references/Hexalith.Builds\n-4252c432ca1ba27a8571a082372b9384f3d13299 references/Hexalith.PolymorphicSerializations",
+        "nestedSubmodulesUninitialized": true
+      },
+      {
+        "path": "references/Hexalith.AI.Tools",
+        "head": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.AI.Tools.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.AI.Tools.git (push)",
+        "recentHistory": "3f194e1 docs: add section on Hexalith MCP and CLI ownership guidelines\n5f93d2e refactor: streamline Hexalith LLM instructions for clarity and conciseness\ne671ad5 docs: clarify usage of 'chore' commit type in guidelines",
+        "nestedSubmoduleStatus": "",
+        "nestedSubmodulesUninitialized": true
+      },
+      {
+        "path": "references/Hexalith.FrontComposer",
+        "head": "0e114214007c22f5cdbac21a6853cff4208340ee",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "0e114214007c22f5cdbac21a6853cff4208340ee",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.FrontComposer.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.FrontComposer.git (push)",
+        "recentHistory": "0e114214 fix: clarify panel label handling and accessibility checks in page tabs documentation\nb0190937 fix: enhance panel content loading behavior and improve accessibility checks in page tabs\nc561b321 fix: update review loop iteration to 10 and add details for iteration 10",
+        "nestedSubmoduleStatus": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-ba4ca78c3868a4757cb92d912a54c8a237871b54 references/Hexalith.Builds\n-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons\n-738da5c95107d3ad84b3856558bf4a0ba7c3a9ca references/Hexalith.EventStore\n-ec3601a532a6779c2c677c9b74e8bba642a8a651 references/Hexalith.Memories\n-b3794a4dcbe2fff3e9ea5c420a3c4695e2d1a8ca references/Hexalith.Parties\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-e2c297b2b3827bf2a0390eaf72ce3b4353f36246 references/Hexalith.Tenants",
+        "nestedSubmodulesUninitialized": true
+      },
+      {
+        "path": "references/Hexalith.Builds",
+        "head": "893db14b25843db140942d839e4d659584221315",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "893db14b25843db140942d839e4d659584221315",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main\n M Tools/package-version-audit.json",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Builds.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Builds.git (push)",
+        "recentHistory": "893db14 chore: update code structure and remove unused imports\nad52c5b chore: update code structure for improved readability and maintainability\n520abb5 build(deps): update Aspire packages to version 13.6.1",
+        "nestedSubmoduleStatus": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools",
+        "nestedSubmodulesUninitialized": true
+      },
+      {
+        "path": "references/Hexalith.PolymorphicSerializations",
+        "head": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.PolymorphicSerializations.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.PolymorphicSerializations.git (push)",
+        "recentHistory": "98de6e0 chore(release): 1.19.4 [skip ci]\n95786c9 fix: remove .github/copilot-instructions.md file\n9d47c51 chore: update subproject reference for Hexalith.Builds",
+        "nestedSubmoduleStatus": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-688eec9a4333245cc0ff7772115c769094471863 references/Hexalith.Builds",
+        "nestedSubmodulesUninitialized": true
+      },
+      {
+        "path": "references/Hexalith.Memories",
+        "head": "aac6d9054cb138881e6e49c8e48233553123ffce",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "aac6d9054cb138881e6e49c8e48233553123ffce",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Memories.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Memories.git (push)",
+        "recentHistory": "aac6d905 fix: clean up development status comments in sprint-status.yaml\n445de133 fix: add access telemetry for C1 GitHub approvals\ne1c72dab feat: implement single-owner approval policy for C1 bundle roles",
+        "nestedSubmoduleStatus": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-af20682ac8fc420068a731ecb87cff84727a3d53 references/Hexalith.Builds\n-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons\n-4cc77f9554395e84539e173e94b8f0b4df14d643 references/Hexalith.EventStore\n-c561b3210f15206a90c39c82c58f2e5b1005cd60 references/Hexalith.FrontComposer\n-e159f82b7528797fc245045625ff387d65294ba9 references/Hexalith.McpCli\n-794e8c63fe945bf689064edb8a406801810cb4cf references/Hexalith.Platform\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-ade4e04f2c3f3389ba9dc5286480e8d4951ddd13 references/Hexalith.Tenants",
+        "nestedSubmodulesUninitialized": true
+      },
+      {
+        "path": "references/Hexalith.McpCli",
+        "head": "e159f82b7528797fc245045625ff387d65294ba9",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "e159f82b7528797fc245045625ff387d65294ba9",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.McpCli.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.McpCli.git (push)",
+        "recentHistory": "e159f82 fix(status): update status of 'refuse writes in read-only mode' to in-progress and adjust last updated timestamp\n8dd69d6 docs(cli): complete read-only mode review follow-up\n8953c8b fix(status): update status of 'refuse writes in read-only mode' to in-progress and adjust last updated timestamp",
+        "nestedSubmoduleStatus": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-ecb092449c95abf6de2c3d348dc086bb368eb556 references/Hexalith.Agents\n-ba4ca78c3868a4757cb92d912a54c8a237871b54 references/Hexalith.Builds\n-c7de36b2a4c72d2b3e2d867cffe3cdddec597547 references/Hexalith.ChatBot\n-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons\n-90c1fc8942a390bfd558b5d53767c0fd7bc74e61 references/Hexalith.Conversations\n-738da5c95107d3ad84b3856558bf4a0ba7c3a9ca references/Hexalith.EventStore\n-18cf524bc4e6943b5141afb9a79b976abce5fb2b references/Hexalith.Folders\n-64f662201e5f184d0bf0442da8b6c66da98a7f4f references/Hexalith.FrontComposer\n-ec3601a532a6779c2c677c9b74e8bba642a8a651 references/Hexalith.Memories\n-b3794a4dcbe2fff3e9ea5c420a3c4695e2d1a8ca references/Hexalith.Parties\n-91d6ed23c9b68e734ac4b82b3c2d83cbe1ab906a references/Hexalith.Platform\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-1152c8397f35fed1580e20915833dd958e8dbe07 references/Hexalith.Projects\n-e2c297b2b3827bf2a0390eaf72ce3b4353f36246 references/Hexalith.Tenants\n-aef3f4ed4b4bb9bfee270d75361d637013c13551 references/Hexalith.Timesheets\n-0a70f6d14db69c51848fa4799b05f8994f7ab77b references/Hexalith.Works",
+        "nestedSubmodulesUninitialized": true
+      },
+      {
+        "path": "references/Hexalith.Platform",
+        "head": "f043a2f242762233091abdaa5bbe1ab777bd0f12",
+        "liveDefaultBranch": "refs/heads/main",
+        "liveTip": "f043a2f242762233091abdaa5bbe1ab777bd0f12",
+        "matchesLiveTip": true,
+        "status": "## main...origin/main",
+        "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Platform.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Platform.git (push)",
+        "recentHistory": "f043a2f Add recovery contract schema and project configuration\n794e8c6 feat: implement bounded bootstrap for multiprocessing and enhance request handling\n7192c31 feat: enhance GitHub review client with improved request handling and error management",
+        "nestedSubmoduleStatus": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-9d74ff9b9ddcd4981ea70b7773db5034966ff585 references/Hexalith.Agents\n-520abb5898ad44b30c0744e707b53cd94741e6b1 references/Hexalith.Builds\n-c47137f6759d993ff7e0f0f83082cdf09d0f3ce2 references/Hexalith.ChatBot\n-116d26815eb81e35b3c161e1799e5ee12805fc0a references/Hexalith.Commons\n-e8e6bedbad39198490a1a2285746af6c1a100275 references/Hexalith.Conversations\n-d87c969b6518751fafec9fbd01733d885b2efbfe references/Hexalith.EventStore\n-b7f445becca270e176c54f7f6fe19c5d2940ff20 references/Hexalith.Folders\n-c561b3210f15206a90c39c82c58f2e5b1005cd60 references/Hexalith.FrontComposer\n-e159f82b7528797fc245045625ff387d65294ba9 references/Hexalith.McpCli\n-289773387e0c6b665b669031616c1e84cc079297 references/Hexalith.Memories\n-60b9836ea23151c5319dd06fd3deb80122f7abc3 references/Hexalith.Parties\n-7a2134eefa689d026a3fac814dd8732b22a43723 references/Hexalith.PolymorphicSerializations\n-b42beb3aa8344632ebafc11906f89337b65c5734 references/Hexalith.Projects\n-4fa38dad5af0387a41792ee64494c5c767950eff references/Hexalith.Tenants\n-2b37306bc91106bd918a3a75304bc0b57b6c22ff references/Hexalith.Timesheets\n-89e973a961f43c4bbd3fbea9fa41d829f3dfb93d references/Hexalith.Works",
+        "nestedSubmodulesUninitialized": true
+      }
+    ],
+    "limitations": [
+      "Full solution acceptance remains with the parent implementation workflow.",
+      "The original evidence describes the historical uncommitted-catalog run; this committed-catalog revalidation records the current accepted provenance separately."
+    ],
+    "stagedCommittedPushed": false,
+    "updatedGitlinks": false,
+    "initializedNestedSubmodules": false,
+    "completedAtUtc": "2026-10-08T09:42:50.556569+00:00",
+    "finalRootHead": "1846c7128cf0f6b16f9e62f38032bcab78e26e38",
+    "concurrentRootAdvance": "After focused checks, external commit 1846c7128cf0f6b16f9e62f38032bcab78e26e38 updated only spec-frontcomposer-tab-contract.md; product source and dependency pointers remained unchanged.",
+    "supersededBy": "dependency-refresh-eventstore-3.117.0-final-evidence-2026-10-08.json"
+  },
+  "supersededBy": "dependency-refresh-eventstore-3.117.0-final-evidence-2026-10-08.json"
 }

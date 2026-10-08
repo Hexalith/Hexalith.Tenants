@@ -3643,3 +3643,40 @@ Diff reviewed: Tenants `d8558263..5a519cd7`, and EventStore `8f34b395..55b2982e`
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Correct EventStore polling guidance that treats recoverable PublishFailed as terminal.
   evidence: Pass-14 BH10: command-api.md:477 tells callers to stop polling at PublishFailed, although a successful publication drain can later write Completed with command-specific sequence proof. The identical terminal-state sentence exists at preserved EventStore baseline b51978dd1d2a3721ad239db2623e1560377c7583:454, so this is pre-existing EventStore documentation work. Distinguish recoverable publication failure from exhausted recovery without duplicating the existing recovery-field documentation follow-up.
+
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
+  summary: medium; tenant index replay can overwrite newer index values while detail skips older sequences.
+  evidence: BH1: TenantProjectionHandler.cs:156 has no per-aggregate sequence watermark; TenantIndexReadModel.Apply(TenantUpdated) overwrites Name. The older-replay test checks only detail against an empty index. This predates the EventStore upgrade; add persisted-index replay coverage when addressing the index watermark.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
+  summary: medium; the custom Tenants /project route bypasses legacy projection evolution admission.
+  evidence: BH2: Program.cs:173 calls the Tenants ProjectionDispatcher, which lacks admission checks before persistence. Published EventStore 3.115.0 already includes RequireLegacy in source revision 283b07a52c9c70e1c940164a7011ee8c3ad98b2d, so this is pre-existing. Restore equivalent rejection of unverified hints/versioned event metadata with route-level coverage.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
+  summary: medium; recorded gitlink provenance rejects a valid new submodule addition.
+  evidence: BH4: validate-story-gitlinks.py:428 compares current_pointer(..., baseline), which returns None for an absent pointer, to the raw addition old SHA of forty zeroes. Normalize missing pointers and cover additions/removals; this branch predates the dependency continuation.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
+  summary: medium; NuGet boundary validation cannot detect mismatched dependency versions or framework groups.
+  evidence: BH5: scripts/validate-nuget-packages.py reduces restore and nuspec dependencies to ID sets. An isolated nuspec containing EventStore [3.115.0] in net9.0 passes with the expected package ID. Preserve framework/version evidence and add negative fixtures in the owning release-validator work; the implementation predates this upgrade.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
+  summary: medium; bootstrap token responses are buffered before the intended 64 KiB bound is enforced.
+  evidence: BH7: TenantBootstrapCredentialProvider.cs:86 uses buffered PostAsync, then calls LoadIntoBufferAsync with 64 KiB; TenantBootstrapHostedService creates a default HttpClient. An oversized authority response consumes memory before this cap. Use headers-first bounded reading and an oversized-response test in the pre-existing bootstrap flow.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
+  summary: medium; performance evidence records root HEAD while measuring an unrestricted working tree.
+  evidence: BH8: scripts/run-tenant-audit-performance.sh:114 records gitRevision, then builds local files without a clean-tree guard or source/submodule snapshot. Distinct measured candidates can share the same revision. Capture exact source provenance or require cleanliness; this is pre-existing and does not invalidate the separately evidenced clean historical run.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
+  summary: low; command models violate the required one-C#-type-per-file authoring rule.
+  evidence: BH10: TenantCreateCommandModels.cs contains fourteen public records/enums for create, membership, metadata and lifecycle flows. The required Hexalith baseline explicitly requires separate type-named files. Split mechanically in the owning command-flow change; no new product code was introduced by this dependency upgrade.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
+  summary: medium; recorded gitlink continuity lacks a regression that detects removal of the chain check.
+  evidence: VG1, pre-verified: the reviewer disabled only [CHAIN GAP] in memory and all 23 guard tests still passed. Add CLI cases for a valid two-commit pointer chain and an omitted intermediate pointer-changing commit. The guard/tests predate this dependency continuation.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
+  summary: Clarify the non-EventStore preservation statement as structural equality of parsed rows rather than byte equality.
+  evidence: The refresh verification compares JSON package/family lists with Python equality; separate catalog byte/hash checks prove file-byte preservation. The focused review's R7 records this distinction and the one-shot workflow routes fixes to specs into deferred work.
