@@ -3853,7 +3853,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ProjectionLifecycleState.Current,
             "projection-v2"));
         // Observe the complete submit/status/proof handshake after releasing the suspended read.
-        await submit;
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
 
         cut.WaitForAssertion(() => metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha renamed");

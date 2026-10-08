@@ -3640,10 +3640,15 @@ Diff reviewed: Tenants `d8558263..5a519cd7`, and EventStore `8f34b395..55b2982e`
 
 ## Deferred from: pass 14 workflow review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-05)
 
+Diff reviewed: `/tmp/tenants-56-review-content-3sylhkc4.diff`, 626,873 bytes; root `aeb23ad1` = `f9dc75c1`; EventStore `55b2982e` story paths.
+
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Correct EventStore polling guidance that treats recoverable PublishFailed as terminal.
-  evidence: Pass-14 BH10: command-api.md:477 tells callers to stop polling at PublishFailed, although a successful publication drain can later write Completed with command-specific sequence proof. The identical terminal-state sentence exists at preserved EventStore baseline b51978dd1d2a3721ad239db2623e1560377c7583:454, so this is pre-existing EventStore documentation work. Distinguish recoverable publication failure from exhausted recovery without duplicating the existing recovery-field documentation follow-up.
+  evidence: Pass-14 BH10: at EventStore `9542d3c9f48bf9ce1c57f2ef68904703eaba56cc`, command-api.md labels PublishFailed terminal at :380, :383, :470, :473, :475, and :477. Line :477 tells callers to stop polling at PublishFailed, although a successful publication drain can later write Completed with command-specific sequence proof. Correcting :477 alone leaves the other five sites contradictory. The identical terminal-state sentence exists at preserved EventStore baseline b51978dd1d2a3721ad239db2623e1560377c7583:454, so this is pre-existing EventStore documentation work. Distinguish recoverable publication failure from exhausted recovery without duplicating the existing recovery-field documentation follow-up.
 
+
+
+## Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)
 
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
   summary: medium; tenant index replay can overwrite newer index values while detail skips older sequences.
@@ -3724,3 +3729,29 @@ Diff reviewed: `tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests
 - source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
   summary: high; on `main` (`5bfe0715`, run 37782396626) `ci / build-and-test` fails, so `ci / aspire-tests` is skipped and the hosted smoke class never runs in CI.
   evidence: The job log shows two failures: `GlobalAdministratorsPageTests.RealChromiumFocusValidatorStopsBeforeChromiumWhenServerStartupFails` and `StatelessHostStateTests.TenantsHostAssembly_HasNoWritableStaticFields_HoldingInstanceLocalState` (coverage-instrumentation statics). At review time, uncommitted working-tree edits to both test files existed from a concurrent session; re-check before acting.
+
+## Deferred from: pass 16 review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-08)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Bootstrap token retrieval buffers the response before applying its 64 KiB cap.
+  evidence: `TenantBootstrapCredentialProvider` calls `HttpClient.PostAsync` and only then `LoadIntoBufferAsync`. The password grant and subject check sit on that same path. This is outside the tenant-correction story.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Tenant command admission still treats `actor:globalAdmin=true` as authority.
+  evidence: `TenantAggregate.IsGlobalAdmin` returns true from that extension, while `TenantsGlobalAdministratorVerifier` documents the extension as untrusted. That command path is not the correction preview.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: NuGet validation allowlists two ServiceDefaults package ids at any version.
+  evidence: `scripts/validate-nuget-packages.py` names `Hexalith.EventStore.ServiceDefaults` and `Hexalith.Commons.ServiceDefaults` before the `.ServiceDefaults` fragment check. A wrong version of those ids is a dependency-governance gap, not a correction-flow change.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Duplicate global-administrator ids are dropped and the page is still marked complete.
+  evidence: `GlobalAdministratorsProjectionLoader` ignores a failed `TryAdd` and sets `IsCompleteEvidence`. Conflicting administrator rows can disappear from a ready page. That loader is the global-administrator read, not this correction.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: A loading audit surface may drop an in-flight global-administrator correction. Unverified; high if true.
+  evidence: The audit page mounts `GlobalAdministratorCorrectionPanel` only while the audit surface or retained display remains. Settle whether a loading snapshot clears that panel before its message id is stored. Story 5.7 owns that panel.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: The tenant audit page can open and submit a global-administrator correction.
+  evidence: `TenantAuditPage.razor` renders `GlobalAdministratorCorrectionPanel` for system evidence. Pass 15 traced that behavior to `5a3bc6dd` and the global-administrator projection spec, not to this correction story.

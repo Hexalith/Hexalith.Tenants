@@ -46,3 +46,14 @@ context:
 - R6 — low; patch. Invariant claims lacked their hash values and method. The same report preserves equal before/after root-index/frozen-block hashes and extraction rules, with original baseline and pointer evidence.
 
 All six findings were resolved within the authorized cache/evidence refresh. No findings were deferred. Documentation changes do not require repeating unchanged behavioral lanes.
+
+## File List
+
+- references/Hexalith.Memories
+- references/Hexalith.Platform
+
+## Completion Notes List
+
+- The user's commit `5bfe0715591ecae8790472b29bb0e7d8986da4ae` carried these two pointer moves after the reverification run. The lanes ran at the previous committed gitlinks, and no built input changed.
+- references/Hexalith.Memories 3e18d0dcdceb387eff89862c382637da89ad7e47 -> c46973679fcf09bdc5aab19928f2fe03dae82226
+- references/Hexalith.Platform eb864b75439371d2bd8fd8047bccb291c699d84c -> 495d1d0dfceb33e6bb628809a42a284526707ff6
