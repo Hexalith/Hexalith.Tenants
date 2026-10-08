@@ -3791,3 +3791,11 @@ Diff reviewed: Tenants `fe5f6aa2..0ac7c126`, story files only (HEAD `0ac7c126` =
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: medium; technical ServiceDefaults package exceptions are not scoped to published package layers.
   evidence: `scripts/validate-nuget-packages.py` allows both exact technical ServiceDefaults IDs for every package whose restore evidence includes them, including Contracts, Client, and Testing. Define and enforce the intended dependency layers in package architecture work; Story 5.6 adds executable exact-ID boundary coverage without changing that policy.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 19 (2026-10-08)
+
+Diff reviewed: Tenants `5289b86b..10c9f6f6` (the pass-17 fix pass), HEAD `10c9f6f6` = `origin/main`. Triage: 39 raw findings → 1 decision, 5 patches, 1 defer, 19 rejected.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; carried, updates the Chromium entry at `:3338`. Story Guards still fails at HEAD, but the 30-second bound now ends it at once instead of a 15-minute hang.
+  evidence: Run 37843324360, job 113537923481, at `10c9f6f6`: "Chromium scenario profile-shipped failed (exit 124; bound 30s)" with Chrome for Testing 153.0.8010.52, preceded only by dbus connection errors. Since `9ee73062` added `--no-sandbox`, Chrome 153 hangs on its first DOM dump instead of aborting with exit 134, so the `:3338` and `:3508` descriptions are out of date. Repairing the CI Chromium launch remains runner work; the story's EN/FR browser evidence is local-only (Chrome 154).

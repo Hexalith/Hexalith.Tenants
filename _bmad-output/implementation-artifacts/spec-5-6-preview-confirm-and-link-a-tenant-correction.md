@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -1904,3 +1904,93 @@ Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance
 - BH17, "the protected-content set excludes `scripts/` and `.github/`": false. This review re-ran the committed guard at HEAD and got PASS on this spec and `-3.md`, the same results as the archived logs.
 - ECH16 + ECH18 + ECH19, "commit messages misdescribe their content" (`9ee73062`, `57ee33ef` typed `feat:`, `0ac7c126`): low. All are pushed, so fixing them means rewriting published history. The pointer content is in the patch above, and no release ran for `57ee33ef`.
 - BH9 (consumer part), "this story's consumer treats PublishFailed as terminal": false. `TenantCorrectionPreviewSnapshot.cs:301` maps PublishFailed to `Degraded` with Refresh focus. The documentation part is the patch above.
+
+### Review Findings (pass 19: pass-17 fix pass `10c9f6f6`)
+
+Review date: 2026-10-08. This is pass 19 because pass 18 already ran inside the fix pass.
+
+Diff reviewed: Tenants `5289b86b..10c9f6f6` (15 files, +1,461/−500; 2,448-line scratch diff, SHA-256 `3a1c27d3…`). HEAD `10c9f6f6` = `origin/main`. The range moves no `references/` pointer.
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed.
+- `validate-story-gitlinks.py` at HEAD: this spec and `-3.md` exit 0; `-2.md` exits 1 (carried DW-198, pass-17 defer).
+- CI at `10c9f6f6`: CI, Source-reference integration, CodeQL and Commitlint pass. Story Guards fails (run 37843324360; see the defer below).
+- Triage: 39 raw findings → 1 decision (resolved into the first patch), 6 patches, 1 defer, 19 rejected (15 entries).
+
+- [x] [Review][Decision] D1: The read-only gate restore reverted only the panel branch of `5a3bc6dd`; the rest of its audit-surface changes still ship — medium.
+  - **What still ships from `5a3bc6dd`** (`git diff 5a3bc6dd^ 10c9f6f6`):
+    - `AuditDataGrid.razor:261-263`: `IsSupportedCorrection` accepts the GlobalAdministrators domain again. Story 5.5's closed patch (`spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md:274`) had removed exactly that. On a phone, a system row now reads "This supported correction is read-only on a phone. Use a measured tablet or desktop viewport to continue." (resx `:4105`). That sends a global administrator to a desktop where the row is still unavailable.
+    - `AuditDataGrid.razor:275` and `AuditEvidenceReceipt.razor:371` lost the `Tenants.Correction.Start.GlobalNotReady` branch. Desktop rows now read "Global administrator correction commands are not connected." (resx `:3754`), which looks like an outage rather than the Story 5.7 read-only boundary. `GlobalNotReady` is now referenced only by test localizer stubs.
+    - `TenantAuditPage.razor:1965-1979` still resolves global-administrator authorization and pages the whole global-administrator projection on every system audit load that has a global row, before applying the tenant captures. Its only consumer is the global-intent branch at `:1845-1868`, which can never be available because `HasGlobalAdministratorCommandSupport` is hard-coded `false` (`:1861`).
+    - `TenantCorrectionStartIntent.cs:171` still says "Fixed platform authority corrections use separate complete projection evidence" instead of the Story 5.7 compatibility note.
+  - **Tests.**
+    - The restored `TenantAuditPageKeepsGlobalAdministratorCorrectionReadOnlyEvenWithAuthority` (`TenantAuditPageTests.cs:1128`) asserts only non-empty text. Story 5.5's version, and its closed patch (`spec-5-5…md:268`, "asserted only as non-empty text … Assert the exact localized text"), pinned the exact GlobalNotReady copy. This weakening is why the copy regression passes the 3,979-test lane.
+    - `AuditDataGridCorrectionTests.cs:188` still carries `5a3bc6dd`'s inversion (`GlobalAdministratorRowsRespectTheMeasuredViewportGate`) of Story 5.5's `GlobalAdministratorRowsNeverClaimSupportedPhoneCorrection`.
+    - The new theory pins the extra reads (`GlobalAdminRequests.Count.ShouldBe(2)`, `:1175`).
+    - Verification Gap (pre-verified): with command support forced off, `GlobalAdministratorIncompleteEvidenceCannotEnableOrOpenCorrection` (`:1187`, 8 cases, added by `5a3bc6dd`) and `Tenant_audit_page_keeps_global_administrator_correction_fail_closed_when_unauthorized` (`:1533`) cannot detect a broken completeness or authority gate. The deleted `5289b86b:…TenantAuditPageTests.cs:1175` assertion was the last page-level pin of `CurrentProjectionUnavailable`.
+  - **Records that claim completion:** pass-17 patch #1 is `[x]`; "Pass-17 remediation verification" says "The tenant audit page again refuses global-administrator correction"; the paging-spec note says the audit-page branch "and its submission expectations are reverted".
+  - **Why this is a decision.** Dispatch is closed either way: no panel mounts, and `OpenCorrectionAsync` refuses non-tenant intents (`TenantAuditPage.razor:1562`). However, `spec-global-admin-projection-paging.md` (`in-review`, `:64`) lists complete-evidence "initial enrichment" on `TenantAuditPage` as its own deliverable, so removing the page load also removes part of that spec's work.
+  - **(a) Finish the revert (recommended).**
+    - Restore the `5a3bc6dd^` audit surface: tenant-only `IsSupportedCorrection`, the GlobalNotReady branch in the grid and the receipt, and the Story 5.7 comment. Remove the page's global evidence load, its fields and the global-intent branch.
+    - Restore the exact-copy assertion and `GlobalAdministratorRowsNeverClaimSupportedPhoneCorrection`. Remove or rewrite the page tests that pin global reads.
+    - Extend the paging-spec note: its audit-page enrichment is also reverted until Story 5.7. `GlobalAdministratorsProjectionLoader`, the panel, the snapshot and their own tests stay.
+    - Correct the three completion records above.
+  - **(b) Keep the enrichment for Story 5.7.**
+    - Restore the copy, `IsSupportedCorrection`, the comment and both exact-copy guards as in (a).
+    - Keep the page's complete-evidence load and global-intent branch. Add the Verification Gap assertions: `CurrentProjectionUnavailable` in the 8 incomplete cases, and `AuthorizationIndeterminate` plus `CurrentProjectionUnavailable` in the unauthorized case.
+    - Cost: every system audit load keeps paging the global-administrator projection for reasons that the GlobalNotReady copy does not display.
+  - **(c) Accept the current copy.** Record a dated user decision that "commands are not connected" and the phone "supported correction" text are acceptable until Story 5.7. Pin the restored page test to the current copy and add the Verification Gap assertions.
+  - **Resolved 2026-10-09: option (a).** The user chose to finish the revert. That is the first patch below.
+- [ ] [Review][Patch] Finish the `5a3bc6dd` revert on the tenant audit surface [src/Hexalith.Tenants.UI/Components/Tenants/Audit/AuditDataGrid.razor:261] — medium; from D1 (a).
+  - Restore the `5a3bc6dd^` code at each residual site:
+    - `AuditDataGrid.razor:261-263`: `IsSupportedCorrection` accepts only `TenantCorrectionCommandDomain.Tenants`.
+    - `AuditDataGrid.razor:275` and `AuditEvidenceReceipt.razor:371`: global-administrator intents render `Tenants.Correction.Start.GlobalNotReady`.
+    - `TenantCorrectionStartIntent.cs:171`: restore "Compatibility for Story 5.7. The tenant page always passes support=false."
+    - `TenantAuditPage.razor`: remove `_globalAdministratorsSnapshot`, `_globalAdministratorsAuthorization`, their reset at `:1455-1456`, the global-intent branch at `:1845-1868`, `LoadGlobalAdministratorCorrectionEvidenceAsync` and its call at `:1965-1979`. Global rows then go through the generic intent with `HasGlobalAdministratorCommandSupport: false`, as at `5a3bc6dd^`.
+  - Tests:
+    - `TenantAuditPageKeepsGlobalAdministratorCorrectionReadOnlyEvenWithAuthority` (`TenantAuditPageTests.cs:1128`) asserts the exact GlobalNotReady text again, as at `5a3bc6dd^:…TenantAuditPageTests.cs:1127-1128`.
+    - Restore `GlobalAdministratorRowsNeverClaimSupportedPhoneCorrection` in place of `GlobalAdministratorRowsRespectTheMeasuredViewportGate` (`AuditDataGridCorrectionTests.cs:188`).
+    - In `CompleteGlobalAdministratorEvidenceCannotArmAuditCorrectionEvenThroughADirectCallback`, drop the global-read setup and pins (`:1142-1144`, `:1147-1148`, `:1175`) and the `CurrentProjectionUnavailable` exclusion (`:1153`). Keep the no-panel, no-dispatch and no-status assertions.
+    - `GlobalAdministratorIncompleteEvidenceCannotEnableOrOpenCorrection` (`:1187`, added by `5a3bc6dd`) and the unauthorized fact (`:1533`) exercise page loading that no longer exists. Remove or reduce them to the read-only assertions, keeping standalone loader and panel coverage in their own classes.
+  - Mutation-verify: put back each of (1) the global domain in `IsSupportedCorrection`, (2) the removed GlobalNotReady branch in the grid, (3) the same in the receipt. Each must fail a named test.
+  - Records:
+    - Extend the paging-spec note (`spec-global-admin-projection-paging.md`, 2026-10-08 entry) to say the audit-page complete-evidence enrichment (`:64`) is also reverted until Story 5.7 enables global-administrator correction.
+    - Correct "Pass-17 remediation verification" and the pass-17 patch #1 record, both of which describe the restore as complete; name this patch.
+- [ ] [Review][Patch] The pass-18 ledger section has no "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3773] — low.
+  - This is the fourth recurrence: pass 13 fixed it for pass 12, pass 15 for pass 14, and pass 17 for pass 16.
+  - Fix: add "Diff reviewed: baseline `11e65e37` to the pre-patch working tree over root `5289b86b` (committed with its patches in `10c9f6f6`); input `/tmp/tenants-56-pass17-2kj37k80/pass18-reviewed-input.diff`, 2,657,085 bytes, SHA-256 `4692e954…`, not archived. Triage: 13 findings, 2 patches, 6 defers (5 new, 1 carried), 5 rejected."
+- [ ] [Review][Patch] Two pass-16 ledger entries still describe the audit-page panel as mounted or pending [_bmad-output/implementation-artifacts/deferred-work.md:3754] — low.
+  - `:3758` ("the tenant audit page can open and submit…") still says restoring the gate "is a blocking Story 5.6 patch". The panel branch was removed in `10c9f6f6`.
+  - `:3754` ("a loading audit surface may drop an in-flight global-administrator correction") says "The audit page mounts `GlobalAdministratorCorrectionPanel`". Since `10c9f6f6` it does not.
+  - Fix: mark `:3758` resolved by `10c9f6f6` (panel branch removed; the remaining residue is pass-19 D1). Re-scope `:3754` to Story 5.7: not reachable on the audit page; re-check it when Story 5.7 mounts the panel again.
+- [ ] [Review][Patch] The fix pass left stray blank lines in this spec [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:1885] — low.
+  - A blank line now splits the nested list of the pass-17 `-2.md` defer, between "Its File List covers only…" and "HEAD gives 4×…".
+  - Two blank lines precede "**Concurrent-revision closeout" (`:676-677`).
+  - Fix: delete the extra lines.
+- [ ] [Review][Patch] Two frozen-block hashes appear for an unchanged block, and neither names its method [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:664] — low.
+  - The pass-18 records cite `15e504ef…`. Pass 15 (`:696`), `-3.md:29` and pass 17 cite `f4cc2b4f…`, so a reader infers that the frozen block changed.
+  - This review recomputed `15e504ef…` as SHA-256 of the raw bytes from `<frozen-after-approval` through `</frozen-after-approval>`, with no trailing newline. The value is identical at `2b91b05b`, `5289b86b` and `10c9f6f6`, so only the extraction differs.
+  - Fix: name that method next to `15e504ef…` and say it replaces the `f4cc2b4f…` extraction, not the bytes.
+- [ ] [Review][Patch] The ServiceDefaults boundary test misses superstrings of the allowed IDs [tests/Hexalith.Tenants.Contracts.Tests/CiQualityGateScriptTests.cs:460] — low.
+  - `Hexalith.Tenants.ServiceDefaults` is listed in `FORBIDDEN_DEPENDENCY_IDS` (`scripts/validate-nuget-packages.py:21`), so it is rejected even if the exception logic breaks. Only `Other.Module.ServiceDefaults` exercises the exception boundary, and it kills only the suffix mutant. An exception widened to `startswith` or a substring match survives.
+  - Fix: add `Hexalith.EventStore.ServiceDefaults.Extensions` and `Evil.Hexalith.Commons.ServiceDefaults` as forbidden cases (both contain the `.ServiceDefaults` fragment, `:32`), plus one mixed-case forbidden ID.
+- [x] [Review][Defer] The Story Guards Chromium lane is still red at HEAD; it now fails fast instead of hanging [tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh:244] — deferred, carried (`deferred-work.md:3338`).
+  - Run 37843324360, job 113537923481, at `10c9f6f6`: "Chromium scenario profile-shipped failed (exit 124; bound 30s)" with Chrome for Testing 153.0.8010.52, preceded only by dbus connection errors. The job ended at 21:00:42, so the pass-17 bound works and the 15-minute hang is gone.
+  - Chrome 153 under `--no-sandbox` therefore hangs on its first DOM dump instead of aborting (exit 134 before `9ee73062`). The story's EN/FR browser evidence remains local-only (Chrome 154).
+  - The ledger entries at `:3338` and `:3508` still describe exit 134. Repairing the CI Chromium launch is runner work outside this story.
+
+#### Rejected (pass 19)
+
+- BH1 + ECH12 + AA provenance note, "`10c9f6f6` hides a security-boundary fix under 'chore: clean up…', and the records say no commit or push": low. Carried from pass-17 ECH16/18/19: the commit is pushed, so changing its message means rewriting published history. The "no staging, commit, push" sentences describe the remediation run, which is accurate. Unlike `9ee73062`, `10c9f6f6` carries nothing beyond the recorded remediation.
+- BH4 + ECH4, "the direct-callback theory still passes without the `OpenCorrectionAsync` domain guard": low. Removing that guard costs one extra tenant-projection read, after which the re-derived intent stays unavailable and nothing mounts. The pass-17 mutation (re-wiring the panel) fails the restored guard as required.
+- BH4, "a stale global callback resumes the tenant panel while a tenant attempt holds the lock": false. `ResumeCorrection` behaves the same for any callback while admission is blocked, and it reaches no global-administrator path.
+- BH8, "the new package test endorses the deferred layer-scoping defect, and two ledger items overlap": false. The test pins the validator's actual current policy; Blind 9 already records the layer change, which will update the test.
+- BH9, "`IsOlderThanParentCapture` lacks cross-target and null-version tests": the null part is false, because `CompareSequences` returns `Incomparable` for null and never refuses. The cross-target case is unreachable: the page passes `StartProjection` and `Intent` for the panel's own target. Low.
+- BH10 + ECH7, "a missing GNU `timeout` reports exit 127 as a Chromium failure": low. CI (ubuntu) and the WSL development hosts ship coreutils, and the fix adds a guard.
+- BH10, "`run_chromium` was never mutation-tested, and only the first launch is covered": low. All five launches call `run_chromium` (`:272`, `:368`, `:378`, `:390`, `:401`), and CI run 37843324360 shows the bound firing in practice (exit 124 at 30 s).
+- ECH8, "the fixture-export test executables are unbounded": low. In the CI run they completed before Chromium started, and bounding them adds wrappers.
+- ECH9, "the hanging-browser test ignores an inherited `TENANTS_BROWSER_BUILD_CONFIGURATION`": false. Carried from pass-17 BH12/ECH6/ECH9/ECH8: the SDK always emits `AssemblyConfigurationAttribute`, and the test deliberately sets the variable to the configuration of the assets it runs.
+- ECH5 + AA4, "a Confirm refused for an older read than the parent capture keeps showing the superseded facts with 'ProjectionRegressed' copy": low. It requires a role change to land during the Confirm read while the direct read lags behind the parent. The next Confirm re-reads and shows ChangedAtConfirm before any dispatch, and the fix adds a branch plus new EN/FR copy.
+- BH12 + VG other, "spec `done`, sprint `review`, and JSON `ready-for-review` disagree": low. This review's status sync sets the spec and sprint entries together.
+- BH13, "`browser.log` and `pass18-final-browser.log` are byte-identical, so no rerun is proven": low. The harness output contains no timestamps, so identical passing runs produce identical bytes. The browser fixtures do not exercise the Confirm race patch.
+- BH14, "four archived logs have no command record": low. They are intermediate runs; the acceptance evidence is the final logs, which the JSON binds to their commands.
+- BH15, "the pass-18 review input lives only in `/tmp`": low. The JSON discloses `raw_diff_archived: false`, as every earlier pass did.
+- BH16, "the JSON `*_clean` layer labels and the initial browser environment are misleading": low. Editing the permanent report would invalidate its recorded SHA-256 (`ab627a90…`).
