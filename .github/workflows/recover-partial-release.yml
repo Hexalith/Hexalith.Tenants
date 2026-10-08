@@ -24,10 +24,23 @@ jobs:
   recover:
     runs-on: ubuntu-latest
     environment: production
+    # NuGet.org publishes through Trusted Publishing; see release.yml. This workflow needs its own
+    # nuget.org policy: Hexalith / Hexalith.Tenants / recover-partial-release.yml / production.
     permissions:
       actions: read
       contents: write
+      id-token: write
     steps:
+      - name: Require the Trusted Publishing account
+        shell: bash
+        env:
+          NUGET_USER: ${{ vars.NUGET_USER }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NUGET_USER//[[:space:]]/}" ]; then
+            echo "The repository variable NUGET_USER must name the individual nuget.org account that created the Trusted Publishing policy." >&2
+            exit 1
+          fi
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.source_sha }}
@@ -54,13 +67,18 @@ jobs:
           HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
         run: bash scripts/validate-partial-release-recovery.sh "$RECOVERY_VERSION" "$RECOVERY_SOURCE_SHA"
+      - name: Exchange GitHub OIDC token for a temporary NuGet key
+        id: nuget-login
+        uses: NuGet/login@v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
       - name: Publish missing release artifacts
         env:
           GH_TOKEN: ${{ github.token }}
           RECOVERY_VERSION: ${{ inputs.version }}
           RECOVERY_SOURCE_SHA: ${{ inputs.source_sha }}
           GITHUB_SHA: ${{ inputs.source_sha }}
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
           HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
           HEXALITH_CONTAINER_PROJECTS: src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants

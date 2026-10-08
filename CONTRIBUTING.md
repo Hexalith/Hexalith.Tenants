@@ -119,6 +119,27 @@ the breaking commits it names are already in `3.2.x`. A consumer still on the Ma
 `09699ca` (container release moved to zot) and `f46264a` (fail-safe role/status enum defaults and
 consumer-contract hardening).
 
+## Release Publication Credentials
+
+NuGet packages are published to nuget.org through
+[Trusted Publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing). No NuGet API
+key is stored anywhere: the protected publishing job exchanges its GitHub OIDC token for a one-hour
+key with `NuGet/login` immediately before it pushes. nuget.org matches a policy against the workflow
+file that defines the job, so the publishing job lives in this repository instead of the shared
+Hexalith.Builds `domain-release.yml`.
+
+The `Hexalith` package owner on nuget.org needs one active policy per publishing workflow, both with
+repository owner `Hexalith`, repository `Hexalith.Tenants` and environment `production`:
+
+| Workflow file | Purpose |
+| --- | --- |
+| `release.yml` | Semantic Release publication |
+| `recover-partial-release.yml` | Completing a partially published version |
+
+Set the repository variable `NUGET_USER` to the individual nuget.org username that created those
+policies, not the `Hexalith` organization name. Both workflows fail before building when it is empty.
+Containers still publish to `registry.hexalith.com` with the `HEXALITH_ZOT_*` secrets.
+
 ## Test Requirements
 
 All pull requests must pass Tier 1 (unit) and Tier 2 (DAPR integration) tests.

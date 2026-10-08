@@ -754,27 +754,32 @@ public class PackageGovernanceTests {
         verifySourceJob.ShouldContain("no longer the live main tip");
         string releaseJob = GetYamlJobBlock(workflow, "release");
         releaseJob.ShouldContain("needs: verify-source");
-        releaseJob.ShouldContain("environment-name: production");
-        releaseJob.ShouldContain("expected-package-count: " + ExpectedPackageIds.Length.ToString(CultureInfo.InvariantCulture));
-        releaseJob.ShouldContain("package-manifest: tools/release-packages.json");
+        releaseJob.ShouldContain("environment: production");
+        releaseJob.ShouldContain("HEXALITH_RELEASE_ENVIRONMENT: production");
+        releaseJob.ShouldContain("HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT: '" + ExpectedPackageIds.Length.ToString(CultureInfo.InvariantCulture) + "'");
+        releaseJob.ShouldContain("HEXALITH_RELEASE_PACKAGE_MANIFEST: tools/release-packages.json");
+        releaseJob.ShouldContain("HEXALITH_RELEASE_SOURCE_BRANCH: main");
+        releaseJob.ShouldContain("HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml");
         workflow.ShouldContain("cancel-in-progress: false");
-        workflow.ShouldContain("solution: Hexalith.Tenants.slnx");
+        releaseJob.ShouldContain("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror");
 
-        // The reusable release workflow validates job.workflow_sha == builds-execution-sha, so the
-        // uses: revision and the input must be the same exact 40-hex Builds commit. A mutable ref
-        // or a mismatch between the two occurrences is a workflow startup_failure at dispatch.
-        (string Action, string Reference)[] releaseWorkflowReferences = [.. GetWorkflowActionReferences(workflow)
-            .Where(action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml", StringComparison.Ordinal))];
-        releaseWorkflowReferences.Length.ShouldBe(1, "The release job must call the shared domain-release workflow exactly once.");
-        string buildsExecutionSha = releaseWorkflowReferences[0].Reference;
+        // The release job is owned here so NuGet Trusted Publishing can name this workflow file, but
+        // the Builds composites it runs still load from one exact 40-hex Builds commit, checked out
+        // and verified locally. That commit is independent of the references/Hexalith.Builds gitlink.
+        Match buildsExecutionShaMatch = Regex.Match(releaseJob, @"(?m)^\s*HEXALITH_BUILDS_EXECUTION_SHA:\s*(?<sha>\S+)\s*$");
+        buildsExecutionShaMatch.Success.ShouldBeTrue("The release job must declare HEXALITH_BUILDS_EXECUTION_SHA.");
+        string buildsExecutionSha = buildsExecutionShaMatch.Groups["sha"].Value;
         IsFullCommitSha(buildsExecutionSha)
             .ShouldBeTrue($"The release workflow must pin an exact 40-hex Hexalith.Builds commit, not '{buildsExecutionSha}'.");
-        workflow.ShouldNotContain("domain-release.yml@main");
-        releaseJob.ShouldContain($"builds-execution-sha: {buildsExecutionSha}");
-        YamlBlockContainsKey(releaseJob, "dapr-version").ShouldBeFalse("Release uses the shared domain-release Dapr default instead of overriding it locally.");
-        workflow.ShouldContain("publish-containers: true");
-        workflow.ShouldContain("container-projects:");
-        string[][] containerMappings = GetYamlLiteralBlockLines(releaseJob, "container-projects")
+        releaseJob.ShouldContain("repository: Hexalith/Hexalith.Builds");
+        releaseJob.ShouldContain("ref: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}");
+        releaseJob.ShouldContain("path: .hexalith/builds-execution");
+        releaseJob.ShouldContain("git -C .hexalith/builds-execution rev-parse HEAD");
+        releaseJob.ShouldContain("uses: ./.hexalith/builds-execution/Github/initialize-build");
+        releaseJob.ShouldContain("uses: ./.hexalith/builds-execution/Github/publish-containers");
+        releaseJob.ShouldContain("builds-execution-sha: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}");
+        releaseJob.ShouldContain("container-projects: ${{ env.HEXALITH_CONTAINER_PROJECTS }}");
+        string[][] containerMappings = GetYamlLiteralBlockLines(releaseJob, "HEXALITH_CONTAINER_PROJECTS")
             .Select(mapping => mapping.Split('|', StringSplitOptions.TrimEntries))
             .ToArray();
         containerMappings.ShouldNotBeEmpty();
@@ -785,17 +790,13 @@ public class PackageGovernanceTests {
                 && (string.Equals(mapping[0], "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj", StringComparison.Ordinal)
                     || string.Equals(mapping[1], "tenants-ui", StringComparison.Ordinal)))
             .ShouldBeFalse("The UI image is environment-composed and must not be published by this release map.");
-        releaseJob.ShouldContain("secrets:");
-        releaseJob.ShouldContain("NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}");
         releaseJob.ShouldContain("HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}");
         releaseJob.ShouldContain("HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}");
         workflow.ShouldNotContain("secrets: inherit");
         // verify-source already proved this exact head green, so the release path must not rerun
-        // the test tiers. test-projects is declared explicitly and must stay empty.
-        releaseJob.ShouldContain("test-projects: ''");
-        foreach (string forbiddenReleaseInput in new string[] { "unit-test-projects", "integration-test-projects" }) {
-            YamlBlockContainsKey(releaseJob, forbiddenReleaseInput).ShouldBeFalse("Release is gated by CI and must not rerun test tiers.");
-        }
+        // the test tiers.
+        releaseJob.ShouldNotContain("dotnet test");
+        releaseJob.ShouldNotContain("dapr-init");
 
         workflow.ShouldNotContain("dotnet nuget push **");
         workflow.ShouldNotContain("recursive");
@@ -876,10 +877,37 @@ public class PackageGovernanceTests {
         }
 
         // Publication is the deliberate exception to the "latest main" rule for Hexalith.Builds
-        // references: every workflow the release path calls must be pinned to an exact commit.
+        // references: Builds code reaches the release path only through the checkout verified
+        // against HEXALITH_BUILDS_EXECUTION_SHA, never through a mutable remote reference.
+        string[] actionReferences = GetWorkflowUsesValues(workflow);
+        actionReferences.ShouldNotBeEmpty();
+        actionReferences.ShouldAllBe(
+            reference => !reference.StartsWith("Hexalith/Hexalith.Builds/", StringComparison.Ordinal),
+            "The release workflow must load Hexalith.Builds code only from the verified execution checkout.");
+        actionReferences.Where(reference => reference.StartsWith("./", StringComparison.Ordinal)).ShouldAllBe(
+            reference => reference.StartsWith("./.hexalith/builds-execution/Github/", StringComparison.Ordinal),
+            "Local actions in the release workflow must come from the verified Builds execution checkout.");
         GetWorkflowActionReferences(workflow).ShouldAllBe(
-            action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && IsFullCommitSha(action.Reference),
-            "The release workflow must pin every shared Hexalith.Builds workflow to an exact commit SHA.");
+            action => action.Reference != "main" && action.Reference != "master",
+            "Third-party release actions must reference a release tag or commit, not a moving branch.");
+    }
+
+    [Fact]
+    public void Release_workflows_publish_to_nuget_through_trusted_publishing() {
+        string repoRoot = FindRepoRoot();
+        string releaseWorkflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
+        string recoveryWorkflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/recover-partial-release.yml"));
+
+        // nuget.org rejects the long-lived organization key with 403 (run 37802538796). Each workflow
+        // that pushes packages exchanges its GitHub OIDC token for a one-hour key instead, and the
+        // nuget.org policy names that workflow file and the production environment.
+        AssertTrustedPublishingJob(releaseWorkflow, GetYamlJobBlock(releaseWorkflow, "release"), "Semantic Release");
+        AssertTrustedPublishingJob(recoveryWorkflow, GetYamlJobBlock(recoveryWorkflow, "recover"), "Publish missing release artifacts");
+
+        // OIDC issuance belongs to the protected publishing job alone: the unprotected preflight and
+        // the read-only postcondition must not be able to mint a NuGet key.
+        GetYamlJobBlock(releaseWorkflow, "verify-source").ShouldNotContain("id-token");
+        GetYamlJobBlock(releaseWorkflow, "verify-publication").ShouldNotContain("id-token");
     }
 
     [Fact]
@@ -1122,8 +1150,8 @@ public class PackageGovernanceTests {
         guardStep.ShouldContain("--max-time 30");
         guardStep.ShouldContain("--retry 3");
 
-        // Every uses: in this workflow must stay a pinned Hexalith.Builds reusable workflow, so the
-        // guard reads the manifest through the contents API rather than checking the source out.
+        // The unprotected job runs no actions, so the guard reads the manifest through the contents
+        // API rather than checking the source out.
         verifySourceJob.ShouldNotContain("uses:");
 
         // The inventory comes from the manifest; restating ids here would let the two drift apart.
@@ -1501,7 +1529,7 @@ public class PackageGovernanceTests {
         string releaseWorkflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
         string preflightWrapper = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-publication-preflight.sh"));
         string expectedCount = manifestIds.Length.ToString(CultureInfo.InvariantCulture);
-        releaseWorkflow.ShouldContain($"expected-package-count: {expectedCount}");
+        releaseWorkflow.ShouldContain($"HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT: '{expectedCount}'");
         preflightWrapper.ShouldContain($"expected_package_count={expectedCount}");
     }
 
@@ -2162,14 +2190,49 @@ public class PackageGovernanceTests {
     }
 
     private static (string Action, string Reference)[] GetWorkflowActionReferences(string workflow)
+        => GetWorkflowUsesValues(workflow)
+            .Select(value => value.Split('@'))
+            .Where(parts => parts.Length == 2)
+            .Select(parts => (Action: parts[0], Reference: parts[1]))
+            .ToArray();
+
+    private static string[] GetWorkflowUsesValues(string workflow)
         => workflow
+            .Replace("\r\n", "\n")
             .Split('\n')
             .Select(line => line.Trim())
+            .Select(line => line.StartsWith("- ", StringComparison.Ordinal) ? line[2..].TrimStart() : line)
             .Where(line => line.StartsWith("uses: ", StringComparison.Ordinal))
-            .Select(line => line["uses: ".Length..].Split('@'))
-            .Where(parts => parts.Length == 2)
-            .Select(parts => (Action: parts[0], Reference: parts[1].Split(' ')[0]))
+            .Select(line => line["uses: ".Length..].Split(' ')[0])
             .ToArray();
+
+    private static void AssertTrustedPublishingJob(string workflow, string job, string publishStepName) {
+        workflow.ShouldNotContain("secrets.NUGET_API_KEY");
+        workflow[..workflow.IndexOf("\njobs:", StringComparison.Ordinal)]
+            .ShouldNotContain("id-token", customMessage: "OIDC issuance must be granted on the publishing job, not the whole workflow.");
+        job.ShouldContain("environment: production");
+        job.ShouldContain("id-token: write");
+        GetWorkflowActionReferences(job).Count(action => action.Action == "NuGet/login").ShouldBe(1);
+
+        string guardStep = GetYamlStepBlock(job, "Require the Trusted Publishing account");
+        guardStep.ShouldContain("NUGET_USER: ${{ vars.NUGET_USER }}");
+        guardStep.ShouldContain("${NUGET_USER//[[:space:]]/}");
+
+        string loginStep = GetYamlStepBlock(job, "Exchange GitHub OIDC token for a temporary NuGet key");
+        loginStep.ShouldContain("id: nuget-login");
+        loginStep.ShouldContain("user: ${{ vars.NUGET_USER }}");
+        GetYamlStepBlock(job, publishStepName).ShouldContain("NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}");
+
+        // The account check fails before any build work; the one-hour key is minted only after the
+        // build, immediately before the step that pushes packages.
+        int guardIndex = job.IndexOf("- name: Require the Trusted Publishing account", StringComparison.Ordinal);
+        int loginIndex = job.IndexOf("- name: Exchange GitHub OIDC token for a temporary NuGet key", StringComparison.Ordinal);
+        int publishIndex = job.IndexOf($"- name: {publishStepName}", StringComparison.Ordinal);
+        guardIndex.ShouldBeLessThan(job.IndexOf("uses: actions/checkout@", StringComparison.Ordinal));
+        loginIndex.ShouldBeGreaterThan(job.IndexOf("actions/setup-dotnet@", StringComparison.Ordinal));
+        loginIndex.ShouldBeLessThan(publishIndex);
+        job[loginIndex..publishIndex].Split("- name: ").Length.ShouldBe(2, "No step may run between NuGet login and publication.");
+    }
 
     private static bool IsFullCommitSha(string value)
         => value.Length == 40 && value.All(IsLowerHexDigit);

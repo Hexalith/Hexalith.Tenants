@@ -157,8 +157,8 @@ jobs:
           floor_version="${floor_tag#v}"
 
           # tools/release-packages.json is the authoritative inventory. Read it at the exact
-          # dispatched source rather than checking out: this workflow deliberately uses no
-          # third-party actions, so the caller stays free of unpinned supply-chain surface.
+          # dispatched source rather than checking out: this unprotected job deliberately uses no
+          # actions, so it stays free of third-party supply-chain surface.
           if ! manifest_response="$(gh api "repos/${REPOSITORY}/contents/${PACKAGE_MANIFEST}?ref=${DISPATCH_SHA}")"; then
             echo "The release package manifest could not be read at the dispatched source." >&2
             exit 1
@@ -266,38 +266,182 @@ jobs:
           echo "Release tag floor ${floor_tag} is at or above every published version of the declared packages."
 
   release:
+    # NuGet.org publishes through Trusted Publishing: the job exchanges its GitHub OIDC token for
+    # a one-hour key immediately before Semantic Release, so no long-lived NuGet API key exists.
+    # nuget.org matches the policy against the workflow file that defines the job, so this job is
+    # owned here rather than delegated to Hexalith.Builds domain-release.yml: the nuget.org policy
+    # names Hexalith / Hexalith.Tenants / release.yml / production. It reproduces the steps of
+    # domain-release.yml at HEXALITH_BUILDS_EXECUTION_SHA, and the Builds composites it uses are
+    # loaded from that exact Builds commit, which is independent of the references/Hexalith.Builds
+    # gitlink.
+    name: Publish Tenants packages and container
     needs: verify-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: production
     permissions:
       actions: read
       contents: write
+      id-token: write
       issues: write
       pull-requests: write
-    # domain-release.yml enforces a supply-chain identity check: the reusable workflow
-    # must be pinned to an exact 40-hex Builds commit and the caller must pass
-    # builds-execution-sha equal to that same SHA (the reusable job validates
-    # job.workflow_sha == builds-execution-sha). A missing or mismatched input is a
-    # workflow startup_failure. @main cannot be used: main advances, so job.workflow_sha
-    # would drift out of match. Replace both occurrences together.
-    uses: Hexalith/Hexalith.Builds/.github/workflows/domain-release.yml@53d53ae42abf7c87d385a078ab260531480bbf8a
-    with:
-      solution: Hexalith.Tenants.slnx
-      timeout-minutes: 60
-      environment-name: production
-      publish-containers: true
-      builds-execution-sha: 53d53ae42abf7c87d385a078ab260531480bbf8a
-      source-branch: main
-      source-ci-workflow: ci.yml
-      package-manifest: tools/release-packages.json
-      expected-package-count: 5
-      # CI (the verify-source gate above) already tested this exact head; leave
-      # test-projects empty so the release path does not duplicate the test compute.
-      test-projects: ''
-      container-projects: |
+    env:
+      HEXALITH_BUILDS_EXECUTION_SHA: 53d53ae42abf7c87d385a078ab260531480bbf8a
+      HEXALITH_RELEASE_ENVIRONMENT: production
+      HEXALITH_RELEASE_SOURCE_BRANCH: main
+      HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml
+      HEXALITH_RELEASE_PACKAGE_MANIFEST: tools/release-packages.json
+      # Declared rather than counted from the manifest so an inventory change fails closed.
+      HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT: '5'
+      HEXALITH_CONTAINER_PROJECTS: |
         src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
-    secrets:
-      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-      HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
-      HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
+    # CI (the verify-source gate above) already tested this exact head, so the release path
+    # runs no test tiers.
+    steps:
+      - name: Require the Trusted Publishing account
+        shell: bash
+        env:
+          NUGET_USER: ${{ vars.NUGET_USER }}
+        run: |
+          set -euo pipefail
+          # Fail before the build rather than at login, after several minutes of work.
+          if [ -z "${NUGET_USER//[[:space:]]/}" ]; then
+            echo "The repository variable NUGET_USER must name the individual nuget.org account that created the Trusted Publishing policy." >&2
+            exit 1
+          fi
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Checkout approved Builds actions
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: Hexalith/Hexalith.Builds
+          ref: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}
+          path: .hexalith/builds-execution
+          persist-credentials: false
+      - name: Validate approved Builds execution identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$HEXALITH_BUILDS_EXECUTION_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "HEXALITH_BUILDS_EXECUTION_SHA must be an exact lowercase 40-character commit SHA." >&2
+            exit 1
+          fi
+          resolved_builds_sha="$(git -C .hexalith/builds-execution rev-parse HEAD)"
+          if [ "$resolved_builds_sha" != "$HEXALITH_BUILDS_EXECUTION_SHA" ]; then
+            echo "The checked-out Builds actions do not match the approved Builds identity." >&2
+            exit 1
+          fi
+      - name: Initialize root-declared submodules
+        uses: ./.hexalith/builds-execution/Github/initialize-build
+      - name: Initialize .NET
+        uses: actions/setup-dotnet@v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24'
+      - name: Cache NuGet packages
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('Directory.Packages.props', 'global.json', 'references/Hexalith.Builds/Props/Directory.Packages.props') }}
+          restore-keys: nuget-
+      - name: Validate declared package count
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Fail here rather than inside semantic-release: the container phase reads this value
+          # only after publishCmd has already pushed NuGet packages, so a late rejection would
+          # leave a half-published release.
+          if [[ ! "$HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+            echo "HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT must declare the package count as a positive integer." >&2
+            exit 1
+          fi
+          manifest_count="$(jq -er '.packages | length' "$HEXALITH_RELEASE_PACKAGE_MANIFEST")"
+          if [ "$manifest_count" != "$HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT" ]; then
+            echo "The package manifest lists ${manifest_count} packages, not the declared ${HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT}." >&2
+            exit 1
+          fi
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Verify npm dependency provenance and signatures
+        run: npm audit signatures
+      - name: Restore
+        run: dotnet restore Hexalith.Tenants.slnx
+      - name: Build
+        run: dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror
+      - name: Set up arm64 emulation
+        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4.2.0
+        with:
+          platforms: arm64
+      - name: Prepare release container publisher
+        uses: ./.hexalith/builds-execution/Github/publish-containers
+        with:
+          container-projects: ${{ env.HEXALITH_CONTAINER_PROJECTS }}
+          builds-execution-sha: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}
+      - name: Revalidate current source before Semantic Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$DISPATCH_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The dispatched release source must be an exact lowercase commit SHA." >&2
+            exit 1
+          fi
+          if [ "$HEXALITH_RELEASE_SOURCE_BRANCH" != "main" ]; then
+            echo "The release source branch must be exactly main." >&2
+            exit 1
+          fi
+
+          checked_out_sha="$(git rev-parse HEAD)"
+          if [[ ! "$checked_out_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The checked-out release source could not be resolved as an exact lowercase commit SHA." >&2
+            exit 1
+          fi
+          if [ "$checked_out_sha" != "$DISPATCH_SHA" ]; then
+            echo "The checked-out release source does not match the dispatched commit SHA." >&2
+            exit 1
+          fi
+
+          live_source_sha="$(gh api "repos/${REPOSITORY}/git/ref/heads/${HEXALITH_RELEASE_SOURCE_BRANCH}" --jq '.object.sha')"
+          if [[ ! "$live_source_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The live ${HEXALITH_RELEASE_SOURCE_BRANCH} SHA could not be resolved as an exact lowercase commit SHA." >&2
+            exit 1
+          fi
+          if [ "$checked_out_sha" != "$live_source_sha" ]; then
+            echo "The release source became stale during setup. Redispatch Release from the new ${HEXALITH_RELEASE_SOURCE_BRANCH} tip after exact-source CI succeeds." >&2
+            exit 1
+          fi
+      # The temporary key lives for one hour, so it is minted only after the build and the
+      # source proof, immediately before the step that publishes.
+      - name: Exchange GitHub OIDC token for a temporary NuGet key
+        id: nuget-login
+        uses: NuGet/login@v1.2.0
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Semantic Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          HEXALITH_ZOT_REGISTRY: ${{ vars.HEXALITH_ZOT_REGISTRY || 'registry.hexalith.com' }}
+          HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
+          HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
+        run: npx semantic-release
+      - name: Upload complete release evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: release-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .hexalith/release-evidence/**
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 30
 
   verify-publication:
     name: Verify exact source was published
