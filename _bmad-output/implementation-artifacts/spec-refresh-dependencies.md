@@ -51,6 +51,7 @@ context:
 ## Tasks & Acceptance
 
 **Execution:**
+- [ ] `references/Hexalith.Builds/Props/Directory.Packages.props`, `Tools/package-version-audit.json`, and `_bmad-output/project-context.md` -- apply the user's 2026-10-08 continuation: upgrade the aligned EventStore family to exactly `3.117.0`, refresh supported authoritative evidence, and validate the Tenants package consumer against those published packages.
 - [x] `references/Hexalith.Builds/Tools/package-version-audit.json` -- regenerate live authoritative package evidence using the tracked audit workflow -- prevents stale or semantically mis-ranked choices.
 - [x] `references/Hexalith.Builds/Props/Directory.Packages.props` and `Tools/package-version-exceptions.json` -- update only Tenants-consumed eligible packages and aligned families -- resolves effective NuGet drift without broadening to unrelated consumers.
 - [x] `src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj` -- align the Aspire SDK with the admitted Aspire Hosting version -- keeps AppHost tooling coherent.
@@ -73,6 +74,8 @@ context:
 ## Design Notes
 
 "Latest" means latest eligible, not highest SemVer string. The Builds audit and exception validators are the authority for TFM compatibility, stable/prerelease channels, family rollback groups, Dapr locks, and the Microsoft.OpenApi 2.x hold. A rejected candidate is a successful compatibility decision when its evidence is preserved.
+
+The user explicitly requested EventStore `3.117.0` on 2026-10-08 after the missing administrator-contract blocker. All 13 centrally aligned EventStore package IDs publish that stable version on NuGet.org. This continuation targets that exact family version. Preserve unrelated concurrent work and historical verification; capture new commands/results separately. Prepare and validate the upgrade without staging, committing, or bypassing the audit's committed-catalog provenance requirement. If supported audit generation or validation rejects an uncommitted declaration, retain the concrete upgrade and its build evidence as a pending governed change and report the exact blocker.
 
 ## Verification
 
@@ -102,7 +105,9 @@ context:
 - `_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 - `_bmad-output/implementation-artifacts/spec-refresh-dependencies-evidence-2026-10-08.json`
 - `_bmad-output/implementation-artifacts/dependency-refresh-evidence-2026-10-08.json` -- separately attributed delegated implementation checks; preserves the concurrent evidence above.
+- `references/Hexalith.Builds/Props/Directory.Packages.props` -- pending governed EventStore `3.117.0` family upgrade.
 - `references/Hexalith.Builds/Tools/package-version-audit.json`
+- `_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.0-evidence-2026-10-08.json` -- separately attributed continuation checks.
 - `references/Hexalith.AI.Tools`
 - `references/Hexalith.Builds`
 - `references/Hexalith.Commons`
@@ -144,3 +149,16 @@ The preceding spec update and `spec-refresh-dependencies-evidence-2026-10-08.jso
 - After the delegated compatible lockfile refresh, final `npm ci --ignore-scripts`, `npm outdated --json` (`{}`), and `npm audit signatures` pass with **503 signatures and 134 attestations**. Safe `npm audit fix --ignore-scripts` leaves **15 advisories** (13 high, two moderate) because bundled dependencies cannot be automatically replaced and other remedies require incompatible release-tool downgrades. These final lockfile results supersede this implementation's earlier 509/130 observation; the other session's evidence remains intact.
 - All nine current root HEADs equal their observed live tips and all nested submodules remain uninitialized. This delegated implementation fast-forwarded **Platform only**, `794e8c63fe945bf689064edb8a406801810cb4cf -> f043a2f242762233091abdaa5bbe1ab777bd0f12`. Builds/EventStore/AppHost SDK/context changes were inherited or concurrent. It did not stage, commit, push, initialize nested dependencies, or change product code.
 - The delegated central-catalog, audit, SDK-exception and Dapr validators passed; the gitlink-validator regression suite passed **23 tests**. The existing Aspire topology was inspected through `aspire ps`/`aspire describe` (19 resources Running, one Finished) and was not restarted amid concurrent product edits. Full acceptance remains blocked, so status stays `in-progress`.
+
+## EventStore 3.117.0 Continuation Verification (2026-10-08)
+
+This supplement preserves the earlier run's observations and records the explicitly requested `3.117.0` continuation separately in `dependency-refresh-eventstore-3.117.0-evidence-2026-10-08.json`. The earlier missing published administrator-verification API blocker is resolved by this package version; the historical source and broad-build results above are not reclassified.
+
+- The supported command `pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1 -PriorAuditPath ./Tools/package-version-audit.json -ChangedFamily hexalith-eventstore`, run in Builds before the catalog edit, refreshed one family and preserved 145 families across 304 packages. It binds committed Builds `ad52c5bdd4361c59eedf12a16620150006403584` at `2026-10-08T09:24:57.5078060+00:00`. All 13 EventStore IDs report latest listed stable `3.117.0`; every other package row and family decision is preserved unchanged.
+- The single `HexalithEventStoreVersion` declaration now prepares all 13 aligned catalog packages at exactly `3.117.0`; catalog UTF-8 BOM and CRLF are preserved. The project context records the resulting version and pending audit governance. No other family, npm package, product code or gitlink was changed by this continuation.
+- Current package-only Release host restore and warning-as-error build pass with zero warnings/errors. `project.assets.json` selects published EventStore `3.117.0`, including `DomainService` and `Gateway`; the prior missing administrator-verification APIs no longer prevent compilation.
+- Current package-only Release tests pass without `--no-build`: **Server 825**, **Contracts 144**, totaling **969 passed, zero failed/skipped**. Explicit Debug/source and Release/package MSBuild evaluations retain `net10.0` and `3.117.0` while selecting complementary EventStore project/package edges.
+- Central catalog validation passes for 304 entries and SDK/tool exception validation passes for 15 entries. Full solution acceptance checks remain with the parent implementation workflow.
+- **Pending governed change:** supported post-edit audit regeneration exits **1** with `Central package freshness audit failed: catalog 'Props/Directory.Packages.props' is dirty relative to generated-from revision 'ad52c5bdd4361c59eedf12a16620150006403584'.` The generated pre-edit artifact remains truthful: its accepted selection is the committed `3.115.0`, with `3.117.0` recorded as the current listed candidate. `pwsh -NoProfile -File ./Tools/validate-package-version-audit.ps1` exits **1** with **14 errors**: the catalog hash mismatch and one unmatched accepted selection for each of the 13 prepared EventStore pins. The provenance requirement was not bypassed, and no staging or commit was performed. An accepted `3.117.0` audit requires the owning Builds catalog change to be committed through its governed workflow, then supported regeneration and validation.
+
+The continuation remains unchecked and the spec remains `in-progress` until governed audit acceptance and the remaining broad gates succeed. Raw focused logs are under `/tmp/tenants-eventstore-3117-*`; the evidence artifact records their SHA-256 digests and exact commands.

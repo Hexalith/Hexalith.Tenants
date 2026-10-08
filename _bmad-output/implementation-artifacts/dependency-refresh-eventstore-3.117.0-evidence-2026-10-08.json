@@ -1,0 +1,413 @@
+{
+  "schemaVersion": 1,
+  "continuation": "EventStore 3.117.0 prepared governed upgrade",
+  "capturedAtUtc": "2026-10-08T09:30:04.794788+00:00",
+  "status": "pending-governed-acceptance",
+  "rootHead": "b5821e2d1c3fe11c33631f562d07fa10b7bd773a",
+  "buildsHead": "ad52c5bdd4361c59eedf12a16620150006403584",
+  "requestedEventStoreVersion": "3.117.0",
+  "previousCommittedEventStoreVersion": "3.115.0",
+  "preparedCatalogSha256": "6403d1f6bf03e230041c13ccae36caee1304111f9e180356787a49fac3f3f642",
+  "authoritativeAudit": {
+    "generatedFromRevision": "ad52c5bdd4361c59eedf12a16620150006403584",
+    "snapshot": {
+      "mode": "incremental",
+      "auditedAtUtc": "2026-10-08T09:24:57.5078060+00:00",
+      "refreshedFamilies": [
+        "hexalith-eventstore"
+      ],
+      "preservedFamilyCount": 145
+    },
+    "packages": [
+      {
+        "id": "Hexalith.EventStore.Admin.Abstractions",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.Admin.Server",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.Aspire",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.Client",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.Contracts",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.DomainService",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.Gateway",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.RestApi.Generators",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.Server",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.ServiceDefaults",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.SignalR",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.Testing",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      },
+      {
+        "id": "Hexalith.EventStore.Testing.Integration",
+        "auditedVersion": "3.115.0",
+        "selectedVersion": "3.115.0",
+        "latestStable": "3.117.0",
+        "listingState": "listed",
+        "disposition": "retained",
+        "sourceResults": [
+          {
+            "source": "https://api.nuget.org/v3/index.json",
+            "listingState": "listed",
+            "latestStable": "3.117.0",
+            "latestPrerelease": null,
+            "diagnostic": "Registration metadata resolved."
+          }
+        ]
+      }
+    ],
+    "unchangedNonEventStorePackageRowsAndFamilyDecisions": true,
+    "acceptedSelectionStillBoundToCommittedCatalog": "3.115.0"
+  },
+  "checks": [
+    {
+      "command": "pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1 -PriorAuditPath ./Tools/package-version-audit.json -ChangedFamily hexalith-eventstore",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "exitCode": 0,
+      "result": "Supported pre-edit incremental refresh succeeded: 304 packages, EventStore refreshed, 145 other families preserved.",
+      "log": "/tmp/tenants-eventstore-3117-audit-before.log",
+      "logSha256": "18b6831b0c32d935009203a5cf4a9745b221ce3c51bb8dab6611b6fa019946ee"
+    },
+    {
+      "command": "pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1 -PriorAuditPath ./Tools/package-version-audit.json -ChangedFamily hexalith-eventstore",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "exitCode": 1,
+      "result": "Prepared catalog is dirty relative to generated-from revision ad52c5bdd4361c59eedf12a16620150006403584; no post-edit accepted snapshot emitted.",
+      "log": "/tmp/tenants-eventstore-3117-audit-after-generation.log",
+      "logSha256": "060151d9d4e755991dfbb4484d97daac6cd3e216a65bee7f5abe82062757aaa7"
+    },
+    {
+      "command": "pwsh -NoProfile -File ./Tools/validate-package-version-audit.ps1",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "exitCode": 1,
+      "result": "14 expected governance failures: catalogSha256 mismatch and unmatched accepted audit selections for all 13 prepared EventStore pins.",
+      "log": "/tmp/tenants-eventstore-3117-audit-after-validation.log",
+      "logSha256": "28827513fd0674952fceb8aebe0253fd79226264cb4199c4fad424445e5eb662"
+    },
+    {
+      "command": "pwsh -NoProfile -File ./Tools/validate-central-package-versions.ps1",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "exitCode": 0,
+      "result": "304 centralized entries validated.",
+      "log": "/tmp/tenants-eventstore-3117-central-validation.log",
+      "logSha256": "b69fe13defdfc0d9b747bceaff9e06ecf31012255eb9924f561c9ed19e5b96c8"
+    },
+    {
+      "command": "pwsh -NoProfile -File ./Tools/validate-package-version-exceptions.ps1 -InventoryPath ./Tools/package-version-exceptions.json -CatalogPath ./Props/Directory.Packages.props",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "exitCode": 0,
+      "result": "15 SDK/tool exceptions validated.",
+      "log": "/tmp/tenants-eventstore-3117-exceptions-validation.log",
+      "logSha256": "6ef800d670a4228bfe7d0b687ac1e1f50a178e82b7f2700a663902839dad4d49"
+    },
+    {
+      "command": "dotnet restore src/Hexalith.Tenants/Hexalith.Tenants.csproj -p:Configuration=Release -p:UseNuGetDeps=true",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "exitCode": 0,
+      "result": "Package consumer restore succeeded; resolved assets select EventStore 3.117.0.",
+      "log": "/tmp/tenants-eventstore-3117-host-restore.log",
+      "logSha256": "40d104602671164ab3958225da3e1c8cabd55f0251d6df6bc911d9d5a24f44ce"
+    },
+    {
+      "command": "dotnet build src/Hexalith.Tenants/Hexalith.Tenants.csproj --no-restore --configuration Release -warnaserror -p:UseNuGetDeps=true -m:1",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "exitCode": 0,
+      "result": "Host build passed with zero warnings/errors, resolving the administrator-verification API gap.",
+      "log": "/tmp/tenants-eventstore-3117-host-build.log",
+      "logSha256": "bc56001ffefdf3b157dd7d0171fe8a769ef49d45347e32877a1283f0da4441b2"
+    },
+    {
+      "command": "dotnet test --project tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "exitCode": 0,
+      "result": "825 passed, zero failed/skipped; current package-mode build and test, no --no-build.",
+      "log": "/tmp/tenants-eventstore-3117-server-tests.log",
+      "logSha256": "bdc3e6af37e0c916f9f795ab48f9ca38b892616242e18f5686a4e558a95f0fa1"
+    },
+    {
+      "command": "dotnet test --project tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "exitCode": 0,
+      "result": "144 passed, zero failed/skipped; includes package/source selection governance, no --no-build.",
+      "log": "/tmp/tenants-eventstore-3117-contracts-tests.log",
+      "logSha256": "fa521d7f0b070c1f150b8abad1d81cd179a11aa2d29b428e7d8dc9ffc5760106"
+    }
+  ],
+  "sourcePackageEvaluation": {
+    "Debug-source": {
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+        "-nologo",
+        "-p:Configuration=Debug",
+        "-p:UseNuGetDeps=false",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithEventStoreFromSource,UseNuGetDeps,UseHexalithProjectReferences",
+        "-getItem:PackageReference,ProjectReference"
+      ],
+      "exitCode": 0,
+      "evaluation": {
+        "Properties": {
+          "TargetFramework": "net10.0",
+          "HexalithEventStoreVersion": "3.117.0",
+          "HexalithEventStoreFromSource": "true",
+          "UseNuGetDeps": "false",
+          "UseHexalithProjectReferences": "true"
+        },
+        "Items": {
+          "PackageReference": [],
+          "ProjectReference": [
+            "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Gateway/Hexalith.EventStore.Gateway.csproj",
+            "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/Hexalith.EventStore.DomainService.csproj"
+          ]
+        }
+      }
+    },
+    "Release-package": {
+      "command": [
+        "dotnet",
+        "msbuild",
+        "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+        "-nologo",
+        "-p:Configuration=Release",
+        "-p:UseNuGetDeps=true",
+        "-getProperty:TargetFramework,HexalithEventStoreVersion,HexalithEventStoreFromSource,UseNuGetDeps,UseHexalithProjectReferences",
+        "-getItem:PackageReference,ProjectReference"
+      ],
+      "exitCode": 0,
+      "evaluation": {
+        "Properties": {
+          "TargetFramework": "net10.0",
+          "HexalithEventStoreVersion": "3.117.0",
+          "HexalithEventStoreFromSource": "",
+          "UseNuGetDeps": "true",
+          "UseHexalithProjectReferences": "false"
+        },
+        "Items": {
+          "PackageReference": [
+            "Hexalith.EventStore.Gateway",
+            "Hexalith.EventStore.DomainService"
+          ],
+          "ProjectReference": []
+        }
+      }
+    }
+  },
+  "resolvedPackageConsumerAssets": {
+    "Hexalith.Tenants": [
+      "Hexalith.EventStore.Admin.Abstractions/3.117.0",
+      "Hexalith.EventStore.Client/3.117.0",
+      "Hexalith.EventStore.Contracts/3.117.0",
+      "Hexalith.EventStore.DomainService/3.117.0",
+      "Hexalith.EventStore.Gateway/3.117.0",
+      "Hexalith.EventStore.Server/3.117.0",
+      "Hexalith.EventStore.ServiceDefaults/3.117.0"
+    ],
+    "Hexalith.Tenants.Server": [
+      "Hexalith.EventStore.Client/3.117.0",
+      "Hexalith.EventStore.Contracts/3.117.0",
+      "Hexalith.EventStore.DomainService/3.117.0",
+      "Hexalith.EventStore.Server/3.117.0",
+      "Hexalith.EventStore.ServiceDefaults/3.117.0"
+    ],
+    "Hexalith.Tenants.Contracts": [
+      "Hexalith.EventStore.Contracts/3.117.0"
+    ]
+  },
+  "limitations": [
+    "Accepted audit snapshot cannot be regenerated for an uncommitted catalog; staging/committing/bypassing provenance are prohibited by the spec.",
+    "Broad acceptance gates are handed to the parent implementation workflow; focused evidence alone does not imply full acceptance."
+  ],
+  "preservedUserWork": [
+    "_bmad-output/implementation-artifacts/spec-frontcomposer-tab-contract.md",
+    "Existing dependency spec history and evidence files"
+  ],
+  "stagedCommittedPushed": false,
+  "updatedGitlinks": false,
+  "initializedNestedSubmodules": false
+}
