@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-08",
+  "story_key": "5-6-preview-confirm-and-link-a-tenant-correction",
+  "source": "Observed tool results from this workflow run; raw console logs were not retained. This structured report records commands, outcomes and verification scope.",
+  "hash_method": {
+    "index": "SHA-256 of bytes at git rev-parse --git-path index, resolved from repository root",
+    "frozen_block": "SHA-256 of spec.read_bytes().split(b'<frozen-after-approval', 1)[1].split(b'</frozen-after-approval>', 1)[0]"
+  },
+  "invariants_before": {
+    "head": "fcdcb4205a3f6e46f736cdd3e6f2b20ca2f241df",
+    "index_sha256": "7db47af78fb512821d8adebe4364a7765d36cef1487eff841760a33a20a3fe4d",
+    "frozen_sha256": "f4cc2b4f01d2bc0e3426ff40040c8c5d14c5416dc91cb6d709cc5c68a9e4c866",
+    "gitlinks": "160000 commit 3f194e17174994d308ec84af9ee2b5aa68674d0d\treferences/Hexalith.AI.Tools\n160000 commit f717a87c26a8266bdde95d18f998ef2ab366d43a\treferences/Hexalith.Builds\n160000 commit 116d26815eb81e35b3c161e1799e5ee12805fc0a\treferences/Hexalith.Commons\n160000 commit 9542d3c9f48bf9ce1c57f2ef68904703eaba56cc\treferences/Hexalith.EventStore\n160000 commit 0e114214007c22f5cdbac21a6853cff4208340ee\treferences/Hexalith.FrontComposer\n160000 commit e159f82b7528797fc245045625ff387d65294ba9\treferences/Hexalith.McpCli\n160000 commit 3e18d0dcdceb387eff89862c382637da89ad7e47\treferences/Hexalith.Memories\n160000 commit eb864b75439371d2bd8fd8047bccb291c699d84c\treferences/Hexalith.Platform\n160000 commit 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375\treferences/Hexalith.PolymorphicSerializations",
+    "baseline_commit": "11e65e37f0fbf6649642a512052eebd37d50166d",
+    "eventstore_baseline_commit": "b51978dd1d2a3721ad239db2623e1560377c7583"
+  },
+  "invariants_after": {
+    "head": "fcdcb4205a3f6e46f736cdd3e6f2b20ca2f241df",
+    "index_sha256": "7db47af78fb512821d8adebe4364a7765d36cef1487eff841760a33a20a3fe4d",
+    "frozen_sha256": "f4cc2b4f01d2bc0e3426ff40040c8c5d14c5416dc91cb6d709cc5c68a9e4c866",
+    "gitlinks": "160000 commit 3f194e17174994d308ec84af9ee2b5aa68674d0d\treferences/Hexalith.AI.Tools\n160000 commit f717a87c26a8266bdde95d18f998ef2ab366d43a\treferences/Hexalith.Builds\n160000 commit 116d26815eb81e35b3c161e1799e5ee12805fc0a\treferences/Hexalith.Commons\n160000 commit 9542d3c9f48bf9ce1c57f2ef68904703eaba56cc\treferences/Hexalith.EventStore\n160000 commit 0e114214007c22f5cdbac21a6853cff4208340ee\treferences/Hexalith.FrontComposer\n160000 commit e159f82b7528797fc245045625ff387d65294ba9\treferences/Hexalith.McpCli\n160000 commit 3e18d0dcdceb387eff89862c382637da89ad7e47\treferences/Hexalith.Memories\n160000 commit eb864b75439371d2bd8fd8047bccb291c699d84c\treferences/Hexalith.Platform\n160000 commit 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375\treferences/Hexalith.PolymorphicSerializations",
+    "baseline_commit": "11e65e37f0fbf6649642a512052eebd37d50166d",
+    "eventstore_baseline_commit": "b51978dd1d2a3721ad239db2623e1560377c7583"
+  },
+  "all_invariants_equal": true,
+  "results": [
+    {
+      "cwd": ".",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q",
+      "exit_code": 1,
+      "result": "CS1704: duplicate Hexalith.Commons.UniqueIds source/package assemblies; stale dependency-mode assets. Resolved by the following restore."
+    },
+    {
+      "cwd": ".",
+      "command": "dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -p:UseNuGetDeps=false -m:1 -v:q",
+      "exit_code": 0
+    },
+    {
+      "cwd": ".",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q",
+      "exit_code": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "cwd": ".",
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore",
+      "exit_code": 0,
+      "passed": 3986,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Complete Tenants UI test project"
+    },
+    {
+      "cwd": ".",
+      "command": "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+      "exit_code": 0,
+      "browser": "Google Chrome 154.0.8037.57",
+      "scope": "Rendered EN/FR start/preview/recovery and static focus helpers; desktop/narrow/forced-colors and negative controls; no authenticated live-command assertion"
+    },
+    {
+      "cwd": "references/Hexalith.EventStore",
+      "command": "dotnet restore tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -p:UseNuGetDeps=false -m:1 -v:q",
+      "exit_code": 0
+    },
+    {
+      "cwd": "references/Hexalith.EventStore",
+      "command": "dotnet build tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q",
+      "exit_code": 0,
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "cwd": "references/Hexalith.EventStore",
+      "command": "dotnet test --project tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-class '*StateMachineIntegrationTests' --filter-class '*EventDrainRecoveryTests' --filter-class '*AggregateActorIdempotencyTests' --filter-class '*EventPublicationIntegrationTests' --filter-class '*CommandStatusControllerTests'",
+      "exit_code": 0,
+      "passed": 165,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Five existing command-proof test classes; not the complete Server project"
+    },
+    {
+      "cwd": ".",
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+      "exit_code": 0,
+      "scope": "Eight bound baseline-to-current target declarations; original baseline preserved"
+    },
+    {
+      "cwd": ".",
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md",
+      "exit_code": 0,
+      "scope": "No pointer movement since the separate reverification baseline"
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ]
+}

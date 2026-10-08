@@ -4,7 +4,7 @@
 
 ## Goal
 
-Let authorized users inspect tenant and platform-authority activity through contextual, support-safe audit evidence and tell proven evidence apart from pending, delayed, unavailable, or unsupported evidence. Users correct mistakes with new forward compensating commands, and each correction's preview, projection confirmation, and linked proof stay separate from the immutable original record. The epic extends evidence and recovery across the Epic 2–4 command domains. Epic 2 still owns minimum removal proof. Existing Epic 5 code is historical evidence to reverify against the current contracts, not proof of completion.
+Enable authorized investigation and compensating access corrections with linked proof. History is immutable; command lifecycle, projection confirmation, and audit evidence remain separate. Historical implementation requires reverification.
 
 ## Stories
 
@@ -18,57 +18,35 @@ Let authorized users inspect tenant and platform-authority activity through cont
 
 ## Requirements & Constraints
 
-- **Audit list:** tenant-scoped, authorization-safe, and in authoritative timestamp/tie-breaker order with no client re-sort. Filters: absolute date range and `AuditEventCategory` (`Access`/`Administrative`). Paging uses cursors only. Cursors are opaque, protected, bound to caller, tenant, and filter, and never visible or logged. A scope change or invalid cursor restarts at page 1 with an honest notice.
-- **List states:** loading, empty, filtered-empty, error, stale, degraded, unauthorized, invalid-cursor, and unavailable stay distinct, each with a recovery. Last-confirmed rows are reused only for the identical scope.
-- **Performance:** no numeric claim until Product/Operations approves the audit-performance decision record. It covers the 500-event dataset, page size and filters, environment, percentile budgets, test tier, repeatability, and fallback trigger. Story 5.1 is not Ready without it. A miss switches to the approved stricter paging or virtualization with no loss of order, cursor, accessibility, or safety guarantees.
-- **Contextual reach:** open audit from a tenant row, tenant detail, a user lookup or member row, or a command result. Add no shell navigation entry or global inventory. User context is a hint unless server-filtered, so never imply exhaustive results. Missing scope, authorization, or support fails closed with an inline reason.
-- **Receipt:** seven fields only: actor, target, tenant scope, outcome, absolute timestamp with an explicit UTC offset, projection marker, and approved audit/command reference. Build it only from an authorized row in the loaded result. An absent reference shows inspect-audit/unavailable; never scan hidden pages. Copying goes through the support-safe classifier.
-- **Availability:** `audit pending`, `audit delayed`, `audit unavailable`, and `missing implementation support` are distinct from each other and from proven `audit available`. None is shown as success or enables a correction. Command lifecycle, projection truth, and audit evidence are separate typed dimensions. Command status, event counts, confirmation, and SignalR never yield `audit available`.
-- **Corrections:**
-  - Always new forward commands. Never edit or relabel events, projections, or stores. Never use `undo`, `rollback`, or `hidden edit`.
-  - Starting one requires complete evidence, current authorization, a current projection, command support, and a safe viewport. Otherwise show the canonical inline reason and its recovery.
-  - Confirmed only when the expected postcondition holds plus a projection-version advance or attempt-specific provenance beyond the pre-submit baseline. A pre-existing state is `already applied` (no dispatch). Missing provenance is `unable to verify`.
-  - Projection confirmation and corrective audit evidence are shown separately.
-- **Readiness:** WCAG 2.1 AA, EN/FR whole-string parity with named placeholders, responsive safety, stable selectors, and focused tests. Mobile is read-only audit reference; unsafe widths disable correction visibly.
+- Audit is contextual, without another shell entry or global inventory. User context is a hint unless server-filtered.
+- Preserve authoritative timestamp/tie-breaker order. Date/category (`Access`/`Administrative`) filters reset paging. Protected opaque cursors bind caller, tenant, and filters; invalidation restarts page 1 with a notice. Never expose cursors or use offset paging.
+- Keep loading, empty, filtered-empty, error, stale, degraded, unauthorized, invalid-cursor, and unavailable distinct. Recover explicitly; reuse rows only within identical authorized scope.
+- Audit readiness requires Product/Operations approval of dataset shape (500 events), page/filter mix, environment, percentile budgets, test tier, repeatability, and fallback. Claim no numeric budget beforehand; misses activate approved stricter paging/virtualization.
+- Receipts contain actor, target, tenant scope, outcome, absolute timestamp, projection marker, and approved reference. Resolve authorized loaded rows only; absent references offer inspect-audit/paging recovery without hidden-page scans. Classify copy for support safety.
+- `audit pending`, `audit delayed`, `audit unavailable`, and `missing implementation support` differ from proven `audit available`; none enables correction or success treatment. Status, event counts, SignalR, and projection confirmation cannot prove audit evidence.
+- Correction requires complete evidence, current projection/lifecycle, authorization, command support, aggregate admission, and safe viewport. Otherwise fail closed visibly. Never edit events/projections/stores or use `undo`, `rollback`, or `hidden edit` copy.
 
 ## Technical Decisions
 
-- **Reads:** the InteractiveServer BFF reads Tenants REST directly: `GET /api/tenants/{tenantId}/audit`, plus the existing tenant member and `/api/global-administrators` reads for current state. Never the generic EventStore query route, never browser-to-backend calls or browser-held tokens, and no new audit, receipt, preview, correction, or proof endpoints.
-- **Support-safety boundary:** the BFF maps allow-listed `NarrativePayload` fields into typed, localized view models. The receipt target resolves `userId`, then `key`, then `TenantId`. Raw narrative, payloads, tokens, claims, MessageIds or correlation IDs, ETags, cursors, metadata, stack traces, and PII never reach component state, copy, announcements, or logs.
-- **Freshness:** use `ReadModelFreshnessState` (wire values `current`/`stale`/`unknown`). `ServedAt` never substitutes for projection time. The projection marker shows safe provenance, never a raw ETag.
-- **Presentation:** approved fallbacks only: a Tenants-owned flat Fluent audit DataGrid and an inline consequence preview. No generic `<AuditTimeline>` in Tenants.
-- **Tenant correction:** after a fresh membership re-query:
-  - Absent target: `AddUserToTenant` with an explicit role that is not `Unknown` and not inferred from history.
-  - Role differs: `ChangeUserRole`.
-  - Same role: `already applied`.
-  - Empty tenant: the domain bootstrap path with an explicit owner role.
-- **Global-admin correction:**
-  - Mapping: a `GlobalAdministratorRemoved` receipt maps only to `SetGlobalAdministrator`, and a `GlobalAdministratorSet` receipt only to `RemoveGlobalAdministrator`.
-  - Scope: fixed `system` / `global-administrators` / `global-administrators`, never tenant membership.
-  - Current state: page the full projection until presence and count are authoritative.
-  - Blocks: one remaining administrator or an uncertain count blocks before submit, with no override.
-  - Rejections: raced `GlobalAdministratorAlreadyExists` and `GlobalAdministratorNotFound` stay rejections. `LastGlobalAdministrator` is a hard stop.
-- **Dispatch:** existing commands via `POST /api/v1/commands` with one retained ULID attempt ID. Lock per `(circuit, AggregateIdentity)` until terminal evidence. Refresh, reconnect, or a duplicate click never creates a second attempt.
-- **Single refresh:** each refresh cycle reuses one authoritative snapshot for conflict checks, confirmation, safety and count checks, and proof search.
-- **Proof linking:** link original and corrective receipts both ways only through deterministic attempt-specific provenance plus a match on event, scope, target, time boundary, and baseline. A target/time match or an in-memory association is not enough. Neither record changes.
-- **Identifiers and vocabulary:** TenantId and UserId are literal strings, never parsed as a GUID or ULID. Tokens come from the shared vocabulary; `audit pending` and `audit_pending` stay distinct.
-- **CLI/MCP:** any exposure goes through `Hexalith.McpCli` contract enrollment, never a module-specific CLI or MCP host.
+- InteractiveServer BFF gateways own backend access. Use direct Tenants REST reads (`GET /api/tenants/{tenantId}/audit`), EventStore commands/status, and no new endpoints or generic EventStore read routing.
+- BFF redaction emits safe localized models. Target precedence: `userId`, `key`, `TenantId`. Raw narrative/payloads, tokens/claims, correlations/MessageIds, ETags/cursors, metadata/diagnostics, and unapproved PII cannot enter component output/serialization, copy, announcements, or logs.
+- Use shared typed immutable truth/vocabulary and `ReadModelFreshnessState` (`current`/`stale`/`unknown` on wire). `ServedAt` never represents projection age. Separate confirmed data from intent; preserve badge `audit pending` versus machine `audit_pending`. TenantId/UserId remain literal strings.
+- A restore intent uses current membership to select `AddUserToTenant` or `ChangeUserRole`; a role-change intent with an absent target blocks and requires an explicit supported path. Matching role means `already applied`, without dispatch. Require explicit non-`Unknown` role; empty-tenant recovery requires Owner and current global authority.
+- Platform scope is fixed: `system` / `global-administrators` / `global-administrators`. Removal evidence maps to grant and vice versa. Fully page presence/count; uncertain count or last-administrator removal blocks without override. Raced rejections remain rejections.
+- Dispatch through `POST /api/v1/commands` with one retained ULID attempt ID. Lock `(interactive circuit, AggregateIdentity)` across sibling flows until terminal evidence. Tenant correction's approved bounded retention expiry releases admission but retains the old attempt for available status recovery; a fresh current-state preview may replace it. Never redispatch the expired attempt; refresh/reconnect/duplicates cannot rearm submission.
+- Status polling/SignalR nudges trigger re-query. Reuse one snapshot per refresh cycle for conflict, safety/count, confirmation, and proof eligibility. Tenant correction requires verified eventful completion for the exact attempt and `system`/`tenants`/tenant-aggregate scope, with a positive committed end sequence beyond the preview baseline. Only a fresh matching projection reaching that sequence can confirm; generic advancement and unrelated role cycles cannot. Pre-existing state/NoOp is `already applied`; missing/invalid proof is `unable to verify`.
+- Bidirectional proof requires re-derivable attempt provenance plus event/scope/target/time-boundary/baseline matching. Coincidence or in-memory association is insufficient; neither record changes.
 
 ## UX & Interaction Patterns
 
-- **Grid:** timestamp, actor, outcome, category, freshness, and reference stay available at every width. Filtered-empty offers a reset.
-- **Receipt:** field/value semantics with monospace IDs and timestamps. Success styling only for `audit available`. Pending is Informative, delayed Warning, unavailable Severe, and missing support Subtle, always icon plus text.
-- **Entry points:** preserve the origin (tab, scope, search, filter, sort, cursor, selection, scroll) and return focus to the launcher. If that is impossible, focus the origin heading and show a notice. Return URLs stay under Tenants routes.
-- **Correction preview:**
-  - Ten items: original reference, scope, target, current state, intended command and its impact, freshness, authorization/admission readiness, recovery path, proof expectation, and known consequences versus unknowns. Any missing item blocks confirmation.
-  - Escape and cancel dispatch nothing, and focus returns to the launching receipt or row.
-  - The inline lifecycle panel never overwrites last-confirmed data.
-- **Live regions:** polite for progress. Assertive for rejection, failure, `unable to verify`, degraded, and blockers. Never announce success before projection truth.
-- **Recovery verbs:** `wait`, `refresh`, `retry status lookup`, `inspect audit`, `continue read-only`, `request permission`, `escalate`, `start correction`, and `restore intended access`.
+- Compose FrontComposer/Fluent UI V5; generic infrastructure remains FrontComposer-owned. Fallbacks: flat audit grid and inline structured preview.
+- Preview requires ten items: original reference and absolute timestamp; scope; target; current state and role; intended command/explicit role and owner-count impact; freshness; authorization/admission; recovery; proof expectation; known consequences versus unknowns. Missing items block confirmation.
+- Preserve origin context and launcher focus; fallback to origin heading with a notice. Return URLs remain under Tenants routes. Escape/cancel dispatch nothing.
+- Preserve safety fields at every width; mobile is read-only reference and unsafe widths visibly disable correction. Require WCAG 2.1 AA, EN/FR whole-string parity with named placeholders, stable selectors, and focused accessibility/responsive evidence.
+- Use absolute offset-explicit timestamps, monospace identifiers, field pairs, icon plus text, and dedicated announcement intent: progress polite; failures/blockers/degraded/unverifiable assertive. Provide canonical named recoveries.
 
 ## Cross-Story Dependencies
 
-- 5.1's grid and safe row model feed 5.2 entry points and 5.3 receipts. 5.2 uses only the shared availability model and does not wait for 5.4. 5.4's state and recovery mapping is reused by every evidence and correction surface.
-- 5.5 hands a non-submitting current-state intent to 5.6, which owns preview, dispatch, confirmation, and proof. 5.5 sends global-admin evidence to 5.7. Until 5.7 is complete, global-admin correction shows `high-impact flow not ready`.
-- 5.7 reuses Epic 4 (4.1 availability; 4.2–4.3 grant/remove) plus 5.1–5.4 and 5.6's proof and single-refresh work. It may be delivered as tasks 5.7a and 5.7b but is complete only as a whole.
-- Tenant correction builds on Epic 2 membership flows. Former Story 5.8 work is folded into 5.6/5.7, and no current 5.8 exists.
+- 5.1 feeds 5.2–5.3; 5.2 uses shared availability without waiting for 5.4 recovery detail.
+- 5.5 supplies non-submitting intent to 5.6 using Epic 2 commands. Global-admin correction belongs to 5.7; until complete, show `high-impact flow not ready`.
+- 5.7 reuses Epic 4 and Epic 5 evidence/proof foundations. Former 5.8 is folded into 5.6/5.7. Epic 2 owns minimum removal proof.

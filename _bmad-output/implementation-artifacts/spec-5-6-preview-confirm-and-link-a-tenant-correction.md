@@ -174,7 +174,7 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 - The root workspace declares McpCli and Platform as root paths. Their current committed revisions, along with the other root dependencies, are recorded below. No nested submodule was initialized and no package version was changed by this run.
 - The story's security-guard change permits the exact password-free GitHub SSH transport identity; regressions retain password, scheme, host and unknown-username rejection, including mixed safe/credential URLs on one or separate lines. That change disabled no content scan. Separately, EventStore `38efbefd5da65d538723f9f85eca6a186dfc0a2f` added `ExplicitEvidenceArtifactPathPattern`, which skips the four historical failing locations before reading their content, and also skips future `_bmad-output/implementation-artifacts/evidence/**.ctrf.json` files. This path exclusion is why the historical artifact violations no longer reproduce. In pass 13 (D2), the user accepted that upstream commit as this story's resolution of the historical blocker. The high, EventStore-owned pass-12 BH1 follow-up remains in `deferred-work.md` under "Restore content scanning or governed, content-bound retirement for EventStore evidence paths currently skipped by the secret guard".
 
-| Dependency | Original story baseline | Accepted committed checkout at current HEAD |
+| Dependency | Original story baseline | Accepted checkout at pass-14 completion (2026-10-05) |
 | --- | --- | --- |
 | references/Hexalith.Builds | 3639c8d9340fc81d6f8e0a90566a97e56d5d8446 | ba4ca78c3868a4757cb92d912a54c8a237871b54 |
 | references/Hexalith.Commons | c13dc6679aa91144b6d541078f3f20019d79c2eb | 116d26815eb81e35b3c161e1799e5ee12805fc0a |
@@ -197,6 +197,17 @@ The following baseline-to-accepted statements bind all eight table rows to the e
 - references/Hexalith.PolymorphicSerializations 4252c432ca1ba27a8571a082372b9384f3d13299 -> 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375
 - references/Hexalith.McpCli 0000000000000000000000000000000000000000 -> e159f82b7528797fc245045625ff387d65294ba9
 - references/Hexalith.Platform 0000000000000000000000000000000000000000 -> 54920908f15a99b48e69861baf306365353fc6df
+
+**Current dependency record (2026-10-08):** The table and statements above preserve the accepted pass-14 tree. Later dependency work advanced five checkouts; the following statements supersede their historical targets for the baseline-to-current-tree guard. These are existing committed build inputs, not dependency changes made by this reverification. Root HEAD is `fcdcb4205a3f6e46f736cdd3e6f2b20ca2f241df`. EventStore, Memories and Platform last moved in `1dffe336c9fde823b7b8ed6df9d63019dae64b90`; FrontComposer last moved in `e3bfdcc8cd3b3d9769e24f461b812d0a4f96cfcf`; Builds last moved in the root HEAD commit. Original story baselines and frozen decisions are unchanged.
+
+- references/Hexalith.Builds 3639c8d9340fc81d6f8e0a90566a97e56d5d8446 -> f717a87c26a8266bdde95d18f998ef2ab366d43a
+- references/Hexalith.Commons c13dc6679aa91144b6d541078f3f20019d79c2eb -> 116d26815eb81e35b3c161e1799e5ee12805fc0a
+- references/Hexalith.EventStore 2c58ffda41759e895ace4b9625c9bd931a217672 -> 9542d3c9f48bf9ce1c57f2ef68904703eaba56cc
+- references/Hexalith.FrontComposer 24033f75357eb16eee9aa8899bb9eaf50f2168ad -> 0e114214007c22f5cdbac21a6853cff4208340ee
+- references/Hexalith.Memories ece4edc4c9a37a62b34d3b7c8aa901fc363c038c -> 3e18d0dcdceb387eff89862c382637da89ad7e47
+- references/Hexalith.PolymorphicSerializations 4252c432ca1ba27a8571a082372b9384f3d13299 -> 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375
+- references/Hexalith.McpCli 0000000000000000000000000000000000000000 -> e159f82b7528797fc245045625ff387d65294ba9
+- references/Hexalith.Platform 0000000000000000000000000000000000000000 -> eb864b75439371d2bd8fd8047bccb291c699d84c
 
 ## Spec Change Log
 
@@ -591,6 +602,16 @@ The new intervening-role-reversal witness demonstrates that generic version adva
 The authorized audit response drops command correlation. EventStore creates a new event MessageId, exposed as `TenantAuditEntry.EventId`; it cannot identify the command attempt. The existing matcher and `#audit-...` fragment prove nothing. Epic 5 requires missing-support state when association cannot be re-derived.
 
 ## Verification
+
+**Current dependency reverification (2026-10-08):** Root `fcdcb4205a3f6e46f736cdd3e6f2b20ca2f241df`, EventStore `9542d3c9f48bf9ce1c57f2ef68904703eaba56cc`, and the current targets recorded in Completion Notes were preserved. Read-only investigation found no unmet frozen acceptance criterion. This pass refreshes completion evidence and the required Epic 5 context cache without production/test changes.
+
+- UI `dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -p:UseNuGetDeps=false -m:1 -v:q`, then `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q`: exit 0, zero build warnings/errors. The initial no-restore build failed with CS1704 from mixed source/package UniqueIds assets; restoring the existing mode resolved it without dependency edits.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore`: **3,986 passed**, zero failed/skipped.
+- From EventStore, restore/build its Server.Tests project with the same source/Debug/serialized flags: exit 0, zero build warnings/errors. `dotnet test --project tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-class '*StateMachineIntegrationTests' --filter-class '*EventDrainRecoveryTests' --filter-class '*AggregateActorIdempotencyTests' --filter-class '*EventPublicationIntegrationTests' --filter-class '*CommandStatusControllerTests'`: **165 passed**, zero failed/skipped. This repeats the existing command-proof lane, not the entire Server suite.
+- `TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh`: exit 0, Chrome 154.0.8037.57; rendered EN/FR start/preview/recovery, desktop/narrow/forced-colors, exact recovery focus and negative controls passed. Scope remains rendered fixtures and static focus helpers, without an authenticated live-command claim.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`: exit 0 after correcting five stale target claims. All eight declarations bind current committed targets; earlier accepted targets and later dependency provenance remain recorded above. Root `git diff --check` passes.
+- Original frozen bytes, both original baseline identifiers, root HEAD/index and all dependency pointers are unchanged. Spec remains done; sprint remains review. No staging, commits, pushes, package updates or submodule initialization occurred. The bounded reverification is tracked in `spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md`.
+- Permanent results and preservation evidence: `story-5-6-reverification-2026-10-08.json`, SHA-256 `6ec3b0a0803711377d40ac4df2d9cf3929905629af1957f64d92f49b7d5a5705`. It records observed tool results, full commands/scopes, equal before/after index and frozen-block hashes, and the extraction method. Raw console logs were not retained. Independent review identified six cache/evidence corrections, all resolved in the bounded refresh with no production changes or deferrals.
 
 **Pass-14 final verification and completion (2026-10-05):** All five pass-13 documentation patches and both pass-14 review patches are complete. The owner count is computed once after the existing membership/authority guards. The durable publication regression now retains the second fresh command's identity, reads its stored Completed status, asserts EventCount 2 and CommittedEventSequence 4, and verifies its persisted range 3–4. Focused source-mode builds reported 0 warnings/errors; the owner-count lane passed 19 cases and the publication regression passed 1 case. Logs: `/tmp/tenants-56-review-fixes-{ui-build,ui-tests,es-build,es-test}.log`.
 
