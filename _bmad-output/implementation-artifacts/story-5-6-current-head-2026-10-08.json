@@ -1,0 +1,295 @@
+{
+  "date": "2026-10-08",
+  "recorded_at_utc": "2026-10-08T17:07:22.991512+00:00",
+  "story_key": "5-6-preview-confirm-and-link-a-tenant-correction",
+  "verification_spec": "spec-5-6-preview-confirm-and-link-a-tenant-correction-3.md",
+  "source": "Fresh command results; complete stdout/stderr logs retained in the named archive. No new behavioral implementation.",
+  "hash_method": {
+    "index": "SHA-256 of bytes at git rev-parse --git-path index for each owning repository; git --no-optional-locks prevents status index refresh",
+    "frozen_block": "SHA-256 of original_spec.read_bytes().split(b\"<frozen-after-approval\",1)[1].split(b\"</frozen-after-approval>\",1)[0]",
+    "log": "SHA-256 of complete combined stdout/stderr log bytes"
+  },
+  "invariants_before": {
+    "root_head": "032573384d3df4bc7a5bc0e69945ecca4e00967f",
+    "root_index_sha256": "df11055670bb09ab920d774ca9b71abcd4bdec1803b50406635edcab6f48b1e6",
+    "original_frozen_sha256": "f4cc2b4f01d2bc0e3426ff40040c8c5d14c5416dc91cb6d709cc5c68a9e4c866",
+    "original_baseline_commit": "11e65e37f0fbf6649642a512052eebd37d50166d",
+    "eventstore_baseline_commit": "b51978dd1d2a3721ad239db2623e1560377c7583",
+    "submodules": {
+      "references/Hexalith.AI.Tools": {
+        "gitlink": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "head": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "index_sha256": "9cfbaf93dc6992ed0fec7e927b09fb26a20c918ef637eec13d3270d5a02ca284",
+        "status": ""
+      },
+      "references/Hexalith.Builds": {
+        "gitlink": "58d9b546b4741a246121ab40fc3945703db2e19b",
+        "head": "58d9b546b4741a246121ab40fc3945703db2e19b",
+        "index_sha256": "27ae99fa97dac4d83cfcd49746b115c9109a8e31624d34caea6b267eb8c7eb33",
+        "status": ""
+      },
+      "references/Hexalith.Commons": {
+        "gitlink": "b247ed116c6523f8c596ec0a933eff8973d11568",
+        "head": "b247ed116c6523f8c596ec0a933eff8973d11568",
+        "index_sha256": "dc01506fa22dac51030c87fd8bd230c49461d4e16ec4daa09f3fb66c0a5bb56a",
+        "status": ""
+      },
+      "references/Hexalith.EventStore": {
+        "gitlink": "8dd7dc2ecdb2c06ecb900676042aa42b66619ee0",
+        "head": "8dd7dc2ecdb2c06ecb900676042aa42b66619ee0",
+        "index_sha256": "7625befcff4f68aa2776a47b61a2f36bdf099b55e01c69b854d08b163ae055de",
+        "status": ""
+      },
+      "references/Hexalith.FrontComposer": {
+        "gitlink": "0e114214007c22f5cdbac21a6853cff4208340ee",
+        "head": "0e114214007c22f5cdbac21a6853cff4208340ee",
+        "index_sha256": "f6fe97dd7b471db2c12e47211056a99a66ed195a9e76f0bcce3b96efae31b40b",
+        "status": ""
+      },
+      "references/Hexalith.McpCli": {
+        "gitlink": "e159f82b7528797fc245045625ff387d65294ba9",
+        "head": "e159f82b7528797fc245045625ff387d65294ba9",
+        "index_sha256": "c48b0673d1bbd50ab66318b9de3a9813e268f4e0a5d27ccee6635c25b6cacd05",
+        "status": ""
+      },
+      "references/Hexalith.Memories": {
+        "gitlink": "8c7c1e9621ecae31150f0e6ae65f3ce6ca81cbed",
+        "head": "8c7c1e9621ecae31150f0e6ae65f3ce6ca81cbed",
+        "index_sha256": "d30cc90c905d4fdb90a3ad517909d786bcc894d5bd2d7f3959d16179b8ae6d5a",
+        "status": ""
+      },
+      "references/Hexalith.Platform": {
+        "gitlink": "d103ab8cdd3e523ca42ded8135cf7fdb0eeb792b",
+        "head": "d103ab8cdd3e523ca42ded8135cf7fdb0eeb792b",
+        "index_sha256": "6a0c03eeee8e74a94691640c3b403473304aea3fc1a0ed399d3de3a635fa98e8",
+        "status": ""
+      },
+      "references/Hexalith.PolymorphicSerializations": {
+        "gitlink": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "head": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "index_sha256": "e741d8bef9222d5a63c4f13c343cd5af516e9e12ccc5a305e281ebbb11455134",
+        "status": ""
+      }
+    },
+    "package_configuration_sha256": {
+      "Directory.Build.props": "d527484a6528bd36087a222951b7b8b3cdc46f1f886c6c7b38ae6be2f95750a0",
+      "Directory.Packages.props": "c8351c554ea90792eae487eadd8d6a08faeb0719e62341a929d81f7f44fdcd08",
+      "global.json": "25b36d45123efa1d03786506dadad7546069f8563cddd4b509849b5c3631e9f5",
+      "references/Hexalith.Builds/Props/Directory.Packages.props": "66dafc002f544948ed192971265f4490b11f1c359004cbb486849d8568a3cb5c"
+    }
+  },
+  "invariants_after": {
+    "root_head": "032573384d3df4bc7a5bc0e69945ecca4e00967f",
+    "root_index_sha256": "df11055670bb09ab920d774ca9b71abcd4bdec1803b50406635edcab6f48b1e6",
+    "original_frozen_sha256": "f4cc2b4f01d2bc0e3426ff40040c8c5d14c5416dc91cb6d709cc5c68a9e4c866",
+    "original_baseline_commit": "11e65e37f0fbf6649642a512052eebd37d50166d",
+    "eventstore_baseline_commit": "b51978dd1d2a3721ad239db2623e1560377c7583",
+    "submodules": {
+      "references/Hexalith.AI.Tools": {
+        "gitlink": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "head": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "index_sha256": "9cfbaf93dc6992ed0fec7e927b09fb26a20c918ef637eec13d3270d5a02ca284",
+        "status": ""
+      },
+      "references/Hexalith.Builds": {
+        "gitlink": "58d9b546b4741a246121ab40fc3945703db2e19b",
+        "head": "58d9b546b4741a246121ab40fc3945703db2e19b",
+        "index_sha256": "27ae99fa97dac4d83cfcd49746b115c9109a8e31624d34caea6b267eb8c7eb33",
+        "status": ""
+      },
+      "references/Hexalith.Commons": {
+        "gitlink": "b247ed116c6523f8c596ec0a933eff8973d11568",
+        "head": "b247ed116c6523f8c596ec0a933eff8973d11568",
+        "index_sha256": "dc01506fa22dac51030c87fd8bd230c49461d4e16ec4daa09f3fb66c0a5bb56a",
+        "status": ""
+      },
+      "references/Hexalith.EventStore": {
+        "gitlink": "8dd7dc2ecdb2c06ecb900676042aa42b66619ee0",
+        "head": "8dd7dc2ecdb2c06ecb900676042aa42b66619ee0",
+        "index_sha256": "7625befcff4f68aa2776a47b61a2f36bdf099b55e01c69b854d08b163ae055de",
+        "status": ""
+      },
+      "references/Hexalith.FrontComposer": {
+        "gitlink": "0e114214007c22f5cdbac21a6853cff4208340ee",
+        "head": "0e114214007c22f5cdbac21a6853cff4208340ee",
+        "index_sha256": "f6fe97dd7b471db2c12e47211056a99a66ed195a9e76f0bcce3b96efae31b40b",
+        "status": ""
+      },
+      "references/Hexalith.McpCli": {
+        "gitlink": "e159f82b7528797fc245045625ff387d65294ba9",
+        "head": "e159f82b7528797fc245045625ff387d65294ba9",
+        "index_sha256": "c48b0673d1bbd50ab66318b9de3a9813e268f4e0a5d27ccee6635c25b6cacd05",
+        "status": ""
+      },
+      "references/Hexalith.Memories": {
+        "gitlink": "8c7c1e9621ecae31150f0e6ae65f3ce6ca81cbed",
+        "head": "8c7c1e9621ecae31150f0e6ae65f3ce6ca81cbed",
+        "index_sha256": "d30cc90c905d4fdb90a3ad517909d786bcc894d5bd2d7f3959d16179b8ae6d5a",
+        "status": ""
+      },
+      "references/Hexalith.Platform": {
+        "gitlink": "d103ab8cdd3e523ca42ded8135cf7fdb0eeb792b",
+        "head": "d103ab8cdd3e523ca42ded8135cf7fdb0eeb792b",
+        "index_sha256": "6a0c03eeee8e74a94691640c3b403473304aea3fc1a0ed399d3de3a635fa98e8",
+        "status": ""
+      },
+      "references/Hexalith.PolymorphicSerializations": {
+        "gitlink": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "head": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "index_sha256": "e741d8bef9222d5a63c4f13c343cd5af516e9e12ccc5a305e281ebbb11455134",
+        "status": ""
+      }
+    },
+    "package_configuration_sha256": {
+      "Directory.Build.props": "d527484a6528bd36087a222951b7b8b3cdc46f1f886c6c7b38ae6be2f95750a0",
+      "Directory.Packages.props": "c8351c554ea90792eae487eadd8d6a08faeb0719e62341a929d81f7f44fdcd08",
+      "global.json": "25b36d45123efa1d03786506dadad7546069f8563cddd4b509849b5c3631e9f5",
+      "references/Hexalith.Builds/Props/Directory.Packages.props": "66dafc002f544948ed192971265f4490b11f1c359004cbb486849d8568a3cb5c"
+    }
+  },
+  "all_invariants_equal": true,
+  "tracked_changed_paths": [
+    "_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md"
+  ],
+  "archive": {
+    "file": "story-5-6-current-head-raw-logs-2026-10-08.zip",
+    "sha256": "b61a48df8a889734813bd8d6faf3e6c03eb0955198b67751aaad2dcc237156be",
+    "contents": [
+      "after.json",
+      "before.json",
+      "browser.log",
+      "diff-check.log",
+      "es-build.log",
+      "es-restore.log",
+      "es-tests.log",
+      "finalize_evidence.py",
+      "gitlinks-before.log",
+      "gitlinks-current.log",
+      "gitlinks-new-spec.log",
+      "initial-guard.json",
+      "results.json",
+      "run_lane.py",
+      "snapshot.py",
+      "ui-build.log",
+      "ui-restore.log",
+      "ui-tests.log"
+    ]
+  },
+  "initial_guard": {
+    "cwd": ".",
+    "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+    "exit_code": 1,
+    "duration_seconds": 0.061,
+    "log": "gitlinks-before.log",
+    "log_sha256": "25493ea2e23928a10c14858390331218db3eedc4e4f51eb7cf26d70ef810ad88",
+    "scope": "Before documentation refresh: five stale targets; resolved by gitlinks-current.log"
+  },
+  "results": [
+    {
+      "cwd": ".",
+      "command": "dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -p:UseNuGetDeps=false -m:1 -v:q",
+      "exit_code": 0,
+      "duration_seconds": 2.571,
+      "log": "ui-restore.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Validation prerequisite or documentation guard"
+    },
+    {
+      "cwd": ".",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q",
+      "exit_code": 0,
+      "duration_seconds": 17.532,
+      "log": "ui-build.log",
+      "log_sha256": "251b519d42c898a59b851fa6ad4b5c5124e744b0773ac6ba333dc3af18a26f8e",
+      "warnings": 0,
+      "errors": 0,
+      "scope": "Validation prerequisite or documentation guard"
+    },
+    {
+      "cwd": ".",
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore",
+      "exit_code": 0,
+      "duration_seconds": 42.652,
+      "log": "ui-tests.log",
+      "log_sha256": "c33395bc87cf9a9c354ffb12c64fedae6cda3ba200d28db8b76b6c6ceb118fd1",
+      "passed": 3986,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Complete Tenants UI project; Debug/source references"
+    },
+    {
+      "cwd": ".",
+      "command": "env TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+      "exit_code": 0,
+      "duration_seconds": 24.993,
+      "log": "browser.log",
+      "log_sha256": "8f0cbf4821c5f5eb1c9a389ba2daf8fbc12c9e5d61f1d025cba3c79aa839760c",
+      "scope": "Rendered EN/FR component fixtures and static focus helpers: desktop, narrow viewport, forced colors and negative controls; no authenticated live-command egress assertion"
+    },
+    {
+      "cwd": "references/Hexalith.EventStore",
+      "command": "dotnet restore tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -p:UseNuGetDeps=false -m:1 -v:q",
+      "exit_code": 0,
+      "duration_seconds": 2.449,
+      "log": "es-restore.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Validation prerequisite or documentation guard"
+    },
+    {
+      "cwd": "references/Hexalith.EventStore",
+      "command": "dotnet build tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q",
+      "exit_code": 0,
+      "duration_seconds": 27.174,
+      "log": "es-build.log",
+      "log_sha256": "b43439095a7f7fd0fc0dde8f5a899333d5acfc5e7d6b17cd55e2687a5a14faf0",
+      "warnings": 0,
+      "errors": 0,
+      "scope": "Validation prerequisite or documentation guard"
+    },
+    {
+      "cwd": "references/Hexalith.EventStore",
+      "command": "dotnet test --project tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-class '*StateMachineIntegrationTests' --filter-class '*EventDrainRecoveryTests' --filter-class '*AggregateActorIdempotencyTests' --filter-class '*EventPublicationIntegrationTests' --filter-class '*CommandStatusControllerTests'",
+      "exit_code": 0,
+      "duration_seconds": 4.748,
+      "log": "es-tests.log",
+      "log_sha256": "44da0fa9f815fb82d4d2e5dc02b14bcad7991913cf3b1ab947100dae8b2a0216",
+      "passed": 165,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Five maintained EventStore command-proof classes only; Debug/source references"
+    },
+    {
+      "cwd": ".",
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md",
+      "exit_code": 0,
+      "duration_seconds": 0.291,
+      "log": "gitlinks-current.log",
+      "log_sha256": "315ac9f5bc251d5441a7549859685cb253f8d86d903a42e33fcb0ff473d9c94b",
+      "scope": "Validation prerequisite or documentation guard"
+    },
+    {
+      "cwd": ".",
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-3.md",
+      "exit_code": 0,
+      "duration_seconds": 0.26,
+      "log": "gitlinks-new-spec.log",
+      "log_sha256": "f3e83551eb675045d273d56a7edbcc3c59cc01408ef83991ba8992a0e4c157d3",
+      "scope": "Validation prerequisite or documentation guard"
+    },
+    {
+      "cwd": ".",
+      "command": "git diff --check",
+      "exit_code": 0,
+      "duration_seconds": 0.295,
+      "log": "diff-check.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scope": "Validation prerequisite or documentation guard"
+    }
+  ],
+  "limitations": [
+    "EventStore validation covers the five command-proof classes, not the entire Server project.",
+    "Browser validation covers rendered fixtures and shipped static helpers, not an authenticated live Aspire application or live command delivery.",
+    "Deterministic corrective audit association is absent from the existing audit DTO; the approved MissingSupport refusal remains covered.",
+    "Historical reverification spec -2 and its report remain records of earlier revisions; current guards were run on the original story and spec -3."
+  ]
+}
