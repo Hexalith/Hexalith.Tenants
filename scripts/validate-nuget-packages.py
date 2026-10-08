@@ -32,11 +32,19 @@ FORBIDDEN_DEPENDENCY_FRAGMENTS = (
     ".ServiceDefaults",
 )
 
+ALLOWED_DEPENDENCY_IDS = frozenset({
+    "Hexalith.EventStore.ServiceDefaults",
+    "Hexalith.Commons.ServiceDefaults",
+})
+
 FORBIDDEN_DEPENDENCY_IDS_NORMALIZED = frozenset(
     dependency_id.casefold() for dependency_id in FORBIDDEN_DEPENDENCY_IDS
 )
 FORBIDDEN_DEPENDENCY_FRAGMENTS_NORMALIZED = tuple(
     fragment.casefold() for fragment in FORBIDDEN_DEPENDENCY_FRAGMENTS
+)
+ALLOWED_DEPENDENCY_IDS_NORMALIZED = frozenset(
+    dependency_id.casefold() for dependency_id in ALLOWED_DEPENDENCY_IDS
 )
 
 
@@ -315,8 +323,11 @@ def validate_dependency_boundaries(
     forbidden_dependencies = sorted(
         dependency
         for dependency in metadata.dependencies
-        if dependency.casefold() in FORBIDDEN_DEPENDENCY_IDS_NORMALIZED
-        or any(fragment in dependency.casefold() for fragment in FORBIDDEN_DEPENDENCY_FRAGMENTS_NORMALIZED)
+        if dependency.casefold() not in ALLOWED_DEPENDENCY_IDS_NORMALIZED
+        and (
+            dependency.casefold() in FORBIDDEN_DEPENDENCY_IDS_NORMALIZED
+            or any(fragment in dependency.casefold() for fragment in FORBIDDEN_DEPENDENCY_FRAGMENTS_NORMALIZED)
+        )
     )
     if forbidden_dependencies:
         raise ValueError(
