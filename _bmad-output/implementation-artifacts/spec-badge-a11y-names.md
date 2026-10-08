@@ -2,7 +2,7 @@
 title: 'Remove duplicate accessible names from tenant badges'
 type: 'bugfix'
 created: '2026-09-06'
-status: ready-for-dev
+status: done
 baseline_revision: 2d3d5f0f4042f1271debba054985cfc24a0c39d7
 baseline_commit: 'f75cdacc8eca458778c7109fd3f713f8907bed02'
 review_loop_iteration: 0
@@ -88,6 +88,16 @@ deferred: []
   - `[medium]` `[patch]` Status and pending coverage was narrower than the intent — the new six-case matrix exhausts the defined status and pending state sets.
   - `[low]` `[reject]` Localization equality was not rerun across locale variants — localization resources and selection logic are unchanged, the structural invariant is locale-independent, and adding a cross-locale renderer matrix would not materially strengthen this narrow deletion.
 
+### 2026-10-08 — Resumed review pass
+- verdicts: 5 findings — high 0, medium 0, low 3, false 2, maybe-false 0
+- layers: blind hunter reported five findings; edge-case hunter and verification-gap reviewer reported none. The agent thread limit prevented a fresh verification-gap agent, so that layer reused the implementation agent; the other two reviewers had fresh context.
+- findings:
+  - `[low]` `[patch]` Durable freshness tests did not pin each state's exact localized label — host/text equality could pass if both names were wrong; added expected Current, Aging, Stale, and Unknown strings to the existing theory and asserted them alongside the existing accessibility invariants. All 13 badge tests passed after the patch.
+  - `[low]` `[reject]` Shipped French resources and a non-default prefix lacked direct coverage in these badge tests — carried: resource lookup, resources, and prefix selection are unchanged, and the earlier review rejected expanding the locale/prefix matrix for this parameter deletion.
+  - `[false]` `[reject]` Parameter changes could leave stale badge names or roles — the changed production code only omits the icon-name parameter; visible text, host name, refreshing role, and icons remain bound to the same existing computed state values on every render. No new transition behavior or stale-name path was identified.
+  - `[low]` `[reject]` Tests lacked a browser accessibility-tree check — the rendered Fluent SVG is directly verified as hidden and unnamed, and the component's host name is verified independently. Adding a browser harness is disproportionate to the specified structural naming contract and three unconditional parameter removals.
+  - `[false]` `[reject]` Projection lifecycle should also omit its icon label — carried: the invocation explicitly excludes `ProjectionLifecycleBadge`, and its established named-icon assertions remain intact.
+
 ## Verification
 
 **Commands:**
@@ -96,3 +106,15 @@ deferred: []
 - `dotnet tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll -class Hexalith.Tenants.UI.Tests.Components.TenantListSurfaceTests` -- expected: tenant-grid component tests pass, including the status and pending badge accessibility assertions.
 - `git diff --check` -- expected: no whitespace errors.
 
+### 2026-10-08 — Completion evidence
+
+- The original implementation already exists in commit `e739c6970d0860262fc3dfe7e48a290f5d6bc9f0`. This resumed run strengthened the durable freshness label assertions and completed review; the three production `IconLabel` removals needed no further changes.
+- Required Release UI test-project build: exit 0, 0 warnings, 0 errors.
+- Required direct-assembly `TruthStateBadgeTests` run: exit 0, 13 passed, 0 failed, 0 skipped, 0 not run.
+- Required direct-assembly `TenantListSurfaceTests` run: exit 0, 112 passed, 0 failed, 0 skipped, 0 not run.
+- `git diff --check`: exit 0, no whitespace errors.
+- `./node_modules/.bin/commitlint --edit /tmp/badge-a11y-commit-message.txt --verbose`: exit 0 with the repository-pinned CLI 21.2.3; 0 errors and 0 warnings. Successful validation output was preserved in `/tmp/badge-a11y-commitlint-evidence.txt`.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-badge-a11y-names.md --ref e739c6970d0860262fc3dfe7e48a290f5d6bc9f0`: exit 0, `RESULT: PASS`, no submodule pointer changes in the implementation bundle.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-badge-a11y-names.md`: exit 1, `RESULT: FAIL`, nine undeclared pointer changes in the repository's historical range since the retained baseline. Those pre-existing dependency updates are excluded by the explicit bundle-scoped finalization contract; no pointer update belongs to this bundle.
+- The complete baseline-to-worktree diff was retained in a temporary artifact. Review isolated the original four-path implementation bundle and the resumed assertion patch, excluding unrelated subsequent changes.
+- The deferred-work ledger remained byte-for-byte unchanged. No review finding was deferred, and unrelated working-tree changes were preserved.

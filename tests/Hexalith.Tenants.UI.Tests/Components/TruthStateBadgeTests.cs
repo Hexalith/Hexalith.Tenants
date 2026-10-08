@@ -20,14 +20,15 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class TruthStateBadgeTests : FluentBunitContext
 {
     [Theory]
-    [InlineData(ReadModelFreshnessState.Current, BadgeColor.Success, "Checkmark")]
-    [InlineData(ReadModelFreshnessState.Aging, BadgeColor.Warning, "Clock")]
-    [InlineData(ReadModelFreshnessState.Stale, BadgeColor.Severe, "ClockAlarm")]
-    [InlineData(ReadModelFreshnessState.Unknown, BadgeColor.Important, "QuestionCircle")]
+    [InlineData(ReadModelFreshnessState.Current, BadgeColor.Success, "Checkmark", "Current")]
+    [InlineData(ReadModelFreshnessState.Aging, BadgeColor.Warning, "Clock", "Aging")]
+    [InlineData(ReadModelFreshnessState.Stale, BadgeColor.Severe, "ClockAlarm", "Stale")]
+    [InlineData(ReadModelFreshnessState.Unknown, BadgeColor.Important, "QuestionCircle", "Unknown")]
     public void Freshness_uses_locked_semantics_and_size20_icons(
         ReadModelFreshnessState freshness,
         BadgeColor expectedColor,
-        string expectedIconType)
+        string expectedIconType,
+        string expectedLabel)
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -41,6 +42,8 @@ public sealed class TruthStateBadgeTests : FluentBunitContext
         badge.IconLabel.ShouldBeNull();
         var badgeElement = cut.Find("[data-testid='tenants-list-truth-state']");
         string? accessibleName = badgeElement.GetAttribute("aria-label");
+        badgeElement.TextContent.Trim().ShouldBe(expectedLabel);
+        accessibleName.ShouldBe(expectedLabel);
         accessibleName.ShouldNotBeNullOrWhiteSpace();
         accessibleName.ShouldBe(badgeElement.TextContent.Trim());
         AssertDecorativeIcon(badgeElement);
