@@ -685,6 +685,8 @@ The authorized audit response drops command correlation. EventStore creates a ne
 
 ## Verification
 
+**Pass-23 patch application (2026-10-09; applied over root `ee4a81f3`, then committed and pushed with the pass-23 review records in `0d8cc8d8`, whose message mentions only the status change):** The three pass-23 patches touch only `TenantAuditPageTests.cs` (the `5a3bc6dd^` comment restored byte-for-byte, ignoring the working-copy CRLF; the dead queued global-administrator response path deleted) and two `deferred-work.md` release entries. In an isolated rsync copy, the Debug UI test build reported 0 warnings and 0 errors, and `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-build --no-restore -c Debug -p:UseNuGetDeps=false` passed **3,972/3,972**, 0 failed or skipped. The tested test file is byte-identical to the `0d8cc8d8` blob (ignoring CRLF). The patch pass itself changed no production code, dependency checkout or package pin.
+
 **Pass-22 completion (2026-10-09, root `84c4e8b3dfd2fe651bac57bf89e2e988d998a7d2`):** The four pass-21 review patches changed only the audit-page test stub/name/assertion and deferred-work records. Debug builds of the Tenants UI and EventStore Contracts, Client and Server test projects passed. Project-level `dotnet test` discovered zero tests (exit 5), so the built xUnit assemblies ran directly with class filters. The correction panel, preview snapshot, attempt tracker, audit page and command gateway classes passed **576/576**; EventStore publication, drain recovery, status record, status query and gateway client classes passed **200/200**. Together these **776** passing tests cover all seven frozen matrix rows with zero failures or skips. The original Story 5.6 gitlink validator and `git diff --check` passed after the review records and status sync. Three context-free review layers returned fourteen findings: three newly deferred release/authority issues, six carried defers and five rejections; no Story 5.6 patch remained. The existing CI Chromium failure was not rerun and remains deferred. No dependency checkout, package pin, Git index, commit or remote was changed.
 
 **Pass-19 completion (2026-10-09):** The audit page no longer reads global-administrator projection or authorization evidence for its closed correction path. Exact read-only copy is restored in the grid and receipt; the standalone Story 5.7 loader and panel remain available outside this audit page. Source-mode Debug restore/build of the UI and Contracts test projects succeeded with zero warnings/errors. The complete maintained UI suite passed **3,972/3,972** and the complete Contracts suite passed **154/154**, with zero failed/skipped. Focused audit page/grid/receipt tests passed **271/271** and the package-validator class passed **24/24**. Deliberately re-admitting the global domain into the grid, suppressing the grid read-only copy, and suppressing the receipt read-only copy failed their named tests (2, 2 and 1 failures); restored source rebuilt cleanly. Widening the exact ServiceDefaults allowlist to substring matching failed all three forbidden superstring cases; the validator was restored byte-for-byte. Rendered EN/FR desktop, narrow, forced-colors and focus browser checks passed with Chrome 154.0.8037.57; they remain fixture/static-helper evidence, not an authenticated live-command claim. The story gitlink guard, `git diff --check`, and browser harness shell syntax passed. No dependency pointer, package pin, commit or push was changed in this pass. Authenticated live-command validation remains blocked by the existing EventStore workload-issuer configuration recorded below; the CI Chromium 153 lane remains separately deferred.
@@ -2120,16 +2122,16 @@ Diff reviewed: Tenants `84c4e8b3..ee4a81f3` (4 files, +63/−45; 266-line scratc
 - CI at `84c4e8b3`: Commitlint, CodeQL and Source-reference integration pass; CI `build-and-test` passes, `aspire-tests` was cancelled (run 37901622925), and a scheduled CI run for the same SHA was in progress. Story Guards fails: run 37901622244, job 113725267198, "Chromium scenario profile-shipped failed (exit 124; bound 30s)" with Chrome 153.0.8010.52, the carried pass-19 defer. Its gitlink job passes.
 - Triage: 28 normalized findings → 0 decisions, 3 patches, 1 defer, 20 rejected (plus 4 rejected sub-claims inside surviving entries).
 
-- [ ] [Review][Patch] Restore the `5a3bc6dd^` comment verbatim in `TenantAuditPageDoesNotReadGlobalAuthorityForReadOnlyGlobalEvidence` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2540] — low.
+- [x] [Review][Patch] Restore the `5a3bc6dd^` comment verbatim in `TenantAuditPageDoesNotReadGlobalAuthorityForReadOnlyGlobalEvidence` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2540] — low.
   - Pass-21 patch #1 said to restore the `5a3bc6dd^` name and comment. The name was restored; the comment is a hybrid.
   - It keeps `5a3bc6dd`'s clause "or enable platform-authority changes", which the test never asserts: it checks only `GlobalAdminRequests` after the grid renders.
   - It also drops why the test injects `GlobalAdminFault`.
   - Fix: use the original two lines: "Global correction is read-only on this tenant page, so an unavailable global authority / service must not add a read dependency to displaying its audit evidence."
-- [ ] [Review][Patch] Delete the dead queued global-administrator response path in `StubTenantQueryGateway` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3731] — low.
+- [x] [Review][Patch] Delete the dead queued global-administrator response path in `StubTenantQueryGateway` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3731] — low.
   - `QueueGlobalAdministratorResponse` (`:3731-3732`) has no caller in `src` or `tests`, so `_queuedGlobalAdministratorResponses` (`:3720`) and its dequeue branch in `GetGlobalAdministratorsAsync` (`:3831-3832`) can never run.
   - It has been dead since `cefefa26` (Story 5.5) and was missing from pass 21's list of eight.
   - Fix: delete the method, the queue and the branch. Keep `GlobalAdminRequests`, `GlobalAdminFault` and `GlobalAdministrators`: tests use them as witnesses and fixtures.
-- [ ] [Review][Patch] The two new pass-22 release-governance ledger entries describe less exposure than `release.yml` has [_bmad-output/implementation-artifacts/deferred-work.md:3835] — low.
+- [x] [Review][Patch] The two new pass-22 release-governance ledger entries describe less exposure than `release.yml` has [_bmad-output/implementation-artifacts/deferred-work.md:3835] — low.
   - **The OIDC entry** names only `npm ci`. The same job grants `id-token: write` at job scope (`release.yml:285`). Before `NuGet/login` (`:425`) it also runs `dotnet restore` and `dotnet build` (`:372-375`), which execute restored packages' MSBuild targets, and the container-publisher preparation (`:381`).
   - **The movable-tag entry** lists only `actions/checkout@v7.0.1` and `actions/setup-node@v7.0.0`. It omits `actions/setup-dotnet@v6.0.0` (`:340`), `actions/cache@v6.1.0` (`:347`) and `actions/upload-artifact@v7.0.1` (`:438`). It also omits `recover-partial-release.yml`, which grants `id-token: write` (`:32`) and runs `actions/checkout@v7.0.1` (`:44`) and `actions/setup-dotnet@v6.0.0` (`:50`).
   - Fix: widen both entries' evidence so release-governance work does not stop at the two examples.
@@ -2174,3 +2176,53 @@ Diff reviewed: Tenants `84c4e8b3..ee4a81f3` (4 files, +63/−45; 266-line scratc
   - The note describes the dev run before the user's commit (carried precedent).
   - The subject matches the sprint transition.
   - The spec and sprint split is the convention.
+
+### Review Findings (pass 24: pass-23 fix pass `0d8cc8d8` + working tree)
+
+Review date: 2026-10-09.
+
+Diff reviewed: Tenants `ee4a81f3`..working tree over root `0d8cc8d8` (= `origin/main`). The input was a 158-line scratch diff (23,870 bytes, SHA-256 `e8087f4f487ebba254d54c17eb237c0518f0ae2dd32007608a30a499f5d651ab`, not archived) covering 3 files. It includes the pass-23 review records, the three pass-23 patches and the uncommitted tick-offs and note.
+- The user's commit `0d8cc8d8`, pushed during the patch application, carries the pass-23 records and all three patch edits. The tick-offs, the patch-application note and the `done`/`review` status sync are uncommitted.
+- The range moves no `references/` pointer.
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor), and none failed. Verification Gap found no gap. The Acceptance Auditor found no acceptance-criteria violation in code; the diff changes no production code.
+- Checks: the full UI lane passed 3,972/3,972 on the committed test file (pass-23 patch note). `git diff --check ee4a81f3` is clean, and `validate-story-gitlinks.py` passes for this spec.
+- CI at `0d8cc8d8`: Commitlint, CodeQL and Source-reference integration pass; CI `build-and-test` passes; `aspire-tests` was still running.
+- Story Guards fails: run 37913988916, job 113765616191, "Chromium scenario profile-shipped failed (exit 124; bound 30s)" with Chrome 153.0.8010.52. This is the carried pass-19 defer; its gitlink job passes.
+- Triage: 24 normalized findings → 0 decisions, 2 patches (9 findings), 1 defer (3 findings), 12 rejected.
+
+**Corrections to the pass-23 records.** These are recorded here; the pass-23 text is left as written.
+- **Revocation defer rationale.** The defer said "current authority means a fresh projection read at confirmation". That is wrong for a global-administrator actor.
+  - The confirm-time composition takes `global` from principal claims (`TenantsBffComposition.cs:542`, `:561-562`, through `TenantConfigurationPrincipalResolver` and `TenantsGlobalAdministratorClaims`), with no projection read.
+  - The read-model check happens at command processing, in `TenantsGlobalAdministratorVerifier` behind the `/process` boundary. Dispatch needs both the claim gate and the verifier, so revoking either channel stops it: identity-provider revocation after token or circuit renewal, and `GlobalAdministratorRemoved` after projection lag (unbounded if that projection stalls).
+  - The defer conclusion stands: no Story 5.6 code change narrows the server-side lag, and a confirm-time global-administrator projection read would see the same lag.
+- **Patch-2 provenance.** "Dead since `cefefa26`" is incomplete. `5a3bc6dd` re-added two callers, and this story's own revert `10c9f6f6` left the method dead again.
+- **Rename verdict.** BH8's rename is a real but accepted deviation, not "false". `:2040` still cites the old name.
+- **Tally.** "28 → 3 patches, 1 defer, 20 rejected" counts entries: the 4 surviving entries hold the other 8 findings.
+- **Line range.** The `TenantAggregate.cs:266-273` citation is `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:265-272`.
+- **Patch-application note.** It should say the user authored `0d8cc8d8`. Its message is "fix: update status of tenant correction story to in-progress and adjust related documentation", and it also carries test edits.
+
+- [ ] [Review][Patch] Correct the global-administrator revocation ledger record and remove its duplicate [_bmad-output/implementation-artifacts/deferred-work.md:3852] — medium.
+  - The pass-23 bullet (`:3850-3852`) duplicates the open pass-22 entry (`:3842-3844`), so a sweep would triage the same issue twice. Its "not before it as pass 22 says" points at the spec table, not at that entry.
+  - Its mechanism is wrong: "the UI-side check reads token claims …, so a revoked administrator stays authorized until … projected". See the correction above.
+  - It cites a bare `TenantAggregate.cs:266-273`.
+  - It records no Tenants-owned follow-up for `docs/production-auth-readiness.md:76`. That doc calls verification "eventually consistent" but gives only the grant direction and does not warn that revocation lags.
+  - Fix: fold the provenance (`81144734`, EventStore Story 5.5 FR28, `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:265-272`), the corrected two-channel AND mechanism and the doc follow-up into the pass-22 entry's evidence. Then delete the pass-23 bullet and keep the pass-23 heading and "Diff reviewed:" line with "1 defer (folded into the pass-22 entry)".
+- [ ] [Review][Patch] Restore the `5a3bc6dd^` body of `StubTenantQueryGateway.GetGlobalAdministratorsAsync` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3821] — low.
+  - `5a3bc6dd` added `async`, `.WaitAsync(cancellationToken)` and the `RequestCursor`/`RequestPageSize` echo to serve the queued pending responses and the paging loader.
+  - With the queue deleted, `WaitAsync` only wraps a completed `Task.FromResult`, and the echo serves no caller. The page never calls this method, and the tests assert `GlobalAdminRequests` is empty.
+  - Fix: restore the synchronous `5a3bc6dd^` body: record the request, then `return GlobalAdminFault is not null ? throw GlobalAdminFault : Task.FromResult(GlobalAdministrators);`.
+- [x] [Review][Defer] Release builds after `NuGet/login` run restored package code while the live NuGet key is in their environment [.releaserc.json:11] — deferred: pre-existing release-governance exposure, not caused by this diff; recorded as a new ledger entry.
+  - `release.yml` mints `NUGET_API_KEY` at `:425` and passes it to the Semantic Release step (`:431`). Its `prepareCmd` (`.releaserc.json:11`) then runs `dotnet build Hexalith.Tenants.slnx`, which restores implicitly, so restored packages' MSBuild targets run with the key in reach. The workflow's comment says the key is "minted only after the build" (`release.yml:421-422`).
+  - `recover-partial-release.yml` does the same: its login is at `:72`, and `scripts/publish-partial-release.sh:14` builds with `NUGET_API_KEY`, `HEXALITH_ZOT_API_KEY` and `GH_TOKEN` in the environment (`recover-partial-release.yml:77-83`).
+  - The pass-22 OIDC entry covers only pre-login code, and `:3788` covers key expiry.
+
+#### Rejected (pass 24)
+
+- AA2 + BH10, "the patch note does not attribute `0d8cc8d8` to the user, misdescribes its message, and the pushed spec still shows `[ ]`/`in-progress`": low; the fix edits the spec under review. The correction above records the attribution and the message. Committing the tick-offs is the user's step.
+- AA3 + BH9, "the patch note omits CI for `0d8cc8d8`, the gitlink guard and `git diff --check`": low; the fix edits the spec under review. This pass records all three above.
+- AA4, "the pass-22 'exit 5' sentence now contradicts the pass-23 note": low; the fix edits the spec under review. Pass 23 recorded it as true, and the full lane result sits directly above it.
+- AA5 + BH6, "patch-2 provenance is wrong": low; the fix edits the spec under review. Corrected above.
+- AA6, "the rename verdict says false for a real deviation": low; the fix edits the spec under review. Corrected above.
+- AA7 + BH8, "the pass-23 tally does not add up": low; the fix edits the spec under review. Clarified above.
+- ECH5, "`0d8cc8d8`'s `fix:` type mislabels a test and documentation commit": low. The commit is the user's and is pushed, so changing it means rewriting published history. `ded413df` is a genuine `fix:`, so the next release is a patch release either way.
+- BH11, "findings rejected because the fix edits the spec under review are not tracked after `done`": false. Each one is recorded in its pass's Rejected appendix, which is this workflow's tracking for them (step-03 rule).
