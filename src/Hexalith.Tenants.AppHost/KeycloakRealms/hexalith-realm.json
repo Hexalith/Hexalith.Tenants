@@ -9,6 +9,9 @@
   "editUsernameAllowed": false,
   "bruteForceProtected": false,
   "accessTokenLifespan": 3600,
+  "attributes": {
+    "CreateDefaultClientScopes": "true"
+  },
   "clientScopes": [
     {
       "name": "eventstore-audience.sample",

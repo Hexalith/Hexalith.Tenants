@@ -66,10 +66,15 @@ builder.Services
     .AddEventStoreDomainEventHandler<TenantDisabled, MemoriesSearchIndexEventPublisher>()
     .AddEventStoreDomainEventHandler<TenantEnabled, MemoriesSearchIndexEventPublisher>();
 
+builder.Services.AddAuthentication().AddEventStoreSidecarChannelScheme();
+builder.Services.AddEventStoreWorkloadPolicies(EventStoreWorkloadAuthenticationDefaults.WorkloadScheme, []);
+
 WebApplication app = builder.Build();
 
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseCloudEvents();
-app.MapSubscribeHandler();
+app.MapSubscribeHandler().RequireEventStoreSidecarChannel();
 app.MapEventStoreDomainEvents();
 ```
 
@@ -82,8 +87,16 @@ Reusable package setup:
 - `AddEventStoreDomainEventHandler<TEvent, THandler>()` registers custom typed handlers
   for event payloads your service cares about.
 - `UseCloudEvents()` enables CloudEvents request handling for DAPR pub/sub.
-- `MapSubscribeHandler()` exposes DAPR's subscription discovery endpoint.
+- `MapSubscribeHandler().RequireEventStoreSidecarChannel()` exposes DAPR's subscription discovery endpoint to the authenticated sidecar channel. Register the sidecar-channel scheme and workload policy before building the app, then run authentication and authorization middleware before mapping the endpoint.
 - `MapEventStoreDomainEvents()` maps the Tenants event subscription endpoint.
+
+The sidecar-channel policy requires the same `APP_API_TOKEN` on the consumer and
+its DAPR sidecar. The AppHost calls `WithGeneratedEventStoreAppChannelToken()`
+after adding the sample's sidecar; this generates a per-run secret and sets
+`APP_API_TOKEN` on both resources. Outside Aspire, supply one secret value as
+`APP_API_TOKEN` to both the consumer process and its sidecar. The sidecar sends
+it in the `dapr-api-token` header when calling `/dapr/subscribe` and
+`/tenants/events`.
 
 Sample-specific teaching surfaces:
 

@@ -84,6 +84,29 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Fact]
+    public async Task CorrectionCaptureAcceptsProjectionVersionAsProducerETagWhenStoreHasNoETag()
+    {
+        const string version = "tenant-sequence:42";
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(Detail("tenant.alpha"), eTag: version, projectionVersion: version));
+        var composition = new TenantsBffComposition(
+            Substitute.For<ITenantCommandGateway>(),
+            principalResolver: new StubConfigurationPrincipalResolver(
+                TenantConfigurationPrincipalEvidence.NonAdministrator("owner-user")));
+
+        TenantCorrectionProjection capture = await CreateGateway(client, bffComposition: composition)
+            .GetTenantCorrectionProjectionAsync("tenant.alpha", "reader-user");
+
+        capture.IsCurrent.ShouldBeTrue();
+        capture.IsAuthorized.ShouldBeTrue();
+        capture.HasVerifiedMembership.ShouldBeTrue();
+        capture.CurrentRole.ShouldBe(TenantRole.TenantReader);
+        capture.ProjectionVersion.ShouldBe(version);
+        _ = client.Received(1).GetTenantAsync(Arg.Any<GetTenantQuery>(), null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task CorrectionGatewayRetainsComposedOwnerCountForBatchAndSingleTargetReads()
     {
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();

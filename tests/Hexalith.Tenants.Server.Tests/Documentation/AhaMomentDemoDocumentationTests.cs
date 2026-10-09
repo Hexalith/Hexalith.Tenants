@@ -63,8 +63,8 @@ public class AhaMomentDemoDocumentationTests {
         bootstrap.GetProperty("tenant").GetString().ShouldBe("system");
         bootstrap.GetProperty("domain").GetString().ShouldBe("global-administrators");
         bootstrap.GetProperty("aggregateId").GetString().ShouldBe("global-administrators");
-        bootstrap.GetProperty("payload").GetProperty("UserId").GetString().ShouldBe("admin-user");
-        DeserializePayload<BootstrapGlobalAdmin>(bootstrap).UserId.ShouldBe("admin-user");
+        bootstrap.GetProperty("payload").GetProperty("UserId").GetString().ShouldBe("11111111-1111-1111-1111-111111111111");
+        DeserializePayload<BootstrapGlobalAdmin>(bootstrap).UserId.ShouldBe("11111111-1111-1111-1111-111111111111");
         AssertUlidMessageId(bootstrap);
 
         JsonElement createTenant = commands["CreateTenant"];
@@ -148,6 +148,11 @@ public class AhaMomentDemoDocumentationTests {
         combined.ShouldContain("aud\":\"hexalith-eventstore\"");
         combined.ShouldContain("aud = \"hexalith-eventstore\"");
         combined.ShouldContain("DevOnlySigningKey-AtLeast32Chars!");
+        bash.ShouldContain("\"sub\":\"11111111-1111-1111-1111-111111111111\"");
+        powershell.ShouldContain("sub = \"11111111-1111-1111-1111-111111111111\"");
+        bash.ShouldContain("\\\"UserId\\\":\\\"11111111-1111-1111-1111-111111111111\\\"");
+        powershell.ShouldContain("UserId = \"11111111-1111-1111-1111-111111111111\"");
+        ReadDemo().ShouldContain("--Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!");
         combined.ShouldNotContain("aud\":\"hexalith-tenants\"");
         combined.ShouldNotContain("aud = \"hexalith-tenants\"");
         combined.ShouldNotContain("this-is-a-development-signing-key-minimum-32-chars");

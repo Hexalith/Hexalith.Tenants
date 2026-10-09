@@ -156,7 +156,7 @@ generate_hmac_token() {
     local header payload signature exp
     header=$(printf '{"alg":"HS256","typ":"JWT"}' | openssl base64 -A | tr '+/' '-_' | tr -d '=')
     exp=$(($(date +%s) + 28800))
-    payload=$(printf '{"sub":"admin-user","iss":"hexalith-dev","aud":"hexalith-eventstore","tenants":["system"],"exp":%s}' "$exp" \
+    payload=$(printf '{"sub":"11111111-1111-1111-1111-111111111111","iss":"hexalith-dev","aud":"hexalith-eventstore","tenants":["system"],"exp":%s}' "$exp" \
         | openssl base64 -A | tr '+/' '-_' | tr -d '=')
     signature=$(printf '%s.%s' "$header" "$payload" \
         | openssl dgst -sha256 -hmac "DevOnlySigningKey-AtLeast32Chars!" -binary \
@@ -314,7 +314,7 @@ add_message_id=$(generate_ulid)
 remove_message_id=$(generate_ulid)
 
 send_command "Bootstrap Global Admin" \
-    "{\"messageId\":\"$bootstrap_message_id\",\"tenant\":\"system\",\"domain\":\"global-administrators\",\"aggregateId\":\"global-administrators\",\"commandType\":\"BootstrapGlobalAdmin\",\"payload\":{\"UserId\":\"admin-user\"}}"
+    "{\"messageId\":\"$bootstrap_message_id\",\"tenant\":\"system\",\"domain\":\"global-administrators\",\"aggregateId\":\"global-administrators\",\"commandType\":\"BootstrapGlobalAdmin\",\"payload\":{\"UserId\":\"11111111-1111-1111-1111-111111111111\"}}"
 
 send_command "Create Tenant" \
     "{\"messageId\":\"$create_message_id\",\"tenant\":\"system\",\"domain\":\"tenants\",\"aggregateId\":\"$TENANT_ID\",\"commandType\":\"CreateTenant\",\"payload\":{\"TenantId\":\"$TENANT_ID\",\"Name\":\"Acme Demo Corp\",\"Description\":\"Demo tenant for aha moment\"}}"

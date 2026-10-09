@@ -57,3 +57,5 @@ app.MapGet("/alive", () => Results.Ok("alive"));
 app.MapGet("/health", () => Results.Ok("healthy"));
 
 app.Run();
+
+internal partial class Program;

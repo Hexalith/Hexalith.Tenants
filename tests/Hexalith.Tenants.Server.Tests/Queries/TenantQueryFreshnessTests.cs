@@ -124,7 +124,7 @@ public sealed class TenantQueryFreshnessTests
             timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
 
         QueryResponseMetadata metadata = result.Metadata.ShouldNotBeNull();
-        metadata.ETag.ShouldBeNull();
+        metadata.ETag.ShouldBe(GenuineSequenceVersion);
         metadata.IsNotModified.ShouldBe(false);
         metadata.ProjectionVersion.ShouldBe(GenuineSequenceVersion);
         metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Stale);

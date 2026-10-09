@@ -103,6 +103,40 @@ public sealed class TenantQueryResultTests
         metadata.ProjectionVersion.ShouldBeNull();
     }
 
+    [Fact]
+    public void Freshness_overload_with_absent_read_model_and_etag_omits_metadata()
+    {
+        TenantQueryResult result = TenantQueryResult.FromPayload(
+            Payload,
+            "tenants",
+            readModel: null,
+            Thresholds,
+            DateTimeOffset.Parse("2026-06-25T13:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            eTag: null);
+
+        result.Metadata.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Freshness_overload_with_unversioned_read_model_and_no_etag_omits_metadata()
+    {
+        var readModel = new TenantReadModel
+        {
+            TenantId = "tenant.alpha",
+            ProjectedAt = DateTimeOffset.Parse("2026-06-25T13:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+        };
+
+        TenantQueryResult result = TenantQueryResult.FromPayload(
+            Payload,
+            "tenants",
+            readModel,
+            Thresholds,
+            DateTimeOffset.Parse("2026-06-25T13:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
+            eTag: null);
+
+        result.Metadata.ShouldBeNull();
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -129,7 +163,7 @@ public sealed class TenantQueryResultTests
             eTag);
 
         QueryResponseMetadata metadata = result.Metadata.ShouldNotBeNull();
-        metadata.ETag.ShouldBeNull();
+        metadata.ETag.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "42");
         metadata.IsNotModified.ShouldBe(false);
         metadata.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "42");
         metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Stale);

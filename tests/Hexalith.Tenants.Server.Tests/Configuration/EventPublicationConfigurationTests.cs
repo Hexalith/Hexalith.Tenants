@@ -608,6 +608,86 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
+    public void LocalKeycloakRealm_DeclaresScopedEventStoreWorkloadClientAndDefaultHumanScopes()
+    {
+        string realmPath = RepositoryPath("src", "Hexalith.Tenants.AppHost", "KeycloakRealms", "hexalith-realm.json");
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(realmPath));
+        JsonElement realm = document.RootElement;
+        realm.GetProperty("attributes").GetProperty("CreateDefaultClientScopes").GetString().ShouldBe("true");
+
+        JsonElement client = realm.GetProperty("clients").EnumerateArray()
+            .Single(static candidate => candidate.GetProperty("clientId").GetString() == "eventstore");
+        client.GetProperty("publicClient").GetBoolean().ShouldBeFalse();
+        client.GetProperty("serviceAccountsEnabled").GetBoolean().ShouldBeTrue();
+        client.GetProperty("directAccessGrantsEnabled").GetBoolean().ShouldBeFalse();
+        client.GetProperty("standardFlowEnabled").GetBoolean().ShouldBeFalse();
+        client.GetProperty("implicitFlowEnabled").GetBoolean().ShouldBeFalse();
+        client.GetProperty("fullScopeAllowed").GetBoolean().ShouldBeFalse();
+        client.GetProperty("secret").GetString().ShouldBe("${HEXALITH_EVENTSTORE_WORKLOAD_CLIENT_SECRET}");
+        client.GetProperty("defaultClientScopes").GetArrayLength().ShouldBe(0);
+        client.TryGetProperty("protocolMappers", out _).ShouldBeFalse();
+        int.Parse(client.GetProperty("attributes").GetProperty("access.token.lifespan").GetString()!,
+            System.Globalization.CultureInfo.InvariantCulture).ShouldBeLessThanOrEqualTo(300);
+
+        var issuer = new Hexalith.EventStore.ServiceDefaults.Authentication.WorkloadAssertionIssuerOptions();
+        string[] audiences = ["sample", "tenants"];
+        string[] operations =
+        [
+            "domain-service:process",
+            "domain-service:replay-state",
+            "domain-service:query",
+            "domain-service:project",
+            "domain-service:metadata",
+        ];
+        string[] expectedScopes = audiences.Select(issuer.GetAudienceScope)
+            .Concat(operations.Select(issuer.GetOperationScope)).ToArray();
+        string[] actualScopes = client.GetProperty("optionalClientScopes").EnumerateArray()
+            .Select(static scope => scope.GetString()!).ToArray();
+        actualScopes.Order(StringComparer.Ordinal).ShouldBe(expectedScopes.Order(StringComparer.Ordinal));
+
+        JsonElement[] scopes = [.. realm.GetProperty("clientScopes").EnumerateArray()];
+        foreach (string scopeName in expectedScopes)
+        {
+            JsonElement scope = scopes.Single(candidate => candidate.GetProperty("name").GetString() == scopeName);
+            JsonElement mapper = scope.GetProperty("protocolMappers").EnumerateArray().ShouldHaveSingleItem();
+            JsonElement config = mapper.GetProperty("config");
+            if (scopeName.StartsWith("eventstore-audience.", StringComparison.Ordinal))
+            {
+                mapper.GetProperty("protocolMapper").GetString().ShouldBe("oidc-audience-mapper");
+                config.GetProperty("included.custom.audience").GetString().ShouldBe(
+                    scopeName["eventstore-audience.".Length..]);
+            }
+            else
+            {
+                mapper.GetProperty("protocolMapper").GetString().ShouldBe("oidc-hardcoded-claim-mapper");
+                config.GetProperty("claim.name").GetString().ShouldBe("eventstore:operation");
+                issuer.GetOperationScope(config.GetProperty("claim.value").GetString()!).ShouldBe(scopeName);
+            }
+
+            config.GetProperty("access.token.claim").GetString().ShouldBe("true");
+            config.GetProperty("id.token.claim").GetString().ShouldBe("false");
+        }
+    }
+
+    [Fact]
+    public void AppHostSymmetricModeRequiresAnExplicitStrongKeyForEveryBearerValidator()
+    {
+        string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.AppHost", "Program.cs"));
+        program.ShouldContain("builder.Configuration[\"Authentication:JwtBearer:SigningKey\"]");
+        program.ShouldContain("System.Text.Encoding.UTF8.GetByteCount(configuredSigningKey) < 32");
+        program.ShouldContain("throw new InvalidOperationException(");
+        Regex.IsMatch(program, "builder[.]AddParameter[(]\\s*\"tenants-local-jwt-signing-key\"", RegexOptions.CultureInvariant)
+            .ShouldBeTrue();
+        foreach (string resource in new[] { "eventStore", "adminServer", "tenants", "tenantsApi", "sample" })
+        {
+            program.ShouldContain($"ConfigureLocalSymmetricValidation({resource}, signingKey);");
+        }
+
+        program.ShouldContain(".WithEnvironment(\"EventStore__Authentication__SigningKey\", signingKey)");
+        program.ShouldContain(".WithEnvironment(\"Authentication__JwtBearer__AllowedAlgorithms__0\", \"HS256\")");
+    }
+
+    [Fact]
     public void TenantsDomainPackages_DoNotReferenceProviderSpecificInfrastructurePackages() {
         string[] projectFiles =
         [

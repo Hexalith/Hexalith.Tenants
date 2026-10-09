@@ -47,14 +47,16 @@ internal sealed record TenantQueryResult : QueryResult {
             throw new ArgumentException("Payload element must not be Undefined.", nameof(payload));
         }
 
-        string? normalizedETag = NormalizeETag(eTag);
-        QueryResponseMetadata metadata = readModel
-            .ToQueryResponseMetadata(thresholds, now, normalizedETag)
-            with
-            {
-                IsNotModified = false,
-                Provenance = QueryResponseProvenance.ProjectionBacked,
-            };
+        string? normalizedETag = NormalizeETag(eTag) ?? NormalizeETag(readModel?.ProjectionVersion);
+        QueryResponseMetadata? metadata = normalizedETag is null
+            ? null
+            : readModel
+                .ToQueryResponseMetadata(thresholds, now, normalizedETag)
+                with
+                {
+                    IsNotModified = false,
+                    Provenance = QueryResponseProvenance.ProjectionBacked,
+                };
 
         return new TenantQueryResult(
             true,

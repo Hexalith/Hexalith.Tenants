@@ -23,13 +23,21 @@ Open the Aspire dashboard URL printed by the AppHost. In the dashboard, collect 
 
 Default local auth uses Keycloak and the `hexalith-eventstore` audience. Get a token with the [Quickstart token flow](quickstart.md#get-an-access-token). HMAC development tokens are only for the explicit `EnableKeycloak=false` fallback.
 
+For that fallback, start the AppHost with the same development signing key the scripts use:
+
+```bash
+dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj -- --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!
+```
+
+The scripts authenticate as the AppHost's bootstrap administrator, `11111111-1111-1111-1111-111111111111`.
+
 ## 90-Second Proof
 
 Use stable synthetic IDs for the narrated proof:
 
 - Tenant: `acme-demo`
 - User: `jane-doe`
-- Actor: `admin-user`
+- Actor: `11111111-1111-1111-1111-111111111111`
 
 Submit each command to `POST {eventstore-url}/api/v1/commands`. The response is `202 Accepted` with a `correlationId` and a `Location` header. Poll `GET {eventstore-url}/api/v1/commands/status/{correlationId}` until the command reaches a terminal status such as `Completed` or `Rejected`.
 
@@ -43,7 +51,7 @@ Submit each command to `POST {eventstore-url}/api/v1/commands`. The response is 
     "aggregateId": "global-administrators",
     "commandType": "BootstrapGlobalAdmin",
     "payload": {
-        "UserId": "admin-user"
+        "UserId": "11111111-1111-1111-1111-111111111111"
     }
 }
 ```

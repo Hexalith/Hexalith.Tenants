@@ -318,7 +318,7 @@ public sealed class TenantsApiGeneratedControllerTests
 
         response.Headers.Contains("X-Hexalith-Projection-Version")
             .ShouldBe(expectedProvenance is QueryResponseProvenance.ProjectionBacked && !string.IsNullOrWhiteSpace(projectionVersion));
-        response.Headers.ETag.ShouldBe(new EntityTagHeaderValue($"\"{eTag ?? "later-projection-validator"}\""));
+        response.Headers.ETag.ShouldBe(new EntityTagHeaderValue($"\"{eTag ?? projectionVersion}\""));
 
         using var replayClient = new HttpClient(new ReplayHandler(response))
         {

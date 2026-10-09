@@ -117,7 +117,7 @@ public class AspireTopologyTests : IDisposable {
 
     [DaprFact]
     [Trait("Tier", "3")]
-    public async Task Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority_without_etag() {
+    public async Task Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority() {
         _fixture.SkipIfUnavailable();
         await WaitForTenantsApiAliveAsync();
 
@@ -184,10 +184,9 @@ public class AspireTopologyTests : IDisposable {
         eventStoreResponse.Headers.GetValues("X-Hexalith-Query-Provenance")
             .ShouldHaveSingleItem()
             .ShouldBe("ProjectionBacked");
-        EntityTagHeaderValue? eventStoreETag = eventStoreResponse.Headers.ETag;
-        if (eventStoreETag is not null) {
-            eventStoreETag.IsWeak.ShouldBeFalse();
-        }
+        EntityTagHeaderValue eventStoreETag = eventStoreResponse.Headers.ETag.ShouldNotBeNull();
+        eventStoreETag.IsWeak.ShouldBeFalse();
+        eventStoreETag.Tag.Trim('"').ShouldNotBeNullOrWhiteSpace();
         eventStoreResponse.Headers.GetValues(ProjectionLifecyclePolicy.HeaderName)
             .ShouldHaveSingleItem()
             .ShouldBe(nameof(ProjectionLifecycleState.Current));
@@ -222,6 +221,7 @@ public class AspireTopologyTests : IDisposable {
         if (rawETag is not null) {
             rawETag.IsWeak.ShouldBeFalse();
         }
+        rawETag?.Tag.Trim('"').ShouldBe(eventStoreMetadata.ETag);
         rawResponse.Headers.GetValues("X-Hexalith-Projection-Version")
             .ShouldHaveSingleItem()
             .ShouldBe(persisted.ProjectionVersion);
@@ -390,8 +390,15 @@ public class AspireTopologyTests : IDisposable {
             timeout.Token);
         auditSnapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
         auditSnapshot.Reason.ShouldBe(TenantAuditReason.None);
-        auditSnapshot.Rows.ShouldNotBeEmpty();
+        auditSnapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        auditSnapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+        auditSnapshot.Rows.Select(static row => row.EventType).ShouldContain(nameof(TenantCreated));
+        auditSnapshot.Rows.Select(static row => row.EventType).ShouldContain(nameof(UserAddedToTenant));
+        auditSnapshot.Rows.Select(static row => row.EventType).ShouldContain(nameof(UserRemovedFromTenant));
         auditSnapshot.Rows.ShouldAllBe(row => row.TenantId == tenantId);
+        auditSnapshot.Rows.ShouldAllBe(row => row.Provenance == QueryResponseProvenance.ProjectionBacked);
+        TenantAuditRow removal = auditSnapshot.Rows.Single(row => row.EventType == nameof(UserRemovedFromTenant));
+        TenantAuditReceipt.FromRow(removal).State.ShouldBe(TenantAuditReceiptState.Ready);
     }
 
     private static Dictionary<string, string> GlobalAdminExtensions()
@@ -615,16 +622,31 @@ public class AspireTopologyTests : IDisposable {
                 pageSize = 50,
             }),
             EntityId: tenantId);
-        EventStoreQueryResult rawResult = await gatewayClient
-            .SubmitQueryAsync(auditQuery, cancellationToken: cancellationToken);
-        JsonElement rawPayload = rawResult.Payload.ShouldNotBeNull();
-        rawPayload.TryGetProperty("items", out JsonElement auditItems).ShouldBeTrue();
-        auditItems.ValueKind.ShouldBe(JsonValueKind.Array);
-        foreach (JsonElement auditItem in auditItems.EnumerateArray()) {
-            GetStringProperty(auditItem, "tenantId").ShouldBe(tenantId);
+        while (true) {
+            EventStoreQueryResult rawResult = await gatewayClient
+                .SubmitQueryAsync(auditQuery, cancellationToken: cancellationToken);
+            if (rawResult.Payload is JsonElement rawPayload
+                && rawPayload.TryGetProperty("items", out JsonElement auditItems)
+                && auditItems.ValueKind == JsonValueKind.Array
+                && auditItems.GetArrayLength() > 0
+                && rawResult.Metadata is QueryResponseMetadata metadata
+                && metadata.Provenance == QueryResponseProvenance.ProjectionBacked
+                && metadata.Lifecycle == ProjectionLifecycleState.Current) {
+                string?[] eventTypes = auditItems.EnumerateArray()
+                    .Select(static item => GetStringProperty(item, "eventType")).ToArray();
+                if (eventTypes.Contains(nameof(TenantCreated))
+                    && eventTypes.Contains(nameof(UserAddedToTenant))
+                    && eventTypes.Contains(nameof(UserRemovedFromTenant))) {
+                    foreach (JsonElement auditItem in auditItems.EnumerateArray()) {
+                        GetStringProperty(auditItem, "tenantId").ShouldBe(tenantId);
+                    }
+
+                    break;
+                }
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken);
         }
-        QueryResponseMetadata metadata = rawResult.Metadata.ShouldNotBeNull();
-        metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
         using var memoriesHttpClient = new HttpClient { BaseAddress = new Uri("https://memories.invalid") };
         var memoriesClient = new MemoriesClient(
             memoriesHttpClient,
@@ -743,16 +765,10 @@ public class AspireTopologyTests : IDisposable {
 
         /// <summary>Converts a gateway result that has already been proven successful.</summary>
         /// <remarks>
-        /// The unconditional <c>TenantsRestQueryFailureKind.None</c> is correct here, and review loop 8's
-        /// claim that it lets "a live 503 reach the gateway as a success with a null payload" does not hold:
-        /// <c>EventStoreGatewayClient</c> throws <c>EventStoreGatewayException</c> for every non-success
-        /// status (`Gateway/EventStoreGatewayClient.cs:93,170`), so a failing response never reaches this
-        /// method -- it propagates to <c>TenantQueryGateway</c>'s own <c>EventStoreGatewayException</c>
-        /// handler, which is the production mapping. Only a success or a 304 arrives here. Verified at loop
-        /// 11 by mapping a payload-less result to <c>Unavailable</c> instead: no live outage was newly
-        /// caught, and the assertion below -- which exists because the pre-Story-4.7 alias legitimately
-        /// yields no payload -- broke, conflating "this alias has no evidence" with "the service is down".
-        /// The change was reverted.
+        /// <c>EventStoreGatewayClient</c> throws <c>EventStoreGatewayException</c> for non-success
+        /// HTTP responses, which the UI gateway maps separately. A successful query may have no
+        /// payload when the requested read model is absent; the caller evaluates that evidence.
+        /// The live audit check waits for non-empty projected rows before invoking this adapter.
         /// </remarks>
         private static async Task<TenantsRestQueryResponse<TPayload>> ConvertAsync<TPayload>(
             Task<EventStoreQueryResult<TPayload>> resultTask) {

@@ -51,7 +51,7 @@ function ConvertTo-Base64Url {
 function New-HmacDevToken {
     $header = @{ alg = "HS256"; typ = "JWT" } | ConvertTo-Json -Compress
     $exp = [int](Get-Date -Date (Get-Date).AddHours(8).ToUniversalTime() -UFormat %s)
-    $payload = @{ sub = "admin-user"; iss = "hexalith-dev"; aud = "hexalith-eventstore"; tenants = @("system"); exp = $exp } | ConvertTo-Json -Compress
+    $payload = @{ sub = "11111111-1111-1111-1111-111111111111"; iss = "hexalith-dev"; aud = "hexalith-eventstore"; tenants = @("system"); exp = $exp } | ConvertTo-Json -Compress
 
     $headerB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($header))
     $payloadB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($payload))
@@ -248,7 +248,7 @@ Send-Command -Label "Bootstrap Global Admin" -Request @{
     domain = "global-administrators"
     aggregateId = "global-administrators"
     commandType = "BootstrapGlobalAdmin"
-    payload = @{ UserId = "admin-user" }
+    payload = @{ UserId = "11111111-1111-1111-1111-111111111111" }
 }
 
 Send-Command -Label "Create Tenant" -Request @{

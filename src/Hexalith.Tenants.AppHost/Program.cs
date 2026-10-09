@@ -171,7 +171,7 @@ if (security is not null) {
     // The local realm imports an EventStore service-account client with this per-run secret. Both
     // Keycloak and EventStore receive the same secret parameter; it is never checked into the realm.
     bool persistWorkloadSecret = bool.TryParse(
-        builder.Configuration[HexalithEventStoreSecurityOptions.DefaultPersistentConfigurationKey],
+        builder.Configuration[HexalithEventStoreSecurityOptions.DefaultPersistentConfigurationKey]?.Trim(),
         out bool keycloakPersistent) && keycloakPersistent;
     IResourceBuilder<ParameterResource> workloadClientSecret = builder.AddParameter(
         "eventstore-workload-client-secret",
@@ -240,6 +240,11 @@ else {
     ConfigureLocalSymmetricValidation(adminServer, signingKey);
     ConfigureLocalSymmetricValidation(tenants, signingKey);
     ConfigureLocalSymmetricValidation(tenantsApi, signingKey);
+    _ = tenantsApi
+        .WithEnvironment("EventStore__Authentication__Authority", string.Empty)
+        .WithEnvironment("EventStore__Authentication__Issuer", "hexalith-dev")
+        .WithEnvironment("EventStore__Authentication__Audience", HexalithEventStoreSecurityOptions.DefaultAudience)
+        .WithEnvironment("EventStore__Authentication__SigningKey", signingKey);
     ConfigureLocalSymmetricValidation(sample, signingKey);
 }
 
