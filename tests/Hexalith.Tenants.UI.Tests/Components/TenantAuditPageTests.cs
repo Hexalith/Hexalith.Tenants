@@ -2537,8 +2537,8 @@ public sealed class TenantAuditPageTests : BunitContext
     [Fact]
     public void TenantAuditPageDoesNotReadGlobalAuthorityForReadOnlyGlobalEvidence()
     {
-        // Global correction is read-only on this tenant page; audit evidence must not add
-        // a global authority dependency or enable platform-authority changes.
+        // Global correction is read-only on this tenant page, so an unavailable global authority
+        // service must not add a read dependency to displaying its audit evidence.
         JSInterop.Mode = JSRuntimeMode.Loose;
         StubTenantQueryGateway gateway = new(GlobalAdminAuditSnapshot("GlobalAdministratorSet", "admin-user"))
         {
@@ -3717,7 +3717,6 @@ public sealed class TenantAuditPageTests : BunitContext
         private readonly Queue<TenantAuditSnapshot> _snapshots = new(snapshots);
         private readonly Queue<Task<TenantAuditSnapshot>> _queuedResponses = [];
         private readonly Queue<Task<TenantDetailSnapshot>> _queuedDetailResponses = [];
-        private readonly Queue<Task<GlobalAdministratorsSnapshot>> _queuedGlobalAdministratorResponses = [];
 
         public List<TenantAuditRequest> Requests { get; } = [];
         public List<TenantDetailRequest> DetailRequests { get; } = [];
@@ -3727,9 +3726,6 @@ public sealed class TenantAuditPageTests : BunitContext
 
         public void QueueDetailResponse(Task<TenantDetailSnapshot> response)
             => _queuedDetailResponses.Enqueue(response);
-
-        public void QueueGlobalAdministratorResponse(Task<GlobalAdministratorsSnapshot> response)
-            => _queuedGlobalAdministratorResponses.Enqueue(response);
 
         public bool CorrectionSupport { get; set; } = true;
 
@@ -3828,9 +3824,7 @@ public sealed class TenantAuditPageTests : BunitContext
             CancellationToken cancellationToken = default)
         {
             GlobalAdminRequests.Add(request);
-            GlobalAdministratorsSnapshot result = await (_queuedGlobalAdministratorResponses.Count > 0
-                ? _queuedGlobalAdministratorResponses.Dequeue()
-                : GlobalAdminFault is not null
+            GlobalAdministratorsSnapshot result = await (GlobalAdminFault is not null
                 ? throw GlobalAdminFault
                 : Task.FromResult(GlobalAdministrators))
                 .WaitAsync(cancellationToken);

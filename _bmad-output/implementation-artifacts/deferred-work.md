@@ -3832,13 +3832,21 @@ Diff reviewed: Tenants `a0576d83..ded413df` (the pass-19 fix pass), HEAD `ded413
 Diff reviewed: baseline `11e65e37f0fbf6649642a512052eebd37d50166d` through the working tree over root `84c4e8b3dfd2fe651bac57bf89e2e988d998a7d2`; input `/tmp/tenants-56-baseline-k7kwjdc7.diff`, 3,178,732 bytes, SHA-256 `1f8675b41f9b4c0b6e2998083354297fe810c63485ab2220e5abb8a56d65d05c`, not archived. Triage: 14 findings, 0 patches, 3 new defers, 6 carried defers, 5 rejections.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: medium; the release publish job grants OIDC issuance while `npm ci` runs before credential exchange.
-  evidence: `release.yml` grants `id-token: write` at job scope, and its `npm ci` step runs before `NuGet/login`. Dependency scripts therefore execute with OIDC token-request permission. Separate dependency installation from publication authority in release-governance work.
+  summary: medium; the release publish job grants OIDC issuance while dependency and build code runs before credential exchange.
+  evidence: `release.yml` grants `id-token: write` at job scope (`:285`). Before `NuGet/login` (`:425`), the same job runs `npm ci` (`:369`), `dotnet restore` and `dotnet build` (`:372-375`, which execute restored packages' MSBuild targets), and the container-publisher preparation (`:381`). All of that code therefore executes with OIDC token-request permission. Separate dependency installation and build from publication authority in release-governance work.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: medium; release jobs execute movable action tags beyond the previously recorded NuGet login action.
-  evidence: `release.yml` runs `actions/checkout@v7.0.1` and `actions/setup-node@v7.0.0` in a job with publication authority. Version tags can move without a reviewed workflow change. Pin reviewed action revisions in release-governance work; the prior ledger entry covers `NuGet/login` specifically.
+  evidence: `release.yml` runs `actions/checkout@v7.0.1` (`:312`, `:318`), `actions/setup-dotnet@v6.0.0` (`:340`), `actions/setup-node@v7.0.0` (`:343`), `actions/cache@v6.1.0` (`:347`) and `actions/upload-artifact@v7.0.1` (`:438`) in a job with publication authority. `recover-partial-release.yml` grants `id-token: write` (`:32`) and runs `actions/checkout@v7.0.1` (`:44`) and `actions/setup-dotnet@v6.0.0` (`:50`). Version tags can move without a reviewed workflow change. Pin reviewed action revisions in release-governance work; the prior ledger entry covers `NuGet/login` specifically.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: high; global-administrator revocation can remain authorized while its read-model projection lags.
   evidence: `TenantsGlobalAdministratorVerifier.IsCurrentGlobalAdministratorAsync` accepts membership in the persisted `GlobalAdministratorReadModel`. A revocation is not reflected until that read model updates, so an intervening command or query can pass the authority check. Define an authoritative or version-bounded revocation check in the global-administrator authority owner's work.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 23 (2026-10-09)
+
+Diff reviewed: Tenants `84c4e8b3..ee4a81f3` (the pass-21 fix pass, local and unpushed; `origin/main` = `84c4e8b3`); input 266-line scratch diff, 29,357 bytes, SHA-256 `6b2037560cd12aa6c63d5e6cd20d785153d042be2541afc4541672d2bb82a1b0`, not archived. Triage: 28 normalized findings → 0 decisions, 3 patches, 1 defer, 20 rejected.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: high; carried, adds provenance to the pass-22 revocation-lag entry above. Global-administrator revocation lag reaches Story 5.6's correction dispatch path.
+  evidence: `TenantsGlobalAdministratorVerifier` was added by `81144734` (2026-10-07, inside the story range, not before it as pass 22 says) for EventStore Story 5.5 FR28. It is the server gate that admits `actor:globalAdmin` for the tenant commands a correction sends (`TenantAggregate.cs:266-273`). The UI-side check reads token claims (`TenantsGlobalAdministratorClaims.Evaluate`), so a revoked administrator stays authorized until `GlobalAdministratorRemoved` is projected, and without limit if that projection stalls. `docs/production-auth-readiness.md:76` documents eventual consistency only for the grant (bootstrap) direction. A bounded or freshness-checked revocation is a platform authority change for every global-administrator command, owned by the global-administrator authority owner.

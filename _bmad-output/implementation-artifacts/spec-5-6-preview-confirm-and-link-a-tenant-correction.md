@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -2106,3 +2106,71 @@ Review date: 2026-10-09. Blind Hunter, Edge Case Hunter, and Verification Gap re
 | Edge 1: full browser reload loses circuit-scoped tracking | false; reject | carried: the earlier Blind 4 decision states that the aggregate lock is scoped to the interactive circuit. A new circuit is outside its approved retention boundary; the current read-before-dispatch still derives fresh state. |
 | Edge 2: tracker releases the lease on bounded expiry | low; reject | carried: the approved five-minute expiry retains the attempt identity as unable to verify and allows a fresh current-state preview. |
 | Verification Gap other finding: global-administrator proof link can land outside the first audit page | low; reject | The panel builds a receipt URL without its proof query's `From` filter, while the audit page resolves only its loaded 50-row page. The component currently has no production mount (`rg GlobalAdministratorCorrectionPanel src/Hexalith.Tenants.UI` finds only a comment), so operators cannot reach this link. Story 5.7 already owns reintroducing the panel and deterministic proof association; pagination and route changes now would add an unused path. |
+
+### Review Findings (pass 23: pass-21 fix pass `ee4a81f3`)
+
+Review date: 2026-10-09. This is pass 23 because pass 22 ran inside the fix pass.
+
+Diff reviewed: Tenants `84c4e8b3..ee4a81f3` (4 files, +63/−45; 266-line scratch diff, 29,357 bytes, SHA-256 `6b2037560cd12aa6c63d5e6cd20d785153d042be2541afc4541672d2bb82a1b0`, not archived). `ee4a81f3` is local and unpushed; `origin/main` = `84c4e8b3`. The range moves no `references/` pointer.
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. Verification Gap found no gap.
+- Pass-21 patches #2–#4 match their prescribed ledger text. All eight named stub members are gone, and the interface members remain.
+- Reproduced in an isolated rsync copy at `ee4a81f3`: Debug build of the UI test project 0 warnings/0 errors; the five pass-22 UI classes 576/576; focused page/grid/receipt classes 271/271. The Acceptance Auditor ran the complete UI lane with `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-build --no-restore -c Debug -p:UseNuGetDeps=false`: 3,972/3,972, 0 failed or skipped. So the complete lane does run through Microsoft.Testing.Platform.
+- Mutation: dropping the grid GlobalNotReady branch (`AuditDataGrid.razor:276`) now fails 4 cases, including `Tenant_audit_page_keeps_global_administrator_correction_fail_closed_when_unauthorized`. Pass 21 saw 3, so the new exact-text pin catches that regression. The source was restored and rebuilt.
+- `validate-story-gitlinks.py` at HEAD: this spec and `-3.md` exit 0; `-2.md` exits 1 (carried DW-198).
+- CI at `84c4e8b3`: Commitlint, CodeQL and Source-reference integration pass; CI `build-and-test` passes, `aspire-tests` was cancelled (run 37901622925), and a scheduled CI run for the same SHA was in progress. Story Guards fails: run 37901622244, job 113725267198, "Chromium scenario profile-shipped failed (exit 124; bound 30s)" with Chrome 153.0.8010.52, the carried pass-19 defer. Its gitlink job passes.
+- Triage: 28 normalized findings → 0 decisions, 3 patches, 1 defer, 20 rejected (plus 4 rejected sub-claims inside surviving entries).
+
+- [ ] [Review][Patch] Restore the `5a3bc6dd^` comment verbatim in `TenantAuditPageDoesNotReadGlobalAuthorityForReadOnlyGlobalEvidence` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2540] — low.
+  - Pass-21 patch #1 said to restore the `5a3bc6dd^` name and comment. The name was restored; the comment is a hybrid.
+  - It keeps `5a3bc6dd`'s clause "or enable platform-authority changes", which the test never asserts: it checks only `GlobalAdminRequests` after the grid renders.
+  - It also drops why the test injects `GlobalAdminFault`.
+  - Fix: use the original two lines: "Global correction is read-only on this tenant page, so an unavailable global authority / service must not add a read dependency to displaying its audit evidence."
+- [ ] [Review][Patch] Delete the dead queued global-administrator response path in `StubTenantQueryGateway` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3731] — low.
+  - `QueueGlobalAdministratorResponse` (`:3731-3732`) has no caller in `src` or `tests`, so `_queuedGlobalAdministratorResponses` (`:3720`) and its dequeue branch in `GetGlobalAdministratorsAsync` (`:3831-3832`) can never run.
+  - It has been dead since `cefefa26` (Story 5.5) and was missing from pass 21's list of eight.
+  - Fix: delete the method, the queue and the branch. Keep `GlobalAdminRequests`, `GlobalAdminFault` and `GlobalAdministrators`: tests use them as witnesses and fixtures.
+- [ ] [Review][Patch] The two new pass-22 release-governance ledger entries describe less exposure than `release.yml` has [_bmad-output/implementation-artifacts/deferred-work.md:3835] — low.
+  - **The OIDC entry** names only `npm ci`. The same job grants `id-token: write` at job scope (`release.yml:285`). Before `NuGet/login` (`:425`) it also runs `dotnet restore` and `dotnet build` (`:372-375`), which execute restored packages' MSBuild targets, and the container-publisher preparation (`:381`).
+  - **The movable-tag entry** lists only `actions/checkout@v7.0.1` and `actions/setup-node@v7.0.0`. It omits `actions/setup-dotnet@v6.0.0` (`:340`), `actions/cache@v6.1.0` (`:347`) and `actions/upload-artifact@v7.0.1` (`:438`). It also omits `recover-partial-release.yml`, which grants `id-token: write` (`:32`) and runs `actions/checkout@v7.0.1` (`:44`) and `actions/setup-dotnet@v6.0.0` (`:50`).
+  - Fix: widen both entries' evidence so release-governance work does not stop at the two examples.
+- [x] [Review][Defer] Global-administrator revocation lag reaches the correction dispatch path; the pass-22 provenance is wrong [src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorVerifier.cs:21] — deferred: not caused by this diff; already recorded at `deferred-work.md:3842` for the global-administrator authority owner. This pass adds the provenance to the ledger.
+  - The pass-22 table calls the verifier a "pre-existing authorization boundary … outside the tenant-correction intent". In fact `81144734` (2026-10-07, after baseline `11e65e37`) added it.
+  - It is the server gate that admits `actor:globalAdmin` for the tenant commands a correction sends (`TenantAggregate.cs:266-273`).
+  - The UI-side global-administrator check comes from token claims (`TenantsGlobalAdministratorClaims.Evaluate`). So a revoked administrator stays authorized until `GlobalAdministratorRemoved` is projected, and without limit if that projection stalls.
+  - `docs/production-auth-readiness.md:76` documents eventual consistency only for the grant (bootstrap) direction.
+  - In this codebase "current authority" means a fresh projection read at confirmation, so the Story 5.6 contract holds in its own terms. Bounding revocation is a platform authority change across every global-administrator command.
+
+#### Rejected (pass 23)
+
+- VG-O2 + ECH2 + BH4, "the unauthorized test duplicates `:1114` and its name describes a path the page lacks": false.
+  - The two tests pin the same output for both values of the composition's `authorized` input. If a regression or Story 5.7 makes the page read authority, a divergence on either side fails one of them.
+  - The mutation above shows `:1484` now catches the grid-copy regression. Pass-21 patch #1 offered this pin as one of its two resolutions.
+- VG-O3 + BH3 + AA2, "the pass-22 note misreads `exit 5` as zero discovery, and the complete UI lane was not rerun": low; the fix edits the spec under review. True: under Microsoft.Testing.Platform, exit 5 means invalid arguments and zero tests is exit 8. The complete lane passes 3,972/3,972 (above).
+- ECH1, "the exact English pin breaks under a French UI culture": false. `Tenants.Correction.Start.GlobalNotReady` is in the stub's `Values` table (`TenantAuditPageTests.cs:4146`), which is consulted before the culture-dependent `ResourceManager` fallback. `:1114` has used the same pin since pass 19.
+- ECH3 + BH5, "`:1167` checks the receipt-origin reason only for non-empty text": false. The line is unchanged by this diff (only the method name changed).
+  - A receipt that loses its read-only copy fails `AuditEvidenceReceiptTests` (pass-21 receipt mutant).
+  - A stale callback that opened anything fails the `start`, `start-panel` and `panel` emptiness checks in the same test.
+- ECH4, "`:2555` samples `GlobalAdminRequests` before a post-render read": low.
+  - The test body is byte-identical to `5a3bc6dd^`.
+  - A re-added system-scope load fails the 4 direct-callback cases (pass-21 mutant).
+  - The fix would add wait instrumentation for an unlikely regression.
+- ECH6, "untracked `Set/RemoveGlobalAdministratorAsync` defaults are not recorded by the stub": low. The stub's untracked members predate `5a3bc6dd`. Any page path that dispatched would first have to open a panel, which the emptiness checks catch. The fix would add overrides.
+- ECH7 + BH1, "spec `done` and sprint `review` disagree": false. This is the bmad-build step-05 convention, and this review sets both entries together.
+- BH2, "pass 22 ran no Acceptance Auditor and recorded no CI state": low; the fix edits the spec under review. This four-layer pass records the CI state at `84c4e8b3` above.
+- BH6 (part), "the `Status` setter and the `globalAdministrators` argument / `GlobalAdmins(...)` helper are dead":
+  - The setter has no named harm: it sits on a test-stub property whose read path the tests assert never runs.
+  - The argument is false. It supplies the snapshot that lets a re-added global-administrator read proceed far enough to be caught (the pass-21 load mutant failed 4 cases with it).
+- BH7 (part), "the renamed test does not witness `ResolveGlobalAdministratorsAuthorizationAsync`": low. Pass 21 rejected the same authorization-only re-add (BH6) because pinning it needs new stub instrumentation.
+- BH8 + AA3 (rename part), "`GlobalAdministratorAuditCannotArmCorrectionEvenThroughADirectCallback` differs from the prescribed name, and pass-21 evidence cites the old name": false for the name, since "Audit" names the test's actual input and the page loads no evidence. The stale pointers are low; the fix edits the spec under review.
+- BH10 (part), "the revocation defer was mislabelled 'pre-existing'": low; the table is the spec under review. The defer above records the provenance in the ledger.
+- BH11, "the Completion Notes counts, the pass-19 mutation counts and the ECH10 claim remain stale": low; the fix edits the spec under review.
+- BH12, "the `:3754` summary dropped its leading severity label, and the neighbouring summary credits only `10c9f6f6`": false.
+  - The text follows pass-21's prescription and still says "high if true".
+  - Nothing parses the prefix.
+  - The neighbouring summary correctly states what `10c9f6f6` resolved, and its new `resolution:` line names both commits.
+- BH13, "pass 22's 'earlier Blind 4 decision' is ambiguous": low; the fix edits the spec under review.
+- BH14, "the backfilled pass-20 'Diff reviewed:' line truncates its hash and is unmarked": false. It is pass-21's prescribed text verbatim; the full SHA-256 is at spec `:656`, and pass 21 records the backfill.
+- AA4, "the pass-22 note says no commit was made, and the commit subject says 'review' while the spec says `done`": low.
+  - The note describes the dev run before the user's commit (carried precedent).
+  - The subject matches the sprint transition.
+  - The spec and sprint split is the convention.
