@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -2021,3 +2021,65 @@ Diff reviewed: Tenants `5289b86b..10c9f6f6` (15 files, +1,461/−500; 2,448-line
 - BH14, "four archived logs have no command record": low. They are intermediate runs; the acceptance evidence is the final logs, which the JSON binds to their commands.
 - BH15, "the pass-18 review input lives only in `/tmp`": low. The JSON discloses `raw_diff_archived: false`, as every earlier pass did.
 - BH16, "the JSON `*_clean` layer labels and the initial browser environment are misleading": low. Editing the permanent report would invalidate its recorded SHA-256 (`ab627a90…`).
+
+### Review Findings (pass 21: pass-19 fix pass `ded413df`)
+
+Review date: 2026-10-09. This is pass 21 because pass 20 already ran inside the fix pass.
+
+Diff reviewed: Tenants `a0576d83..ded413df` (12 files, +98/−146; 548-line scratch diff, SHA-256 `ce074e60…`, not archived). HEAD `ded413df` = `origin/main`, clean tree. The range moves no `references/` pointer.
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor), and none failed. Verification Gap found no gap.
+- The revert is complete in production code. `git diff 5a3bc6dd^ ded413df` is empty for `TenantAuditPage.razor`, `AuditDataGrid.razor`, `AuditEvidenceReceipt.razor`, `TenantCorrectionStartIntent.cs` and `AuditDataGridCorrectionTests.cs`.
+- Mutation-verified in an isolated rsync copy at `ded413df` (focused page/grid/receipt classes, 271/271 baseline):
+  - Re-admitting the global domain in `IsSupportedCorrection` fails 2 cases.
+  - Dropping the grid GlobalNotReady branch fails 3 cases: both `GlobalAdministratorRowsNeverClaimSupportedPhoneCorrection` cases and `TenantAuditPageKeepsGlobalAdministratorCorrectionReadOnlyEvenWithAuthority`.
+  - Dropping the receipt branch fails 1 case.
+  - Re-adding the system-page projection load fails all 4 `CompleteGlobalAdministratorEvidenceCannotArm…` cases.
+  - Widening the ServiceDefaults exception to startswith, endswith or substring fails 1, 2 and 3 of the new forbidden cases.
+- `validate-story-gitlinks.py` at HEAD: this spec and `-3.md` exit 0; `-2.md` exits 1 (carried DW-198).
+- CI at `ded413df`: Commitlint, CodeQL and Source-reference integration pass; CI was still running at review time. Story Guards fails: run 37897048951, job 113710658706, "Chromium scenario profile-shipped failed (exit 124; bound 30s)" with Chrome 153.0.8010.52, the carried pass-19 defer. Its gitlink job passes.
+- Triage: 40 normalized findings → 0 decisions, 4 patches, 2 defers, 23 rejected.
+
+- [ ] [Review][Patch] Finish the test-side cleanup of pass-19 patch #1 in `TenantAuditPageTests.cs` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2537] — low.
+  - `:2537` still carries `5a3bc6dd`'s name and comment: "Global corrections use fixed system scope…". Restore the `5a3bc6dd^` name `TenantAuditPageDoesNotReadGlobalAuthorityForReadOnlyGlobalEvidence` and its comment, "Global correction is read-only on this tenant page…".
+  - `:1138` is named `CompleteGlobalAdministratorEvidenceCannotArm…`, but the page no longer loads any complete evidence. Drop the `Complete` prefix.
+  - Eight stub members are referenced only inside their own stubs: `GlobalAdminTokens`, `GlobalAdministratorProvider`, `AsyncGlobalAdministratorProvider`, `AuditProvider` (`:3822-3830`), and `SetRequests`, `RemoveRequests`, `DispatchTokens`, `TrackedResponseProvider` (`:3923-3933`). Delete them; keep the members the interfaces require.
+  - `Tenant_audit_page_keeps_global_administrator_correction_fail_closed_when_unauthorized` (`:1484`). Its `authorized: false` now feeds only stub members the page never calls, so it duplicates `:1114` with a weaker non-empty-text check. Pass-19 patch #1 named it. Either delete it, or pin the exact GlobalNotReady text as `:1114` does.
+- [ ] [Review][Patch] Pass-19 patch #3 re-scoped only part of the two pass-16 ledger entries [_bmad-output/implementation-artifacts/deferred-work.md:3754] — low.
+  - In `:3754` only the evidence line changed. The summary still reads "maybe-false; a loading audit surface may drop an in-flight global-administrator correction. Unverified; high if true." Rewrite it as a Story 5.7 item that is not reachable on the tenant audit page since `10c9f6f6`, and keep "unverified; high if true" for when Story 5.7 mounts the panel.
+  - `:3758` records "resolved" only in its summary. This ledger closes intake entries with a `resolution:` line (`:3425`, `:3430`, `:3447`, `:3459`, `:3463`). Add `resolution: Resolved by Story 5.6 commit \`10c9f6f6\` (panel branch removed) and \`ded413df\` (read-only copy restored, evidence reads removed).`
+- [ ] [Review][Patch] The pass-20 ledger section has no "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3805] — low.
+  - This is the fifth recurrence: passes 12, 14, 16 and 18 were fixed by passes 13, 15, 17 and 19.
+  - Fix: add "Diff reviewed: baseline `11e65e37` through the working tree over root `a0576d83` (committed with the pass-19 patches in `ded413df`); input `/tmp/tenants-56-diff-yWc71L.patch`, 3,161,925 bytes, SHA-256 `927090f9…`, not archived. Triage: 15 findings, 0 patches, 11 defers (2 new, 9 carried), 4 rejected."
+- [ ] [Review][Patch] The pass-19 ledger header undercounts its patches [_bmad-output/implementation-artifacts/deferred-work.md:3799] — low.
+  - It reads "1 decision, 5 patches, 1 defer, 19 rejected". The spec's pass-19 tally reads "1 decision (resolved into the first patch), 6 patches", and pass 20 says "after the six pass-19 patches". The header was written before D1 was resolved.
+  - Fix: "39 raw findings → 1 decision (resolved into the first patch), 6 patches, 1 defer, 19 rejected."
+- [x] [Review][Defer] The paging spec still lists the reverted audit-page work as delivered [_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md:64] — deferred: the fix edits another spec.
+  - Task `:64` (`TenantAuditPage.razor`: complete reads for initial enrichment, correction-open refresh and confirmation, plus refreshed-intent re-derivation) is still `[x]`. AC4 (`:75`) still describes correction-open re-evaluation, which no longer exists anywhere.
+  - Its 2026-10-08 Review Triage Log note does explain the revert (branch in `10c9f6f6`, enrichment in `ded413df`), so a careful reviewer of that spec can reconcile the two.
+  - Fix in that spec's own review: qualify `:64` and AC4 as reverted until Story 5.7.
+- [x] [Review][Defer] Story 5.7 has no handoff for the reverted audit-page integration [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:201] — deferred: Story 5.7 work, kept by pass-19 D1 (a).
+  - These parts of `5a3bc6dd` were removed and are recoverable from that commit: the page's complete-evidence load, correction-open refresh, global-intent re-derivation, and the 8-case `GlobalAdministratorIncompleteEvidenceCannotEnableOrOpenCorrection` page matrix.
+  - `GlobalAdministratorCorrectionPanel.CorrectiveAuditEvidence` (`:201`), added by `5a3bc6dd` for the audit-page integration, now has no consumer and no test.
+  - Story 5.7 must re-derive the page integration and its fail-closed matrix from the Epic 5 rules, or remove the parameter.
+
+#### Rejected (pass 21)
+
+- BH2, "spec `done` and sprint `review` disagree": low. This review's status sync sets both entries together, as pass 19 recorded.
+- BH6 + ECH2 + AA2a, "the page-load removal was never mutation-tested; re-adding only the authorization read passes every test": low.
+  - The projection half is false: re-adding the load fails all 4 direct-callback cases.
+  - An authorization-only re-add is unlikely by accident, because Story 5.7 will rewire this deliberately. Pinning it needs new stub instrumentation.
+- BH7 + AA6, "the pass-19 completion paragraph lacks commands, root and log binding": low. The fix edits the spec under review. This review records its own reproduction above.
+- BH12, "pass-20 Blind 10 cites an unresolvable 'line 1249'": low. The fix edits the spec under review.
+- BH13, "the pass-20 NuGet defer says the release jobs 'predate this Story 5.6 patch', yet `390da330` is in the reviewed range": false. `390da330` (2026-10-08) does predate the pass-19 patch, and the defer routes it to release-owner work, not to this story.
+- BH14, "the exact-copy guards pin an English literal that no test checks against the `.resx`": false. `LocalizerDoubleParityTests` discovers every `IStringLocalizer<TenantsResources>` double, including the new receipt stub key, and compares its values with the shipped resource. The FR value exists (`TenantsResources.fr.resx:4210`).
+- BH15, "pass 20 ran three layers, no Acceptance Auditor and no CI status": low. The fix edits the spec under review. This four-layer pass supplies that coverage.
+- BH16 + AA5, "the Completion Notes still say five new findings and omit pass 20's two": low. The fix edits the spec under review.
+- BH17 + ECH8 + AA8, "the 'mixed-case' ID is all lowercase, and the startswith and endswith mutants were not run": false. In this review's run, startswith is killed by `….Extensions`, endswith by two cases, and substring by all three.
+- BH18 + ECH1, "the grid and receipt show Start for an available global intent on a phone": false.
+  - The only intent provider, `CreateCorrectionIntent` (`TenantAuditPage.razor:1856`), passes `HasGlobalAdministratorCommandSupport: false`, so a global intent is never available.
+  - `OpenCorrectionAsync` (`:1556-1557`) refuses non-Tenants domains in any case.
+  - The code is byte-identical to `5a3bc6dd^`, which is the Story 5.5 design.
+- ECH4, "the mutation counts 2/2/1 are not self-consistent": low (true: grid copy fails 3 cases across the three classes). The fix edits the spec under review; this review records the counts above.
+- ECH5 + ECH6 + ECH7, "the `ded413df` message calls a revert 'the new correction flow', claims the paging implementation was 'adjusted', and calls a net test reduction 'enhanced'": low. The commit is pushed, so changing it means rewriting published history (pass-19 precedent).
+- ECH10, "'the standalone loader and panel remain available outside this audit page', yet no page mounts the panel": low. The fix edits the spec under review. The loader is used outside the page; the panel's lack of a consumer is covered by the Story 5.7 defer.
+- AA3, "the page-level copy guard was never shown to catch the regression": false. Dropping the grid GlobalNotReady branch fails `TenantAuditPageKeepsGlobalAdministratorCorrectionReadOnlyEvenWithAuthority`.

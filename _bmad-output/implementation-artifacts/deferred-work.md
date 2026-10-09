@@ -3811,3 +3811,15 @@ Diff reviewed: Tenants `5289b86b..10c9f6f6` (the pass-17 fix pass), HEAD `10c9f6
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: medium; manually dispatched release tests pass when the NuGet login step is disabled.
   evidence: `PackageGovernanceTests.Release_workflows_publish_to_nuget_through_trusted_publishing` checks login text and step order but not a disabling condition. A login step with `if: ${{ false }}` still passes the test; the dependent publish step receives an empty `NUGET_API_KEY` and aborts. Validate the executable login-to-publish handoff in release-owner work with the protected GitHub environment.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 21 (2026-10-09)
+
+Diff reviewed: Tenants `a0576d83..ded413df` (the pass-19 fix pass), HEAD `ded413df` = `origin/main`; 548-line scratch diff, SHA-256 `ce074e60…`, not archived. Triage: 40 normalized findings → 0 decisions, 4 patches, 2 defers, 23 rejected.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md`
+  summary: low; the paging spec still lists its reverted tenant-audit-page work as delivered.
+  evidence: Task `:64` (`TenantAuditPage.razor` complete reads for initial enrichment, correction-open refresh and confirmation, plus refreshed-intent re-derivation) is `[x]`, and AC4 (`:75`) describes correction-open re-evaluation. Story 5.6 removed the audit-page branch in `10c9f6f6` and the enrichment in `ded413df`. The spec's own 2026-10-08 triage note explains this. Qualify `:64` and AC4 as reverted until Story 5.7 in that spec's review.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: low; Story 5.7 handoff. Story 5.6 reverted the tenant audit page's global-administrator integration, and Story 5.7 must re-derive it.
+  evidence: `5a3bc6dd` holds the removed page code: the complete-evidence load, the correction-open refresh, the global-intent re-derivation, and the 8-case `GlobalAdministratorIncompleteEvidenceCannotEnableOrOpenCorrection` fail-closed matrix. `GlobalAdministratorCorrectionPanel.CorrectiveAuditEvidence` (`GlobalAdministratorCorrectionPanel.razor:201`) was added for that integration and now has no consumer and no test. When Story 5.7 enables the correction, it must re-derive the integration and its matrix from the Epic 5 rules, or remove the parameter.
