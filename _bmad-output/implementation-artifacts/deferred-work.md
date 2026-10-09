@@ -3752,11 +3752,11 @@ Diff reviewed: baseline `11e65e37f0fbf6649642a512052eebd37d50166d` through the p
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: maybe-false; a loading audit surface may drop an in-flight global-administrator correction. Unverified; high if true.
-  evidence: The audit page mounts `GlobalAdministratorCorrectionPanel` only while the audit surface or retained display remains. Settle whether a loading snapshot clears that panel before its message id is stored. Story 5.7 owns that panel.
+  evidence: The tenant audit page no longer mounts `GlobalAdministratorCorrectionPanel` after `10c9f6f6`, and the pass-19 read-only cleanup removes its remaining global-administrator enrichment. Re-check loading and retained-display behavior when Story 5.7 mounts the panel. Story 5.7 owns that panel.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: medium; the tenant audit page can open and submit a global-administrator correction. Superseded by pass-17 D1 option (a), which makes restoring the read-only gate a blocking Story 5.6 patch.
-  evidence: `TenantAuditPage.razor` renders `GlobalAdministratorCorrectionPanel` for system evidence. Pass 15 traced that behavior to `5a3bc6dd` and the global-administrator projection spec, not to this correction story.
+  summary: resolved by `10c9f6f6`; the tenant audit page no longer opens or submits a global-administrator correction.
+  evidence: Pass 15 traced the former `GlobalAdministratorCorrectionPanel` audit-page branch to `5a3bc6dd` and the global-administrator projection spec. `10c9f6f6` removed the branch; the pass-19 read-only cleanup restores the remaining audit-surface copy and removes unused evidence reads.
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 17 (2026-10-08)
 
@@ -3771,6 +3771,8 @@ Diff reviewed: Tenants `fe5f6aa2..0ac7c126`, story files only (HEAD `0ac7c126` =
   evidence: At `0ac7c126` it reports 4× `[UNDECLARED]` (Builds, Commons, EventStore, McpCli) and 2× `[MISSTATED]` (Memories `906bc07a`, Platform `f5a0d72f`). The `-2.md` File List records `5bfe0715` values. `-3.md` calls `-2.md` historical, but the guard has no story-end ref, and `-3.md` will fail the same way at the next bump.
 
 ## Deferred from: Story 5.6 remediation workflow review, pass 18 (2026-10-08)
+
+Diff reviewed: baseline `11e65e37` to the pre-patch working tree over root `5289b86b` (committed with its patches in `10c9f6f6`); input `/tmp/tenants-56-pass17-2kj37k80/pass18-reviewed-input.diff`, 2,657,085 bytes, SHA-256 `4692e95462d7000e9a3d850158858974fc05aef53e28434611ab4d14585330d3`, not archived. Triage: 13 findings, 2 patches, 6 defers (5 new, 1 carried), 5 rejected.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: high; bootstrap administrator credential acquisition permits an HTTP authority outside Development.
@@ -3799,3 +3801,13 @@ Diff reviewed: Tenants `5289b86b..10c9f6f6` (the pass-17 fix pass), HEAD `10c9f6
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: medium; carried, updates the Chromium entry at `:3338`. Story Guards still fails at HEAD, but the 30-second bound now ends it at once instead of a 15-minute hang.
   evidence: Run 37843324360, job 113537923481, at `10c9f6f6`: "Chromium scenario profile-shipped failed (exit 124; bound 30s)" with Chrome for Testing 153.0.8010.52, preceded only by dbus connection errors. Since `9ee73062` added `--no-sandbox`, Chrome 153 hangs on its first DOM dump instead of aborting with exit 134, so the `:3338` and `:3508` descriptions are out of date. Repairing the CI Chromium launch remains runner work; the story's EN/FR browser evidence is local-only (Chrome 154).
+
+## Deferred from: Story 5.6 pass-20 independent review (2026-10-09)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; bootstrap does not retry transient credential or command failures until the host restarts.
+  evidence: `TenantBootstrapHostedService.StartAsync` schedules `RunBootstrapAsync` once on `ApplicationStarted`; the run returns after a credential failure, unexpected response, or caught exception. Its log says it retries on next restart. Define a bounded in-process retry or explicit operator recovery in the bootstrap owner's work.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; manually dispatched release tests pass when the NuGet login step is disabled.
+  evidence: `PackageGovernanceTests.Release_workflows_publish_to_nuget_through_trusted_publishing` checks login text and step order but not a disabling condition. A login step with `if: ${{ false }}` still passes the test; the dependent publish step receives an empty `NUGET_API_KEY` and aborts. Validate the executable login-to-publish handoff in release-owner work with the protected GitHub environment.

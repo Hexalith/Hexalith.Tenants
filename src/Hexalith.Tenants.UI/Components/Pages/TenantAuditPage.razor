@@ -320,9 +320,6 @@
     private bool _competingCorrectionNotice;
     private string? _resumedCorrectionMessageId;
     private CorrectionStartPanel? _correctionPreview;
-    private GlobalAdministratorsSnapshot? _globalAdministratorsSnapshot;
-    private TenantLifecycleAuthorizationReflectionState _globalAdministratorsAuthorization
-        = TenantLifecycleAuthorizationReflectionState.Indeterminate;
     private readonly Dictionary<string, TenantCorrectionProjection> _correctionProjections = new(StringComparer.Ordinal);
     private string? _activeCorrectionOrigin;
     private string? _pendingCorrectionOrigin;
@@ -1452,8 +1449,6 @@
         _activeCorrectionFocusReference = null;
         _selectedCorrectionRoles.Clear();
         _correctionProjections.Clear();
-        _globalAdministratorsSnapshot = null;
-        _globalAdministratorsAuthorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
         _previewCorrectionIntent = null;
         _correctionOpenGeneration++;
         InvalidateCorrectionFocus();
@@ -1842,33 +1837,6 @@
 
     private TenantCorrectionStartIntent CreateCorrectionIntent(TenantAuditRow row)
     {
-        if (row.EventType is "GlobalAdministratorRemoved" or "GlobalAdministratorSet")
-        {
-            bool complete = _globalAdministratorsSnapshot is
-            {
-                IsCompleteEvidence: true,
-                HasMore: false,
-                IsMutationEvidenceBacked: true,
-            } globalProjection && !string.IsNullOrWhiteSpace(globalProjection.ProjectionVersion)
-                && _snapshot.Lifecycle is ProjectionLifecycleState.Current
-                && _snapshot.Freshness is ReadModelFreshnessState.Current;
-            TenantCorrectionStartIntent globalIntent = TenantCorrectionStartIntent.Evaluate(new(
-                TenantAuditReceipt.FromRow(row, surfaceKind: _snapshot.Kind), row,
-                IsAuthorized: _globalAdministratorsAuthorization is TenantLifecycleAuthorizationReflectionState.Authorized,
-                HasCurrentProjectionSnapshot: complete,
-                CurrentProjectionSnapshotReference: complete ? "global-administrators-projection-current" : string.Empty,
-                HasTenantCommandSupport: false,
-                HasGlobalAdministratorCommandSupport: false,
-                IsNarrowViewportSafe: HasMeasuredSafeViewport));
-            return TenantId is "system" && row.TenantId is "system" && row.Scope is "global-administrators"
-                ? globalIntent
-                : globalIntent with
-                {
-                    UnavailableReasons = globalIntent.UnavailableReasons
-                        .Append(TenantCorrectionUnavailableReason.ScopeConflict).Distinct().ToArray(),
-                };
-        }
-
         string target = row.Narrative?.UserId ?? string.Empty;
         _correctionProjections.TryGetValue(target, out TenantCorrectionProjection? projection);
         TenantRole? intendedRole = _selectedCorrectionRoles.TryGetValue(row.EventReference, out TenantRole selectedRole)
@@ -1888,31 +1856,6 @@
             HasGlobalAdministratorCommandSupport: false,
             IsNarrowViewportSafe: HasMeasuredSafeViewport,
             Projection: projection));
-    }
-
-    private async Task<(GlobalAdministratorsSnapshot Projection, TenantLifecycleAuthorizationReflectionState Authorization)>
-        LoadGlobalAdministratorCorrectionEvidenceAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            TenantLifecycleAuthorizationReflectionState authorization = await BffComposition
-                .ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken).ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-            GlobalAdministratorsSnapshot projection = authorization is TenantLifecycleAuthorizationReflectionState.Authorized
-                && BffComposition.IsReadSurfaceConnected && BffComposition.IsGlobalAdministratorRequeryConnected
-                ? await GlobalAdministratorsProjectionLoader.LoadAsync(QueryGateway, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false)
-                : GlobalAdministratorsSnapshot.Unavailable();
-            return (projection, authorization);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch
-        {
-            return (GlobalAdministratorsSnapshot.Unavailable(), TenantLifecycleAuthorizationReflectionState.Indeterminate);
-        }
     }
 
     private Task SelectCorrectionRoleAsync(TenantCorrectionRoleSelection selection)
@@ -1962,21 +1905,12 @@
             .GroupBy(projection => projection.TargetUserId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count() == 1 ? group.Single()
                 : TenantCorrectionProjection.Unavailable(tenantId, group.Key), StringComparer.Ordinal);
-        (GlobalAdministratorsSnapshot Projection, TenantLifecycleAuthorizationReflectionState Authorization)? globalEvidence = null;
-        if (tenantId is "system" && _snapshot.Rows.Any(static row =>
-            row.EventType is "GlobalAdministratorRemoved" or "GlobalAdministratorSet"))
-        {
-            globalEvidence = await LoadGlobalAdministratorCorrectionEvidenceAsync(cancellationToken).ConfigureAwait(false);
-        }
         bool removesReceiptCorrection = false;
         await InvokeAsync(() =>
         {
             if (CanApply(tenantId, generation) && projectionGeneration == Volatile.Read(ref _correctionProjectionGeneration))
             {
                 _correctionProjections.Clear();
-                _globalAdministratorsSnapshot = globalEvidence?.Projection;
-                _globalAdministratorsAuthorization = globalEvidence?.Authorization
-                    ?? TenantLifecycleAuthorizationReflectionState.Indeterminate;
                 foreach (var capture in captures)
                 {
                     _correctionProjections[capture.Key] = capture.Value;

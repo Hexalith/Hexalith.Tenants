@@ -371,7 +371,9 @@
     private string CorrectionUnavailableReason
         => CorrectionIntent is null
             ? string.Empty
-            : CorrectionIntent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome)
+            : CorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
+                ? Localizer["Tenants.Correction.Start.GlobalNotReady"]
+                : CorrectionIntent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome)
                     ? Localizer["Tenants.Correction.Unavailable.UnsupportedOutcome"]
                 : string.Join(
                 " ",

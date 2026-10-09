@@ -610,6 +610,26 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
     }
 
     [Fact]
+    public void GlobalAdministratorReceiptShowsReadOnlyBoundary()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAuditRow row = Row(eventType: "GlobalAdministratorRemoved") with
+        {
+            TenantId = "system",
+            Scope = "global-administrators",
+        };
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(row));
+
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(row))
+            .Add(component => component.CorrectionIntent, intent));
+
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldBe("The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.");
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Receipt_hides_role_picker_on_unsafe_viewport()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -947,6 +967,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Correction.Unavailable.UnsupportedOutcome"] = "This audit outcome is not supported for correction start.",
+            ["Tenants.Correction.Start.GlobalNotReady"] = "The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.",
             ["Tenants.Correction.Unavailable.AuthorizationIndeterminate"] = "Current access could not be verified. Refresh or request permission before starting correction.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",

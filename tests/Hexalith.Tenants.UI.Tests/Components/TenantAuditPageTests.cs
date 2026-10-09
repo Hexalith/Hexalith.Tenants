@@ -1125,7 +1125,8 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
-        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.ShouldNotBeNullOrWhiteSpace();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldBe("The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.");
         cut.FindAll("[data-testid='tenants-correction-role']").ShouldBeEmpty();
     }
 
@@ -1139,18 +1140,13 @@ public sealed class TenantAuditPageTests : BunitContext
     {
         TenantAuditSnapshot audit = GlobalAdminAuditSnapshot(eventType, "admin-user");
         StubTenantQueryGateway gateway = RegisterGlobalAdminServices(true, GlobalAdmins("other-admin"), audit);
-        gateway.GlobalAdministratorProvider = request => request.Cursor is null
-            ? GlobalAdmins("other-admin", "other-admin") with { HasMore = true, NextCursor = "opaque page/+2" }
-            : GlobalAdmins("admin-user", "other-admin");
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "system"));
-        cut.WaitForAssertion(() => gateway.GlobalAdminRequests.Select(static request => request.Cursor)
-            .ShouldBe([null, "opaque page/+2"]));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
         IRenderedComponent<AuditDataGrid> grid = cut.FindComponent<AuditDataGrid>();
         TenantCorrectionStartIntent intent = grid.Instance.CorrectionIntentProvider!(audit.Rows[0]);
         intent.IsAvailable.ShouldBeFalse();
         intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.GlobalAdministratorCommandSupportUnavailable);
-        intent.UnavailableReasons.ShouldNotContain(TenantCorrectionUnavailableReason.CurrentProjectionUnavailable);
         // A stale child callback cannot bypass the page's fixed tenant-only correction boundary.
         TenantCorrectionStartIntent staleAvailableIntent = intent with { UnavailableReasons = [] };
         if (origin == "receipt")
@@ -1172,52 +1168,7 @@ public sealed class TenantAuditPageTests : BunitContext
         StubTenantCommandGateway commands = (StubTenantCommandGateway)Services.GetRequiredService<ITenantCommandGateway>();
         commands.TrackedMessageIds.ShouldBeEmpty();
         commands.StatusHandles.ShouldBeEmpty();
-        gateway.GlobalAdminRequests.Count.ShouldBe(2);
-    }
-
-    [Theory]
-    [InlineData("stale")]
-    [InlineData("missing-version")]
-    [InlineData("mixed-version")]
-    [InlineData("recovered")]
-    [InlineData("non-current-lifecycle")]
-    [InlineData("missing-cursor")]
-    [InlineData("cyclic-cursor")]
-    [InlineData("page-cap")]
-    public async Task GlobalAdministratorIncompleteEvidenceCannotEnableOrOpenCorrection(string scenario)
-    {
-        TenantAuditSnapshot audit = GlobalAdminAuditSnapshot("GlobalAdministratorSet", "admin-user");
-        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(authorized: true, GlobalAdmins("unused"), audit);
-        int calls = 0;
-        gateway.GlobalAdministratorProvider = request =>
-        {
-            calls++;
-            GlobalAdministratorsSnapshot page = GlobalAdmins("admin-user", "other-admin");
-            return scenario switch
-            {
-                "stale" => page with { Kind = GlobalAdministratorsSurfaceKind.Stale, Freshness = ReadModelFreshnessState.Stale },
-                "missing-version" => page with { ProjectionVersion = null },
-                "non-current-lifecycle" => page with { Lifecycle = ProjectionLifecycleState.Rebuilding },
-                "missing-cursor" => page with { HasMore = true },
-                "cyclic-cursor" => page with { HasMore = true, NextCursor = "cycle" },
-                "page-cap" => page with { HasMore = true, NextCursor = $"page-{calls}" },
-                _ when request.Cursor is null => page with { HasMore = true, NextCursor = "page-2" },
-                "mixed-version" => page with { ProjectionVersion = "v2" },
-                "recovered" => page with { PagingRecovered = true },
-                _ => throw new InvalidOperationException(),
-            };
-        };
-        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "system"));
-        cut.WaitForAssertion(() => gateway.GlobalAdminRequests.Count.ShouldBeGreaterThan(0));
-        cut.WaitForElement("[data-testid='tenants-correction-unavailable-reason']");
-        IRenderedComponent<AuditDataGrid> grid = cut.FindComponent<AuditDataGrid>();
-        TenantCorrectionStartIntent initial = grid.Instance.CorrectionIntentProvider!(audit.Rows[0]);
-        initial.IsAvailable.ShouldBeFalse();
-
-        await cut.InvokeAsync(() => grid.Instance.OnStartCorrection.InvokeAsync(initial));
-
-        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
-        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        gateway.GlobalAdminRequests.ShouldBeEmpty();
     }
 
     [Fact]

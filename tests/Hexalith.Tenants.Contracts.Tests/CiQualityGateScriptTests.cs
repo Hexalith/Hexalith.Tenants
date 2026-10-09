@@ -464,6 +464,9 @@ public class CiQualityGateScriptTests {
     [InlineData("HEXALITH.COMMONS.SERVICEDEFAULTS", true)]
     [InlineData("Other.Module.ServiceDefaults", false)]
     [InlineData("Hexalith.Tenants.ServiceDefaults", false)]
+    [InlineData("Hexalith.EventStore.ServiceDefaults.Extensions", false)]
+    [InlineData("Evil.Hexalith.Commons.ServiceDefaults", false)]
+    [InlineData("evil.hexalith.eventstore.servicedefaults", false)]
     public async Task PackageValidatorAllowsOnlyExactSharedServiceDefaultsDependencies(
         string dependencyId, bool allowed) {
         string repoRoot = FindRepoRoot();
