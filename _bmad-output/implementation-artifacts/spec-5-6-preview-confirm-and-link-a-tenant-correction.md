@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -2344,3 +2344,100 @@ Diff reviewed: Tenants `cc17b071..875f8809`, HEAD `875f8809` = `origin/main` (th
 - BH10, "the proof-walk defer omits a time bound and the attempt-data dependency": rejected as maybe-false, and low if true. The DTO gap is already in the ledger (`deferred-work.md:3463`, "the authorized audit DTO has no attempt association"), next to the existing Story 5.7 entry. Story 5.7's own design owns the walk bounds.
 - BH11, "the guard-test plan omits whitespace-only and unset values": false. "Blank" covers whitespace-only values. `${{ vars.NUGET_USER }}` always sets the variable, so an unset variable reaches the guard as an empty one.
 - ECH3, "removing the request echo makes a future paging test see incomplete evidence": false. No page path reaches the stub. The `GlobalAdmins(...)` fixture is a single page (`HasMore = false`, null cursor, default page size), so it still passes the loader's page check.
+
+### Review Findings (pass 29: pass-26 fix pass `42d1e300` + pass-28 live verification `96cc6f11`)
+
+Review date: 2026-10-09. Passes 27 and 28 ran inside the fix pass.
+
+Diff reviewed: Tenants `6e6a7f5b..96cc6f11`, HEAD `96cc6f11` = `origin/main` (both commits are the user's). Input: 917-line scratch diff, 73,888 bytes, SHA-256 `9bfeaa69e95a04ddb2d89c9fe75409e6601aaee9e1f395b5778e1c38aa711a96`, not archived. `42d1e300` moves five `references/` pointers: Builds `58d9b546→d536c0d7`, EventStore `07d1e23a→28d3a8aa`, McpCli `342e0722→bfb2ae37`, Memories `906bc07a→858a828d`, Platform `f5a0d72f→d6fa51e9`. All five are on their remotes (`gh api …/compare`, behind 0).
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor), and none failed.
+- All four pass-26 ledger patches hold; the Acceptance Auditor re-checked every citation at HEAD. The frozen block is unchanged (SHA-256 `15e504ef…` at `6e6a7f5b` and `96cc6f11`).
+- Gitlink guard: `validate-story-gitlinks.py` passes at HEAD. Against the spec as committed in `42d1e300` (`--ref 42d1e300`) it fails with five MISSTATED pointers; `96cc6f11` repaired the record. This is the 13th occurrence.
+- Keycloak probe (throwaway `quay.io/keycloak/keycloak:26.6`, realm import only, containers removed): with the `96cc6f11` realm the hexalith realm has only the seven workload scopes plus `offline_access`, and a `hexalith-eventstore` password-grant token has no `sub` and no `preferred_username`. The `6e6a7f5b` realm issues `sub: 11111111-1111-1111-1111-111111111111`. Adding `"attributes": { "CreateDefaultClientScopes": "true" }` restores all built-in scopes and `sub`. The `eventstore` workload client issues `aud: tenants` with `eventstore:operation: domain-service:query`, and its `${HEXALITH_EVENTSTORE_WORKLOAD_CLIENT_SECRET}` placeholder resolves (the literal placeholder is refused).
+- CI at `96cc6f11`: Commitlint, CodeQL and Source-reference integration pass. CI `build-and-test` FAILS (run 37945639805, job 113871053802): `SampleConsumingServiceWalkthroughDocumentationTests.Walkthrough_csharp_registration_snippet_matches_current_sample_program`, Server.Tests 824/825; UI.Tests 3,972/3,972. `aspire-tests` was therefore skipped. At `42d1e300`, `aspire-tests` failed (job 113848488286, `continue-on-error`) on the EventStore `Authentication:JwtBearer` startup error. Story Guards fails with the carried Chromium exit 124 (job 113871048299).
+- Triage: 47 normalized findings → 2 decisions (15 findings), 10 patches (23 findings), 0 defers, 9 rejected. Both decisions were resolved to option (a), giving 12 patches.
+
+- [x] [Review][Decision] Projection-backed metadata without an ETag reopens Story 4.2's producer-ETag race — high. Resolved 2026-10-09: option (a), now the "Bind a read-consistent producer ETag" patch below.
+  - Pass 27 found a real gap. Envelope-wrapped read-model reads deliberately surface an empty ETag (EventStore `ReadModelBatchProtocol.cs:316-327`), so under Story 4.2's fail-closed rule the live tenant routes were never projection-backed and carried no ordered version. That rule is "keep null/degenerate ETags plus absent freshness fail-closed" (`spec-4-2-grant-global-administrator-with-projection-confirmation.md:269`).
+  - The fix, `TenantQueryResult.cs:50-57`, emits `ProjectionBacked` metadata whatever the ETag. With a null producer ETag, EventStore `QueriesController.cs:133-145` fetches the CURRENT projection ETag after the read (`:140`) and evaluates `If-None-Match` against it. A payload read at v1 can therefore be labelled, cached and 304-revalidated as v2. That is the race Story 4.2's pass-4 high patch closed ("prefer the producer ETag", `spec-4-2…md:708`). `TenantsApiGeneratedControllerTests.cs:283` and `:321` now pin the substituted `"later-projection-validator"` as expected.
+  - Same root cause: an absent read model with no ETag (`ListTenantsQueryHandler.cs:45`, `GetUserTenantsQueryHandler.cs:57`, `GetTenantAuditQueryHandler.cs:80`) changed from no metadata to `ProjectionBacked`/`Unknown`, which also triggers the fallback ETag. No test covers that combination.
+  - Same root cause: the no-ETag global-administrator read now counts as complete evidence (row `:283`), which feeds Story 4.2's grant/remove previews. The live test `…_with_projection_authority_without_etag` (`AspireTopologyTests.cs:120`) never asserts its no-ETag premise (`:189`, `:223`, `:260` check the ETag only when present). No test feeds a projection-backed, store-ETag-less tenant detail through `TenantQueryGateway` into the correction capture.
+  - Unverified consequence (Edge Case Hunter): EventStore's 304 metadata carries no projection version, so a matched audit or global-administrator refresh may fall back to retained `GatewayFailure` evidence. The tenant-detail read is safe; it re-reads unconditionally after a 304 (`TenantQueryGateway.cs:196-211`).
+  - The frozen Never forbids "public-contract changes beyond the approved status-proof extension"; only an implementer-added Code Map line (`:59`) authorizes this one.
+  - Options: (a) keep projection-backed metadata, but when the store ETag is absent and a persisted read model exists, emit a read-consistent producer validator derived from the persisted projection version, so EventStore never substitutes a later ETag. Keep "no read model and no ETag" fail-closed. Unpin `"later-projection-validator"`, make the live test assert its premise, and add the gateway → capture test. Tenants-only. (b) Revert to Story 4.2's fail-closed rule and defer the live gap to EventStore. Live correction confirmation and global-administrator grant confirmation then stay unverifiable until the platform fixes it. (c) Keep as shipped: ratify the contract change and record the race as a platform defer.
+- [x] [Review][Decision] Approve or revert the five dependency advances shipped by `42d1e300` — low. Resolved 2026-10-09: option (a), the user ADOPTED the shipped pins; now the "Record the approved `42d1e300` dependency advances" patch below.
+  - `42d1e300` ("feat: finalize tenant correction linking and metadata handling") moved five gitlinks without mentioning them. The spec as committed there fails the guard. The `96cc6f11` "Pass-28 current-tree dependency record" calls them "later committed dependency advances" that the root "already contains", but this story's own commit made them. It records no approval.
+  - EventStore `07d1e23a..28d3a8aa` (16 commits, mostly Story 6.6 and Story 8.3 evidence) changes one line on the 5.6 proof path: `AggregateActor.cs:1395` adds `EnsureExecutionFenceAsync` before `PersistEventsAsync`. That line runs only inside the `ISourcePublicationWriterRegistration` branch, and no host registers `DaprSourcePublicationWriterRegistration`, so it is dormant. No EventStore proof lane was re-run at `28d3a8aa`; CI ran the UI lane at HEAD (3,972/3,972).
+  - Options: (a) adopt the shipped pins. Record your approval, and that `42d1e300` itself advanced them, in the pin record. (b) Adopt, and also re-run the EventStore proof lanes at `28d3a8aa`. (c) Revert the five gitlinks to their `6e6a7f5b` values.
+- [ ] [Review][Patch] Bind a read-consistent producer ETag from the persisted projection version [src/Hexalith.Tenants/Queries/TenantQueryResult.cs:50-57] — high (from decision 1, option a).
+  - In the freshness overload, use the store ETag when present; otherwise use the persisted `readModel.ProjectionVersion` as the producer ETag. If neither exists, return no metadata (Story 4.2's fail-closed rule), so an absent read model without an ETag is no longer labelled `ProjectionBacked`.
+  - Effect: EventStore keeps the producer ETag (`QueriesController.cs:134-136`) and never substitutes a later one. A version string is not a self-routing ETag, so EventStore never evaluates `If-None-Match` for these reads (`:365-389`). They always return 200, which removes the v1-payload/v2-ETag race and the `GatewayFailure` fallback on a matched audit or global-administrator 304 (`TenantQueryGateway.cs:918-920`, `:1225-1227`). All four read models carry a `ProjectionVersion` (`TenantReadModel`, `TenantIndexReadModel`, `TenantAuditReadModel`, `GlobalAdministratorReadModel`), and a value like `tenant-sequence:42` passes the generated controller's `TryFormatStrongETag`.
+  - Tests:
+    - `TenantQueryResultTests`/`TenantQueryFreshnessTests` degenerate-ETag rows expect `ETag == ProjectionVersion`.
+    - Add rows for an absent read model with no ETag and for a read model with no version and no ETag; both expect null metadata.
+    - `TenantsApiGeneratedControllerTests.cs:283`/`:321` expect the version, not `"later-projection-validator"`.
+    - `AspireTopologyTests.cs:120` asserts its premise: the ETag header equals `persisted.ProjectionVersion`.
+    - Add one UI test feeding a projection-backed tenant detail whose ETag is its version through `TenantQueryGateway` into the correction capture.
+  - Record the user's approval of this public header change in the Spec Change Log (the frozen Never on public-contract changes).
+- [ ] [Review][Patch] Record the approved `42d1e300` dependency advances [_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md:251] — low (from decision 2, option a).
+  - Replace the "already contains later committed dependency advances" wording: `42d1e300` itself advanced Builds, EventStore, McpCli, Memories and Platform, and the user approved them on 2026-10-09 (pass 29).
+  - Record:
+    - EventStore `28d3a8aa`'s own CI is red (run 37938092799, job 113845283818: the Server, Client and DomainService test projects fail, including `EventDrainRecoveryTests`). The cause is stored-event message-ID fixtures broken by stricter validation in the range; EventStore fixed only the fixtures (`7e8ad7d0`), and `5e5d2305` (22 ahead) is green. Between the two, `src/Hexalith.EventStore.Server/Actors/`, `Contracts/Commands/` and `EventPersister` are unchanged.
+    - The `AggregateActor.cs:1395` fence line is dormant: no host registers `DaprSourcePublicationWriterRegistration`.
+    - Builds `d536c0d7`'s own CI is red (package-version audit, 6 errors; still red on Builds `main`), while Tenants restores and builds at that pin.
+- [ ] [Review][Patch] Restore Keycloak's built-in client scopes in the local realm [src/Hexalith.Tenants.AppHost/KeycloakRealms/hexalith-realm.json:12] — high.
+  - Declaring realm-level `clientScopes` without `"attributes": { "CreateDefaultClientScopes": "true" }` stops Keycloak creating `basic`, `profile`, `email`, `roles`, `web-origins` and `acr`. The probe above shows user tokens with no `sub`.
+  - EventStore's claims transformation (`EventStoreClaimsTransformation.cs:16`, `:57-66`), the Tenants UI user claim (`src/Hexalith.Tenants.UI/Program.cs:53`) and the global-administrator claims gate (`TenantsGlobalAdministratorClaims.cs:41`) all key on `sub`. The default `aspire run` (Keycloak) lane therefore loses user identity end to end.
+  - The EventStore realm this block was copied from declares the attribute and pins it (`AppHostTrustBoundaryModelTests.cs:211`). Pass 28 verified only EventStore health in Keycloak mode.
+  - Fix: add the realm attribute, verified above.
+- [ ] [Review][Patch] Re-sync the sample walkthrough with the sample program; CI is red on `main` [docs/sample-consuming-service-walkthrough.md:72] — high.
+  - `96cc6f11` changed `samples/Hexalith.Tenants.Sample/Program.cs:38` to `app.MapSubscribeHandler().RequireEventStoreSidecarChannel();` and added authentication/authorization registration and middleware (`:26-32`). The walkthrough snippet still shows `app.MapSubscribeHandler();`.
+  - `Walkthrough_csharp_registration_snippet_matches_current_sample_program` fails in CI `build-and-test`. That job blocks `aspire-tests`, and the release is gated on CI success.
+  - Fix: update the snippet (`:72`), add the sidecar-channel scheme/policy and middleware lines, and explain them next to `:85`. Run Server.Tests in full.
+- [ ] [Review][Patch] Pin the local realm's workload client and the Keycloak-mode secret wiring with tests [tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs:590] — medium.
+  - No Tenants test checks:
+    - realm `attributes.CreateDefaultClientScopes`;
+    - the `eventstore` client shape (confidential, service-account only, `fullScopeAllowed=false`, no default scopes, optional scopes matching `GetAudienceScope`/`GetOperationScope` for `tenants`/`sample` × the five `domain-service:*` operations, one mapper each);
+    - the secret placeholder name;
+    - that Keycloak's `HEXALITH_EVENTSTORE_WORKLOAD_CLIENT_SECRET` and EventStore's workload secret are the same parameter (`src/Hexalith.Tenants.AppHost/Program.cs:190-191`).
+  - The integration fixture always runs `--EnableKeycloak=false`. The finding above shipped green.
+  - Fix: add a realm-structure test next to `LocalKeycloakRealm_AdminUserAuthorizesQuickstartCommandDomains`, modelled on EventStore `RealmTemplate_DeclaresAScopedShortLivedEventStoreWorkloadClient`, and a Keycloak run-model environment test.
+- [ ] [Review][Patch] Give `tenants-api` the symmetric key it actually reads [src/Hexalith.Tenants.AppHost/Program.cs:242] — medium.
+  - `ConfigureLocalSymmetricValidation` sets `Authentication__JwtBearer__*`, but `src/Hexalith.Tenants.Api/Program.cs:25-63` reads `EventStore:Authentication:{Authority,Issuer,Audience,SigningKey}`. With `EnableKeycloak=false`, `tenants-api` keeps the hard-coded key in `appsettings.Development.json`.
+  - The fixture passes only because its demo key equals that hard-coded key. Any other configured key gives `tenants-api` 401s, contrary to the AppHost comment "other callers must provide their own explicit key".
+  - Fix: set the `EventStore__Authentication__*` variables for `tenantsApi` from the same parameter and issuer, with an empty Authority.
+- [ ] [Review][Patch] Cover symmetric-mode AppHost wiring and the sample's protected subscription in a blocking lane [src/Hexalith.Tenants.AppHost/Program.cs:223-244] — medium.
+  - The signing-key guard (`:229-233`), the five `ConfigureLocalSymmetricValidation` calls, the sample's `APP_API_TOKEN` (`:167`), and the sample's sidecar-channel scheme/policy are exercised only by two `[DaprFact]` Aspire tests. Those tests self-skip when prerequisites are missing, and their job is `continue-on-error`.
+  - Dropping a call, relaxing the key guard, or removing `AddEventStoreSidecarChannelScheme()` would leave CI green.
+  - Fix: run-model tests in the style of `MemoriesSecretStoreResourceGraphTests` (same key parameter, issuer `hexalith-dev`, audience, `HS256` on each resource; shared sidecar `APP_API_TOKEN`; throws on a missing or short key), plus a Sample.Tests host test for the protected routes. Put the key-guard assertion in a blocking project.
+- [ ] [Review][Patch] Bring the HMAC fallback demo in line with the new AppHost requirements [docs/demo.md:179] — medium.
+  - The AppHost now throws unless `Authentication:JwtBearer:SigningKey` (32+ UTF-8 bytes) is supplied with `EnableKeycloak=false` (`src/Hexalith.Tenants.AppHost/Program.cs:229-233`). `docs/demo.md:179` and `scripts/demo.sh`/`demo.ps1` never pass the key. Following the documented fallback stops at AppHost startup.
+  - With the key, the scripts still mint `sub: admin-user` and bootstrap `UserId: admin-user` (`scripts/demo.sh:159`, `:317`; `scripts/demo.ps1:54`, `:251`). The AppHost bootstraps `11111111-1111-1111-1111-111111111111`, and this diff moved the twin test to that ID. The demo continues past `GlobalAdminAlreadyBootstrappedRejection` without global-administrator rights.
+  - Fix: document the start argument with the scripts' key (`--Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!`), switch both scripts to the bootstrap GUID, and extend `AhaMomentDemoDocumentationTests.Hmac_fallback_tokens_target_the_EventStore_command_gateway` (`:143`) to pin both.
+- [ ] [Review][Patch] Restore meaningful assertions in the live audit check [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:391-394] — medium.
+  - The rewrite dropped the `Freshness`/`Lifecycle` assertions and the correction-eligibility guard. It now checks only `Ready`, `None`, non-empty rows and `TenantId`. The `TenantCreated` row alone satisfies it, so the add and remove events the demo exists for are never checked.
+  - The raw-payload `foreach` (`:623`) passes vacuously on an empty `items` array.
+  - The audit is read once, right after the sample's access projection reports `denied`. The Tenants audit projection can still lag, so the new `Ready`/non-empty assertion can flake.
+  - The `ConvertAsync` remark (`:753-754`) still justifies "the assertion below -- which exists because the pre-Story-4.7 alias legitimately yields no payload".
+  - Fix: poll until `Ready` with the expected created/added/removed rows; assert current lifecycle and freshness plus `ProjectionBacked` provenance; require non-empty `items` before the loop; update the remark.
+- [ ] [Review][Patch] Add provenance to the pass-27 ledger section [_bmad-output/implementation-artifacts/deferred-work.md:3874] — low.
+  - The section goes straight into its entry with no "Diff reviewed:" line. This is the 7th recurrence; the pass-26 patch closed in this same diff fixed the 6th.
+  - Fix: add "Diff reviewed: baseline `11e65e37` through root `6e6a7f5b`; input `/tmp/story-5-6-baseline-OsK7WiL3.diff`, 1,815,498 bytes, not archived. Triage: 15 findings, 1 patch, 7 defers (1 new, 6 carried), 7 rejected."
+- [ ] [Review][Patch] Complete the pass-27 bootstrap defer entry [_bmad-output/implementation-artifacts/deferred-work.md:3877] — low.
+  - `GlobalAdministratorsAggregate.cs:16-17` writes `command.UserId` as both `UserId` and `ActorUserId`, so the audit trail records the bootstrap target as its own actor. The entry also omits ready evidence that an external caller can submit the command: `AspireTopologyTests.cs` submits `BootstrapGlobalAdmin` with an external JWT.
+  - Fix: add both facts to the entry's evidence.
+- [ ] [Review][Patch] Trim `KeycloakPersistent` the way the security helper does [src/Hexalith.Tenants.AppHost/Program.cs:173-175] — low.
+  - `HexalithEventStoreSecurityExtensions` parses `builder.Configuration[options.PersistentConfigurationKey]?.Trim()`, but the AppHost parses the raw value. A padded `KeycloakPersistent` would persist Keycloak's container but regenerate the workload secret, and the realm, which is not re-imported, keeps the old one.
+  - Fix: add `?.Trim()`.
+
+#### Rejected (pass 29)
+
+- BH2 + AA4 + ECH11 + VG other, "the spec is `done` while the sprint entry is `review`, and `96cc6f11` landed after `done`": the dev pass hands off for review this way; this review's status step sets both. Fixing the record edits the spec under review.
+- BH3 (spec part), "the spec's Pass-27 section lacks a SHA-256, tally and CI and is filed out of order": the fix edits the spec under review. The ledger part is the "Add provenance to the pass-27 ledger section" patch.
+- BH6, "only `sample` gets an app-channel token; `tenants` and EventStore get none": low, and it predates this diff. `tenants` required the sidecar channel before (`src/Hexalith.Tenants/Program.cs:181`), and `DaprAppChannelToken` returns `NotRequired` in Development, the AppHost's only mode.
+- BH7 (UI part), "Admin.UI and Tenants.UI get no local token issuer with `EnableKeycloak=false`": it predates this diff; the fallback is a script/API path.
+- BH7 (duplication part), "`ConfigureLocalSymmetricValidation` copies a private EventStore AppHost function": low. The harm is drift with EventStore's symmetric contract, and the fix needs new public surface in EventStore.Aspire.
+- BH12 (re-import part), "a reused persistent Keycloak never imports the `eventstore` client": the EventStore security helper documents this for persistent mode ("remove the container (`docker rm -f`) so it re-imports"). The Trim part is a patch.
+- BH13, "the sample registers a workload policy for an unregistered scheme": false. `AddEventStoreWorkloadPolicies` is the only registration of `SidecarChannelPolicy`, which `RequireEventStoreSidecarChannel()` needs (`EventStoreWorkloadAuthenticationExtensions.cs:114-120`). The unused any-workload policy is never evaluated.
+- BH14 + AA8, "File List, Code Map and Tasks omit the nine changed files, and no change-log entry approves the security-topology scope": the fix edits the spec under review.
+- ECH6, "the sample outside Aspire and outside Development without `APP_API_TOKEN` silently gets no subscriptions": low. That configuration is unusual for a sample, the behaviour matches the `tenants` host, and the fix adds a startup branch.
