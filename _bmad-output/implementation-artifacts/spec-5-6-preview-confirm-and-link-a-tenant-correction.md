@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -2250,3 +2250,50 @@ Review date: 2026-10-09. Blind Hunter, Edge Case Hunter, and Verification Gap in
 | Edge 1: lazy expiry lookup consumes timer notification | low; reject | carried: pass-18 Edge 1 found that admission releases correctly; the missing notification affects only a narrow display interval until the next render. |
 | Edge 2: lease expires before terminal evidence | low; reject | carried: pass-18 Edge 2 and pass-22 Edge 2 record the approved bounded expiry and retained unverified identity. |
 | Verification Gap 1: Trusted Publishing account guard is only text-tested | medium; defer | Pre-verified: `PackageGovernanceTests.AssertTrustedPublishingJob` checks the `${NUGET_USER//[[:space:]]/}` text but never executes either Bash guard. Replacing `-z` with `-n` leaves the test green and rejects a configured account. The release workflows are separate release-governance work; a new ledger entry owns executable guard tests. |
+
+### Review Findings (pass 26: pass-24 fix pass `875f8809`)
+
+Review date: 2026-10-09.
+
+Diff reviewed: Tenants `cc17b071..875f8809`, HEAD `875f8809` = `origin/main` (the user's commit, which closes the two pass-24 patches and records pass 25). Input: 137-line scratch diff, 18,493 bytes, SHA-256 `a89fe4d9346b36985d631206d591a4743f935806b5da0ac5fd4a83a68dd6a60a`, not archived. The range moves no `references/` pointer.
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor), and none failed. Verification Gap found no gap. The Acceptance Auditor found no acceptance-criteria violation in code; the diff changes no production code.
+- Both pass-24 patches hold. The stub body matches `5a3bc6dd^` without the queue branch deleted in pass 23. The request is still recorded before any throw, so `GlobalAdminRequests.ShouldBeEmpty()` (`TenantAuditPageTests.cs:1171`, `:2556`) still catches a read added back later. The duplicate pass-23 ledger bullet is gone, and its heading keeps "1 defer (folded into the pass-22 entry)".
+- Checks: `TenantAuditPageTests` passed 182/182 on a build made after the edit. `git diff --check cc17b071..875f8809` is clean, and `validate-story-gitlinks.py` passes for this spec.
+- CI at `875f8809`: Commitlint, CodeQL and Source-reference integration pass. CI `build-and-test` passes; `aspire-tests` was still running. Story Guards fails: run 37929294538, job 113815772094, "Chromium scenario profile-shipped failed (exit 124; bound 30s)". This is the carried pass-19 defer; its gitlink job passes.
+- Triage: 23 normalized findings → 0 decisions, 4 patches (10 findings), 0 defers, 13 rejected.
+
+- [ ] [Review][Patch] Restore the platform-wide scope of the folded revocation entry [_bmad-output/implementation-artifacts/deferred-work.md:3843] — medium.
+  - The pass-22 entry said "an intervening command or query can pass the authority check". The rewritten summary narrows this to "for tenant correction", and the evidence asks the owner to fix "all such commands".
+  - `TenantsGlobalAdministratorVerifier` gates `QueryEnvelope.IsGlobalAdmin` on every `/query` request as well as `actor:globalAdmin` on `/process` (its `<remarks>`). A revoked administrator therefore keeps global read visibility for as long as the projection lags. The entry is the only record of this high-severity issue, and the owner is now asked to fix only part of it.
+  - Fix: summary "global-administrator revocation can remain authorized for every global-administrator command and query, including tenant correction, while its authority channels lag". Name the `/query` boundary in the evidence, and ask for the check on "all such commands and queries".
+- [ ] [Review][Patch] Cite the corroborated resolver, not `Evaluate`, as the UI claims gate [_bmad-output/implementation-artifacts/deferred-work.md:3844] — low.
+  - The entry names "`TenantsGlobalAdministratorClaims.Evaluate`, used through `TenantConfigurationPrincipalResolver`". The resolver actually calls `ResolvePrincipalEvidence(principal, userContextAccessor.UserId, requireCorroboration: true)` (`src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs:92`).
+  - `Evaluate` is the uncorroborated reflection path used by `TenantsBffComposition.cs:294` and `:298`. An owner who follows `Evaluate`'s callers misses the gate that correction dispatch uses.
+  - The fold also dropped the confirm-time citations from the pass-24 correction: `TenantsBffComposition.cs:542` (resolver call) and `:561` (`global` from the principal state).
+  - Fix: cite the resolver call at `:92`, reached from `TenantsBffComposition.cs:542` and `:561`.
+- [ ] [Review][Patch] Give the Tenants-owned `production-auth-readiness.md` follow-up its own ledger entry [_bmad-output/implementation-artifacts/deferred-work.md:3844] — low.
+  - The pass-24 patch told the fix pass to fold the doc follow-up into the pass-22 entry, and the fix pass did exactly that. The result: a one-paragraph Tenants doc change sits inside an entry routed to the global-administrator authority owner. A sweep that marks that entry blocked on the platform also blocks the Tenants doc change.
+  - `docs/production-auth-readiness.md:76` still describes only the grant direction (`GlobalAdministratorSet`).
+  - Fix: remove the "Tenants-owned follow-up" sentence from the platform entry. Add a separate Tenants-owned entry under the pass-24 heading, asking for `:76` to state that revocation also lags: removal takes effect after projection, and identity-provider revocation after token or circuit renewal.
+- [ ] [Review][Patch] Add provenance and locations to the pass-25 ledger section [_bmad-output/implementation-artifacts/deferred-work.md:3858] — low.
+  - Every Story 5.6 ledger heading since pass 19 carries a "Diff reviewed:" line. Pass 25 goes straight into its entries. This is the 6th recurrence; pass 21 recorded the 5th.
+  - The new proof-walk entry points to "the existing Story 5.7 entry" without a location (`deferred-work.md:3500-3502`).
+  - The Trusted Publishing entry cites no lines for the guards (`.github/workflows/release.yml:308`, `.github/workflows/recover-partial-release.yml:40`) or the test (`tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:2209-2219`, called at `:904-905`).
+  - Fix: add "Diff reviewed: baseline `11e65e37` through the working tree over root `cc17b071`; input `/tmp/story-56-diff-J8LkoHyp.patch`, 3,208,703 bytes, SHA-256 `8b551d77…`, not archived. Triage: 17 findings, 0 patches, 14 defers (2 new, 12 carried), 3 rejected." Then add the three locations.
+
+#### Rejected (pass 26)
+
+- VG other + ECH5 + AA1, "the spec says `done` while the sprint entry says `review`": false. This is the dev pass's handoff that queues a review. This review's status step sets both entries together.
+- AA2, "`done` without re-checking current authority for a global-administrator actor; record an explicit decision in the spec": rejected. The user accepted the revocation-lag defer in pass 23. Pass 24 corrected the rationale and kept the conclusion: no Story 5.6 change narrows the server-side lag, and a confirm-time global-administrator projection read would see the same lag. Also, the fix edits the spec under review.
+- AA5, "no verification record for applying the pass-24 patches": low; the fix edits the spec under review. This pass records the test run, the guards and CI above.
+- AA6, "the `done` transition rests on a pass with no Acceptance Auditor": low; the fix edits the spec under review. This pass ran the Acceptance Auditor.
+- BH3, "the identity-provider bound is unsupported because no `RevalidatingServerAuthenticationStateProvider` exists": false.
+  - The UI gate does hold for the circuit's life. But EventStore drops the client's `actor:globalAdmin` (`CommandsController.cs:244`) and re-adds it only from the JWT (`SubmitCommandExtensions.cs`).
+  - So identity-provider revocation stops dispatch once the access token sent to EventStore is renewed or expires. "After token or circuit renewal" is accurate.
+- BH6, "the pass-25 spec record lacks test, guard, CI and status evidence": low; the fix edits the spec under review. This pass records them.
+- BH7, "the pass-25 record has no tally and its summary contradicts its table": false. The 17 rows match the stated count, and "two distinct issues were deferred" refers to the two new ledger entries. Also, the fix edits the spec under review.
+- BH8 (spec part), "bare `:1805`": the fix edits the spec under review. The Acceptance Auditor confirmed the citation is correct. The ledger part is in patch 4.
+- BH9, "the stub fix stops halfway: dead `globalAdministrators` fixtures, and no empty-request assertion at `:1116`/`:1486`": low. Two tests already pin the invariant that the page never calls the method (`:1171`, `:2556`). `:1116` is the restored Story 5.5 guard test. Adding assertions or removing the parameter across call sites is more than a direct correction.
+- BH10, "the proof-walk defer omits a time bound and the attempt-data dependency": rejected as maybe-false, and low if true. The DTO gap is already in the ledger (`deferred-work.md:3463`, "the authorized audit DTO has no attempt association"), next to the existing Story 5.7 entry. Story 5.7's own design owns the walk bounds.
+- BH11, "the guard-test plan omits whitespace-only and unset values": false. "Blank" covers whitespace-only values. `${{ vars.NUGET_USER }}` always sets the variable, so an unset variable reaches the guard as an empty one.
+- ECH3, "removing the request echo makes a future paging test see incomplete evidence": false. No page path reaches the stub. The `GlobalAdmins(...)` fixture is a single page (`HasMore = false`, null cursor, default page size), so it still passes the loader's page check.
