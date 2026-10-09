@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -2201,13 +2201,13 @@ Diff reviewed: Tenants `ee4a81f3`..working tree over root `0d8cc8d8` (= `origin/
 - **Line range.** The `TenantAggregate.cs:266-273` citation is `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:265-272`.
 - **Patch-application note.** It should say the user authored `0d8cc8d8`. Its message is "fix: update status of tenant correction story to in-progress and adjust related documentation", and it also carries test edits.
 
-- [ ] [Review][Patch] Correct the global-administrator revocation ledger record and remove its duplicate [_bmad-output/implementation-artifacts/deferred-work.md:3852] — medium.
+- [x] [Review][Patch] Correct the global-administrator revocation ledger record and remove its duplicate [_bmad-output/implementation-artifacts/deferred-work.md:3852] — medium.
   - The pass-23 bullet (`:3850-3852`) duplicates the open pass-22 entry (`:3842-3844`), so a sweep would triage the same issue twice. Its "not before it as pass 22 says" points at the spec table, not at that entry.
   - Its mechanism is wrong: "the UI-side check reads token claims …, so a revoked administrator stays authorized until … projected". See the correction above.
   - It cites a bare `TenantAggregate.cs:266-273`.
   - It records no Tenants-owned follow-up for `docs/production-auth-readiness.md:76`. That doc calls verification "eventually consistent" but gives only the grant direction and does not warn that revocation lags.
   - Fix: fold the provenance (`81144734`, EventStore Story 5.5 FR28, `src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs:265-272`), the corrected two-channel AND mechanism and the doc follow-up into the pass-22 entry's evidence. Then delete the pass-23 bullet and keep the pass-23 heading and "Diff reviewed:" line with "1 defer (folded into the pass-22 entry)".
-- [ ] [Review][Patch] Restore the `5a3bc6dd^` body of `StubTenantQueryGateway.GetGlobalAdministratorsAsync` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3821] — low.
+- [x] [Review][Patch] Restore the `5a3bc6dd^` body of `StubTenantQueryGateway.GetGlobalAdministratorsAsync` [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:3821] — low.
   - `5a3bc6dd` added `async`, `.WaitAsync(cancellationToken)` and the `RequestCursor`/`RequestPageSize` echo to serve the queued pending responses and the paging loader.
   - With the queue deleted, `WaitAsync` only wraps a completed `Task.FromResult`, and the echo serves no caller. The page never calls this method, and the tests assert `GlobalAdminRequests` is empty.
   - Fix: restore the synchronous `5a3bc6dd^` body: record the request, then `return GlobalAdminFault is not null ? throw GlobalAdminFault : Task.FromResult(GlobalAdministrators);`.
@@ -2226,3 +2226,27 @@ Diff reviewed: Tenants `ee4a81f3`..working tree over root `0d8cc8d8` (= `origin/
 - AA7 + BH8, "the pass-23 tally does not add up": low; the fix edits the spec under review. Clarified above.
 - ECH5, "`0d8cc8d8`'s `fix:` type mislabels a test and documentation commit": low. The commit is the user's and is pushed, so changing it means rewriting published history. `ded413df` is a genuine `fix:`, so the next release is a patch release either way.
 - BH11, "findings rejected because the fix edits the spec under review are not tracked after `done`": false. Each one is recorded in its pass's Rejected appendix, which is this workflow's tracking for them (step-03 rule).
+
+### Review Findings (pass 25: pass-24 patch closeout)
+
+Review date: 2026-10-09. Blind Hunter, Edge Case Hunter, and Verification Gap independently reviewed the baseline-to-working-tree diff over `cc17b071` at `/tmp/story-56-diff-J8LkoHyp.patch` (3,208,703 bytes, SHA-256 `8b551d774cd7fab5a6acbb34be921fda1e2f620f39c4518acdb15db34496a302`). All three layers returned. The 17 findings below received individual verdicts. No Story 5.6 code patch or intent decision remains; two distinct issues were deferred to their owning work.
+
+| Finding | Verdict and route | Evidence |
+| --- | --- | --- |
+| Blind 1: bootstrap password sent to an HTTP authority | high; defer | carried: pass-18 Blind 5 and the bootstrap-owner ledger entry cover the independent `EventStore:Authentication:Authority` transport setting. |
+| Blind 2: bootstrap assumes a Keycloak token URL | medium; defer | carried: pass-18 Blind 6 and its bootstrap compatibility entry cover the appended `/protocol/openid-connect/token` path. |
+| Blind 3: bootstrap response buffers before its cap | medium; defer | carried: pass-16 and pass-18 provider reviews cover `PostAsync` preceding `LoadIntoBufferAsync(64 KiB)`. |
+| Blind 4: bootstrap has no in-process retry | medium; defer | carried: pass-20 Blind 4 covers the single `ApplicationStarted` attempt and restart-only recovery. |
+| Blind 5: duplicate administrator IDs remain complete evidence | medium; defer | carried: the previous Edge finding at `:1805` and the global-administrator paging ledger entry cover `TryAdd` followed by `IsCompleteEvidence = true`. The paging spec explicitly requests ordinal deduplication; conflicting-page semantics belong to that owner. |
+| Blind 6: global-administrator proof matches only target, type and time | medium; defer | carried: the prior Story 5.7 proof-association entry covers `QueryCorrectiveProofAsync` and `WithCorrectiveProof`; the tenant correction refuses such a link. The global panel has no production mount. |
+| Blind 7: global proof accepts stale or degraded audit | medium; defer | `QueryCorrectiveProofAsync` filters `audit.Rows` without testing audit availability or freshness. The global panel is currently unmounted; Story 5.7 must check the audit state before pairing a receipt. Grouped with Blind 8 in the new Story 5.7 ledger entry. |
+| Blind 8: global proof scans only one audit page | medium; defer | The lookup makes one `GetTenantAuditAsync` call and never follows `HasMore`/`NextCursor`; a valid later-page row is missed. The currently unmounted panel is Story 5.7 work. Grouped with Blind 7. |
+| Blind 9: correction lease expires during an in-flight gateway call | low; reject | carried: pass-6 Edge 1 and pass-22 Blind 8 accepted the bounded five-minute release while retaining the original attempt as unable to verify. |
+| Blind 10: ServiceDefaults exceptions apply to every package layer | medium; defer | carried: pass-18 Blind 9 and the package-architecture ledger entry cover the exact-ID exceptions; pass-19 tests constrain their spelling, not their layers. |
+| Blind 11: release build receives the live NuGet key | medium; defer | carried: pass-24 deferred the post-login build under `.releaserc.json` and recovery script to release governance. |
+| Blind 12: recovery preparation consumes temporary key lifetime | medium; defer | carried: pass-18 Blind 7 and its release-recovery ledger entry cover login before artifact preparation. |
+| Blind 13: OIDC issuance is available during dependency work | medium; defer | carried: pass-22 Blind 1 and its expanded ledger entry cover `npm ci`, restore and build in a job with `id-token: write`. |
+| Blind 14: publication actions use mutable tags | medium; defer | carried: pass-18 Blind 8 and pass-22 Blind 2 cover `NuGet/login` and the other movable action tags. |
+| Edge 1: lazy expiry lookup consumes timer notification | low; reject | carried: pass-18 Edge 1 found that admission releases correctly; the missing notification affects only a narrow display interval until the next render. |
+| Edge 2: lease expires before terminal evidence | low; reject | carried: pass-18 Edge 2 and pass-22 Edge 2 record the approved bounded expiry and retained unverified identity. |
+| Verification Gap 1: Trusted Publishing account guard is only text-tested | medium; defer | Pre-verified: `PackageGovernanceTests.AssertTrustedPublishingJob` checks the `${NUGET_USER//[[:space:]]/}` text but never executes either Bash guard. Replacing `-z` with `-n` leaves the test green and rejects a configured account. The release workflows are separate release-governance work; a new ledger entry owns executable guard tests. |

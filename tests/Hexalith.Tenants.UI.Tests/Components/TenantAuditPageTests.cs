@@ -3818,21 +3818,15 @@ public sealed class TenantAuditPageTests : BunitContext
 
         public Exception? GlobalAdminFault { get; init; }
 
-        public async Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
+        public Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
             GlobalAdministratorsRequest request,
             GlobalAdministratorsSnapshot? previous,
             CancellationToken cancellationToken = default)
         {
             GlobalAdminRequests.Add(request);
-            GlobalAdministratorsSnapshot result = await (GlobalAdminFault is not null
+            return GlobalAdminFault is not null
                 ? throw GlobalAdminFault
-                : Task.FromResult(GlobalAdministrators))
-                .WaitAsync(cancellationToken);
-            return result with
-            {
-                RequestCursor = request.Cursor,
-                RequestPageSize = request.PageSize,
-            };
+                : Task.FromResult(GlobalAdministrators);
         }
 
         public Task<TenantAuditSnapshot> GetTenantAuditAsync(
