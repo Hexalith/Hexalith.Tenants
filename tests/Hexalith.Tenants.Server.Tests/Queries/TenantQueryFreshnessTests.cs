@@ -110,7 +110,7 @@ public sealed class TenantQueryFreshnessTests
     [InlineData("\"")]
     [InlineData("\"\"\"")]
     [InlineData("  \" \"  ")]
-    public async Task Query_handler_omits_metadata_for_degenerate_etagAsync(string? eTag)
+    public async Task Query_handler_retains_projection_metadata_for_degenerate_etagAsync(string? eTag)
     {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SetupTenant(store, eTag, Now - TimeSpan.FromMinutes(40));
@@ -123,7 +123,14 @@ public sealed class TenantQueryFreshnessTests
             freshnessOptions: Thresholds,
             timeProvider: new FixedTimeProvider(Now))).ShouldBeOfType<TenantQueryResult>();
 
-        result.Metadata.ShouldBeNull();
+        QueryResponseMetadata metadata = result.Metadata.ShouldNotBeNull();
+        metadata.ETag.ShouldBeNull();
+        metadata.IsNotModified.ShouldBe(false);
+        metadata.ProjectionVersion.ShouldBe(GenuineSequenceVersion);
+        metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Stale);
+        metadata.IsStale.ShouldBe(true);
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        metadata.ServedAt.ShouldBe(Now);
     }
 
     private static void AssertProjectionBacked(

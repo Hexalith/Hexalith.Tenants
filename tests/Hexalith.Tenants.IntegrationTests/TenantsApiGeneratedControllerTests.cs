@@ -280,7 +280,7 @@ public sealed class TenantsApiGeneratedControllerTests
     [InlineData(1, "projection-v1", "etag-v1", QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, GlobalAdministratorsSurfaceKind.Ready, true)]
     [InlineData(30, "projection-v1", "etag-v1", QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Stale, GlobalAdministratorsSurfaceKind.Stale, false)]
     [InlineData(1, null, "etag-v1", QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, GlobalAdministratorsSurfaceKind.Ready, false)]
-    [InlineData(1, "projection-v1", null, QueryResponseProvenance.HandlerComputed, ProjectionLifecycleState.Unknown, GlobalAdministratorsSurfaceKind.Unknown, false)]
+    [InlineData(1, "projection-v1", null, QueryResponseProvenance.ProjectionBacked, ProjectionLifecycleState.Current, GlobalAdministratorsSurfaceKind.Ready, true)]
     public async Task GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway(
         int projectedAgeMinutes,
         string? projectionVersion,
@@ -318,7 +318,7 @@ public sealed class TenantsApiGeneratedControllerTests
 
         response.Headers.Contains("X-Hexalith-Projection-Version")
             .ShouldBe(expectedProvenance is QueryResponseProvenance.ProjectionBacked && !string.IsNullOrWhiteSpace(projectionVersion));
-        response.Headers.ETag.ShouldBe(expectedProvenance is QueryResponseProvenance.ProjectionBacked ? eTag is null ? null : new EntityTagHeaderValue($"\"{eTag}\"") : null);
+        response.Headers.ETag.ShouldBe(new EntityTagHeaderValue($"\"{eTag ?? "later-projection-validator"}\""));
 
         using var replayClient = new HttpClient(new ReplayHandler(response))
         {

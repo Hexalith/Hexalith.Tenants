@@ -111,7 +111,7 @@ public sealed class TenantQueryResultTests
     [InlineData("\"")]
     [InlineData("\"\"\"")]
     [InlineData("  \" \"  ")]
-    public void Freshness_overload_omits_metadata_for_degenerate_etag(string? eTag)
+    public void Freshness_overload_retains_projection_metadata_for_degenerate_etag(string? eTag)
     {
         var readModel = new TenantReadModel
         {
@@ -128,7 +128,16 @@ public sealed class TenantQueryResultTests
             DateTimeOffset.Parse("2026-06-25T13:00:00Z", System.Globalization.CultureInfo.InvariantCulture),
             eTag);
 
-        result.Metadata.ShouldBeNull();
+        QueryResponseMetadata metadata = result.Metadata.ShouldNotBeNull();
+        metadata.ETag.ShouldBeNull();
+        metadata.IsNotModified.ShouldBe(false);
+        metadata.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "42");
+        metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Stale);
+        metadata.IsStale.ShouldBe(true);
+        metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        metadata.ServedAt.ShouldBe(DateTimeOffset.Parse(
+            "2026-06-25T13:00:00Z",
+            System.Globalization.CultureInfo.InvariantCulture));
     }
 
     [Fact]

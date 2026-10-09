@@ -117,7 +117,7 @@ public class AspireTopologyTests : IDisposable {
 
     [DaprFact]
     [Trait("Tier", "3")]
-    public async Task Generated_tenants_api_get_tenant_reads_verified_redis_state_without_projection_authority() {
+    public async Task Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority_without_etag() {
         _fixture.SkipIfUnavailable();
         await WaitForTenantsApiAliveAsync();
 
@@ -183,12 +183,19 @@ public class AspireTopologyTests : IDisposable {
         eventStoreResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         eventStoreResponse.Headers.GetValues("X-Hexalith-Query-Provenance")
             .ShouldHaveSingleItem()
-            .ShouldBe("HandlerComputed");
-        eventStoreResponse.Headers.ETag.ShouldBeNull();
-        eventStoreResponse.Headers.Contains("X-Hexalith-Projection-Version").ShouldBeFalse();
-        eventStoreResponse.Headers.Contains("X-Hexalith-Is-Stale").ShouldBeFalse();
+            .ShouldBe("ProjectionBacked");
+        EntityTagHeaderValue? eventStoreETag = eventStoreResponse.Headers.ETag;
+        if (eventStoreETag is not null) {
+            eventStoreETag.IsWeak.ShouldBeFalse();
+        }
+        eventStoreResponse.Headers.GetValues("X-Hexalith-Projection-Version")
+            .ShouldHaveSingleItem()
+            .ShouldBe(persisted.ProjectionVersion);
+        eventStoreResponse.Headers.GetValues("X-Hexalith-Is-Stale").ShouldHaveSingleItem().ShouldBe("false");
         eventStoreResponse.Headers.Contains("X-Hexalith-Is-Degraded").ShouldBeFalse();
-        eventStoreResponse.Headers.Contains(ProjectionLifecyclePolicy.HeaderName).ShouldBeFalse();
+        eventStoreResponse.Headers.GetValues(ProjectionLifecyclePolicy.HeaderName)
+            .ShouldHaveSingleItem()
+            .ShouldBe(nameof(ProjectionLifecycleState.Current));
         SubmitQueryResponse eventStoreResult = (await eventStoreResponse.Content.ReadFromJsonAsync<SubmitQueryResponse>(
             WebJsonOptions,
             timeout.Token)).ShouldNotBeNull();
@@ -198,12 +205,12 @@ public class AspireTopologyTests : IDisposable {
             .ShouldNotBeNull();
         AssertTenantDetailMatchesPersisted(eventStorePayload, persisted);
         QueryResponseMetadata eventStoreMetadata = eventStoreResult.Metadata.ShouldNotBeNull();
-        eventStoreMetadata.Provenance.ShouldBe(QueryResponseProvenance.HandlerComputed);
-        eventStoreMetadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
-        eventStoreMetadata.ETag.ShouldBeNull();
-        eventStoreMetadata.IsNotModified.ShouldBeNull();
-        eventStoreMetadata.ProjectionVersion.ShouldBeNull();
-        eventStoreMetadata.IsStale.ShouldBeNull();
+        eventStoreMetadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        eventStoreMetadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+        eventStoreMetadata.ETag.ShouldBe(eventStoreETag?.Tag.Trim('"'));
+        eventStoreMetadata.IsNotModified.ShouldBe(false);
+        eventStoreMetadata.ProjectionVersion.ShouldBe(persisted.ProjectionVersion);
+        eventStoreMetadata.IsStale.ShouldBe(false);
         eventStoreMetadata.IsDegraded.ShouldBeNull();
 
         using var rawRequest = new HttpRequestMessage(HttpMethod.Get, $"/api/tenants/{tenantId}");
@@ -215,12 +222,19 @@ public class AspireTopologyTests : IDisposable {
         string rawContent = await rawResponse.Content.ReadAsStringAsync(timeout.Token);
 
         rawResponse.StatusCode.ShouldBe(HttpStatusCode.OK, rawContent);
-        rawResponse.Headers.GetValues("X-Hexalith-Query-Provenance").ShouldHaveSingleItem().ShouldBe("HandlerComputed");
-        rawResponse.Headers.ETag.ShouldBeNull();
-        rawResponse.Headers.Contains("X-Hexalith-Projection-Version").ShouldBeFalse();
-        rawResponse.Headers.Contains("X-Hexalith-Is-Stale").ShouldBeFalse();
+        rawResponse.Headers.GetValues("X-Hexalith-Query-Provenance").ShouldHaveSingleItem().ShouldBe("ProjectionBacked");
+        EntityTagHeaderValue? rawETag = rawResponse.Headers.ETag;
+        if (rawETag is not null) {
+            rawETag.IsWeak.ShouldBeFalse();
+        }
+        rawResponse.Headers.GetValues("X-Hexalith-Projection-Version")
+            .ShouldHaveSingleItem()
+            .ShouldBe(persisted.ProjectionVersion);
+        rawResponse.Headers.GetValues("X-Hexalith-Is-Stale").ShouldHaveSingleItem().ShouldBe("false");
         rawResponse.Headers.Contains("X-Hexalith-Is-Degraded").ShouldBeFalse();
-        rawResponse.Headers.Contains(ProjectionLifecyclePolicy.HeaderName).ShouldBeFalse();
+        rawResponse.Headers.GetValues(ProjectionLifecyclePolicy.HeaderName)
+            .ShouldHaveSingleItem()
+            .ShouldBe(nameof(ProjectionLifecycleState.Current));
 
         using JsonDocument rawDocument = JsonDocument.Parse(rawContent);
         JsonElement rawPayload = rawDocument.RootElement;
@@ -230,7 +244,11 @@ public class AspireTopologyTests : IDisposable {
         rawPayload.TryGetProperty("projectionVersion", out _).ShouldBeFalse();
         rawPayload.TryGetProperty("projectedAt", out _).ShouldBeFalse();
 
-        using HttpClient typedHttp = CreateIsolatedTenantsApiClient(_fixture.TenantsApiClient, token);
+        EntityTagHeaderValue? typedResponseETag = null;
+        using HttpClient typedHttp = CreateIsolatedTenantsApiClient(
+            _fixture.TenantsApiClient,
+            token,
+            eTag => typedResponseETag = eTag);
         var client = new TenantsRestQueryClient(typedHttp);
 
         TenantsRestQueryResponse<TenantDetail> typed = await client.GetTenantAsync(
@@ -241,12 +259,15 @@ public class AspireTopologyTests : IDisposable {
         typed.FailureKind.ShouldBe(TenantsRestQueryFailureKind.None);
         typed.StatusCode.ShouldBe((int)HttpStatusCode.OK);
         AssertTenantDetailMatchesPersisted(typed.Payload.ShouldNotBeNull(), persisted);
-        typed.Metadata.Provenance.ShouldBe(QueryResponseProvenance.HandlerComputed);
-        typed.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
-        typed.Metadata.ETag.ShouldBeNull();
+        typed.Metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
+        typed.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+        if (typedResponseETag is not null) {
+            typedResponseETag.IsWeak.ShouldBeFalse();
+        }
+        typed.Metadata.ETag.ShouldBe(typedResponseETag?.Tag.Trim('"'));
         typed.Metadata.IsNotModified.ShouldBe(false);
-        typed.Metadata.ProjectionVersion.ShouldBeNull();
-        typed.Metadata.IsStale.ShouldBeNull();
+        typed.Metadata.ProjectionVersion.ShouldBe(persisted.ProjectionVersion);
+        typed.Metadata.IsStale.ShouldBe(false);
         typed.Metadata.IsDegraded.ShouldBeNull();
     }
 
@@ -793,11 +814,15 @@ public class AspireTopologyTests : IDisposable {
             + $"Last status: {lastStatus?.ToString() ?? "n/a"}, Last error: {lastError ?? "n/a"}.");
     }
 
-    private static HttpClient CreateIsolatedTenantsApiClient(HttpClient shared, string token) {
+    private static HttpClient CreateIsolatedTenantsApiClient(
+        HttpClient shared,
+        string token,
+        Action<EntityTagHeaderValue?> observeETag) {
         ArgumentNullException.ThrowIfNull(shared);
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
+        ArgumentNullException.ThrowIfNull(observeETag);
 
-        var client = new HttpClient(new SharedClientRelayHandler(shared), disposeHandler: true) {
+        var client = new HttpClient(new SharedClientRelayHandler(shared, observeETag), disposeHandler: true) {
             BaseAddress = shared.BaseAddress,
             Timeout = shared.Timeout,
         };
@@ -805,8 +830,10 @@ public class AspireTopologyTests : IDisposable {
         return client;
     }
 
-    private sealed class SharedClientRelayHandler(HttpClient inner) : HttpMessageHandler {
-        protected override Task<HttpResponseMessage> SendAsync(
+    private sealed class SharedClientRelayHandler(
+        HttpClient inner,
+        Action<EntityTagHeaderValue?> observeETag) : HttpMessageHandler {
+        protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken) {
             ArgumentNullException.ThrowIfNull(request);
@@ -818,7 +845,9 @@ public class AspireTopologyTests : IDisposable {
                 clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
             }
 
-            return inner.SendAsync(clone, cancellationToken);
+            HttpResponseMessage response = await inner.SendAsync(clone, cancellationToken).ConfigureAwait(false);
+            observeETag(response.Headers.ETag);
+            return response;
         }
     }
 }
