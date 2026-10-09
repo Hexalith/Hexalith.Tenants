@@ -1135,7 +1135,7 @@ public sealed class TenantAuditPageTests : BunitContext
     [InlineData("GlobalAdministratorSet", "grid")]
     [InlineData("GlobalAdministratorRemoved", "receipt")]
     [InlineData("GlobalAdministratorSet", "receipt")]
-    public async Task CompleteGlobalAdministratorEvidenceCannotArmAuditCorrectionEvenThroughADirectCallback(
+    public async Task GlobalAdministratorAuditCannotArmCorrectionEvenThroughADirectCallback(
         string eventType, string origin)
     {
         TenantAuditSnapshot audit = GlobalAdminAuditSnapshot(eventType, "admin-user");
@@ -1494,7 +1494,8 @@ public sealed class TenantAuditPageTests : BunitContext
 
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
-        cut.FindAll("[data-testid='tenants-correction-unavailable-reason']").ShouldNotBeEmpty();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
+            .ShouldBe("The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.");
         cut.VisibleText().ShouldNotContain("Success", Case.Insensitive);
     }
 
@@ -2534,9 +2535,9 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Fact]
-    public void TenantAuditPageDoesNotReadGlobalAuthorityOutsideSystemScope()
+    public void TenantAuditPageDoesNotReadGlobalAuthorityForReadOnlyGlobalEvidence()
     {
-        // Global corrections use fixed system scope; unrelated tenant evidence must not add
+        // Global correction is read-only on this tenant page; audit evidence must not add
         // a global authority dependency or enable platform-authority changes.
         JSInterop.Mode = JSRuntimeMode.Loose;
         StubTenantQueryGateway gateway = new(GlobalAdminAuditSnapshot("GlobalAdministratorSet", "admin-user"))
@@ -3819,15 +3820,7 @@ public sealed class TenantAuditPageTests : BunitContext
 
         public List<GlobalAdministratorsRequest> GlobalAdminRequests { get; } = [];
 
-        public List<CancellationToken> GlobalAdminTokens { get; } = [];
-
         public Exception? GlobalAdminFault { get; init; }
-
-        public Func<GlobalAdministratorsRequest, GlobalAdministratorsSnapshot>? GlobalAdministratorProvider { get; set; }
-
-        public Func<GlobalAdministratorsRequest, CancellationToken, Task<GlobalAdministratorsSnapshot>>? AsyncGlobalAdministratorProvider { get; set; }
-
-        public Func<TenantAuditRequest, TenantAuditSnapshot>? AuditProvider { get; set; }
 
         public async Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
             GlobalAdministratorsRequest request,
@@ -3835,14 +3828,11 @@ public sealed class TenantAuditPageTests : BunitContext
             CancellationToken cancellationToken = default)
         {
             GlobalAdminRequests.Add(request);
-            GlobalAdminTokens.Add(cancellationToken);
             GlobalAdministratorsSnapshot result = await (_queuedGlobalAdministratorResponses.Count > 0
                 ? _queuedGlobalAdministratorResponses.Dequeue()
                 : GlobalAdminFault is not null
                 ? throw GlobalAdminFault
-                : AsyncGlobalAdministratorProvider is not null
-                ? AsyncGlobalAdministratorProvider(request, cancellationToken)
-                : Task.FromResult(GlobalAdministratorProvider?.Invoke(request) ?? GlobalAdministrators))
+                : Task.FromResult(GlobalAdministrators))
                 .WaitAsync(cancellationToken);
             return result with
             {
@@ -3859,7 +3849,7 @@ public sealed class TenantAuditPageTests : BunitContext
             Requests.Add(request);
             return _queuedResponses.Count > 0
                 ? _queuedResponses.Dequeue()
-                : Task.FromResult(AuditProvider?.Invoke(request) ?? _snapshots.Dequeue());
+                : Task.FromResult(_snapshots.Dequeue());
         }
     }
 
@@ -3920,43 +3910,29 @@ public sealed class TenantAuditPageTests : BunitContext
 
         public bool SupportsCommandStatusLookup => true;
 
-        public List<SetGlobalAdministrator> SetRequests { get; } = [];
-
-        public List<RemoveGlobalAdministrator> RemoveRequests { get; } = [];
-
         public List<string> TrackedMessageIds { get; } = [];
 
         public List<TenantCommandTrackingHandle> StatusHandles { get; } = [];
 
-        public List<CancellationToken> DispatchTokens { get; } = [];
-
-        public Func<string, Task<TenantCommandSubmissionResult>>? TrackedResponseProvider { get; set; }
-
         public TenantCommandStatusResult Status { get; set; }
             = new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true);
 
-        public async Task<TenantCommandSubmissionResult> SetGlobalAdministratorTrackedAsync(
+        public Task<TenantCommandSubmissionResult> SetGlobalAdministratorTrackedAsync(
             SetGlobalAdministrator request, string messageId, CancellationToken cancellationToken = default)
         {
-            SetRequests.Add(request);
-            return await TrackedSubmissionAsync(messageId, cancellationToken);
+            return TrackedSubmissionAsync(messageId);
         }
 
-        public async Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorTrackedAsync(
+        public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorTrackedAsync(
             RemoveGlobalAdministrator request, string messageId, CancellationToken cancellationToken = default)
         {
-            RemoveRequests.Add(request);
-            return await TrackedSubmissionAsync(messageId, cancellationToken);
+            return TrackedSubmissionAsync(messageId);
         }
 
-        private async Task<TenantCommandSubmissionResult> TrackedSubmissionAsync(string messageId, CancellationToken cancellationToken)
+        private Task<TenantCommandSubmissionResult> TrackedSubmissionAsync(string messageId)
         {
             TrackedMessageIds.Add(messageId);
-            DispatchTokens.Add(cancellationToken);
-            TenantCommandSubmissionResult result = TrackedResponseProvider is null
-                ? TenantCommandSubmissionResult.Accepted(messageId, "tracking-safe")
-                : await TrackedResponseProvider(messageId);
-            return result with { MessageId = messageId };
+            return Task.FromResult(TenantCommandSubmissionResult.Accepted(messageId, "tracking-safe"));
         }
 
         public Task<TenantCommandSubmissionResult> CreateTenantAsync(CreateTenant request, string? messageId = null, CancellationToken cancellationToken = default)

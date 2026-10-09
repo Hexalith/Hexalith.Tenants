@@ -3751,12 +3751,13 @@ Diff reviewed: baseline `11e65e37f0fbf6649642a512052eebd37d50166d` through the p
   evidence: `GlobalAdministratorsProjectionLoader` ignores a failed `TryAdd` and sets `IsCompleteEvidence`. Conflicting administrator rows can disappear from a ready page. That loader is the global-administrator read, not this correction.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: maybe-false; a loading audit surface may drop an in-flight global-administrator correction. Unverified; high if true.
+  summary: Story 5.7; loading may drop an in-flight global-administrator correction when that story mounts the panel. Not reachable on the tenant audit page since `10c9f6f6`; unverified, high if true.
   evidence: The tenant audit page no longer mounts `GlobalAdministratorCorrectionPanel` after `10c9f6f6`, and the pass-19 read-only cleanup removes its remaining global-administrator enrichment. Re-check loading and retained-display behavior when Story 5.7 mounts the panel. Story 5.7 owns that panel.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: resolved by `10c9f6f6`; the tenant audit page no longer opens or submits a global-administrator correction.
   evidence: Pass 15 traced the former `GlobalAdministratorCorrectionPanel` audit-page branch to `5a3bc6dd` and the global-administrator projection spec. `10c9f6f6` removed the branch; the pass-19 read-only cleanup restores the remaining audit-surface copy and removes unused evidence reads.
+  resolution: Resolved by Story 5.6 commit `10c9f6f6` (panel branch removed) and `ded413df` (read-only copy restored, evidence reads removed).
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 17 (2026-10-08)
 
@@ -3796,13 +3797,15 @@ Diff reviewed: baseline `11e65e37` to the pre-patch working tree over root `5289
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 19 (2026-10-08)
 
-Diff reviewed: Tenants `5289b86b..10c9f6f6` (the pass-17 fix pass), HEAD `10c9f6f6` = `origin/main`. Triage: 39 raw findings → 1 decision, 5 patches, 1 defer, 19 rejected.
+Diff reviewed: Tenants `5289b86b..10c9f6f6` (the pass-17 fix pass), HEAD `10c9f6f6` = `origin/main`. Triage: 39 raw findings → 1 decision (resolved into the first patch), 6 patches, 1 defer, 19 rejected.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: medium; carried, updates the Chromium entry at `:3338`. Story Guards still fails at HEAD, but the 30-second bound now ends it at once instead of a 15-minute hang.
   evidence: Run 37843324360, job 113537923481, at `10c9f6f6`: "Chromium scenario profile-shipped failed (exit 124; bound 30s)" with Chrome for Testing 153.0.8010.52, preceded only by dbus connection errors. Since `9ee73062` added `--no-sandbox`, Chrome 153 hangs on its first DOM dump instead of aborting with exit 134, so the `:3338` and `:3508` descriptions are out of date. Repairing the CI Chromium launch remains runner work; the story's EN/FR browser evidence is local-only (Chrome 154).
 
 ## Deferred from: Story 5.6 pass-20 independent review (2026-10-09)
+
+Diff reviewed: baseline `11e65e37` through the working tree over root `a0576d83` (committed with the pass-19 patches in `ded413df`); input `/tmp/tenants-56-diff-yWc71L.patch`, 3,161,925 bytes, SHA-256 `927090f9…`, not archived. Triage: 15 findings, 0 patches, 11 defers (2 new, 9 carried), 4 rejected.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: medium; bootstrap does not retry transient credential or command failures until the host restarts.
@@ -3823,3 +3826,19 @@ Diff reviewed: Tenants `a0576d83..ded413df` (the pass-19 fix pass), HEAD `ded413
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: low; Story 5.7 handoff. Story 5.6 reverted the tenant audit page's global-administrator integration, and Story 5.7 must re-derive it.
   evidence: `5a3bc6dd` holds the removed page code: the complete-evidence load, the correction-open refresh, the global-intent re-derivation, and the 8-case `GlobalAdministratorIncompleteEvidenceCannotEnableOrOpenCorrection` fail-closed matrix. `GlobalAdministratorCorrectionPanel.CorrectiveAuditEvidence` (`GlobalAdministratorCorrectionPanel.razor:201`) was added for that integration and now has no consumer and no test. When Story 5.7 enables the correction, it must re-derive the integration and its matrix from the Epic 5 rules, or remove the parameter.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 22 (2026-10-09)
+
+Diff reviewed: baseline `11e65e37f0fbf6649642a512052eebd37d50166d` through the working tree over root `84c4e8b3dfd2fe651bac57bf89e2e988d998a7d2`; input `/tmp/tenants-56-baseline-k7kwjdc7.diff`, 3,178,732 bytes, SHA-256 `1f8675b41f9b4c0b6e2998083354297fe810c63485ab2220e5abb8a56d65d05c`, not archived. Triage: 14 findings, 0 patches, 3 new defers, 6 carried defers, 5 rejections.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; the release publish job grants OIDC issuance while `npm ci` runs before credential exchange.
+  evidence: `release.yml` grants `id-token: write` at job scope, and its `npm ci` step runs before `NuGet/login`. Dependency scripts therefore execute with OIDC token-request permission. Separate dependency installation from publication authority in release-governance work.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; release jobs execute movable action tags beyond the previously recorded NuGet login action.
+  evidence: `release.yml` runs `actions/checkout@v7.0.1` and `actions/setup-node@v7.0.0` in a job with publication authority. Version tags can move without a reviewed workflow change. Pin reviewed action revisions in release-governance work; the prior ledger entry covers `NuGet/login` specifically.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: high; global-administrator revocation can remain authorized while its read-model projection lags.
+  evidence: `TenantsGlobalAdministratorVerifier.IsCurrentGlobalAdministratorAsync` accepts membership in the persisted `GlobalAdministratorReadModel`. A revocation is not reflected until that read model updates, so an intervening command or query can pass the authority check. Define an authoritative or version-bounded revocation check in the global-administrator authority owner's work.
