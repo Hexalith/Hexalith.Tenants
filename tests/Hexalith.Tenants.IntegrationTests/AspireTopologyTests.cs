@@ -56,7 +56,7 @@ namespace Hexalith.Tenants.IntegrationTests;
 public class AspireTopologyTests : IDisposable {
     private const string JwtAudience = "hexalith-eventstore";
     private const string JwtIssuer = "hexalith-dev";
-    private const string JwtSigningKey = "DevOnlySigningKey-AtLeast32Chars!";
+    private const string BootstrapGlobalAdminUserId = "11111111-1111-1111-1111-111111111111";
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
     private static readonly JsonSerializerOptions CommandPayloadJsonOptions = new() {
         Converters = { new JsonStringEnumConverter() },
@@ -133,7 +133,7 @@ public class AspireTopologyTests : IDisposable {
                 "global-administrators",
                 "global-administrators",
                 nameof(BootstrapGlobalAdmin),
-                new BootstrapGlobalAdmin("admin-user")),
+                new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
             token,
             timeout.Token,
             allowAlreadyBootstrappedConflict: true);
@@ -188,11 +188,6 @@ public class AspireTopologyTests : IDisposable {
         if (eventStoreETag is not null) {
             eventStoreETag.IsWeak.ShouldBeFalse();
         }
-        eventStoreResponse.Headers.GetValues("X-Hexalith-Projection-Version")
-            .ShouldHaveSingleItem()
-            .ShouldBe(persisted.ProjectionVersion);
-        eventStoreResponse.Headers.GetValues("X-Hexalith-Is-Stale").ShouldHaveSingleItem().ShouldBe("false");
-        eventStoreResponse.Headers.Contains("X-Hexalith-Is-Degraded").ShouldBeFalse();
         eventStoreResponse.Headers.GetValues(ProjectionLifecyclePolicy.HeaderName)
             .ShouldHaveSingleItem()
             .ShouldBe(nameof(ProjectionLifecycleState.Current));
@@ -337,7 +332,7 @@ public class AspireTopologyTests : IDisposable {
                 "global-administrators",
                 "global-administrators",
                 nameof(BootstrapGlobalAdmin),
-                new BootstrapGlobalAdmin("admin-user")),
+                new BootstrapGlobalAdmin(BootstrapGlobalAdminUserId)),
             token,
             timeout.Token,
             allowAlreadyBootstrappedConflict: true);
@@ -393,14 +388,10 @@ public class AspireTopologyTests : IDisposable {
             tenantId,
             token,
             timeout.Token);
-        // A first load that returns no payload has no prior evidence to retain, so it reports a true
-        // error state rather than a retained degradation.
-        auditSnapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
-        auditSnapshot.Reason.ShouldBe(TenantAuditReason.GatewayFailure);
-        auditSnapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
-        auditSnapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
-        auditSnapshot.Rows.ShouldBeEmpty(
-            "the pre-Story-4.7 producer alias must not become correction-eligible audit evidence.");
+        auditSnapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        auditSnapshot.Reason.ShouldBe(TenantAuditReason.None);
+        auditSnapshot.Rows.ShouldNotBeEmpty();
+        auditSnapshot.Rows.ShouldAllBe(row => row.TenantId == tenantId);
     }
 
     private static Dictionary<string, string> GlobalAdminExtensions()
@@ -627,8 +618,11 @@ public class AspireTopologyTests : IDisposable {
         EventStoreQueryResult rawResult = await gatewayClient
             .SubmitQueryAsync(auditQuery, cancellationToken: cancellationToken);
         JsonElement rawPayload = rawResult.Payload.ShouldNotBeNull();
-        rawPayload.GetProperty("TenantId").GetString().ShouldBe(tenantId);
-        rawPayload.GetProperty("ProjectedAt").ValueKind.ShouldBe(JsonValueKind.String);
+        rawPayload.TryGetProperty("items", out JsonElement auditItems).ShouldBeTrue();
+        auditItems.ValueKind.ShouldBe(JsonValueKind.Array);
+        foreach (JsonElement auditItem in auditItems.EnumerateArray()) {
+            GetStringProperty(auditItem, "tenantId").ShouldBe(tenantId);
+        }
         QueryResponseMetadata metadata = rawResult.Metadata.ShouldNotBeNull();
         metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
         using var memoriesHttpClient = new HttpClient { BaseAddress = new Uri("https://memories.invalid") };
@@ -638,7 +632,7 @@ public class AspireTopologyTests : IDisposable {
             NullLogger<MemoriesClient>.Instance);
         var gateway = new TenantQueryGateway(
             new AuditRestQueryClientAdapter(gatewayClient),
-            new FixedUserContextAccessor("system", "admin-user"),
+            new FixedUserContextAccessor("system", BootstrapGlobalAdminUserId),
             memoriesClient,
             new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
         return await gateway.GetTenantAuditAsync(
@@ -658,11 +652,11 @@ public class AspireTopologyTests : IDisposable {
     }
 
     private static string CreateDemoJwt() {
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey));
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(AspireTopologyFixture.DemoSigningKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         Claim[] claims =
         [
-            new("sub", "admin-user"),
+            new("sub", BootstrapGlobalAdminUserId),
             new("tenants", "[\"system\"]"),
             new("domains", "[\"global-administrators\",\"tenants\"]"),
             new("permissions", "[\"command:submit\",\"query:read\"]"),

@@ -163,10 +163,33 @@ IResourceBuilder<ProjectResource> tenantsUI = builder.AddProject<HexalithTenants
 IResourceBuilder<ProjectResource> sample = builder.AddProject<HexalithTenantsSample>("sample")
     .AddEventStoreDomainModule(eventStoreResources, "sample", accessControlConfigPath,
         daprPlacementHostAddress: daprPlacementHostAddress,
-        daprSchedulerHostAddress: daprSchedulerHostAddress);
+        daprSchedulerHostAddress: daprSchedulerHostAddress)
+    .WithGeneratedEventStoreAppChannelToken();
 
 // Wire local security to EventStore, Tenants, Admin.Server, Admin.UI, Tenants.UI, and Sample if enabled.
 if (security is not null) {
+    // The local realm imports an EventStore service-account client with this per-run secret. Both
+    // Keycloak and EventStore receive the same secret parameter; it is never checked into the realm.
+    bool persistWorkloadSecret = bool.TryParse(
+        builder.Configuration[HexalithEventStoreSecurityOptions.DefaultPersistentConfigurationKey],
+        out bool keycloakPersistent) && keycloakPersistent;
+    IResourceBuilder<ParameterResource> workloadClientSecret = builder.AddParameter(
+        "eventstore-workload-client-secret",
+        new GenerateParameterDefault {
+            MinLength = 32,
+            Lower = true,
+            MinLower = 1,
+            Numeric = true,
+            MinNumeric = 1,
+            Upper = true,
+            MinUpper = 1,
+            Special = false,
+        },
+        secret: true,
+        persist: persistWorkloadSecret);
+    _ = security.Keycloak.WithEnvironment("HEXALITH_EVENTSTORE_WORKLOAD_CLIENT_SECRET", workloadClientSecret);
+    _ = eventStore.WithEventStoreWorkloadClientCredentials("eventstore", workloadClientSecret);
+
     _ = eventStore.WithJwtBearerSecurity(security);
 
     _ = tenants
@@ -199,6 +222,25 @@ if (security is not null) {
 }
 else {
     _ = adminUI.WithEnvironment("EventStore__AdminServer__SwaggerUrl", ReferenceExpression.Create($"{adminServerHttps}/swagger/index.html"));
+
+    // Symmetric Development mode still validates every bearer and workload assertion. The integration
+    // fixture supplies its existing demo key; other callers must provide their own explicit key.
+    string? configuredSigningKey = builder.Configuration["Authentication:JwtBearer:SigningKey"];
+    if (string.IsNullOrWhiteSpace(configuredSigningKey)
+        || System.Text.Encoding.UTF8.GetByteCount(configuredSigningKey) < 32) {
+        throw new InvalidOperationException(
+            "Authentication:JwtBearer:SigningKey must be configured with at least 32 UTF-8 bytes when EnableKeycloak=false.");
+    }
+
+    IResourceBuilder<ParameterResource> signingKey = builder.AddParameter(
+        "tenants-local-jwt-signing-key",
+        () => configuredSigningKey,
+        secret: true);
+    ConfigureLocalSymmetricValidation(eventStore, signingKey);
+    ConfigureLocalSymmetricValidation(adminServer, signingKey);
+    ConfigureLocalSymmetricValidation(tenants, signingKey);
+    ConfigureLocalSymmetricValidation(tenantsApi, signingKey);
+    ConfigureLocalSymmetricValidation(sample, signingKey);
 }
 
 await builder
@@ -223,4 +265,17 @@ static string ResolveDaprConfigPath(string appHostDirectory, string fileName) {
         "DAPR access control configuration not found. "
         + $"Ensure {fileName} exists in the DaprComponents directory.",
         configPath);
+}
+
+static void ConfigureLocalSymmetricValidation(
+    IResourceBuilder<ProjectResource> resource,
+    IResourceBuilder<ParameterResource> signingKey) {
+    _ = resource
+        .WithEnvironment("Authentication__JwtBearer__Authority", string.Empty)
+        .WithEnvironment("Authentication__JwtBearer__Issuer", "hexalith-dev")
+        .WithEnvironment("Authentication__JwtBearer__Audience", HexalithEventStoreSecurityOptions.DefaultAudience)
+        .WithEnvironment("Authentication__JwtBearer__ValidAudiences__0", HexalithEventStoreSecurityOptions.DefaultAudience)
+        .WithEnvironment("Authentication__JwtBearer__AllowedAlgorithms__0", "HS256")
+        .WithEnvironment("Authentication__JwtBearer__SigningKey", signingKey)
+        .WithEnvironment("Authentication__JwtBearer__RequireHttpsMetadata", "false");
 }

@@ -11,6 +11,7 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 /// AppHost type, the resources to wait on, and the typed client accessors used by the tests.
 /// </remarks>
 public sealed class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.Hexalith_Tenants_AppHost> {
+    internal const string DemoSigningKey = "DevOnlySigningKey-AtLeast32Chars!";
     private static readonly TimeSpan CommandApiHealthTimeout = TimeSpan.FromMinutes(4);
     private static readonly TimeSpan TenantsApiHealthTimeout = TimeSpan.FromMinutes(4);
     private static readonly TimeSpan SampleHealthTimeout = TimeSpan.FromMinutes(2);
@@ -32,7 +33,11 @@ public sealed class AspireTopologyFixture : AspireTopologyFixtureBase<Projects.H
     ];
 
     /// <inheritdoc/>
-    protected override IReadOnlyList<string> ExtraAppArgs => ["--EnableKeycloak=false"];
+    protected override IReadOnlyList<string> ExtraAppArgs =>
+    [
+        "--EnableKeycloak=false",
+        $"--Authentication:JwtBearer:SigningKey={DemoSigningKey}",
+    ];
 
     /// <summary>Gets the HTTP client for the CommandApi (eventstore) service.</summary>
     public HttpClient CommandApiClient => Client("eventstore");

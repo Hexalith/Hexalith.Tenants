@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.DomainService;
+using Hexalith.EventStore.ServiceDefaults.Authentication;
 using Hexalith.Tenants.Client.Registration;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Sample.Endpoints;
@@ -22,13 +23,19 @@ builder.Services
     .AddEventStoreDomainEventHandler<TenantDisabled, MemoriesSearchIndexEventPublisher>()
     .AddEventStoreDomainEventHandler<TenantEnabled, MemoriesSearchIndexEventPublisher>();
 
+builder.Services.AddAuthentication().AddEventStoreSidecarChannelScheme();
+builder.Services.AddEventStoreWorkloadPolicies(EventStoreWorkloadAuthenticationDefaults.WorkloadScheme, []);
+
 WebApplication app = builder.Build();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 // 3. Enable CloudEvents middleware (required for DAPR pub/sub)
 app.UseCloudEvents();
 
 // 4. Map DAPR subscription handler (discovers subscriptions)
-app.MapSubscribeHandler();
+app.MapSubscribeHandler().RequireEventStoreSidecarChannel();
 
 // 5. Map the tenant event subscription endpoint (platform A3 generic, configured for /tenants/events)
 app.MapEventStoreDomainEvents();
