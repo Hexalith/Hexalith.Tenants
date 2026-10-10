@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -772,6 +772,29 @@ Three context-free layers reviewed the baseline-to-working-tree diff (3,398,875 
 | Edge 1: NuGet login blocks container-only recovery | medium; defer | The recovery workflow unconditionally requires `NUGET_USER` and runs `NuGet/login`; its script reads the key only for entries in `missing-packages`, so login failure blocks an otherwise container-only repair. This predates the current patch and has one new pass-34 ledger entry. |
 | Edge 2: correction lease expires before terminal evidence | low; reject | carried: pass-6 Edge 1 and pass-30 Edge 1 record the approved bounded release, retained attempt identity, and unverified outcome. |
 | Verification gap 1: Keycloak workload credentials lack a live assertion | medium; defer | carried: same Keycloak client-secret and domain-call gap as pass-32 Verification gap 1 and Blind 13; the AppHost model check does not exchange a token. |
+
+### Pass-36 review triage (2026-10-10)
+
+Diff reviewed: baseline `11e65e37f0fbf6649642a512052eebd37d50166d` through `c21bf7bef74445da0dcc1a16512255f7c4746ba1` plus the pass-35 working-tree patches and `in-review` status; 3,417,703 bytes, SHA-256 `bc733579eb218a3645d688392546a9d00daf96cd50899c55e443822784e7d784`. Three layers returned 16 findings. All 16 receive individual verdicts below.
+
+| Finding | Verdict and route | Evidence |
+| --- | --- | --- |
+| Blind 1: corrective receipt link stays absent | false; reject | carried: the authorized audit row has no command-attempt identifier. `WithCorrectiveProof` refuses target/time coincidence, as the frozen proof rule requires; pass-6 Blind 3 and pass-30 Blind 7 reached the same decision. |
+| Blind 2: reload loses circuit-scoped attempt | false; reject | carried: pass-34 Edge 1 records the approved circuit boundary. A new circuit makes a fresh current-state preview; it does not inherit or replay the old attempt. |
+| Blind 3: principal changes within one circuit | maybe-false; defer (medium if reachable) | The circuit-scoped tracker is keyed by tenant and the retained audit-surface check compares tenant and read state, not subject. The review did not establish whether an authenticated principal can change within a live circuit while that retained surface remains mounted, or whether the rendered attempt carries facts unavailable to the newly audit-authorized principal. A controlled auth-state transition and rendered-content test would settle both. |
+| Blind 4: off-dispatch component continuations | maybe-false; defer (medium if reachable) | carried: Final BH4 and pass-10 Blind 4 record `ConfigureAwait(false)` assignments, but no user-visible corruption witness after the tracker identity guards and panel unmount. |
+| Blind 5: recovery mints a short-lived key before packaging | medium; defer | carried: pass-18 Blind 7 records the one-hour NuGet credential lifetime consumed by build, pack, and validation before push. |
+| Blind 6: publishing job exposes OIDC during build | medium; defer | carried: pass-22 Blind 1 records job-level `id-token: write` during `npm ci`, restore, and build. |
+| Blind 7: bootstrap only retries after restart | medium; defer | carried: pass-20 Blind 4 records the single startup attempt and separate bootstrap reliability work. |
+| Blind 8: ServiceDefaults allowlist crosses package layers | medium; defer | carried: pass-18 Blind 9 and pass-25 Blind 10 record the package-boundary policy gap. |
+| Blind 9: static Escape fixture cannot execute Razor | low; reject | carried: pass-14 Blind 7 records that component tests execute the shipped Escape handler while the browser fixture checks rendered focus/layout; an authenticated hosted browser lane is separately deferred. |
+| Blind 10: isolated preview fixture misses composed width | maybe-false; defer (medium if overflow is shown) | carried: Final BH10 records the missing measured-width audit-grid/receipt/start/preview browser run and the existing layout defer. |
+| Blind 11: optional bootstrap check can target `admin-user` after failed automatic bootstrap | medium; defer | The quickstart expects `GlobalAdminAlreadyBootstrappedRejection`, but the hosted bootstrap can fail while the service stays healthy. In that exceptional state the example's first bootstrap command can install `admin-user`, which differs from the configured generated service subject. The quickstart owner should make the failure case stop before the optional command. |
+| Blind 12: manual quickstart lacks a concrete authority-grant path | medium; defer | The quickstart requires an already authorized administrator to grant the newly provisioned local user but gives no executable access path for that administrator; it explicitly tells an unprovisioned reader to stop. A local development grant runbook is needed to make the manual journey self-contained. |
+| Edge 1: late status from an older attempt replaces the current attempt | maybe-false; defer (medium if reachable) | carried: pass-34 Blind 1 and earlier late-continuation rows cover this claim. `TryUpdate` rejects replacement identity, and the completed controlled delivery test keeps the old panel snapshot while the tracker preserves the replacement. A controlled status-read/remount overlap remains the missing witness. |
+| Edge 2: expiry releases admission before terminal evidence | low; reject | carried: the frozen matrix explicitly allows the human-approved bounded expiry while retaining the unverified attempt identity; see pass-34 Edge 2. |
+| Verification gap 1: no Keycloak workload exchange test | medium; defer | carried: pass-32 Verification gap 1 and pass-35 Blind 13 record the absent live client-credentials and protected-call lane. |
+| Verification gap 2: Trusted Publishing guards are text-tested | medium; defer | carried: pass-25 Verification Gap 1 records that the guard strings are checked but their shell branches are not executed. |
 
 ## Review Decision — Resolved
 
@@ -2724,23 +2747,23 @@ Diff reviewed: Tenants `176d0670..b00d6d1b`. `176d0670` committed the pass-33 re
   - At `b00d6d1b`, `ci / build-and-test` PASSED (job 114162193614). The advisory aspire tier was still running at review time. Story Guards failed only `validate-remove-focus-in-chromium`, the carried Chromium exit-124 defer.
 - Triage: 36 findings → 0 decisions, 5 patches (12 findings), 0 defers, 24 rejected.
 
-- [ ] [Review][Patch] Give the pass-34 ledger section its "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3914] — low.
+- [x] [Review][Patch] Give the pass-34 ledger section its "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3914] — low.
   - The fix pass added the missing pass-32 line (`:3892`) and, in the same commit, opened the new pass-34 section straight with its entry. This is the 9th recurrence.
   - Fix: add a "Diff reviewed:" line. Name the tree (baseline `11e65e37` to `176d0670` plus the uncommitted pass-33 fix pass, later committed as `b00d6d1b`), the hashed input the spec's pass-34 record gives (3,398,875 bytes, SHA-256 `17c0ce1a…`), and the 17-row tally: 0 patches, 16 defers (1 new, 15 carried), 1 rejected.
-- [ ] [Review][Patch] Correct the pass-34 ledger entry's provenance and scope [_bmad-output/implementation-artifacts/deferred-work.md:3918] — low.
+- [x] [Review][Patch] Correct the pass-34 ledger entry's provenance and scope [_bmad-output/implementation-artifacts/deferred-work.md:3918] — low.
   - The entry says the behavior "predates the current Story 5.6 patch" without naming its origin. The `NUGET_USER` guard and the `NuGet/login` step came from `390da330` ("ci(release): publish NuGet packages through trusted publishing", 2026-10-08). That commit is inside the story's baseline range; at `11e65e37` the workflow has neither.
   - The scope is understated. The guard is the job's first step (`recover-partial-release.yml:34`), so it also blocks a GitHub-Release-only repair (`scripts/publish-partial-release.sh:46-52`), not only a container-only one.
   - The entry also does not link the related pass-25 entry at `:3871` (Trusted Publishing account guards lack executable tests).
   - Fix: name `390da330` as the introducing commit, say "container- or GitHub-Release-only recovery", and cross-reference the pass-25 entry.
-- [ ] [Review][Patch] Update the contributor docs for the new AppHost test project [README.md:113] — low.
+- [x] [Review][Patch] Update the contributor docs for the new AppHost test project [README.md:113] — low.
   - `README.md:113` says the standalone solution "contains all 17 owned projects". `Hexalith.Tenants.Standalone.slnx` now lists 19 (18 before `b00d6d1b`). `SolutionStructureTests` is the real inventory check, so the count only rots.
   - `CONTRIBUTING.md:154-160` ("Run the test suite by project") lists every other test project but not `tests/Hexalith.Tenants.AppHost.Tests`, a blocking CI project since pass 31. A contributor who follows it skips the release-gating model checks.
   - Fix: drop the count ("contains every owned project") or make it 19, and add the AppHost.Tests `dotnet test` line to `CONTRIBUTING.md:154-160`.
-- [ ] [Review][Patch] Make the Tenants Aspire helper's token remark name the API that wires both sides [src/Hexalith.Tenants.Aspire/HexalithTenantsServerExtensions.cs:26] — low.
+- [x] [Review][Patch] Make the Tenants Aspire helper's token remark name the API that wires both sides [src/Hexalith.Tenants.Aspire/HexalithTenantsServerExtensions.cs:26] — low.
   - "or a supplied `APP_API_TOKEN`" invites `WithEnvironment("APP_API_TOKEN", …)` on the project only. The sidecar then never presents the token, and every sidecar call into the service is rejected. The supported way to supply a token is `WithEventStoreAppChannelToken(token)` (`references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/HexalithEventStoreAppChannelExtensions.cs:47-60`), which sets the project and its sidecar together.
   - The series now reads "…, and JWT/OIDC authentication, and an app-channel token…". The method names are in `<c>` while the file links its other EventStore helpers with compiler-checked `<see cref>`. The `<returns>` at `:46` still lists only "bootstrap id, auth, references".
   - Fix: rewrite the clause as one series ending "…, JWT/OIDC authentication, and an app-channel token shared with its own DAPR sidecar". Reference `<see cref="HexalithEventStoreAppChannelExtensions.WithGeneratedEventStoreAppChannelToken"/>` or `<see cref="HexalithEventStoreAppChannelExtensions.WithEventStoreAppChannelToken"/>` with a supplied secret parameter. Add the token to `<returns>`.
-- [ ] [Review][Patch] Rename the Keycloak-mode graph test to cover its token checks [tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs:36] — low.
+- [x] [Review][Patch] Rename the Keycloak-mode graph test to cover its token checks [tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs:36] — low.
   - `KeycloakAndEventStoreShareTheSameWorkloadSecretParameter` now also runs `AssertAppChannelTokensAsync` (`:50`). A token regression is reported under a workload-secret name; the MK1 and MK2 mutants above fail only this test. The symmetric sibling (`:54`) names both concerns.
   - Fix: rename it, for example to `KeycloakModeSharesWorkloadSecretAndProtectsDomainServiceSidecarChannels`.
 

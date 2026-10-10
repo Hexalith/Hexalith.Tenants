@@ -3913,6 +3913,20 @@ Diff reviewed: Tenants `d88bed1e..3fab3094` (the pass-31 fix pass, local and unp
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 34 (2026-10-10)
 
+Diff reviewed: Tenants baseline `11e65e37` to `176d0670` plus the uncommitted pass-33 fix pass, later committed as `b00d6d1b`; 3,398,875-byte input, SHA-256 `17c0ce1ac274f1094b6b57ae990bb695deb540c019ae3a9da0e84e7287b1df48`. Triage: 17 findings, 0 patches, 16 defers (1 new, 15 carried), 1 rejected.
+
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: medium; container-only partial release recovery depends on a successful NuGet account guard and login even when no package needs publication.
-  evidence: `.github/workflows/recover-partial-release.yml:34-43,70-81` unconditionally requires `NUGET_USER` and runs `NuGet/login` before the recovery script. `scripts/publish-partial-release.sh:28-33` reads `NUGET_API_KEY` only while pushing entries from `missing-packages`, then handles an absent container at `:35`. A NuGet account or login failure therefore blocks a container-only recovery. This release-workflow behavior predates the current Story 5.6 patch; the release owner should condition the account guard and login on missing packages while preserving the package-publish gate.
+  summary: medium; container- or GitHub-Release-only partial release recovery depends on a successful NuGet account guard and login even when no package needs publication.
+  evidence: Commit `390da330` introduced the `NUGET_USER` guard and `NuGet/login` step within the Story 5.6 baseline range; neither exists at baseline `11e65e37`. `.github/workflows/recover-partial-release.yml:34-43,70-81` unconditionally requires the account and runs login before the recovery script. `scripts/publish-partial-release.sh:28-33` reads `NUGET_API_KEY` only while pushing entries from `missing-packages`, then handles an absent container at `:35` and a missing GitHub Release at `:46-52`. A NuGet account or login failure therefore blocks container- or GitHub-Release-only recovery. The related pass-25 entry above (Trusted Publishing account guards lack executable tests) covers guard verification; the release owner should condition the account guard and login on missing packages while preserving the package-publish gate.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 36 (2026-10-10)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium if reachable; a principal change within one Blazor circuit may display a previous principal's retained correction attempt.
+  evidence: `TenantCorrectionAttemptTracker` keys attempts by tenant, and `TenantAuditPage`'s retained-surface check does not compare principal identity. A controlled authentication-state transition in the same live circuit, followed by a rendered-content assertion, must establish whether this can occur and whether any attempt-specific facts are unavailable to the new audit-authorized principal.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; the optional quickstart bootstrap check can install the wrong administrator after automatic bootstrap fails.
+  evidence: `docs/quickstart.md` submits `BootstrapGlobalAdmin` for `admin-user` as an expected-rejection check, while the AppHost uses a generated service subject. If automatic bootstrap fails without stopping the healthy service, that first command may succeed for `admin-user`. The quickstart should require verification of the configured administrator before permitting the optional check.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; the manual quickstart has no concrete path to grant a newly provisioned local user global-administrator authority.
+  evidence: `docs/quickstart.md` instructs readers to obtain an existing administrator's grant but does not explain how to authenticate as that administrator or issue the grant in the default generated-credential topology. A local development runbook should provide the executable grant path.

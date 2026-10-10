@@ -33,7 +33,7 @@ public sealed class AppHostSecurityResourceGraphTests
     }
 
     [Fact]
-    public async Task KeycloakAndEventStoreShareTheSameWorkloadSecretParameter()
+    public async Task KeycloakModeSharesWorkloadSecretAndProtectsDomainServiceSidecarChannels()
     {
         await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.Hexalith_Tenants_AppHost>(["--EnableKeycloak=true"]);

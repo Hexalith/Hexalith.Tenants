@@ -22,9 +22,10 @@ namespace Hexalith.Tenants.Aspire;
 /// helper adds the service runtime only; the consuming AppHost keeps composition-specific configuration on the
 /// returned builder and on the EventStore command gateway — the <c>tenants</c> / <c>global-administrators</c>
 /// domain-service registrations and the <c>global-administrators</c> → <c>tenants.events</c> topic override on
-/// the gateway, the bootstrap global-administrator id (pinned to the deployment's identity-provider realm), and
-/// JWT/OIDC authentication, and an app-channel token shared by this service and its own DAPR sidecar
-/// (for example via <c>WithGeneratedEventStoreAppChannelToken()</c> or a supplied <c>APP_API_TOKEN</c>).
+/// the gateway, the bootstrap global-administrator id (pinned to the deployment's identity-provider realm),
+/// JWT/OIDC authentication, and an app-channel token shared with its own DAPR sidecar. Wire the token with
+/// <see cref="HexalithEventStoreAppChannelExtensions.WithGeneratedEventStoreAppChannelToken"/> or
+/// <see cref="HexalithEventStoreAppChannelExtensions.WithEventStoreAppChannelToken"/> using a supplied secret parameter.
 /// </para>
 /// </remarks>
 public static class HexalithTenantsServerExtensions
@@ -43,7 +44,7 @@ public static class HexalithTenantsServerExtensions
     /// <param name="appId">The Aspire resource name and DAPR application id for the Tenants service. Defaults to <c>"tenants"</c>.</param>
     /// <param name="daprPlacementHostAddress">Optional DAPR placement service address (<c>host</c> or <c>host:port</c>). <see langword="null"/> uses the DAPR default.</param>
     /// <param name="daprSchedulerHostAddress">Optional DAPR scheduler service address (<c>host</c> or <c>host:port</c>). <see langword="null"/> uses the DAPR default.</param>
-    /// <returns>The Tenants server project resource builder for further composition (bootstrap id, auth, references).</returns>
+    /// <returns>The Tenants server project resource builder for further composition (bootstrap id, auth, references, app-channel token).</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="builder"/> or <paramref name="eventStore"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">Thrown when <paramref name="appId"/> is <see langword="null"/> or whitespace.</exception>
     public static IResourceBuilder<ProjectResource> AddHexalithTenantsServer(
