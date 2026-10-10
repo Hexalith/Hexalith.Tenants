@@ -55,7 +55,7 @@ src/
   Hexalith.Tenants.Api/              # External-facing generated Tenants REST API host
   Hexalith.Tenants.Aspire/           # Aspire hosting extensions for consuming AppHosts
   Hexalith.Tenants.Client/           # Client DI registration and event handling
-  Hexalith.Tenants/                  # REST API host, auth, validation, DAPR actors
+  Hexalith.Tenants/                  # Domain service host: DAPR-invoked endpoints, auth, validation, bootstrap
   Hexalith.Tenants.Contracts/        # Commands, events, enums, identities
   Hexalith.Tenants.Server/           # Aggregates, projections, domain logic
   Hexalith.Tenants.Testing/          # In-memory fakes and test helpers

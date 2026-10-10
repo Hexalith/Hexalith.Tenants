@@ -1,5 +1,6 @@
 #pragma warning disable CA2007
 
+using System.Globalization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
 using System.Net.Http.Headers;
@@ -14,9 +15,9 @@ using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
-using Hexalith.EventStore.Contracts.Results;
 using Hexalith.EventStore.Models;
 using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.FrontComposer.Shell.Services.Lifecycle;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -27,6 +28,7 @@ using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantAudit;
+using Hexalith.Tenants.UI.State.TenantCommands;
 
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -43,6 +45,7 @@ using RedisDatabase = StackExchange.Redis.IDatabase;
 using RedisValue = StackExchange.Redis.RedisValue;
 
 using CommandStatus = Hexalith.EventStore.Contracts.Commands.CommandStatus;
+using SubmitCommandRequest = Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest;
 
 namespace Hexalith.Tenants.IntegrationTests;
 
@@ -169,7 +172,9 @@ public class AspireTopologyTests : IDisposable {
         persisted.Description.ShouldBe(tenantDescription);
         persisted.Status.ShouldBe(TenantStatus.Active);
         persisted.ProjectedAt.ShouldNotBeNull();
-        persisted.ProjectionVersion.ShouldNotBeNull().ShouldStartWith(TenantProjectionVersionFormat.SequencePrefix);
+        persisted.ProjectionVersion.ShouldBe(
+            TenantProjectionVersionFormat.SequencePrefix
+            + createStatus.CommittedEventSequence.Value.ToString(CultureInfo.InvariantCulture));
 
         var eventStoreQuery = new SubmitQueryRequest(
             "system",
@@ -324,6 +329,15 @@ public class AspireTopologyTests : IDisposable {
         string tenantId = $"aha-{Guid.NewGuid():N}";
         string userId = $"jane-{Guid.NewGuid():N}";
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(3));
+        using var statusClient = new HttpClient {
+            BaseAddress = _fixture.CommandApiClient.BaseAddress,
+            Timeout = TimeSpan.FromSeconds(60),
+        };
+        statusClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        var gatewayClient = new EventStoreGatewayClient(
+            statusClient,
+            Options.Create(new EventStoreGatewayClientOptions()));
+        var commandGateway = new TenantCommandGateway(gatewayClient, new UlidFactory(), statusClient);
 
         CommandStatusResponse bootstrapStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
@@ -340,13 +354,14 @@ public class AspireTopologyTests : IDisposable {
             || (bootstrapStatus.Status == "Rejected" && bootstrapStatus.RejectionEventType == "GlobalAdminAlreadyBootstrappedRejection"))
             .ShouldBeTrue($"Bootstrap status was {bootstrapStatus.Status}:{bootstrapStatus.RejectionEventType}.");
 
+        SubmitCommandRequest createCommand = CreateCommand(
+            "tenants",
+            tenantId,
+            nameof(CreateTenant),
+            new CreateTenant(tenantId, "Aha Moment Demo Tenant", "Created by Story 8.4 E2E test"));
         CommandStatusResponse createStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
-            CreateCommand(
-                "tenants",
-                tenantId,
-                nameof(CreateTenant),
-                new CreateTenant(tenantId, "Aha Moment Demo Tenant", "Created by Story 8.4 E2E test")),
+            createCommand,
             token,
             timeout.Token);
         if (createStatus.Status == "PublishFailed") {
@@ -354,15 +369,28 @@ public class AspireTopologyTests : IDisposable {
         }
 
         createStatus.Status.ShouldBe("Completed");
+        createStatus.TenantId.ShouldBe("system");
+        createStatus.Domain.ShouldBe("tenants");
+        createStatus.AggregateId.ShouldBe(tenantId);
+        createStatus.EventCount.HasValue.ShouldBeTrue();
+        createStatus.EventCount.Value.ShouldBeGreaterThan(0);
         createStatus.CommittedEventSequence.HasValue.ShouldBeTrue();
+        createStatus.CommittedEventSequence.Value.ShouldBeGreaterThan(0);
+        TenantCommandStatusResult verifiedCreate = await commandGateway.GetStatusAsync(
+            new TenantCommandTrackingHandle(createCommand.MessageId, createStatus.CorrelationId, tenantId),
+            timeout.Token);
+        verifiedCreate.Status.ShouldBe(CommandStatus.Completed);
+        verifiedCreate.HasVerifiedCommandIdentity.ShouldBeTrue();
+        verifiedCreate.CommittedEventSequence.ShouldBe(createStatus.CommittedEventSequence);
 
+        SubmitCommandRequest addCommand = CreateCommand(
+            "tenants",
+            tenantId,
+            nameof(AddUserToTenant),
+            new AddUserToTenant(tenantId, userId, TenantRole.TenantContributor));
         CommandStatusResponse addStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
-            CreateCommand(
-                "tenants",
-                tenantId,
-                nameof(AddUserToTenant),
-                new AddUserToTenant(tenantId, userId, TenantRole.TenantContributor)),
+            addCommand,
             token,
             timeout.Token);
         addStatus.Status.ShouldBe("Completed");
@@ -372,7 +400,14 @@ public class AspireTopologyTests : IDisposable {
         addStatus.EventCount.HasValue.ShouldBeTrue();
         addStatus.EventCount.Value.ShouldBeGreaterThan(0);
         addStatus.CommittedEventSequence.HasValue.ShouldBeTrue();
-        addStatus.CommittedEventSequence.Value.ShouldBeGreaterThan(createStatus.CommittedEventSequence.GetValueOrDefault());
+        addStatus.CommittedEventSequence.Value.ShouldBe(
+            createStatus.CommittedEventSequence.Value + addStatus.EventCount.Value);
+        TenantCommandStatusResult verifiedAdd = await commandGateway.GetStatusAsync(
+            new TenantCommandTrackingHandle(addCommand.MessageId, addStatus.CorrelationId, tenantId),
+            timeout.Token);
+        verifiedAdd.Status.ShouldBe(CommandStatus.Completed);
+        verifiedAdd.HasVerifiedCommandIdentity.ShouldBeTrue();
+        verifiedAdd.CommittedEventSequence.ShouldBe(addStatus.CommittedEventSequence);
 
         JsonElement granted = await WaitForAccessAsync(tenantId, userId, "granted", timeout.Token);
         GetStringProperty(granted, "role").ShouldBe(nameof(TenantRole.TenantContributor));

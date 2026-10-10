@@ -208,6 +208,8 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 
 ## Completion Notes List
 
+- Pass-39 follow-up (2026-10-10) retained the create/add command requests and checked their live terminal statuses through `TenantCommandGateway.GetStatusAsync` with the original MessageIds and correlation IDs. The checks require verified identity and the same committed sequence reported by EventStore. The live Redis projection version now equals the create command's committed sequence, and the add command's committed sequence equals the create end plus the add event count. README now describes the domain-service host accurately; CONTRIBUTING's quick test list includes every blocking project; the unused Results import was removed. `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -p:UseNuGetDeps=true -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 -m:1 -v:q --no-restore` passed with zero warnings/errors. The built Release assembly ran `-method '*Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority'` and `-method '*Aha_moment_demo_revokes_sample_access_from_tenant_events'` separately: each passed 1/1, zero failed or skipped. No EventStore source, package pin, or gitlink changed.
+
 - Pass-33 follow-up (2026-10-10) added the AppHost test project to the standalone solution, checked distinct app-channel secrets in both Keycloak and symmetric modes, tested correction capture with a real distinct ETag, corrected the bootstrap citation and pass-32 provenance, removed misleading demo key punctuation, and documented the Aspire helper's token requirement. The commit-amend suggestion was rejected because the frozen decision forbids commits and the cited commit is now on `origin/main`.
 
 - Pass-31 patches (2026-10-10) adopted the HEAD dependency record approved by the user, moved AppHost security model checks into a blocking CI test project, made the live producer ETag agreement mandatory, corrected the projection-version test and bootstrap defer evidence, and completed consumer/demo guidance and the inverted test name. The security model checks retain their original resource assertions and add four guard cases. No production source, dependency checkout, package pin, or frozen acceptance text changed in this pass.
@@ -2903,7 +2905,7 @@ Diff reviewed: Tenants `b14bf146..2b91a52f`. `b14bf146` committed the pass-37 re
 - Producer check: EventStore sets `CommittedEventSequence = record.EndSequence` (`references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:2781`). `TenantProjectionHandler` stamps `tenant-sequence:{evt.SequenceNumber}` (`src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:123`, `:246-247`). Both count the same aggregate stream, so patch 2's equality is the invariant the UI's `HasReached` relies on.
 - Triage: 36 findings → 0 decisions, 5 patches (14 findings), 2 defers (4 findings, both new), 18 rejected. Four findings were also partly rejected (BH1, BH4, BH5, BH10).
 
-- [ ] [Review][Patch] Check the live create and add statuses through the real UI command gateway [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:369] — medium.
+- [x] [Review][Patch] Check the live create and add statuses through the real UI command gateway [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:369] — medium.
   - Pass 38 (Verification Gap 1) asserts EventStore's raw `CommandStatusResponse`: tenant, domain, aggregate, positive event count and positive committed sequence.
   - The UI keeps `CommittedEventSequence` only when more holds (`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:636-718`):
     - the status is fetched by `MessageId` (`:597`) and its `CorrelationId` echoes the tracked one;
@@ -2916,7 +2918,7 @@ Diff reviewed: Tenants `b14bf146..2b91a52f`. `b14bf146` committed the pass-37 re
     - Build `new TenantCommandGateway(gatewayClient, new UlidFactory(), statusClient)`: a real `EventStoreGatewayClient`, FrontComposer's `Hexalith.FrontComposer.Shell.Services.Lifecycle.UlidFactory`, and a bearer-authenticated `statusClient` on `_fixture.CommandApiClient.BaseAddress`. This follows `LoadPersistedAuditConsumerSnapshotAsync` (`:606-670`).
     - For each command, call `GetStatusAsync(new TenantCommandTrackingHandle(request.MessageId, status.CorrelationId, tenantId))`. Assert `HasVerifiedCommandIdentity` and `CommittedEventSequence == status.CommittedEventSequence`.
     - `InternalsVisibleTo` already covers IntegrationTests (`src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj:14`).
-- [ ] [Review][Patch] Pin the live committed sequence to the projection version and the event range [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:172] — medium.
+- [x] [Review][Patch] Pin the live committed sequence to the projection version and the event range [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:172] — medium.
   - The UI confirms a correction only when the projection's `tenant-sequence:N` reaches the command's committed sequence (`src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionPreviewSnapshot.cs:271-273`, `:384`; `TenantLifecycleProjectionVersion.HasReached`). The two values come from different producers (see the producer check above).
   - The Generated test holds both `createStatus.CommittedEventSequence` and `persisted.ProjectionVersion` but checks only the prefix (`:172`). The Aha test checks only `add > create` (`:375`).
   - UI tests pair the two values on matching scales by hand (`tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionPreviewSnapshotTests.cs:121-124`).
@@ -2925,15 +2927,15 @@ Diff reviewed: Tenants `b14bf146..2b91a52f`. `b14bf146` committed the pass-37 re
     - At `:172`, assert `persisted.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + createStatus.CommittedEventSequence.Value.ToString(CultureInfo.InvariantCulture))`.
     - At `:375`, assert `addStatus.CommittedEventSequence.Value.ShouldBe(createStatus.CommittedEventSequence.Value + addStatus.EventCount.Value)`. Each test uses a fresh tenant, so no other command writes to that stream.
     - Run both tests live before closing; this review could not (see the inotify bullet above).
-- [ ] [Review][Patch] Correct the README description of `src/Hexalith.Tenants/` [README.md:58] — low, pre-existing.
+- [x] [Review][Patch] Correct the README description of `src/Hexalith.Tenants/` [README.md:58] — low, pre-existing.
   - It reads "REST API host, auth, validation, DAPR actors".
   - `src/Hexalith.Tenants/Program.cs:39` calls it a domain service, and `:105` says "Tenants hosts no actors itself". It serves the Dapr-invoked `/process`, `/project` and `/query` endpoints plus EventStore's command controllers (`:152`).
   - The new `Hexalith.Tenants.Api/` line (`:55`) also claims "REST API host". Pass-37 patch 5 corrected this tree but missed this line.
   - Fix: for example `# Domain service host: DAPR-invoked endpoints, auth, validation, bootstrap`.
-- [ ] [Review][Patch] Remove the orphaned `Hexalith.EventStore.Contracts.Results` using [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:17] — low.
+- [x] [Review][Patch] Remove the orphaned `Hexalith.EventStore.Contracts.Results` using [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:17] — low.
   - `DomainServiceWireResult` was its only consumer, and the pass-38 rewrite deleted that read. The namespace's other types (`DomainResult`, `DomainServiceWireEvent`) are unused.
   - IDE0005 is not enforced, so the build stays green.
-- [ ] [Review][Patch] Complete CONTRIBUTING's "Run Tests" quick list [CONTRIBUTING.md:36] — low, pre-existing.
+- [x] [Review][Patch] Complete CONTRIBUTING's "Run Tests" quick list [CONTRIBUTING.md:36] — low, pre-existing.
   - `:36-38` lists only Contracts, Server and UI.
   - The same file's full list (`:154-161`) also has Client, Testing, AppHost, IntegrationTests and Sample.Tests. A contributor who stops at the quick list skips four blocking projects (`.github/workflows/ci.yml:26-34`).
   - Fix: list the blocking projects there too, or replace the block with a pointer to the full list.
