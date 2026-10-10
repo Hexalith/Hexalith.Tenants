@@ -23,7 +23,8 @@ namespace Hexalith.Tenants.Aspire;
 /// returned builder and on the EventStore command gateway — the <c>tenants</c> / <c>global-administrators</c>
 /// domain-service registrations and the <c>global-administrators</c> → <c>tenants.events</c> topic override on
 /// the gateway, the bootstrap global-administrator id (pinned to the deployment's identity-provider realm), and
-/// JWT/OIDC authentication.
+/// JWT/OIDC authentication, and an app-channel token shared by this service and its own DAPR sidecar
+/// (for example via <c>WithGeneratedEventStoreAppChannelToken()</c> or a supplied <c>APP_API_TOKEN</c>).
 /// </para>
 /// </remarks>
 public static class HexalithTenantsServerExtensions

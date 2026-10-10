@@ -90,7 +90,7 @@ if [[ -z "$BASE_URL" || -z "$SAMPLE_URL" ]]; then
 fi
 
 if [[ -z "$TOKEN" && "$USE_HMAC_DEV_TOKEN" != true ]]; then
-    echo -e "${RED}ERROR: provide TOKEN/--token from Keycloak, or pass --hmac-dev-token when AppHost starts with --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!.${NC}"
+    echo -e "${RED}ERROR: provide TOKEN/--token from Keycloak, or pass --hmac-dev-token when AppHost starts with --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!${NC}"
     exit 1
 fi
 

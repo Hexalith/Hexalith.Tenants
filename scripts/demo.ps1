@@ -7,7 +7,7 @@
     Runs the add-user to remove-user reactive access proof against a running AppHost.
     The default local AppHost uses Keycloak. Supply a token from the quickstart flow
     with -Token or TOKEN. Use -HmacDevToken only when the AppHost was started with
-    --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!.
+    --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!
 #>
 
 param(
@@ -39,7 +39,7 @@ if ([string]::IsNullOrWhiteSpace($BaseUrl) -or [string]::IsNullOrWhiteSpace($Sam
 }
 
 if ([string]::IsNullOrWhiteSpace($Token) -and -not $HmacDevToken) {
-    Write-Host "ERROR: provide TOKEN/-Token from Keycloak, or pass -HmacDevToken when AppHost starts with --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!." -ForegroundColor Red
+    Write-Host "ERROR: provide TOKEN/-Token from Keycloak, or pass -HmacDevToken when AppHost starts with --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!" -ForegroundColor Red
     exit 1
 }
 

@@ -89,7 +89,7 @@ public sealed class TenantQueryGatewayTests
         const string version = "tenant-sequence:42";
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(DirectResponse(Detail("tenant.alpha"), eTag: null, projectionVersion: version));
+            .Returns(DirectResponse(Detail("tenant.alpha"), eTag: "1", projectionVersion: version));
         var composition = new TenantsBffComposition(
             Substitute.For<ITenantCommandGateway>(),
             principalResolver: new StubConfigurationPrincipalResolver(

@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -207,6 +207,8 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 - tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs
 
 ## Completion Notes List
+
+- Pass-33 follow-up (2026-10-10) added the AppHost test project to the standalone solution, checked distinct app-channel secrets in both Keycloak and symmetric modes, tested correction capture with a real distinct ETag, corrected the bootstrap citation and pass-32 provenance, removed misleading demo key punctuation, and documented the Aspire helper's token requirement. The commit-amend suggestion was rejected because the frozen decision forbids commits and the cited commit is now on `origin/main`.
 
 - Pass-31 patches (2026-10-10) adopted the HEAD dependency record approved by the user, moved AppHost security model checks into a blocking CI test project, made the live producer ETag agreement mandatory, corrected the projection-version test and bootstrap defer evidence, and completed consumer/demo guidance and the inverted test name. The security model checks retain their original resource assertions and add four guard cases. No production source, dependency checkout, package pin, or frozen acceptance text changed in this pass.
 
@@ -747,6 +749,30 @@ Three context-free layers reviewed the baseline-to-working-tree diff at `/tmp/te
 | Edge 2: acceptance wording says terminal-only lease release | low; reject | carried: Current-head edge 1 and Pass-12 ECH2 cover the same bounded-expiry wording; the user approved timed release. The proposed correction edits this build's frozen spec and is rejected by the review rule. |
 | Verification gap 1: authorized subscription discovery lacks a blocking topic assertion | medium; patch | Pre-verified: the new `SampleSubscriptionHostTests` accepts HTTP 200 even if `/dapr/subscribe` returns `[]`; the live Aspire delivery job is advisory. Assert the authorized discovery response advertises `pubsub`, `tenants.events`, and `/tenants/events` in the blocking Sample.Tests lane. |
 
+### Pass-34 independent review (2026-10-10)
+
+Three context-free layers reviewed the baseline-to-working-tree diff (3,398,875 bytes; SHA-256 `17c0ce1ac274f1094b6b57ae990bb695deb540c019ae3a9da0e84e7287b1df48`). All 17 findings received individual verdicts. One pre-existing release-recovery issue is newly deferred; no Story 5.6 patch or intent decision remains.
+
+| Finding | Verdict and route | Evidence |
+| --- | --- | --- |
+| Blind 1: release omits governed provenance | medium; defer | carried: pass-32 Blind 11 records that the standalone release checks the Builds SHA but not the reusable governed-provenance closure. |
+| Blind 2: protected publishing jobs use movable actions | medium; defer | carried: pass-18 Blind 8 and pass-25 Blind 14 record movable executable action tags in both release workflows. |
+| Blind 3: release npm install enables lifecycle scripts | medium; defer | carried: pass-30 Blind 2 records `npm ci` in the publishing job with OIDC issuance. |
+| Blind 4: release prepare step sees the NuGet key | medium; defer | carried: pass-25 Blind 11 records the live key in the Semantic Release build and packaging preparation path. |
+| Blind 5: recovery mints the key before preparation | medium; defer | carried: pass-18 Blind 7 records package preparation consuming the temporary key lifetime before publication. |
+| Blind 6: ServiceDefaults exceptions apply to all packages | medium; defer | carried: pass-18 Blind 9 records the exact-ID exception without package-layer restrictions. |
+| Blind 7: bootstrap target is not bound to actor | high; defer | carried: pass-22 Blind 1 records the aggregate's use of `command.UserId` without the authenticated envelope; the hosted credential provider does not constrain other callers. |
+| Blind 8: bootstrap has no in-process retry | medium; defer | carried: pass-20 Blind 4 records the single `ApplicationStarted` attempt and restart-only recovery. |
+| Blind 9: global-administrator revocation can lag | high; defer | carried: pass-22 Blind 7 and pass-26 Blind 2 record the projection and token/circuit authority lag for commands and queries. |
+| Blind 10: EventStore lacks its AppHost channel token | low; defer | carried: pass-33 deferred entry records EventStore's missing `APP_API_TOKEN` in the Tenants AppHost and the separate live-topology follow-up. |
+| Blind 11: global correction proof scans one audit page | medium; defer | carried: pass-25 Blind 8 records the single-page, currently unmounted Story 5.7 lookup and incomplete-proof risk. |
+| Blind 12: generated-route ETag is advisory-only | medium; defer | carried: pass-33 deferred entry records the in-process HTTP assertion's advisory IntegrationTests tier and blocking-lane follow-up. |
+| Blind 13: Keycloak workload token has no running check | medium; defer | carried: pass-32 Verification gap 1 records the absent client-credentials token and domain-call integration lane. |
+| Blind 14: duplicate administrator rows remain complete | medium; defer | carried: pass-25 Blind 5 records `TryAdd` followed by complete evidence and routes paging semantics to that owner. |
+| Edge 1: NuGet login blocks container-only recovery | medium; defer | The recovery workflow unconditionally requires `NUGET_USER` and runs `NuGet/login`; its script reads the key only for entries in `missing-packages`, so login failure blocks an otherwise container-only repair. This predates the current patch and has one new pass-34 ledger entry. |
+| Edge 2: correction lease expires before terminal evidence | low; reject | carried: pass-6 Edge 1 and pass-30 Edge 1 record the approved bounded release, retained attempt identity, and unverified outcome. |
+| Verification gap 1: Keycloak workload credentials lack a live assertion | medium; defer | carried: same Keycloak client-secret and domain-call gap as pass-32 Verification gap 1 and Blind 13; the AppHost model check does not exchange a token. |
+
 ## Review Decision — Resolved
 
 The new intervening-role-reversal witness demonstrates that generic version advancement is not attempt-specific proof. On 2026-10-03 the user selected option 1: extend EventStore status proof and preserve reliable correction confirmation. The frozen constraint has been amended for this bounded extension; re-derive the implementation and the pending BH2/BH6/ECH4/VG1 patches under the new tasks above.
@@ -780,6 +806,8 @@ Three context-free layers reviewed `/tmp/story-5-6-baseline-OsK7WiL3.diff` (1,81
 The authorized audit response drops command correlation. EventStore creates a new event MessageId, exposed as `TenantAuditEntry.EventId`; it cannot identify the command attempt. The existing matcher and `#audit-...` fragment prove nothing. Epic 5 requires missing-support state when association cannot be re-derived.
 
 ## Verification
+
+**Pass-33 follow-up verification (2026-10-10):** The complete Release Contracts, AppHost, and UI projects passed **154/154**, **6/6**, and **3,973/3,973** respectively, with zero failed or skipped. `bash -n scripts/demo.sh`, PowerShell parsing of `scripts/demo.ps1`, the story gitlink guard, and `git diff --check` passed. At the current pinned EventStore revision `37451b529ab21869fa4e2806968b5143ddeea14b`, a Debug/source Server.Tests build completed with zero warnings/errors, and the five focused proof/status classes passed **165/165**, zero failed or skipped. These classes and the complete UI project cover all seven frozen I/O matrix rows; no EventStore source or gitlink changed in this pass.
 
 **Pass-32 review patch verification (2026-10-10):** After adding a shared Tenants app-channel token and administrator claims to the two fallback demo tokens, `dotnet build Hexalith.Tenants.slnx --configuration Release -p:UseNuGetDeps=true -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 -m:1 -verbosity:quiet` passed with 0 warnings/errors. Maintained Release MTP lanes passed: complete UI **3,973/3,973**, complete Server **828/828**, `Hexalith.Tenants.AppHost.Tests` **6/6**, Server `AhaMomentDemoDocumentationTests` **8/8**, and Contracts `PackageGovernanceTests` **35/35**. `git diff --check` passed. The earlier pass-31 focused generated-controller and live ETag results apply to unchanged code.
 
@@ -2624,35 +2652,36 @@ Diff reviewed: Tenants `d88bed1e..3fab3094`. `d88bed1e` committed the pass-31 re
 - CI: no run for `3fab3094` (unpushed). At `cdd0c80c` the moved graph tests passed in the advisory aspire tier; they are not among its 9 failures.
 - Triage: 38 findings → 0 decisions, 8 patches (16 findings), 2 defers (4 findings), 18 rejected.
 
-- [ ] [Review][Patch] Add the AppHost test project to the standalone solution [Hexalith.Tenants.Standalone.slnx:18] — high.
+- [x] [Review][Patch] Add the AppHost test project to the standalone solution [Hexalith.Tenants.Standalone.slnx:18] — high.
   - `3fab3094` adds `tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj` to `Hexalith.Tenants.slnx` only. `SolutionStructureTests.StandaloneSolutionContainsExactOwnedInventoryAndNoReferenceEntries` (`tests/Hexalith.Tenants.Contracts.Tests/SolutionStructureTests.cs:81-92`) requires the standalone solution to list every owned csproj, so Contracts.Tests fails 153/154 at HEAD.
   - Contracts.Tests is a blocking `unit-test-projects` entry. Pushing `3fab3094` turns `ci / build-and-test` (the release gate) red and skips `aspire-tests`.
   - Passes 31 and 32 ran only the `PackageGovernanceTests` class (35/35) from that project. The pass-31 patch named only `Hexalith.Tenants.slnx`.
   - Fix: add `<Project Path="tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj" />` under `/tests/` in `Hexalith.Tenants.Standalone.slnx` (154/154 in the copy), then run the complete Contracts.Tests project, not one class.
-- [ ] [Review][Patch] Check the app-channel token wiring in Keycloak mode too [tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs:35] — low.
+- [x] [Review][Patch] Check the app-channel token wiring in Keycloak mode too [tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs:35] — low.
   - The tenants (`src/Hexalith.Tenants.AppHost/Program.cs:89`) and sample (`:168`) token calls run in every mode, but only the symmetric-mode test checks them (`:84`, `:92`). Moving either call into the symmetric `else` block (`:224-250`) passes every test. The default Keycloak run would then admit unverified channel calls in Development, with no failure.
   - Otherwise the new tenants assertion works: dropping the call fails it (killed in this review). It does not check that the tenants and sample tokens differ, although each token must be shared only with its own sidecar.
   - Fix: extract the app/sidecar `APP_API_TOKEN` assertions into a helper. Call it for `tenants` and `sample` from `KeycloakAndEventStoreShareTheSameWorkloadSecretParameter` too, and assert that the tenants token is not the sample's.
-- [ ] [Review][Patch] Pin capture independence with a real store ETag [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:92] — low.
+- [x] [Review][Patch] Pin capture independence with a real store ETag [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:92] — low.
   - `CorrectionCaptureUsesProjectionVersionIndependentlyOfETag` runs only with `eTag: null`. A capture mutant `Metadata.ETag ?? Metadata.ProjectionVersion` at `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:82` still passes. The pass-31 fix (pass `eTag: null`) removed the false ETag claim but left the new name unproven.
   - Fix: pass a distinct store ETag (`1`, the value seen live) and keep asserting `tenant-sequence:42`, or make the test a theory over `null` and `1`.
-- [ ] [Review][Patch] Correct the bootstrap ledger citation [_bmad-output/implementation-artifacts/deferred-work.md:3880] — low.
+- [x] [Review][Patch] Correct the bootstrap ledger citation [_bmad-output/implementation-artifacts/deferred-work.md:3880] — low.
   - The corrected entry cites `AspireTopologyTests.cs:136` and `:335`. `3fab3094` removed three lines above `:335`, so the second `BootstrapGlobalAdmin` submission is now at `:331-332`, and `:335` points at unrelated code.
   - Fix: cite `:136` and `:332`.
-- [ ] [Review][Patch] Give the pass-32 ledger section its provenance line [_bmad-output/implementation-artifacts/deferred-work.md:3890] — low.
+- [x] [Review][Patch] Give the pass-32 ledger section its provenance line [_bmad-output/implementation-artifacts/deferred-work.md:3890] — low.
   - The pass-32 section starts straight with its entries. Every other pass section has a "Diff reviewed:" line; this is the 8th recurrence (pass 29 patched the 7th).
   - Fix: add a "Diff reviewed:" line naming the reviewed tree (`d88bed1e` plus the uncommitted pass-31 fix pass, later committed as `3fab3094`) and the tally of the spec's 14-row pass-32 table (2 patches, 6 defers, 6 rejects).
-- [ ] [Review][Patch] Keep the trailing period off the signing key in the demo help and errors [scripts/demo.sh:93] — low.
+- [x] [Review][Patch] Keep the trailing period off the signing key in the demo help and errors [scripts/demo.sh:93] — low.
   - `scripts/demo.sh:93`, `scripts/demo.ps1:10` and `scripts/demo.ps1:42` end the sentence right after the key (`…AtLeast32Chars!.`). A user who copies the argument from the error gets `DevOnlySigningKey-AtLeast32Chars!.` as the key, and every request returns 401: the mismatch that the new `docs/demo.md:212` bullet describes. `scripts/demo.sh:41` has no period.
   - Fix: drop the trailing period, or quote the argument, in all three places.
-- [ ] [Review][Patch] List the app-channel token among the Tenants Aspire helper's caller duties [src/Hexalith.Tenants.Aspire/HexalithTenantsServerExtensions.cs:12] — low.
+- [x] [Review][Patch] List the app-channel token among the Tenants Aspire helper's caller duties [src/Hexalith.Tenants.Aspire/HexalithTenantsServerExtensions.cs:12] — low.
   - The remarks (`:12-28`) list what a consuming AppHost must add: gateway registrations, the bootstrap id, and JWT/OIDC. They do not mention the app-channel token, which pass 32 wired at the call site (`src/Hexalith.Tenants.AppHost/Program.cs:89`).
   - Another AppHost using the published helper gets a tenants service whose domain-service startup validator fails outside Development ("`APP_API_TOKEN` must be configured"). In Development it admits unverified channel calls.
   - Fix: add the token (`.WithGeneratedEventStoreAppChannelToken()` or a supplied `APP_API_TOKEN`) to the listed duties.
-- [ ] [Review][Patch] Reword the unpushed fix-pass commit before pushing [git commit 3fab3094] — low.
+- [x] [Review][Reject] Reword the unpushed fix-pass commit before pushing [git commit 3fab3094] — low.
   - The message says `AppHostSecurityResourceGraphTests.cs` was "removed"; it was moved into the new blocking project.
   - It leaves out the tenants app-channel token added to the AppHost, the CI tier change, the deleted source-text test, the stricter live ETag test, the `global_admin` demo claim and the spec's `done` status. semantic-release turns the subject into the changelog entry.
   - Fix: `3fab3094` is local, so amend it (or fold it with the standalone-solution fix) into an accurate Conventional Commit. Validate the exact message with the repository's commitlint before committing.
+  - Resolution: rejected. The frozen decision prohibits commits and pushes, and `3fab3094` is now an ancestor of `origin/main`; amending it would rewrite published history. No commit message was proposed or used.
 - [x] [Review][Defer] The Tenants AppHost gives the EventStore server no app-channel token [src/Hexalith.Tenants.AppHost/Program.cs:65] — deferred: pre-existing, low.
   - Pass 32 wired `tenants` but left `eventstore` out, on the grounds that the EventStore server "was not shown to use this domain-service validator". The server does read the same `APP_API_TOKEN`, through `DaprAppChannelTokenValidator` and `DaprAppChannelTokenHealthCheck` (`references/Hexalith.EventStore/src/Hexalith.EventStore/Authentication/DaprAppChannelTokenValidator.cs:27-39`). EventStore's own AppHost wires `eventStore.WithGeneratedEventStoreAppChannelToken()` in run mode (`references/Hexalith.EventStore/src/Hexalith.EventStore.AppHost/Program.cs:421-427`).
   - In the Tenants AppHost, which runs only in Development, the server's channel admits callers without the token.

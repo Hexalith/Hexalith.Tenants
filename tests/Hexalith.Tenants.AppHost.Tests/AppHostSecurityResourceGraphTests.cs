@@ -46,6 +46,8 @@ public sealed class AppHostSecurityResourceGraphTests
         IReadOnlyDictionary<string, object> eventStoreEnvironment = await GetEnvironmentAsync(eventStore, builder.ExecutionContext);
         keycloakEnvironment["HEXALITH_EVENTSTORE_WORKLOAD_CLIENT_SECRET"].ShouldBeSameAs(secret);
         eventStoreEnvironment["Authentication__WorkloadIssuer__ClientSecret"].ShouldBeSameAs(secret);
+
+        await AssertAppChannelTokensAsync(builder);
     }
 
     [Fact]
@@ -75,21 +77,41 @@ public sealed class AppHostSecurityResourceGraphTests
         apiEnvironment["EventStore__Authentication__Audience"].ShouldBe("hexalith-eventstore");
         apiEnvironment["EventStore__Authentication__SigningKey"].ShouldBeSameAs(key);
 
-        ProjectResource tenantsService = builder.Resources.OfType<ProjectResource>()
-            .Single(static resource => resource.Name == "tenants");
-        IReadOnlyDictionary<string, object> tenantsEnvironment = await GetEnvironmentAsync(tenantsService, builder.ExecutionContext);
-        IDaprSidecarResource tenantsSidecar = tenantsService.Annotations.OfType<DaprSidecarAnnotation>()
-            .ShouldHaveSingleItem().Sidecar;
-        IReadOnlyDictionary<string, object> tenantsSidecarEnvironment = await GetEnvironmentAsync(tenantsSidecar, builder.ExecutionContext);
-        tenantsEnvironment["APP_API_TOKEN"].ShouldBeSameAs(tenantsSidecarEnvironment["APP_API_TOKEN"]);
+        await AssertAppChannelTokensAsync(builder);
+    }
 
+    private static async Task AssertAppChannelTokensAsync(IDistributedApplicationTestingBuilder builder)
+    {
+        ProjectResource tenants = builder.Resources.OfType<ProjectResource>()
+            .Single(static resource => resource.Name == "tenants");
         ProjectResource sample = builder.Resources.OfType<ProjectResource>()
             .Single(static resource => resource.Name == "sample");
-        IReadOnlyDictionary<string, object> sampleEnvironment = await GetEnvironmentAsync(sample, builder.ExecutionContext);
-        IDaprSidecarResource sidecar = sample.Annotations.OfType<DaprSidecarAnnotation>()
+
+        ParameterResource tenantsToken = await GetAppChannelTokenAsync(tenants, builder.ExecutionContext);
+        ParameterResource sampleToken = await GetAppChannelTokenAsync(sample, builder.ExecutionContext);
+        tenantsToken.ShouldNotBeSameAs(sampleToken);
+        tenantsToken.Secret.ShouldBeTrue();
+        sampleToken.Secret.ShouldBeTrue();
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        string? tenantsValue = await tenantsToken.GetValueAsync(timeout.Token);
+        string? sampleValue = await sampleToken.GetValueAsync(timeout.Token);
+        tenantsValue.ShouldNotBeNullOrWhiteSpace();
+        sampleValue.ShouldNotBeNullOrWhiteSpace();
+        string.Equals(tenantsValue, sampleValue, StringComparison.Ordinal).ShouldBeFalse();
+    }
+
+    private static async Task<ParameterResource> GetAppChannelTokenAsync(
+        ProjectResource project,
+        DistributedApplicationExecutionContext execution)
+    {
+        IReadOnlyDictionary<string, object> environment = await GetEnvironmentAsync(project, execution);
+        IDaprSidecarResource sidecar = project.Annotations.OfType<DaprSidecarAnnotation>()
             .ShouldHaveSingleItem().Sidecar;
-        IReadOnlyDictionary<string, object> sidecarEnvironment = await GetEnvironmentAsync(sidecar, builder.ExecutionContext);
-        sampleEnvironment["APP_API_TOKEN"].ShouldBeSameAs(sidecarEnvironment["APP_API_TOKEN"]);
+        IReadOnlyDictionary<string, object> sidecarEnvironment = await GetEnvironmentAsync(sidecar, execution);
+        ParameterResource token = environment["APP_API_TOKEN"].ShouldBeOfType<ParameterResource>();
+        token.ShouldBeSameAs(sidecarEnvironment["APP_API_TOKEN"]);
+        return token;
     }
 
     private static async Task<IReadOnlyDictionary<string, object>> GetEnvironmentAsync(
