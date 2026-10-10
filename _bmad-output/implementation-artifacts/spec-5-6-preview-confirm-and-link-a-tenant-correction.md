@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -2784,3 +2784,80 @@ Diff reviewed: Tenants `176d0670..b00d6d1b`. `176d0670` committed the pass-33 re
 - BH15, "the pass-34 section is filed between pass 30 and the Review Decision, not after pass 33": the fix edits the spec under review.
 - ECH2, "nothing checks the generated token's length": false. `WithGeneratedEventStoreAppChannelToken` always produces 64 hex characters from `RandomNumberGenerator.GetBytes(32)` (`HexalithEventStoreAppChannelExtensions.cs:32`), in a package Tenants does not own.
 - ECH3, "the helper should wire the token itself or throw": low. Pass 33 chose caller-duty documentation. Outside Development an omitted token fails loudly at startup, and changing the published helper's behavior adds surface. Patch 4 fixes the wording.
+
+### Review Findings (pass 37: pass-35 fix pass `c3577147`)
+
+Review date: 2026-10-10. Pass 36 ran inside the fix pass.
+
+Diff reviewed: Tenants `c21bf7be..c3577147`. `c21bf7be` committed the pass-35 records; `c3577147` is the user's pass-35 fix pass, pushed (HEAD = `origin/main`). Input: 180-line scratch diff, 22,692 bytes, SHA-256 `9065d09d0786b755f379d52bd805bc566ec97d1e0c6da849443dafe5cca05758`, not archived.
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor), and none failed. Verification Gap found no gaps: the diff changes docs, records, one XML doc comment and one test name.
+- All five pass-35 patches landed as written.
+- Gitlink guard: PASSES at HEAD; no `references/` pointer moved in the range.
+- CI at `c3577147`: `ci / build-and-test` PASSED (job 114176008068). That Release build treats warnings as errors, so both new `<see cref>`s resolve, and it runs the renamed AppHost test. The advisory aspire tier failed, as it has since pass 31. Story Guards failed only `validate-remove-focus-in-chromium`, the carried Chromium exit-124 defer.
+- Pass-36 provenance verified: the recorded input (3,417,703 bytes, SHA-256 `bc733579…`) was rebuilt byte-exact as `git diff --binary 11e65e37` against the `c3577147` tree with the spec at `in-review`, the sprint at `in-progress`, and neither pass-36 record. `--binary` carries the story's raw-log `.zip` evidence, which is why a plain `git diff` is about 1.4 MB smaller.
+- Principal swap inside one circuit (pass-36 Blind 3): reachable. In the installed .NET 10.0.12 framework, `ComponentHub.ConnectCircuit` calls `circuitHost.SetCircuitUser(Context.User)`, which calls `SetAuthenticationState`. So a SignalR reconnect after the cookie changed (a sign-out and sign-in in another tab) swaps the principal of a live circuit.
+- Triage: 28 findings → 0 decisions, 5 patches (11 findings), 2 defers (3 findings, both carried), 16 rejected. Two findings were also partly rejected (BH1 spacing, BH3 main claim).
+
+- [ ] [Review][Patch] Give the pass-36 ledger section its "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3922] — low.
+  - The fix pass added the missing pass-34 line (pass-35 patch 1) and, in the same commit, opened the pass-36 section straight with its entries. This is the 10th recurrence.
+  - Fix: add "Diff reviewed: Tenants baseline `11e65e37` through `c21bf7be` plus the uncommitted pass-35 fix pass (spec `in-review`, sprint `in-progress`), later committed as `c3577147`; `git diff --binary` input, 3,417,703 bytes, SHA-256 `bc733579eb218a3645d688392546a9d00daf96cd50899c55e443822784e7d784`, not archived. Triage: 16 findings, 0 patches, 12 defers (3 new, 9 carried), 4 rejected."
+  - The tally comes from the spec's pass-36 table. The 12 defers include 3 new ones (Blind 3, Blind 11, Blind 12); the 4 rejects are Blind 1, Blind 2, Blind 9 and Edge 2.
+- [ ] [Review][Patch] Name the binary diff mode in the pass-34 ledger provenance [_bmad-output/implementation-artifacts/deferred-work.md:3916] — low.
+  - The line records a 3,398,875-byte input but not that it was a `git diff --binary`.
+  - A plain `git diff 11e65e37 b00d6d1b` is 1,979,075 bytes. With `--binary`, `176d0670` gives 3,394,809 bytes and `b00d6d1b` gives 3,403,773, which bracket the recorded size.
+  - Two reviews have now flagged this as a mismatch (pass-35 BH3, pass-37 BH3). Pass 35's rejection note ("the size does not match") was wrong for the same reason.
+  - Fix: write "`git diff --binary` input" and "not archived" on `:3916`.
+- [ ] [Review][Patch] Complete the three pass-36 ledger entries [_bmad-output/implementation-artifacts/deferred-work.md:3924] — low.
+  - **Blind 3** (`:3924-3926`): the entry has no owner and no locations, and it says reachability is unknown. This review established it (see the principal-swap bullet above).
+    - After a swap, new reads run as the new principal, because `FrontComposerGatewayAuthorizationHandler` resolves `sub` per request.
+    - Nothing clears the retained attempt. `TenantCorrectionAttemptTracker` is circuit-scoped (`TenantsUiServiceCollectionExtensions.cs:102`) and keyed by tenant (`TenantCorrectionAttemptTracker.cs:9`). `TenantAuditPage.razor:1513` finds the attempt by `TenantId`.
+    - Neither `TenantAuditPage` nor `CorrectionStartPanel` subscribes to `AuthenticationStateChanged`. `TenantDetailPage.razor:713`/`:940`, `GlobalAdministratorCorrectionPanel.razor:548` and `TenantCreateAuditReturnState.cs:24` do.
+    - Still open: whether a rendered retained attempt shows facts the new principal cannot read, such as an uncommitted intent.
+    - Name the owner: the Story 5.6 tracker in Tenants UI.
+  - **Blind 11** (`:3927-3929`): the entry has no locations (`docs/quickstart.md:118`, `:191-208`). It also does not link the pass-27 entry at `:3880` (`BootstrapGlobalAdmin` takes `command.UserId` without binding it to the caller), which is what lets an `admin-user` bootstrap succeed.
+    - The entry also misses the lock-out. Bootstrap is one-time (`GlobalAdministratorsAggregate.cs:14`). The hosted service treats `GlobalAdminAlreadyBootstrappedRejection` as success (`TenantBootstrapHostedService.cs:114-119`). So after an `admin-user` success, every restart reports bootstrap as done, while the generated service subject never becomes an administrator.
+    - With the realm's UUID subjects, nobody can act as `admin-user` until state is wiped.
+  - **Blind 12** (`:3930-3932`): the entry has no location (`docs/quickstart.md:120`).
+  - Fix:
+    - Add the locations and owners, and the `:3880` cross-reference.
+    - In the Blind 3 entry, replace "must establish whether this can occur" with the reconnect path, and keep the rendered-content question open.
+    - Add the lock-out to the Blind 11 entry.
+- [ ] [Review][Patch] List the AppHost test project in README's test commands and project tree [README.md:117] — low.
+  - Pass-35 patch 3 named only `README.md:113` and `CONTRIBUTING.md:154-160`, and the fix pass changed both. That patch missed two other README lists, which still omit `tests/Hexalith.Tenants.AppHost.Tests`:
+    - the "Test Requirements" commands (`:117-127`);
+    - the Project Structure `tests/` tree (`:64-70`).
+  - The project was added by this story (pass 31) and blocks CI (`ci.yml:33`). A contributor who follows the README skips the release-gating AppHost model checks.
+  - Fix: add `dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Release` to the commands, and `Hexalith.Tenants.AppHost.Tests/` to the tree.
+- [ ] [Review][Patch] Correct README's pre-existing project-tree and test-list errors [README.md:60] — low, pre-existing.
+  - The tree lists `src/Hexalith.Tenants.ServiceDefaults/` (`:60`), which `37678cf0` removed on 2026-06-02.
+  - The tree omits `src/Hexalith.Tenants.Api/`, which `daabc6ba` added on 2026-07-03.
+  - The test commands omit the blocking `samples/Hexalith.Tenants.Sample.Tests` (`ci.yml:31`).
+  - All three predate baseline `11e65e37`. The new "contains every owned project" sentence points readers at this list.
+  - Fix: delete the ServiceDefaults line, add an `Hexalith.Tenants.Api/` line with its role, and add the Sample.Tests command.
+- [x] [Review][Defer] A reconnect that swaps the signed-in user keeps the previous principal's retained correction attempt [src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:9] — deferred: carried as the pass-36 Blind 3 ledger entry (`deferred-work.md:3924`). The swap is now shown to be reachable (patch 3 records the path). What it exposes is still maybe-false: medium if a rendered retained attempt shows facts the new principal cannot read. To settle it, write a bUnit test that, with a retained attempt in place, raises `AuthenticationStateChanged` with a different `sub`, then asserts on the rendered panel, both on the same page and after in-circuit navigation back to the tenant. This also answers AA1's "do not close while this is open": the fix would add principal state that the review did not show is needed, so it is a defer, not a patch.
+- [x] [Review][Defer] Story Guards `validate-remove-focus-in-chromium` is still red at `c3577147` [.github/workflows/story-guards.yml] — deferred: carried as the pass-19 Chromium exit-124 entry. No Story 5.6 source changed in this range.
+
+#### Rejected (pass 37)
+
+- VG-O1 + ECH2 + AA2 + BH2 (status part), "spec `done` vs sprint `review`": the fix edits the spec under review, and this review's status sync sets both. The pass-36 record's "`in-review` status" is accurate: the rebuilt input had the spec at `in-review`.
+- AA7 + BH2 (evidence part), "the pass-35 fix pass records no completion note or checks": the fix edits the spec under review. This review verified the outcome (see the CI and gitlink-guard bullets above).
+- ECH3 + ECH4 + ECH5 + AA4 (citation part), "three pass-36 rows cite the wrong predecessor": low, and the fix edits the spec under review. The other 13 carried citations match.
+  - Blind 2 (`:783`) cites pass-34 Edge 1, which is the NuGet-login row. The circuit-boundary rejection is pass-22 Edge 1 (`:2277`).
+  - Edge 1 (`:794`) cites pass-34 Blind 1, which is the governed-provenance row. The late-continuation rows are pass-10 blind 1 (`:630`) and pass-6 edge 2 (`:591`).
+  - Verification gap 1 (`:796`) cites pass-35 Blind 13, which is the `feat:`-subject rejection. The Keycloak row is pass-34 Blind 13 (`:770`).
+- AA4 (pass-34 part) + BH4, "the spec's pass-34 record (`:754`, `:772`) still says container-only and pre-existing": low, and the fix edits the spec under review. The ledger entry is the corrected record.
+- VG-O2 (tally part) + BH10, "the pass-36 spec record has no `Triage:` line or closing summary, and it is filed at `:776` instead of after pass 35": the fix edits the spec under review.
+- AA6, "the File List omits `HexalithTenantsServerExtensions.cs` and `Hexalith.Tenants.Standalone.slnx`": the fix edits the spec under review. Pass 35 rejected the same finding (BH5 + AA3).
+- BH1 (spacing part), "the pass-36 ledger entries have no blank lines between them, unlike every other section": false. 46 adjacent entries in 10 other sections have no separating blank line either.
+- BH3 (main claim), "the provenance sizes cannot be reproduced and probably leave out the EventStore range": false. The sizes come from `git diff --binary`, and pass 36's input was rebuilt byte-exact. The unnamed diff mode is patch 2.
+- BH6 (antecedent part), "'its own DAPR sidecar' now refers to the AppHost": false. The next sentence names the two `<see cref>` helpers, and their own docs say they give the token "to the project and to its Dapr sidecar".
+- BH6 (caveat part), "the remark omits what happens without a token and when to use each helper": low.
+  - Outside Development, a missing token is refused (`DaprAppChannelSecurity.cs:16`, `DaprAppChannelTokenValidator.cs:27`). The Development allowance is EventStore's own behavior.
+  - "using a supplied secret parameter" already tells the two helpers apart.
+  - The fix only adds prose. Pass 35 rejected the same finding (ECH3).
+- BH9, "`TenantCorrectionStartPanel.razor:145-149` writes `_isHandoffPending` off the dispatcher": false as a visible defect.
+  - The `finally` block writes one bool and does not render.
+  - `ComponentBase` re-renders on the dispatcher after the handler task completes, and that render reads `false`.
+  - The file is Story 5.5 code and has not changed since the baseline.
+  - The general pass-36 Blind 4 defer stays carried.
+- ECH7, "`c3577147` is a `feat:` subject for docs-only changes": low. The commit is on `origin/main`, so a fix would rewrite published history, and the subject passed Commitlint. No release has been cut since v5.8.0 (2026-10-08). Pass 35 rejected the same finding (BH13).
