@@ -166,7 +166,7 @@ public class AspireTopologyTests : IDisposable {
         createStatus.CommittedEventSequence.HasValue.ShouldBeTrue();
         createStatus.CommittedEventSequence.Value.ShouldBeGreaterThan(0);
 
-        TenantReadModel persisted = await WaitForPersistedTenantAsync(tenantId, timeout.Token);
+        TenantReadModel persisted = await WaitForPersistedTenantAsync(tenantId, expectedProjectionVersion: null, timeout.Token);
         persisted.TenantId.ShouldBe(tenantId);
         persisted.Name.ShouldBe(tenantName);
         persisted.Description.ShouldBe(tenantDescription);
@@ -408,6 +408,12 @@ public class AspireTopologyTests : IDisposable {
         verifiedAdd.Status.ShouldBe(CommandStatus.Completed);
         verifiedAdd.HasVerifiedCommandIdentity.ShouldBeTrue();
         verifiedAdd.CommittedEventSequence.ShouldBe(addStatus.CommittedEventSequence);
+        TenantReadModel persistedAfterAdd = await WaitForPersistedTenantAsync(
+            tenantId,
+            TenantProjectionVersionFormat.SequencePrefix
+            + addStatus.CommittedEventSequence.Value.ToString(CultureInfo.InvariantCulture),
+            timeout.Token);
+        persistedAfterAdd.Members.ShouldContainKeyAndValue(userId, TenantRole.TenantContributor);
 
         JsonElement granted = await WaitForAccessAsync(tenantId, userId, "granted", timeout.Token);
         GetStringProperty(granted, "role").ShouldBe(nameof(TenantRole.TenantContributor));
@@ -496,11 +502,14 @@ public class AspireTopologyTests : IDisposable {
         _ = accepted.ShouldNotBeNull();
         accepted.CorrelationId.ShouldNotBeNullOrWhiteSpace();
 
-        return await WaitForTerminalStatusAsync(client, accepted.CorrelationId, token, cancellationToken);
+        CommandStatusResponse status = await WaitForTerminalStatusAsync(client, accepted.CorrelationId, token, cancellationToken);
+        status.CorrelationId.ShouldBe(accepted.CorrelationId);
+        return status;
     }
 
     private static async Task<TenantReadModel> WaitForPersistedTenantAsync(
         string tenantId,
+        string? expectedProjectionVersion,
         CancellationToken cancellationToken) {
         string redisEndpoint = $"localhost:{DaprDiagnostics.DefaultRedisPort}";
         string persistedKey = $"tenants||projection:tenants:{tenantId}";
@@ -525,6 +534,7 @@ public class AspireTopologyTests : IDisposable {
             DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(SampleProjectionTimeout);
             string? lastPayload = null;
             string? lastJsonError = null;
+            string? lastProjectionVersion = null;
 
             while (DateTimeOffset.UtcNow <= deadline) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -555,7 +565,11 @@ public class AspireTopologyTests : IDisposable {
 
                     if (model is not null
                         && string.Equals(model.TenantId, tenantId, StringComparison.Ordinal)) {
-                        return model;
+                        lastProjectionVersion = model.ProjectionVersion;
+                        if (expectedProjectionVersion is null
+                            || string.Equals(model.ProjectionVersion, expectedProjectionVersion, StringComparison.Ordinal)) {
+                            return model;
+                        }
                     }
                 }
 
@@ -565,9 +579,12 @@ public class AspireTopologyTests : IDisposable {
             string jsonSuffix = lastJsonError is null
                 ? string.Empty
                 : $" Last JSON error: {lastJsonError}.";
+            string versionSuffix = expectedProjectionVersion is null
+                ? string.Empty
+                : $" Expected projection version '{expectedProjectionVersion}', last seen '{lastProjectionVersion ?? "none"}'.";
             throw new TimeoutException(
                 $"Redis key '{persistedKey}' did not contain the expected tenant read model within {SampleProjectionTimeout}. "
-                + $"Last payload present: {lastPayload is not null}.{jsonSuffix}");
+                + $"Last payload present: {lastPayload is not null}.{jsonSuffix}{versionSuffix}");
         }
     }
 

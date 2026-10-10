@@ -3944,9 +3944,14 @@ Diff reviewed: Tenants `b14bf146..2b91a52f` (the pass-37 fix pass with the pass-
   summary: low; `_bmad-output/project-context.md` omits `AppHost.Tests` from blocking CI Tier 2. Owner: agent-context maintenance.
   evidence: `_bmad-output/project-context.md:112` lists only `Server.Tests`, while `.github/workflows/ci.yml:32-34` runs `tests/Hexalith.Tenants.AppHost.Tests` next to it in `integration-test-projects` (added by Story 5.6 pass 31). Agents that read the context file will leave out the blocking AppHost model checks.
 
+## Deferred from: spec-eventstore-3-117-1.md (2026-10-10)
+
 - source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
   summary: Restore or reconcile missing historical Git revisions referenced by the Builds package audit before accepting the EventStore 3.120.0 audit.
   evidence: The supported full pre-edit audit was generated against committed Builds `2cf00028bbe563d80d4d12b5fb2054914f14fcb6`, but deterministic validation of its saved snapshot exits 1 with 50 unavailable historical origin-revision errors in addition to a temporary catalog-path mismatch. The checked-in audit validator exits 1 with 1,563 errors, including unavailable historical revisions; logs and exact commands are archived in `dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip`. This inherited provenance gap blocks accepted audit evidence even after a governed catalog commit.
+
+## Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)
+
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
   summary: Bind retained Tenants UI query snapshots to the authenticated caller.
   evidence: `TenantQueryGateway` retention checks page and validator but not caller, and `TenantsWorkspace` can pass its prior confirmed snapshot after authentication changes; a failed read can retain prior caller rows.
@@ -3986,8 +3991,13 @@ Diff reviewed: Tenants `b14bf146..2b91a52f` (the pass-37 fix pass with the pass-
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
   summary: Verify the imported Keycloak project scope through an issued workload token and protected endpoint.
   evidence: The realm test parses JSON, and the Aspire fixture disables Keycloak, leaving the effective `domain-service:project` token claim unverified.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 40 (2026-10-10)
+
+Diff reviewed: Tenants baseline `11e65e37` to `01602592` plus the then-current working tree; 4,329,888-byte diff, SHA-256 `b238fc55a1be2be5066869148d3a62e1a90d920c19837cec75dc7a57d48194e5`, not archived (spec "Pass-40 review triage"). Triage: 12 findings, 9 defers (one new entry below; the rest were already in the ledger), 3 rejected. Heading and severity added in pass 41.
+
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-  summary: Reconcile the Builds execution revision used by partial release recovery with the publishing workflow.
+  summary: medium; reconcile the Builds execution revision used by partial release recovery with the publishing workflow. Owner: release recovery (`recover-partial-release.yml`).
   evidence: `release.yml` declares `53d53ae42abf7c87d385a078ab260531480bbf8a` for publication, but `recover-partial-release.yml` declares `2eac6955a812465a4308d194ae38fee35b766b05` for recovery. `validate-partial-release-recovery.sh` verifies only that the recovery value has SHA syntax. Recovery builds with the source tree's Builds gitlink, so matching publication-tool provenance is not established. The release recovery owner should decide and enforce the exact revision relationship before relying on rebuilt artifacts.
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 41 (2026-10-10)
@@ -4003,6 +4013,9 @@ Diff reviewed: Tenants `2b91a52f..f6e7d7a5`, Story 5.6 paths only (the pass-39 f
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: low; `_bmad-output/project-context.md` is stale about the EventStore 3.120.0 catalog commit. Owner: EventStore 3.120.0 dependency refresh (`spec-eventstore-3-117-1.md`) and agent-context maintenance.
   evidence: `_bmad-output/project-context.md:34` says the 3.120.0 catalog "requires a governed owning-repository commit … no commit is authorized in this task". Builds `9e6b6ca3` ("fix: update HexalithEventStoreVersion to 3.120.0") is that commit, and root `b3878f14` pins it, so agents reading the file will think the package lane is still 3.119.0. `:112` also still omits `AppHost.Tests` from Tier 2 (the pass-39 entry above).
+
+## Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)
+
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
   summary: Preserve system-scope authorization for the Keycloak administrator's multivalued tenant claim.
   evidence: The realm maps system, tenant-a, and tenant-b to eventstore:tenant, while TenantsGlobalAdministratorClaims accepts only one distinct literal scope and cannot establish system scope for that principal.
