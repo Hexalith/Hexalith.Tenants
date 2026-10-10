@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 
@@ -7,223 +8,131 @@ using Shouldly;
 namespace Hexalith.Tenants.IntegrationTests;
 
 /// <summary>
-/// Aspire route smoke coverage for the Tenants UI bootstrap surface.
+/// Aspire smoke coverage for the anonymous Tenants UI routes behind the FrontComposer scope boundary.
 /// </summary>
 /// <remarks>
-/// <para>
-/// The Aspire topology <b>does</b> reference the Tenants API for the UI: <c>AppHost/Program.cs</c> wires
-/// <c>Tenants__BaseAddress</c> and a <c>tenants-api</c> reference onto the <c>tenants-ui</c> resource, which
-/// is what closed <c>HOST-REF-1</c>. These routes therefore have a composed read surface, and an
-/// unauthenticated hosted request renders authorization-safe absence -- not the "read surface missing"
-/// state. The previous wording said the opposite of both the field comment below and the AppHost, and a
-/// reader reconstructing intent from it would have re-pinned the closed gap as if it were intended.
-/// </para>
-/// <para>
-/// These smoke tests assert that each route renders, preserves its scoped navigation context, and reports
-/// its authorization-safe state without falling back to EventStore. The lane is Tier 3 and
-/// <c>continue-on-error</c>, and every test carries <c>[DaprFact]</c> plus <c>SkipIfUnavailable()</c>, so it
-/// self-skips whenever local DAPR/Aspire is absent -- a green report from this class is not proof it ran.
-/// </para>
+/// The fixture disables Keycloak and supplies no validated tenant or user scope. The hosted shell must
+/// render its explicit denial before any Tenants page content. Tier 1 component tests cover the page-level
+/// unauthorized states when a scope is available.
 /// </remarks>
 [Collection("AspireTopology")]
 [DaprTestSerialization]
 [Trait("Category", "Integration")]
-public sealed class TenantsUiRouteSmokeTests : IDisposable {
-    // Story 1.10 review: AppHost now supplies Tenants__BaseAddress, so these routes no longer render the
-    // "read surface missing" state. With a composed read surface and an unauthenticated hosted request they
-    // render authorization-safe absence instead -- which is the distinction the acceptance criteria require
-    // (empty, unauthorized, not-found, error and degraded must stay distinct). Asserting the old
-    // unavailable markers here would have re-pinned the HOST-REF-1 gap as if it were intended behavior.
-    private const string TenantsListUnauthorizedMarker = "data-testid=\"tenants-list-unauthorized\"";
-    private const string TenantsDetailUnauthorizedMarker = "data-testid=\"tenants-detail-unauthorized\"";
-    private const string TenantsAuditUnauthorizedMarker = "data-testid=\"tenants-audit-unauthorized\"";
-    private static readonly TimeSpan UiRouteReadinessTimeout = TimeSpan.FromSeconds(10);
-    private static readonly TimeSpan UiRouteReadinessDelay = TimeSpan.FromMilliseconds(250);
+public sealed class TenantsUiRouteSmokeTests : IDisposable
+{
+    private const string ScopeBlockedMarker = "data-testid=\"fc-scope-blocked\"";
     private readonly IDisposable _daprTestLease;
     private readonly AspireTopologyFixture _fixture;
 
-    public TenantsUiRouteSmokeTests(AspireTopologyFixture fixture) {
+    public TenantsUiRouteSmokeTests(AspireTopologyFixture fixture)
+    {
         _daprTestLease = DaprTestExecutionGate.Enter();
         _fixture = fixture;
     }
 
-    public void Dispose() {
+    public void Dispose()
+    {
         _daprTestLease.Dispose();
         GC.SuppressFinalize(this);
     }
 
     [DaprFact]
-    public async Task Tenants_workspace_route_renders_authorization_safe_absence_in_hosted_ui() {
+    public async Task TenantsWorkspaceRouteBlocksAnonymousScope()
+    {
         _fixture.SkipIfUnavailable();
-
-        string markup = await GetHostedUiMarkupWhenReadyAsync("/tenants", TenantsListUnauthorizedMarker)
-            .ConfigureAwait(false);
-
-        markup.ShouldContain("data-testid=\"tenants-workspace\"");
-        markup.ShouldContain("data-testid=\"tenants-list-search\"");
-        markup.ShouldContain("data-testid=\"tenants-list-refresh\"");
-        markup.ShouldContain(TenantsListUnauthorizedMarker);
-        markup.ShouldContain("Sign in required");
-        markup.ShouldNotContain("sample tenant", Case.Insensitive);
-        markup.ShouldNotContain("tenant-1", Case.Insensitive);
-        markup.ShouldNotContain("access_token", Case.Insensitive);
+        await AssertHostedScopeBlockedAsync("/tenants").ConfigureAwait(false);
     }
 
     [DaprFact]
-    public async Task Tenant_detail_route_renders_authorization_safe_absence_in_hosted_ui() {
+    public async Task TenantDetailRouteBlocksAnonymousScope()
+    {
         _fixture.SkipIfUnavailable();
-
-        string markup = await GetHostedUiMarkupWhenReadyAsync(
-                "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha",
-                TenantsDetailUnauthorizedMarker)
-            .ConfigureAwait(false);
-
-        markup.ShouldContain("data-testid=\"tenants-detail\"");
-        markup.ShouldContain("data-testid=\"tenants-detail-back\"");
-        markup.ShouldContain("href=\"/tenants?search=alpha\"");
-        markup.ShouldContain(TenantsDetailUnauthorizedMarker);
-
-        // The denial is announced, not merely rendered. The binding assertion for this now lives in
-        // TenantDetailSurfaceTests.Detail_page_renders_distinct_safe_states, which runs in a Tier 1 blocking
-        // lane -- this class self-skips when Dapr is unavailable and runs continue-on-error, so it cannot be
-        // the only place an accessibility contract is checked. Kept here as a smoke signal, but asserted on
-        // the two attributes independently: the previous form pinned their source order and a purely
-        // cosmetic attribute reorder would have failed it.
-        markup.ShouldContain("data-testid=\"tenants-detail-unauthorized\"");
-        markup.ShouldContain("role=\"alert\"");
-        markup.ShouldNotContain("data-testid=\"tenants-detail-identity\"");
-        markup.ShouldNotContain("sample tenant", Case.Insensitive);
+        await AssertHostedScopeBlockedAsync(
+            "/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fsearch%3Dalpha").ConfigureAwait(false);
     }
 
     [DaprFact]
-    public async Task Tenant_audit_route_renders_scoped_context_and_authorization_safe_absence_in_hosted_ui() {
+    public async Task TenantAuditRouteBlocksAnonymousScope()
+    {
         _fixture.SkipIfUnavailable();
-
-        string markup = await GetHostedUiMarkupWhenReadyAsync(
-                "/tenants/tenant.alpha/audit?targetUserId=operator.support-01&source=member-row&returnUrl=%2Ftenants%2Ftenant.alpha%3FreturnUrl%3D%252Ftenants%253Fsearch%253Dalpha%2526selected%253Dtenant.alpha&returnFocus=tenants-member-operator.support-01",
-                TenantsAuditUnauthorizedMarker)
-            .ConfigureAwait(false);
-
-        markup.ShouldContain("data-testid=\"tenants-audit-surface\"");
-        markup.ShouldContain("data-testid=\"tenants-audit-context\"");
-        markup.ShouldContain("operator.support-01");
-        markup.ShouldContain("data-testid=\"tenants-audit-return-context\"");
-        markup.ShouldContain("Return to tenant detail");
-        markup.ShouldContain("data-testid=\"tenants-audit-back\"");
-        markup.ShouldContain("href=\"/tenants/tenant.alpha?returnUrl=");
-        markup.ShouldContain("selected%3Dtenant.alpha");
-        markup.ShouldContain("auditFocus=tenants-member-operator.support-01");
-        markup.ShouldContain(TenantsAuditUnauthorizedMarker);
-        markup.ShouldContain("Audit access unavailable");
-        markup.ShouldContain("You are not authorized to view tenant audit entries");
-        markup.ShouldNotContain("data-testid=\"tenants-audit-row\"");
-        markup.ShouldNotContain("raw payload", Case.Insensitive);
-        markup.ShouldNotContain("access_token", Case.Insensitive);
+        await AssertHostedScopeBlockedAsync(
+            "/tenants/tenant.alpha/audit?targetUserId=operator.support-01&source=member-row&returnUrl=%2Ftenants%2Ftenant.alpha%3FreturnUrl%3D%252Ftenants%253Fsearch%253Dalpha%2526selected%253Dtenant.alpha&returnFocus=tenants-member-operator.support-01").ConfigureAwait(false);
     }
 
     [DaprFact]
-    public async Task My_tenants_route_renders_unverified_self_audit_state_in_hosted_ui() {
+    public async Task MyTenantsRouteBlocksAnonymousScope()
+    {
         _fixture.SkipIfUnavailable();
+        await AssertHostedScopeBlockedAsync("/tenants/my").ConfigureAwait(false);
+    }
 
+    [DaprFact]
+    public async Task UserLookupRouteBlocksAnonymousScope()
+    {
+        _fixture.SkipIfUnavailable();
+        await AssertHostedScopeBlockedAsync("/tenants/users?userId=operator.support-01").ConfigureAwait(false);
+    }
+
+    [DaprFact]
+    public async Task GlobalAdministratorsRouteBlocksAnonymousScope()
+    {
+        _fixture.SkipIfUnavailable();
+        await AssertHostedScopeBlockedAsync("/global-administrators").ConfigureAwait(false);
+    }
+
+    private async Task AssertHostedScopeBlockedAsync(string requestUri)
+    {
         using HttpResponseMessage response = await _fixture.TenantsUiClient
-            .GetAsync("/tenants/my")
+            .GetAsync(requestUri, TestContext.Current.CancellationToken)
             .ConfigureAwait(false);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        string markup = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        markup.ShouldContain("data-testid=\"tenants-my-page\"");
-        markup.ShouldContain("data-testid=\"tenants-my-refresh\"");
-        markup.ShouldContain("data-testid=\"tenants-my-back\"");
-        markup.ShouldContain("data-testid=\"tenants-my-error\"");
-        markup.ShouldContain("role=\"alert\"");
-        markup.ShouldContain("The signed-in user could not be verified for this self-audit view");
-        markup.ShouldNotContain("data-testid=\"tenants-my-row\"");
-        markup.ShouldNotContain("sample tenant", Case.Insensitive);
-        markup.ShouldNotContain("access_token", Case.Insensitive);
-    }
-
-    [DaprFact]
-    public async Task User_lookup_route_canonicalizes_url_preserving_prefilled_user_id_in_hosted_ui() {
-        _fixture.SkipIfUnavailable();
-
-        using HttpResponseMessage response = await _fixture.TenantsUiClient
-            .GetAsync("/tenants/users?userId=operator.support-01")
+        string markup = await response.Content
+            .ReadAsStringAsync(TestContext.Current.CancellationToken)
             .ConfigureAwait(false);
 
-        // The compatibility route redirects before issuing the lookup and preserves the prefilled user
-        // identifier. Canonical workspace URLs omit the default tenant sort.
-        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
-        string location = response.Headers.Location?.ToString() ?? string.Empty;
-        location.ShouldContain("userId=operator.support-01");
-        location.ShouldNotContain("sort=");
-    }
+        markup.ShouldContain(ScopeBlockedMarker);
+        markup.ShouldContain("Workspace unavailable");
+        markup.ShouldContain("Your workspace identity could not be verified");
 
-    [DaprFact]
-    public async Task Global_administrators_route_renders_fail_closed_unavailable_state_in_hosted_ui() {
-        _fixture.SkipIfUnavailable();
-
-        using HttpResponseMessage response = await _fixture.TenantsUiClient
-            .GetAsync("/global-administrators")
-            .ConfigureAwait(false);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-
-        string markup = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-        markup.ShouldContain("data-testid=\"tenants-global-admins-area\"");
-        markup.ShouldContain("data-testid=\"tenants-global-admins-unavailable\"");
-        markup.ShouldContain("data-testid=\"tenants-global-admins-live-region\"");
-        markup.ShouldContain("role=\"alert\"");
-        markup.ShouldContain("Platform area unavailable");
-        markup.ShouldContain("The area fails closed");
-        markup.ShouldNotContain("data-testid=\"tenants-global-admins-nav\"");
-        markup.ShouldNotContain("data-testid=\"tenants-global-admins-read-contract\"");
-        markup.ShouldNotContain("administrator row", Case.Insensitive);
-        markup.ShouldNotContain("administrator count", Case.Insensitive);
-        markup.ShouldNotContain("/api/tenants", Case.Insensitive);
-        markup.ShouldNotContain("/api/users", Case.Insensitive);
-        markup.ShouldNotContain("access_token", Case.Insensitive);
-    }
-
-    // The fixture declares tenants-ui with WaitForAliveness: false, so it only proves the resource is Running
-    // with its endpoint published -- not that the route has rendered its fail-closed content. CI run
-    // 28953291798 saw these routes answer HTTP 200 before the unauthorized marker appeared. Polling for the
-    // route-specific marker absorbs that first-paint gap; it never accepts shell-only markup as success.
-    private async Task<string> GetHostedUiMarkupWhenReadyAsync(string requestUri, string readinessMarker) {
-        ArgumentException.ThrowIfNullOrWhiteSpace(requestUri);
-        ArgumentException.ThrowIfNullOrWhiteSpace(readinessMarker);
-
-        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
-        DateTimeOffset deadline = DateTimeOffset.UtcNow.Add(UiRouteReadinessTimeout);
-        HttpStatusCode? lastStatusCode = null;
-        Uri? lastLocation = null;
-        string lastMarkup = string.Empty;
-
-        while (true) {
-            using HttpResponseMessage response = await _fixture.TenantsUiClient
-                .GetAsync(requestUri, cancellationToken)
-                .ConfigureAwait(false);
-
-            lastStatusCode = response.StatusCode;
-            lastLocation = response.Headers.Location;
-            lastMarkup = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-
-            if (response.StatusCode == HttpStatusCode.OK
-                && lastMarkup.Contains(readinessMarker, StringComparison.OrdinalIgnoreCase)) {
-                return lastMarkup;
-            }
-
-            if (DateTimeOffset.UtcNow >= deadline) {
-                break;
-            }
-
-            await Task.Delay(UiRouteReadinessDelay, cancellationToken).ConfigureAwait(false);
+        foreach (string protectedMarker in new[]
+        {
+            "data-testid=\"tenants-workspace\"",
+            "data-testid=\"tenants-detail\"",
+            "data-testid=\"tenants-audit-surface\"",
+            "data-testid=\"tenants-my-page\"",
+            "data-testid=\"tenants-user-lookup\"",
+            "data-testid=\"tenants-global-admins-area\"",
+            "data-testid=\"tenants-audit-row\"",
+            "data-testid=\"tenants-my-row\"",
+        })
+        {
+            markup.ShouldNotContain(protectedMarker);
         }
 
-        lastStatusCode.ShouldBe(
-            HttpStatusCode.OK,
-            $"Hosted UI route '{requestUri}' did not return HTTP 200 before the readiness timeout. Last Location: {lastLocation?.ToString() ?? "<none>"}.");
-        lastMarkup.ShouldContain(readinessMarker, Case.Insensitive);
-        return lastMarkup;
+        foreach (string sensitiveValue in new[]
+        {
+            "sample tenant",
+            "tenant-1",
+            "raw payload",
+            "administrator row",
+            "administrator count",
+            "access_token",
+            "refresh_token",
+            "id_token",
+        })
+        {
+            markup.ShouldNotContain(sensitiveValue, Case.Insensitive);
+        }
+
+        // FrontComposer skip links include the caller-supplied URL in href; it is not page data.
+        string markupWithoutSkipLinkTargets = Regex.Replace(
+            markup,
+            @"(?<=<a class=""fc-skip-link"" href="")[^""]*",
+            string.Empty,
+            RegexOptions.CultureInvariant);
+        markupWithoutSkipLinkTargets.ShouldNotContain("tenant.alpha", Case.Insensitive);
+        markupWithoutSkipLinkTargets.ShouldNotContain("operator.support-01", Case.Insensitive);
     }
 }

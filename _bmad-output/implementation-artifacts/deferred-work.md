@@ -3989,3 +3989,77 @@ Diff reviewed: Tenants `b14bf146..2b91a52f` (the pass-37 fix pass with the pass-
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: Reconcile the Builds execution revision used by partial release recovery with the publishing workflow.
   evidence: `release.yml` declares `53d53ae42abf7c87d385a078ab260531480bbf8a` for publication, but `recover-partial-release.yml` declares `2eac6955a812465a4308d194ae38fee35b766b05` for recovery. `validate-partial-release-recovery.sh` verifies only that the recovery value has SHA syntax. Recovery builds with the source tree's Builds gitlink, so matching publication-tool provenance is not established. The release recovery owner should decide and enforce the exact revision relationship before relying on rebuilt artifacts.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 41 (2026-10-10)
+
+Diff reviewed: Tenants `2b91a52f..f6e7d7a5`, Story 5.6 paths only (the pass-39 fix pass `ef4b7f2f..01602592` plus the pass-40 records committed as `f6e7d7a5`); 43,644-byte scratch diff, SHA-256 `a21d3a98d4291f0d2aec2c8bfe0553145c768e4840e7cdff9ae37da944d69c12`, not archived. Triage: 30 findings, 1 decision, 4 patches, 3 defers (all new), 13 rejected.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; `Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority` has never passed in CI, because `tenants-api` `/alive` fails TLS on the runner, and no entry tracks that failure. Owner: Tenants integration-test fixture.
+  evidence: In CI runs 37966289093, 38034556707, 38035646675, 38039239192 and 38053398801 (aspire job 114217781085 at `01602592`), the test failed at `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:125` with "tenants-api /alive did not return HTTP 200 within 00:04:00 … The SSL connection could not be established". That is before any command is submitted, so its persisted-state and projection-version assertions never run. `WaitForTenantsApiAliveAsync` keeps only `ex.Message` (`:846-847`) and drops the inner exception that would name the certificate fault. The fixture's HTTPS `tenants-api` client is in `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs`. The pass-39 tiering entry above mentions the failure only in passing; making that lane blocking would still fail here. To close: surface the inner exception, fix the runner TLS trust or use the HTTP endpoint, and see the test pass in CI.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; EventStore's own CI is red at the pinned `a5405602` (secret scan and a contracts packaging test). Owner: EventStore (Story 6.1-P1R evidence, contracts packaging).
+  evidence: EventStore CI run 38050087596 at `a5405602`: `build-and-test` job 114207290957 fails `SecretsProtectionTests.TrackedReusableContent_DoesNotContainUsableSecrets` with 152 violations, all under `_bmad-output/implementation-artifacts/evidence/6-1-p1r-31190-published-run/`. The previously adopted pin `37451b52` (run 37965432920, job 113938609179) already failed it with 19 violations under `6-1-p1r-current-source-2026-10-09/`, so the failure predates this range. These are not Story 5.6's four historical locations. The `contracts` job 114207290744 newly fails `ContractsPackageDependencyTests.SharedConsumerAuthorityValidatorPassesForEveryTrackedMsBuildSurfaceAsync` (it passed at `37451b52`). Tenants `build-and-test` stays green on the 3.120.0 package lane.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: low; `_bmad-output/project-context.md` is stale about the EventStore 3.120.0 catalog commit. Owner: EventStore 3.120.0 dependency refresh (`spec-eventstore-3-117-1.md`) and agent-context maintenance.
+  evidence: `_bmad-output/project-context.md:34` says the 3.120.0 catalog "requires a governed owning-repository commit … no commit is authorized in this task". Builds `9e6b6ca3` ("fix: update HexalithEventStoreVersion to 3.120.0") is that commit, and root `b3878f14` pins it, so agents reading the file will think the package lane is still 3.119.0. `:112` also still omits `AppHost.Tests` from Tier 2 (the pass-39 entry above).
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Preserve system-scope authorization for the Keycloak administrator's multivalued tenant claim.
+  evidence: The realm maps system, tenant-a, and tenant-b to eventstore:tenant, while TenantsGlobalAdministratorClaims accepts only one distinct literal scope and cannot establish system scope for that principal.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Require a secure authority before posting bootstrap administrator credentials.
+  evidence: TenantBootstrapCredentialProvider sends the configured username and password to EventStore:Authentication:Authority without an HTTPS check; production validation checks the separate Authentication:JwtBearer authority setting.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Enforce tenant configuration read policy at the direct API boundary.
+  evidence: GetTenantQueryHandler returns all configuration values to an authorized tenant member, while prefix and display-safe filtering runs only in the UI composer, leaving direct REST callers outside the FR-6 display policy.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Treat duplicate administrator identities across cursor pages as incomplete projection evidence.
+  evidence: GlobalAdministratorsProjectionLoader silently drops repeated user IDs and marks the final aggregate IsCompleteEvidence=true even when pages overlap.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Preserve unique method numbers when elicitation catalog overrides replace shipped methods.
+  evidence: merge_extra accepts a replacement num that can collide with an existing method, while numeric lookup keeps the first collision and makes the other method unreachable by number.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Bound tenant list payload count to the requested page size before enrichment.
+  evidence: TenantsRestQueryClient validates item shape but not count, and TenantQueryGateway schedules one detail read per returned summary, expanding memory and read work for malformed large pages.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Prevent one stalled tenant refresh callback from blocking later notifications.
+  evidence: TenantReadRefreshSubscription awaits callbacks serially without a deadline and retains the projection key in _running until the stalled callback returns.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Define a projection schema rebuild path for historical tenant events.
+  evidence: TenantProjectionHandler skips replayed events at or below the persisted aggregate sequence, so new historical projection logic cannot update an existing read model without resetting or versioning it.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Split tenant command model types into files named for each C# type.
+  evidence: TenantCreateCommandModels.cs contains fourteen public records and enums, making individual models harder to navigate and violating the Hexalith one-type-per-file rule.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Normalize affected C# files to the repository's CRLF line ending policy.
+  evidence: TenantsRestQueryClient.cs and TenantBootstrapCredentialProvider.cs are LF-only despite .editorconfig requiring CRLF, so editor normalization can create noisy diffs.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Require partial-release evidence before recovery can publish a version.
+  evidence: validate-partial-release-recovery.sh checks the source and CI run but has no guard requiring an existing package, container, tag, or release, so an entirely absent release can enter recovery.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Execute a mismatched existing-package hash test for partial-release recovery.
+  evidence: Existing tests do not run publish-partial-release.sh with a mismatched package hash, so removal of its comparison could let a mixed-source release publish without test failure.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Clear or reauthorize retained tenant, audit, and membership snapshots when permissions change within the same user and tenant scope.
+  evidence: FrontComposer remounts on tenant or user identity transitions only; audit, detail, workspace, and membership components can retain read snapshots after a same-scope permission change.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Guard membership paging against repeated Next events while a page read is in flight.
+  evidence: Both membership panels advance cursor history from the current snapshot without checking an in-flight read or HasMore in the event handler; a repeated event can push a loading cursor.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Make user-membership lookup sorting consistent across cursor pages.
+  evidence: The UI sorts only the current 20 rows while GetUserTenantsQuery carries no sort field, so page boundaries do not follow the selected order.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Replace legacy Fluent border variables in tenant metadata and member-removal CSS.
+  evidence: Two components use --neutral-stroke-rest with CanvasText fallback while V5 components use --colorNeutralStroke1, so their borders can fail to follow the theme.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Render a recovery surface for unmatched interactive UI routes.
+  evidence: Routes.razor defines only Found content; an unmatched interactive route has no in-app not-found message or navigation link.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Verify the signed-in tenant claim alias through the real Tenants host.
+  evidence: Program.cs selects eventstore:current-tenant, but current tests use anonymous requests, inspect endpoint metadata, or substitute the user context; none verifies a multi-tenant authenticated principal.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Add a blocking anonymous Tenants-host scope-boundary test.
+  evidence: The hosted smoke assertions use DaprFact and can skip, while the Aspire CI lane is nonblocking; component and source checks do not render an anonymous request through the Tenants host.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Verify FrontComposer-owned routes through interactive Tenants router navigation.
+  evidence: Routes.razor includes the FrontComposer assembly, but existing tests do not navigate the interactive router to /home; fresh HTTP GET tests exercise separate endpoint mapping.
