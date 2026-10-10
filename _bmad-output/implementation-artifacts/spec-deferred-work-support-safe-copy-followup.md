@@ -2,11 +2,11 @@
 title: 'Deferred Work: Support-Safe Copy Follow-up'
 type: 'bugfix'
 created: '2026-08-27'
-status: 'in-review'
+status: 'done'
 baseline_revision: 'c6a722cb94813d233a72a86ace26d36d4ac10d42'
 baseline_commit: 'c6a722cb94813d233a72a86ace26d36d4ac10d42'
 review_loop_iteration: 0
-followup_review_recommended: true
+followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/project-context.md'
   - '{project-root}/.bmad-loop/runs/20260827-213738-29ba/bundles/support-safe-copy-followup/intent.md'
@@ -118,6 +118,14 @@ deferred:
   - `[low]` `[patch]` Restored attribute alignment on `Width="190px"` in the `audit-correction` `TemplateColumn`.
   - `[low]` `[patch]` Corrected this spec's Verification commands: the spec is tracked as of `ead00b0c`, and the previous whitespace probe (`git diff --no-index --check /dev/null <spec>`) exited `1` for "files differ" regardless of whitespace defects, so it could never fail. The read-only assertion over `deferred-work.md` was dropped because the ledger is orchestrator-owned.
 
+### 2026-10-10 — Current-head independent review
+- `[medium]` `[patch]` Edge case: a later receipt story replaced the visible localized reference copy with a seven-field summary but left that summary hidden. The exact copied summary is now visible and labeled in EN/FR; component tests compare its text with the clipboard argument.
+- `[medium]` `[patch]` Edge case: unexpected module disposal propagated the original exception message through the cached disposal task. Disposal callers now receive one neutral exception with no inner exception; the existing concurrent-caller test checks it.
+- `[false]` `[reject]` Edge case: duplicate event references do not render duplicate launcher IDs. The keyed Fluent grid rejects duplicate keys before rendering; a focused reproduction raised the duplicate-key exception. That separate input-validity concern predates this copy follow-up.
+- `[medium]` `[reject]` Verification gap: the performance fallback accepts ten passing browser gates without checking their identities, as demonstrated by the reviewer. The performance runner was added after this copy follow-up and is outside its intent; this workflow does not edit the read-only deferred-work ledger.
+- `[medium]` `[patch]` Blind review: clipboard import or write can raise `ObjectDisposedException` during circuit teardown and expose its original message. The activation now handles it as a disconnected outcome, with pending-import and pending-write disposal tests.
+- `[low]` `[patch]` Blind review: the newly visible seven-field summary repeats the receipt's required seven facts, so its purpose could be unclear. A localized label identifies it as the exact text copied while retaining the seven-field receipt required by Story 5.3.
+
 ## Design Notes
 
 The component-local receipt literal is the localization boundary; the state model must not synthesize presentation copy. A disposal barrier must cover the entire module acquisition/write critical section so an import that resolves after disposal starts is still disposed exactly once.
@@ -132,4 +140,6 @@ The component-local receipt literal is the localization boundary; the state mode
 - `git diff --check` -- expected: no whitespace defects. (The spec is tracked as of `ead00b0c`, so the earlier `--no-index` probe against `/dev/null` no longer applies; that probe also exited `1` for "files differ" whether or not whitespace defects existed, so it could not distinguish pass from fail.)
 - `git diff --exit-code -- .bmad-loop/runs/20260827-213738-29ba/bundles/support-safe-copy-followup/intent.md` -- expected: the read-only bundle intent remains unchanged. `_bmad-output/implementation-artifacts/deferred-work.md` is deliberately excluded: the ledger is orchestrator-owned and the orchestrator records entry resolutions there outside this workflow.
 - `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-deferred-work-support-safe-copy-followup.md` -- expected: PASS with no `references/` pointer changes in range.
+
+**Current-head verification (2026-10-10):** The Release UI test project and solution builds passed with zero warnings or errors. The focused audit/copy suite passed 361 tests, and the full UI suite passed 3,975 tests. `git diff --check` passed; the current patch changes no `references/` pointer and leaves the bundle intent and deferred-work ledger untouched. The historical gitlink command above fails because `baseline_commit` predates nine later, unrelated root-submodule pointer changes; its result is not evidence of a pointer change in this patch.
 

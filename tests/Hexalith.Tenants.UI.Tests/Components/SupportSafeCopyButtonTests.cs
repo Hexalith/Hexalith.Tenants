@@ -467,6 +467,8 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
 
         secondFailure.ShouldBeSameAs(firstFailure);
         subsequentFailure.ShouldBeSameAs(firstFailure);
+        firstFailure.Message.ShouldBe("Clipboard module disposal failed.");
+        firstFailure.InnerException.ShouldBeNull();
         runtime.DisposeCount.ShouldBe(1);
         cut.Markup.ShouldNotContain("sensitive-disposal-detail", Case.Insensitive);
     }
@@ -498,6 +500,39 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
         await cut.Instance.DisposeAsync();
 
         runtime.DisposeCount.ShouldBe(1);
+        cut.Markup.ShouldNotContain("sensitive-", Case.Insensitive);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Object_disposal_during_clipboard_interop_does_not_disclose_details(bool duringImport)
+    {
+        var runtime = new ControllableClipboardRuntime(
+            delayImport: duringImport,
+            delayWrite: !duringImport,
+            importException: duringImport ? new ObjectDisposedException("sensitive-import-detail") : null,
+            writeException: duringImport ? null : new ObjectDisposedException("sensitive-write-detail"));
+        Services.AddSingleton<IJSRuntime>(runtime);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<SupportSafeCopyButton> cut = RenderApprovedButton("tenant.alpha");
+
+        Task activation = cut.Find("[data-testid='tenants-copy-reference']").ClickAsync(new MouseEventArgs());
+        if (duringImport)
+        {
+            await runtime.ImportRequested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        else
+        {
+            await runtime.WriteRequested.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        Task disposal = cut.Instance.DisposeAsync().AsTask();
+        (duringImport ? runtime.ImportRelease : runtime.WriteRelease).SetResult(true);
+        await Task.WhenAll(activation, disposal);
+
+        runtime.DisposeCount.ShouldBe(duringImport ? 0 : 1);
+        cut.Find("[data-testid='tenants-detail-copy-reference-feedback']").TextContent.ShouldBeEmpty();
         cut.Markup.ShouldNotContain("sensitive-", Case.Insensitive);
     }
 
@@ -739,7 +774,9 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
         bool delayWrite,
         int delayWriteFromInvocation = 1,
         bool delayDispose = false,
-        Exception? disposeException = null) : IJSRuntime, IJSObjectReference
+        Exception? disposeException = null,
+        Exception? importException = null,
+        Exception? writeException = null) : IJSRuntime, IJSObjectReference
     {
         public TaskCompletionSource<bool> ImportRequested { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -794,6 +831,11 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
                 await ImportRelease.Task.ConfigureAwait(false);
             }
 
+            if (importException is not null)
+            {
+                throw importException;
+            }
+
             return (TValue)(object)this;
         }
 
@@ -804,6 +846,11 @@ public sealed class SupportSafeCopyButtonTests : FluentBunitContext
             if (delayWrite && Writes.Count >= delayWriteFromInvocation)
             {
                 await WriteRelease.Task.ConfigureAwait(false);
+            }
+
+            if (writeException is not null)
+            {
+                throw writeException;
             }
 
             return default!;

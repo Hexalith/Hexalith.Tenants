@@ -28,6 +28,11 @@
     overflow-wrap: anywhere;
 }
 
+.audit-evidence-receipt__summary {
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
 /* fc-css-exception: zero-margin reset on semantic <h3>/<p> heading and state lines; no Fluent
    typography primitive wraps these semantic elements. */
 .audit-evidence-receipt__header h3,

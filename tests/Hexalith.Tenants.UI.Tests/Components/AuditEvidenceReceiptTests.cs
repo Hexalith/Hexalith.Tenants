@@ -79,6 +79,8 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row())));
 
         cut.Find("[data-testid='tenants-audit-receipt-reference']").TextContent.ShouldBe("event-safe-reference");
+        cut.Find(".audit-evidence-receipt__summary").TextContent.ShouldStartWith("Exact text copied: ");
+        cut.Find("[data-testid='tenants-audit-receipt-copy-value']").TextContent.ShouldBe(summary);
         cut.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
 
         cut.WaitForAssertion(() => writeHandler.Invocations.Count.ShouldBe(1));
@@ -113,6 +115,8 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
                 .Add(component => component.Receipt, TenantAuditReceipt.Unavailable(surfaceKind: TenantAuditSurfaceKind.Unavailable))
                 .Add(component => component.OnInspectAudit, () => { }));
             unavailable.Find(inspectSelector).TextContent.Trim().ShouldBe(cut.Find(inspectSelector).TextContent.Trim());
+            cut.Find(".audit-evidence-receipt__summary").TextContent.ShouldStartWith("Texte exact copié : ");
+            cut.Find("[data-testid='tenants-audit-receipt-copy-value']").TextContent.ShouldBe(expected);
             cut.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
             cut.WaitForAssertion(() => write.Invocations.Count.ShouldBe(1));
             write.Invocations.Single().Arguments[0].ShouldBe(expected);
@@ -930,6 +934,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Audit.Receipt.Copy"] = "Copy full audit receipt summary",
             ["Tenants.Audit.Receipt.Close"] = "Close receipt",
             ["Tenants.Audit.Receipt.Summary"] = "Actor: {actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome} | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}",
+            ["Tenants.Audit.Receipt.SummaryLabel"] = "Exact text copied:",
             ["Tenants.Audit.Receipt.Outcome.UserAddedToTenant"] = "User added to tenant",
             ["Tenants.Audit.Receipt.Outcome.UserRemovedFromTenant"] = "User removed from tenant",
             ["Tenants.Audit.Receipt.Outcome.UserRoleChanged"] = "User role changed",

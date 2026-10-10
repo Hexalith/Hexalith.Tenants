@@ -170,6 +170,10 @@
         {
             await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Disconnected, "Tenants.Copy.Feedback.Disconnected").ConfigureAwait(false);
         }
+        catch (ObjectDisposedException)
+        {
+            await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Disconnected, "Tenants.Copy.Feedback.Disconnected").ConfigureAwait(false);
+        }
         catch (JSException exception) when (exception.Message.Contains("TENANTS_CLIPBOARD_INSECURE", StringComparison.Ordinal))
         {
             await PublishFeedbackAsync(input.Version, CopyFeedbackKind.Insecure, "Tenants.Copy.Feedback.Insecure").ConfigureAwait(false);
@@ -357,9 +361,9 @@
 
             disposalCompleted.TrySetResult(true);
         }
-        catch (Exception exception)
+        catch (Exception)
         {
-            disposalCompleted.TrySetException(exception);
+            disposalCompleted.TrySetException(new InvalidOperationException("Clipboard module disposal failed."));
         }
     }
 

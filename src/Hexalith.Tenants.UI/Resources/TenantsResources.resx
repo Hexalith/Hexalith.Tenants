@@ -4132,6 +4132,9 @@
   <data name="Tenants.Audit.Receipt.Summary" xml:space="preserve">
     <value>Actor: {actor} | Target: {target} | Tenant scope: {scope} | Outcome: {outcome} | Timestamp: {timestamp} | Projection marker: {projection} | Audit reference: {auditReference}</value>
   </data>
+  <data name="Tenants.Audit.Receipt.SummaryLabel" xml:space="preserve">
+    <value>Exact text copied:</value>
+  </data>
   <data name="Tenants.Audit.Receipt.Outcome.UserAddedToTenant" xml:space="preserve">
     <value>User added to tenant</value>
   </data>

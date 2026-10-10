@@ -48,6 +48,13 @@
             }
         </header>
 
+        @if (receiptSummary is not null)
+        {
+            <p class="audit-evidence-receipt__summary">
+                <span>@Localizer["Tenants.Audit.Receipt.SummaryLabel"]</span>@(" ")<span data-testid="tenants-audit-receipt-copy-value">@receiptSummary</span>
+            </p>
+        }
+
         <dl class="audit-evidence-receipt__fields">
             <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-actor">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Actor"]</dt>
