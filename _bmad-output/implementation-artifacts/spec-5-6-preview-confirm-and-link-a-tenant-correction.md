@@ -302,6 +302,17 @@ The following baseline-to-accepted statements bind all eight table rows to the e
 - references/Hexalith.Platform 0000000000000000000000000000000000000000 -> 2c3f0fd4befe4e7e2aa1a3f7ce8ae1d5e1808f3c
 - references/Hexalith.PolymorphicSerializations 4252c432ca1ba27a8571a082372b9384f3d13299 -> 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375
 
+**Observed HEAD pointer record at `b3878f14` (2026-10-10):** Later committed root history advanced five pins after the pass-31 record above. This table records the tree being validated; it does not attribute those commits or their approval to this implementation. No gitlink or dependency checkout was changed in this pass.
+
+- references/Hexalith.Builds 3639c8d9340fc81d6f8e0a90566a97e56d5d8446 -> 9e6b6ca3e8b4e22e6642d4f0d70d25edbf2db08b
+- references/Hexalith.Commons c13dc6679aa91144b6d541078f3f20019d79c2eb -> b247ed116c6523f8c596ec0a933eff8973d11568
+- references/Hexalith.EventStore 2c58ffda41759e895ace4b9625c9bd931a217672 -> a540560246d05d1ec51b78d3682b67f04185be79
+- references/Hexalith.FrontComposer 24033f75357eb16eee9aa8899bb9eaf50f2168ad -> 0e114214007c22f5cdbac21a6853cff4208340ee
+- references/Hexalith.McpCli 0000000000000000000000000000000000000000 -> faf55bf9c299aaa8d577145813e35ca9c6cb83fd
+- references/Hexalith.Memories ece4edc4c9a37a62b34d3b7c8aa901fc363c038c -> ceda28ac420e59f6555c681279f51ad130e81833
+- references/Hexalith.Platform 0000000000000000000000000000000000000000 -> 5649318966792064444f6f7cb8238fa6075e7302
+- references/Hexalith.PolymorphicSerializations 4252c432ca1ba27a8571a082372b9384f3d13299 -> 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375
+
 ## Spec Change Log
 
 - 2026-10-09: The user approved a read-consistent producer ETag in Tenants when a persisted projection version exists but the state-store ETag is absent. This changes the public ETag header for those reads to the persisted projection version. Reads with neither a store ETag nor persisted version remain without projection-backed metadata; validator-only reads keep their earlier behavior.
