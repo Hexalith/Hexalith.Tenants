@@ -1598,9 +1598,10 @@ public class CommandApiRuntimeIntegrationTests {
     }
 
     [Fact]
-    public async Task Commands_endpoint_rejects_client_supplied_globalAdmin_extension_metadata() {
+    public async Task CommandsEndpointIgnoresClientSuppliedGlobalAdminExtensionMetadata() {
         ICommandRouter router = Substitute.For<ICommandRouter>();
-        _ = router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+        SubmitPipelineCommand? capturedCommand = null;
+        _ = router.RouteCommandAsync(Arg.Do<SubmitPipelineCommand>(c => capturedCommand = c), Arg.Any<CancellationToken>())
             .Returns(new CommandProcessingResult(true, null, "test-correlation"));
 
         ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
@@ -1628,14 +1629,12 @@ public class CommandApiRuntimeIntegrationTests {
 
         HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
-        ProblemDetails? details = await response.Content.ReadFromJsonAsync<ProblemDetails>();
-        _ = details.ShouldNotBeNull();
-        details.Status.ShouldBe(400);
-        details.Title.ShouldBe("Command Validation Failed");
-        details.Detail.ShouldBe("Extension key contains invalid characters.");
-        await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
+        response.StatusCode.ShouldBe(HttpStatusCode.Accepted);
+        _ = capturedCommand.ShouldNotBeNull();
+        capturedCommand.IsGlobalAdmin.ShouldBeFalse();
+        _ = capturedCommand.Extensions.ShouldNotBeNull();
+        capturedCommand.Extensions.ContainsKey(GlobalAdminExtensionKey).ShouldBeFalse();
+        capturedCommand.Extensions["client-correlation"].ShouldBe("safe-metadata");
     }
 
     [Fact]

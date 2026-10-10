@@ -4063,3 +4063,21 @@ Diff reviewed: Tenants `2b91a52f..f6e7d7a5`, Story 5.6 paths only (the pass-39 f
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
   summary: Verify FrontComposer-owned routes through interactive Tenants router navigation.
   evidence: Routes.razor includes the FrontComposer assembly, but existing tests do not navigate the interactive router to /home; fresh HTTP GET tests exercise separate endpoint mapping.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Reconcile global administrator revocation with the freshness of the authorization read model.
+  evidence: TenantsGlobalAdministratorVerifier accepts membership from the global-administrator read model without a sequence or freshness check, so a projection lag can retain revoked command authority.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Make authorized search paging both complete and private when index windows contain hidden tenants.
+  evidence: A fully forbidden or absent window ends paging before later authorized hits, while a partly hidden window derives HasMore from the raw index total and can reveal additional raw results.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Make tenant search sorting consistent across page boundaries.
+  evidence: SortSearchRows orders each hydrated index window after page selection, so later pages can contain names or statuses that should precede rows on earlier pages.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Verify the contents of existing GitHub Release package assets during partial-release recovery.
+  evidence: Final verification checks release asset names and count but not hashes, and the publisher leaves existing release assets untouched, so different binaries can pass.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Mark recovered prerelease versions as prereleases in GitHub Releases.
+  evidence: The recovery publisher calls gh release create without --prerelease for a version containing a prerelease suffix, leaving GitHub to mark it stable.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Test the effective Tenants UI read endpoint in the AppHost resource model.
+  evidence: Existing tests inspect source text for Tenants__BaseAddress but do not evaluate the UI resource environment; a later override could redirect authorized reads to EventStore while the source-text checks pass.
