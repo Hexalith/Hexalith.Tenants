@@ -104,7 +104,7 @@ public sealed class TenantQueryResultTests
     }
 
     [Fact]
-    public void Freshness_overload_with_absent_read_model_and_etag_omits_metadata()
+    public void Freshness_overload_with_absent_read_model_and_no_etag_omits_metadata()
     {
         TenantQueryResult result = TenantQueryResult.FromPayload(
             Payload,

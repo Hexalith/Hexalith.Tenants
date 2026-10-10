@@ -218,10 +218,8 @@ public class AspireTopologyTests : IDisposable {
         rawResponse.StatusCode.ShouldBe(HttpStatusCode.OK, rawContent);
         rawResponse.Headers.GetValues("X-Hexalith-Query-Provenance").ShouldHaveSingleItem().ShouldBe("ProjectionBacked");
         EntityTagHeaderValue? rawETag = rawResponse.Headers.ETag;
-        if (rawETag is not null) {
-            rawETag.IsWeak.ShouldBeFalse();
-        }
-        rawETag?.Tag.Trim('"').ShouldBe(eventStoreMetadata.ETag);
+        rawETag.ShouldNotBeNull().IsWeak.ShouldBeFalse();
+        rawETag.Tag.Trim('"').ShouldBe(eventStoreMetadata.ETag);
         rawResponse.Headers.GetValues("X-Hexalith-Projection-Version")
             .ShouldHaveSingleItem()
             .ShouldBe(persisted.ProjectionVersion);
@@ -256,10 +254,9 @@ public class AspireTopologyTests : IDisposable {
         AssertTenantDetailMatchesPersisted(typed.Payload.ShouldNotBeNull(), persisted);
         typed.Metadata.Provenance.ShouldBe(QueryResponseProvenance.ProjectionBacked);
         typed.Metadata.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
-        if (typedResponseETag is not null) {
-            typedResponseETag.IsWeak.ShouldBeFalse();
-        }
-        typed.Metadata.ETag.ShouldBe(typedResponseETag?.Tag.Trim('"'));
+        typedResponseETag.ShouldNotBeNull().IsWeak.ShouldBeFalse();
+        typedResponseETag.Tag.Trim('"').ShouldBe(eventStoreMetadata.ETag);
+        typed.Metadata.ETag.ShouldBe(eventStoreMetadata.ETag);
         typed.Metadata.IsNotModified.ShouldBe(false);
         typed.Metadata.ProjectionVersion.ShouldBe(persisted.ProjectionVersion);
         typed.Metadata.IsStale.ShouldBe(false);

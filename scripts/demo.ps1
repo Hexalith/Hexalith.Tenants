@@ -7,7 +7,7 @@
     Runs the add-user to remove-user reactive access proof against a running AppHost.
     The default local AppHost uses Keycloak. Supply a token from the quickstart flow
     with -Token or TOKEN. Use -HmacDevToken only when the AppHost was started with
-    EnableKeycloak=false.
+    --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!.
 #>
 
 param(
@@ -39,7 +39,7 @@ if ([string]::IsNullOrWhiteSpace($BaseUrl) -or [string]::IsNullOrWhiteSpace($Sam
 }
 
 if ([string]::IsNullOrWhiteSpace($Token) -and -not $HmacDevToken) {
-    Write-Host "ERROR: provide TOKEN/-Token from Keycloak, or pass -HmacDevToken only when EnableKeycloak=false." -ForegroundColor Red
+    Write-Host "ERROR: provide TOKEN/-Token from Keycloak, or pass -HmacDevToken when AppHost starts with --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!." -ForegroundColor Red
     exit 1
 }
 
@@ -51,7 +51,7 @@ function ConvertTo-Base64Url {
 function New-HmacDevToken {
     $header = @{ alg = "HS256"; typ = "JWT" } | ConvertTo-Json -Compress
     $exp = [int](Get-Date -Date (Get-Date).AddHours(8).ToUniversalTime() -UFormat %s)
-    $payload = @{ sub = "11111111-1111-1111-1111-111111111111"; iss = "hexalith-dev"; aud = "hexalith-eventstore"; tenants = @("system"); exp = $exp } | ConvertTo-Json -Compress
+    $payload = @{ sub = "11111111-1111-1111-1111-111111111111"; iss = "hexalith-dev"; aud = "hexalith-eventstore"; tenants = @("system"); global_admin = $true; exp = $exp } | ConvertTo-Json -Compress
 
     $headerB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($header))
     $payloadB64 = ConvertTo-Base64Url([System.Text.Encoding]::UTF8.GetBytes($payload))

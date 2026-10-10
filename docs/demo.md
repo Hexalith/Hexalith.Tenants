@@ -209,7 +209,7 @@ For implementation details, see the [Sample Consuming Service Walkthrough](sampl
 
 ## Troubleshooting
 
-- `401 Unauthorized`: refresh the Keycloak token from the quickstart flow, or confirm you intentionally started with `EnableKeycloak=false` before using the HMAC fallback.
+- `401 Unauthorized`: refresh the Keycloak token from the quickstart flow. For the HMAC fallback, start the AppHost with `--EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!` and ensure the token uses that same signing key; a mismatch returns 401.
 - `TenantAlreadyExistsRejection`: use a fresh tenant ID and matching `aggregateId`.
 - `/access` still denied after add: wait for the sample projection to catch up and verify command status is `Completed`.
 - `/access` still granted after remove: verify `UserRemovedFromTenant` reached `Completed`, then check `sample` logs and DAPR sidecar health.

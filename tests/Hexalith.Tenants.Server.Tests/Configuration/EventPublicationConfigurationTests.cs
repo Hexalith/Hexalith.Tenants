@@ -670,24 +670,6 @@ public class EventPublicationConfigurationTests {
     }
 
     [Fact]
-    public void AppHostSymmetricModeRequiresAnExplicitStrongKeyForEveryBearerValidator()
-    {
-        string program = File.ReadAllText(RepositoryPath("src", "Hexalith.Tenants.AppHost", "Program.cs"));
-        program.ShouldContain("builder.Configuration[\"Authentication:JwtBearer:SigningKey\"]");
-        program.ShouldContain("System.Text.Encoding.UTF8.GetByteCount(configuredSigningKey) < 32");
-        program.ShouldContain("throw new InvalidOperationException(");
-        Regex.IsMatch(program, "builder[.]AddParameter[(]\\s*\"tenants-local-jwt-signing-key\"", RegexOptions.CultureInvariant)
-            .ShouldBeTrue();
-        foreach (string resource in new[] { "eventStore", "adminServer", "tenants", "tenantsApi", "sample" })
-        {
-            program.ShouldContain($"ConfigureLocalSymmetricValidation({resource}, signingKey);");
-        }
-
-        program.ShouldContain(".WithEnvironment(\"EventStore__Authentication__SigningKey\", signingKey)");
-        program.ShouldContain(".WithEnvironment(\"Authentication__JwtBearer__AllowedAlgorithms__0\", \"HS256\")");
-    }
-
-    [Fact]
     public void TenantsDomainPackages_DoNotReferenceProviderSpecificInfrastructurePackages() {
         string[] projectFiles =
         [

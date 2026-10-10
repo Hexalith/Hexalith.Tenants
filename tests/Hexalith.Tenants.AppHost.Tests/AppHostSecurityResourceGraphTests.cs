@@ -6,12 +6,32 @@ using CommunityToolkit.Aspire.Hosting.Dapr;
 
 using Shouldly;
 
-namespace Hexalith.Tenants.IntegrationTests;
+namespace Hexalith.Tenants.AppHost.Tests;
 
 /// <summary>Checks security environment wiring in the built AppHost model without starting services.</summary>
-[Trait("Category", "Integration")]
 public sealed class AppHostSecurityResourceGraphTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("short-key")]
+    [InlineData("1234567890123456789012345678901")]
+    public async Task SymmetricModeRejectsMissingOrShortSigningKey(string? signingKey)
+    {
+        string[] args = signingKey is null
+            ? ["--EnableKeycloak=false"]
+            : ["--EnableKeycloak=false", $"--Authentication:JwtBearer:SigningKey={signingKey}"];
+
+        InvalidOperationException exception = await Should.ThrowAsync<InvalidOperationException>(async () =>
+        {
+            await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+                .CreateAsync<Projects.Hexalith_Tenants_AppHost>(args);
+        });
+
+        exception.Message.ShouldBe(
+            "Authentication:JwtBearer:SigningKey must be configured with at least 32 UTF-8 bytes when EnableKeycloak=false.");
+    }
+
     [Fact]
     public async Task KeycloakAndEventStoreShareTheSameWorkloadSecretParameter()
     {
@@ -29,7 +49,7 @@ public sealed class AppHostSecurityResourceGraphTests
     }
 
     [Fact]
-    public async Task SymmetricModeSharesOneSigningKeyAndProtectsTheSampleSidecarChannel()
+    public async Task SymmetricModeSharesOneSigningKeyAndProtectsDomainServiceSidecarChannels()
     {
         await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
             .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
@@ -54,6 +74,14 @@ public sealed class AppHostSecurityResourceGraphTests
         apiEnvironment["EventStore__Authentication__Issuer"].ShouldBe("hexalith-dev");
         apiEnvironment["EventStore__Authentication__Audience"].ShouldBe("hexalith-eventstore");
         apiEnvironment["EventStore__Authentication__SigningKey"].ShouldBeSameAs(key);
+
+        ProjectResource tenantsService = builder.Resources.OfType<ProjectResource>()
+            .Single(static resource => resource.Name == "tenants");
+        IReadOnlyDictionary<string, object> tenantsEnvironment = await GetEnvironmentAsync(tenantsService, builder.ExecutionContext);
+        IDaprSidecarResource tenantsSidecar = tenantsService.Annotations.OfType<DaprSidecarAnnotation>()
+            .ShouldHaveSingleItem().Sidecar;
+        IReadOnlyDictionary<string, object> tenantsSidecarEnvironment = await GetEnvironmentAsync(tenantsSidecar, builder.ExecutionContext);
+        tenantsEnvironment["APP_API_TOKEN"].ShouldBeSameAs(tenantsSidecarEnvironment["APP_API_TOKEN"]);
 
         ProjectResource sample = builder.Resources.OfType<ProjectResource>()
             .Single(static resource => resource.Name == "sample");

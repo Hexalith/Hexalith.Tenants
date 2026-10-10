@@ -150,6 +150,8 @@ public class AhaMomentDemoDocumentationTests {
         combined.ShouldContain("DevOnlySigningKey-AtLeast32Chars!");
         bash.ShouldContain("\"sub\":\"11111111-1111-1111-1111-111111111111\"");
         powershell.ShouldContain("sub = \"11111111-1111-1111-1111-111111111111\"");
+        bash.ShouldContain("\"global_admin\":true");
+        powershell.ShouldContain("global_admin = $true");
         bash.ShouldContain("\\\"UserId\\\":\\\"11111111-1111-1111-1111-111111111111\\\"");
         powershell.ShouldContain("UserId = \"11111111-1111-1111-1111-111111111111\"");
         ReadDemo().ShouldContain("--Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!");

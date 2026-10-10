@@ -38,7 +38,7 @@ show_help() {
     echo "Options:"
     echo "  --tenants-url    Tenants query API base URL for current-state/audit evidence"
     echo "  --token          JWT token from the quickstart Keycloak flow"
-    echo "  --hmac-dev-token Generate an HMAC token for the explicit EnableKeycloak=false fallback"
+    echo "  --hmac-dev-token Generate an HMAC token when AppHost starts with --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!"
     echo "  --timeout        Projection wait timeout in seconds (default: 30)"
     echo "  -h, --help       Show this help message"
     echo ""
@@ -90,7 +90,7 @@ if [[ -z "$BASE_URL" || -z "$SAMPLE_URL" ]]; then
 fi
 
 if [[ -z "$TOKEN" && "$USE_HMAC_DEV_TOKEN" != true ]]; then
-    echo -e "${RED}ERROR: provide TOKEN/--token from Keycloak, or pass --hmac-dev-token only when EnableKeycloak=false.${NC}"
+    echo -e "${RED}ERROR: provide TOKEN/--token from Keycloak, or pass --hmac-dev-token when AppHost starts with --EnableKeycloak=false --Authentication:JwtBearer:SigningKey=DevOnlySigningKey-AtLeast32Chars!.${NC}"
     exit 1
 fi
 
@@ -156,7 +156,7 @@ generate_hmac_token() {
     local header payload signature exp
     header=$(printf '{"alg":"HS256","typ":"JWT"}' | openssl base64 -A | tr '+/' '-_' | tr -d '=')
     exp=$(($(date +%s) + 28800))
-    payload=$(printf '{"sub":"11111111-1111-1111-1111-111111111111","iss":"hexalith-dev","aud":"hexalith-eventstore","tenants":["system"],"exp":%s}' "$exp" \
+    payload=$(printf '{"sub":"11111111-1111-1111-1111-111111111111","iss":"hexalith-dev","aud":"hexalith-eventstore","tenants":["system"],"global_admin":true,"exp":%s}' "$exp" \
         | openssl base64 -A | tr '+/' '-_' | tr -d '=')
     signature=$(printf '%s.%s' "$header" "$payload" \
         | openssl dgst -sha256 -hmac "DevOnlySigningKey-AtLeast32Chars!" -binary \

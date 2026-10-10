@@ -62,6 +62,7 @@ public class PackageGovernanceTests {
         "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
         "samples/Hexalith.Tenants.Sample/Hexalith.Tenants.Sample.csproj",
         "samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
     ];
 
     private static readonly string[] BlockingTestProjects =
@@ -72,6 +73,7 @@ public class PackageGovernanceTests {
         "tests/Hexalith.Tenants.UI.Tests",
         "samples/Hexalith.Tenants.Sample.Tests",
         "tests/Hexalith.Tenants.Server.Tests",
+        "tests/Hexalith.Tenants.AppHost.Tests",
     ];
 
     private static readonly string[] ExpectedPackageIds =
@@ -720,6 +722,8 @@ public class PackageGovernanceTests {
 
         workflow.ShouldContain("coverage-isolation-targets:");
         workflow.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs");
+        GetYamlLiteralBlockLines(ciJob, "integration-test-projects")
+            .ShouldContain("tests/Hexalith.Tenants.AppHost.Tests");
         workflow.ShouldContain("aspire-test-project: tests/Hexalith.Tenants.IntegrationTests");
 
         foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {

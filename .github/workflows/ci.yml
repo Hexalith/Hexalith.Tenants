@@ -30,6 +30,7 @@ jobs:
         tests/Hexalith.Tenants.UI.Tests
         samples/Hexalith.Tenants.Sample.Tests
       integration-test-projects: |
+        tests/Hexalith.Tenants.AppHost.Tests
         tests/Hexalith.Tenants.Server.Tests
       aspire-test-project: tests/Hexalith.Tenants.IntegrationTests
       coverage-minimum-line: 80

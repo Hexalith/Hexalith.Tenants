@@ -20,7 +20,7 @@ consumers use.
 | Local projection access endpoint | `samples/Hexalith.Tenants.Sample/Endpoints/AccessCheckEndpoints.cs` |
 | Configuration endpoint | `samples/Hexalith.Tenants.Sample/Endpoints/TenantConfigurationEndpoints.cs` |
 | AppHost sample registration | `src/Hexalith.Tenants.AppHost/Program.cs` and `src/Hexalith.Tenants.AppHost/HexalithTenantsSample.cs` |
-| Sample tests | `samples/Hexalith.Tenants.Sample.Tests/Registration/SampleRegistrationTests.cs`, `samples/Hexalith.Tenants.Sample.Tests/Endpoints/AccessCheckEndpointsTests.cs`, `samples/Hexalith.Tenants.Sample.Tests/Endpoints/TenantConfigurationEndpointsTests.cs`, and `samples/Hexalith.Tenants.Sample.Tests/Handlers/SampleLoggingEventHandlerTests.cs` |
+| Sample tests | `samples/Hexalith.Tenants.Sample.Tests/Registration/SampleRegistrationTests.cs`, `samples/Hexalith.Tenants.Sample.Tests/Registration/SampleSubscriptionHostTests.cs`, `samples/Hexalith.Tenants.Sample.Tests/Endpoints/AccessCheckEndpointsTests.cs`, `samples/Hexalith.Tenants.Sample.Tests/Endpoints/TenantConfigurationEndpointsTests.cs`, and `samples/Hexalith.Tenants.Sample.Tests/Handlers/SampleLoggingEventHandlerTests.cs` |
 
 ## Package references
 
@@ -35,6 +35,7 @@ matching NuGet packages instead:
 ```bash
 dotnet add package Hexalith.Tenants.Contracts
 dotnet add package Hexalith.Tenants.Client
+dotnet add package Hexalith.EventStore.DomainService
 ```
 
 `Hexalith.Tenants.Contracts` supplies event payloads such as
@@ -42,6 +43,8 @@ dotnet add package Hexalith.Tenants.Client
 `Hexalith.Tenants.Client` supplies DI registration, typed handler dispatch,
 the built-in local projection handler, DAPR subscription mapping, and
 `ITenantProjectionStore`.
+`Hexalith.EventStore.DomainService` supplies the sidecar-channel authentication
+scheme, workload policy, and authorization endpoint extension used below.
 
 ## Subscription setup
 
@@ -90,8 +93,10 @@ Reusable package setup:
 - `MapSubscribeHandler().RequireEventStoreSidecarChannel()` exposes DAPR's subscription discovery endpoint to the authenticated sidecar channel. Register the sidecar-channel scheme and workload policy before building the app, then run authentication and authorization middleware before mapping the endpoint.
 - `MapEventStoreDomainEvents()` maps the Tenants event subscription endpoint.
 
-The sidecar-channel policy requires the same `APP_API_TOKEN` on the consumer and
-its DAPR sidecar. The AppHost calls `WithGeneratedEventStoreAppChannelToken()`
+Outside Development, the sidecar-channel policy requires the same `APP_API_TOKEN`
+on the consumer and its DAPR sidecar. In Development, when no token is configured,
+the policy returns `NotRequired` and admits any caller; configure a shared token
+when you need channel authentication there. The AppHost calls `WithGeneratedEventStoreAppChannelToken()`
 after adding the sample's sidecar; this generates a per-run secret and sets
 `APP_API_TOKEN` on both resources. Outside Aspire, supply one secret value as
 `APP_API_TOKEN` to both the consumer process and its sidecar. The sidecar sends
