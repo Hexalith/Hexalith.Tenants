@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -824,11 +824,35 @@ Three context-free layers reviewed `/tmp/story-5-6-baseline-OsK7WiL3.diff` (1,81
 | Edge 4: bounded correction lease expires before terminal evidence | low; reject | carried: the approved five-minute expiry retains the attempt identity as unable to verify while releasing circuit admission; pass 6 and pass 22 accepted that boundary. |
 | Verification Gap other: live tenant-detail response lacks ordered projection metadata | high; patch | The persisted `TenantReadModel` has a sequence version, but the production read has no ETag. `TenantQueryResult.FromPayload` drops all metadata when the ETag is null, so `/api/tenants/{id}` returns `HandlerComputed` and no version (`AspireTopologyTests:186-248`). `TenantQueryGateway` consequently cannot supply a current, ordered correction capture. Emit persisted projection metadata independently of ETag and verify the live-route contract. |
 
+### Pass-38 review (2026-10-10)
+
+Three review layers read the 3,440,240-byte `git diff --binary` from the original Story 5.6 baseline to the current tree. The diff includes later, separately owned work. The initial reviewer sessions failed before returning findings when application network permission was revoked; all three completed on retry. Every returned finding is triaged below.
+
+| Finding | Verdict and route | Evidence |
+| --- | --- | --- |
+| Blind 1: global proof link can miss a later audit page | low; reject | carried: the global correction panel has no production mount; pass-22 Verification Gap other already rejected this unreachable link and assigns its eventual paging behavior to Story 5.7. |
+| Blind 2: global proof may select another command's row | medium; defer | carried: `QueryCorrectiveProofAsync` matches target, type and time without attempt identity; the Story 5.7 entry at `deferred-work.md:3500` owns deterministic association before mounting that panel. |
+| Blind 3: tenant corrective link stays absent | false; reject | carried: the authorized audit DTO has no attempt identifier. `WithCorrectiveProof(null)` correctly withholds both paired links and presents truthful missing association, as the frozen I/O matrix requires. |
+| Blind 4: global-administrator projection can lag revocation | high; defer | carried: the pass-22/pass-26 revocation ledger already covers the read-model verifier and its projection-lag exposure on `/process` and `/query`. |
+| Blind 5: bounded expiry releases an unresolved correction lease | low; reject | carried: the user approved five-minute circuit-admission expiry while retaining the old attempt identity; pass-6 and pass-22 already accepted this edge case. |
+| Blind 6: a replacement circuit loses the retained attempt | false; reject | carried: the approved lock scope is one interactive circuit. A new circuit starts from a fresh state and authority review before dispatch; pass-22 Edge 1 covers this boundary. |
+| Blind 7: Keycloak client can request multiple optional scopes | false; reject | The shipped `JwtWorkloadAssertionIssuer` requests exactly one audience and operation and rejects tokens with another or multiple values (`GetTokenScopeFailure`). Possession of the client secret already permits separate requests for its optional scopes; the reviewer did not show a broader token used by this application. |
+| Blind 8: duplicate global-administrator rows remain complete | medium; defer | carried: `GlobalAdministratorsProjectionLoader` uses `TryAdd` and marks the final page complete; the global-administrator paging ledger and pass-25 Blind 5 own conflicting-page semantics. |
+| Blind 9: recovery NuGet key can expire during preparation | medium; defer | carried: `recover-partial-release.yml` exchanges the key before `publish-partial-release.sh` preparation; the pass-18 recovery ledger already records the one-hour expiry risk. |
+| Blind 10: `NuGet/login` uses a movable tag | medium; defer | carried: the release-governance entry at `deferred-work.md:3792` records the credential action; the pass-22 entry covers other movable publication actions. |
+| Blind 11: quickstart omits the HMAC fallback | false; reject | `quickstart.md:140` explicitly limits that token walkthrough to Keycloak and accurately says disabling Keycloak alone does not supply a signing key. `docs/demo.md:24-29,187` gives the supported key and HMAC-script path. |
+| Edge 1: release ignores a publish-freeze variable | false; reject | carried: the Tenants release is an explicit `workflow_dispatch` with exact-source CI and a protected production job; its contract has no `HEXALITH_RELEASE_PUBLISH_ENABLED` gate. The cited variable belongs to a different repository. |
+| Edge 2: expiry can release before terminal evidence | low; reject | carried: this repeats Blind 5 and the approved bounded-expiry decision; the attempt identity remains retained for status or escalation. |
+| Verification Gap 1: live status proof is not asserted at the correction boundary | medium; patch | The real Aspire command-status test checked `Completed` but not the committed sequence and scope, so a missing HTTP proof could leave the UI unable to verify while stubbed tests pass. The existing live create/add flow now checks tenant, domain, aggregate, positive event count, and increasing committed sequence. EventStore actor and HTTP tests also cover proof production. |
+| Verification Gap other: direct `/process` test expects anonymous success | medium; patch | The current SDK maps `/process` to the workload process policy, while the direct fixture request has no credentials. The existing Aspire test was changed to require HTTP 401 and passed live. |
+
 ## Design Notes
 
 The authorized audit response drops command correlation. EventStore creates a new event MessageId, exposed as `TenantAuditEntry.EventId`; it cannot identify the command attempt. The existing matcher and `#audit-...` fragment prove nothing. Epic 5 requires missing-support state when association cannot be re-derived.
 
 ## Verification
+
+**Pass-38 review patches (2026-10-10):** `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -p:UseNuGetDeps=true -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 -m:1 --no-restore -verbosity:quiet` passed with zero warnings and errors. The built xUnit v3 assembly ran `-method '*DomainServiceProcessRejectsUnauthenticatedDirectRequest'`, `-method '*Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority'`, and `-method '*Aha_moment_demo_revokes_sample_access_from_tenant_events'` separately: each passed **1/1**, zero failed or skipped. The first observed HTTP 401 from `/process`; the latter two checked live EventStore command-status proof and the existing projection/API behavior. The Debug/source project build was blocked before compiling the edited test by duplicate generated API types and duplicate Memories references (CS0101/CS0579/CS1704); the Release package lane compiled and executed the changed tests. No EventStore source or gitlink changed.
 
 **Pass-33 follow-up verification (2026-10-10):** The complete Release Contracts, AppHost, and UI projects passed **154/154**, **6/6**, and **3,973/3,973** respectively, with zero failed or skipped. `bash -n scripts/demo.sh`, PowerShell parsing of `scripts/demo.ps1`, the story gitlink guard, and `git diff --check` passed. At the current pinned EventStore revision `37451b529ab21869fa4e2806968b5143ddeea14b`, a Debug/source Server.Tests build completed with zero warnings/errors, and the five focused proof/status classes passed **165/165**, zero failed or skipped. These classes and the complete UI project cover all seven frozen I/O matrix rows; no EventStore source or gitlink changed in this pass.
 
@@ -2798,16 +2822,16 @@ Diff reviewed: Tenants `c21bf7be..c3577147`. `c21bf7be` committed the pass-35 re
 - Principal swap inside one circuit (pass-36 Blind 3): reachable. In the installed .NET 10.0.12 framework, `ComponentHub.ConnectCircuit` calls `circuitHost.SetCircuitUser(Context.User)`, which calls `SetAuthenticationState`. So a SignalR reconnect after the cookie changed (a sign-out and sign-in in another tab) swaps the principal of a live circuit.
 - Triage: 28 findings → 0 decisions, 5 patches (11 findings), 2 defers (3 findings, both carried), 16 rejected. Two findings were also partly rejected (BH1 spacing, BH3 main claim).
 
-- [ ] [Review][Patch] Give the pass-36 ledger section its "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3922] — low.
+- [x] [Review][Patch] Give the pass-36 ledger section its "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3922] — low.
   - The fix pass added the missing pass-34 line (pass-35 patch 1) and, in the same commit, opened the pass-36 section straight with its entries. This is the 10th recurrence.
   - Fix: add "Diff reviewed: Tenants baseline `11e65e37` through `c21bf7be` plus the uncommitted pass-35 fix pass (spec `in-review`, sprint `in-progress`), later committed as `c3577147`; `git diff --binary` input, 3,417,703 bytes, SHA-256 `bc733579eb218a3645d688392546a9d00daf96cd50899c55e443822784e7d784`, not archived. Triage: 16 findings, 0 patches, 12 defers (3 new, 9 carried), 4 rejected."
   - The tally comes from the spec's pass-36 table. The 12 defers include 3 new ones (Blind 3, Blind 11, Blind 12); the 4 rejects are Blind 1, Blind 2, Blind 9 and Edge 2.
-- [ ] [Review][Patch] Name the binary diff mode in the pass-34 ledger provenance [_bmad-output/implementation-artifacts/deferred-work.md:3916] — low.
+- [x] [Review][Patch] Name the binary diff mode in the pass-34 ledger provenance [_bmad-output/implementation-artifacts/deferred-work.md:3916] — low.
   - The line records a 3,398,875-byte input but not that it was a `git diff --binary`.
   - A plain `git diff 11e65e37 b00d6d1b` is 1,979,075 bytes. With `--binary`, `176d0670` gives 3,394,809 bytes and `b00d6d1b` gives 3,403,773, which bracket the recorded size.
   - Two reviews have now flagged this as a mismatch (pass-35 BH3, pass-37 BH3). Pass 35's rejection note ("the size does not match") was wrong for the same reason.
   - Fix: write "`git diff --binary` input" and "not archived" on `:3916`.
-- [ ] [Review][Patch] Complete the three pass-36 ledger entries [_bmad-output/implementation-artifacts/deferred-work.md:3924] — low.
+- [x] [Review][Patch] Complete the three pass-36 ledger entries [_bmad-output/implementation-artifacts/deferred-work.md:3924] — low.
   - **Blind 3** (`:3924-3926`): the entry has no owner and no locations, and it says reachability is unknown. This review established it (see the principal-swap bullet above).
     - After a swap, new reads run as the new principal, because `FrontComposerGatewayAuthorizationHandler` resolves `sub` per request.
     - Nothing clears the retained attempt. `TenantCorrectionAttemptTracker` is circuit-scoped (`TenantsUiServiceCollectionExtensions.cs:102`) and keyed by tenant (`TenantCorrectionAttemptTracker.cs:9`). `TenantAuditPage.razor:1513` finds the attempt by `TenantId`.
@@ -2822,13 +2846,13 @@ Diff reviewed: Tenants `c21bf7be..c3577147`. `c21bf7be` committed the pass-35 re
     - Add the locations and owners, and the `:3880` cross-reference.
     - In the Blind 3 entry, replace "must establish whether this can occur" with the reconnect path, and keep the rendered-content question open.
     - Add the lock-out to the Blind 11 entry.
-- [ ] [Review][Patch] List the AppHost test project in README's test commands and project tree [README.md:117] — low.
+- [x] [Review][Patch] List the AppHost test project in README's test commands and project tree [README.md:117] — low.
   - Pass-35 patch 3 named only `README.md:113` and `CONTRIBUTING.md:154-160`, and the fix pass changed both. That patch missed two other README lists, which still omit `tests/Hexalith.Tenants.AppHost.Tests`:
     - the "Test Requirements" commands (`:117-127`);
     - the Project Structure `tests/` tree (`:64-70`).
   - The project was added by this story (pass 31) and blocks CI (`ci.yml:33`). A contributor who follows the README skips the release-gating AppHost model checks.
   - Fix: add `dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Release` to the commands, and `Hexalith.Tenants.AppHost.Tests/` to the tree.
-- [ ] [Review][Patch] Correct README's pre-existing project-tree and test-list errors [README.md:60] — low, pre-existing.
+- [x] [Review][Patch] Correct README's pre-existing project-tree and test-list errors [README.md:60] — low, pre-existing.
   - The tree lists `src/Hexalith.Tenants.ServiceDefaults/` (`:60`), which `37678cf0` removed on 2026-06-02.
   - The tree omits `src/Hexalith.Tenants.Api/`, which `daabc6ba` added on 2026-07-03.
   - The test commands omit the blocking `samples/Hexalith.Tenants.Sample.Tests` (`ci.yml:31`).

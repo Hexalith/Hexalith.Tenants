@@ -155,6 +155,13 @@ public class AspireTopologyTests : IDisposable {
         }
 
         createStatus.Status.ShouldBe("Completed");
+        createStatus.TenantId.ShouldBe("system");
+        createStatus.Domain.ShouldBe("tenants");
+        createStatus.AggregateId.ShouldBe(tenantId);
+        createStatus.EventCount.HasValue.ShouldBeTrue();
+        createStatus.EventCount.Value.ShouldBeGreaterThan(0);
+        createStatus.CommittedEventSequence.HasValue.ShouldBeTrue();
+        createStatus.CommittedEventSequence.Value.ShouldBeGreaterThan(0);
 
         TenantReadModel persisted = await WaitForPersistedTenantAsync(tenantId, timeout.Token);
         persisted.TenantId.ShouldBe(tenantId);
@@ -285,7 +292,7 @@ public class AspireTopologyTests : IDisposable {
     }
 
     [DaprFact]
-    public async Task CommandApi_process_endpoint_dispatches_command() {
+    public async Task DomainServiceProcessRejectsUnauthenticatedDirectRequest() {
         _fixture.SkipIfUnavailable();
 
         string tenantId = $"aspire-test-{Guid.NewGuid():N}";
@@ -305,12 +312,7 @@ public class AspireTopologyTests : IDisposable {
 
         using HttpResponseMessage response = await _fixture.TenantsClient.PostAsJsonAsync("/process", request);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        DomainServiceWireResult? result = await response.Content.ReadFromJsonAsync<DomainServiceWireResult>();
-        _ = result.ShouldNotBeNull();
-        result.IsRejection.ShouldBeFalse();
-        result.Events.Count.ShouldBe(1);
-        result.Events[0].EventTypeName.ShouldEndWith("TenantCreated");
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
 
     [DaprFact]
@@ -352,6 +354,7 @@ public class AspireTopologyTests : IDisposable {
         }
 
         createStatus.Status.ShouldBe("Completed");
+        createStatus.CommittedEventSequence.HasValue.ShouldBeTrue();
 
         CommandStatusResponse addStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
@@ -363,6 +366,13 @@ public class AspireTopologyTests : IDisposable {
             token,
             timeout.Token);
         addStatus.Status.ShouldBe("Completed");
+        addStatus.TenantId.ShouldBe("system");
+        addStatus.Domain.ShouldBe("tenants");
+        addStatus.AggregateId.ShouldBe(tenantId);
+        addStatus.EventCount.HasValue.ShouldBeTrue();
+        addStatus.EventCount.Value.ShouldBeGreaterThan(0);
+        addStatus.CommittedEventSequence.HasValue.ShouldBeTrue();
+        addStatus.CommittedEventSequence.Value.ShouldBeGreaterThan(createStatus.CommittedEventSequence.GetValueOrDefault());
 
         JsonElement granted = await WaitForAccessAsync(tenantId, userId, "granted", timeout.Token);
         GetStringProperty(granted, "role").ShouldBe(nameof(TenantRole.TenantContributor));

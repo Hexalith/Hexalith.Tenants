@@ -52,16 +52,17 @@ Watch reactive cross-service access revocation in action: add a user to a tenant
 ```text
 src/
   Hexalith.Tenants.AppHost/          # .NET Aspire AppHost — orchestrates the full topology
+  Hexalith.Tenants.Api/              # External-facing generated Tenants REST API host
   Hexalith.Tenants.Aspire/           # Aspire hosting extensions for consuming AppHosts
   Hexalith.Tenants.Client/           # Client DI registration and event handling
   Hexalith.Tenants/                  # REST API host, auth, validation, DAPR actors
   Hexalith.Tenants.Contracts/        # Commands, events, enums, identities
   Hexalith.Tenants.Server/           # Aggregates, projections, domain logic
-  Hexalith.Tenants.ServiceDefaults/  # Shared service config, OpenTelemetry
   Hexalith.Tenants.Testing/          # In-memory fakes and test helpers
   Hexalith.Tenants.UI/               # Blazor InteractiveServer Tenants Admin UI host
 
 tests/
+  Hexalith.Tenants.AppHost.Tests/
   Hexalith.Tenants.Client.Tests/
   Hexalith.Tenants.Contracts.Tests/
   Hexalith.Tenants.IntegrationTests/
@@ -123,7 +124,8 @@ dotnet test tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Te
 dotnet test tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj -c Release
 dotnet test tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj -c Release
 dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Release
-
+dotnet test samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj -c Release
+dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj -c Release
 dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -c Release
 ```
 
