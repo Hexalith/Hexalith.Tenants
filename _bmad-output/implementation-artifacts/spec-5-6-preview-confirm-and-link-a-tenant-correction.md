@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -207,6 +207,8 @@ UI paths below are relative to `src/Hexalith.Tenants.UI/`.
 - tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs
 
 ## Completion Notes List
+
+- Pass-40 completion (2026-10-10): at Tenants `01602592352ab25f6c19a855cf199eef96b0f9b6`, Debug/source UI restore and build passed with zero warnings/errors; the complete UI test project passed 3,975/3,975, zero skipped. The rendered EN/FR browser harness passed desktop, narrow, forced-colors, and focus checks. At EventStore `a5405602`, Debug/source Server restore and build passed with zero warnings/errors; the maintained five-class command-proof lane passed 165/165, zero skipped. The pass-39 live Aspire create/projection and add/status checks each passed 1/1 in the preceding implementation run. `git diff --check` and the Story 5.6 gitlink guard passed. Review triaged twelve findings: eleven carried earlier decisions and one new release-recovery provenance defer; no correction implementation patch remained. The spec is done and sprint status is review. No commit or push was created by this pass, honoring the frozen user decision.
 
 - Pass-39 follow-up (2026-10-10) retained the create/add command requests and checked their live terminal statuses through `TenantCommandGateway.GetStatusAsync` with the original MessageIds and correlation IDs. The checks require verified identity and the same committed sequence reported by EventStore. The live Redis projection version now equals the create command's committed sequence, and the add command's committed sequence equals the create end plus the add event count. README now describes the domain-service host accurately; CONTRIBUTING's quick test list includes every blocking project; the unused Results import was removed. `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Release -p:UseNuGetDeps=true -p:NuGetAudit=false -p:MinVerVersionOverride=1.0.0 -m:1 -v:q --no-restore` passed with zero warnings/errors. The built Release assembly ran `-method '*Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority'` and `-method '*Aha_moment_demo_revokes_sample_access_from_tenant_events'` separately: each passed 1/1, zero failed or skipped. No EventStore source, package pin, or gitlink changed.
 
@@ -808,6 +810,25 @@ Diff reviewed: baseline `11e65e37f0fbf6649642a512052eebd37d50166d` through `c21b
 | Edge 2: expiry releases admission before terminal evidence | low; reject | carried: the frozen matrix explicitly allows the human-approved bounded expiry while retaining the unverified attempt identity; see pass-34 Edge 2. |
 | Verification gap 1: no Keycloak workload exchange test | medium; defer | carried: pass-32 Verification gap 1 and pass-35 Blind 13 record the absent live client-credentials and protected-call lane. |
 | Verification gap 2: Trusted Publishing guards are text-tested | medium; defer | carried: pass-25 Verification Gap 1 records that the guard strings are checked but their shell branches are not executed. |
+
+### Pass-40 review triage (2026-10-10)
+
+Three context-free layers reviewed the baseline-to-`01602592352ab25f6c19a855cf199eef96b0f9b6` diff plus the then-current working tree (`4,329,888` bytes; SHA-256 `b238fc55a1be2be5066869148d3a62e1a90d920c19837cec75dc7a57d48194e5`). The edge-case layer returned no findings. All ten blind and both verification-gap findings receive individual verdicts below; the diff includes unrelated committed release work since the original story baseline.
+
+| Finding | Verdict and route | Evidence |
+| --- | --- | --- |
+| Blind 1: release omits a publish-freeze variable | false; reject | carried: pass-32 Edge 1 established that Tenants uses an explicit protected dispatch and has no `HEXALITH_RELEASE_PUBLISH_ENABLED` contract; the cited variable belongs to a different release workflow. |
+| Blind 2: release `npm ci` runs install scripts | medium; defer | carried: pass-22 Blind 1 and pass-30 Blind 2 record dependency code running in the publication job with OIDC issuance. Release governance owns that boundary. |
+| Blind 3: publication actions use mutable tags | medium; defer | carried: pass-18 Blind 8 and pass-22 Blind 2 record `NuGet/login` and other movable action tags in the release workflows. |
+| Blind 4: recovery key can expire during preparation | medium; defer | carried: pass-18 Blind 7 records the one-hour key being minted before build, pack, and validation. |
+| Blind 5: recovery uses a different Builds execution SHA | medium; defer | `release.yml` declares `53d53ae42abf7c87d385a078ab260531480bbf8a`, while `recover-partial-release.yml` declares `2eac6955a812465a4308d194ae38fee35b766b05`; `validate-partial-release-recovery.sh` checks only SHA syntax. The recovery workflow can rebuild with a different root Builds gitlink and cannot establish matching publication-tool provenance. This is release recovery work, separate from tenant correction. |
+| Blind 6: duplicate administrator rows remain complete evidence | medium; defer | carried: pass-25 Blind 5 and the global-administrator paging ledger record `TryAdd` followed by `IsCompleteEvidence = true`; that paging owner must settle conflicting rows. |
+| Blind 7: late status read uses the mutable panel snapshot | maybe-false; defer (medium if visible) | carried: pass-34 Blind 1 and pass-36 Edge 1 cover the same late status/remount claim. `TryUpdate` rejects a replaced message and the page unmounts the old panel; a controlled status-read/remount overlap is still needed to show visible corruption. |
+| Blind 8: rejected tracker update displays an old candidate | maybe-false; defer (medium if visible) | carried: pass-10 Blind 1 and pass-36 Edge 1 cover the same `SetRetainedSnapshot` fallback. A late candidate remains on the old panel in the completed controlled delivery test; a replacement-panel witness remains missing. |
+| Blind 9: hard reload loses the circuit attempt | false; reject | carried: pass-36 Blind 2 records the approved interactive-circuit boundary; a new circuit performs a fresh authority and projection review before any new dispatch. |
+| Blind 10: package mode omits route aliases | maybe-false; reject (low if true) | carried: pass-14 Blind 8 records the conditional FrontComposer API and the absence of a demonstrated broken correction route in package mode. |
+| Verification gap 1: no Keycloak workload exchange test | medium; defer | carried: pass-32 Verification Gap 1 and the existing identity/integration ledger record that the model and realm checks do not exchange a token or call a protected domain endpoint. |
+| Verification gap 2: EventStore lacks an AppHost channel token | low; defer | carried: pass-33's EventStore app-channel ledger entry records the missing `APP_API_TOKEN` wiring and model assertion; this is separate topology work. |
 
 ## Review Decision — Resolved
 

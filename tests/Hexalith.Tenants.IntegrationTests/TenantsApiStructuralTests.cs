@@ -321,8 +321,31 @@ public sealed class TenantsApiStructuralTests
         process.ExitCode.ShouldBe(0, $"dotnet msbuild dependency evaluation failed: {error}");
 
         using JsonDocument document = JsonDocument.Parse(output);
+        JsonElement items = document.RootElement.GetProperty("Items");
+        JsonElement[] generatorPackages = items.GetProperty("PackageReference")
+            .EnumerateArray()
+            .Where(static item => string.Equals(
+                item.GetProperty("Identity").GetString(),
+                "Hexalith.EventStore.RestApi.Generators",
+                StringComparison.Ordinal))
+            .ToArray();
+        JsonElement[] generatorProjects = items.GetProperty("ProjectReference")
+            .EnumerateArray()
+            .Where(static item => item.GetProperty("Identity").GetString()?.Replace('\\', '/').EndsWith(
+                "/Hexalith.EventStore.RestApi.Generators.csproj",
+                StringComparison.Ordinal) == true)
+            .ToArray();
+
+        generatorPackages.Length.ShouldBe(useProjectReferences ? 0 : 1);
+        generatorProjects.Length.ShouldBe(useProjectReferences ? 1 : 0);
+        if (useProjectReferences)
+        {
+            generatorProjects[0].GetProperty("OutputItemType").GetString().ShouldBe("Analyzer");
+            generatorProjects[0].GetProperty("ReferenceOutputAssembly").GetString().ShouldBe("false");
+        }
+
         var values = new List<string>();
-        foreach (JsonProperty itemType in document.RootElement.GetProperty("Items").EnumerateObject())
+        foreach (JsonProperty itemType in items.EnumerateObject())
         {
             foreach (JsonElement item in itemType.Value.EnumerateArray())
             {

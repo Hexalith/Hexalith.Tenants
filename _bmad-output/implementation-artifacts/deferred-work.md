@@ -3947,3 +3947,45 @@ Diff reviewed: Tenants `b14bf146..2b91a52f` (the pass-37 fix pass with the pass-
 - source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
   summary: Restore or reconcile missing historical Git revisions referenced by the Builds package audit before accepting the EventStore 3.120.0 audit.
   evidence: The supported full pre-edit audit was generated against committed Builds `2cf00028bbe563d80d4d12b5fb2054914f14fcb6`, but deterministic validation of its saved snapshot exits 1 with 50 unavailable historical origin-revision errors in addition to a temporary catalog-path mismatch. The checked-in audit validator exits 1 with 1,563 errors, including unavailable historical revisions; logs and exact commands are archived in `dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip`. This inherited provenance gap blocks accepted audit evidence even after a governed catalog commit.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Bind retained Tenants UI query snapshots to the authenticated caller.
+  evidence: `TenantQueryGateway` retention checks page and validator but not caller, and `TenantsWorkspace` can pass its prior confirmed snapshot after authentication changes; a failed read can retain prior caller rows.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Recover missing package assets on an existing GitHub Release.
+  evidence: `publish-partial-release.sh` uploads assets only when creating a release, leaving a 200 release with missing assets incomplete.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Verify existing recovery container content against the reviewed source.
+  evidence: `validate-partial-release-recovery.sh` records `present` from HTTP 200 without digest or provenance comparison.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Verify release artifacts and destinations after publication.
+  evidence: The `verify-publication` job checks the release tag but does not independently inspect NuGet packages, the container, or release assets.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Decide whether separate story and source-reference workflows must gate releases.
+  evidence: Unverified medium-severity policy question; `release.yml` queries only `ci.yml`, and an explicit release-gate policy would establish whether failed separate workflows must block publication.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Run the story gitlink validator against changed story artifacts in CI.
+  evidence: `story-guards.yml` runs regression tests for the validator, and workflow searches found no invocation on changed stories.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Keep pending create-command status in a waiting state.
+  evidence: The gateway maps status 404 to `Pending`, while `TenantCreateCommandSnapshot.ApplyStatus` treats the resulting null status as assertive `UnableToVerify`.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Clear a retained remove-configuration activity latch when its attempt expires without a mounted child.
+  evidence: `TenantConfigurationManagement` sets `_removeCommandInFlight` from a retained attempt and clears it on context change or child callback, which an unmounted child cannot send.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Reject a recovery state with an existing GitHub Release and missing tag.
+  evidence: The recovery validator independently permits a 404 tag and a 200 release, then later tag verification cannot succeed.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Check OCI index handling in the recovery container manifest probe.
+  evidence: Unverified medium-severity compatibility issue; the probe advertises only an image manifest media type, and a live Zot probe with an OCI index would settle whether it returns 200 or 406.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Recheck the live main SHA immediately before partial release publication.
+  evidence: `publish-partial-release.sh` checks main before building and packing, then publishes without a second check after those operations.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Add a rendered document-language test for English and French UI cultures.
+  evidence: `App.razor` derives `html lang` from UI culture, while existing tests assert only source text.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+  summary: Verify the imported Keycloak project scope through an issued workload token and protected endpoint.
+  evidence: The realm test parses JSON, and the Aspire fixture disables Keycloak, leaving the effective `domain-service:project` token claim unverified.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: Reconcile the Builds execution revision used by partial release recovery with the publishing workflow.
+  evidence: `release.yml` declares `53d53ae42abf7c87d385a078ab260531480bbf8a` for publication, but `recover-partial-release.yml` declares `2eac6955a812465a4308d194ae38fee35b766b05` for recovery. `validate-partial-release-recovery.sh` verifies only that the recovery value has SHA syntax. Recovery builds with the source tree's Builds gitlink, so matching publication-tool provenance is not established. The release recovery owner should decide and enforce the exact revision relationship before relying on rebuilt artifacts.
