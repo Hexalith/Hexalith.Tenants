@@ -1,0 +1,781 @@
+{
+  "schemaVersion": 1,
+  "capturedAtUtc": "2026-10-10T12:40:43.554622+00:00",
+  "status": "prepared-pending-governed-audit-acceptance",
+  "requestedEventStoreVersion": "3.120.0",
+  "committedCatalogEventStoreVersion": "3.119.0",
+  "rootHead": "9e9e04308ea1060010a64bb8b800e755c4aaf99d",
+  "buildsHead": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6",
+  "rootBuildsGitlink": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6",
+  "preparedCatalogSha256": "b1915eb597a485380d5da650f378a39e960612a72cc8b5d15393834e43b4087c",
+  "committedCatalogSnapshotSha256": "9d4ff0b0219f43c0186c77d90b02ec40f87a23ab21647fc58ae300e3cb89f398",
+  "preEditFullAudit": {
+    "archiveEntry": "audit/pre-edit-full-audit.json",
+    "sha256": "6618c3cd4a9fd529872bab080dd27294e0571e7de200d346501db38db4911198",
+    "generatedFromRevision": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6",
+    "mode": "complete",
+    "auditedAtUtc": "2026-10-10T12:27:57.2311570+00:00",
+    "packageCount": 305,
+    "eventStorePackages": [
+      {
+        "id": "Hexalith.EventStore.Admin.Abstractions",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.Admin.Server",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.Aspire",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.Client",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.Contracts",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.DomainService",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.Gateway",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.RestApi.Generators",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.Server",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.ServiceDefaults",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.SignalR",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.Testing",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      },
+      {
+        "id": "Hexalith.EventStore.Testing.Integration",
+        "selectedVersion": "3.119.0",
+        "latestStable": "3.120.0",
+        "listingState": "listed"
+      }
+    ],
+    "validation": {
+      "exitCode": 1,
+      "errorCount": 51,
+      "note": "One expected catalogPath mismatch from validating the temporary snapshot path; 50 unavailable historical Git origin revisions prevent acceptance."
+    }
+  },
+  "governanceBlocker": {
+    "postEditGenerator": "Dirty catalog relative to committed Builds revision; requires a governed owning-repository commit before audit regeneration.",
+    "checkedInAuditValidator": "Exit 1 with 1563 errors, including catalog hash mismatch and unavailable historical Git revisions; checked-in audit was already stale against the committed catalog.",
+    "preEditFullAuditValidator": "Saved pre-edit full audit fails with 51 errors: one temporary catalogPath mismatch plus 50 unavailable historical Git origin revisions."
+  },
+  "checks": [
+    {
+      "name": "pre-edit-incremental-audit",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "command": "pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1 -PriorAuditPath ./Tools/package-version-audit.json -ChangedFamily hexalith-eventstore -OutputPath /tmp/tenants-eventstore-31200/pre-edit-audit.json",
+      "exitCode": 1,
+      "archiveEntry": "logs/pre-edit-audit.log",
+      "logSha256": "c3bc9c7f6d6c5ce153491a5682ff8b3abb6aae18df372ab8b811e0ee2417e2c7"
+    },
+    {
+      "name": "pre-edit-full-audit",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "command": "pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1 -PriorAuditPath ./Tools/package-version-audit.json -OutputPath /tmp/tenants-eventstore-31200/pre-edit-full-audit.json",
+      "exitCode": 0,
+      "archiveEntry": "logs/pre-edit-full-audit.log",
+      "logSha256": "76656f64b2e76473a442fec0c9f38c867a4f2a76992ba35b2860337383c6defc"
+    },
+    {
+      "name": "post-edit-incremental-audit",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "command": "pwsh -NoProfile -File ./Tools/audit-central-package-versions.ps1 -PriorAuditPath /tmp/tenants-eventstore-31200/pre-edit-full-audit.json -ChangedFamily hexalith-eventstore -OutputPath /tmp/tenants-eventstore-31200/post-edit-audit.json",
+      "exitCode": 1,
+      "archiveEntry": "logs/post-edit-audit.log",
+      "logSha256": "0aa41ea19474608c44bc714b8e68fa1139838eedc5505b97d17a4b689c500552"
+    },
+    {
+      "name": "checked-in-audit-validator",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "command": "pwsh -NoProfile -File ./Tools/validate-package-version-audit.ps1",
+      "exitCode": 1,
+      "archiveEntry": "logs/audit-validator.log",
+      "logSha256": "9a4586a90380fd20f1e06d22a7d002284dfd8c4417b789e5980a979b2e8d71ff"
+    },
+    {
+      "name": "catalog-validator",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "command": "pwsh -NoProfile -File ./Tools/validate-central-package-versions.ps1",
+      "exitCode": 0,
+      "archiveEntry": "logs/catalog-validator.log",
+      "logSha256": "b33ebbff5c43575e0587de67e1abf4c6a7b68913d40e5a31707646299c59c139"
+    },
+    {
+      "name": "exceptions-validator",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "command": "pwsh -NoProfile -File ./Tools/validate-package-version-exceptions.ps1 -InventoryPath ./Tools/package-version-exceptions.json -CatalogPath ./Props/Directory.Packages.props",
+      "exitCode": 0,
+      "archiveEntry": "logs/exceptions-validator.log",
+      "logSha256": "6ef800d670a4228bfe7d0b687ac1e1f50a178e82b7f2700a663902839dad4d49"
+    },
+    {
+      "name": "restore-main",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet restore Hexalith.Tenants.slnx -p:Configuration=Release",
+      "exitCode": 0,
+      "archiveEntry": "logs/restore-main.log",
+      "logSha256": "d25559b9a71ea10e03dac747b788083fa8ac5c1ee863e1a524505dddb6912633"
+    },
+    {
+      "name": "build-main",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror",
+      "exitCode": 0,
+      "archiveEntry": "logs/build-main.log",
+      "logSha256": "d1ab9a9356f24b5f04be9e7b7625790c32341c3a4b5c53e8f0e56096aa1ca8bd"
+    },
+    {
+      "name": "restore-standalone",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet restore Hexalith.Tenants.Standalone.slnx -p:Configuration=Release -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false",
+      "exitCode": 0,
+      "archiveEntry": "logs/restore-standalone.log",
+      "logSha256": "56333bcc2a0c21f902206a33e2a5ada68c995c308108e9216864336e506f5d2f"
+    },
+    {
+      "name": "build-standalone",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet build Hexalith.Tenants.Standalone.slnx --no-restore --configuration Release -warnaserror -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false",
+      "exitCode": 0,
+      "archiveEntry": "logs/build-standalone.log",
+      "logSha256": "5ca374b1f2bf1687ca13274628414800174f68da23fb70a74f8d3c3071128212"
+    },
+    {
+      "name": "test-contracts",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "exitCode": 0,
+      "archiveEntry": "logs/test-Hexalith.Tenants.Contracts.Tests.log",
+      "logSha256": "3ad72267490e31054870ed44cedff022a2b3211cea3fd29d97bdcfa3d98ed7dd"
+    },
+    {
+      "name": "test-server",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "exitCode": 0,
+      "archiveEntry": "logs/test-Hexalith.Tenants.Server.Tests.log",
+      "logSha256": "83f8cd52e501e9950ab397eb4389d1f61729ff47eb59f13ceefe14d8b0e6330b"
+    },
+    {
+      "name": "test-client",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "exitCode": 0,
+      "archiveEntry": "logs/test-Hexalith.Tenants.Client.Tests.log",
+      "logSha256": "ef85d4b811ae7269ac4adfc0da641df909ffe6447b5b5313be613f08d65f98f8"
+    },
+    {
+      "name": "test-testing",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "exitCode": 0,
+      "archiveEntry": "logs/test-Hexalith.Tenants.Testing.Tests.log",
+      "logSha256": "fef2bfe6ea40691a4809aa25a4556bd60a51e28c978f8a24d1497140a19e92d8"
+    },
+    {
+      "name": "test-sample",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "exitCode": 0,
+      "archiveEntry": "logs/test-Hexalith.Tenants.Sample.Tests.log",
+      "logSha256": "749641883619b14303e5f3fbce581f468ca739316aa69480b3f7192a158611df"
+    },
+    {
+      "name": "test-ui",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "exitCode": 0,
+      "archiveEntry": "logs/test-Hexalith.Tenants.UI.Tests.log",
+      "logSha256": "2fe4b41b96e7b1d4d518085dded446032ff4d76f694bb2fcf38850299b155afa"
+    },
+    {
+      "name": "test-domain-service-http",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release -p:UseNuGetDeps=true --filter-class Hexalith.Tenants.IntegrationTests.DomainServiceEndpointsTests --minimum-expected-tests 2",
+      "exitCode": 0,
+      "archiveEntry": "logs/test-domain-service-http.log",
+      "logSha256": "c82d3db80828c8988a2629669c7b641149ccdae0f9176a69e11498a1fa6e0b77"
+    },
+    {
+      "name": "gitlink-validator",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md",
+      "exitCode": 0,
+      "archiveEntry": "logs/gitlink-validator.log",
+      "logSha256": "7f8ae714ca4f559e7765b1d3d3faa7a5c536d1df38de9ddfd5f70af7e4cbec04"
+    },
+    {
+      "name": "root-diff-check",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "git diff --check",
+      "exitCode": 0,
+      "archiveEntry": "logs/root-diff-check.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "builds-diff-check",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "command": "git diff --check",
+      "exitCode": 0,
+      "archiveEntry": "logs/builds-diff-check.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "pre-edit-full-audit-validator",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants/references/Hexalith.Builds",
+      "command": "pwsh -NoProfile -File ./Tools/validate-package-version-audit.ps1 -AuditPath /tmp/tenants-eventstore-31200/pre-edit-full-audit.json -CatalogPath /tmp/tenants-eventstore-31200/catalog-before.props",
+      "exitCode": 1,
+      "archiveEntry": "logs/pre-edit-full-audit-validator.log",
+      "logSha256": "57ca8806fd001854d880e045a01fc6acc6c59ab1584f1cb2c4172283cd52e79f"
+    },
+    {
+      "name": "test-apphost",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj --configuration Release -p:UseNuGetDeps=true",
+      "exitCode": 0,
+      "archiveEntry": "logs/test-apphost.log",
+      "logSha256": "e0c6eb01cf916cb6c81919c7ec591b4119e84a40b5b0059387864b00c5d4a57e"
+    },
+    {
+      "name": "test-command-api-runtime",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release -p:UseNuGetDeps=true --filter-class Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests --minimum-expected-tests 1",
+      "exitCode": 2,
+      "archiveEntry": "logs/test-command-api-runtime.log",
+      "logSha256": "de13594a2f071bd96cd6667e6d7eeca50aa4b4fff1e0741923b57b2e6a02d173"
+    },
+    {
+      "name": "test-global-admin-baseline-3.119.0",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release -p:UseNuGetDeps=true -p:HexalithEventStoreVersion=3.119.0 --filter-method Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.Commands_endpoint_rejects_client_supplied_globalAdmin_extension_metadata --minimum-expected-tests 1",
+      "exitCode": 2,
+      "archiveEntry": "logs/test-global-admin-31190.log",
+      "logSha256": "d027b1b9ed54bf48dc2be672f90ba954bf2b49d08c684122e9111e3cd98ca852"
+    },
+    {
+      "name": "test-global-admin-target-3.120.0",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "command": "dotnet test --project tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release -p:UseNuGetDeps=true --filter-method Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.Commands_endpoint_rejects_client_supplied_globalAdmin_extension_metadata --minimum-expected-tests 1",
+      "exitCode": 2,
+      "archiveEntry": "logs/test-global-admin-31200.log",
+      "logSha256": "f37cd4cbd167ca9b58739f59c5212656c6dfb7158906314bb37e9f64d29d684c"
+    }
+  ],
+  "requiredTests": {
+    "projects": [
+      {
+        "project": "Hexalith.Tenants.Contracts.Tests",
+        "total": 154,
+        "passed": 154,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "project": "Hexalith.Tenants.Server.Tests",
+        "total": 828,
+        "passed": 828,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "project": "Hexalith.Tenants.Client.Tests",
+        "total": 50,
+        "passed": 50,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "project": "Hexalith.Tenants.Testing.Tests",
+        "total": 181,
+        "passed": 181,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "project": "Hexalith.Tenants.Sample.Tests",
+        "total": 40,
+        "passed": 40,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "project": "Hexalith.Tenants.UI.Tests",
+        "total": 3975,
+        "passed": 3975,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "total": 5228,
+    "failed": 0,
+    "skipped": 0
+  },
+  "focusedDomainServiceHttpTests": {
+    "total": 2,
+    "passed": 2,
+    "failed": 0,
+    "skipped": 0
+  },
+  "sourcePackageEvaluations": [
+    {
+      "name": "debug-source",
+      "properties": {
+        "TargetFramework": "net10.0",
+        "HexalithEventStoreVersion": "3.120.0",
+        "UseNuGetDeps": "false",
+        "UseHexalithProjectReferences": "true",
+        "HexalithEventStoreFromSource": "true"
+      },
+      "eventStorePackages": [],
+      "eventStoreProjects": [
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Gateway/Hexalith.EventStore.Gateway.csproj",
+        "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.DomainService/Hexalith.EventStore.DomainService.csproj"
+      ],
+      "archiveEntry": "evaluations/debug-source.json",
+      "evaluatedProject": "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+      "command": "dotnet msbuild src/Hexalith.Tenants/Hexalith.Tenants.csproj -nologo -p:Configuration=Debug -p:UseNuGetDeps=false -getProperty:TargetFramework,HexalithEventStoreVersion,UseNuGetDeps,UseHexalithProjectReferences,HexalithEventStoreFromSource -getItem:PackageReference,ProjectReference",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "exitCode": 0,
+      "capturedAtUtc": "2026-10-10T12:30:33.746712+00:00",
+      "rootHead": "9e9e04308ea1060010a64bb8b800e755c4aaf99d",
+      "buildsHead": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6",
+      "preparedCatalogSha256": "b1915eb597a485380d5da650f378a39e960612a72cc8b5d15393834e43b4087c",
+      "sourceCheckoutHead": "37451b529ab21869fa4e2806968b5143ddeea14b"
+    },
+    {
+      "name": "release-package",
+      "properties": {
+        "TargetFramework": "net10.0",
+        "HexalithEventStoreVersion": "3.120.0",
+        "UseNuGetDeps": "true",
+        "UseHexalithProjectReferences": "false",
+        "HexalithEventStoreFromSource": ""
+      },
+      "eventStorePackages": [
+        "Hexalith.EventStore.Gateway",
+        "Hexalith.EventStore.DomainService"
+      ],
+      "eventStoreProjects": [],
+      "archiveEntry": "evaluations/release-package.json",
+      "evaluatedProject": "src/Hexalith.Tenants/Hexalith.Tenants.csproj",
+      "command": "dotnet msbuild src/Hexalith.Tenants/Hexalith.Tenants.csproj -nologo -p:Configuration=Release -p:UseNuGetDeps=true -getProperty:TargetFramework,HexalithEventStoreVersion,UseNuGetDeps,UseHexalithProjectReferences,HexalithEventStoreFromSource -getItem:PackageReference,ProjectReference",
+      "workingDirectory": "/home/administrator/projects/hexalith/tenants",
+      "exitCode": 0,
+      "capturedAtUtc": "2026-10-10T12:30:33.786714+00:00",
+      "rootHead": "9e9e04308ea1060010a64bb8b800e755c4aaf99d",
+      "buildsHead": "2cf00028bbe563d80d4d12b5fb2054914f14fcb6",
+      "preparedCatalogSha256": "b1915eb597a485380d5da650f378a39e960612a72cc8b5d15393834e43b4087c",
+      "sourceCheckoutHead": null
+    }
+  ],
+  "resolvedAssets": {
+    "capturedAtUtc": "2026-10-10T12:40:43.388956+00:00",
+    "scope": "final restored worktree after required and supplemental package-mode tests; not a per-build graph snapshot",
+    "assets": [
+      {
+        "path": "src/Hexalith.Tenants/obj/project.assets.json",
+        "sha256": "f0a785a4ea7244bae3ed407f61c45ad5fe15ff4b909233976701c69767921d1b",
+        "eventStorePackageCount": 7,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants/project.assets.json"
+      },
+      {
+        "path": "src/Hexalith.Tenants.Api/obj/project.assets.json",
+        "sha256": "f6014fc5c8ae1d439643462599221a1084cbac6ecc7bc1dc8811fb7924772fde",
+        "eventStorePackageCount": 4,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants.Api/project.assets.json"
+      },
+      {
+        "path": "src/Hexalith.Tenants.AppHost/obj/project.assets.json",
+        "sha256": "5b3107efca25e3dfe1c5e824e57e5f57f74be0caeae3191f60e8f728c656163a",
+        "eventStorePackageCount": 1,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants.AppHost/project.assets.json"
+      },
+      {
+        "path": "src/Hexalith.Tenants.Aspire/obj/project.assets.json",
+        "sha256": "3afe48dc9bbca57ecd609daf37098a2c5a6d75131b2e220b8376811474804cfd",
+        "eventStorePackageCount": 1,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants.Aspire/project.assets.json"
+      },
+      {
+        "path": "src/Hexalith.Tenants.Client/obj/project.assets.json",
+        "sha256": "a232afd8943d9e4b60f5ffda1c21f8ea0b76c4cd6aba936489899348d1cd3e9c",
+        "eventStorePackageCount": 2,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants.Client/project.assets.json"
+      },
+      {
+        "path": "src/Hexalith.Tenants.Contracts/obj/project.assets.json",
+        "sha256": "8c949d053d2a1a730b6d2d33d91197d37e9540481614f8f2fbc029eb9cc9b30b",
+        "eventStorePackageCount": 1,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants.Contracts/project.assets.json"
+      },
+      {
+        "path": "src/Hexalith.Tenants.Server/obj/project.assets.json",
+        "sha256": "e25976ec3cecf67da2852d1d23073c798f49e1c6f7fdf042534e874c96205153",
+        "eventStorePackageCount": 5,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants.Server/project.assets.json"
+      },
+      {
+        "path": "src/Hexalith.Tenants.Testing/obj/project.assets.json",
+        "sha256": "b83146f9d77d55e07e9abe7b5d1bb8e3b16a42d282cf152cd24985a1f3251304",
+        "eventStorePackageCount": 5,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants.Testing/project.assets.json"
+      },
+      {
+        "path": "src/Hexalith.Tenants.UI/obj/project.assets.json",
+        "sha256": "e55e65741e54877d7d69dcfee8bc3267fa95cab05782b6c368737fbcacad1844",
+        "eventStorePackageCount": 2,
+        "eventStoreVersions": [
+          "3.120.0"
+        ],
+        "archiveEntry": "assets/Hexalith.Tenants.UI/project.assets.json"
+      }
+    ]
+  },
+  "rawLogArchive": "dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip",
+  "rawLogArchiveSha256": "28a1bedeaab1c757e4b1dd6941120d9150daa6e03d8a3bdd556dd05aa13eb39b",
+  "archiveManifest": [
+    {
+      "entry": "assets/Hexalith.Tenants.Api/project.assets.json",
+      "sha256": "f6014fc5c8ae1d439643462599221a1084cbac6ecc7bc1dc8811fb7924772fde",
+      "bytes": 129554
+    },
+    {
+      "entry": "assets/Hexalith.Tenants.AppHost/project.assets.json",
+      "sha256": "5b3107efca25e3dfe1c5e824e57e5f57f74be0caeae3191f60e8f728c656163a",
+      "bytes": 218294
+    },
+    {
+      "entry": "assets/Hexalith.Tenants.Aspire/project.assets.json",
+      "sha256": "3afe48dc9bbca57ecd609daf37098a2c5a6d75131b2e220b8376811474804cfd",
+      "bytes": 211408
+    },
+    {
+      "entry": "assets/Hexalith.Tenants.Client/project.assets.json",
+      "sha256": "a232afd8943d9e4b60f5ffda1c21f8ea0b76c4cd6aba936489899348d1cd3e9c",
+      "bytes": 68409
+    },
+    {
+      "entry": "assets/Hexalith.Tenants.Contracts/project.assets.json",
+      "sha256": "8c949d053d2a1a730b6d2d33d91197d37e9540481614f8f2fbc029eb9cc9b30b",
+      "bytes": 40398
+    },
+    {
+      "entry": "assets/Hexalith.Tenants.Server/project.assets.json",
+      "sha256": "e25976ec3cecf67da2852d1d23073c798f49e1c6f7fdf042534e874c96205153",
+      "bytes": 189842
+    },
+    {
+      "entry": "assets/Hexalith.Tenants.Testing/project.assets.json",
+      "sha256": "b83146f9d77d55e07e9abe7b5d1bb8e3b16a42d282cf152cd24985a1f3251304",
+      "bytes": 200757
+    },
+    {
+      "entry": "assets/Hexalith.Tenants.UI/project.assets.json",
+      "sha256": "e55e65741e54877d7d69dcfee8bc3267fa95cab05782b6c368737fbcacad1844",
+      "bytes": 130079
+    },
+    {
+      "entry": "assets/Hexalith.Tenants/project.assets.json",
+      "sha256": "f0a785a4ea7244bae3ed407f61c45ad5fe15ff4b909233976701c69767921d1b",
+      "bytes": 162129
+    },
+    {
+      "entry": "assets/summary.json",
+      "sha256": "d2a6d5982eba8820d98339624480d15d70337f0ce1dc5de80f57be4231f1a769",
+      "bytes": 3176
+    },
+    {
+      "entry": "audit/pre-edit-full-audit.json",
+      "sha256": "6618c3cd4a9fd529872bab080dd27294e0571e7de200d346501db38db4911198",
+      "bytes": 12888286
+    },
+    {
+      "entry": "catalog/after.props",
+      "sha256": "b1915eb597a485380d5da650f378a39e960612a72cc8b5d15393834e43b4087c",
+      "bytes": 29578
+    },
+    {
+      "entry": "catalog/before.props",
+      "sha256": "9d4ff0b0219f43c0186c77d90b02ec40f87a23ab21647fc58ae300e3cb89f398",
+      "bytes": 29578
+    },
+    {
+      "entry": "evaluations/debug-source.json",
+      "sha256": "a7c3caffd278ed9077427b064d1b6cb6cbf99d606921bac24a23064339eb9646",
+      "bytes": 10613
+    },
+    {
+      "entry": "evaluations/release-package.json",
+      "sha256": "14966341291bb7783c364030f04f895e4c613fcc3389c23695ce5ccdb7767c70",
+      "bytes": 9339
+    },
+    {
+      "entry": "logs/audit-validator.log",
+      "sha256": "9a4586a90380fd20f1e06d22a7d002284dfd8c4417b789e5980a979b2e8d71ff",
+      "bytes": 307864
+    },
+    {
+      "entry": "logs/build-main.log",
+      "sha256": "d1ab9a9356f24b5f04be9e7b7625790c32341c3a4b5c53e8f0e56096aa1ca8bd",
+      "bytes": 9013
+    },
+    {
+      "entry": "logs/build-standalone.log",
+      "sha256": "5ca374b1f2bf1687ca13274628414800174f68da23fb70a74f8d3c3071128212",
+      "bytes": 3065
+    },
+    {
+      "entry": "logs/builds-diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "logs/catalog-validator.log",
+      "sha256": "b33ebbff5c43575e0587de67e1abf4c6a7b68913d40e5a31707646299c59c139",
+      "bytes": 168
+    },
+    {
+      "entry": "logs/exceptions-validator.log",
+      "sha256": "6ef800d670a4228bfe7d0b687ac1e1f50a178e82b7f2700a663902839dad4d49",
+      "bytes": 73
+    },
+    {
+      "entry": "logs/gitlink-validator.log",
+      "sha256": "7f8ae714ca4f559e7765b1d3d3faa7a5c536d1df38de9ddfd5f70af7e4cbec04",
+      "bytes": 151
+    },
+    {
+      "entry": "logs/post-edit-audit.log",
+      "sha256": "0aa41ea19474608c44bc714b8e68fa1139838eedc5505b97d17a4b689c500552",
+      "bytes": 170
+    },
+    {
+      "entry": "logs/pre-edit-audit.log",
+      "sha256": "c3bc9c7f6d6c5ce153491a5682ff8b3abb6aae18df372ab8b811e0ee2417e2c7",
+      "bytes": 109
+    },
+    {
+      "entry": "logs/pre-edit-full-audit-validator.log",
+      "sha256": "57ca8806fd001854d880e045a01fc6acc6c59ab1584f1cb2c4172283cd52e79f",
+      "bytes": 7402
+    },
+    {
+      "entry": "logs/pre-edit-full-audit.log",
+      "sha256": "76656f64b2e76473a442fec0c9f38c867a4f2a76992ba35b2860337383c6defc",
+      "bytes": 158
+    },
+    {
+      "entry": "logs/restore-main.log",
+      "sha256": "d25559b9a71ea10e03dac747b788083fa8ac5c1ee863e1a524505dddb6912633",
+      "bytes": 6145
+    },
+    {
+      "entry": "logs/restore-standalone.log",
+      "sha256": "56333bcc2a0c21f902206a33e2a5ada68c995c308108e9216864336e506f5d2f",
+      "bytes": 606
+    },
+    {
+      "entry": "logs/root-diff-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "entry": "logs/test-Hexalith.Tenants.Client.Tests.log",
+      "sha256": "ef85d4b811ae7269ac4adfc0da641df909ffe6447b5b5313be613f08d65f98f8",
+      "bytes": 435
+    },
+    {
+      "entry": "logs/test-Hexalith.Tenants.Contracts.Tests.log",
+      "sha256": "3ad72267490e31054870ed44cedff022a2b3211cea3fd29d97bdcfa3d98ed7dd",
+      "bytes": 452
+    },
+    {
+      "entry": "logs/test-Hexalith.Tenants.Sample.Tests.log",
+      "sha256": "749641883619b14303e5f3fbce581f468ca739316aa69480b3f7192a158611df",
+      "bytes": 442
+    },
+    {
+      "entry": "logs/test-Hexalith.Tenants.Server.Tests.log",
+      "sha256": "83f8cd52e501e9950ab397eb4389d1f61729ff47eb59f13ceefe14d8b0e6330b",
+      "bytes": 440
+    },
+    {
+      "entry": "logs/test-Hexalith.Tenants.Testing.Tests.log",
+      "sha256": "fef2bfe6ea40691a4809aa25a4556bd60a51e28c978f8a24d1497140a19e92d8",
+      "bytes": 444
+    },
+    {
+      "entry": "logs/test-Hexalith.Tenants.UI.Tests.log",
+      "sha256": "2fe4b41b96e7b1d4d518085dded446032ff4d76f694bb2fcf38850299b155afa",
+      "bytes": 428
+    },
+    {
+      "entry": "logs/test-apphost.log",
+      "sha256": "e0c6eb01cf916cb6c81919c7ec591b4119e84a40b5b0059387864b00c5d4a57e",
+      "bytes": 434
+    },
+    {
+      "entry": "logs/test-command-api-runtime.log",
+      "sha256": "de13594a2f071bd96cd6667e6d7eeca50aa4b4fff1e0741923b57b2e6a02d173",
+      "bytes": 390535
+    },
+    {
+      "entry": "logs/test-domain-service-http.log",
+      "sha256": "c82d3db80828c8988a2629669c7b641149ccdae0f9176a69e11498a1fa6e0b77",
+      "bytes": 452
+    },
+    {
+      "entry": "logs/test-global-admin-31190.log",
+      "sha256": "d027b1b9ed54bf48dc2be672f90ba954bf2b49d08c684122e9111e3cd98ca852",
+      "bytes": 7444
+    },
+    {
+      "entry": "logs/test-global-admin-31200.log",
+      "sha256": "f37cd4cbd167ca9b58739f59c5212656c6dfb7158906314bb37e9f64d29d684c",
+      "bytes": 7444
+    },
+    {
+      "entry": "source/eventstore-describe.log",
+      "sha256": "87d770e35661316a80115feed4ae11634b48d953cd4b6a3de68ac44e7046b38a",
+      "bytes": 21
+    },
+    {
+      "entry": "source/eventstore-head.log",
+      "sha256": "8dc14b852e448e8297c8bcc4707f55ba8e51a3835b7d7ec4eca87eb4c6ef2027",
+      "bytes": 41
+    },
+    {
+      "entry": "source/eventstore-target-tag.log",
+      "sha256": "f3dd7959a79500dbd28c3d3d602382e56a3f052cfbb0a58cfa76be0b88d2c2ed",
+      "bytes": 9
+    },
+    {
+      "entry": "toolchain/dotnet-version.log",
+      "sha256": "93c11b5221b72e0032ab2d9f93d28c2c9b7a0bb2557effffcdfef45ab739a0da",
+      "bytes": 9
+    },
+    {
+      "entry": "toolchain/pwsh-version.log",
+      "sha256": "75ee3b405374287616506201aeb9aa9da073dd0ab61623b67c765d51f3204d1f",
+      "bytes": 6
+    }
+  ],
+  "priorEvidence": "dependency-refresh-eventstore-3.117.1-evidence-2026-10-08.json",
+  "supplementalTests": {
+    "appHost": {
+      "result": "Passed!",
+      "total": 6,
+      "failed": 0,
+      "passed": 6,
+      "skipped": 0
+    },
+    "commandApiRuntime": {
+      "result": "Failed!",
+      "total": 86,
+      "failed": 1,
+      "passed": 85,
+      "skipped": 0
+    },
+    "knownFailingGlobalAdminMethod": {
+      "method": "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.Commands_endpoint_rejects_client_supplied_globalAdmin_extension_metadata",
+      "expectedHttpStatus": 400,
+      "actualHttpStatus": 202,
+      "baseline3_119_0": {
+        "result": "Failed!",
+        "total": 1,
+        "failed": 1,
+        "passed": 0,
+        "skipped": 0
+      },
+      "target3_120_0": {
+        "result": "Failed!",
+        "total": 1,
+        "failed": 1,
+        "passed": 0,
+        "skipped": 0
+      },
+      "baselineAssetsObservedEventStoreVersion": "3.119.0",
+      "knownDeferredWork": "_bmad-output/implementation-artifacts/deferred-work.md (existing 2026-10-08 pass-17 entry for this exact test)",
+      "conclusion": "The same test fails against both package versions; this is not a new 3.120.0 regression."
+    }
+  },
+  "sourceCheckout": {
+    "repository": "references/Hexalith.EventStore",
+    "head": "37451b529ab21869fa4e2806968b5143ddeea14b",
+    "describe": "v3.119.0-5-g37451b52",
+    "targetTagPresentLocally": true,
+    "note": "The development source lane exercises this checkout; the Release package lane restores published EventStore 3.120.0. The source build is not a build of the 3.120.0 release."
+  }
+}

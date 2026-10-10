@@ -3932,3 +3932,18 @@ Diff reviewed: Tenants baseline `11e65e37` through `c21bf7be` plus the uncommitt
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
   summary: medium; the manual quickstart has no concrete path to grant a newly provisioned local user global-administrator authority. Owner: Tenants quickstart documentation.
   evidence: `docs/quickstart.md:120` instructs readers to obtain an existing administrator's grant but does not explain how to authenticate as that administrator or issue the grant in the default generated-credential topology. A local development runbook should provide the executable grant path.
+
+## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 39 (2026-10-10)
+
+Diff reviewed: Tenants `b14bf146..2b91a52f` (the pass-37 fix pass with the pass-38 test patches, local and unpushed); 26,970-byte scratch diff, SHA-256 `93739b129fd547bda106a89c038fe693087a3c62dae7d36324315db719da9257`, not archived. Triage: 36 findings, 0 decisions, 5 patches, 2 defers (both new), 18 rejected.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: medium; the live command-status proof assertions added in pass 38 run only in the advisory, already-red aspire tier. Owner: Tenants CI test tiering.
+  evidence: `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:158-164` and `:357-375` assert the live create and add status proof, and the pass-39 patches 1 and 2 add the UI-gateway and projection-sequence checks there. CI runs IntegrationTests only as `aspire-test-project` (`.github/workflows/ci.yml:35`), which is `continue-on-error` by default (`references/Hexalith.Builds/.github/workflows/domain-ci.yml:109-113`, `:669`). At `c3577147` (run 38039239192, aspire job 114176854705) that job failed 9 of 178 tests while the run succeeded, and `Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority` failed at `:122` on the `tenants-api` `/alive` SSL timeout, before its new assertions. Related: the `aspire-continue-on-error` entry (`:3726`) and the pass-33 ETag entry (`:3912`); pass-31 decision 2 kept the tier advisory. To close: a blocking lane that checks live or contract-level command-status proof through the UI gateway.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
+  summary: low; `_bmad-output/project-context.md` omits `AppHost.Tests` from blocking CI Tier 2. Owner: agent-context maintenance.
+  evidence: `_bmad-output/project-context.md:112` lists only `Server.Tests`, while `.github/workflows/ci.yml:32-34` runs `tests/Hexalith.Tenants.AppHost.Tests` next to it in `integration-test-projects` (added by Story 5.6 pass 31). Agents that read the context file will leave out the blocking AppHost model checks.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
+  summary: Restore or reconcile missing historical Git revisions referenced by the Builds package audit before accepting the EventStore 3.120.0 audit.
+  evidence: The supported full pre-edit audit was generated against committed Builds `2cf00028bbe563d80d4d12b5fb2054914f14fcb6`, but deterministic validation of its saved snapshot exits 1 with 50 unavailable historical origin-revision errors in addition to a temporary catalog-path mismatch. The checked-in audit validator exits 1 with 1,563 errors, including unavailable historical revisions; logs and exact commands are archived in `dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip`. This inherited provenance gap blocks accepted audit evidence even after a governed catalog commit.

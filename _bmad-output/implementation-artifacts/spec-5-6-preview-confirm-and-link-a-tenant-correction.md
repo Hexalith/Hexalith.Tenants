@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -2885,3 +2885,75 @@ Diff reviewed: Tenants `c21bf7be..c3577147`. `c21bf7be` committed the pass-35 re
   - The file is Story 5.5 code and has not changed since the baseline.
   - The general pass-36 Blind 4 defer stays carried.
 - ECH7, "`c3577147` is a `feat:` subject for docs-only changes": low. The commit is on `origin/main`, so a fix would rewrite published history, and the subject passed Commitlint. No release has been cut since v5.8.0 (2026-10-08). Pass 35 rejected the same finding (BH13).
+
+### Review Findings (pass 39: pass-37 fix pass `2b91a52f`)
+
+Review date: 2026-10-10. Pass 38 ran inside the fix pass.
+
+Diff reviewed: Tenants `b14bf146..2b91a52f`. `b14bf146` committed the pass-37 records; `2b91a52f` is the user's pass-37 fix pass plus the pass-38 test patches. Both are local and unpushed (`origin/main` = `c3577147`). Input: 229-line scratch diff, 26,970 bytes, SHA-256 `93739b129fd547bda106a89c038fe693087a3c62dae7d36324315db719da9257`, not archived.
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor), and none failed.
+- All five pass-37 patches landed as written.
+- Gitlink guard: PASSES at HEAD; no `references/` pointer moved in the range.
+- No CI has run on `2b91a52f` (unpushed). During this review a peer session committed `9e9e0430` (support-safe copy follow-up; no Story 5.6 file) on top of it.
+- Verified in a clean rsync copy at `2b91a52f`:
+  - Release package-mode IntegrationTests build: 0 warnings, 0 errors.
+  - Source mode: `dotnet restore tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -p:UseNuGetDeps=false -m:1 -v:q`, then `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore`: 0 warnings, 0 errors. The pass-38 CS0101/CS0579/CS1704 "blocker" was stale package-mode restore state, not a defect.
+  - Live: `DomainServiceProcessRejectsUnauthenticatedDirectRequest` PASSED (HTTP 401; it calls the tenants host directly).
+  - The other two changed tests could not run. Every Dapr sidecar exited with `failed to create watcher: ... no space left on device`, because the host's inotify watch table was full (1,048,543 of 1,048,576 watches, held by VS Code server processes). Their pass-38 1/1 results are not re-verified here.
+- Producer check: EventStore sets `CommittedEventSequence = record.EndSequence` (`references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:2781`). `TenantProjectionHandler` stamps `tenant-sequence:{evt.SequenceNumber}` (`src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:123`, `:246-247`). Both count the same aggregate stream, so patch 2's equality is the invariant the UI's `HasReached` relies on.
+- Triage: 36 findings → 0 decisions, 5 patches (14 findings), 2 defers (4 findings, both new), 18 rejected. Four findings were also partly rejected (BH1, BH4, BH5, BH10).
+
+- [ ] [Review][Patch] Check the live create and add statuses through the real UI command gateway [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:369] — medium.
+  - Pass 38 (Verification Gap 1) asserts EventStore's raw `CommandStatusResponse`: tenant, domain, aggregate, positive event count and positive committed sequence.
+  - The UI keeps `CommittedEventSequence` only when more holds (`src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:636-718`):
+    - the status is fetched by `MessageId` (`:597`) and its `CorrelationId` echoes the tracked one;
+    - `MessageId` equals the tracked one and `StatusCode` matches the status;
+    - `EventCount <= CommittedEventSequence`.
+  - The test fetches status by `accepted.CorrelationId` (`:464`) and checks none of those. A live status with `messageId: null` (legacy correlation-primary records do this) passes every new assertion while the UI shows "unable to verify", which is the gap pass 38 said it closed.
+  - The Aha create status gets only `CommittedEventSequence.HasValue` (`:357`), with no scope or `> 0` check.
+  - Fix:
+    - In `Aha_moment_demo_revokes_sample_access_from_tenant_events`, keep the create and add `SubmitCommandRequest`s.
+    - Build `new TenantCommandGateway(gatewayClient, new UlidFactory(), statusClient)`: a real `EventStoreGatewayClient`, FrontComposer's `Hexalith.FrontComposer.Shell.Services.Lifecycle.UlidFactory`, and a bearer-authenticated `statusClient` on `_fixture.CommandApiClient.BaseAddress`. This follows `LoadPersistedAuditConsumerSnapshotAsync` (`:606-670`).
+    - For each command, call `GetStatusAsync(new TenantCommandTrackingHandle(request.MessageId, status.CorrelationId, tenantId))`. Assert `HasVerifiedCommandIdentity` and `CommittedEventSequence == status.CommittedEventSequence`.
+    - `InternalsVisibleTo` already covers IntegrationTests (`src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj:14`).
+- [ ] [Review][Patch] Pin the live committed sequence to the projection version and the event range [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:172] — medium.
+  - The UI confirms a correction only when the projection's `tenant-sequence:N` reaches the command's committed sequence (`src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionPreviewSnapshot.cs:271-273`, `:384`; `TenantLifecycleProjectionVersion.HasReached`). The two values come from different producers (see the producer check above).
+  - The Generated test holds both `createStatus.CommittedEventSequence` and `persisted.ProjectionVersion` but checks only the prefix (`:172`). The Aha test checks only `add > create` (`:375`).
+  - UI tests pair the two values on matching scales by hand (`tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionPreviewSnapshotTests.cs:121-124`).
+  - If the scales drift (off by one, or start against end of batch), corrections never confirm or confirm early, and every live assertion still passes.
+  - Fix:
+    - At `:172`, assert `persisted.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + createStatus.CommittedEventSequence.Value.ToString(CultureInfo.InvariantCulture))`.
+    - At `:375`, assert `addStatus.CommittedEventSequence.Value.ShouldBe(createStatus.CommittedEventSequence.Value + addStatus.EventCount.Value)`. Each test uses a fresh tenant, so no other command writes to that stream.
+    - Run both tests live before closing; this review could not (see the inotify bullet above).
+- [ ] [Review][Patch] Correct the README description of `src/Hexalith.Tenants/` [README.md:58] — low, pre-existing.
+  - It reads "REST API host, auth, validation, DAPR actors".
+  - `src/Hexalith.Tenants/Program.cs:39` calls it a domain service, and `:105` says "Tenants hosts no actors itself". It serves the Dapr-invoked `/process`, `/project` and `/query` endpoints plus EventStore's command controllers (`:152`).
+  - The new `Hexalith.Tenants.Api/` line (`:55`) also claims "REST API host". Pass-37 patch 5 corrected this tree but missed this line.
+  - Fix: for example `# Domain service host: DAPR-invoked endpoints, auth, validation, bootstrap`.
+- [ ] [Review][Patch] Remove the orphaned `Hexalith.EventStore.Contracts.Results` using [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:17] — low.
+  - `DomainServiceWireResult` was its only consumer, and the pass-38 rewrite deleted that read. The namespace's other types (`DomainResult`, `DomainServiceWireEvent`) are unused.
+  - IDE0005 is not enforced, so the build stays green.
+- [ ] [Review][Patch] Complete CONTRIBUTING's "Run Tests" quick list [CONTRIBUTING.md:36] — low, pre-existing.
+  - `:36-38` lists only Contracts, Server and UI.
+  - The same file's full list (`:154-161`) also has Client, Testing, AppHost, IntegrationTests and Sample.Tests. A contributor who stops at the quick list skips four blocking projects (`.github/workflows/ci.yml:26-34`).
+  - Fix: list the blocking projects there too, or replace the block with a pointer to the full list.
+- [x] [Review][Defer] The pass-38 live status-proof assertions run only in the advisory, already-red aspire tier [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:158] — deferred: pre-existing CI tiering; pass-31 decision 2 kept the tier advisory. New ledger entry, related to the `aspire-continue-on-error` entry (`deferred-work.md:3726`) and the pass-33 ETag entry (`:3912`). At `c3577147` (run 38039239192), the Generated test failed at `:122` on the `tenants-api` `/alive` SSL timeout, before its new assertions, inside a `continue-on-error` job. So patches 1 and 2 run only locally until a blocking lane carries status-proof checks.
+- [x] [Review][Defer] `project-context.md` omits `AppHost.Tests` from blocking Tier 2 [_bmad-output/project-context.md:112] — deferred: the fix edits an agent-context file. `.github/workflows/ci.yml:32-34` runs `tests/Hexalith.Tenants.AppHost.Tests` next to `Server.Tests` in `integration-test-projects`.
+
+#### Rejected (pass 39)
+
+- AA3 + ECH7 + VG-O1, "spec `done` vs sprint `review`": the fix edits the spec under review, and this review's status sync sets both. Pass-35 BH1 and pass-37 VG-O1 were rejected the same way.
+- AA4 + BH6 + ECH9, "the pass-38 record has no head commit, SHA-256, `not archived` or tally, and is filed under Review Decision after pass 27": the fix edits the spec under review. Pass 38 had no new defers, so it owed no ledger section.
+- AA5 + BH9, "a new Debug/source build blocker (CS0101/CS0579/CS1704) is recorded only in prose, with no command or ledger entry": false. In a clean copy at `2b91a52f`, a source-mode restore plus a Debug build of IntegrationTests passed with 0 warnings and 0 errors (commands above). Passes 5 and 6 saw the same stale-restore CS1704. The missing command and the missing guard and `git diff --check` evidence are spec edits; both checks pass at HEAD.
+- AA7, ECH5 and BH3 (status part), "the 401 test checks only the status code and cannot tell which credential is missing": low. EventStore's `DomainServiceTrustBoundaryTests` own credential granularity. Per-credential cases would need minted workload and app-channel tokens, which is more than a direct correction. The test passed live here.
+- AA7 and BH4 (naming parts), "the PascalCase name breaks the file's snake_case style": false. The Hexalith baseline requires PascalCase test names, and this story already aligned its review tests to PascalCase (`:985`).
+- BH3 (coverage part), "authorized `/process` dispatch coverage is gone": false. `CommandApiRuntimeIntegrationTests.Process_endpoint_dispatches_create_tenant_command` (`:111`) covers it in process, and every live create or add command reaches `/process` through EventStore with workload credentials.
+- BH4 (envelope and trait parts), "the full `CreateTenant` envelope is dead code, and the test lacks a Tier trait": false. The envelope is still sent and shows that a well-formed command is refused only for missing credentials. The old test had no trait either.
+- BH1 (`GetValueOrDefault` part), "it weakens the add comparison": false. `HasValue` is asserted on the line before (`:357`).
+- BH5 (claim part), "pass 38's 'EventStore actor and HTTP tests also cover proof production' names no test": the fix edits the spec under review.
+- BH10 (IntegrationTests part), "README Test Requirements omits IntegrationTests": false. The list matches CI's blocking projects (`.github/workflows/ci.yml:26-34`). IntegrationTests is the advisory aspire tier, and CONTRIBUTING's full list (`:160`) includes it.
+- ECH1, "the Aha add step does not skip on `PublishFailed`": false. The `Completed` assertion predates this diff, and the create step has already shown that publication works, so failing loudly on an unexpected `PublishFailed` is correct.
+- ECH8 + BH12, "the principal-swap defer's owner is Story 5.6, which is closing": false. The owner field names the code area, as the sibling entry's "Owners: Tenants bootstrap and quickstart documentation" does. `bmad-loop-sweep` sweeps open ledger entries whatever their story's status.
+- BH7, "the fix pass left the pass-37 rejected spec items open": false as a defect. They were rejected under the spec-edit rule, so nothing was owed.
+- BH8, "no completion note or recorded checks for the pass-37 and pass-38 fixes": the fix edits the spec under review. This review verified the outcome (guard, both builds, live 401).
+- AA8 + ECH11, "`2b91a52f` is a `feat:` subject for test and docs work, and it is unpushed": low. Seven pushed `feat:` commits since `v5.8.0` already set the next minor bump. The peer commit `9e9e0430` now sits on top, so a reword means rewriting two commits under an active session.

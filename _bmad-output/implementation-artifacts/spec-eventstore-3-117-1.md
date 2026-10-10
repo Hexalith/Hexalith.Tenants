@@ -1,11 +1,12 @@
 ---
-title: 'Update EventStore dependencies to 3.117.1'
+title: 'Update EventStore dependencies to 3.120.0'
 type: 'chore'
 created: '2026-10-08'
 status: 'in-progress'
 route: 'oneshot'
+revised: '2026-10-10'
 review_loop_iteration: 0
-baseline_commit: '1846c7128cf0f6b16f9e62f38032bcab78e26e38'
+baseline_commit: '9e9e04308ea1060010a64bb8b800e755c4aaf99d'
 context: []
 ---
 
@@ -13,13 +14,25 @@ context: []
 
 ## Intent
 
-**Problem:** The user requests EventStore `3.117.1` after the verified `3.117.0` dependency refresh.
+**Problem:** The user requests EventStore `3.120.0` from the committed `3.119.0` dependency catalog.
 
-**Approach:** Update the single Builds-owned EventStore property so all 13 family packages use exactly `3.117.1`, refresh live authoritative evidence with supported tooling before selecting the version, and verify the Tenants package consumer. Preserve previous evidence and unrelated work. Do not stage, commit, push, move gitlinks, initialize nested modules, change package policy or perform product migrations.
+**Approach:** Update the single Builds-owned EventStore property so all 13 family packages use exactly `3.120.0`, refresh live authoritative evidence with supported tooling before selecting the version, and verify the Tenants package consumer. Preserve previous evidence and unrelated work. Do not stage, commit, push, move gitlinks, initialize nested modules, change package policy or perform product migrations.
 
 </frozen-after-approval>
 
 ## Implementation Notes
+
+### 2026-10-10 continuation to 3.120.0
+
+- On 2026-10-10, the user revised the frozen target from `3.117.1` to `3.120.0`. Historical notes and evidence below remain records of the prior run. The current Builds checkout is clean at `2cf00028bbe563d80d4d12b5fb2054914f14fcb6` with a committed `3.119.0` catalog; the root worktree has unrelated existing edits that are preserved.
+- The supported pre-edit EventStore-only audit cannot start feed discovery from the checked-in prior audit: it reports `unrequested family 'hexalith-folders' changed its catalog selection.` A supported full audit against committed Builds `2cf00028bbe563d80d4d12b5fb2054914f14fcb6` succeeded for 305 packages in complete mode: all 13 EventStore IDs are listed with latest stable `3.120.0` and selected baseline `3.119.0`.
+- Updated only `HexalithEventStoreVersion` from `3.119.0` to `3.120.0` in the Builds-owned catalog. Byte checks confirm the file retains its UTF-8 BOM and 354 CRLF line endings. The central catalog validator passes for 305 entries and the SDK/tool exception validator passes for 15 entries.
+- Post-edit supported audit generation fails as designed because the catalog is dirty relative to committed Builds `2cf00028bbe563d80d4d12b5fb2054914f14fcb6`. The checked-in audit validator exits 1 with 1,563 errors, including a catalog hash mismatch and unavailable historical revisions. Deterministic validation of the saved pre-edit full audit also exits 1 with 51 errors: one expected temporary catalog-path mismatch and 50 unavailable historical revision errors. The live discovery output is evidence of availability, not accepted audit provenance; governance remains pending.
+- Both Release solution restores and warning-as-error builds pass with zero warnings/errors, including the standalone FrontComposer package lane. Six required test projects pass **5,228 tests** with zero failures/skips; the two focused domain-service HTTP tests pass. All nine owned production resolved assets contain only EventStore `3.120.0` packages. Debug/source and Release/package evaluations remain complementary at `net10.0`. Root and Builds whitespace checks and the current-baseline gitlink declaration pass.
+- Review follow-up: the six AppHost tests pass. The package-mode command API runtime class passes 85 of 86 tests; its `Commands_endpoint_rejects_client_supplied_globalAdmin_extension_metadata` test expects HTTP 400 but receives 202 under both committed baseline `3.119.0` and target `3.120.0`. This exact pre-existing failure is already recorded in `deferred-work.md` (2026-10-08 pass 17). The source build uses EventStore checkout `37451b529ab21869fa4e2806968b5143ddeea14b` (`v3.119.0-5-g37451b52`), whereas the Release package build resolves published `3.120.0`; source tests do not prove target-package behavior.
+- Current commands, results, asset hashes, source/package observations, pre-edit generator output, and raw logs are recorded in `dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json` and its adjacent ZIP. The prior `3.117.1` artifacts remain unchanged. No stage, commit, push, or gitlink movement was performed.
+
+### Historical 3.117.1 run
 
 - This is a small follow-up to the completed dependency refresh. Existing dirty root documentation and Builds audit evidence are authorized prior work and must be preserved. Root baseline is `1846c7128cf0f6b16f9e62f38032bcab78e26e38`; Builds begins at `893db14b25843db140942d839e4d659584221315`.
 - Change `references/Hexalith.Builds/Props/Directory.Packages.props` only at `HexalithEventStoreVersion`; preserve its BOM/CRLF. Tenants' `Directory.Packages.props` is a read-only import shim.
@@ -43,8 +56,10 @@ context: []
 
 ## File List
 
+- `_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json`
+- `_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-raw-logs-2026-10-10.zip`
 - `references/Hexalith.Builds`
-- `references/Hexalith.Builds/Props/Directory.Packages.props` -- single aligned EventStore pin change.
+- `references/Hexalith.Builds/Props/Directory.Packages.props` -- current single aligned EventStore pin change to `3.120.0` (historical `3.117.1` change was superseded by intervening commits).
 - `references/Hexalith.Builds/Tools/package-version-audit.json` -- supported pre-edit registry evidence, subsequently committed externally.
 - `_bmad-output/project-context.md` -- current prepared dependency and pending-governance facts.
 - `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
@@ -52,6 +67,8 @@ context: []
 - `_bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.117.1-raw-logs-2026-10-08.zip`
 
 ## Completion Notes List
+
+The 2026-10-10 continuation prepares and verifies the `3.120.0` package upgrade. Supported audit regeneration still requires a committed Builds catalog; this spec remains `in-progress` until that governed acceptance occurs. Its `baseline_commit` was reset to the root HEAD at continuation start so the gitlink check covers this run without attributing intervening historical pointer changes to it.
 
 The observed Builds transition is external and preserved, not performed by this implementation: `references/Hexalith.Builds` moves from baseline `893db14b25843db140942d839e4d659584221315` to checkout `2169b866912786536c6e338440b8436e5b826c88`. That audit-only commit records the live candidate evidence consumed by the prepared `3.117.1` update. No root index or gitlink was staged or changed by this run. The initial declaration check did not recognize the table under Implementation Notes; adding the required File List records this observed scope without reverting concurrent work.
 
@@ -73,3 +90,25 @@ The one configured reviewer completed the focused continuation review with findi
 | R7 | The spec's parsed-row equality claim uses byte-equality wording. | low | defer | The verification compares parsed package/family objects with Python equality; it establishes structural equality, while exact byte preservation is separately established for the catalog by replacement/hash checks. The wording conflates these guarantees. This finding's fix edits a spec, so the one-shot review routes it to deferred work; the original sentence remains historical and this row states the actual proof. |
 
 The six independent evidence omissions were corrected locally without changing dependency pins, product behavior, validation policy or consumer results. One cosmetic spec wording item was appended to deferred work. All observed source/package evaluation and final-assets archive hashes pass. Governance acceptance remains the existing disclosed blocker, so the spec remains `in-progress` rather than claiming a completed audited update. No staging or commit was performed.
+
+### 2026-10-10 continuation review
+
+The Blind Hunter finding floor was 10; all 13 findings were checked against the current files. `HALT` reflects the existing no-commit constraint, so this continuation remains `in-progress`.
+
+| ID | Verdict | Route | Evidence and result |
+| --- | --- | --- | --- |
+| R1 | high | HALT | A fresh root checkout still points to committed Builds `2cf0002` with EventStore `3.119.0`. The prepared `3.120.0` pin needs a governed Builds commit, accepted audit and root gitlink change; the frozen intent forbids those actions in this run. |
+| R2 | medium | defer | Saved pre-edit audit validation has 50 unavailable historical Git origin revisions in addition to one temporary path mismatch. This inherited Builds provenance gap is recorded in `deferred-work.md`; no history or audit data was invented. |
+| R3 | false | reject | The `retained` decision belongs to the committed `3.119.0` baseline audit. The `3.120.0` selection is an uncommitted preparation and is explicitly not represented as accepted owner review or audit evidence. |
+| R4 | false | reject | The full refresh is used only for live EventStore candidate discovery after the incremental audit rejected Folders drift. No unrelated family decision is adopted or claimed as accepted. |
+| R5 | low | reject | Validation against the saved temporary catalog introduces one known `catalogPath` mismatch, stated separately from the 50 historical revision errors. A canonical-path rerun requires a clean committed checkout and would not remove the inherited history errors. |
+| R6 | medium | patch | Recorded EventStore source checkout `37451b529ab21869fa4e2806968b5143ddeea14b` (`v3.119.0-5-g37451b52`) and clarified that the source lane is not a build of the published `3.120.0` release. |
+| R7 | medium | patch | Ran the six AppHost tests in Release package mode; all six pass. The exact command and log were added to the evidence archive. |
+| R8 | medium | patch | Ran the command API runtime class in Release package mode: 85/86 pass. Its one HTTP 400-versus-202 test fails identically under `3.119.0` and `3.120.0` and was already recorded in deferred work on 2026-10-08; no new regression or duplicate ledger entry is claimed. |
+| R9 | false | reject | The evidence claims restore, build, package resolution and focused HTTP tests only. It does not claim a running Dapr/AppHost smoke test or operational compatibility. |
+| R10 | low | patch | Evidence now names `src/Hexalith.Tenants/Hexalith.Tenants.csproj` as the evaluated source/package project. The nine production assets and standalone solution build cover package resolution in the other owned projects without claiming equivalent per-project evaluation. |
+| R11 | low | patch | Added the exact evaluation commands, UTC file capture times, exit results, root/Builds revisions, catalog hash and source revision to both observations. Archived the raw evaluation outputs. |
+| R12 | false | reject | The assets record explicitly states that it is a final-restored-worktree snapshot after tests, not a per-build graph. Separate build logs and the standalone package build provide the build-lane results. |
+| R13 | false | reject | Current notes and File List labels identify the `3.120.0` evidence separately from the named `3.117.1` historical artifacts; the spec explicitly says no accepted `3.120.0` audit exists. |
+
+No commit, audit acceptance or gitlink movement was performed. The supplemental integration failure and governance blockers prevent a `done` status.
