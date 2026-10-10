@@ -2,7 +2,7 @@
 title: 'Preview, confirm, and link a tenant correction'
 type: 'feature'
 created: '2026-10-02'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: 11e65e37f0fbf6649642a512052eebd37d50166d
@@ -2705,3 +2705,59 @@ Diff reviewed: Tenants `d88bed1e..3fab3094`. `d88bed1e` committed the pass-31 re
 - VG3, "no test runs the demo token generators": low. This review ran the bash generator and decoded `"global_admin":true` in a valid payload; automating that needs a shell harness the repository does not have.
 - AA7, "the test file was not moved unchanged, and the File List drops the old path": false as a defect. CI's integration tier applies no trait filter, and the rename reflects the added tenants assertions. The File List part edits the spec under review.
 - AA8, "the CI coverage step was never checked for the new project": false. Under CI's `--coverage --coverage-output-format cobertura` invocation the project passes 6/6, and its report lists only `Hexalith.Tenants.AppHost` and `Hexalith.Tenants.Aspire`. Both are outside `coverage-line-scope`, and `scripts/validate-coverage.py` merges reports by union.
+
+### Review Findings (pass 35: pass-33 fix pass `b00d6d1b`)
+
+Review date: 2026-10-10. Pass 34 ran inside the fix pass.
+
+Diff reviewed: Tenants `176d0670..b00d6d1b`. `176d0670` committed the pass-33 records; `b00d6d1b` is the user's pass-33 fix pass, pushed (HEAD = `origin/main`). Input: 292-line scratch diff, 34,204 bytes, SHA-256 `ada2f2283630f5331c8b8379323a5065ed865f39d8fba4fa46b89867004b37f2`, not archived. No `references/` pointer moves in the range.
+- Four layers ran (Blind Hunter, Edge Case Hunter, Verification Gap, Acceptance Auditor), and none failed. Verification Gap found no gaps.
+- Gitlink guard: PASSES at HEAD and with `--ref b00d6d1b`; all eight baseline-to-HEAD pointers are declared.
+- Verification, in an isolated rsync copy at `b00d6d1b` (Release, package mode):
+  - Contracts.Tests 154/154, `Hexalith.Tenants.AppHost.Tests` 6/6, complete UI 3,973/3,973, complete Server 828/828. Server includes `AhaMomentDemoDocumentationTests`, which reads the edited demo scripts.
+  - `dotnet build Hexalith.Tenants.Standalone.slnx -c Release -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false` passed with 0 warnings and 0 errors.
+  - KILLED, the three pass-33 survivors: moving the tenants `.WithGeneratedEventStoreAppChannelToken()` into the symmetric `else` block (1 failure, the Keycloak test); the same for sample (1); giving sample the tenants token parameter (2).
+  - KILLED: capture `Metadata.ETag ?? Metadata.ProjectionVersion` (2 failures) and capture `Metadata.ETag` (3).
+  - Correction to pass 33: the "Pin capture independence" premise was false. `CorrectionCaptureAlwaysReadsWithoutValidatorAndReturnsOnlyComposedFacts` (`TenantQueryGatewayTests.cs:67-84`, present since `cefefa26`) passes `"secret-etag"` with `"secret-version"`, so it already killed the `ETag ?? ProjectionVersion` mutant. Pass 33 ran only the renamed test. The applied patch is harmless; it adds a second witness through the real BFF composition.
+- CI:
+  - At `176d0670`, `ci / build-and-test` FAILED on exactly `SolutionStructureTests.StandaloneSolutionContainsExactOwnedInventoryAndNoReferenceEntries` (Contracts 153/154), as pass 33 predicted. `origin/main` was red from 07:06Z to 07:28Z.
+  - At `b00d6d1b`, `ci / build-and-test` PASSED (job 114162193614). The advisory aspire tier was still running at review time. Story Guards failed only `validate-remove-focus-in-chromium`, the carried Chromium exit-124 defer.
+- Triage: 36 findings → 0 decisions, 5 patches (12 findings), 0 defers, 24 rejected.
+
+- [ ] [Review][Patch] Give the pass-34 ledger section its "Diff reviewed:" line [_bmad-output/implementation-artifacts/deferred-work.md:3914] — low.
+  - The fix pass added the missing pass-32 line (`:3892`) and, in the same commit, opened the new pass-34 section straight with its entry. This is the 9th recurrence.
+  - Fix: add a "Diff reviewed:" line. Name the tree (baseline `11e65e37` to `176d0670` plus the uncommitted pass-33 fix pass, later committed as `b00d6d1b`), the hashed input the spec's pass-34 record gives (3,398,875 bytes, SHA-256 `17c0ce1a…`), and the 17-row tally: 0 patches, 16 defers (1 new, 15 carried), 1 rejected.
+- [ ] [Review][Patch] Correct the pass-34 ledger entry's provenance and scope [_bmad-output/implementation-artifacts/deferred-work.md:3918] — low.
+  - The entry says the behavior "predates the current Story 5.6 patch" without naming its origin. The `NUGET_USER` guard and the `NuGet/login` step came from `390da330` ("ci(release): publish NuGet packages through trusted publishing", 2026-10-08). That commit is inside the story's baseline range; at `11e65e37` the workflow has neither.
+  - The scope is understated. The guard is the job's first step (`recover-partial-release.yml:34`), so it also blocks a GitHub-Release-only repair (`scripts/publish-partial-release.sh:46-52`), not only a container-only one.
+  - The entry also does not link the related pass-25 entry at `:3871` (Trusted Publishing account guards lack executable tests).
+  - Fix: name `390da330` as the introducing commit, say "container- or GitHub-Release-only recovery", and cross-reference the pass-25 entry.
+- [ ] [Review][Patch] Update the contributor docs for the new AppHost test project [README.md:113] — low.
+  - `README.md:113` says the standalone solution "contains all 17 owned projects". `Hexalith.Tenants.Standalone.slnx` now lists 19 (18 before `b00d6d1b`). `SolutionStructureTests` is the real inventory check, so the count only rots.
+  - `CONTRIBUTING.md:154-160` ("Run the test suite by project") lists every other test project but not `tests/Hexalith.Tenants.AppHost.Tests`, a blocking CI project since pass 31. A contributor who follows it skips the release-gating model checks.
+  - Fix: drop the count ("contains every owned project") or make it 19, and add the AppHost.Tests `dotnet test` line to `CONTRIBUTING.md:154-160`.
+- [ ] [Review][Patch] Make the Tenants Aspire helper's token remark name the API that wires both sides [src/Hexalith.Tenants.Aspire/HexalithTenantsServerExtensions.cs:26] — low.
+  - "or a supplied `APP_API_TOKEN`" invites `WithEnvironment("APP_API_TOKEN", …)` on the project only. The sidecar then never presents the token, and every sidecar call into the service is rejected. The supported way to supply a token is `WithEventStoreAppChannelToken(token)` (`references/Hexalith.EventStore/src/Hexalith.EventStore.Aspire/HexalithEventStoreAppChannelExtensions.cs:47-60`), which sets the project and its sidecar together.
+  - The series now reads "…, and JWT/OIDC authentication, and an app-channel token…". The method names are in `<c>` while the file links its other EventStore helpers with compiler-checked `<see cref>`. The `<returns>` at `:46` still lists only "bootstrap id, auth, references".
+  - Fix: rewrite the clause as one series ending "…, JWT/OIDC authentication, and an app-channel token shared with its own DAPR sidecar". Reference `<see cref="HexalithEventStoreAppChannelExtensions.WithGeneratedEventStoreAppChannelToken"/>` or `<see cref="HexalithEventStoreAppChannelExtensions.WithEventStoreAppChannelToken"/>` with a supplied secret parameter. Add the token to `<returns>`.
+- [ ] [Review][Patch] Rename the Keycloak-mode graph test to cover its token checks [tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs:36] — low.
+  - `KeycloakAndEventStoreShareTheSameWorkloadSecretParameter` now also runs `AssertAppChannelTokensAsync` (`:50`). A token regression is reported under a workload-secret name; the MK1 and MK2 mutants above fail only this test. The symmetric sibling (`:54`) names both concerns.
+  - Fix: rename it, for example to `KeycloakModeSharesWorkloadSecretAndProtectsDomainServiceSidecarChannels`.
+
+#### Rejected (pass 35)
+
+- BH1 + ECH5 + AA1, "spec `done` vs sprint `review`": the fix edits the spec under review; this review's status sync sets both.
+- BH2, "`done` is declared without CI evidence and the red `176d0670` run is not recorded": low, and the fix edits the spec under review. This record carries both runs; `build-and-test` is green at `b00d6d1b`.
+- BH3 + ECH7 + AA2 (spec part), "the spec's pass-34 record gives a hash but no base or HEAD commit, and it cannot be reconstructed": the fix edits the spec under review. The size does not match `git diff 11e65e37 b00d6d1b` (1,979,075 bytes). The ledger half is patch 1.
+- BH4 + ECH8, "the pass-33 tally, header and ledger still say 8 patches, local and unpushed, after the commit-reword item became a Reject": the fix edits the spec under review. The ledger line was accurate at triage time, and the item carries its own resolution line.
+- BH5 + AA3, "the File List omits `Hexalith.Tenants.Standalone.slnx` and `src/Hexalith.Tenants.Aspire/HexalithTenantsServerExtensions.cs`": low, and the fix edits the spec under review. Neither file is under `references/`, so the gitlink guard is unaffected.
+- BH7 (reverse direction), "a `ProjectionVersion ?? ETag` capture fallback would survive": false as a defect. `TenantCorrectionPreviewSnapshot.CanSubmit` (`TenantCorrectionPreviewSnapshot.cs:59`) requires `TenantLifecycleProjectionVersion.IsOrdered`, which accepts only `tenant-sequence:` versions. A store ETag such as `1` therefore fails closed, and since pass 29 the producer ETag is derived from the same version.
+- BH7 (forward direction) + ECH12 + AA6, "the pass-33 ETag premise was false and the patch closed no gap": low, and the fix edits a spec record. This review records the correction above, and the test change is harmless.
+- BH8 + AA5, "the pass-33 follow-up verification records no mutants, no Server.Tests run and no standalone build": the fix edits the spec under review. This review ran all three: mutants killed, Server 828/828, standalone build clean.
+- BH9 + ECH9, "nothing stops the trailing period from coming back": low, and the fix adds a test guard for an unlikely regression.
+- BH12 (exclusivity part) + ECH1, "nothing checks that the tenants or sample token stays off other resources": low. No wiring path to another resource was shown, and the fix adds a guard loop over the whole resource graph.
+- BH13 + ECH11 + AA8, "`b00d6d1b` is again a `feat:` subject for test and doc changes; the commit-reword rejection leaves the changelog consequence unrouted": low. Both commits are on `origin/main`, so a fix would rewrite published history, and the subject passed the Commitlint workflow. Any release notes are generated after the fact.
+- BH14, "the pass-32 provenance line omits the new/carried split, input size and SHA-256": low. The line matches what the pass-33 patch asked for, and the spec's pass-32 table marks each carried defer.
+- BH15, "the pass-34 section is filed between pass 30 and the Review Decision, not after pass 33": the fix edits the spec under review.
+- ECH2, "nothing checks the generated token's length": false. `WithGeneratedEventStoreAppChannelToken` always produces 64 hex characters from `RandomNumberGenerator.GetBytes(32)` (`HexalithEventStoreAppChannelExtensions.cs:32`), in a package Tenants does not own.
+- ECH3, "the helper should wire the token itself or throw": low. Pass 33 chose caller-duty documentation. Outside Development an omitted token fails loudly at startup, and changing the published helper's behavior adds surface. Patch 4 fixes the wording.
