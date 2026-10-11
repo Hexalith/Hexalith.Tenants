@@ -7,6 +7,7 @@ using FluentValidation;
 using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Client.Streams;
 using Hexalith.EventStore.Client.Registration;
 using Hexalith.EventStore.Configuration;
 using Hexalith.EventStore.Contracts.Projections;
@@ -58,6 +59,14 @@ builder.Services.AddHealthChecks()
 // replacing the hand-rolled DaprTenantProjectionStateStore + TenantProjectionWritePolicy).
 builder.Services.AddEventStoreReadModelStore();
 builder.Services.TryAddSingleton(TimeProvider.System);
+// Current TenantOwner evidence is rebuilt from the authoritative tenant stream on every request.
+string ownerDaprEndpoint = Environment.GetEnvironmentVariable("DAPR_HTTP_ENDPOINT")
+    ?? $"http://127.0.0.1:{Environment.GetEnvironmentVariable("DAPR_HTTP_PORT") ?? "3500"}";
+builder.Services.AddHttpClient<TenantOwnerSourceGateway>(client =>
+    client.BaseAddress = new Uri(ownerDaprEndpoint.Replace("localhost", "127.0.0.1", StringComparison.OrdinalIgnoreCase)));
+builder.Services.AddScoped<IAuthoritativeEventStreamReader>(provider =>
+    new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
+        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(10)));
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddHostedService<TenantBootstrapHostedService>();
