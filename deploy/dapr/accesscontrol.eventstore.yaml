@@ -3,8 +3,8 @@
 # Bind this Configuration only to the eventstore receiver sidecar.
 #
 # EventStore remains the command gateway and aggregate actor host. Admin.Server may
-# delegate reads and writes to EventStore; Tenants, Sample, and Admin.UI are not
-# granted broad service-invocation access to EventStore.
+# delegate reads and writes; the Tenants API and domain host receive only the
+# readiness, business, and bootstrap routes they invoke.
 apiVersion: dapr.io/v1alpha1
 kind: Configuration
 metadata:
@@ -21,4 +21,26 @@ spec:
         operations:
           - name: /**
             httpVerb: ['GET', 'POST', 'PUT']
+            action: allow
+      - appId: tenants-api
+        defaultAction: deny
+        trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+        namespace: "{env:DAPR_NAMESPACE|hexalith}"
+        operations:
+          - name: /ready
+            httpVerb: ['GET']
+            action: allow
+          - name: /api/v1/queries
+            httpVerb: ['POST']
+            action: allow
+          - name: /api/v1/commands
+            httpVerb: ['POST']
+            action: allow
+      - appId: tenants
+        defaultAction: deny
+        trustDomain: "{env:DAPR_TRUST_DOMAIN|hexalith.io}"
+        namespace: "{env:DAPR_NAMESPACE|hexalith}"
+        operations:
+          - name: /api/v1/commands
+            httpVerb: ['POST']
             action: allow

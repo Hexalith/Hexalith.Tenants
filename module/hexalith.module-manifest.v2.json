@@ -172,6 +172,11 @@
                 "key": "Tenants:AppChannelToken",
                 "source": "secret",
                 "reference": "domain-app-channel-token"
+              },
+              {
+                "key": "Tenants:ApiDaprToken",
+                "source": "secret",
+                "reference": "api-dapr-token"
               }
             ]
           }
@@ -347,6 +352,10 @@
           {
             "name": "domain-app-channel-token",
             "configurationKey": "Tenants:AppChannelToken"
+          },
+          {
+            "name": "api-dapr-token",
+            "configurationKey": "Tenants:ApiDaprToken"
           }
         ],
         "dynamicSecretNamespaces": [],

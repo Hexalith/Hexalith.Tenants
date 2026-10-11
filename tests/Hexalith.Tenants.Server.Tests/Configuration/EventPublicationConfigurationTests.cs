@@ -467,10 +467,29 @@ public class EventPublicationConfigurationTests {
         Scalar(eventStore, "spec", "accessControl", "defaultAction").ShouldBe("deny");
         Scalar(admin, "spec", "accessControl", "defaultAction").ShouldBe("deny");
 
-        SinglePolicy(eventStore, "eventstore-admin");
-        Policies(eventStore).Select(policy => Scalar(policy, "appId")).ShouldNotContain("tenants");
-        Policies(eventStore).Select(policy => Scalar(policy, "appId")).ShouldNotContain("sample");
-        Policies(eventStore).Select(policy => Scalar(policy, "appId")).ShouldNotContain("eventstore-admin-ui");
+        Scalar(eventStore, "spec", "accessControl", "trustDomain").ShouldBe("{env:DAPR_TRUST_DOMAIN|hexalith.io}");
+        Policies(eventStore).Select(policy => Scalar(policy, "appId"))
+            .ShouldBe(["eventstore-admin", "tenants-api", "tenants"], ignoreOrder: true);
+        foreach (YamlMappingNode policy in Policies(eventStore)) {
+            Scalar(policy, "defaultAction").ShouldBe("deny");
+            Scalar(policy, "trustDomain").ShouldBe("{env:DAPR_TRUST_DOMAIN|hexalith.io}");
+            Scalar(policy, "namespace").ShouldBe("{env:DAPR_NAMESPACE|hexalith}");
+        }
+
+        Sequence(SinglePolicy(eventStore, "eventstore-admin"), "operations")
+            .OfType<YamlMappingNode>()
+            .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
+            .ShouldBe(["allow GET,POST,PUT /**"]);
+        Sequence(SinglePolicy(eventStore, "tenants-api"), "operations")
+            .OfType<YamlMappingNode>()
+            .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
+            .ShouldBe(
+                ["allow GET /ready", "allow POST /api/v1/queries", "allow POST /api/v1/commands"],
+                ignoreOrder: true);
+        Sequence(SinglePolicy(eventStore, "tenants"), "operations")
+            .OfType<YamlMappingNode>()
+            .Select(operation => $"{Scalar(operation, "action")} {string.Join(',', ScalarValues(operation, "httpVerb"))} {Scalar(operation, "name")}")
+            .ShouldBe(["allow POST /api/v1/commands"]);
         Policies(admin).ShouldBeEmpty();
     }
 
