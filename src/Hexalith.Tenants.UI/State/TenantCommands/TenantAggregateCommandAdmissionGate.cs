@@ -547,6 +547,7 @@ public sealed class TenantAggregateCommandAdmissionGate
             {
                 SubmittedAtUtc = next.SubmittedAtUtc ?? current.SubmittedAtUtc,
                 CommittedEventSequence = next.CommittedEventSequence ?? current.CommittedEventSequence,
+                ConfirmedProjectionEvidence = next.ConfirmedProjectionEvidence ?? current.ConfirmedProjectionEvidence,
                 SourceAuditReference = current.SourceAuditReference,
                 SourceAuditTimestampUtc = current.SourceAuditTimestampUtc,
             }

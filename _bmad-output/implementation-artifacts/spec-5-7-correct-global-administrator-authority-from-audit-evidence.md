@@ -2,9 +2,9 @@
 title: 'Correct global administrator authority from audit evidence'
 type: 'feature'
 created: '2026-10-10'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
-review_loop_iteration: 2
+review_loop_iteration: 3
 baseline_commit: '66072cc410834e2c34f7d30f121e447940ea6fc6'
 context:
   - _bmad-output/project-context.md
@@ -66,6 +66,8 @@ context:
 - [x] `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor` and `tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs` — require Access category and ordered projection version on original-row rechecks, and prove a valid original on page two still yields the paired link.
 - [x] `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor` and its component tests — render neutral count/presence after an unavailable revoke projection even if the remove preview changes the message key; submission stays blocked.
 - [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorAuditProofLookupTests.cs` — prove duplicate exact corrective rows split across pages return no proof and `Complete == false`.
+- [x] Retain the complete projection that confirmed a correction before the sibling page or panel releases its lease; on audit return, require a fresh complete current projection and exact protected audit rows while preserving a previously confirmed pair after a later correction reverses the target state.
+- [x] Retain committed sequence from stale sibling status callbacks and a confirmed panel completion whose audit proof is delayed; exercise both paths and rendered grant handoff.
 
 **Acceptance Criteria:**
 - Given complete authorized system evidence, when correction opens, then the fixed command and all ten facts render; stale, partial or unsupported evidence blocks with recovery.
@@ -211,6 +213,7 @@ This review covered only the review-fix commits: 19 files, 1,534 diff lines (116
 - Review pass 3 refreshed open previews across system audit pages without global rows and added page tests with fixed proof provenance and unavailable original evidence. The earlier 22 review patches and these three follow-up findings are resolved; pre-existing projection and ambiguous-delivery risks are recorded in `deferred-work.md`.
 - Matrix coverage: restore/remove and paging in `GlobalAdministratorCorrectionPanelTests`; already-applied, last-admin, and self-removal in the panel/snapshot tests; duplicate/reconnect/ambiguous reconciliation in panel tests; unrelated and post-submit audit negatives in `GlobalAdministratorAuditProofLookupTests` and receipt recheck in `TenantAuditPageTests`. All covering tests ran in the full passing suites below.
 - Confirmed corrections may retry delayed audit proof without redispatch. Stored/published progress stays pending until Completed supplies the exact end sequence. A proof found while the panel closes is retained by the circuit registry before renderer application.
+- Review loop 3 retains the complete projection that actually confirmed each circuit-local completion. Audit return requires a fresh complete current projection at or beyond that version and exact protected original/corrective rows, so a later valid reversal does not erase the earlier command's receipt pair. The panel records a confirmed completion before waiting for delayed audit proof; stale sibling status callbacks keep the committed sequence before lease handoff.
 
 ## Spec Change Log
 
@@ -218,6 +221,7 @@ This review covered only the review-fix commits: 19 files, 1,534 diff lines (116
 - Review loop 1: legacy global projections have no ordered version. Added an explicit full-history replay rollout gate and fail-closed acceptance. This avoids treating a legacy null version, wall time, or an unrelated audit row as a causal baseline. KEEP the new handler's ordered version and exact command-sequence postcondition.
 - Review loop 1: prior browser validation did not render the new global correction controls. Added real EN/FR panel and paired receipt fixture coverage to the task and verification plan. This avoids claiming accessibility coverage from unrelated tenant correction fixtures. KEEP existing browser lanes and bUnit behavior tests.
 - Review loop 2: review found that the shared lease loses the source audit identity on sibling-page adoption and completion, and that cached off-page proof survives a same-circuit principal change. Added explicit origin retention, sibling-completion recovery, and authentication invalidation tasks and acceptance cases. This avoids pairing a command to a different same-target row or showing a prior principal's cached receipt. KEEP fixed-scope ULID locking, exact correlation/sequence proof, fail-closed projection and audit checks, EN/FR and browser evidence, all verified prior review patches, and the existing user-owned frozen intent. The committed implementation since the baseline is preserved; resetting it would violate the repository instruction to preserve existing changes.
+- Review loop 3: a sibling-confirmed correction can lose its pair if a later valid correction reverses the target before audit return. Retain the complete confirmation projection in circuit reconciliation and recheck a fresh complete current projection plus both protected audit rows. This avoids reconstructing an earlier postcondition from a later state. KEEP the frozen intent, exact command provenance, current authorization, and all existing implementation; the user explicitly requires preserving it, so this correction is applied in place.
 
 ## Review Triage Log
 
@@ -306,8 +310,58 @@ This review covered only the review-fix commits: 19 files, 1,534 diff lines (116
 | Review 5 edge: pending completion list grows in circuit | low — the list can increase repeat work, but ordinary per-circuit volume is small and removal must preserve delayed proof recovery. | reject |
 | Review 5 verification: rendered revoke sibling handoff is untested | medium — the grant handoff renders through the page, while the revoke test invokes the completion helper directly; removing the revoke call site would leave tests green. | patch |
 | Review 5 verification: server audit query provenance is untested | medium — model and DTO tests cover the fields separately, but the stored system audit query test does not assert both survive the query response. | patch |
+| Review 6 blind: sibling-confirmed pair lost after a later reversal | medium — `RebuildVerifiedCompletion` confirms the first command against the latest target presence, so a later valid opposite correction hides its earlier pair. | bad_spec; amend completion evidence in place under user preservation instruction |
+| Review 6 blind: submit/event clock skew | maybe-false — BFF and EventStore clocks differ; production clock measurements or a timestamp-order guarantee are still needed. | carried defer |
+| Review 6 blind: global replay may replace system tenant audit | medium — both projection handlers can write `audit:system`; this predates the story and remains deferred. | carried defer |
+| Review 6 blind: out-of-order global batch | maybe-false — ordered delivery by EventStore has not been established; this remains deferred. | carried defer |
+| Review 6 blind: concurrent global rebuild | maybe-false — aggregate projection serialization is unverified; this remains deferred. | carried defer |
+| Review 6 blind: ambiguous committed POST | medium — same existing fixed-scope delivery limit; the prior triage deferred it because no MessageId status lookup exists. | carried defer |
+| Review 6 blind: proof beyond 50 pages | low — the bounded complete walk fails closed beyond 2,500 rows; the previously considered query contract is outside frozen intent. | carried reject |
+| Review 6 blind: repeated pending proof walks | low — a circuit normally has few corrections; pruning can lose delayed recovery, as previously triaged. | carried reject |
+| Review 6 blind: manifest event topic mismatch | medium — the independently committed module manifest says `tenants-events` while AppHost uses `tenants.events`; this manifest change came from `711e1008`, outside Story 5.7. | defer |
+| Review 6 blind: manifest tenant API inventory incomplete | low — the independently committed manifest omits existing API operations; the manifest came from `711e1008`, outside Story 5.7. | defer |
+| Review 6 blind: manifest critical flow omits removal | low — its flow omits an already declared removal operation; the manifest came from `711e1008`, outside Story 5.7. | defer |
+| Review 6 blind: no live distributed smoke | low — the passing component, gateway, server and rendered browser lanes cover the changed seams; no deployable live stack was available for this review. | carried reject |
+| Review 6 edge: stale grant status loses committed sequence | medium — the stale callback calls `RetainOrReleaseGrantCompletion` before storing `status.CommittedEventSequence` in the lease. | patch |
+| Review 6 edge: stale removal status loses committed sequence | medium — the removal stale callback has the same ordering gap. | patch |
+| Review 6 edge: panel closes before delayed audit proof | medium — only a verified proof is remembered; a confirmed completion with missing proof leaves no pending registry entry. | patch |
+| Review 6 edge: retained pair lacks a new projection read | false — a retained pair was already projection-confirmed; receipt reopening reauthorizes and rechecks both protected audit rows. Fresh projection is required for a pending sibling completion. | reject |
+| Review 6 verification: manifest authentication fallbacks untested | medium — new fallback keys are absent from API authentication tests, but the `711e1008` manifest/API change is independent of Story 5.7. | defer |
+| Review 6 verification: rendered grant handoff misses sequence assertion | medium — the direct helper test prepopulates sequence and the rendered test covers removal only, so the grant call site can regress. | patch |
+| Review 7 blind: removal preview changes during Confirm | medium — removal replaces its reviewed preview before dispatch and checks only the new preview, so a changed count or version can bypass the operator's acknowledgment. | patch |
+| Review 7 blind: ambiguous committed POST | medium — carried: the same fixed-scope retry cannot resolve a committed correlationless delivery after projection change without a MessageId status lookup. | carried defer |
+| Review 7 blind: BFF/EventStore clock skew | maybe-false — carried: deployment clock ordering evidence is still absent. | carried defer |
+| Review 7 blind: audit proof past 50 pages | low — carried: the bounded complete walk fails closed beyond 2,500 rows and a new exact-reference query is outside frozen intent. | carried reject |
+| Review 7 blind: repeated pending proof walks | low — carried: circuits normally hold few completions, and pruning can lose delayed recovery. | carried reject |
+| Review 7 blind: replay may replace system tenant audit | medium — carried: both handlers can write `audit:system`; this predates the story. | carried defer |
+| Review 7 blind: out-of-order global batch | maybe-false — carried: EventStore batch ordering is unverified. | carried defer |
+| Review 7 blind: concurrent global rebuild | maybe-false — carried: upstream serialization is unverified. | carried defer |
+| Review 7 blind: manifest topic mismatch | medium — carried: independently committed manifest topic naming still needs schema confirmation. | carried defer |
+| Review 7 blind: manifest API inventory | low — carried: independent manifest operation inventory remains deferred. | carried defer |
+| Review 7 blind: manifest critical flow | low — carried: independent manifest flow membership remains deferred. | carried defer |
+| Review 7 blind: manifest authentication fallback tests | medium — carried: independent API and manifest change has no fallback authentication tests. | carried defer |
+| Review 7 edge: sibling confirms before sequence | medium — a correction-origin page can confirm on EventsStored, release the lease, then lose the later Completed sequence needed for causal pairing. | patch |
+| Review 7 edge: source fields reset sibling presentation | medium — `CreateReconciliation` omits the retained source fields, so the unchanged-lease comparison fails and can rebuild a withdrawn retry or removal presentation. | patch |
+| Review 7 edge: submit/event clock order | maybe-false — carried: production clock evidence remains missing. | carried defer |
+| Review 7 edge: retained pair skips new projection read | false — carried: retained pairs were already projection-confirmed; reopening reauthorizes and rechecks both protected audit rows, while pending completions require a fresh complete projection. | carried reject |
+| Review 7 verification: global scope/category guard lacks isolated negative | medium — the existing invalid-global test has an empty target, so removing the new scope/category guard would leave it green. | patch |
+| Review 7 verification: OIDC fallback test | medium — carried: the independent API change has no test with only `Oidc:Authority`. | carried defer |
+| Review 7 verification: signing-key fallback test | medium — carried: the independent API change has no test with only `Jwt:SigningKey`. | carried defer |
+
+## Non-Story Gitlink Commits
+
+These commits mix Story 5.7 code edits with six independent `references/` pointer updates. Only their pointer updates are excluded from this story's ownership; their other files remain in the review diff. The full commit IDs pin the exclusion, and the guard verifies that no other pointer-bearing commit or working-tree pointer movement exists after the preserved baseline.
+
+- `b9e9cc926360c802b9de94dc3dd3a8c56e4caba6`
+- `85a5a6cc18ef6a0f2da69e4fd2c2a1a408f32359`
 
 ## Verification
+
+**Closeout gate investigation (2026-10-11):**
+- `dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -p:UseNuGetDeps=false -m:1 --ignore-failed-sources` followed by `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore` — passed, zero warnings/errors after the final patch. The prior CS1704 run used package-mode restore assets with a source-mode `--no-restore` build; the matching source restore selects the Commons UniqueIds project instead of the 2.30.1 package in `EventStore.Contracts`.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore` — passed 4,062/4,062 after the final review patches, none skipped. The four final patch paths also passed eight focused cases before the full suite.
+- `python3 tests/scripts/test_validate_story_gitlinks.py` — passed 28/28. `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md` — passed, with the two exact non-story pointer-bearing commits recorded above and no working-tree pointer movement. The previous default guard failure remains historical evidence of why explicit provenance was needed.
+- `git diff --check` and `git diff HEAD -- references` — passed; the latter is empty.
 
 **Commands:**
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1` — passed, zero warnings/errors.

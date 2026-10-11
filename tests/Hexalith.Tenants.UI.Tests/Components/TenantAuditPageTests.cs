@@ -1886,8 +1886,9 @@ public sealed class TenantAuditPageTests : BunitContext
             CommandCorrelationId = "tracking-safe",
             AggregateSequence = 2,
         };
+        // A later valid removal has reversed the target state before this audit return.
         StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
-            authorized: true, GlobalAdmins("admin-user", "other-admin") with { ProjectionVersion = "tenant-sequence:2" },
+            authorized: true, GlobalAdmins("other-admin") with { ProjectionVersion = "tenant-sequence:3" },
             loaded with { Rows = [original, otherSource] });
         gateway.GlobalProof = new GlobalAdministratorAuditProof(corrective);
         gateway.ProofAuditProvider = request => loaded with
@@ -1911,6 +1912,11 @@ public sealed class TenantAuditPageTests : BunitContext
             SourceAuditTimestampUtc = original.Timestamp,
             SubmittedAtUtc = original.Timestamp.AddMinutes(1),
             CommittedEventSequence = 2,
+            ConfirmedProjectionEvidence = GlobalAdmins("admin-user", "other-admin") with
+            {
+                ProjectionVersion = "tenant-sequence:2",
+                IsCompleteEvidence = true,
+            },
         });
         registry.PendingCompletions().Count.ShouldBe(1);
 

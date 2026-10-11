@@ -741,14 +741,15 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     internal static GlobalAdministratorCorrectionSnapshot? RebuildVerifiedCompletion(
         GlobalAdministratorReconciliationState completion,
         TenantAuditRow original,
-        GlobalAdministratorsSnapshot projection,
+        GlobalAdministratorsSnapshot currentProjection,
         GlobalAdministratorAuditProof correctiveProof)
     {
         ArgumentNullException.ThrowIfNull(completion);
         ArgumentNullException.ThrowIfNull(original);
-        ArgumentNullException.ThrowIfNull(projection);
+        ArgumentNullException.ThrowIfNull(currentProjection);
         ArgumentNullException.ThrowIfNull(correctiveProof);
 
+        GlobalAdministratorsSnapshot? confirmingProjection = completion.ConfirmedProjectionEvidence;
         string? baseline = completion.ActionKind is GlobalAdministratorActionKind.Grant
             ? completion.GrantPreview?.ProjectionVersion : completion.RemovePreview?.ProjectionVersion;
         string expectedOriginalType = completion.ActionKind is GlobalAdministratorActionKind.Grant
@@ -768,7 +769,14 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             || !string.Equals(original.Target, completion.TargetUserId, StringComparison.Ordinal)
             || !string.Equals(original.EventType, expectedOriginalType, StringComparison.Ordinal)
             || TenantAuditReceipt.FromRow(original).State is not TenantAuditReceiptState.Ready
-            || !TenantLifecycleProjectionVersion.IsOrdered(baseline))
+            || !TenantLifecycleProjectionVersion.IsOrdered(baseline)
+            || confirmingProjection is not { IsCompleteEvidence: true, HasMore: false }
+            || !ProjectionIsReadable(confirmingProjection)
+            || currentProjection is not { IsCompleteEvidence: true, HasMore: false }
+            || !ProjectionIsReadable(currentProjection)
+            || TenantLifecycleProjectionVersion.CompareSequences(
+                currentProjection.ProjectionVersion, confirmingProjection.ProjectionVersion)
+                is not (TenantLifecycleSequenceRelation.Equal or TenantLifecycleSequenceRelation.IncomingNewer))
         {
             return null;
         }
@@ -792,7 +800,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             IntendedRole: null,
             UnavailableReasons: [],
             RequiredPreviewInputs: inputs);
-        GlobalAdministratorCorrectionSnapshot basis = FromIntent(intent, projection) with
+        GlobalAdministratorCorrectionSnapshot basis = FromIntent(intent, confirmingProjection) with
         {
             MessageId = completion.MessageId,
             CorrelationId = completion.CorrelationId,
@@ -803,7 +811,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             CommittedEventSequence = completion.CommittedEventSequence,
             SubmittedAtUtc = completion.SubmittedAtUtc,
         };
-        GlobalAdministratorCorrectionSnapshot verified = basis.ConfirmProjection(projection)
+        GlobalAdministratorCorrectionSnapshot verified = basis.ConfirmProjection(confirmingProjection)
             .WithCorrectiveProof(correctiveProof);
         return verified.LifecycleState is TenantCommandLifecycleState.Confirmed
             && verified.AuditState is TenantCommandAuditState.AuditAvailable

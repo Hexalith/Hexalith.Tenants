@@ -34,6 +34,9 @@ internal sealed record GlobalAdministratorReconciliationState(
 
     internal DateTimeOffset? SubmittedAtUtc { get; init; }
 
+    /// <summary>Complete projection that confirmed this exact command before the lease was released.</summary>
+    internal GlobalAdministratorsSnapshot? ConfirmedProjectionEvidence { get; init; }
+
     /// <summary>Exact audit row that initiated this correction, retained only inside the circuit.</summary>
     internal string? SourceAuditReference { get; init; }
 

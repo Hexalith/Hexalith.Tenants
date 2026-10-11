@@ -4130,3 +4130,16 @@ Diff reviewed: Tenants `66072cc4..362a957d`. The diff was 4,351 lines (260,201 b
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
   summary: unverified medium; the documented global-administrator projection replay is the trigger for the existing `audit:system` collision entry above ("Separate or safely merge the system tenant audit stream…"). Owner: Tenants global-administrator projection and rollout docs.
   evidence: `docs/event-contract-reference.md:127` tells operators to rebuild the `system` / `global-administrators` singleton from history. One `ProjectAsync` run also saves `audit:system` as a full rebuild, which can drop rows written by the tenant handler if a tenant aggregate is named `system`. To settle: confirm whether a tenant aggregate can be named `system`. If it can, add a precondition warning to the rollout paragraph or separate the two streams.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Verify the independently committed module manifest's `tenants-events` topic against the deployed `tenants.events` topic.
+  evidence: Review 6 found that the manifest added by `711e100858e59cf8de2b626ea21790d59f969023` names `tenants-events`, while AppHost publishes `tenants.events`; the manifest schema's topic naming semantics need confirmation before changing it.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Audit the independently committed module manifest's tenant API operation inventory.
+  evidence: Review 6 found existing audit, member, lifecycle, and configuration endpoints absent from the manifest added by `711e100858e59cf8de2b626ea21790d59f969023`; confirm whether the schema requires exhaustive operations.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Decide whether the manifest's global-administrator critical flow should include removal.
+  evidence: Review 6 found removal declared as an operation but omitted from the critical flow in the independent `711e100858e59cf8de2b626ea21790d59f969023` manifest; determine whether that flow is intended as a representative subset.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Add authentication tests for the independently committed manifest configuration fallbacks.
+  evidence: Review 6 found no tests for `Oidc:Authority` or `Jwt:SigningKey` when the old `EventStore:Authentication:*` keys are absent; these fallbacks were added by independent commit `711e100858e59cf8de2b626ea21790d59f969023`.

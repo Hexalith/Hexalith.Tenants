@@ -17,6 +17,8 @@ public sealed class GlobalAdministratorCorrectionProofRegistry
             || !completion.HasCommandEventEvidence
             || completion.CommittedEventSequence is not > 0
             || completion.SubmittedAtUtc is null
+            || completion.ConfirmedProjectionEvidence is not { IsCompleteEvidence: true, HasMore: false } confirmed
+            || !GlobalAdministratorCorrectionSnapshot.ProjectionIsReadable(confirmed)
             || string.IsNullOrWhiteSpace(completion.CorrelationId)
             || string.IsNullOrWhiteSpace(completion.SourceAuditReference)
             || completion.SourceAuditTimestampUtc is null
@@ -34,6 +36,33 @@ public sealed class GlobalAdministratorCorrectionProofRegistry
                 _pendingCompletions.Add(completion);
             }
         }
+    }
+
+    internal void RememberCompletion(GlobalAdministratorCorrectionSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (snapshot.LifecycleState is not TenantCommandLifecycleState.Confirmed
+            || snapshot.LastConfirmedProjectionEvidence is not { } confirmed
+            || snapshot.MessageId is not { Length: > 0 } messageId
+            || !snapshot.Intent.RequiredPreviewInputs.TryGetValue("originalTimestamp", out string? timestamp)
+            || !DateTimeOffset.TryParse(timestamp, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.RoundtripKind, out DateTimeOffset sourceTime))
+        {
+            return;
+        }
+
+        RememberCompletion(new GlobalAdministratorReconciliationState(
+            snapshot.IsRestoreAccessAction ? GlobalAdministratorActionKind.Grant : GlobalAdministratorActionKind.Remove,
+            snapshot.TargetUserId, messageId, snapshot.CorrelationId, snapshot.LifecycleState,
+            snapshot.GrantPreview, snapshot.HasCommandEventEvidence, snapshot.IsSubmissionAmbiguous,
+            snapshot.SafeMessageKey, snapshot.SafeRecoveryKey, snapshot.RemovePreview, snapshot.RejectionCode)
+        {
+            CommittedEventSequence = snapshot.CommittedEventSequence,
+            SubmittedAtUtc = snapshot.SubmittedAtUtc,
+            SourceAuditReference = snapshot.OriginalAuditReference,
+            SourceAuditTimestampUtc = sourceTime,
+            ConfirmedProjectionEvidence = confirmed,
+        });
     }
 
     internal IReadOnlyList<GlobalAdministratorReconciliationState> PendingCompletions()

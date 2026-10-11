@@ -3838,6 +3838,7 @@
             {
                 if (statusLease is not null)
                 {
+                    RetainCorrectionCommandSequence(statusLease, statusSnapshot, status.CommittedEventSequence);
                     resumeAdopted = RetainOrReleaseGrantCompletion(statusSnapshot, statusLease);
                 }
 
@@ -3910,7 +3911,9 @@
             return;
         }
 
-        GlobalAdministratorGrantCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
+        GlobalAdministratorGrantCommandSnapshot projectionSnapshot = CanConfirmCorrectionProjection(projectionLease, snapshot)
+            ? projectionBasis.ConfirmProjection(snapshot)
+            : projectionBasis;
         bool resumeAdopted = false;
         await InvokeAsync(() =>
         {
@@ -3920,7 +3923,7 @@
             {
                 if (projectionLease is not null)
                 {
-                    resumeAdopted = RetainOrReleaseGrantCompletion(projectionSnapshot, projectionLease);
+                    resumeAdopted = RetainOrReleaseGrantCompletion(projectionSnapshot, projectionLease, snapshot);
                 }
 
                 return;
@@ -3931,7 +3934,7 @@
                 _completeSnapshot = snapshot;
             }
 
-            SetGrantSnapshot(projectionSnapshot);
+            SetGrantSnapshot(projectionSnapshot, snapshot);
             StateHasChanged();
         }).ConfigureAwait(false);
         if (resumeAdopted)
@@ -4051,14 +4054,14 @@
         return true;
     }
 
-    private void SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot snapshot)
+    private void SetGrantSnapshot(GlobalAdministratorGrantCommandSnapshot snapshot, GlobalAdministratorsSnapshot? confirmedProjection = null)
     {
         _grantSnapshot = snapshot;
         if (CreateReconciliation(snapshot) is { } reconciliation)
         {
             _ = _grantAdmissionLease?.TryAdvanceReconciliation(_fixedAggregateOwner, reconciliation);
         }
-        RememberCorrectionCompletion(_grantAdmissionLease, snapshot.State, snapshot.HasCommandEventEvidence);
+        RememberCorrectionCompletion(_grantAdmissionLease, snapshot.State, snapshot.HasCommandEventEvidence, confirmedProjection);
         if (_grantAdmissionLease?.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State) == true)
         {
             _grantAdmissionLease = null;
@@ -4081,7 +4084,8 @@
 
     private bool RetainOrReleaseGrantCompletion(
         GlobalAdministratorGrantCommandSnapshot snapshot,
-        TenantAggregateCommandLease submissionLease)
+        TenantAggregateCommandLease submissionLease,
+        GlobalAdministratorsSnapshot? confirmedProjection = null)
     {
         if (!ReferenceEquals(_grantAdmissionLease, submissionLease)
             || !string.Equals(_grantSnapshot.MessageId, snapshot.MessageId, StringComparison.Ordinal))
@@ -4098,7 +4102,7 @@
         }
         else
         {
-            RememberCorrectionCompletion(submissionLease, snapshot.State, snapshot.HasCommandEventEvidence);
+            RememberCorrectionCompletion(submissionLease, snapshot.State, snapshot.HasCommandEventEvidence, confirmedProjection);
             if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
             {
                 _grantAdmissionLease = null;
@@ -4736,6 +4740,7 @@
             {
                 if (statusLease is not null)
                 {
+                    RetainCorrectionCommandSequence(statusLease, statusSnapshot, status.CommittedEventSequence);
                     resumeAdopted = RetainOrReleaseRemoveCompletion(statusSnapshot, statusLease);
                 }
 
@@ -4772,7 +4777,9 @@
         TenantAggregateCommandLease? projectionLease = _removeAdmissionLease;
         GlobalAdministratorsSnapshot snapshot = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
             .ConfigureAwait(false);
-        GlobalAdministratorRemoveCommandSnapshot projectionSnapshot = projectionBasis.ConfirmProjection(snapshot);
+        GlobalAdministratorRemoveCommandSnapshot projectionSnapshot = CanConfirmCorrectionProjection(projectionLease, snapshot)
+            ? projectionBasis.ConfirmProjection(snapshot)
+            : projectionBasis;
         if (snapshot.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
         {
             await CollapseAuthorizationIfCurrentAsync(
@@ -4793,14 +4800,14 @@
             {
                 if (projectionLease is not null)
                 {
-                    resumeAdopted = RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease);
+                    resumeAdopted = RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease, snapshot);
                 }
 
                 return;
             }
 
             _completeSnapshot = snapshot;
-            SetRemoveSnapshot(projectionSnapshot);
+            SetRemoveSnapshot(projectionSnapshot, snapshot);
             confirmed = projectionSnapshot.State is TenantCommandLifecycleState.Confirmed;
             StateHasChanged();
         }).ConfigureAwait(false);
@@ -4863,14 +4870,14 @@
         GlobalAdministratorRemovePreview expectedPreview)
         => await FocusElementByIdSafelyAsync(RemoveCancelButtonId, expectedPreview).ConfigureAwait(false);
 
-    private void SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot snapshot)
+    private void SetRemoveSnapshot(GlobalAdministratorRemoveCommandSnapshot snapshot, GlobalAdministratorsSnapshot? confirmedProjection = null)
     {
         _removeSnapshot = snapshot;
         if (CreateReconciliation(snapshot) is { } reconciliation)
         {
             _ = _removeAdmissionLease?.TryAdvanceReconciliation(_fixedAggregateOwner, reconciliation);
         }
-        RememberCorrectionCompletion(_removeAdmissionLease, snapshot.State, snapshot.HasCommandEventEvidence);
+        RememberCorrectionCompletion(_removeAdmissionLease, snapshot.State, snapshot.HasCommandEventEvidence, confirmedProjection);
         if (_removeAdmissionLease?.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State) == true)
         {
             _removeAdmissionLease = null;
@@ -4890,7 +4897,8 @@
 
     private bool RetainOrReleaseRemoveCompletion(
         GlobalAdministratorRemoveCommandSnapshot snapshot,
-        TenantAggregateCommandLease submissionLease)
+        TenantAggregateCommandLease submissionLease,
+        GlobalAdministratorsSnapshot? confirmedProjection = null)
     {
         if (!ReferenceEquals(_removeAdmissionLease, submissionLease))
         {
@@ -4911,7 +4919,7 @@
         }
         else
         {
-            RememberCorrectionCompletion(submissionLease, snapshot.State, snapshot.HasCommandEventEvidence);
+            RememberCorrectionCompletion(submissionLease, snapshot.State, snapshot.HasCommandEventEvidence, confirmedProjection);
             if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
             {
                 _removeAdmissionLease = null;
@@ -5044,7 +5052,14 @@
                         && !Equals(_grantSnapshot.PreviewEvidence, reconciliation.GrantPreview))
             // Presentation-only fields such as IsDeliveryRetryWithdrawn are not durable reconciliation;
             // an unchanged lease must not rebuild the snapshot and discard them.
-            || Equals(CreateReconciliation(_grantSnapshot), reconciliation with { SubmittedAtUtc = null, CommittedEventSequence = null }))
+            || Equals(CreateReconciliation(_grantSnapshot), reconciliation with
+            {
+                SubmittedAtUtc = null,
+                CommittedEventSequence = null,
+                ConfirmedProjectionEvidence = null,
+                SourceAuditReference = null,
+                SourceAuditTimestampUtc = null,
+            }))
         {
             return false;
         }
@@ -5118,7 +5133,14 @@
                         && !Equals(_removeSnapshot.PreviewEvidence, reconciliation.RemovePreview))
             // Presentation-only fields such as LastConfirmedProjection are not durable reconciliation; an
             // unchanged lease must not rebuild the snapshot, re-focus the lifecycle, or nudge status.
-            || Equals(CreateReconciliation(_removeSnapshot), reconciliation with { SubmittedAtUtc = null, CommittedEventSequence = null }))
+            || Equals(CreateReconciliation(_removeSnapshot), reconciliation with
+            {
+                SubmittedAtUtc = null,
+                CommittedEventSequence = null,
+                ConfirmedProjectionEvidence = null,
+                SourceAuditReference = null,
+                SourceAuditTimestampUtc = null,
+            }))
         {
             return false;
         }
@@ -5182,10 +5204,40 @@
             RejectionCode: reconciliation.RejectionCode);
     }
 
+    private bool CanConfirmCorrectionProjection(
+        TenantAggregateCommandLease? lease,
+        GlobalAdministratorsSnapshot projection)
+    {
+        if (lease is null)
+        {
+            return true;
+        }
+
+        if (!lease.TryReadReconciliation(_fixedAggregateOwner, out GlobalAdministratorReconciliationState? reconciliation)
+            || reconciliation is null)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(reconciliation.SourceAuditReference))
+        {
+            return true;
+        }
+
+        string? baseline = reconciliation.ActionKind is GlobalAdministratorActionKind.Grant
+            ? reconciliation.GrantPreview?.ProjectionVersion : reconciliation.RemovePreview?.ProjectionVersion;
+        return reconciliation.CommittedEventSequence is > 0
+            && TenantLifecycleProjectionVersion.HasReached(
+                reconciliation.CommittedEventSequence, baseline, requireBeyond: true)
+            && TenantLifecycleProjectionVersion.HasReached(
+                reconciliation.CommittedEventSequence, projection.ProjectionVersion);
+    }
+
     private void RememberCorrectionCompletion(
         TenantAggregateCommandLease? lease,
         TenantCommandLifecycleState state,
-        bool hasCommandEventEvidence)
+        bool hasCommandEventEvidence,
+        GlobalAdministratorsSnapshot? confirmedProjection)
     {
         if (state is TenantCommandLifecycleState.Confirmed
             && hasCommandEventEvidence
@@ -5196,6 +5248,7 @@
             {
                 LifecycleState = state,
                 HasCommandEventEvidence = true,
+                ConfirmedProjectionEvidence = confirmedProjection,
             });
         }
     }

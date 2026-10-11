@@ -225,6 +225,30 @@ public sealed class TenantCorrectionStartIntentTests
         intent.RequiredPreviewInputs["userId"].ShouldBe("admin-user");
     }
 
+    [Theory]
+    [InlineData("tenant.alpha", "system", AuditEventCategory.Access)]
+    [InlineData("system", "global-administrators", AuditEventCategory.Access)]
+    [InlineData("system", "system", AuditEventCategory.Administrative)]
+    public void Global_admin_outcome_rejects_wrong_scope_or_category_with_valid_target(
+        string tenantId,
+        string scope,
+        AuditEventCategory category)
+    {
+        TenantAuditRow row = Row("GlobalAdministratorRemoved", "userId: admin-user") with
+        {
+            TenantId = tenantId,
+            Scope = scope,
+            Category = category,
+        };
+
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            row, hasGlobalAdministratorCommandSupport: true));
+
+        intent.IsAvailable.ShouldBeFalse();
+        intent.TargetUserId.ShouldBe("admin-user");
+        intent.UnavailableReasons.ShouldContain(TenantCorrectionUnavailableReason.ScopeConflict);
+    }
+
     [Fact]
     public void Global_admin_outcome_blocks_when_command_support_is_absent()
     {

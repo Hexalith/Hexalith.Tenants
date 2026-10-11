@@ -1036,6 +1036,7 @@
                     return;
                 }
 
+                GlobalAdministratorRemovePreview? acknowledged = _snapshot.RemovePreview;
                 if (current is not null)
                 {
                     CurrentProjection = current;
@@ -1049,12 +1050,23 @@
                 }
 
                 _snapshot = _snapshot.WithRemovePreview(preview);
-                ready = preview.IsComplete
+                ready = acknowledged?.Matches(preview) == true
+                    && _snapshot.CanSubmit
                     && current is not null
                     && preview.Matches(current)
                     && GlobalAdministratorActionAvailabilityEvaluator
                         .EvaluateRemove(CreateActionEvidence(), _snapshot.TargetUserId)
                         .IsAvailable;
+                if (!ready && _snapshot.LifecycleState is TenantCommandLifecycleState.Previewed)
+                {
+                    _snapshot = _snapshot with
+                    {
+                        LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                        SafeMessageKey = "Tenants.Correction.Unavailable.CurrentProjectionUnavailable",
+                        FocusTarget = TenantCommandFocusTarget.Refresh,
+                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    };
+                }
                 StateHasChanged();
             }).ConfigureAwait(false);
             if (!ready)
@@ -1783,6 +1795,7 @@
         bool auditLookupComplete = false;
         if (projectionSnapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
         {
+            Services.GetService<GlobalAdministratorCorrectionProofRegistry>()?.RememberCompletion(projectionSnapshot);
             try
             {
                 (proof, auditLookupComplete) = await QueryCorrectiveProofAsync(projectionSnapshot).ConfigureAwait(false);
