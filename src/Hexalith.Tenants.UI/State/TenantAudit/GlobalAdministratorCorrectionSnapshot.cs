@@ -672,7 +672,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             : !present;
 
         if (!projectionProvesCorrection) {
-            return withEvidence with { FocusTarget = TenantCommandFocusTarget.Refresh };
+            return withEvidence.UnableToVerify(IsRestoreAccessAction
+                ? "Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm"
+                : "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent");
         }
 
         return withEvidence with {

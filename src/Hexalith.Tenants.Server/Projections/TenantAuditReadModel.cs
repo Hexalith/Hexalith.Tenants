@@ -4,6 +4,7 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 
 namespace Hexalith.Tenants.Server.Projections;
@@ -133,8 +134,12 @@ public sealed class TenantAuditReadModel : IReadModelFreshness {
             tenantId,
             narrative)
         {
-            CommandCorrelationId = evt.CorrelationId,
-            AggregateSequence = evt.SequenceNumber > 0 ? evt.SequenceNumber : null,
+            CommandCorrelationId = tenantId == TenantIdentity.DefaultTenantId
+                && eventType is nameof(GlobalAdministratorSet) or nameof(GlobalAdministratorRemoved)
+                    ? evt.CorrelationId : null,
+            AggregateSequence = tenantId == TenantIdentity.DefaultTenantId
+                && eventType is nameof(GlobalAdministratorSet) or nameof(GlobalAdministratorRemoved)
+                && evt.SequenceNumber > 0 ? evt.SequenceNumber : null,
         };
 
     private static TEvent Deserialize<TEvent>(byte[] payload) where TEvent : IEventPayload =>

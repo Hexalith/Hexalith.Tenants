@@ -629,7 +629,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             .Add(component => component.CorrectionIntent, intent));
 
         cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
-            .ShouldContain("GlobalAdministratorCommandSupportUnavailable");
+            .ShouldBe("Global administrator correction commands are not connected.");
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
     }
 
@@ -1019,8 +1019,8 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             ["Tenants.Correction.Action.RestoreAccessAccessible"] = "restore intended access for audit evidence {0}",
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Correction.Unavailable.UnsupportedOutcome"] = "This audit outcome is not supported for correction start.",
-            ["Tenants.Correction.Start.GlobalNotReady"] = "The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.",
             ["Tenants.Correction.Unavailable.AuthorizationIndeterminate"] = "Current access could not be verified. Refresh or request permission before starting correction.",
+            ["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"] = "Global administrator correction commands are not connected.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Feedback.Empty"] = "Nothing is available to copy.",
             ["Tenants.Audit.Availability.State.Available"] = "Audit available",

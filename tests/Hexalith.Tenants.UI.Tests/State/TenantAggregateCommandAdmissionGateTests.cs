@@ -132,6 +132,37 @@ public sealed class TenantAggregateCommandAdmissionGateTests
     }
 
     [Fact]
+    public void Sibling_reconciliation_preserves_verified_proof_inputs_for_the_same_command()
+    {
+        var gate = new TenantAggregateCommandAdmissionGate();
+        object owner = new();
+        object replacement = new();
+        string key = TenantCommandAggregateLock.ForGlobalAdministrators();
+        gate.TryAcquireLease(key, owner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        var initial = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove, "admin-user", "message-safe", "correlation-safe",
+            TenantCommandLifecycleState.Accepted, RemovePreview: RemovePreview())
+        {
+            SubmittedAtUtc = new DateTimeOffset(2026, 6, 1, 10, 1, 0, TimeSpan.Zero),
+            CommittedEventSequence = 2,
+        };
+        lease.TryAdvanceReconciliation(owner, initial).ShouldBeTrue();
+        var sibling = initial with
+        {
+            LifecycleState = TenantCommandLifecycleState.ProjectionPending,
+            SubmittedAtUtc = null,
+            CommittedEventSequence = null,
+        };
+        lease.TryRetainReconciliation(owner, sibling).ShouldBeTrue();
+
+        gate.TryAdoptRetainedLease(key, replacement, out _, out GlobalAdministratorReconciliationState? adopted)
+            .ShouldBeTrue();
+        adopted!.SubmittedAtUtc.ShouldBe(initial.SubmittedAtUtc);
+        adopted.CommittedEventSequence.ShouldBe(2);
+    }
+
+    [Fact]
     public void MismatchingClaimantLeavesRetainedReconciliationForMatchingReplacement()
     {
         var gate = new TenantAggregateCommandAdmissionGate();

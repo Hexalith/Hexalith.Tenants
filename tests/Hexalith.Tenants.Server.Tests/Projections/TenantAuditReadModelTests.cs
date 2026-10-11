@@ -119,6 +119,17 @@ public class TenantAuditReadModelTests {
     }
 
     [Fact]
+    public void Apply_omits_command_provenance_from_tenant_scoped_entries() {
+        var model = new TenantAuditReadModel();
+        model.Apply(CreateEvent(new UserRoleChanged(
+            "tenant-1", "user-1", TenantRole.TenantReader, TenantRole.TenantContributor)));
+
+        TenantAuditEntry entry = model.Entries.Single();
+        entry.CommandCorrelationId.ShouldBeNull();
+        entry.AggregateSequence.ShouldBeNull();
+    }
+
+    [Fact]
     public void New_model_has_empty_entries() {
         var model = new TenantAuditReadModel();
 

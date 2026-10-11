@@ -272,7 +272,6 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
             ["Tenants.Correction.Unavailable.ExplicitRoleRequired"] = "Choose the intended role before starting correction.",
             ["Tenants.Correction.Unavailable.FreshnessIndeterminate"] = "Refresh current evidence before starting correction.",
             ["Tenants.Correction.Unavailable.UnsupportedOutcome"] = "This audit outcome is not supported for correction start.",
-            ["Tenants.Correction.Start.GlobalNotReady"] = "The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.",
             ["Tenants.Copy.Action"] = "Copy",
         };
     }

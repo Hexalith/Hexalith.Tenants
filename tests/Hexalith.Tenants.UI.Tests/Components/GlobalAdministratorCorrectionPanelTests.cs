@@ -66,6 +66,21 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
                 cut.Find($"[data-testid='{field}']").ShouldNotBeNull();
             }
 
+            cut.Find("[data-testid='tenants-correction-original-time']").TextContent.Trim()
+                .ShouldBe("2026-06-01 10:00:00 UTC");
+            cut.Find("[data-testid='tenants-correction-provenance']").TextContent.Trim()
+                .ShouldBe(culture == "fr"
+                    ? "Projection système complète et actuelle avec une version ordonnée."
+                    : "Complete, current system projection with an ordered version.");
+            cut.Find("[data-testid='tenants-correction-authority-admission']").TextContent.Trim()
+                .ShouldBe(culture == "fr"
+                    ? viewport == "narrow"
+                        ? "L’autorité, l’admission de commande ou la largeur sûre ne peuvent pas être vérifiées. Actualisez avant de confirmer."
+                        : "L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau."
+                    : viewport == "narrow"
+                        ? "Authority, command admission, or safe viewport cannot be verified. Refresh before confirming."
+                        : "Platform authority and command admission are ready. Confirm rechecks both.");
+
             string? directory = Environment.GetEnvironmentVariable("TENANTS_CORRECTION_FIXTURE_DIRECTORY");
             if (!string.IsNullOrWhiteSpace(directory))
             {
@@ -144,6 +159,46 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Unordered_projection_marks_provenance_unverified_and_blocks_confirm()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin") with { ProjectionVersion = "legacy" }));
+
+        cut.Find("[data-testid='tenants-correction-provenance']").TextContent.Trim()
+            .ShouldBe("Current complete projection evidence is unavailable.");
+        cut.Find("[data-testid='tenants-correction-authority-admission']").TextContent.Trim()
+            .ShouldBe("Authority, command admission, or safe viewport cannot be verified. Refresh before confirming.");
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Restore_recheck_with_changed_count_and_version_sends_no_command()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var commandGateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("other-admin", "new-admin") with { ProjectionVersion = "tenant-sequence:2" },
+            Audit("proof", "GlobalAdministratorSet"))
+        {
+            AutoAdvanceProjectionVersion = false,
+        });
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        commandGateway.SetRequests.ShouldBeEmpty();
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+    }
+
+    [Fact]
     public void Revoke_preview_shows_resulting_count_and_self_removal_warning_with_another_administrator()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -161,6 +216,27 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.Find("[data-testid='tenants-correction-admin-count']").TextContent.Trim().ShouldBe("2");
         cut.Find("[data-testid='tenants-correction-preview-data']").TextContent
             .ShouldContain("This removes your own global-administrator authority.");
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Unchanged_parent_rerender_keeps_complete_revoke_preview_and_confirm_ready()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        TenantCorrectionStartIntent intent = RevokeIntent();
+        GlobalAdministratorsSnapshot projection = Projection("admin-user", "other-admin");
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, projection));
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.RemovePreview?.IsComplete.ShouldBe(true));
+        GlobalAdministratorRemovePreview preview = cut.Instance.Snapshot!.RemovePreview!;
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, projection));
+
+        cut.Instance.Snapshot!.RemovePreview.ShouldBeSameAs(preview);
         cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
     }
 
@@ -474,6 +550,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-correction-safe-message']").TextContent.ShouldContain("last global administrator");
+        cut.Find("[data-testid='tenants-correction-authority-admission']").TextContent.Trim()
+            .ShouldBe("Authority, command admission, or safe viewport cannot be verified. Refresh before confirming.");
         cut.Find("[data-testid='tenants-correction-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
         commandGateway.RemoveRequests.ShouldBeEmpty();
     }
@@ -498,7 +576,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         // at open-time (the pre-submit preview lives; a submitted/terminal state would be preserved).
         cut.Render(parameters => parameters
             .Add(component => component.Intent, intent)
-            .Add(component => component.CurrentProjection, Projection("admin-user")));
+            .Add(component => component.CurrentProjection, Projection("admin-user") with { ProjectionVersion = "tenant-sequence:2" }));
 
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         cut.Instance.Snapshot!.SafeMessageKey.ShouldBe("Tenants.Correction.GlobalAdmin.LastAdministrator");
@@ -520,6 +598,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.Instance.Snapshot.SafeMessageKey.ShouldBe(
             "Tenants.GlobalAdministrators.Grant.Preview.Unavailable.TargetExists");
         cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-correction-authority-admission']").TextContent.Trim()
+            .ShouldBe("Authority, command admission, or safe viewport cannot be verified. Refresh before confirming.");
 
         cut.Render(parameters => parameters
             .Add(component => component.Intent, intent)
@@ -582,6 +662,39 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         commandGateway.SetRequests.ShouldBeEmpty();
         cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
         cut.Find("[data-testid='tenants-correction-proof-link']").GetAttribute("href").ShouldBe("/tenants/system/audit?receiptReference=event-corrective");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Reached_sequence_with_wrong_postcondition_releases_global_lease(bool revoke)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var commandGateway = new StubTenantCommandGateway();
+        GlobalAdministratorsSnapshot unchanged = revoke
+            ? Projection("admin-user", "other-admin")
+            : Projection("other-admin");
+        int projectionReads = 0;
+        var queryGateway = new StubTenantQueryGateway(
+            unchanged, Audit("proof", revoke ? "GlobalAdministratorRemoved" : "GlobalAdministratorSet"))
+        {
+            AutoAdvanceProjectionVersion = false,
+            GlobalAdministratorProvider = _ => ++projectionReads == 1
+                ? unchanged
+                : unchanged with { ProjectionVersion = "tenant-sequence:2" },
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, revoke ? RevokeIntent() : RestoreIntent())
+            .Add(component => component.CurrentProjection, unchanged));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
     }
 
     [Fact]
@@ -1446,7 +1559,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.Find("[data-testid='tenants-correction-confirm']").Click();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
-        cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
         cut.Instance.Snapshot!.ProofLink.ShouldBeNull();
         queryGateway.AuditRequests.ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
@@ -1950,6 +2063,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
                 HasCommandEventEvidence: true)
             {
                 CommittedEventSequence = 2,
+                SubmittedAtUtc = DateTimeOffset.Parse("2026-06-01T10:01:00Z", CultureInfo.InvariantCulture),
             }).ShouldBeTrue();
 
         IRenderedComponent<GlobalAdministratorCorrectionPanel> replacement =
@@ -1960,6 +2074,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         replacement.WaitForAssertion(() => replacement.Instance.Snapshot!.LifecycleState
             .ShouldBe(TenantCommandLifecycleState.Confirmed));
         replacement.Instance.Snapshot!.HasCommandEventEvidence.ShouldBeTrue();
+        replacement.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+        replacement.Find("[data-testid='tenants-correction-proof-link']");
         commandGateway.StatusHandles.ShouldHaveSingleItem().MessageId.ShouldBe("message-safe");
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
     }
@@ -2205,6 +2321,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             .Add(component => component.Intent, RestoreIntent())
             .Add(component => component.CurrentProjection, Projection("other-admin")));
         replacement.WaitForAssertion(() => replacement.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        replacement.WaitForAssertion(() => replacement.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable));
+        replacement.Find("[data-testid='tenants-correction-proof-link']");
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
     }
 
@@ -2588,6 +2706,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         await submit.WaitAsync(TimeSpan.FromSeconds(5));
 
         replacement.WaitForAssertion(() => replacement.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        replacement.WaitForAssertion(() => replacement.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable));
+        replacement.Find("[data-testid='tenants-correction-proof-link']");
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
     }
 
@@ -3157,6 +3277,10 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.Correction.GlobalAdmin.Preview.CurrentState"] = "Target in current projection",
             ["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Present"] = "Present in the current platform authority projection.",
             ["Tenants.Correction.GlobalAdmin.Preview.CurrentState.Absent"] = "Absent from the current platform authority projection.",
+            ["Tenants.Correction.GlobalAdmin.Preview.Provenance.Current"] = "Complete, current system projection with an ordered version.",
+            ["Tenants.Correction.GlobalAdmin.Preview.Provenance.Unverified"] = "Current complete projection evidence is unavailable.",
+            ["Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Ready"] = "Platform authority and command admission are ready. Confirm rechecks both.",
+            ["Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked"] = "Authority, command admission, or safe viewport cannot be verified. Refresh before confirming.",
             ["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact"] = "Last-administrator impact",
             ["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value"] = "The last global administrator cannot be removed; at least one global administrator must remain.",
             ["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Self.Value"] = "This removes your own global-administrator authority.",

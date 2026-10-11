@@ -296,7 +296,7 @@ public sealed class TenantAggregateCommandAdmissionGate
             }
 
             lease.DispatchMarked = true;
-            lease.Reconciliation = expected;
+            lease.Reconciliation = CarryProofInputs(lease.Reconciliation, expected);
             completionToken = NextReconciliationDispatchTokenCore();
             lease.ActiveReconciliationDispatchToken = completionToken;
             return true;
@@ -329,7 +329,7 @@ public sealed class TenantAggregateCommandAdmissionGate
 
             // Persist the exact delivery basis before any gateway call. This also repairs an older
             // correlationless RequestSent lease whose first renderer update raced retention.
-            lease.Reconciliation = expected;
+            lease.Reconciliation = CarryProofInputs(lease.Reconciliation, expected);
 
             completionToken = NextReconciliationDispatchTokenCore();
             lease.ActiveReconciliationDispatchToken = completionToken;
@@ -360,7 +360,7 @@ public sealed class TenantAggregateCommandAdmissionGate
             }
 
             lease.ActiveReconciliationDispatchToken = 0;
-            lease.Reconciliation = completion;
+            lease.Reconciliation = CarryProofInputs(current, completion);
             // Keep unowned terminal evidence for adoption. The observing owner releases through
             // TryReleaseTerminal; wiping here drops Failed/Rejected/AlreadyApplied before replacement.
             completed = true;
@@ -459,7 +459,7 @@ public sealed class TenantAggregateCommandAdmissionGate
                 return false;
             }
 
-            lease.Reconciliation = reconciliation;
+            lease.Reconciliation = CarryProofInputs(lease.Reconciliation, reconciliation);
             return true;
         }
     }
@@ -487,7 +487,7 @@ public sealed class TenantAggregateCommandAdmissionGate
                 return false;
             }
 
-            lease.Reconciliation = reconciliation;
+            lease.Reconciliation = CarryProofInputs(lease.Reconciliation, reconciliation);
             lease.CurrentOwner = null;
             lease.IsRetainedForAdoption = true;
             retained = true;
@@ -496,6 +496,17 @@ public sealed class TenantAggregateCommandAdmissionGate
         NotifyStateChanged();
         return retained;
     }
+
+    private static GlobalAdministratorReconciliationState CarryProofInputs(
+        GlobalAdministratorReconciliationState? current,
+        GlobalAdministratorReconciliationState next)
+        => current is not null && HasSameCommandIdentity(current, next)
+            ? next with
+            {
+                SubmittedAtUtc = next.SubmittedAtUtc ?? current.SubmittedAtUtc,
+                CommittedEventSequence = next.CommittedEventSequence ?? current.CommittedEventSequence,
+            }
+            : next;
 
     internal bool TryAbandonBeforeDispatch(TenantAggregateCommandLease lease, object owner)
     {

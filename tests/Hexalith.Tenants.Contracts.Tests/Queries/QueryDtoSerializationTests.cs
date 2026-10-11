@@ -234,7 +234,10 @@ public class QueryDtoSerializationTests {
                         ["userId"] = "user-1",
                         ["oldRole"] = "TenantReader",
                         ["newRole"] = "TenantContributor",
-                    }),
+                    }) {
+                    CommandCorrelationId = "corr-001",
+                    AggregateSequence = 42,
+                },
             ],
             Cursor: "opaque-cursor",
             HasMore: true);
@@ -247,6 +250,8 @@ public class QueryDtoSerializationTests {
         deserialized.Items[0].EventId.ShouldBe("evt-001");
         deserialized.Items[0].Category.ShouldBe(AuditEventCategory.Access);
         deserialized.Items[0].NarrativePayload["newRole"].ShouldBe("TenantContributor");
+        deserialized.Items[0].CommandCorrelationId.ShouldBe("corr-001");
+        deserialized.Items[0].AggregateSequence.ShouldBe(42);
         deserialized.Cursor.ShouldBe("opaque-cursor");
         deserialized.HasMore.ShouldBeTrue();
 
@@ -265,6 +270,16 @@ public class QueryDtoSerializationTests {
         firstItem.GetProperty("scope").GetString().ShouldBe("tenant-1");
         firstItem.GetProperty("outcome").GetString().ShouldBe("UserRoleChanged");
         firstItem.GetProperty("narrativePayload").GetProperty("userId").GetString().ShouldBe("user-1");
+        firstItem.GetProperty("commandCorrelationId").GetString().ShouldBe("corr-001");
+        firstItem.GetProperty("aggregateSequence").GetInt64().ShouldBe(42);
         firstItem.TryGetProperty("EventId", out _).ShouldBeFalse();
+
+        var webOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web) {
+            Converters = { new TenantStatusJsonConverter(), new JsonStringEnumConverter() },
+        };
+        PaginatedResult<TenantAuditEntry>? webResult = JsonSerializer.Deserialize<PaginatedResult<TenantAuditEntry>>(json, webOptions);
+        _ = webResult.ShouldNotBeNull();
+        webResult.Items[0].CommandCorrelationId.ShouldBe("corr-001");
+        webResult.Items[0].AggregateSequence.ShouldBe(42);
     }
 }

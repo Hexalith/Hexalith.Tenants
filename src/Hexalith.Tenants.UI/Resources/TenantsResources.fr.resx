@@ -4210,9 +4210,6 @@
   <data name="Tenants.Correction.PreviewInput.emptyMembership" xml:space="preserve">
     <value>Récupération de membres absents</value>
   </data>
-  <data name="Tenants.Correction.Start.GlobalNotReady" xml:space="preserve">
-    <value>Le parcours de correction des administrateurs globaux à fort impact n’est pas prêt ici. Poursuivez en lecture seule ou utilisez le parcours pris en charge pour les administrateurs globaux.</value>
-  </data>
   <data name="Tenants.Correction.Start.HandoffPending" xml:space="preserve">
     <value>Vérification des accès actuels avant l’ouverture de l’aperçu.</value>
   </data>
@@ -4287,6 +4284,5 @@
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission" xml:space="preserve"><value>Autorité et admission de commande actuelles</value></data>
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Ready" xml:space="preserve"><value>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</value></data>
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked" xml:space="preserve"><value>L’autorité, l’admission de commande ou la largeur sûre ne peuvent pas être vérifiées. Actualisez avant de confirmer.</value></data>
-  <data name="Tenants.Audit.Receipt.Paired.Open" xml:space="preserve"><value>Voir le reçu d’audit associé</value></data>
   <data name="Tenants.Audit.Receipt.Paired.OpenReference" xml:space="preserve"><value>Voir le reçu d’audit associé {0}</value></data>
 </root>

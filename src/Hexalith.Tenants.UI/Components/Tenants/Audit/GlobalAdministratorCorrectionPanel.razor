@@ -550,13 +550,7 @@
             : Localizer["Tenants.Correction.GlobalAdmin.Preview.Provenance.Unverified"];
 
     private string AuthorityAdmissionLabel
-        => _authorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
-            && _snapshot?.CanSubmit is true
-            && _snapshot.Intent.IsAvailable
-            && EvaluateCorrectionAvailability(_snapshot).IsAvailable
-            && _admissionGate is not null
-            && !_admissionGate.IsLockedByAnother(TenantCommandAggregateLock.ForGlobalAdministrators(), _admissionOwner)
-            && HasMeasuredSafeViewport
+        => !CreateCorrectionDecision().IsConfirmDisabled
             ? Localizer["Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Ready"]
             : Localizer["Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked"];
 
@@ -716,7 +710,14 @@
             // preserved so a submitted or finished correction is never re-armed (AC4/AC8, preserves P1).
             if (CurrentProjection is not null && ShouldLiveUpdatePreview(_snapshot))
             {
-                _snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(Intent, CurrentProjection);
+                GlobalAdministratorCorrectionSnapshot refreshed = GlobalAdministratorCorrectionSnapshot.FromIntent(Intent, CurrentProjection);
+                if (_snapshot.RemovePreview is { IsComplete: true } removePreview
+                    && string.Equals(removePreview.ProjectionVersion, CurrentProjection.ProjectionVersion, StringComparison.Ordinal))
+                {
+                    refreshed = refreshed.WithRemovePreview(removePreview);
+                }
+
+                _snapshot = refreshed;
             }
 
             return;
@@ -803,7 +804,13 @@
             _adoptedReconciliation = reconciliation;
             _ = _admissionLease?.TryAdvanceReconciliation(_admissionOwner, reconciliation);
         }
-        if (_admissionLease?.TryReleaseTerminal(_admissionOwner, snapshot.LifecycleState) == true)
+        // A complete projection that reached this command's sequence but contradicts its
+        // postcondition has a final verification answer. Keep the UI's UnableToVerify truth state
+        // while releasing the fixed-aggregate lease so a new current-state intent can be opened.
+        TenantCommandLifecycleState leaseOutcome = IsVerifiedContradiction(snapshot)
+            ? TenantCommandLifecycleState.Failed
+            : snapshot.LifecycleState;
+        if (_admissionLease?.TryReleaseTerminal(_admissionOwner, leaseOutcome) == true)
         {
             _admissionLease = null;
             _adoptedReconciliation = null;
@@ -829,6 +836,17 @@
             return false;
         }
 
+        if (IsVerifiedContradiction(snapshot))
+        {
+            if (submissionLease.TryReleaseTerminal(_admissionOwner, TenantCommandLifecycleState.Failed))
+            {
+                _admissionLease = null;
+                _adoptedReconciliation = null;
+            }
+
+            return false;
+        }
+
         if (snapshot.ToReconciliation() is { } reconciliation
             && submissionLease.TryRetainReconciliation(_admissionOwner, reconciliation))
         {
@@ -844,6 +862,12 @@
 
         return false;
     }
+
+    private static bool IsVerifiedContradiction(GlobalAdministratorCorrectionSnapshot snapshot)
+        => snapshot.LifecycleState is TenantCommandLifecycleState.UnableToVerify
+            && snapshot.CommittedEventSequence is > 0
+            && snapshot.SafeMessageKey is "Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm"
+                or "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent";
 
     private async Task<bool> InvokeRendererSafelyAsync(Action callback)
     {
@@ -1735,7 +1759,7 @@
             }
 
             projectionSnapshot = projectionSnapshot.WithCorrectiveProof(proof);
-            if (proof is null && !auditLookupComplete)
+            if (proof is null && !auditLookupComplete && HasCorrectiveProofInputs(projectionSnapshot))
             {
                 projectionSnapshot = projectionSnapshot with { AuditState = TenantCommandAuditState.AuditDelayed };
             }
@@ -1743,7 +1767,7 @@
             if (projectionSnapshot.ProofLink is not null)
             {
                 Services.GetService<GlobalAdministratorCorrectionProofRegistry>()?.Remember(projectionSnapshot);
-                await OnProofAvailable.InvokeAsync().ConfigureAwait(false);
+                await InvokeAsync(() => OnProofAvailable.InvokeAsync()).ConfigureAwait(false);
             }
         }
 
@@ -1799,7 +1823,7 @@
         }
 
         GlobalAdministratorCorrectionSnapshot refreshed = confirmed.WithCorrectiveProof(proof);
-        if (proof is null && !complete)
+        if (proof is null && !complete && HasCorrectiveProofInputs(confirmed))
         {
             refreshed = refreshed with { AuditState = TenantCommandAuditState.AuditDelayed };
         }
@@ -1807,7 +1831,7 @@
         if (refreshed.ProofLink is not null)
         {
             Services.GetService<GlobalAdministratorCorrectionProofRegistry>()?.Remember(refreshed);
-            await OnProofAvailable.InvokeAsync().ConfigureAwait(false);
+            await InvokeAsync(() => OnProofAvailable.InvokeAsync()).ConfigureAwait(false);
         }
 
         _ = await InvokeRendererSafelyAsync(() =>
@@ -2184,6 +2208,12 @@
             submittedAtUtc,
             CancellationToken.None);
     }
+
+    private static bool HasCorrectiveProofInputs(GlobalAdministratorCorrectionSnapshot snapshot)
+        => TryParseOriginalTimestamp(snapshot.Intent, out _)
+            && !string.IsNullOrWhiteSpace(snapshot.CorrelationId)
+            && snapshot.CommittedEventSequence is > 0
+            && snapshot.SubmittedAtUtc is not null;
 
     private static bool TryParseOriginalTimestamp(
         TenantCorrectionStartIntent intent,

@@ -345,6 +345,32 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         confirmed.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
     }
 
+    [Theory]
+    [InlineData(false, "Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm")]
+    [InlineData(true, "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent")]
+    public void Reached_sequence_with_contradictory_postcondition_is_unverifiable(bool revoke, string messageKey)
+    {
+        GlobalAdministratorCorrectionSnapshot preview = revoke
+            ? GlobalAdministratorCorrectionSnapshot.FromIntent(
+                RevokeIntent(), ProjectionReady("admin-user", "other-admin")).WithRemovePreview(RemovePreview())
+            : GlobalAdministratorCorrectionSnapshot.FromIntent(RestoreIntent(), ProjectionReady("other-admin"));
+        GlobalAdministratorCorrectionSnapshot pending = preview
+            .RequestSent("message-safe", DateTimeOffset.Parse("2026-06-01T10:01:00Z", CultureInfo.InvariantCulture))
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+            {
+                CommittedEventSequence = 2,
+            });
+
+        GlobalAdministratorCorrectionSnapshot result = pending.ConfirmProjection(revoke
+            ? ProjectionReadyAtVersion("tenant-sequence:2", "admin-user", "other-admin")
+            : ProjectionReadyAtVersion("tenant-sequence:2", "other-admin"));
+
+        result.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        result.SafeMessageKey.ShouldBe(messageKey);
+        result.ProofLink.ShouldBeNull();
+    }
+
     [Fact]
     public void Revoke_is_not_confirmed_when_fixed_projection_returns_empty()
     {

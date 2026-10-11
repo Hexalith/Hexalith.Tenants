@@ -4115,3 +4115,21 @@ Diff reviewed: Tenants `66072cc4..362a957d`. The diff was 4,351 lines (260,201 b
   - **Code:** `GlobalAdministratorCorrectionPanel.RetryAmbiguousDeliveryAsync` (`:1349-1383` restore, `:1384-1420` removal) and `GlobalAdministratorsPage` `WithdrawDeliveryRetry` withdraw same-ULID redelivery once the projection no longer matches the preview.
   - **Consequence:** a POST that committed but returned an ambiguous result changes that projection. The attempt then stays ambiguous without a correlation, and the fixed-aggregate admission lease stays held until a new circuit.
   - **To settle:** choose between two fixes: (a) idempotent same-MessageId redelivery that is allowed after preconditions change, or (b) a MessageId-keyed status lookup. Either must keep the "never dispatch already-applied work" boundary.
+
+## Deferred from: Story 5.7 review pass 3 (2026-10-11)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Separate or safely merge the system tenant audit stream and global-administrator audit stream.
+  evidence: Both projection handlers write `audit:system`; the global handler saves a full rebuild while the tenant handler merges its own aggregate history. A tenant aggregate named `system` can lose audit rows when global history replays. This storage collision predates Story 5.7.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Establish the ordering contract for full-history global-administrator projection events.
+  evidence: The handler applies events in supplied order and stamps the last iterated sequence. If EventStore can deliver an out-of-order batch, membership and version can regress. An EventStore ordering guarantee or an out-of-order integration test would settle it.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Establish whether concurrent global-administrator projection rebuilds can overwrite newer state.
+  evidence: The existing full-rebuild handler uses `SaveAsync` without a version guard. If EventStore allows concurrent projection requests for this aggregate, an older request finishing last can replace newer state; an upstream serialization guarantee would settle reachability.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Resolve correlationless ambiguous global-administrator delivery after a command may have committed.
+  evidence: The existing global-action retry policy withdraws redelivery after a changed projection. The correction panel follows it, leaving an ambiguous attempt and fixed-aggregate lease in the current circuit; a MessageId status lookup or approved idempotent redelivery policy is needed.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Verify whether submit/event clock skew can exclude exact corrective audit proof.
+  evidence: The BFF submit time and EventStore event time are independent. Measured clock skew or a shared timestamp-order guarantee would establish whether the proof walk's submit-time lower bound can hide a matching correlation and sequence.
