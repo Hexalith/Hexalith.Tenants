@@ -2,7 +2,7 @@
 title: 'Correct global administrator authority from audit evidence'
 type: 'feature'
 created: '2026-10-10'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 1
 baseline_commit: '66072cc410834e2c34f7d30f121e447940ea6fc6'
@@ -133,6 +133,63 @@ Code review 2026-10-11 of `66072cc4..362a957d`. The review diff was 4,351 lines 
 - Disposed renderer or off-dispatcher reads in the paired refresh — false: the final apply re-checks reference and generation on the dispatcher, and disposal-time throws match the existing `LoadAsync` pattern with no user-visible effect.
 - `EventCount > 1` breaks sequence matching — false: `GlobalAdministratorsAggregate` emits exactly one event for each Set or Remove.
 - The deleted revoke "pending" copy now shows a projection read failure as pending — low: it takes a read failure in mid-confirmation, Refresh still works, and the fix needs new state semantics.
+
+### Review Findings — review-fix range `362a957d..4f0abcae` (2026-10-11)
+
+This review covered only the review-fix commits: 19 files, 1,534 diff lines (116,486 bytes). Four layers ran: Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor. None failed. They raised 34 findings, which triage reduced to 1 decision-needed, 13 patch, 1 defer and 11 rejected entries. The human resolved the decision as a patch and left the patches as action items. The review's status sync fixed the sprint-date patch, leaving 13 open. The gitlink guard passed: `python3 scripts/validate-story-gitlinks.py` exited 0, with no `references/` pointer changes since `66072cc4`.
+
+- [ ] [Review][Patch] (medium) The authority/admission fact mirrors Confirm but gives the wrong cause [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:552]
+  - **Problem:** `AuthorityAdmissionLabel` is `!CreateCorrectionDecision().IsConfirmDisabled`. Whenever Confirm is disabled, for any reason, the fact reads "Authority, command admission, or safe viewport cannot be verified. Refresh before confirming." That covers last administrator, already applied, submitting, and every tracked or terminal state, including Confirmed.
+  - **Decision (2026-10-11):** keep the derivation. Review loops 1 and 2 established that the fact never says Ready next to a disabled Confirm. Every disabled branch already renders its specific reason and recovery in the alert at `:42`.
+  - **Fix:** reword `Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked` to "Confirm is unavailable for the reason shown above." (EN) and « La confirmation est indisponible pour la raison indiquée ci-dessus. » (FR). Update the test dictionary at `GlobalAdministratorCorrectionPanelTests.cs:3283` and the Blocked assertions. Add one assertion for the Confirmed state.
+  [blind+auditor]
+- [ ] [Review][Patch] (medium) Carrying proof inputs forward breaks the Global Administrators page's unchanged-lease guard [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:5035] — this also applies at `:5109`.
+  - **Cause:** `CarryProofInputs` (`TenantAggregateCommandAdmissionGate.cs:500`) keeps `SubmittedAtUtc` and `CommittedEventSequence` on a lease the page adopted from the correction panel. Both are record members, so `Equals(CreateReconciliation(_grantSnapshot|_removeSnapshot), reconciliation)` can never match again.
+  - **Effect:** every later gate change rebuilds the page snapshot. The rebuild drops `IsDeliveryRetryWithdrawn` or `LastConfirmedProjection`, refocuses the lifecycle and nudges status.
+  - **Fix:** compare against `reconciliation with { SubmittedAtUtc = null, CommittedEventSequence = null }`, and add a page test that adopts a panel lease with proof inputs.
+  [edge+auditor]
+- [ ] [Review][Patch] (medium) A verified contradiction claims that another attempt is active and that audit evidence is delayed [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:276]
+  - **Cause:** after `IsVerifiedContradiction` releases the lease, the snapshot still has `HasCommandTracking`, so `TryGetTrackedLiveBlock` returns `AggregateBusy` (`:459`). Separately, `ConfirmProjection` routes through `UnableToVerify` (`GlobalAdministratorCorrectionSnapshot.cs:674`, helper `:766`), which sets `AuditDelayed` and a Refresh recovery key even though Refresh is disabled and no proof lookup will run.
+  - **Effect:** the assertive alert says "unavailable while another global-administrator attempt is active", and the lifecycle says "Corrective audit evidence is delayed."
+  - **Fix:** check `IsVerifiedContradiction` before the tracked live-block check and return the Unavailable recovery. Give the contradiction branch `AuditUnavailable` and no Refresh recovery. Assert both in `Reached_sequence_with_wrong_postcondition_releases_global_lease`.
+  [edge+auditor]
+- [ ] [Review][Patch] (medium) The regression test for the off-dispatcher `OnProofAvailable` fix passes without the fix, and the Refresh call site is untested [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:1789]
+  - **Why the test passes unfixed:** without the `InvokeAsync` wrap, the page's background re-verification still renders the paired button and `Remember` runs first. Only the panel's Confirmed state and `tenants-correction-proof-link` are lost, and the test asserts neither.
+  - **Fix:** assert `LifecycleState == Confirmed` and the proof link. Add a page test that confirms with an empty audit and makes the proof available off the dispatcher. That test should click `tenants-correction-refresh` (`GlobalAdministratorCorrectionPanel.razor:1834`).
+  [verification+auditor]
+- [ ] [Review][Patch] (medium) The route-driven paired-refresh test resolves the receipt from a pre-filled cache [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:1673] — before navigating to `?receiptReference=event-corrective`, the test clicks both paired buttons, so `_verifiedGlobalRows` already holds the off-page row. Deleting `RefreshPairedGlobalReceiptAsync()` at `TenantAuditPage.razor:830` leaves it green. Navigate on a cold cache instead, then assert a Ready receipt with its back-link. [auditor]
+- [ ] [Review][Patch] (medium) Proof-input carry-forward is tested at only one of five gate write sites [tests/Hexalith.Tenants.UI.Tests/State/TenantAggregateCommandAdmissionGateTests.cs:135] — the test reaches only `TryRetainReconciliation` (`:490`). Reverting `:299`, `:332`, `:363` or `:462` to plain assignment would stay green. Turn the test into a theory over `TryAdvanceReconciliation`, `TryBeginReconciliationDispatch` and `TryCompleteReconciliationDispatch`. Add a case proving that a different `MessageId` or action does not inherit the inputs. [verification+blind]
+- [ ] [Review][Patch] (medium) A confirmed attempt without proof inputs keeps an enabled Refresh that does nothing, and the guard is untested [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:383]
+  - **Behaviour:** the Confirmed branch of `CanRefreshSnapshot` enables Refresh for every state except `AuditAvailable`. Each click therefore reruns a lookup that is guaranteed to return `(null, false)` and refocuses the lifecycle.
+  - **Untested guard:** no test reaches the new `HasCorrectiveProofInputs` guard at `:1826`.
+  - **Claim gap:** this leaves the review-loop item "a Refresh that never ends" only partly fixed.
+  - **Fix:** require `HasCorrectiveProofInputs(snapshot)` in that branch. Extend `Malformed_original_timestamp_confirms_projection_but_does_not_link_corrective_proof` to assert that Refresh is disabled and the state stays `MissingSupport`.
+  [edge+auditor+verification]
+- [ ] [Review][Patch] (low) No test separates the authority/admission label's new derivation from the old one [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:66] — the old and new expressions differ only while the remove preview is still being composed, and every compose stub completes synchronously. Add an async compose stub. Assert the label is not Ready while the compose is pending and Confirm is disabled, and Ready afterwards. Apply this patch after the authority/admission copy patch above. [verification]
+- [ ] [Review][Patch] (low) Keeping the remove preview can overwrite a fail-closed projection state at the same version [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:714] — when a stale or non-current projection keeps its version, `FromIntent` returns `CurrentProjectionUnavailable`. `WithRemovePreview` then resets it to Previewed and clears the message, so count and state render as verified. Confirm stays disabled by availability. Re-attach the preview only when `refreshed.LifecycleState is Previewed`. [verification]
+- [ ] [Review][Patch] (low) The proof notification makes Confirm wait for the page's protected re-walk, and page exceptions now reach the panel [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1770] — this also applies at `:1834`.
+  - **Delay:** the panel awaits the page's whole `RefreshPairedGlobalReceiptAsync` before it applies Confirmed and settles the lease. For a receipt-launched correction, that is an authorization read plus two protected walks.
+  - **Lost isolation:** that method's final apply now runs outside its `try/catch` (`TenantAuditPage.razor:1629`).
+  - **Fix:** notify after the panel's own apply, and guard the call.
+  [blind]
+- [ ] [Review][Patch] (low) The in-flight guard also holds Failed attempts that have no correlation [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1747] — this also applies at `:1840`. `MessageId is not null` now also blocks a second Start after a deterministic POST failure. The guard needs only the `RequestSent` window: use `LifecycleState is RequestSent || HasCommandTracking`. [blind]
+- [ ] [Review][Patch] (low) The server provenance tests miss `system` non-global events and the Removed positive case [tests/Hexalith.Tenants.Server.Tests/Projections/TenantAuditReadModelTests.cs:121] — the only negative case is a `tenant-1` event, which fails both halves of the predicate. Dropping the event-type condition would leave every test green. Add a `system` tenant-aggregate event (expect null) and `GlobalAdministratorRemoved` (expect provenance). [blind+auditor]
+- [ ] [Review][Patch] (low) `deferred-work.md` records three existing defers a second time [_bmad-output/implementation-artifacts/deferred-work.md:4126] — the "Story 5.7 review pass 3" section repeats the projection-ordering, ambiguous-delivery and clock-skew entries already recorded above it. Delete the three duplicates. [blind]
+- [x] [Review][Patch] (low) The sprint-status `last_updated` value reads as November 10 [_bmad-output/implementation-artifacts/sprint-status.yaml:32] — the file uses MM-DD-YYYY, so `11-10-2026` should be `10-11-2026`. Fixed during the review's status sync. [blind]
+- [x] [Review][Defer] (unverified medium) The documented global-projection replay can overwrite tenant rows in `audit:system` [docs/event-contract-reference.md:127] — deferred: this is pre-existing and already in the ledger ("Separate or safely merge the system tenant audit stream…"). The new point is that the rollout replay is the trigger, so the paragraph needs a precondition warning. What would settle it: whether a tenant aggregate can be named `system`.
+
+**Rejected** (one line each):
+- Spec `done` versus sprint `review` — rejected: the fix edits the spec under review; this review's sprint sync updates the status.
+- Triage tally mismatch (22 patches, 20 rejected, "Finding 1") — rejected: the fix edits the spec under review. The ledger's "1 decision, 21 patches" matches the 22 checklist items, so that half is false.
+- Stale verification counts (4,026 versus 4,029) and no range recorded for pass 3 — rejected: the fix edits the spec under review.
+- A correction superseded by a later change shows as unverified, with no proof link — low: it needs a concurrent change from another circuit between commit and projection read, the copy is accurate for the current projection, and a superseded state is new scope.
+- Contradiction detected through message keys, and the lease released as Failed — false: `TryReleaseTerminal` uses the state only for `IsTerminal`, sibling snapshots use those keys only with ProjectionPending, and the snapshot and panel tests catch a key rename.
+- The page's sequence theory does not test `FindAsync`'s sequence equality — false: the `("tracking-safe", 3L, 5, false)` case in `GlobalAdministratorAuditProofLookupTests` fails if that check is removed. The page case pins the retained sequence the page passes.
+- Duplicated `system` + global-event predicate in `CreateEntry` — low: if the two copies diverge, the lookup needs both fields and so fails closed.
+- Audit rows persisted before this patch keep correlation IDs — maybe-false, low: it depends on deployment and rebuild. Exposure is limited to the authorized REST API, and the BFF strips both fields.
+- Keeping the remove preview relies on `null == null` version equality, and the test does not prove the compose was skipped — false: an unordered version never reaches Previewed, and the synchronous compose stub would fail `ShouldBeSameAs`.
+- The `RequestSent` page test does not assert how the attempt ends — low: it pins the guarded behaviour, and the panel tests cover acceptance and confirmation.
+- Relative versus absolute `source_spec` paths in the ledger — maybe-false, low: there is no evidence that the sweep requires absolute paths.
 
 ## Implementation Notes
 

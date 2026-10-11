@@ -4133,3 +4133,9 @@ Diff reviewed: Tenants `66072cc4..362a957d`. The diff was 4,351 lines (260,201 b
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
   summary: Verify whether submit/event clock skew can exclude exact corrective audit proof.
   evidence: The BFF submit time and EventStore event time are independent. Measured clock skew or a shared timestamp-order guarantee would establish whether the proof walk's submit-time lower bound can hide a matching correlation and sequence.
+
+## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, review-fix range `362a957d..4f0abcae` (2026-10-11)
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: unverified medium; the documented global-administrator projection replay is the trigger for the existing `audit:system` collision entry above ("Separate or safely merge the system tenant audit stream…"). Owner: Tenants global-administrator projection and rollout docs.
+  evidence: `docs/event-contract-reference.md:127` tells operators to rebuild the `system` / `global-administrators` singleton from history. One `ProjectAsync` run also saves `audit:system` as a full rebuild, which can drop rows written by the tenant handler if a tenant aggregate is named `system`. To settle: confirm whether a tenant aggregate can be named `system`. If it can, add a precondition warning to the rollout paragraph or separate the two streams.
