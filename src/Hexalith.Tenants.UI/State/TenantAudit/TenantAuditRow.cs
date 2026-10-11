@@ -36,6 +36,11 @@ public sealed record TenantAuditRow(
     ProjectionLifecycleState Lifecycle = ProjectionLifecycleState.Unknown,
     QueryResponseProvenance Provenance = QueryResponseProvenance.Unknown,
     TenantAuditNarrative? Narrative = null) {
+    /// <summary>Hidden command correlation used only for causal proof.</summary>
+    internal string? CommandCorrelationId { get; init; }
+
+    /// <summary>Hidden aggregate-local sequence used only for causal proof.</summary>
+    internal long? AggregateSequence { get; init; }
 
     /// <summary>Creates a UI audit row from a query-contract entry.</summary>
     /// <param name="entry">The query-contract audit entry.</param>
@@ -66,6 +71,10 @@ public sealed record TenantAuditRow(
             entry.EventType,
             narrative.ToDisplayString(),
             freshness,
-            Narrative: narrative);
+            Narrative: narrative)
+        {
+            CommandCorrelationId = entry.CommandCorrelationId,
+            AggregateSequence = entry.AggregateSequence,
+        };
     }
 }

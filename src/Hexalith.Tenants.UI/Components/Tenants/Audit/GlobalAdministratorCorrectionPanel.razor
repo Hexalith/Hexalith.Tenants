@@ -57,6 +57,9 @@
                 <dt>@Localizer["Tenants.Correction.Field.OriginalEvidence"]</dt>
                 <dd data-testid="tenants-correction-original-evidence">@FieldValue(_snapshot.OriginalAuditReference)</dd>
 
+                <dt>@Localizer["Tenants.Correction.Preview.OriginalTime"]</dt>
+                <dd data-testid="tenants-correction-original-time">@FieldValue(OriginalTimeLabel)</dd>
+
                 <dt>@Localizer["Tenants.Correction.Field.Domain"]</dt>
                 <dd data-testid="tenants-correction-domain">@Localizer["Tenants.Correction.Domain.GlobalAdministrators"]</dd>
 
@@ -73,8 +76,17 @@
                 <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AdminCount"]</dt>
                 <dd data-testid="tenants-correction-admin-count">@AdminCountLabel</dd>
 
+                <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.ResultingCount"]</dt>
+                <dd data-testid="tenants-correction-resulting-count">@ResultingCountLabel</dd>
+
                 <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.CurrentState"]</dt>
                 <dd data-testid="tenants-correction-current-state">@CurrentStateLabel</dd>
+
+                <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Provenance"]</dt>
+                <dd data-testid="tenants-correction-provenance">@ProvenanceLabel</dd>
+
+                <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission"]</dt>
+                <dd data-testid="tenants-correction-authority-admission">@AuthorityAdmissionLabel</dd>
             </dl>
 
             <FluentAccordion ExpandMode="AccordionExpandMode.Multi" Block="true" HeadingLevel="4">
@@ -85,7 +97,9 @@
                             <dd>@ConsequencesText</dd>
 
                             <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact"]</dt>
-                            <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value"]</dd>
+                            <dd>@(_snapshot.RemovePreview?.IsSelfRemoval is true
+                                ? Localizer["Tenants.GlobalAdministrators.Remove.Preview.CallerTargetContext.Self.Value"]
+                                : Localizer["Tenants.Correction.GlobalAdmin.Preview.LastAdminImpact.Value"])</dd>
 
                             <dt>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Unknowns"]</dt>
                             <dd>@Localizer["Tenants.Correction.GlobalAdmin.Preview.Unknowns.Value"]</dd>
@@ -193,6 +207,9 @@
     public EventCallback OnClose { get; set; }
 
     [Parameter]
+    public EventCallback OnProofAvailable { get; set; }
+
+    [Parameter]
     public Func<Task<GlobalAdministratorsSnapshot?>>? ProjectionRefreshProvider { get; set; }
 
     internal GlobalAdministratorCorrectionSnapshot? Snapshot => _snapshot;
@@ -202,7 +219,7 @@
         => !_disposed
             && _authorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
             && _snapshot?.ProofLink is { } proof
-            && _correctiveAuditEvidence is { TenantId: "system", Scope: "global-administrators" } row
+            && _correctiveAuditEvidence is { TenantId: "system", Scope: "system" } row
             && string.Equals(row.Target, _snapshot.TargetUserId, StringComparison.Ordinal)
             && string.Equals(row.EventType, _snapshot.CorrectiveEventType, StringComparison.Ordinal)
             && string.Equals(proof.CorrectiveAuditReference, row.EventReference, StringComparison.Ordinal)
@@ -226,6 +243,7 @@
             && Volatile.Read(ref _refreshInFlight) == 0;
         if (!_isSubmitting
             && snapshot.CanSubmit
+            && (snapshot.IsRestoreAccessAction || snapshot.RemovePreview?.IsComplete == true)
             && availability.IsAvailable)
         {
             return new(IsConfirmDisabled: false, canRefresh, Reason: null, Recovery: null);
@@ -364,14 +382,20 @@
 
     private bool CanRefreshSnapshot(GlobalAdministratorCorrectionSnapshot snapshot)
         => snapshot.HasCommandTracking
-            && snapshot.LifecycleState is TenantCommandLifecycleState.Accepted
+            && (snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed
+                ? snapshot.AuditState is not TenantCommandAuditState.AuditAvailable
+                    && QueryGateway is not null
+                    && _authenticationStateProvider is not null
+                    && _authorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+                    && _bffComposition?.IsReadSurfaceConnected == true
+                : (snapshot.LifecycleState is TenantCommandLifecycleState.Accepted
                 or TenantCommandLifecycleState.RequestSent
                 or TenantCommandLifecycleState.ProjectionPending
                 or TenantCommandLifecycleState.UnableToVerify
-                or TenantCommandLifecycleState.Degraded
-            && (IsAmbiguousCorrectionDeliveryRetry
-                ? CanRetryAmbiguousCorrectionDelivery
-                : CanRefreshCorrelatedCorrectionStatus);
+                or TenantCommandLifecycleState.Degraded)
+                    && (IsAmbiguousCorrectionDeliveryRetry
+                        ? CanRetryAmbiguousCorrectionDelivery
+                        : CanRefreshCorrelatedCorrectionStatus));
 
     private bool IsAmbiguousCorrectionDeliveryRetry
         => _snapshot is
@@ -506,6 +530,35 @@
         => IsProjectionStateVerifiable && _snapshot is not null
             ? _snapshot.CurrentAdministratorCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
             : FieldValue(null);
+
+    private string ResultingCountLabel
+        => IsProjectionStateVerifiable && _snapshot is { } snapshot
+            ? (snapshot.IsRestoreAccessAction
+                ? snapshot.GrantPreview?.ResultingAdministratorCount
+                : snapshot.RemovePreview?.ResultingAdministratorCount)?.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    ?? FieldValue(null)
+            : FieldValue(null);
+
+    private string? OriginalTimeLabel
+        => _snapshot is not null && TryParseOriginalTimestamp(_snapshot.Intent, out DateTimeOffset timestamp)
+            ? timestamp.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.InvariantCulture)
+            : null;
+
+    private string ProvenanceLabel
+        => IsProjectionStateVerifiable && _snapshot?.LastConfirmedProjectionEvidence?.IsCompleteEvidence is true
+            ? Localizer["Tenants.Correction.GlobalAdmin.Preview.Provenance.Current"]
+            : Localizer["Tenants.Correction.GlobalAdmin.Preview.Provenance.Unverified"];
+
+    private string AuthorityAdmissionLabel
+        => _authorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+            && _snapshot?.CanSubmit is true
+            && _snapshot.Intent.IsAvailable
+            && EvaluateCorrectionAvailability(_snapshot).IsAvailable
+            && _admissionGate is not null
+            && !_admissionGate.IsLockedByAnother(TenantCommandAggregateLock.ForGlobalAdministrators(), _admissionOwner)
+            && HasMeasuredSafeViewport
+            ? Localizer["Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Ready"]
+            : Localizer["Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked"];
 
     private string CurrentStateLabel
         => !IsProjectionStateVerifiable
@@ -673,6 +726,29 @@
         RetainReconciliationForReplacement();
         _snapshot = GlobalAdministratorCorrectionSnapshot.FromIntent(Intent, CurrentProjection);
         TryAdoptEligibleReconciliation();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        GlobalAdministratorCorrectionSnapshot? basis = _snapshot;
+        if (basis is null || basis.IsRestoreAccessAction
+            || basis.LifecycleState is not TenantCommandLifecycleState.Previewed
+            || basis.HasCommandTracking
+            || basis.RemovePreview is not null || CurrentProjection is null)
+        {
+            return;
+        }
+
+        GlobalAdministratorRemovePreview preview = await ComposeRemovePreviewSafelyAsync(
+            basis.TargetUserId, CurrentProjection).ConfigureAwait(false);
+        await InvokeAsync(() =>
+        {
+            if (!_disposed && ReferenceEquals(_snapshot, basis))
+            {
+                SetSnapshot(basis.WithRemovePreview(preview));
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
     }
 
     private static bool HasSameCorrectionIntent(
@@ -843,6 +919,61 @@
             return;
         }
 
+        if (_snapshot.CommandType is TenantCorrectionCommandType.SetGlobalAdministrator)
+        {
+            GlobalAdministratorsSnapshot? current;
+            GlobalAdministratorGrantPreview preview;
+            try
+            {
+                current = await RefreshProjectionAsync().ConfigureAwait(false);
+                preview = current is null || _bffComposition is null
+                    ? GlobalAdministratorGrantPreview.Unavailable(_snapshot.TargetUserId)
+                    : await _bffComposition.ComposeGlobalAdministratorGrantPreviewAsync(
+                        _snapshot.TargetUserId, current, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                current = null;
+                preview = GlobalAdministratorGrantPreview.Unavailable(_snapshot.TargetUserId);
+            }
+
+            bool ready = false;
+            _ = await InvokeRendererSafelyAsync(() =>
+            {
+                if (!CanApplyOperation(generation) || _snapshot is null)
+                {
+                    return;
+                }
+
+                GlobalAdministratorGrantPreview? original = _snapshot.GrantPreview;
+                if (current is not null)
+                {
+                    CurrentProjection = current;
+                    _snapshot = _snapshot.EvaluateCurrentProjection(current);
+                }
+
+                ready = preview.IsComplete && original?.Matches(preview) == true
+                    && _snapshot.CanSubmit
+                    && GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(CreateActionEvidence()).IsAvailable;
+                if (!ready && _snapshot.LifecycleState is TenantCommandLifecycleState.Previewed)
+                {
+                    _snapshot = _snapshot with
+                    {
+                        LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                        SafeMessageKey = "Tenants.Correction.Unavailable.CurrentProjectionUnavailable",
+                        FocusTarget = TenantCommandFocusTarget.Refresh,
+                        LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                    };
+                }
+
+                StateHasChanged();
+            }).ConfigureAwait(false);
+            if (!ready)
+            {
+                return;
+            }
+        }
+
         if (_snapshot.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator)
         {
             GlobalAdministratorsSnapshot? current;
@@ -920,7 +1051,9 @@
                 return;
             }
 
-            GlobalAdministratorCorrectionSnapshot requestSent = current.RequestSent(messageId);
+            GlobalAdministratorCorrectionSnapshot requestSent = current.RequestSent(
+                messageId,
+                (Services.GetService<TimeProvider>() ?? TimeProvider.System).GetUtcNow());
             if (requestSent.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator)
             {
                 if (requestSent.ToReconciliation() is not { } dispatchBasis
@@ -1213,7 +1346,42 @@
             return;
         }
 
-        if (!deliveryBasis.IsRestoreAccessAction)
+        if (deliveryBasis.IsRestoreAccessAction)
+        {
+            GlobalAdministratorsSnapshot? current;
+            GlobalAdministratorGrantPreview rebuilt;
+            try
+            {
+                current = await RefreshProjectionAsync().ConfigureAwait(false);
+                rebuilt = current is null || _bffComposition is null
+                    ? GlobalAdministratorGrantPreview.Unavailable(deliveryBasis.TargetUserId)
+                    : await _bffComposition.ComposeGlobalAdministratorGrantPreviewAsync(
+                        deliveryBasis.TargetUserId, current, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch
+            {
+                current = null;
+                rebuilt = GlobalAdministratorGrantPreview.Unavailable(deliveryBasis.TargetUserId);
+            }
+
+            if (current is null
+                || !rebuilt.IsComplete
+                || deliveryBasis.GrantPreview?.Matches(rebuilt) != true)
+            {
+                await InvokeRendererSafelyAsync(() =>
+                {
+                    if (CanApplyOperation(generation) && ReferenceEquals(_snapshot, deliveryBasis))
+                    {
+                        SetSnapshot(deliveryBasis.RetainAmbiguousPreflight(
+                            "Tenants.Correction.Unavailable.CurrentProjectionUnavailable",
+                            "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh"), focusTerminalState: true);
+                    }
+                }).ConfigureAwait(false);
+                RetainReconciliationForReplacement();
+                return;
+            }
+        }
+        else
         {
             GlobalAdministratorsSnapshot? current;
             try
@@ -1432,6 +1600,12 @@
         GlobalAdministratorCorrectionSnapshot statusBasis = _snapshot;
         TenantAggregateCommandLease? statusLease = _admissionLease;
 
+        if (statusBasis.LifecycleState is TenantCommandLifecycleState.Confirmed)
+        {
+            await RefreshConfirmedAuditProofAsync(generation, statusBasis).ConfigureAwait(false);
+            return;
+        }
+
         ITenantCommandGateway? gateway = CommandGateway;
         if (gateway is null)
         {
@@ -1547,12 +1721,13 @@
         }
 
         GlobalAdministratorCorrectionSnapshot projectionSnapshot = statusSnapshot.ConfirmProjection(projection);
-        TenantAuditRow? proof = null;
+        GlobalAdministratorAuditProof? proof = null;
+        bool auditLookupComplete = false;
         if (projectionSnapshot.LifecycleState is TenantCommandLifecycleState.Confirmed)
         {
             try
             {
-                proof = await QueryCorrectiveProofAsync(projectionSnapshot).ConfigureAwait(false);
+                (proof, auditLookupComplete) = await QueryCorrectiveProofAsync(projectionSnapshot).ConfigureAwait(false);
             }
             catch
             {
@@ -1560,6 +1735,16 @@
             }
 
             projectionSnapshot = projectionSnapshot.WithCorrectiveProof(proof);
+            if (proof is null && !auditLookupComplete)
+            {
+                projectionSnapshot = projectionSnapshot with { AuditState = TenantCommandAuditState.AuditDelayed };
+            }
+
+            if (projectionSnapshot.ProofLink is not null)
+            {
+                Services.GetService<GlobalAdministratorCorrectionProofRegistry>()?.Remember(projectionSnapshot);
+                await OnProofAvailable.InvokeAsync().ConfigureAwait(false);
+            }
         }
 
         bool projectionCompletionRetained = false;
@@ -1580,7 +1765,7 @@
                 }
 
                 CurrentProjection = projection;
-                _correctiveAuditEvidence = proof;
+                _correctiveAuditEvidence = proof?.Row;
                 SetSnapshot(projectionSnapshot, focusTerminalState: true);
                 StateHasChanged();
             }).ConfigureAwait(false)
@@ -1595,6 +1780,45 @@
             TryAdoptEligibleReconciliation();
             await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
         }
+
+    }
+
+    private async Task RefreshConfirmedAuditProofAsync(
+        long generation,
+        GlobalAdministratorCorrectionSnapshot confirmed)
+    {
+        GlobalAdministratorAuditProof? proof = null;
+        bool complete = false;
+        try
+        {
+            (proof, complete) = await QueryCorrectiveProofAsync(confirmed).ConfigureAwait(false);
+        }
+        catch
+        {
+            // A protected read failure remains an audit delay.
+        }
+
+        GlobalAdministratorCorrectionSnapshot refreshed = confirmed.WithCorrectiveProof(proof);
+        if (proof is null && !complete)
+        {
+            refreshed = refreshed with { AuditState = TenantCommandAuditState.AuditDelayed };
+        }
+
+        if (refreshed.ProofLink is not null)
+        {
+            Services.GetService<GlobalAdministratorCorrectionProofRegistry>()?.Remember(refreshed);
+            await OnProofAvailable.InvokeAsync().ConfigureAwait(false);
+        }
+
+        _ = await InvokeRendererSafelyAsync(() =>
+        {
+            if (CanApplyOperation(generation) && ReferenceEquals(_snapshot, confirmed))
+            {
+                _correctiveAuditEvidence = proof?.Row;
+                SetSnapshot(refreshed, focusTerminalState: true);
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
     }
 
     private async Task<bool> ReauthorizeAsync(long operationGeneration)
@@ -1938,41 +2162,27 @@
             .ConfigureAwait(false);
     }
 
-    private async Task<TenantAuditRow?> QueryCorrectiveProofAsync(
+    private Task<(GlobalAdministratorAuditProof? Proof, bool Complete)> QueryCorrectiveProofAsync(
         GlobalAdministratorCorrectionSnapshot? snapshot = null)
     {
         snapshot ??= _snapshot;
-        if (snapshot is null || QueryGateway is null)
+        if (snapshot is null || QueryGateway is null
+            || !TryParseOriginalTimestamp(snapshot.Intent, out DateTimeOffset originalTimestamp)
+            || string.IsNullOrWhiteSpace(snapshot.CorrelationId)
+            || snapshot.CommittedEventSequence is not > 0
+            || snapshot.SubmittedAtUtc is not { } submittedAtUtc)
         {
-            return null;
+            return Task.FromResult<(GlobalAdministratorAuditProof?, bool)>((null, false));
         }
 
-        // Do not infer proof from merely-similar historical rows. Without a parseable original timestamp,
-        // the UI cannot establish even a weak causal lower bound, so it reports audit evidence as delayed.
-        if (!TryParseOriginalTimestamp(snapshot.Intent, out DateTimeOffset originalTimestamp))
-        {
-            return null;
-        }
-
-        // The corrective proof lives in the fixed system-scope audit, never tenant-domain audit.
-        TenantAuditSnapshot audit = await QueryGateway
-            .GetTenantAuditAsync(new TenantAuditRequest("system", From: originalTimestamp), null, CancellationToken.None)
-            .ConfigureAwait(false);
-
-        string correctiveEventType = snapshot.CorrectiveEventType;
-
-        // The corrective event must be NEWER than the original audit evidence being corrected. The
-        // system-scope audit accumulates historical grant/remove rows and may lag the projection; requiring
-        // a strict lower time bound prevents older or same-instant audit rows from being linked as proof.
-        return audit.Rows
-            .Where(row =>
-                string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
-                && !string.Equals(row.EventReference, snapshot.OriginalAuditReference, StringComparison.Ordinal)
-                && string.Equals(row.TenantId, "system", StringComparison.Ordinal)
-                && string.Equals(row.Target, snapshot.TargetUserId, StringComparison.Ordinal)
-                && row.Timestamp > originalTimestamp)
-            .OrderByDescending(row => row.Timestamp)
-            .FirstOrDefault();
+        return QueryGateway.FindGlobalAdministratorCorrectionProofAsync(
+            snapshot.CorrelationId,
+            snapshot.CommittedEventSequence.Value,
+            snapshot.TargetUserId,
+            snapshot.CorrectiveEventType,
+            originalTimestamp,
+            submittedAtUtc,
+            CancellationToken.None);
     }
 
     private static bool TryParseOriginalTimestamp(

@@ -3710,7 +3710,7 @@
     <value>Chemin de récupération</value>
   </data>
   <data name="Tenants.Correction.GlobalAdmin.Preview.RecoveryPath.Value" xml:space="preserve">
-    <value>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support.</value>
+    <value>Relancer la consultation de statut, inspecter l'audit, continuer en lecture seule ou escalader à l'aide de références sûres pour le support. Un rechargement complet ou une nouvelle session fait perdre le suivi de la tentative en cours et les liens entre reçus d'audit.</value>
   </data>
   <data name="Tenants.Correction.GlobalAdmin.AlreadyRemoved" xml:space="preserve">
     <value>La projection courante d'autorité de la plateforme montre déjà que cet utilisateur n'est pas administrateur global.</value>
@@ -4280,4 +4280,13 @@
   <data name="Tenants.Correction.OpenOriginalReceipt" xml:space="preserve"><value>Consulter le reçu d’audit original</value></data>
   <data name="Tenants.Correction.Rejection.TenantDisabled" xml:space="preserve"><value>Le locataire est désactivé. Actualisez les données courantes et rétablissez sa disponibilité avant de commencer une correction.</value></data>
   <data name="Tenants.Correction.Rejection.TenantNotFound" xml:space="preserve"><value>Le locataire est introuvable. Actualisez les données courantes ou vérifiez le périmètre du locataire avant de commencer une correction.</value></data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.ResultingCount" xml:space="preserve"><value>Nombre d’administrateurs après la commande</value></data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Provenance" xml:space="preserve"><value>Preuve de projection</value></data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Provenance.Current" xml:space="preserve"><value>Projection système complète et actuelle avec une version ordonnée.</value></data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.Provenance.Unverified" xml:space="preserve"><value>La preuve de projection complète et actuelle est indisponible.</value></data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission" xml:space="preserve"><value>Autorité et admission de commande actuelles</value></data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Ready" xml:space="preserve"><value>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</value></data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked" xml:space="preserve"><value>L’autorité, l’admission de commande ou la largeur sûre ne peuvent pas être vérifiées. Actualisez avant de confirmer.</value></data>
+  <data name="Tenants.Audit.Receipt.Paired.Open" xml:space="preserve"><value>Voir le reçu d’audit associé</value></data>
+  <data name="Tenants.Audit.Receipt.Paired.OpenReference" xml:space="preserve"><value>Voir le reçu d’audit associé {0}</value></data>
 </root>

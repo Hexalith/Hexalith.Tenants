@@ -2383,6 +2383,38 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
+    public async Task GlobalAdministratorStatusRetainsVerifiedCommittedSequence()
+    {
+        StatusHandler handler = new("""
+            {
+              "correlationId": "correlation-global",
+              "status": "Completed",
+              "statusCode": 4,
+              "tenantId": "system",
+              "domain": "global-administrators",
+              "aggregateId": "global-administrators",
+              "eventCount": 1,
+              "committedEventSequence": 8,
+              "messageId": "message-global"
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-global")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-global", "correlation-global", "global-administrators")
+            {
+                ExpectedDomain = "global-administrators",
+            },
+            CancellationToken.None);
+
+        result.HasVerifiedCommandIdentity.ShouldBeTrue();
+        result.CommittedEventSequence.ShouldBe(8);
+    }
+
+    [Fact]
     public async Task Lifecycle_status_lookup_verifies_message_and_aggregate_identity()
     {
         StatusHandler handler = new("""

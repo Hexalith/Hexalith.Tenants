@@ -620,7 +620,7 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
         TenantAuditRow row = Row(eventType: "GlobalAdministratorRemoved") with
         {
             TenantId = "system",
-            Scope = "global-administrators",
+            Scope = "system",
         };
         TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(row));
 
@@ -629,8 +629,55 @@ public sealed class AuditEvidenceReceiptTests : FluentBunitContext
             .Add(component => component.CorrectionIntent, intent));
 
         cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
-            .ShouldBe("The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.");
+            .ShouldContain("GlobalAdministratorCommandSupportUnavailable");
         cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Proven_paired_receipt_navigation_uses_only_an_approved_reference()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        string? opened = null;
+        IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row()))
+            .Add(component => component.PairedReceiptReferences, ["paired-event"])
+            .Add(component => component.OnOpenPairedReceipt, value => opened = value));
+
+        cut.Find("[data-testid='tenants-audit-receipt-paired']").Click();
+        opened.ShouldBe("paired-event");
+
+        cut.Render(parameters => parameters
+            .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row()))
+            .Add(component => component.PairedReceiptReferences, ["access_token=unsafe"])
+            .Add(component => component.OnOpenPairedReceipt, value => opened = value));
+        cut.FindAll("[data-testid='tenants-audit-receipt-paired']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public void Paired_receipt_exports_localized_rendered_markup_for_browser_validation(string culture)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            IRenderedComponent<AuditEvidenceReceipt> cut = Render<AuditEvidenceReceipt>(parameters => parameters
+                .Add(component => component.Receipt, TenantAuditReceipt.FromRow(Row() with { EventReference = "event-b" }))
+                .Add(component => component.PairedReceiptReferences, ["event-a", "event-c"]));
+            cut.FindAll("[data-testid='tenants-audit-receipt-paired']").Count.ShouldBe(2);
+            string? directory = Environment.GetEnvironmentVariable("TENANTS_CORRECTION_FIXTURE_DIRECTORY");
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+                File.WriteAllText(Path.Combine(directory, $"global-correction-receipt-{culture}.html"), cut.Markup);
+            }
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
     }
 
     [Fact]

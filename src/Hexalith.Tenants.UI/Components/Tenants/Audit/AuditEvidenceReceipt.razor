@@ -93,6 +93,22 @@
             }
         </dl>
 
+        @if (Receipt.State is TenantAuditReceiptState.Ready)
+        {
+            @foreach (string reference in PairedReceiptReferences)
+            {
+                if (TenantAuditSupportSafety.SafeApprovedReference(reference) is { } pairedReference)
+                {
+                    <FluentButton Appearance="ButtonAppearance.Outline"
+                                  data-testid="tenants-audit-receipt-paired"
+                                  aria-label="@Localizer["Tenants.Audit.Receipt.Paired.OpenReference", pairedReference]"
+                                  OnClick="() => OnOpenPairedReceipt.InvokeAsync(pairedReference)">
+                        @Localizer["Tenants.Audit.Receipt.Paired.OpenReference", pairedReference]
+                    </FluentButton>
+                }
+            }
+        }
+
         @if (ReceiptAuditState is not null)
         {
             <AuditAvailabilityState AuditState="@ReceiptAuditState.Value"
@@ -182,6 +198,12 @@
 
     [Parameter]
     public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<string> PairedReceiptReferences { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<string> OnOpenPairedReceipt { get; set; }
 
     [Parameter]
     public EventCallback OnInspectAudit { get; set; }
@@ -378,9 +400,7 @@
     private string CorrectionUnavailableReason
         => CorrectionIntent is null
             ? string.Empty
-            : CorrectionIntent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
-                ? Localizer["Tenants.Correction.Start.GlobalNotReady"]
-                : CorrectionIntent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome)
+            : CorrectionIntent.UnavailableReasons.Contains(TenantCorrectionUnavailableReason.UnsupportedOutcome)
                     ? Localizer["Tenants.Correction.Unavailable.UnsupportedOutcome"]
                 : string.Join(
                 " ",

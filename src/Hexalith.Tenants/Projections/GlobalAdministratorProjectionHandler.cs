@@ -3,6 +3,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Server.Projections;
 
 namespace Hexalith.Tenants.Projections;
@@ -67,6 +68,12 @@ public sealed class GlobalAdministratorProjectionHandler {
 
             cancellationToken.ThrowIfCancellationRequested();
             ApplyEvent(state, evt);
+            if (evt.SequenceNumber >= 0)
+            {
+                state.ProjectionVersion = TenantProjectionVersionFormat.SequencePrefix
+                    + evt.SequenceNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                auditState.ProjectionVersion = state.ProjectionVersion;
+            }
         }
 
         cancellationToken.ThrowIfCancellationRequested();

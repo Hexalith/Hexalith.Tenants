@@ -713,7 +713,7 @@ internal sealed class TenantCommandGateway(
                             && status.EventCount <= status.CommittedEventSequence
                             && !string.IsNullOrWhiteSpace(handle.AggregateId)
                             && string.Equals(status.TenantId, SystemTenant, StringComparison.Ordinal)
-                            && string.Equals(status.Domain, TenantsDomain, StringComparison.Ordinal)
+                            && string.Equals(status.Domain, expectedDomain, StringComparison.Ordinal)
                             && string.Equals(status.AggregateId, handle.AggregateId, StringComparison.Ordinal)
                                 ? status.CommittedEventSequence : null,
                     };

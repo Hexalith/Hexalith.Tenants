@@ -36,6 +36,12 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     bool IsSubmissionAmbiguous = false,
     GlobalAdministratorGrantPreview? GrantPreview = null,
     GlobalAdministratorRemovePreview? RemovePreview = null) {
+    /// <summary>Hidden committed end sequence for this exact verified command.</summary>
+    internal long? CommittedEventSequence { get; init; }
+
+    /// <summary>Server-observed dispatch boundary retained with the circuit attempt.</summary>
+    internal DateTimeOffset? SubmittedAtUtc { get; init; }
+
     public bool IsRestoreAccessAction
         => CommandType is TenantCorrectionCommandType.SetGlobalAdministrator;
 
@@ -73,6 +79,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             GrantPreview = reconciliation.GrantPreview,
             RemovePreview = reconciliation.RemovePreview,
             HasCommandEventEvidence = reconciliation.HasCommandEventEvidence,
+            CommittedEventSequence = reconciliation.CommittedEventSequence,
+            SubmittedAtUtc = reconciliation.SubmittedAtUtc,
             IsSubmissionAmbiguous = deliveryAmbiguity,
             SafeMessage = null,
             SafeMessageKey = deliveryAmbiguity
@@ -150,7 +158,11 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             SafeMessageKey,
             SafeRecoveryKey,
             RemovePreview,
-            RejectionCode);
+            RejectionCode)
+        {
+            CommittedEventSequence = CommittedEventSequence,
+            SubmittedAtUtc = SubmittedAtUtc,
+        };
     }
 
     /// <summary>Creates exact command evidence for a lease-backed delivery completion.</summary>
@@ -179,7 +191,11 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             SafeMessageKey,
             SafeRecoveryKey,
             RemovePreview,
-            RejectionCode);
+            RejectionCode)
+        {
+            CommittedEventSequence = CommittedEventSequence,
+            SubmittedAtUtc = SubmittedAtUtc,
+        };
     }
 
     /// <summary>Attaches one complete BFF-composed removal preview before dispatch.</summary>
@@ -240,6 +256,15 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             available ? TenantCommandLiveRegionPoliteness.Polite : TenantCommandLiveRegionPoliteness.Assertive,
             SafeMessage: null);
 
+        if (available && !TenantLifecycleProjectionVersion.IsOrdered(currentProjection?.ProjectionVersion))
+        {
+            snapshot = snapshot with
+            {
+                LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessageKey = "Tenants.Correction.Unavailable.ProjectionVersionUnavailable",
+            };
+        }
+
         return currentProjection is null ? snapshot : snapshot.EvaluateCurrentProjection(currentProjection);
     }
 
@@ -294,7 +319,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             // already present is already applied and must not become a second grant command.
             if (present) {
                 return withEvidence with {
-                    LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+                    LifecycleState = TenantCommandLifecycleState.AlreadyApplied,
                     AuditState = TenantCommandAuditState.MissingSupport,
                     FocusTarget = TenantCommandFocusTarget.Submit,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -335,10 +360,11 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     }
 
     // Both fixed-scope actions take the exact caller-owned canonical ULID before dispatch.
-    public GlobalAdministratorCorrectionSnapshot RequestSent(string messageId)
+    public GlobalAdministratorCorrectionSnapshot RequestSent(string messageId, DateTimeOffset? submittedAtUtc = null)
         => this with {
             LifecycleState = TenantCommandLifecycleState.RequestSent,
             MessageId = messageId,
+            SubmittedAtUtc = submittedAtUtc?.ToUniversalTime(),
             CorrelationId = null,
             SafeMessage = null,
             SafeMessageKey = null,
@@ -455,6 +481,17 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     public GlobalAdministratorCorrectionSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
 
+        if (status.Status is Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
+            && status.HasVerifiedCommandIdentity
+            && status.EventCount is > 0
+            && (!TenantLifecycleProjectionVersion.HasReached(
+                    status.CommittedEventSequence,
+                    GrantPreview?.ProjectionVersion ?? RemovePreview?.ProjectionVersion,
+                    requireBeyond: true)))
+        {
+            return UnableToVerify("Tenants.Correction.Unavailable.CommandProofUnavailable");
+        }
+
         if (!IsRestoreAccessAction)
         {
             // The shared fixed aggregate makes the gateway classify both grant and removal handles as
@@ -462,7 +499,12 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             // keeps its dedicated mapping and copy even when the gateway supplied a Grant.* key.
             GlobalAdministratorRemoveCommandSnapshot removal = ToRemovalSnapshot().ApplyStatus(
                 status with { SafeMessageKey = null });
-            return FromRemovalSnapshot(removal);
+            return FromRemovalSnapshot(removal) with
+            {
+                CommittedEventSequence = status.Status is Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
+                    && status.HasVerifiedCommandIdentity && status.EventCount is > 0
+                        ? status.CommittedEventSequence : CommittedEventSequence,
+            };
         }
 
         if (status.Status is null) {
@@ -524,7 +566,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.EventsPublished
                     => WithPositiveEventEvidence(),
             Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed when status.EventCount is > 0
-                    => WithPositiveEventEvidence(),
+                    => WithPositiveEventEvidence() with { CommittedEventSequence = status.CommittedEventSequence },
             Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
                     => UnableToVerify(IsRestoreAccessAction
                         ? "Tenants.GlobalAdministrators.Grant.UnableToVerify.EventEvidence"
@@ -572,124 +614,102 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     }
 
     public GlobalAdministratorCorrectionSnapshot ConfirmProjection(GlobalAdministratorsSnapshot? projection) {
-        if (!IsRestoreAccessAction)
+        if (LifecycleState is TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.Failed
+            or TenantCommandLifecycleState.AlreadyApplied
+            or TenantCommandLifecycleState.Confirmed)
         {
-            if (projection is null)
-            {
-                return this with
-                {
-                    LifecycleState = TenantCommandLifecycleState.UnableToVerify,
-                    SafeMessage = null,
-                    SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Projection.UnableToVerify",
-                    SafeRecoveryKey = "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Refresh",
-                    AuditState = TenantCommandAuditState.AuditUnavailable,
-                    FocusTarget = TenantCommandFocusTarget.Refresh,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                };
-            }
-
-            GlobalAdministratorRemoveCommandSnapshot removal = ToRemovalSnapshot().ConfirmProjection(projection);
-            GlobalAdministratorCorrectionSnapshot updated = FromRemovalSnapshot(removal);
-            return projection.Kind is GlobalAdministratorsSurfaceKind.Ready
-                && projection.Freshness is ReadModelFreshnessState.Current
-                && projection.Lifecycle is ProjectionLifecycleState.Current
-                && !string.IsNullOrWhiteSpace(projection.ProjectionVersion)
-                && !projection.HasMore
-                && projection.IsCompleteEvidence
-                && ProjectionIsReadable(projection)
-                ? updated with
-                {
-                    LastConfirmedProjectionEvidence = projection,
-                    CurrentAdministratorCount = DistinctAdministratorCount(projection),
-                    TargetCurrentlyPresent = TargetPresent(projection),
-                }
-                : updated;
+            return this;
         }
 
-        // Confirmation may only come from an authoritative, current, genuinely-readable projection.
-        // An Empty/auth-scoped-empty or Stale projection is never proof of a successful correction:
-        // a successful revoke can never empty the fixed projection (the last administrator is blocked
-        // before submit), so treating "target absent from an empty/unauthorized read" as success would
-        // be a fail-open. This mirrors the start gate's current-freshness requirement (AC5/AC6/AC8).
         if (projection is null
             || projection.Kind is not GlobalAdministratorsSurfaceKind.Ready
             || projection.Freshness is not ReadModelFreshnessState.Current
             || projection.Lifecycle is not ProjectionLifecycleState.Current
-            || string.IsNullOrWhiteSpace(projection.ProjectionVersion)
             || projection.HasMore
             || !projection.IsCompleteEvidence
             || !ProjectionIsReadable(projection)
-            || LifecycleState is not TenantCommandLifecycleState.Accepted and not TenantCommandLifecycleState.ProjectionPending) {
+            || LifecycleState is not TenantCommandLifecycleState.ProjectionPending) {
             return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
         bool present = TargetPresent(projection);
-
-        if (IsRestoreAccessAction
-            && (LifecycleState is not TenantCommandLifecycleState.ProjectionPending
-                || !HasCommandEventEvidence
-                || GrantPreview?.IsComplete != true
-                || !TenantMembershipCommandProvenance.HasProjectionVersionAdvancement(
-                    GrantPreview.ProjectionVersion,
-                    projection.ProjectionVersion)))
+        GlobalAdministratorCorrectionSnapshot withEvidence = this with
         {
-            return this with
-            {
-                LastConfirmedProjectionEvidence = projection,
-                CurrentAdministratorCount = DistinctAdministratorCount(projection),
-                TargetCurrentlyPresent = present,
-                SafeMessage = null,
-                SafeMessageKey = "Tenants.GlobalAdministrators.Grant.Confirm.EvidenceRequired",
-                SafeRecoveryKey = "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh",
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            };
+            LastConfirmedProjectionEvidence = projection,
+            CurrentAdministratorCount = DistinctAdministratorCount(projection),
+            TargetCurrentlyPresent = present,
+        };
+
+        string? baseline = GrantPreview?.ProjectionVersion ?? RemovePreview?.ProjectionVersion;
+        // EventsStored and EventsPublished establish progress but do not yet carry the
+        // completed command's committed end sequence. Keep polling that same attempt.
+        if (HasCommandEventEvidence && CommittedEventSequence is null)
+        {
+            return withEvidence with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
-        // The shared complete-evidence guard above means both presence and absence come from the full
-        // stable aggregate. A restore is proven by presence; a revoke is proven by absence.
+        if (!HasCommandEventEvidence || CommittedEventSequence is not > 0
+            || !TenantLifecycleProjectionVersion.HasReached(CommittedEventSequence, baseline, requireBeyond: true))
+        {
+            return withEvidence.UnableToVerify("Tenants.Correction.Unavailable.CommandProofUnavailable");
+        }
+
+        TenantLifecycleProjectionVersionComparison advancement = TenantLifecycleProjectionVersion.Compare(
+            baseline, projection.ProjectionVersion);
+        if (advancement is TenantLifecycleProjectionVersionComparison.NotAdvanced
+            || !TenantLifecycleProjectionVersion.HasReached(CommittedEventSequence, projection.ProjectionVersion))
+        {
+            return withEvidence with { FocusTarget = TenantCommandFocusTarget.Refresh };
+        }
+        if (advancement is not TenantLifecycleProjectionVersionComparison.Advanced)
+        {
+            return withEvidence.UnableToVerify("Tenants.Correction.Unavailable.CommandProofUnavailable");
+        }
+
         bool projectionProvesCorrection = IsRestoreAccessAction
             ? present
             : !present;
 
         if (!projectionProvesCorrection) {
-            return this with {
-                LastConfirmedProjectionEvidence = projection,
-                CurrentAdministratorCount = DistinctAdministratorCount(projection),
-                TargetCurrentlyPresent = present,
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-            };
+            return withEvidence with { FocusTarget = TenantCommandFocusTarget.Refresh };
         }
 
-        return this with {
+        return withEvidence with {
             LifecycleState = TenantCommandLifecycleState.Confirmed,
-            LastConfirmedProjectionEvidence = projection,
-            CurrentAdministratorCount = DistinctAdministratorCount(projection),
-            TargetCurrentlyPresent = present,
             SafeMessage = null,
             SafeMessageKey = null,
             SafeRecoveryKey = null,
             RejectionCode = null,
             IsSubmissionAmbiguous = false,
-            AuditState = TenantCommandAuditState.AuditPending,
+            AuditState = TenantCommandAuditState.MissingSupport,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
     }
 
-    public GlobalAdministratorCorrectionSnapshot WithCorrectiveProof(TenantAuditRow? row) {
+    public GlobalAdministratorCorrectionSnapshot WithCorrectiveProof(GlobalAdministratorAuditProof? proof) {
         if (LifecycleState is not TenantCommandLifecycleState.Confirmed) {
             return this;
         }
 
+        TenantAuditRow? row = proof?.Row;
         if (row is null
             || !TryParseOriginalTimestamp(Intent, out DateTimeOffset originalTimestamp)
-            || row.Timestamp <= originalTimestamp) {
-            return this with { AuditState = TenantCommandAuditState.AuditDelayed };
+            || string.IsNullOrWhiteSpace(CorrelationId)
+            || CommittedEventSequence is not > 0
+            || !string.Equals(row.TenantId, "system", StringComparison.Ordinal)
+            || !string.Equals(row.Scope, "system", StringComparison.Ordinal)
+            || !string.Equals(row.Target, TargetUserId, StringComparison.Ordinal)
+            || !string.Equals(row.EventType, CorrectiveEventType, StringComparison.Ordinal)
+            || row.Timestamp <= originalTimestamp
+            || SubmittedAtUtc is not { } submittedAt
+            || row.Timestamp < submittedAt) {
+            return this with { AuditState = TenantCommandAuditState.MissingSupport, ProofLink = null };
         }
 
         return this with {
-            AuditState = TenantCommandAuditState.NotStarted,
+            AuditState = TenantCommandAuditState.AuditAvailable,
             ProofLink = new(
                 OriginalAuditReference,
                 row.EventReference,
@@ -843,7 +863,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     private static bool ProjectionIsReadable(GlobalAdministratorsSnapshot projection)
         => projection.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
         && projection.IsMutationEvidenceBacked
-        && !string.IsNullOrWhiteSpace(projection.ProjectionVersion)
+        && TenantLifecycleProjectionVersion.IsOrdered(projection.ProjectionVersion)
         && projection.Rows.All(static row =>
             row.Freshness is ReadModelFreshnessState.Current
             && row.Lifecycle is ProjectionLifecycleState.Current);

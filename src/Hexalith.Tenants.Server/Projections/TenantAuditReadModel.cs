@@ -131,7 +131,11 @@ public sealed class TenantAuditReadModel : IReadModelFreshness {
             evt.UserId!,
             evt.Timestamp,
             tenantId,
-            narrative);
+            narrative)
+        {
+            CommandCorrelationId = evt.CorrelationId,
+            AggregateSequence = evt.SequenceNumber > 0 ? evt.SequenceNumber : null,
+        };
 
     private static TEvent Deserialize<TEvent>(byte[] payload) where TEvent : IEventPayload =>
         JsonSerializer.Deserialize<TEvent>(payload, s_options)

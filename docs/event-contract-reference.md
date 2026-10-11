@@ -121,8 +121,10 @@ All query contracts implement `IQueryContract`; controllers are REST adapters th
 | `TenantDetail` | `TenantId`, `Name`, `Description?`, `Status`, `Members`, `Configuration`, `CreatedAt` |
 | `TenantMember` | `UserId`, `Role` |
 | `UserTenantMembership` | `TenantId`, `Name`, `Status`, `Role` |
-| `TenantAuditEntry` | `EventId`, `EventType`, `Category`, `ActorId`, `Timestamp`, `TenantId`, `NarrativePayload`, computed `Target`, computed `Scope`, computed `Outcome` |
+| `TenantAuditEntry` | `EventId`, `EventType`, `Category`, `ActorId`, `Timestamp`, `TenantId`, `NarrativePayload`, computed `Target`, computed `Scope`, computed `Outcome`, `CommandCorrelationId`, `AggregateSequence` (authorized command provenance; keep out of operator-facing copy) |
 | `GlobalAdministratorSummary` | `UserId` |
+
+For Story 5.7 audit-based global-administrator correction on an existing installation, rebuild the `system` / `global-administrators` singleton projection from its durable event history after deploying the sequence-writing projection handler. Existing persisted read models have no ordered `ProjectionVersion`. Keep correction unavailable until an authorized, complete `GET /api/global-administrators` read reports a `tenant-sequence:<number>` value in `X-Hexalith-Projection-Version`. Do not substitute wall time or a similar audit event for that sequence; a missing version remains a fail-closed recovery state.
 
 ### Rejection and Enum Contracts
 

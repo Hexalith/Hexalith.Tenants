@@ -12,6 +12,7 @@ using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -100,6 +101,7 @@ public static class TenantsUiServiceCollectionExtensions
         services.TryAddScoped<TenantSetConfigurationAttemptTracker>();
         services.TryAddScoped<TenantRemoveConfigurationAttemptTracker>();
         services.TryAddScoped<TenantCorrectionAttemptTracker>();
+        services.TryAddScoped<GlobalAdministratorCorrectionProofRegistry>();
         services.TryAddScoped<TenantHighImpactViewportObservation>();
 
         services.AddAuthorizationCore(options =>

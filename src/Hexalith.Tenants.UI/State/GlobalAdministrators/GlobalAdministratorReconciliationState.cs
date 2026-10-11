@@ -29,6 +29,11 @@ internal sealed record GlobalAdministratorReconciliationState(
     GlobalAdministratorRemovePreview? RemovePreview = null,
     string? RejectionCode = null)
 {
+    /// <summary>Hidden verified committed end sequence retained with the attempt.</summary>
+    internal long? CommittedEventSequence { get; init; }
+
+    internal DateTimeOffset? SubmittedAtUtc { get; init; }
+
     /// <summary>Returns a support-safe description without identity or tracking values.</summary>
     /// <returns>A bounded diagnostic description.</returns>
     public override string ToString()

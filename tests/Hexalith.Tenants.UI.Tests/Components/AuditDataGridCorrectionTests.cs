@@ -185,7 +185,7 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void GlobalAdministratorRowsNeverClaimSupportedPhoneCorrection(bool hasMeasurement)
+    public void GlobalAdministratorRowsRemainReadOnlyOnUnsafePhone(bool hasMeasurement)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -193,17 +193,17 @@ public sealed class AuditDataGridCorrectionTests : BunitContext
         TenantAuditRow row = Row("GlobalAdministratorRemoved") with
         {
             TenantId = "system",
-            Scope = "global-administrators",
+            Scope = "system",
         };
         IRenderedComponent<AuditDataGrid> cut = Render<AuditDataGrid>(parameters => parameters
             .Add(component => component.Rows, [row])
             .Add(component => component.HasViewportMeasurement, hasMeasurement)
             .Add(component => component.IsCorrectionViewportSafe, false)
             .Add(component => component.CorrectionIntentProvider, value => TenantCorrectionStartIntent.Evaluate(Context(value))));
-        cut.FindAll("[data-testid='tenants-correction-mobile-read-only']").ShouldBeEmpty();
-        cut.FindAll("[data-testid='tenants-correction-viewport-pending']").ShouldBeEmpty();
-        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
-            .ShouldBe("The high-impact global administrator correction flow is not ready here. Continue read-only or use the supported global administrator path.");
+        cut.FindAll("[data-testid='tenants-correction-start']").ShouldBeEmpty();
+        cut.Find(hasMeasurement
+            ? "[data-testid='tenants-correction-mobile-read-only']"
+            : "[data-testid='tenants-correction-viewport-pending']");
     }
 
     private static TenantCorrectionStartContext Context(TenantAuditRow row, TenantRole? intendedRole = null)

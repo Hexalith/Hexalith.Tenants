@@ -106,6 +106,19 @@ public class TenantAuditReadModelTests {
     }
 
     [Fact]
+    public void Apply_retains_global_command_provenance_outside_the_narrative() {
+        var model = new TenantAuditReadModel();
+        model.Apply(CreateEvent(new GlobalAdministratorSet(
+            TenantIdentity.DefaultTenantId, "admin-2", "admin-1", Timestamp)));
+
+        TenantAuditEntry entry = model.Entries.Single();
+        entry.CommandCorrelationId.ShouldBe("corr-1");
+        entry.AggregateSequence.ShouldBe(1);
+        entry.Scope.ShouldBe(TenantIdentity.DefaultTenantId);
+        entry.NarrativePayload.Values.ShouldNotContain("corr-1");
+    }
+
+    [Fact]
     public void New_model_has_empty_entries() {
         var model = new TenantAuditReadModel();
 

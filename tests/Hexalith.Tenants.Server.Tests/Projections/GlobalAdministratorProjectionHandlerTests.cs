@@ -60,7 +60,14 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Entries[0].ActorId == "actor-1"
                 && m.Entries[0].TenantId == "system"
                 && m.Entries[0].Target == "admin-1"
-                && m.Entries[1].EventType == nameof(GlobalAdministratorRemoved)),
+                && m.Entries[1].EventType == nameof(GlobalAdministratorRemoved)
+                && m.ProjectionVersion == "tenant-sequence:2"
+                && m.Entries[1].AggregateSequence == 2),
+            Arg.Any<CancellationToken>());
+        await store.Received(1).SaveAsync(
+            StateStoreName,
+            SingletonKey,
+            Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.ProjectionVersion == "tenant-sequence:2"),
             Arg.Any<CancellationToken>());
     }
 
@@ -247,11 +254,11 @@ public class GlobalAdministratorProjectionHandlerTests {
     }
 
     private static ProjectionRequest CreateRequest(params object[] events) {
-        ProjectionEventDto[] dtos = [.. events.Select((e, index) => CreateEventDto(e, $"evt-{index + 1}"))];
+        ProjectionEventDto[] dtos = [.. events.Select((e, index) => CreateEventDto(e, $"evt-{index + 1}", index + 1))];
         return new ProjectionRequest("system", "global-administrators", "global-administrators", dtos);
     }
 
-    private static ProjectionEventDto CreateEventDto(object @event, string messageId = "evt-1") {
+    private static ProjectionEventDto CreateEventDto(object @event, string messageId = "evt-1", long sequenceNumber = 1) {
         string typeName = @event switch {
             GlobalAdministratorSet => "Hexalith.Tenants.Contracts.Events.GlobalAdministratorSet",
             GlobalAdministratorRemoved => "Hexalith.Tenants.Contracts.Events.GlobalAdministratorRemoved",
@@ -262,7 +269,7 @@ public class GlobalAdministratorProjectionHandlerTests {
             typeName,
             payload,
             "json",
-            1L,
+            sequenceNumber,
             DateTimeOffset.UtcNow,
             "corr-1",
             messageId,

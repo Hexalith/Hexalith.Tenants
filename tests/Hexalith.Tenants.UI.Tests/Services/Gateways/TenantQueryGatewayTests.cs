@@ -44,6 +44,40 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed class TenantQueryGatewayTests
 {
     [Fact]
+    public async Task Global_correction_proof_uses_protected_raw_audit_provenance_while_public_rows_are_redacted()
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        DateTimeOffset original = DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture);
+        DateTimeOffset submitted = original.AddMinutes(1);
+        TenantAuditEntry entry = AuditEntry("corrective-event", AuditEventCategory.Access,
+            timestamp: submitted.AddMinutes(1), eventType: "GlobalAdministratorSet", tenantId: "system",
+            narrative: new Dictionary<string, string> { ["userId"] = "admin-user" }) with
+        {
+            CommandCorrelationId = "exact-command",
+            AggregateSequence = 2,
+        };
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantAuditEntry>([entry], null, false),
+                projectionVersion: "tenant-sequence:2"));
+        TenantQueryGateway gateway = CreateGateway(client);
+
+        (GlobalAdministratorAuditProof? proof, bool complete) = await gateway
+            .FindGlobalAdministratorCorrectionProofAsync("exact-command", 2, "admin-user",
+                "GlobalAdministratorSet", original, submitted);
+        TenantAuditSnapshot publicAudit = await gateway.GetTenantAuditAsync(new TenantAuditRequest("system"), null);
+
+        complete.ShouldBeTrue();
+        proof.ShouldNotBeNull();
+        proof.Row.EventReference.ShouldBe("corrective-event");
+        proof.Row.CommandCorrelationId.ShouldBeNull();
+        proof.Row.AggregateSequence.ShouldBeNull();
+        publicAudit.Rows.ShouldHaveSingleItem().CommandCorrelationId.ShouldBeNull();
+        publicAudit.Rows[0].AggregateSequence.ShouldBeNull();
+        _ = client.Received().GetTenantAuditAsync(
+            Arg.Is<GetTenantAuditQuery>(query => query.From == submitted), null, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task AuditPageCorrectionCaptureUsesOneReadForMultipleTargets()
     {
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
@@ -3330,7 +3364,11 @@ public sealed class TenantQueryGatewayTests
             [AuditEntry(
                 "event-1",
                 AuditEventCategory.Access,
-                timestamp: DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture))],
+                timestamp: DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture)) with
+                {
+                    CommandCorrelationId = "raw-command-correlation",
+                    AggregateSequence = 42,
+                }],
             "next-audit-cursor",
             true));
         TenantQueryGateway gateway = CreateGateway(client);
@@ -3361,6 +3399,8 @@ public sealed class TenantQueryGatewayTests
         payload.TryGetProperty("offset", out _).ShouldBeFalse();
         payload.TryGetProperty("limit", out _).ShouldBeFalse();
         snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
+        snapshot.Rows.ShouldHaveSingleItem().CommandCorrelationId.ShouldBeNull();
+        snapshot.Rows.ShouldHaveSingleItem().AggregateSequence.ShouldBeNull();
         snapshot.NextCursor.ShouldBe("next-audit-cursor");
         snapshot.HasMore.ShouldBeTrue();
         snapshot.Rows.ShouldHaveSingleItem().ReferenceContext.ShouldContain("userId: target-user");

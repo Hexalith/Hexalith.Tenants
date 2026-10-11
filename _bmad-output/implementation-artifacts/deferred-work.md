@@ -4094,3 +4094,7 @@ Diff reviewed: Tenants `2b91a52f..f6e7d7a5`, Story 5.6 paths only (the pass-39 f
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
   summary: Test the effective Tenants UI read endpoint in the AppHost resource model.
   evidence: Existing tests inspect source text for Tenants__BaseAddress but do not evaluate the UI resource environment; a later override could redirect authorized reads to EventStore while the source-text checks pass.
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Verify whether BFF submit-time and EventStore event-time clock skew can hide an exact global-administrator correction audit proof.
+  evidence: The BFF records SubmittedAtUtc while EventStore stamps the event independently; measured production skew or a shared timestamp ordering guarantee is needed to establish whether the current post-submit boundary can exclude a valid exact-correlation event.

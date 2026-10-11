@@ -643,6 +643,7 @@ public sealed class TenantAggregateCommandAdmissionGate
         => HasSameCommandIdentity(current, expected)
             && current.LifecycleState == expected.LifecycleState
             && current.HasCommandEventEvidence == expected.HasCommandEventEvidence
+            && current.CommittedEventSequence == expected.CommittedEventSequence
             && current.IsSubmissionAmbiguous == expected.IsSubmissionAmbiguous;
 
     private static bool HasSameCommandIdentity(

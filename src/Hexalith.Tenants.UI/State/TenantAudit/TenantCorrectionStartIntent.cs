@@ -168,10 +168,15 @@ public sealed record TenantCorrectionStartIntent(
                 break;
             case "GlobalAdministratorRemoved":
             case "GlobalAdministratorSet":
-                // Compatibility for Story 5.7. The tenant page always passes support=false.
                 domain = TenantCorrectionCommandDomain.GlobalAdministrators;
                 command = row.EventType is "GlobalAdministratorRemoved"
                     ? TenantCorrectionCommandType.SetGlobalAdministrator : TenantCorrectionCommandType.RemoveGlobalAdministrator;
+                if (!string.Equals(row.TenantId, "system", StringComparison.Ordinal)
+                    || !string.Equals(row.Scope, "system", StringComparison.Ordinal)
+                    || row.Category is not AuditEventCategory.Access)
+                {
+                    reasons.Add(TenantCorrectionUnavailableReason.ScopeConflict);
+                }
                 scope = "global-administrators";
                 if (!context.HasGlobalAdministratorCommandSupport)
                 {

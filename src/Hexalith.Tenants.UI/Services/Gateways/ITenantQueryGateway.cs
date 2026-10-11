@@ -161,4 +161,15 @@ public interface ITenantQueryGateway
         TenantAuditRequest request,
         TenantAuditSnapshot? previous,
         CancellationToken cancellationToken = default);
+
+    /// <summary>Finds one authorized, causally verified corrective audit row without exposing raw provenance to audit components.</summary>
+    Task<(GlobalAdministratorAuditProof? Proof, bool Complete)> FindGlobalAdministratorCorrectionProofAsync(
+        string correlationId,
+        long committedEventSequence,
+        string targetUserId,
+        string correctiveEventType,
+        DateTimeOffset originalTimestamp,
+        DateTimeOffset submittedAtUtc,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult<(GlobalAdministratorAuditProof?, bool)>((null, false));
 }

@@ -259,6 +259,15 @@
                               OnOpenOriginalReceipt="OpenOriginalCorrectionReceiptAsync"
                               OnClose="CloseCorrectionAsync" />
     }
+    @if (HasAuthorizedRetainedSurface && _globalCorrectionIntent is not null)
+    {
+        <GlobalAdministratorCorrectionPanel Intent="@_globalCorrectionIntent"
+                                            @ref="_globalCorrectionPanel"
+                                            CurrentProjection="@_globalAdministratorsProjection"
+                                            ProjectionRefreshProvider="RefreshGlobalAdministratorsProjectionAsync"
+                                            OnProofAvailable="OnGlobalProofAvailableAsync"
+                                            OnClose="CloseGlobalCorrectionAsync" />
+    }
     @if (HasAuthorizedRetainedSurface && _previewCorrectionIntent is null && RetainedCorrectionAttempt is not null)
     {
         <FluentButton Appearance="ButtonAppearance.Outline"
@@ -270,6 +279,8 @@
     @if (_selectedReceipt is not null)
     {
         <AuditEvidenceReceipt Receipt="@_selectedReceipt"
+                              PairedReceiptReferences="@PairedGlobalReceiptReferences"
+                              OnOpenPairedReceipt="OpenPairedGlobalReceiptAsync"
                               CorrectionIntent="@(_selectedReceiptFromCorrectionPreview && _previewCorrectionIntent is not null ? null : _selectedReceiptCorrectionIntent)"
                               IsCorrectionViewportSafe="@HasMeasuredSafeViewport"
                               OnStartCorrection="OpenReceiptCorrectionAsync"
@@ -320,6 +331,13 @@
     private bool _competingCorrectionNotice;
     private string? _resumedCorrectionMessageId;
     private CorrectionStartPanel? _correctionPreview;
+    private TenantCorrectionStartIntent? _globalCorrectionIntent;
+    private GlobalAdministratorCorrectionPanel? _globalCorrectionPanel;
+    private readonly List<TenantCorrectionProofLink> _verifiedGlobalProofs = [];
+    private readonly Dictionary<string, TenantAuditRow> _verifiedGlobalRows = new(StringComparer.Ordinal);
+    private long _pairedProofGeneration;
+    private GlobalAdministratorsSnapshot? _globalAdministratorsProjection;
+    private bool _globalCorrectionAuthorized;
     private readonly Dictionary<string, TenantCorrectionProjection> _correctionProjections = new(StringComparer.Ordinal);
     private string? _activeCorrectionOrigin;
     private string? _pendingCorrectionOrigin;
@@ -715,6 +733,12 @@
                 _selectedReceiptCorrectionIntent = null;
                 _activeCorrectionIntent = null;
                 _previewCorrectionIntent = null;
+                _globalCorrectionIntent = null;
+                _globalAdministratorsProjection = null;
+                _globalCorrectionAuthorized = false;
+                Interlocked.Increment(ref _pairedProofGeneration);
+                _verifiedGlobalProofs.Clear();
+                _verifiedGlobalRows.Clear();
                 _dismissedReceiptReference = null;
                 _lastRouteReceiptReference = ReceiptReference;
                 StateHasChanged();
@@ -745,6 +769,12 @@
                 _selectedReceiptFromLauncher = false;
                 _selectedReceiptFromCorrectionPreview = false;
                 _activeCorrectionIntent = null;
+                _globalCorrectionIntent = null;
+                _globalAdministratorsProjection = null;
+                _globalCorrectionAuthorized = false;
+                Interlocked.Increment(ref _pairedProofGeneration);
+                _verifiedGlobalProofs.Clear();
+                _verifiedGlobalRows.Clear();
                 TenantCorrectionAttempt? retained = RetainedCorrectionAttempt;
                 _previewCorrectionIntent = retained is { BlocksAdmission: true } ? retained.Snapshot.Intent : null;
                 _resumedCorrectionMessageId = _previewCorrectionIntent is null ? null : retained?.MessageId;
@@ -795,6 +825,10 @@
             if (!needsInitialLoad)
             {
                 await EnsureReadRefreshSubscriptionAsync(tenantId).ConfigureAwait(false);
+                if (receiptRouteChanged)
+                {
+                    await RefreshPairedGlobalReceiptAsync().ConfigureAwait(false);
+                }
                 return;
             }
         }
@@ -1007,6 +1041,12 @@
             // Supplementary tenant-detail evidence unavailable; the audit page stays usable.
         }
 
+        if (string.Equals(tenantId, "system", StringComparison.Ordinal)
+            && _snapshot.Rows.Any(static row => row.EventType is "GlobalAdministratorSet" or "GlobalAdministratorRemoved"))
+        {
+            await RefreshGlobalCorrectionEvidenceForLoadAsync(tenantId, generation, cancellationToken).ConfigureAwait(false);
+        }
+
         if (!CanApply(tenantId, generation))
         {
             return null;
@@ -1035,6 +1075,10 @@
                 ResolveReceiptSelection();
             }
         }).ConfigureAwait(false);
+        if (CanApply(tenantId, generation) && string.Equals(tenantId, "system", StringComparison.Ordinal))
+        {
+            await RefreshPairedGlobalReceiptAsync().ConfigureAwait(false);
+        }
         return result;
     }
 
@@ -1454,14 +1498,14 @@
         InvalidateCorrectionFocus();
     }
 
-    private Task OpenReceiptAsync(TenantAuditRow row)
+    private async Task OpenReceiptAsync(TenantAuditRow row)
     {
         TenantAuditRow? currentRow = _snapshot.Rows.FirstOrDefault(candidate =>
             string.Equals(candidate.EventReference, row.EventReference, StringComparison.Ordinal));
         if (currentRow is null || !ShouldRenderRows
             || TenantAuditSupportSafety.SafeApprovedReference(currentRow.EventReference) is null)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         _selectedReceiptReference = currentRow.EventReference;
@@ -1469,21 +1513,219 @@
         _selectedReceiptFromCorrectionPreview = false;
         ResolveReceiptSelection();
         ScheduleReceiptHeadingFocus();
-        return Task.CompletedTask;
+        await RefreshPairedGlobalReceiptAsync().ConfigureAwait(false);
     }
 
-    private Task OpenOriginalCorrectionReceiptAsync(string reference)
+    private async Task OpenOriginalCorrectionReceiptAsync(string reference)
     {
         if (!HasAuthorizedRetainedSurface || TenantAuditSupportSafety.SafeApprovedReference(reference) is not { } safeReference)
         {
-            return Task.CompletedTask;
+            return;
         }
         _selectedReceiptReference = safeReference;
         _selectedReceiptFromLauncher = true;
         _selectedReceiptFromCorrectionPreview = true;
         ResolveReceiptSelection();
         ScheduleReceiptHeadingFocus();
-        return Task.CompletedTask;
+        await RefreshPairedGlobalReceiptAsync().ConfigureAwait(false);
+    }
+
+    private IReadOnlyList<string> PairedGlobalReceiptReferences
+    {
+        get
+        {
+            if (!string.Equals(TenantId, "system", StringComparison.Ordinal)
+                || !HasAuthorizedAuditSurface || _selectedReceipt?.State is not TenantAuditReceiptState.Ready)
+            {
+                return [];
+            }
+
+            return _verifiedGlobalProofs.Select(proof =>
+                    string.Equals(_selectedReceiptReference, proof.OriginalAuditReference, StringComparison.Ordinal)
+                        ? proof.CorrectiveAuditReference
+                        : string.Equals(_selectedReceiptReference, proof.CorrectiveAuditReference, StringComparison.Ordinal)
+                            ? proof.OriginalAuditReference : null)
+                .Select(TenantAuditSupportSafety.SafeApprovedReference)
+                .Where(static reference => reference is not null)
+                .Select(static reference => reference!)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+        }
+    }
+
+    private async Task OnGlobalProofAvailableAsync()
+    {
+        if (!_disposed)
+        {
+            await RefreshPairedGlobalReceiptAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task RefreshPairedGlobalReceiptAsync()
+    {
+        long generation = Interlocked.Increment(ref _pairedProofGeneration);
+        await InvokeAsync(() =>
+        {
+            if (generation == Volatile.Read(ref _pairedProofGeneration))
+            {
+                _verifiedGlobalProofs.Clear();
+                _verifiedGlobalRows.Clear();
+                ResolveReceiptSelection();
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
+        IReadOnlyList<GlobalAdministratorCorrectionSnapshot> retainedPairs = Services
+            .GetService<GlobalAdministratorCorrectionProofRegistry>()?.FindAll(_selectedReceiptReference ?? string.Empty) ?? [];
+        if (retainedPairs.Count == 0 || !string.Equals(TenantId, "system", StringComparison.Ordinal)
+            || !HasAuthorizedAuditSurface
+            || _selectedReceiptReference is null)
+        {
+            return;
+        }
+
+        string selectedReference = _selectedReceiptReference;
+        try
+        {
+            if (await BffComposition.ResolveGlobalAdministratorsAuthorizationAsync(CancellationToken.None)
+                    .ConfigureAwait(false) is not TenantLifecycleAuthorizationReflectionState.Authorized)
+            {
+                return;
+            }
+
+            List<TenantCorrectionProofLink> verified = [];
+            Dictionary<string, TenantAuditRow> rows = new(StringComparer.Ordinal);
+            foreach (GlobalAdministratorCorrectionSnapshot retained in retainedPairs)
+            {
+                try
+                {
+                    if (retained.ProofLink is not { } proof || retained.CorrelationId is null
+                        || retained.CommittedEventSequence is not > 0
+                        || retained.SubmittedAtUtc is not { } submittedAtUtc)
+                    {
+                        continue;
+                    }
+
+                    (GlobalAdministratorAuditProof? correctiveProof, bool complete) = await QueryGateway
+                        .FindGlobalAdministratorCorrectionProofAsync(
+                            retained.CorrelationId,
+                            retained.CommittedEventSequence.Value,
+                            retained.TargetUserId,
+                            retained.CorrectiveEventType,
+                            proof.OriginalTimestamp,
+                            submittedAtUtc,
+                            CancellationToken.None).ConfigureAwait(false);
+                    TenantAuditRow? corrective = correctiveProof?.Row;
+                    if (!complete || corrective is null
+                        || !string.Equals(corrective.EventReference, proof.CorrectiveAuditReference, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    TenantAuditRow? original = await FindOriginalGlobalAuditRowAsync(retained).ConfigureAwait(false);
+                    if (original is null)
+                    {
+                        continue;
+                    }
+
+                    verified.Add(proof);
+                    rows[proof.OriginalAuditReference] = original;
+                    rows[proof.CorrectiveAuditReference] = corrective;
+                }
+                catch (Exception)
+                {
+                    // One unavailable protected pair cannot hide independently verified neighbors.
+                }
+            }
+
+            await InvokeAsync(() =>
+            {
+                if (!_disposed && generation == Volatile.Read(ref _pairedProofGeneration)
+                    && string.Equals(TenantId, "system", StringComparison.Ordinal)
+                    && HasAuthorizedAuditSurface
+                    && string.Equals(_selectedReceiptReference, selectedReference, StringComparison.Ordinal))
+                {
+                    _verifiedGlobalProofs.AddRange(verified);
+                    foreach (KeyValuePair<string, TenantAuditRow> row in rows)
+                    {
+                        _verifiedGlobalRows[row.Key] = row.Value;
+                    }
+                    ResolveReceiptSelection();
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // Missing or unstable protected evidence leaves the paired receipt unavailable.
+        }
+    }
+
+    private async Task<TenantAuditRow?> FindOriginalGlobalAuditRowAsync(GlobalAdministratorCorrectionSnapshot retained)
+    {
+        TenantCorrectionProofLink proof = retained.ProofLink!;
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        string? cursor = null;
+        string? version = null;
+        TenantAuditRow? original = null;
+        for (int page = 0; page < 50; page++)
+        {
+            TenantAuditRequest request = new("system", From: proof.OriginalTimestamp,
+                To: proof.OriginalTimestamp, Cursor: cursor);
+            TenantAuditSnapshot audit = await QueryGateway.GetTenantAuditAsync(request, null, CancellationToken.None)
+                .ConfigureAwait(false);
+            if (audit.Kind is not TenantAuditSurfaceKind.Ready and not TenantAuditSurfaceKind.Empty
+                and not TenantAuditSurfaceKind.FilteredEmpty
+                || audit.Freshness is not ReadModelFreshnessState.Current
+                || audit.Lifecycle is not ProjectionLifecycleState.Current
+                || !audit.MatchesScope(request)
+                || audit.Rows.Count > request.PageSize
+                || string.IsNullOrWhiteSpace(audit.ProjectionVersion)
+                || audit.HasMore == string.IsNullOrWhiteSpace(audit.NextCursor)
+                || version is not null && !string.Equals(version, audit.ProjectionVersion, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            version ??= audit.ProjectionVersion;
+            foreach (TenantAuditRow row in audit.Rows)
+            {
+                if (string.Equals(row.EventReference, proof.OriginalAuditReference, StringComparison.Ordinal)
+                    && string.Equals(row.TenantId, "system", StringComparison.Ordinal)
+                    && string.Equals(row.Scope, "system", StringComparison.Ordinal)
+                    && string.Equals(row.Target, retained.TargetUserId, StringComparison.Ordinal)
+                    && row.Timestamp == proof.OriginalTimestamp
+                    && string.Equals(row.EventType,
+                        retained.CorrectiveEventType is "GlobalAdministratorSet"
+                            ? "GlobalAdministratorRemoved" : "GlobalAdministratorSet",
+                        StringComparison.Ordinal)
+                    && TenantAuditReceipt.FromRow(row, audit.Kind).State is TenantAuditReceiptState.Ready)
+                {
+                    if (original is not null) return null;
+                    original = row;
+                }
+            }
+
+            if (!audit.HasMore) return original;
+            if (string.IsNullOrWhiteSpace(audit.NextCursor) || !visited.Add(audit.NextCursor)) return null;
+            cursor = audit.NextCursor;
+        }
+
+        return null;
+    }
+
+    private async Task OpenPairedGlobalReceiptAsync(string reference)
+    {
+        if (!PairedGlobalReceiptReferences.Contains(reference, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        _selectedReceiptReference = reference;
+        _selectedReceiptFromLauncher = true;
+        _selectedReceiptFromCorrectionPreview = false;
+        ResolveReceiptSelection();
+        ScheduleReceiptHeadingFocus();
+        await RefreshPairedGlobalReceiptAsync().ConfigureAwait(false);
     }
 
     private Task CloseReceiptAsync()
@@ -1501,10 +1743,124 @@
     }
 
     private Task OpenGridCorrectionAsync(TenantCorrectionStartIntent intent)
-        => OpenCorrectionAsync(intent, "grid");
+        => intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
+            ? OpenGlobalCorrectionAsync(intent, "grid")
+            : OpenCorrectionAsync(intent, "grid");
 
     private Task OpenReceiptCorrectionAsync(TenantCorrectionStartIntent intent)
-        => OpenCorrectionAsync(intent, "receipt");
+        => intent.IntendedCommandDomain is TenantCorrectionCommandDomain.GlobalAdministrators
+            ? OpenGlobalCorrectionAsync(intent, "receipt")
+            : OpenCorrectionAsync(intent, "receipt");
+
+    private async Task OpenGlobalCorrectionAsync(TenantCorrectionStartIntent intent, string origin)
+    {
+        if (!HasAuthorizedAuditSurface || !HasMeasuredSafeViewport || !intent.IsAvailable
+            || !string.Equals(TenantId, "system", StringComparison.Ordinal)
+            || _globalCorrectionIntent is not null
+                && _globalCorrectionPanel?.Snapshot?.HasCommandTracking is true)
+        {
+            return;
+        }
+
+        int generation = ++_correctionOpenGeneration;
+        GlobalAdministratorsSnapshot? projection;
+        TenantLifecycleAuthorizationReflectionState authorization;
+        try
+        {
+            projection = await RefreshGlobalAdministratorsProjectionAsync().ConfigureAwait(false);
+            authorization = await BffComposition
+                .ResolveGlobalAdministratorsAuthorizationAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch
+        {
+            projection = null;
+            authorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+        await InvokeAsync(() =>
+        {
+            if (_disposed || generation != _correctionOpenGeneration || !HasMeasuredSafeViewport)
+            {
+                return;
+            }
+
+            _globalAdministratorsProjection = projection;
+            _globalCorrectionAuthorized = authorization is TenantLifecycleAuthorizationReflectionState.Authorized;
+            TenantAuditRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
+                string.Equals(candidate.EventReference, intent.OriginalAuditReference, StringComparison.Ordinal));
+            TenantCorrectionStartIntent? refreshed = row is null ? null : CreateCorrectionIntent(row);
+            if (refreshed?.IsAvailable is true)
+            {
+                _globalCorrectionIntent = refreshed;
+                _activeCorrectionFocusReference = intent.OriginalAuditReference;
+                _activeCorrectionOrigin = origin;
+                _receiptFocusGeneration++;
+                _pendingReceiptFocus = "tenants-correction-title";
+            }
+            else
+            {
+                ScheduleCorrectionFocus(intent.OriginalAuditReference, origin);
+            }
+
+            ResolveReceiptSelection();
+            StateHasChanged();
+        }).ConfigureAwait(false);
+    }
+
+    private Task CloseGlobalCorrectionAsync()
+    {
+        _correctionOpenGeneration++;
+        ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
+        _globalCorrectionIntent = null;
+        return Task.CompletedTask;
+    }
+
+    private Task<GlobalAdministratorsSnapshot> RefreshGlobalAdministratorsProjectionAsync()
+        => GlobalAdministratorsProjectionLoader.LoadAsync(QueryGateway, cancellationToken: CancellationToken.None);
+
+    private async Task RefreshGlobalCorrectionEvidenceForLoadAsync(
+        string tenantId, long generation, CancellationToken cancellationToken)
+    {
+        GlobalAdministratorsSnapshot projection;
+        TenantLifecycleAuthorizationReflectionState authorization;
+        try
+        {
+            authorization = await BffComposition.ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken)
+                .ConfigureAwait(false);
+            projection = authorization is TenantLifecycleAuthorizationReflectionState.Authorized
+                ? await GlobalAdministratorsProjectionLoader.LoadAsync(QueryGateway, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false)
+                : GlobalAdministratorsSnapshot.Unauthorized();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            return;
+        }
+        catch
+        {
+            authorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+            projection = GlobalAdministratorsSnapshot.Unavailable();
+        }
+
+        await InvokeAsync(() =>
+        {
+            if (!CanApply(tenantId, generation))
+            {
+                return;
+            }
+
+            _globalAdministratorsProjection = projection;
+            _globalCorrectionAuthorized = authorization is TenantLifecycleAuthorizationReflectionState.Authorized;
+            if (_globalCorrectionIntent is { } active && _globalCorrectionPanel?.Snapshot?.HasCommandTracking is not true)
+            {
+                TenantAuditRow? row = _snapshot.Rows.FirstOrDefault(candidate =>
+                    string.Equals(candidate.EventReference, active.OriginalAuditReference, StringComparison.Ordinal));
+                _globalCorrectionIntent = row is null ? null : CreateCorrectionIntent(row);
+            }
+
+            ResolveReceiptSelection();
+            StateHasChanged();
+        }).ConfigureAwait(false);
+    }
 
     private bool HasSubmittedCorrection => _previewCorrectionIntent is not null
         && _correctionPreview?.HasSubmitted is true;
@@ -1667,6 +2023,14 @@
 
         TenantAuditRow? selectedRow = _snapshot.Rows.FirstOrDefault(row =>
             string.Equals(row.EventReference, _selectedReceiptReference, StringComparison.Ordinal));
+        if (selectedRow is null && string.Equals(TenantId, "system", StringComparison.Ordinal)
+            && HasAuthorizedRetainedSurface
+            && _verifiedGlobalRows.TryGetValue(_selectedReceiptReference, out TenantAuditRow? verifiedRow))
+        {
+            selectedRow = string.Equals(verifiedRow.TenantId, "system", StringComparison.Ordinal)
+                && string.Equals(verifiedRow.Scope, "system", StringComparison.Ordinal)
+                    ? verifiedRow : null;
+        }
         _selectedReceipt = selectedRow is null
             ? TenantAuditReceipt.Unavailable(
                 surfaceKind: _snapshot.Kind, checkedPage: IsCheckedPage(_snapshot.Kind))
@@ -1837,23 +2201,38 @@
 
     private TenantCorrectionStartIntent CreateCorrectionIntent(TenantAuditRow row)
     {
+        bool global = row.EventType is "GlobalAdministratorSet" or "GlobalAdministratorRemoved";
         string target = row.Narrative?.UserId ?? string.Empty;
         _correctionProjections.TryGetValue(target, out TenantCorrectionProjection? projection);
         TenantRole? intendedRole = _selectedCorrectionRoles.TryGetValue(row.EventReference, out TenantRole selectedRole)
             ? selectedRole : null;
         return TenantCorrectionStartIntent.Evaluate(new(
             TenantAuditReceipt.FromRow(row, surfaceKind: _snapshot.Kind), row,
-            IsAuthorized: projection?.IsAuthorized is true,
-            HasCurrentProjectionSnapshot: projection?.IsCurrent is true
+            IsAuthorized: global ? _globalCorrectionAuthorized : projection?.IsAuthorized is true,
+            HasCurrentProjectionSnapshot: (global
+                ? _globalAdministratorsProjection is { IsCompleteEvidence: true, IsMutationEvidenceBacked: true } globalProjection
+                    && TenantLifecycleProjectionVersion.IsOrdered(globalProjection.ProjectionVersion)
+                : projection?.IsCurrent is true)
                 && _snapshot.Lifecycle is ProjectionLifecycleState.Current
                 && _snapshot.Freshness is ReadModelFreshnessState.Current,
-            CurrentProjectionSnapshotReference: string.Empty,
+            CurrentProjectionSnapshotReference: global && _globalAdministratorsProjection is not null
+                ? _globalAdministratorsProjection.ProjectionVersion ?? string.Empty : string.Empty,
             TenantStatus: projection?.TenantStatus ?? TenantStatus.Unknown,
             CurrentRole: projection?.CurrentRole,
             IntendedRole: intendedRole,
             HasTenantCommandSupport: QueryGateway.SupportsTenantCorrectionStart
                 && BffComposition.IsReadSurfaceConnected && BffComposition.IsCommandSurfaceConnected,
-            HasGlobalAdministratorCommandSupport: false,
+            HasGlobalAdministratorCommandSupport: global
+                && string.Equals(TenantId, "system", StringComparison.Ordinal)
+                && string.Equals(row.TenantId, "system", StringComparison.Ordinal)
+                && Services.GetService<ITenantCommandGateway>() is { SupportsCommandStatusLookup: true } globalCommandGateway
+                && (row.EventType is "GlobalAdministratorRemoved"
+                    ? globalCommandGateway.SupportsTrackedGlobalAdministratorDispatch
+                    : row.EventType is "GlobalAdministratorSet"
+                        && globalCommandGateway.SupportsTrackedGlobalAdministratorRemoveDispatch)
+                && BffComposition.IsGlobalAdministratorDispatchConnected
+                && BffComposition.IsGlobalAdministratorStatusConnected
+                && BffComposition.IsGlobalAdministratorRequeryConnected,
             IsNarrowViewportSafe: HasMeasuredSafeViewport,
             Projection: projection));
     }

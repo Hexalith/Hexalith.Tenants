@@ -1075,6 +1075,40 @@ internal sealed class TenantQueryGateway(
     public async Task<TenantAuditSnapshot> GetTenantAuditAsync(
         TenantAuditRequest request,
         TenantAuditSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        TenantAuditSnapshot result = await GetTenantAuditRawAsync(request, previous, cancellationToken).ConfigureAwait(false);
+        return result with
+        {
+            Rows = result.Rows.Select(static row => row with
+            {
+                CommandCorrelationId = null,
+                AggregateSequence = null,
+            }).ToArray(),
+        };
+    }
+
+    public Task<(GlobalAdministratorAuditProof? Proof, bool Complete)> FindGlobalAdministratorCorrectionProofAsync(
+        string correlationId,
+        long committedEventSequence,
+        string targetUserId,
+        string correctiveEventType,
+        DateTimeOffset originalTimestamp,
+        DateTimeOffset submittedAtUtc,
+        CancellationToken cancellationToken = default)
+        => GlobalAdministratorAuditProofLookup.FindAsync(
+            (request, token) => GetTenantAuditRawAsync(request, null, token),
+            correlationId,
+            committedEventSequence,
+            targetUserId,
+            correctiveEventType,
+            originalTimestamp,
+            submittedAtUtc,
+            cancellationToken);
+
+    private async Task<TenantAuditSnapshot> GetTenantAuditRawAsync(
+        TenantAuditRequest request,
+        TenantAuditSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 

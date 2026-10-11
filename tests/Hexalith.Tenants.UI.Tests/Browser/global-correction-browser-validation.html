@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Global administrator correction browser validation</title>
+    <link rel="stylesheet" href="./fluent-ui.css">
+    <link rel="stylesheet" href="./correction.css">
+    <link rel="stylesheet" href="./receipt.css">
+</head>
+<body>
+    <output id="validation-report">RUNNING</output>
+    <script type="module">
+        const report = document.getElementById('validation-report');
+        const parameters = new URLSearchParams(location.search);
+        const culture = parameters.get('culture') || 'en';
+        const narrow = parameters.get('viewport') === 'narrow';
+        document.documentElement.lang = culture;
+        try {
+            const fluent = await import('./fluent-ui.js');
+            fluent.beforeStart(document, 'web');
+            await customElements.whenDefined('fluent-button');
+            const { focusCorrectionLauncher, focusElementById } = await import('./tenantsFocus.js');
+            const previewResponse = await fetch(`./global-correction-preview-${narrow ? 'narrow' : 'desktop'}-${culture}.html`);
+            const receiptResponse = await fetch(`./global-correction-receipt-${culture}.html`);
+            if (!previewResponse.ok || !receiptResponse.ok) throw new Error('Rendered global correction fixtures are unavailable');
+            const preview = document.createElement('template');
+            preview.innerHTML = await previewResponse.text();
+            const receiptTemplate = document.createElement('template');
+            receiptTemplate.innerHTML = await receiptResponse.text();
+            const panel = preview.content.querySelector('[data-testid="tenants-correction-panel"]');
+            const receipt = receiptTemplate.content.querySelector('[data-testid="tenants-audit-receipt"]');
+            const confirm = panel?.querySelector('[data-testid="tenants-correction-confirm"]');
+            const cancel = panel?.querySelector('[data-testid="tenants-correction-cancel"]');
+            if (!panel || !receipt || !confirm || !cancel) throw new Error('Rendered global correction controls are missing');
+            for (const field of [
+                'tenants-correction-original-evidence', 'tenants-correction-original-time',
+                'tenants-correction-scope', 'tenants-correction-target-user',
+                'tenants-correction-current-state', 'tenants-correction-admin-count',
+                'tenants-correction-resulting-count', 'tenants-correction-provenance',
+                'tenants-correction-authority-admission', 'tenants-correction-preview-data']) {
+                if (!panel.querySelector(`[data-testid="${field}"]`)?.textContent.trim()) throw new Error(`Global preview fact missing: ${field}`);
+            }
+            if (!panel.querySelector('[data-testid="tenants-correction-live-region"][aria-live]')) throw new Error('Global lifecycle announcement missing');
+            if (panel.querySelector('[data-testid="tenants-correction-proof-link"]')) throw new Error('Unproven global proof link appeared');
+            if (narrow !== confirm.hasAttribute('disabled')) throw new Error('Narrow mutation availability changed');
+            if (receipt.querySelectorAll('[data-testid="tenants-audit-receipt-paired"]').length !== 2) throw new Error('Successive paired receipt controls missing');
+            if (!receipt.textContent.includes('event-a') || !receipt.textContent.includes('event-c')) throw new Error('Paired references missing');
+            for (const token of ['ProjectionBacked', 'tenant-sequence:', 'Tenants.Correction.']) {
+                if (panel.textContent.includes(token) || receipt.textContent.includes(token)) throw new Error(`Visible machine token: ${token}`);
+            }
+            const launcher = document.createElement('fluent-button');
+            launcher.setAttribute('data-testid', 'tenants-correction-start');
+            launcher.setAttribute('data-correction-focus-reference', 'event-safe-reference');
+            launcher.setAttribute('data-correction-origin', 'grid');
+            launcher.textContent = 'Start correction';
+            document.body.append(launcher, panel, receipt);
+            let egress = 0;
+            const denyEgress = () => { egress++; throw new Error('Unexpected browser command egress'); };
+            window.fetch = denyEgress;
+            window.XMLHttpRequest = class { constructor() { denyEgress(); } };
+            if (!focusElementById('tenants-correction-title')) throw new Error('Global preview heading did not receive focus');
+            if (!narrow) {
+                confirm.focus();
+                if (document.activeElement !== confirm) throw new Error('Global Confirm is not keyboard focusable');
+            }
+            cancel.focus();
+            if (document.activeElement !== cancel) throw new Error('Global Cancel is not keyboard focusable');
+            panel.remove();
+            if (!focusCorrectionLauncher('event-safe-reference', 'grid') || document.activeElement !== launcher) throw new Error('Global close did not restore launcher focus');
+            document.body.append(panel);
+            const fields = panel.querySelector('.ga-correction-panel__fields');
+            const bounds = panel.getBoundingClientRect();
+            if (bounds.width <= 0 || bounds.right > innerWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1) throw new Error('Global correction overflow');
+            const columns = getComputedStyle(fields).gridTemplateColumns.split(' ').filter(Boolean).length;
+            if (narrow && columns !== 1) throw new Error('Narrow global safety fields did not stack');
+            if (!narrow && columns < 2) throw new Error('Desktop global safety fields did not use available width');
+            if (parameters.get('forcedColors') === 'active') {
+                if (!matchMedia('(forced-colors: active)').matches) throw new Error('Forced colors is not active');
+                const boundary = getComputedStyle(panel);
+                if (['none', 'hidden'].includes(boundary.borderTopStyle) || parseFloat(boundary.borderTopWidth) <= 0) throw new Error('Global forced-colors boundary disappeared');
+                const live = panel.querySelector('[data-testid="tenants-correction-live-region"]');
+                if (!live.textContent.trim() || getComputedStyle(live).visibility !== 'visible') throw new Error('Global forced-colors status disappeared');
+                cancel.focus();
+                const focus = getComputedStyle(cancel);
+                if (document.activeElement !== cancel || ['none', 'hidden'].includes(focus.outlineStyle) || parseFloat(focus.outlineWidth) <= 0) throw new Error('Global forced-colors focus disappeared');
+            }
+            if (egress !== 0) throw new Error('Global browser fixture caused command egress');
+            report.textContent = `PASS global-${culture}-${narrow ? 'narrow' : 'desktop'}-facts-pairs-focus-zero-egress`;
+            document.body.setAttribute('data-validation-status', 'passed');
+        } catch (error) {
+            report.textContent = `FAIL ${error.message}`;
+            document.body.setAttribute('data-validation-status', 'failed');
+        }
+    </script>
+</body>
+</html>

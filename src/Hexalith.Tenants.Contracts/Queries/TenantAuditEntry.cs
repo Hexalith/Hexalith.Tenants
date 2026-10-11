@@ -13,6 +13,11 @@ public sealed record TenantAuditEntry(
     DateTimeOffset Timestamp,
     string TenantId,
     IReadOnlyDictionary<string, string> NarrativePayload) {
+    /// <summary>Server-provided command correlation for authorized causal verification; never display it.</summary>
+    public string? CommandCorrelationId { get; init; }
+
+    /// <summary>Aggregate-local event sequence for authorized causal verification; never display it.</summary>
+    public long? AggregateSequence { get; init; }
     public string Target => ResolveTarget();
 
     public string Scope => TenantId;

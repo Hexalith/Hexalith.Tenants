@@ -188,6 +188,33 @@ for fixture in tenant-correction-preview-en.html tenant-correction-preview-fr.ht
 done
 cp -- "$script_dir/tenant-correction-preview-browser-validation.html" "$validation_tmp/preview.html"
 cp -- "$preview_css_path" "$validation_tmp/tenant-correction-preview.css"
+if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -method '*GlobalAdministratorCorrectionPanelTests.Global_preview_exports_localized_rendered_markup_for_browser_validation' \
+    >"$validation_tmp/global-preview-fixture-tests.log" 2>&1; then
+    echo "Global correction preview fixture export failed." >&2
+    cat "$validation_tmp/global-preview-fixture-tests.log" >&2
+    exit 1
+fi
+if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -method '*AuditEvidenceReceiptTests.Paired_receipt_exports_localized_rendered_markup_for_browser_validation' \
+    >"$validation_tmp/global-receipt-fixture-tests.log" 2>&1; then
+    echo "Global paired receipt fixture export failed." >&2
+    cat "$validation_tmp/global-receipt-fixture-tests.log" >&2
+    exit 1
+fi
+for culture in en fr; do
+    for viewport in desktop narrow; do
+        if [[ ! -f "$validation_tmp/global-correction-preview-${viewport}-${culture}.html" ]]; then
+            echo "Global correction preview fixture export is incomplete." >&2
+            exit 1
+        fi
+    done
+    if [[ ! -f "$validation_tmp/global-correction-receipt-${culture}.html" ]]; then
+        echo "Global paired receipt fixture export is incomplete." >&2
+        exit 1
+    fi
+done
+cp -- "$script_dir/global-correction-browser-validation.html" "$validation_tmp/global-correction.html"
 
 validation_port="$(python3 - <<'PY'
 import socket
@@ -384,6 +411,16 @@ for culture in en fr; do
             grep -o '<output id="validation-report">[^<]*' "$preview_output" >&2 || true
             exit 1
         fi
+        global_output="$validation_tmp/global-${culture}-${scenario}.html"
+        run_chromium "global correction ${culture}/${scenario}" "$global_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+            "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-global-${culture}-${scenario}" \
+            --virtual-time-budget=3000 --dump-dom \
+            "http://127.0.0.1:${validation_port}/global-correction.html?culture=${culture}&viewport=$([[ "$scenario" == desktop ]] && echo desktop || echo narrow)&forcedColors=${start_colors}"
+        if ! grep -q 'data-validation-status="passed"' "$global_output"; then
+            echo "Rendered global correction ${culture}/${scenario} failed:" >&2
+            grep -o '<output id="validation-report">[^<]*' "$global_output" >&2 || true
+            exit 1
+        fi
     done
 done
 recovery_mutation_output="$validation_tmp/recovery-no-tabindex.html"
@@ -397,6 +434,7 @@ if ! grep -q 'data-validation-status="failed"' "$recovery_mutation_output" \
     exit 1
 fi
 printf '%s\n' "Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed."
+printf '%s\n' "Rendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed."
 
 run_chromium "browser version" "$validation_tmp/browser-version.txt" --version
 browser_version="$(head -n 1 "$validation_tmp/browser-version.txt")"
