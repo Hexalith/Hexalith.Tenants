@@ -1,0 +1,274 @@
+{
+  "schema": "hexalith.module-manifest.v2",
+  "modules": [
+    {
+      "identity": {
+        "moduleId": "tenants",
+        "servers": [
+          {
+            "id": "domain",
+            "appId": "tenants",
+            "resourceId": "tenants",
+            "enabled": true,
+            "required": true
+          },
+          {
+            "id": "api",
+            "appId": "tenants-api",
+            "resourceId": "tenants-api",
+            "enabled": true,
+            "required": true
+          }
+        ],
+        "dependencies": [
+          "eventstore"
+        ]
+      },
+      "runtime": {
+        "dapr": [
+          {
+            "role": "state",
+            "capability": "state",
+            "recoveryClass": "authoritative-restore",
+            "configurationKey": "Dapr:StateStoreComponent"
+          },
+          {
+            "role": "events",
+            "capability": "pubsub",
+            "recoveryClass": "rebuild-only",
+            "configurationKey": "Dapr:PubSubComponent"
+          }
+        ],
+        "extensions": [
+          {
+            "packageId": "Hexalith.Tenants.Aspire",
+            "configurationInputs": [
+              {
+                "key": "Tenants:DaprConfigPath",
+                "source": "configuration",
+                "reference": "daprconfigpath"
+              },
+              {
+                "key": "Oidc:Authority",
+                "source": "configuration",
+                "reference": "authority"
+              },
+              {
+                "key": "Jwt:SigningKey",
+                "source": "secret",
+                "reference": "api-signing-key"
+              }
+            ]
+          }
+        ],
+        "resources": [
+          {
+            "server": "domain",
+            "requests": {},
+            "limits": {},
+            "volumes": []
+          },
+          {
+            "server": "api",
+            "requests": {},
+            "limits": {},
+            "volumes": []
+          }
+        ]
+      },
+      "surfaces": {
+        "interfaces": [
+          {
+            "name": "tenant-api",
+            "server": "api",
+            "protocol": "http",
+            "routePrefix": "/api/tenants",
+            "exposure": "public",
+            "surfaceClass": "service",
+            "authorization": {
+              "policy": "authenticated",
+              "permissions": []
+            },
+            "callers": [],
+            "operations": [
+              {
+                "name": "create-tenant",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "list-tenants",
+                "kind": "query",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "get-tenant",
+                "kind": "query",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "update-tenant",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              }
+            ]
+          },
+          {
+            "name": "global-administrators-api",
+            "server": "api",
+            "protocol": "http",
+            "routePrefix": "/api/global-administrators",
+            "exposure": "public",
+            "surfaceClass": "service",
+            "authorization": {
+              "policy": "authenticated",
+              "permissions": []
+            },
+            "callers": [],
+            "operations": [
+              {
+                "name": "list-global-administrators",
+                "kind": "query",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "set-global-administrator",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "remove-global-administrator",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              }
+            ]
+          },
+          {
+            "name": "user-tenants-api",
+            "server": "api",
+            "protocol": "http",
+            "routePrefix": "/api/users/{userId}/tenants",
+            "exposure": "public",
+            "surfaceClass": "service",
+            "authorization": {
+              "policy": "authenticated",
+              "permissions": []
+            },
+            "callers": [],
+            "operations": [
+              {
+                "name": "get-user-tenants",
+                "kind": "query",
+                "authorizationPolicy": "authenticated"
+              }
+            ]
+          },
+          {
+            "name": "tenant-domain",
+            "server": "domain",
+            "protocol": "http",
+            "routePrefix": "/",
+            "exposure": "internal-only",
+            "surfaceClass": "service",
+            "authorization": {
+              "policy": "authenticated",
+              "permissions": []
+            },
+            "callers": [
+              "eventstore"
+            ],
+            "operations": [
+              {
+                "name": "process",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "query",
+                "kind": "query",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "project",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "replay-state",
+                "kind": "administration",
+                "authorizationPolicy": "authenticated"
+              }
+            ]
+          }
+        ]
+      },
+      "integration": {
+        "topics": [
+          {
+            "name": "tenants-events",
+            "role": "events",
+            "deadLetter": {
+              "strategy": "none"
+            }
+          }
+        ],
+        "secrets": [
+          {
+            "name": "api-signing-key",
+            "configurationKey": "Jwt:SigningKey"
+          }
+        ],
+        "dynamicSecretNamespaces": [],
+        "identityNeeds": [],
+        "egress": [],
+        "providers": [],
+        "workers": []
+      },
+      "lifecycle": {
+        "readiness": [
+          {
+            "server": "domain",
+            "kind": "http",
+            "endpoint": "/ready"
+          },
+          {
+            "server": "api",
+            "kind": "http",
+            "endpoint": "/ready"
+          }
+        ],
+        "tasks": [],
+        "recoveryHooks": [],
+        "fenceHooks": [],
+        "replay": {
+          "reopenBeforeReplay": false
+        },
+        "startup": {},
+        "criticalFlows": [
+          {
+            "name": "tenant-management",
+            "surface": "tenant-api",
+            "operations": [
+              "create-tenant",
+              "get-tenant"
+            ]
+          },
+          {
+            "name": "global-administrator-management",
+            "surface": "global-administrators-api",
+            "operations": [
+              "list-global-administrators",
+              "set-global-administrator"
+            ]
+          }
+        ],
+        "smokeSurfaces": [],
+        "classification": {
+          "changeClass": "additive",
+          "reason": "Declare existing Tenants domain and public API services; readiness does not prove bootstrap completion."
+        },
+        "recoveryInventory": []
+      }
+    }
+  ]
+}

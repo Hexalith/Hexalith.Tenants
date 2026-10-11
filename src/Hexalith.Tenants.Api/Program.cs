@@ -5,6 +5,7 @@ using Hexalith.EventStore.ServiceDefaults;
 using Hexalith.Tenants.Api.Services;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -35,7 +36,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = string.IsNullOrWhiteSpace(audience) ? "hexalith-eventstore" : audience,
         };
 
-        string? authority = builder.Configuration["EventStore:Authentication:Authority"];
+        string? authority = builder.Configuration["EventStore:Authentication:Authority"]
+            ?? builder.Configuration["Oidc:Authority"];
         if (!string.IsNullOrWhiteSpace(authority))
         {
             options.Authority = authority;
@@ -49,7 +51,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             options.TokenValidationParameters.ValidIssuer = string.IsNullOrWhiteSpace(issuer) ? "hexalith-dev" : issuer;
 
-            string? signingKey = builder.Configuration["EventStore:Authentication:SigningKey"];
+            string? signingKey = builder.Configuration["EventStore:Authentication:SigningKey"]
+                ?? builder.Configuration["Jwt:SigningKey"];
             if (string.IsNullOrWhiteSpace(signingKey))
             {
                 throw new InvalidOperationException("EventStore:Authentication:SigningKey is required when Authority is not configured.");
@@ -72,6 +75,13 @@ builder.Services.AddTransient<InboundBearerForwardingHandler>();
 builder.Services.AddEventStoreGatewayClient(options => options.BaseAddress = new Uri(daprHttpEndpoint))
     .AddHttpMessageHandler<InboundBearerForwardingHandler>()
     .AddEventStoreDaprServiceInvocation("eventstore", daprApiToken);
+builder.Services.AddHttpClient(EventStoreGatewayReadinessHealthCheck.ClientName, client => client.BaseAddress = new Uri(daprHttpEndpoint))
+    .AddEventStoreDaprServiceInvocation("eventstore", daprApiToken);
+builder.Services.AddHealthChecks().AddCheck<EventStoreGatewayReadinessHealthCheck>(
+    "eventstore-gateway",
+    failureStatus: HealthStatus.Unhealthy,
+    tags: ["ready"],
+    timeout: TimeSpan.FromSeconds(3));
 
 WebApplication app = builder.Build();
 
