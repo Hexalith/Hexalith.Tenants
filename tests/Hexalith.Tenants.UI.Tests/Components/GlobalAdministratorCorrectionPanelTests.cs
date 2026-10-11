@@ -286,6 +286,70 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Null_restore_recheck_hides_retained_projection_facts_without_dispatch()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var commands = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin"))
+            .Add(component => component.ProjectionRefreshProvider,
+                () => Task.FromResult<GlobalAdministratorsSnapshot?>(null)));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.SafeMessageKey
+            .ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable"));
+        cut.Find("[data-testid='tenants-correction-admin-count']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-resulting-count']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-current-state']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-provenance']").TextContent.Trim()
+            .ShouldBe("Current complete projection evidence is unavailable.");
+        commands.SetRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Null_postcommand_projection_hides_retained_facts_until_complete_refresh_confirms()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var commands = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        GlobalAdministratorsSnapshot before = Projection("other-admin");
+        GlobalAdministratorsSnapshot? postcommand = null;
+        int reads = 0;
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, before)
+            .Add(component => component.ProjectionRefreshProvider,
+                () => Task.FromResult(++reads == 1 ? before : postcommand)));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.SafeMessageKey
+            .ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable"));
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        cut.Instance.Snapshot.LastConfirmedProjectionEvidence.ShouldBeSameAs(before);
+        cut.Find("[data-testid='tenants-correction-admin-count']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-resulting-count']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-current-state']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-provenance']").TextContent.Trim()
+            .ShouldBe("Current complete projection evidence is unavailable.");
+        commands.SetRequests.ShouldHaveSingleItem();
+        string messageId = cut.Instance.Snapshot.MessageId!;
+
+        postcommand = Projection("admin-user", "other-admin") with { ProjectionVersion = "tenant-sequence:2" };
+        cut.Find("[data-testid='tenants-correction-refresh']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        cut.Instance.Snapshot!.MessageId.ShouldBe(messageId);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBeNull();
+        cut.Find("[data-testid='tenants-correction-admin-count']").TextContent.Trim().ShouldBe("2");
+        cut.Find("[data-testid='tenants-correction-current-state']").TextContent.ShouldContain("Present");
+        commands.SetRequests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public void Changed_revoke_preview_blocks_dispatch_until_operator_reviews_current_facts()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -308,6 +372,11 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState
             .ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Find("[data-testid='tenants-correction-admin-count']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-resulting-count']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-current-state']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-provenance']").TextContent.Trim()
+            .ShouldBe("Current complete projection evidence is unavailable.");
         cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
         commands.RemoveRequests.ShouldBeEmpty();
     }
@@ -796,10 +865,10 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
         cut.Instance.Snapshot!.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
         cut.Instance.Snapshot.SafeRecoveryKey.ShouldBeNull();
-        cut.Find("[data-testid='tenants-correction-safe-message']").TextContent
-            .ShouldNotContain("another global-administrator attempt", Case.Insensitive);
-        cut.Find("[data-testid='tenants-correction-state']").TextContent
-            .ShouldNotContain("audit evidence is delayed", Case.Insensitive);
+        cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent.Trim()
+            .ShouldBe("Restore the blocked authorization, lifecycle, viewport, or projection evidence before retrying.");
+        cut.Find("[data-testid='tenants-correction-audit-state']").TextContent.Trim()
+            .ShouldBe("Corrective audit evidence is unavailable.");
     }
 
     [Fact]
@@ -2094,7 +2163,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         int assignment = submit.IndexOf("_admissionLease = acquiredLease", StringComparison.Ordinal);
         int callback = submit.LastIndexOf("await InvokeRendererSafelyAsync(() =>", assignment, StringComparison.Ordinal);
         int operationGuard = submit.IndexOf("CanApplyOperation(generation)", callback, StringComparison.Ordinal);
-        int dispatchGuard = submit.IndexOf("acquiredLease.TryMarkDispatched(_admissionOwner)", callback, StringComparison.Ordinal);
+        int dispatchGuard = submit.IndexOf("acquiredLease.TryBeginInitialReconciliationDispatch(", callback, StringComparison.Ordinal);
 
         submitStart.ShouldBeGreaterThan(-1);
         submitEnd.ShouldBeGreaterThan(submitStart);

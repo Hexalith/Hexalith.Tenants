@@ -525,11 +525,10 @@
     private string LiveRegionMode
         => _snapshot?.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";
 
-    // When the fixed projection could not be read honestly (UnableToVerify with the
-    // current-projection-unavailable marker), the admin count and present/absent are not verifiable
-    // truth, so render a neutral placeholder instead of an authoritative "0"/"Absent".
+    // A failed current read invalidates displayed facts even when an earlier complete projection remains retained.
     private bool IsProjectionStateVerifiable
         => _snapshot?.LastConfirmedProjectionEvidence is { } projection
+            && _snapshot.SafeMessageKey is not "Tenants.Correction.Unavailable.CurrentProjectionUnavailable"
             && GlobalAdministratorCorrectionSnapshot.ProjectionIsReadable(projection)
             && projection.IsCompleteEvidence && !projection.HasMore;
 
@@ -664,6 +663,12 @@
         {
             await InvokeAsync(() =>
             {
+                if (_isSubmitting)
+                {
+                    StateHasChanged();
+                    return;
+                }
+
                 SynchronizeOwnedReconciliation();
                 if (!CanOwnReconciliation())
                 {
@@ -921,13 +926,14 @@
         GlobalAdministratorCorrectionSnapshot completionSnapshot,
         TenantAggregateCommandLease submissionLease)
     {
-        if (await InvokeRendererSafelyAsync(() =>
+        bool resumeAdopted = false;
+        if (!await InvokeRendererSafelyAsync(() =>
             {
                 if (!CanApplyOperation(generation)
                     || !ReferenceEquals(_snapshot, requestSentSnapshot)
                     || !ReferenceEquals(_admissionLease, submissionLease))
                 {
-                    _ = RetainOrReleaseCompletion(completionSnapshot, submissionLease);
+                    resumeAdopted = RetainOrReleaseCompletion(completionSnapshot, submissionLease);
                     return;
                 }
 
@@ -935,10 +941,14 @@
                 StateHasChanged();
             }).ConfigureAwait(false))
         {
-            return;
+            resumeAdopted = RetainOrReleaseCompletion(completionSnapshot, submissionLease);
         }
 
-        _ = RetainOrReleaseCompletion(completionSnapshot, submissionLease);
+        if (resumeAdopted)
+        {
+            TryAdoptEligibleReconciliation();
+            await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
+        }
     }
 
     private async Task SubmitAsync()
@@ -1119,9 +1129,8 @@
 
                 removeInitialDispatch = true;
             }
-            else if (!acquiredLease.TryMarkDispatched(_admissionOwner)
-                || requestSent.ToCompletionReconciliation() is not { } grantDispatchBasis
-                || !acquiredLease.TryBeginReconciliationDispatch(
+            else if (requestSent.ToCompletionReconciliation() is not { } grantDispatchBasis
+                || !acquiredLease.TryBeginInitialReconciliationDispatch(
                     _admissionOwner,
                     grantDispatchBasis,
                     out completionToken))
@@ -1268,9 +1277,13 @@
                 ? requestSentSnapshot.Accepted(result)
                 : requestSentSnapshot.ApplySubmissionFailure(result);
             completedIoSnapshot = submissionSnapshot;
-            if (submissionSnapshot.ToReconciliation() is { } durableReconciliation)
+            if (submissionSnapshot.ToCompletionReconciliation() is not { } grantCompletion
+                || !submissionLease.TryCompleteReconciliationDispatch(completionToken, grantCompletion))
             {
-                _ = submissionLease.TryAdvanceReconciliation(_admissionOwner, durableReconciliation);
+                _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+                await PublishCorrectionDeliveryCompletionAsync(
+                    generation, requestSentSnapshot, submissionSnapshot, submissionLease).ConfigureAwait(false);
+                return;
             }
             bool submissionApplied = false;
             bool resumeAdopted = false;
@@ -1286,10 +1299,6 @@
                 submissionApplied = true;
                 StateHasChanged();
             }).ConfigureAwait(false);
-            if (grantInitialDispatch && submissionSnapshot.ToCompletionReconciliation() is { } grantCompletion)
-            {
-                _ = submissionLease.TryCompleteReconciliationDispatch(completionToken, grantCompletion);
-            }
             if (resumeAdopted)
             {
                 TryAdoptEligibleReconciliation();
@@ -1334,7 +1343,12 @@
 
             if (completedIoSnapshot is not null)
             {
-                _ = RetainOrReleaseCompletion(completedIoSnapshot, submissionLease);
+                _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+                if (RetainOrReleaseCompletion(completedIoSnapshot, submissionLease))
+                {
+                    TryAdoptEligibleReconciliation();
+                    await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
+                }
                 return;
             }
 
@@ -1346,15 +1360,22 @@
                             : "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous")
                     : TenantCommandSubmissionResult.Failed(Localizer["Tenants.Correction.State.Failed"]);
             GlobalAdministratorCorrectionSnapshot failedSnapshot = requestSentSnapshot.ApplySubmissionFailure(failure);
+            if (grantInitialDispatch && failedSnapshot.ToCompletionReconciliation() is { } grantFailure)
+            {
+                if (!submissionLease.TryCompleteReconciliationDispatch(completionToken, grantFailure))
+                {
+                    _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+                }
+            }
+            else
+            {
+                _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
+            }
             await PublishCorrectionDeliveryCompletionAsync(
                 generation,
                 requestSentSnapshot,
                 failedSnapshot,
                 submissionLease).ConfigureAwait(false);
-            if (grantInitialDispatch && failedSnapshot.ToCompletionReconciliation() is { } grantFailure)
-            {
-                _ = submissionLease.TryCompleteReconciliationDispatch(completionToken, grantFailure);
-            }
         }
         finally
         {

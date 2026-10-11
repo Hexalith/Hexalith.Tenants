@@ -542,16 +542,7 @@ public sealed class TenantAggregateCommandAdmissionGate
     private static GlobalAdministratorReconciliationState CarryProofInputs(
         GlobalAdministratorReconciliationState? current,
         GlobalAdministratorReconciliationState next)
-        => current is not null && HasSameCommandIdentity(current, next)
-            ? next with
-            {
-                SubmittedAtUtc = next.SubmittedAtUtc ?? current.SubmittedAtUtc,
-                CommittedEventSequence = next.CommittedEventSequence ?? current.CommittedEventSequence,
-                ConfirmedProjectionEvidence = next.ConfirmedProjectionEvidence ?? current.ConfirmedProjectionEvidence,
-                SourceAuditReference = current.SourceAuditReference,
-                SourceAuditTimestampUtc = current.SourceAuditTimestampUtc,
-            }
-            : next;
+        => next.WithCarriedProofInputs(current);
 
     internal bool TryAbandonBeforeDispatch(TenantAggregateCommandLease lease, object owner)
     {

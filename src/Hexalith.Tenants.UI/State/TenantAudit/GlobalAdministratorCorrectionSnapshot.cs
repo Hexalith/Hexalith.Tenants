@@ -37,6 +37,8 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     bool IsSubmissionAmbiguous = false,
     GlobalAdministratorGrantPreview? GrantPreview = null,
     GlobalAdministratorRemovePreview? RemovePreview = null) {
+    private const string CurrentProjectionUnavailableKey = "Tenants.Correction.Unavailable.CurrentProjectionUnavailable";
+
     /// <summary>Hidden committed end sequence for this exact verified command.</summary>
     internal long? CommittedEventSequence { get; init; }
 
@@ -506,12 +508,12 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             // keeps its dedicated mapping and copy even when the gateway supplied a Grant.* key.
             GlobalAdministratorRemoveCommandSnapshot removal = ToRemovalSnapshot().ApplyStatus(
                 status with { SafeMessageKey = null });
-            return FromRemovalSnapshot(removal) with
+            return RetainProjectionReadMarker(FromRemovalSnapshot(removal) with
             {
                 CommittedEventSequence = status.Status is Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
                     && status.HasVerifiedCommandIdentity && status.EventCount is > 0
                         ? status.CommittedEventSequence : CommittedEventSequence,
-            };
+            });
         }
 
         if (status.Status is null) {
@@ -536,7 +538,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                 : "Tenants.Correction.GlobalAdmin.State.UnableToVerify");
         }
 
-        return status.Status.Value switch {
+        return RetainProjectionReadMarker(status.Status.Value switch {
             Hexalith.EventStore.Contracts.Commands.CommandStatus.Received
                 or Hexalith.EventStore.Contracts.Commands.CommandStatus.Processing
                     => this with
@@ -617,8 +619,15 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             },
-        };
+        });
     }
+
+    private GlobalAdministratorCorrectionSnapshot RetainProjectionReadMarker(
+        GlobalAdministratorCorrectionSnapshot next)
+        => SafeMessageKey is CurrentProjectionUnavailableKey
+            && next.LifecycleState is TenantCommandLifecycleState.ProjectionPending
+            ? next with { SafeMessageKey = CurrentProjectionUnavailableKey }
+            : next;
 
     public GlobalAdministratorCorrectionSnapshot ConfirmProjection(GlobalAdministratorsSnapshot? projection) {
         if (LifecycleState is TenantCommandLifecycleState.Rejected
@@ -629,15 +638,25 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             return this;
         }
 
+        if (LifecycleState is not TenantCommandLifecycleState.ProjectionPending)
+        {
+            return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
+        }
+
         if (projection is null
             || projection.Kind is not GlobalAdministratorsSurfaceKind.Ready
             || projection.Freshness is not ReadModelFreshnessState.Current
             || projection.Lifecycle is not ProjectionLifecycleState.Current
             || projection.HasMore
             || !projection.IsCompleteEvidence
-            || !ProjectionIsReadable(projection)
-            || LifecycleState is not TenantCommandLifecycleState.ProjectionPending) {
-            return this with { FocusTarget = TenantCommandFocusTarget.Refresh };
+            || !ProjectionIsReadable(projection)) {
+            return this with
+            {
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                SafeMessage = null,
+                SafeMessageKey = CurrentProjectionUnavailableKey,
+            };
         }
 
         bool present = TargetPresent(projection);
@@ -646,6 +665,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             LastConfirmedProjectionEvidence = projection,
             CurrentAdministratorCount = DistinctAdministratorCount(projection),
             TargetCurrentlyPresent = present,
+            SafeMessageKey = SafeMessageKey is CurrentProjectionUnavailableKey ? null : SafeMessageKey,
+            LiveRegionPoliteness = SafeMessageKey is CurrentProjectionUnavailableKey
+                ? TenantCommandLiveRegionPoliteness.Polite : LiveRegionPoliteness,
         };
 
         string? baseline = GrantPreview?.ProjectionVersion ?? RemovePreview?.ProjectionVersion;

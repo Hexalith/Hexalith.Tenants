@@ -1921,9 +1921,14 @@ public sealed class TenantAuditPageTests : BunitContext
         registry.PendingCompletions().Count.ShouldBe(1);
 
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
-        navigation.NavigateTo("/tenants/system/audit?receiptReference=event-other-source");
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
             .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        gateway.Requests.Any(request => request.From == original.Timestamp).ShouldBeFalse();
+        registry.PendingCompletions().Count.ShouldBe(1);
+
+        navigation.NavigateTo("/tenants/system/audit?receiptReference=event-other-source");
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "system"));
         cut.WaitForAssertion(() => gateway.Requests.Any(request => request.From == original.Timestamp)
             .ShouldBeTrue());
         cut.FindAll("[data-testid='tenants-audit-receipt-paired']").ShouldBeEmpty();
@@ -1934,6 +1939,7 @@ public sealed class TenantAuditPageTests : BunitContext
             .ShouldContain(corrective.EventReference);
         registry.FindAll(otherSource.EventReference).ShouldBeEmpty();
         registry.FindAll(original.EventReference).Count.ShouldBe(1);
+        registry.PendingCompletions().ShouldBeEmpty();
     }
 
     [Fact]
@@ -2023,6 +2029,66 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.Find("[data-testid='tenants-audit-recovery-refresh']");
         cut.FindAll("[data-testid='tenants-audit-grid']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Authentication_transition_replaces_system_read_subscription()
+    {
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(true, GlobalAdmins("other-admin"),
+            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType, "system", Arg.Any<CancellationToken>());
+        cut.WaitForAssertion(() => typeof(TenantAuditPage)
+            .GetField("_subscriptionTenantId", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance).ShouldBe("system"));
+
+        StubAuthenticationStateProvider authentication = (StubAuthenticationStateProvider)Services
+            .GetRequiredService<AuthenticationStateProvider>();
+        gateway.QueueResponse(Task.FromResult(GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user")));
+        authentication.ChangePrincipal(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+
+        cut.WaitForAssertion(() =>
+        {
+            _ = subscription.Received(1).UnsubscribeAsync(
+                GetTenantAuditQuery.ProjectionType, "system", Arg.Any<CancellationToken>());
+            _ = subscription.Received(2).SubscribeAsync(
+                GetTenantAuditQuery.ProjectionType, "system", Arg.Any<CancellationToken>());
+        });
+    }
+
+    [Fact]
+    public async Task Disposed_audit_page_does_not_react_to_principal_change()
+    {
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(true, GlobalAdmins("other-admin"),
+            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType, "system", Arg.Any<CancellationToken>());
+        int readsBeforeDispose = gateway.Requests.Count;
+
+        await cut.Instance.DisposeAsync();
+        StubAuthenticationStateProvider authentication = (StubAuthenticationStateProvider)Services
+            .GetRequiredService<AuthenticationStateProvider>();
+        authentication.ChangePrincipal(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+
+        gateway.Requests.Count.ShouldBe(readsBeforeDispose);
+        await subscription.Received(1).UnsubscribeAsync(
+            GetTenantAuditQuery.ProjectionType, "system", Arg.Any<CancellationToken>());
+        await subscription.Received(1).SubscribeAsync(
+            GetTenantAuditQuery.ProjectionType, "system", Arg.Any<CancellationToken>());
     }
 
     [Fact]

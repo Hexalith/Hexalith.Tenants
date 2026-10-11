@@ -5052,14 +5052,7 @@
                         && !Equals(_grantSnapshot.PreviewEvidence, reconciliation.GrantPreview))
             // Presentation-only fields such as IsDeliveryRetryWithdrawn are not durable reconciliation;
             // an unchanged lease must not rebuild the snapshot and discard them.
-            || Equals(CreateReconciliation(_grantSnapshot), reconciliation with
-            {
-                SubmittedAtUtc = null,
-                CommittedEventSequence = null,
-                ConfirmedProjectionEvidence = null,
-                SourceAuditReference = null,
-                SourceAuditTimestampUtc = null,
-            }))
+            || Equals(CreateReconciliation(_grantSnapshot), reconciliation.WithoutCircuitProofInputs()))
         {
             return false;
         }
@@ -5133,14 +5126,7 @@
                         && !Equals(_removeSnapshot.PreviewEvidence, reconciliation.RemovePreview))
             // Presentation-only fields such as LastConfirmedProjection are not durable reconciliation; an
             // unchanged lease must not rebuild the snapshot, re-focus the lifecycle, or nudge status.
-            || Equals(CreateReconciliation(_removeSnapshot), reconciliation with
-            {
-                SubmittedAtUtc = null,
-                CommittedEventSequence = null,
-                ConfirmedProjectionEvidence = null,
-                SourceAuditReference = null,
-                SourceAuditTimestampUtc = null,
-            }))
+            || Equals(CreateReconciliation(_removeSnapshot), reconciliation.WithoutCircuitProofInputs()))
         {
             return false;
         }

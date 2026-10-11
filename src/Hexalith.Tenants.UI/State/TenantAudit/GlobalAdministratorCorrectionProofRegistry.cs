@@ -87,6 +87,7 @@ public sealed class GlobalAdministratorCorrectionProofRegistry
 
         lock (_sync)
         {
+            _pendingCompletions.RemoveAll(existing => string.Equals(existing.MessageId, snapshot.MessageId, StringComparison.Ordinal));
             if (_retainedPairs.Any(existing => Equals(existing.ProofLink, snapshot.ProofLink)))
             {
                 return;

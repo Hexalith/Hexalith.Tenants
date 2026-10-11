@@ -451,6 +451,51 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
     }
 
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Unreadable_postcommand_projection_keeps_attempt_and_clears_marker_only_after_complete_read(
+        bool revoke, bool nullRead)
+    {
+        GlobalAdministratorsSnapshot before = revoke
+            ? ProjectionReady("admin-user", "other-admin")
+            : ProjectionReady("other-admin");
+        GlobalAdministratorCorrectionSnapshot pending = (revoke
+                ? GlobalAdministratorCorrectionSnapshot.FromIntent(RevokeIntent(), before).WithRemovePreview(RemovePreview())
+                : GlobalAdministratorCorrectionSnapshot.FromIntent(RestoreIntent(), before))
+            .RequestSent("message-safe", DateTimeOffset.Parse("2026-06-01T10:01:00Z", CultureInfo.InvariantCulture))
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
+                HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
+        GlobalAdministratorsSnapshot? unreadable = nullRead ? null : before with
+        {
+            Freshness = ReadModelFreshnessState.Stale,
+        };
+
+        GlobalAdministratorCorrectionSnapshot unavailable = pending.ConfirmProjection(unreadable);
+
+        unavailable.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        unavailable.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
+        unavailable.LastConfirmedProjectionEvidence.ShouldBeSameAs(before);
+        unavailable.MessageId.ShouldBe("message-safe");
+        unavailable.CommittedEventSequence.ShouldBe(2);
+        unavailable.ToReconciliation().ShouldNotBeNull();
+
+        GlobalAdministratorCorrectionSnapshot repeatedStatus = unavailable.ApplyStatus(
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
+                HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
+        repeatedStatus.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
+        GlobalAdministratorCorrectionSnapshot readableButLagging = repeatedStatus.ConfirmProjection(before);
+        readableButLagging.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        readableButLagging.SafeMessageKey.ShouldBeNull();
+        GlobalAdministratorCorrectionSnapshot confirmed = readableButLagging.ConfirmProjection(revoke
+            ? ProjectionReadyAtVersion("tenant-sequence:2", "other-admin")
+            : ProjectionReadyAtVersion("tenant-sequence:2", "admin-user", "other-admin"));
+        confirmed.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+    }
+
+    [Theory]
     [InlineData("LastGlobalAdministrator", "last global administrator")]
     [InlineData("GlobalAdministratorAlreadyExists", "already a global administrator")]
     [InlineData("GlobalAdministratorNotFound", "not a global administrator")]

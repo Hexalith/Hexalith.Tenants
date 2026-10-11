@@ -43,6 +43,38 @@ internal sealed record GlobalAdministratorReconciliationState(
     /// <summary>UTC timestamp of the initiating audit row.</summary>
     internal DateTimeOffset? SourceAuditTimestampUtc { get; init; }
 
+    /// <summary>Returns the durable reconciliation shape used by page presentation comparisons.</summary>
+    internal GlobalAdministratorReconciliationState WithoutCircuitProofInputs()
+        => this with
+        {
+            SubmittedAtUtc = null,
+            CommittedEventSequence = null,
+            ConfirmedProjectionEvidence = null,
+            SourceAuditReference = null,
+            SourceAuditTimestampUtc = null,
+        };
+
+    /// <summary>Retains circuit proof inputs for an update to the same command.</summary>
+    internal GlobalAdministratorReconciliationState WithCarriedProofInputs(GlobalAdministratorReconciliationState? current)
+        => current is not null
+            && ActionKind == current.ActionKind
+            && string.Equals(TargetUserId, current.TargetUserId, StringComparison.Ordinal)
+            && string.Equals(MessageId, current.MessageId, StringComparison.Ordinal)
+            && (current.CorrelationId is null || string.Equals(CorrelationId, current.CorrelationId, StringComparison.Ordinal))
+            && Equals(GrantPreview, current.GrantPreview)
+            && Equals(RemovePreview, current.RemovePreview)
+            && (SourceAuditReference is null || string.Equals(SourceAuditReference, current.SourceAuditReference, StringComparison.Ordinal))
+            && (SourceAuditTimestampUtc is null || SourceAuditTimestampUtc == current.SourceAuditTimestampUtc)
+            ? this with
+            {
+                SubmittedAtUtc = SubmittedAtUtc ?? current.SubmittedAtUtc,
+                CommittedEventSequence = CommittedEventSequence ?? current.CommittedEventSequence,
+                ConfirmedProjectionEvidence = ConfirmedProjectionEvidence ?? current.ConfirmedProjectionEvidence,
+                SourceAuditReference = current.SourceAuditReference,
+                SourceAuditTimestampUtc = current.SourceAuditTimestampUtc,
+            }
+            : this;
+
     /// <summary>Returns a support-safe description without identity or tracking values.</summary>
     /// <returns>A bounded diagnostic description.</returns>
     public override string ToString()

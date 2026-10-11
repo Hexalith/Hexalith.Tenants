@@ -284,51 +284,6 @@ class GuardCommandIntegrationTests(unittest.TestCase):
         self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
         self.assertIn("[WORKTREE MOVE]", result.stdout)
 
-    def test_explicit_non_story_commit_excludes_only_its_committed_pointer_change(self):
-        result = self._run_guard(
-            "- `src/Thing.cs`",
-            excluded_commits=[self.pointer_commit],
-        )
-
-        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
-        self.assertIn(f"[excluded non-story] {self.pointer_commit}", result.stdout)
-        self.assertIn("RESULT: PASS", result.stdout)
-
-    def test_non_story_mode_rejects_an_unrecorded_later_pointer_commit(self):
-        self._git("update-index", "--cacheinfo", f"160000,{self.baseline},references/Dependency")
-        self._git("commit", "--quiet", "-m", "move pointer again")
-        result = self._run_guard("- `src/Thing.cs`", excluded_commits=[self.pointer_commit])
-
-        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
-        self.assertIn("[UNRECORDED]", result.stdout)
-
-    def test_non_story_mode_rejects_a_new_worktree_pointer_move(self):
-        self._git("update-index", "--cacheinfo", f"160000,{self.baseline},references/Dependency")
-        result = self._run_guard(
-            "- `src/Thing.cs`",
-            excluded_commits=[self.pointer_commit],
-            include_worktree=True,
-        )
-
-        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
-        self.assertIn("[WORKTREE MOVE]", result.stdout)
-
-    def test_non_story_mode_rejects_unrelated_or_short_commit_ids(self):
-        for commits in ([self.target], [self.pointer_commit[:7]], []):
-            with self.subTest(commits=commits):
-                result = self._run_guard("- `src/Thing.cs`", excluded_commits=commits)
-                self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
-
-    def test_non_story_mode_rejects_mixed_provenance_modes(self):
-        result = self._run_guard(
-            "- `src/Thing.cs`",
-            owned_commits=[self.pointer_commit],
-            excluded_commits=[self.pointer_commit],
-        )
-
-        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
-        self.assertIn("Use only one gitlink provenance mode", result.stdout)
-
     def _git(self, *args):
         return subprocess.run(
             ["git", *args],
@@ -338,8 +293,7 @@ class GuardCommandIntegrationTests(unittest.TestCase):
             check=True,
         )
 
-    def _run_guard(self, file_list_entry, completion_entry=None, owned_commits=None,
-                   excluded_commits=None, include_worktree=False):
+    def _run_guard(self, file_list_entry, completion_entry=None, owned_commits=None, include_worktree=False):
         story = self.repo / "story.md"
         head = self._git("rev-parse", "HEAD").stdout.strip()
         completion = (
@@ -353,19 +307,13 @@ class GuardCommandIntegrationTests(unittest.TestCase):
             if owned_commits is not None
             else ""
         )
-        exclusions = (
-            "\n## Non-Story Gitlink Commits\n\n"
-            + "".join(f"- `{commit}`\n" for commit in excluded_commits)
-            if excluded_commits is not None
-            else ""
-        )
         story.write_text(
             "---\n"
             f"baseline_commit: {self.baseline}\n"
             "---\n\n"
             "## File List\n\n"
             f"{file_list_entry}\n"
-            f"{completion}{provenance}{exclusions}",
+            f"{completion}{provenance}",
             encoding="utf-8",
         )
         return subprocess.run(

@@ -2,7 +2,7 @@
 title: 'Correct global administrator authority from audit evidence'
 type: 'feature'
 created: '2026-10-10'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 3
 baseline_commit: '66072cc410834e2c34f7d30f121e447940ea6fc6'
@@ -217,7 +217,7 @@ Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9
   - The guard as it was before `94faa46b` (`94faa46b^:scripts/validate-story-gitlinks.py`), run with `--ref 94faa46b`, exits 1. It reports 6 `[UNDECLARED]` pointers: Builds, EventStore, FrontComposer, McpCli, Memories and Platform.
   - All six target SHAs are reachable on their remotes' `origin/main`.
 
-- [ ] [Review][Patch] (medium) Story commits moved six submodule pointers, and the story changed the gitlink guard to exempt them [scripts/validate-story-gitlinks.py:432]
+- [x] [Review][Patch] (medium) Story commits moved six submodule pointers, and the story changed the gitlink guard to exempt them [scripts/validate-story-gitlinks.py:432]
   - **Resolution (2026-10-11, option a):** declare the moves the existing way and remove the new mode.
     - Rename `## Non-Story Gitlink Commits` to `## Story-Owned Gitlink Commits`, keeping the same two full commit IDs.
     - Add a `## File List` that lists each of the six paths. Each path gets an `old -> new -- reason` line, in story 4.3's format. The reason states that the move was workspace drift carried by the story commit, and that no story code depends on it.
@@ -243,7 +243,7 @@ Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9
     - (c) Accept as is.
 
   [auditor+blind+edge]
-- [ ] [Review][Patch] (medium) Count, presence and provenance render as verified next to "Current projection evidence is unavailable." [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:531]
+- [x] [Review][Patch] (medium) Count, presence and provenance render as verified next to "Current projection evidence is unavailable." [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:531]
   - **Cause:** this diff made `IsProjectionStateVerifiable` depend only on `LastConfirmedProjectionEvidence` and dropped the `CurrentProjectionUnavailable` marker check. Only the revoke-confirm branch clears the evidence on a failed read.
   - **Where it shows:**
     - Restore Confirm with a null projection read (`:980`).
@@ -253,7 +253,7 @@ Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9
   - **Fix:** require both the readable complete evidence and `SafeMessageKey != "Tenants.Correction.Unavailable.CurrentProjectionUnavailable"`. Update the stale comment above the property. Assert the neutral rendered facts for the restore null-read and changed-revoke paths.
 
   [edge+auditor+verification]
-- [ ] [Review][Patch] (medium) Every load of the `system` audit page re-walks every pending completion, even proven ones and even with no receipt selected [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1685]
+- [x] [Review][Patch] (medium) Every load of the `system` audit page re-walks every pending completion, even proven ones and even with no receipt selected [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1685]
   - **Cause:**
     - `LoadAsync` (`:1190`) calls `RefreshPairedGlobalReceiptAsync` on every system load, including read-refresh notifications.
     - The new condition dropped `selectedReference is not null`. That short-circuit is what the earlier rejection "Each system load reads the complete projection — false" relied on.
@@ -262,7 +262,7 @@ Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9
   - **Fix:** run the pending walk only when a receipt is selected. Remove a completion from the pending list once its pair is remembered. This cannot lose a delayed pair, because only proven entries are removed.
 
   [blind]
-- [ ] [Review][Patch] (medium) The contradiction-alert regression assertions cannot fail [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:800]
+- [x] [Review][Patch] (medium) The contradiction-alert regression assertions cannot fail [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:800]
   - **Problem:**
     - `Reached_sequence_with_wrong_postcondition_releases_global_lease` checks "another global-administrator attempt" on `tenants-correction-safe-message`, which never shows the decision reason.
     - It checks "audit evidence is delayed" on `tenants-correction-state`, which never shows audit copy.
@@ -271,19 +271,19 @@ Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9
   - **Fix:** assert the exact text of `tenants-correction-unavailable-recovery` ("Restore the blocked authorization, lifecycle, viewport, or projection evidence before retrying.") and `tenants-correction-audit-state` ("Corrective audit evidence is unavailable.").
 
   [verification]
-- [ ] [Review][Patch] (medium) Nothing tests that the Global Administrators page records a completion on its out-of-date path [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4105]
+- [x] [Review][Patch] (medium) Nothing tests that the Global Administrators page records a completion on its out-of-date path [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4105]
   - **Scope:** this also covers `:4922`.
   - **Gap:** deleting either `RememberCorrectionCompletion` call in `RetainOrReleaseGrantCompletion`/`RetainOrReleaseRemoveCompletion` leaves every test green. Those calls are reached when the projection read that confirms the command is superseded.
   - **Fix:** add a grant/remove theory with a correction-origin lease (source, sequence and submit time) whose confirming projection read is superseded. Assert one pending completion that carries the source and `ConfirmedProjectionEvidence`, and assert the lease is released.
 
   [verification]
-- [ ] [Review][Patch] (medium) Re-subscribing after a principal change and unsubscribing on dispose are both untested [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:759]
+- [x] [Review][Patch] (medium) Re-subscribing after a principal change and unsubscribing on dispose are both untested [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:759]
   - **Scope:** this also covers `:718` and `:2596`.
   - **Gap:** the principal-change tests register no `TenantReadRefreshSubscription`, so the subscribe step returns early. Deleting the re-subscribe, the lease disposal or the unsubscribe leaves every test green.
   - **Fix:** add a test with a substitute `IProjectionSubscription`. Assert the first lease is disposed and `SubscribeAsync(..., "system", ...)` is received twice. Add another test asserting that after `DisposeAsync` the page no longer reacts to an authentication change.
 
   [verification]
-- [ ] [Review][Patch] (low) A failed grant dispatch start leaves the fixed global-administrators lease held and the dispatch token open [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1122]
+- [x] [Review][Patch] (low) A failed grant dispatch start leaves the fixed global-administrators lease held and the dispatch token open [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1122]
   - **Lease held:**
     - The grant branch calls `TryMarkDispatched` before `ToCompletionReconciliation()` and `TryBeginReconciliationDispatch`.
     - If either of those fails, `TryAbandonBeforeDispatch` refuses the dispatch-marked lease (`TenantAggregateCommandAdmissionGate.cs:556`), and `_admissionLease` is never set.
@@ -292,18 +292,18 @@ Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9
   - **Fix:** use `TryBeginInitialReconciliationDispatch` as the remove branch does. Then complete the token before the renderer apply, or abort it when completion is refused or the catch branch runs.
 
   [blind+edge]
-- [ ] [Review][Patch] (low) The authentication transition reads `TenantId` and writes `_initialLoadStartedTenantId` off the dispatcher [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:746]
+- [x] [Review][Patch] (low) The authentication transition reads `TenantId` and writes `_initialLoadStartedTenantId` off the dispatcher [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:746]
   - **Problem:** after `await authenticationStateTask.ConfigureAwait(false)`, lines `:746` and `:756` run on a thread-pool thread. `OnParametersSetAsync` reads and writes the same field on the dispatcher (`:951`).
   - **Fix:** move both into the `InvokeAsync` block that clears `_authenticationTransitionPending`, following the page's own "Marshalled for the same reason" convention at `:1178`.
 
   [blind]
-- [ ] [Review][Patch] (low) The list of circuit-only proof-input fields is maintained by hand in three places [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:5061]
+- [x] [Review][Patch] (low) The list of circuit-only proof-input fields is maintained by hand in three places [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:5061]
   - **Where:** the unchanged-lease guard resets the same five init-only fields at `:5061` and `:5142`. `CarryProofInputs` (`TenantAggregateCommandAdmissionGate.cs:547`) carries the same list.
   - **Risk:** review 2 already found that adding these fields broke the guard. The next init-only member added to `GlobalAdministratorReconciliationState` will break it again silently.
   - **Fix:** centralize the list in one helper on the record and use it in all three places.
 
   [blind]
-- [ ] [Review][Patch] (low) The new deferred-work entries are filed under the wrong review [_bmad-output/implementation-artifacts/deferred-work.md:4128]
+- [x] [Review][Patch] (low) The new deferred-work entries are filed under the wrong review [_bmad-output/implementation-artifacts/deferred-work.md:4128]
   - **Misfiled:** the four module-manifest entries came from the dev loop's "Review 6" of the independent commit `711e100858e59cf8de2b626ea21790d59f969023`, but they sit under the heading for the `362a957d..4f0abcae` code review.
   - **Absolute path:** the first entry uses the machine-specific `source_spec` path `/home/administrator/…`.
   - **Fix:** move the manifest entries under a heading that names their real source, and make the path relative like its neighbours.
@@ -481,15 +481,61 @@ Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9
 | Review 7 verification: global scope/category guard lacks isolated negative | medium — the existing invalid-global test has an empty target, so removing the new scope/category guard would leave it green. | patch |
 | Review 7 verification: OIDC fallback test | medium — carried: the independent API change has no test with only `Oidc:Authority`. | carried defer |
 | Review 7 verification: signing-key fallback test | medium — carried: the independent API change has no test with only `Jwt:SigningKey`. | carried defer |
+| Review 8 blind: cached off-page receipt stays visible during recheck | low — carried: the prior same-circuit recheck decision applies; failed protected rechecks replace the cached rows atomically, while authentication changes clear them immediately. | reject |
+| Review 8 blind: corrective proof past 50 pages | low — carried: the bounded complete walk fails closed beyond 2,500 rows; the query-contract change needed to remove this limit was previously rejected. | reject |
+| Review 8 blind: original proof past 50 same-time pages | low — carried: the exact-time walk fails closed beyond 2,500 rows at one timestamp; the prior query-contract decision still applies. | reject |
+| Review 8 blind: submit/event clock skew | maybe-false — carried: a deployment timestamp-order guarantee or measured skew is still needed to establish whether an exact event can precede BFF submit time. | defer (unverified medium) |
+| Review 8 blind: ambiguous committed POST | medium — carried: the existing fixed-scope retry policy withdraws correlationless redelivery after the projection changes, and there is no MessageId status lookup. | defer |
+| Review 8 blind: global replay can replace system tenant audit | medium — carried: both projection handlers write `audit:system`; the collision predates this story and remains in the deferred ledger. | defer |
+| Review 8 blind: out-of-order global batch | maybe-false — carried: EventStore's batch-order guarantee is still unverified, while the handler stamps the last iterated sequence. | defer (unverified medium) |
+| Review 8 blind: concurrent global rebuild | maybe-false — carried: whether EventStore serializes this aggregate's projection requests remains unverified; the full-rebuild save predates this story. | defer (unverified medium) |
+| Review 8 blind: separate six gitlink moves | false — the human-selected Story-Owned Gitlink Commits route records both full pointer-bearing commits and all six exact old/new paths; the restored guard passes and there is no working-tree pointer movement. Rewriting mixed committed history is not needed to reproduce the baseline. | reject |
+| Review 8 blind: no live Aspire smoke | low — carried: the component, gateway, server, and rendered browser lanes cover the changed seams; the prior review rejected a live hosted stack for this story. | reject |
+| Review 8 blind: deferred alias-test entry is stale | low — the independently committed `TenantsApiGeneratedControllerTests` now include both alias-only tests, but the Review 6 deferred entry still asks to add them. The independent API work and ledger reconciliation are outside this correction intent. | defer |
+| Review 8 blind: manifest API inventory incomplete | low — carried: the independently committed manifest omits existing operations; its schema inventory requirement remains a separate deferred decision. | defer |
+| Review 8 edge: post-command unreadable projection leaves old facts current | medium — `ConfirmProjection(null)` returns the pending snapshot with only a changed focus, so retained precommand count and presence still render as current after a failed post-command refresh. | patch |
+| Review 8 edge: event timestamp before submit | maybe-false — carried: separate BFF and EventStore clocks may violate the time bound, but production clock evidence or an ordering contract is still needed. | defer (unverified medium) |
 
-## Non-Story Gitlink Commits
+## File List
 
-These commits mix Story 5.7 code edits with six independent `references/` pointer updates. Only their pointer updates are excluded from this story's ownership; their other files remain in the review diff. The full commit IDs pin the exclusion, and the guard verifies that no other pointer-bearing commit or working-tree pointer movement exists after the preserved baseline.
+These pointer moves were workspace drift carried by the two Story 5.7 commits below. No Story 5.7 code depends on the moved versions. The guard validates their exact committed chain and checks for new working-tree movement.
+
+- `references/Hexalith.Builds`
+  - `references/Hexalith.Builds` 9e6b6ca3e8b4e22e6642d4f0d70d25edbf2db08b -> 1bde4d92bb9a9ce48b19a6ca17236075ea28a78b -- workspace drift carried by the story commit; no story code depends on this pointer move.
+- `references/Hexalith.EventStore`
+  - `references/Hexalith.EventStore` 423dfc55c272df33e35b231dba02e65aad31bd06 -> b57310fb44ef2231815f3c3cfea09714d942334d -- workspace drift carried by the story commits; no story code depends on this pointer move.
+- `references/Hexalith.FrontComposer`
+  - `references/Hexalith.FrontComposer` 0e114214007c22f5cdbac21a6853cff4208340ee -> 19f4839231ae6ec7cc6318842eb329c2d04caaa9 -- workspace drift carried by the story commit; no story code depends on this pointer move.
+- `references/Hexalith.McpCli`
+  - `references/Hexalith.McpCli` b2820d21ca34ee7a873772b312ac16569bb8a8ce -> 7e99305a621e1bdf7119b6e924348857e2b5a5a4 -- workspace drift carried by the story commit; no story code depends on this pointer move.
+- `references/Hexalith.Memories`
+  - `references/Hexalith.Memories` 26d69d4f111d341e02c24d5c2c597cf128e40bf9 -> 499b7a838a36a4cd500ab517d86acf07b1d74ad4 -- workspace drift carried by the story commit; no story code depends on this pointer move.
+- `references/Hexalith.Platform`
+  - `references/Hexalith.Platform` 72ba792574926897758bf474021336a114c705ca -> 053ee05abff2d60d06c62734fd9d9e0e8953df43 -- workspace drift carried by the story commits; no story code depends on this pointer move.
+
+## Story-Owned Gitlink Commits
+
+These commits mix Story 5.7 code edits with eight pointer moves across six root submodules. Their code edits remain in the review diff. The full IDs pin pointer provenance after the preserved baseline.
 
 - `b9e9cc926360c802b9de94dc3dd3a8c56e4caba6`
 - `85a5a6cc18ef6a0f2da69e4fd2c2a1a408f32359`
 
 ## Verification
+
+**Review 8 patch verification (2026-10-11):**
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` — passed, zero warnings/errors; `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` — passed 4,072/4,072, none skipped.
+- `dotnet build tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` initially failed with CS1704 because stale restore assets mixed `Hexalith.Memories.Contracts` source and package references. `dotnet restore tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj -p:UseNuGetDeps=false -m:1 --ignore-failed-sources` followed by the same build passed with zero warnings/errors; the server test project passed 834/834.
+- The contracts test project source-mode Debug build passed with zero warnings/errors; its test project passed 154/154.
+- `TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh` — passed EN/FR rendered correction and paired receipts, narrow width, forced colors, and focus checks.
+- `python3 tests/scripts/test_validate_story_gitlinks.py` — passed 23/23; `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md` — passed. `git diff --check` passed and `git diff HEAD -- references` was empty.
+- Commit message `feat(audit): complete global administrator correction from evidence` passed the owning repository's installed pinned `@commitlint/cli` 21.2.3 via `node_modules/.bin/commitlint --edit /tmp/story-5-7-commit-message.txt`; exact message file SHA-256: `31ea7c73f5aca747c81522b10fae41f385fcad4cd7e79cb5155b363547d3309d`.
+
+**Review patch continuation (2026-10-11):**
+- `dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -p:UseNuGetDeps=false -m:1 --ignore-failed-sources` and `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` — passed, zero warnings/errors.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` — passed 4,067/4,067, none skipped.
+- `TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh` — passed rendered EN/FR global correction and paired receipt lanes, narrow width, forced colors and focus.
+- `python3 tests/scripts/test_validate_story_gitlinks.py` — passed 23/23 after restoring the earlier guard. `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md` — passed against the two declared story-owned pointer commits and no working-tree pointer movement.
+- `git diff --check` and `git diff HEAD -- references` — passed; the latter is empty.
 
 **Closeout gate investigation (2026-10-11):**
 - `dotnet restore tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -p:UseNuGetDeps=false -m:1 --ignore-failed-sources` followed by `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore` — passed, zero warnings/errors after the final patch. The prior CS1704 run used package-mode restore assets with a source-mode `--no-restore` build; the matching source restore selects the Commons UniqueIds project instead of the 2.30.1 package in `EventStore.Contracts`.

@@ -17,12 +17,6 @@ That record validates each pointer-bearing story commit while excluding later
 committed dependency updates. Stories without that record use the original
 baseline-to-tree check. Both modes fail on new working-tree pointer movement.
 The check is fail-closed when the baseline or a recorded commit is unusable.
-
-A story with no owned pointer changes may instead list full commit IDs under
-`Non-Story Gitlink Commits`. This mode checks that every pointer-bearing commit
-on the first-parent path from the preserved baseline is listed, and still
-rejects new working-tree movement. It excludes only the gitlinks in those
-commits; other files in mixed commits remain part of the story review diff.
 """
 
 from __future__ import annotations
@@ -262,36 +256,26 @@ def stated_targets(story_text: str) -> dict[str, str]:
     return targets
 
 
-def recorded_gitlink_commits(story_text: str, heading: str) -> list[str] | None:
-    """Read full canonical commit IDs from a dedicated provenance section.
+def story_owned_commits(story_text: str) -> list[str] | None:
+    """Read full canonical commit IDs from the dedicated provenance section.
 
     None means an older story uses the baseline-to-tree contract. A present but
     empty or malformed section fails instead of silently reverting to that mode.
     """
-    if not re.search(rf"^## {re.escape(heading)}\s*$", story_text, re.MULTILINE):
+    if not re.search(r"^## Story-Owned Gitlink Commits\s*$", story_text, re.MULTILINE):
         return None
-    section = extract_section(story_text, heading)
+    section = extract_section(story_text, "Story-Owned Gitlink Commits")
     commits: list[str] = []
     for line in section.splitlines():
         if not line.strip().startswith(("-", "*", "+")):
             continue
         match = re.fullmatch(r"\s*[-*+]\s*`([0-9a-f]{40})`\s*", line)
         if match is None:
-            raise CheckError(f"{heading} must contain only full 40-character commit IDs.")
+            raise CheckError("Story-Owned Gitlink Commits must contain only full 40-character commit IDs.")
         commits.append(match.group(1))
     if not commits or len(commits) != len(set(commits)):
-        raise CheckError(f"{heading} must contain distinct full commit IDs.")
+        raise CheckError("Story-Owned Gitlink Commits must contain distinct full commit IDs.")
     return commits
-
-
-def story_owned_commits(story_text: str) -> list[str] | None:
-    """Read commits whose pointer changes belong to the story."""
-    return recorded_gitlink_commits(story_text, "Story-Owned Gitlink Commits")
-
-
-def non_story_commits(story_text: str) -> list[str] | None:
-    """Read commits whose pointer changes are explicitly excluded from this story."""
-    return recorded_gitlink_commits(story_text, "Non-Story Gitlink Commits")
 
 
 def is_ancestor(ancestor: str, descendant: str) -> bool:
@@ -426,42 +410,6 @@ def check(story_path: Path, ref: str) -> int:
         )
 
     owned_commits = story_owned_commits(story_text)
-    excluded_commits = non_story_commits(story_text)
-    if owned_commits is not None and excluded_commits is not None:
-        raise CheckError("Use only one gitlink provenance mode per story.")
-    if excluded_commits is not None:
-        first_parent_history = run_git("rev-list", "--first-parent", head).splitlines()
-        if baseline not in first_parent_history:
-            raise CheckError("Non-Story Gitlink Commits requires the baseline on HEAD's first-parent path.")
-        commits = run_git("rev-list", "--reverse", "--first-parent", f"{baseline}..{head}").splitlines()
-        excluded = set(excluded_commits)
-        found: set[str] = set()
-        failures: list[str] = []
-        print("\nPointer-bearing commits after the preserved baseline:")
-        for commit in commits:
-            changes_in_commit = gitlink_changes(f"{commit}^", commit)
-            if not changes_in_commit:
-                continue
-            found.add(commit)
-            marker = "excluded non-story" if commit in excluded else "UNRECORDED"
-            print(f"  [{marker}] {commit}")
-            for path, old_sha, new_sha in changes_in_commit:
-                print(f"    {path} {describe_change(old_sha, new_sha)}")
-            if commit not in excluded:
-                failures.append(f"  [UNRECORDED] {commit} changed references/ pointers")
-        for commit in excluded_commits:
-            if commit not in found:
-                failures.append(f"  [INVALID EXCLUSION] {commit} is not a pointer-bearing commit after the baseline")
-        if compare_worktree:
-            for path, old_sha, new_sha in gitlink_changes(head, None):
-                failures.append(f"  [WORKTREE MOVE] {path} {describe_change(old_sha, new_sha)}")
-        if failures:
-            print("\n" + "\n".join(failures))
-        for warning in warnings:
-            print(f"\nWARNING: {warning}")
-        print("\nOnly the listed commits' gitlink changes are excluded; their other files remain in the review diff.")
-        print("\nRESULT: FAIL" if failures else "\nRESULT: PASS")
-        return EXIT_FAIL if failures else EXIT_PASS
     if owned_commits is not None:
         declared = declared_paths(story_text)
         stated = stated_targets(story_text)
