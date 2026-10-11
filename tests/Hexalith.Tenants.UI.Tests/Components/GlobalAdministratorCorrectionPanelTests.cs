@@ -262,6 +262,30 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Unavailable_revoke_recheck_hides_count_and_presence_without_dispatch()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var commands = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RevokeIntent())
+            .Add(component => component.CurrentProjection, Projection("admin-user", "other-admin"))
+            .Add(component => component.ProjectionRefreshProvider,
+                () => Task.FromException<GlobalAdministratorsSnapshot?>(new HttpRequestException("projection unavailable"))));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-correction-admin-count']")
+            .TextContent.Trim().ShouldBe("2"));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-correction-admin-count']")
+            .TextContent.Trim().ShouldBe("-"));
+        cut.Find("[data-testid='tenants-correction-resulting-count']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-current-state']").TextContent.Trim().ShouldBe("-");
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        commands.RemoveRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
     public void Authority_admission_stays_blocked_until_remove_preview_completes()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -1683,6 +1707,46 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task Replacing_grant_panel_during_dispatch_retains_exact_request_and_completion()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var pending = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway { SetResultTask = pending.Task };
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("admin-user", "other-admin"),
+            Audit("event-corrective", "GlobalAdministratorSet")));
+        TenantCorrectionStartIntent intent = RestoreIntent();
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> original = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        Task submit = original.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        original.WaitForAssertion(() => commandGateway.SetRequests.ShouldHaveSingleItem());
+        string messageId = commandGateway.TrackedMessageIds.ShouldHaveSingleItem();
+        original.Instance.Dispose();
+
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> replacement = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+        replacement.WaitForAssertion(() => replacement.Instance.Snapshot!.MessageId.ShouldBe(messageId));
+        replacement.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        replacement.Instance.Snapshot.CorrelationId.ShouldBeNull();
+        replacement.Instance.Snapshot.OriginalAuditReference.ShouldBe(intent.OriginalAuditReference);
+        commandGateway.SetRequests.Count.ShouldBe(1);
+
+        pending.SetResult(TenantCommandSubmissionResult.Accepted(messageId, "tracking-safe"));
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        replacement.WaitForAssertion(() => replacement.Instance.Snapshot!.LifecycleState
+            .ShouldBe(TenantCommandLifecycleState.Confirmed));
+        commandGateway.SetRequests.Count.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task Superseded_accepted_correction_is_immediately_adopted_resumed_and_confirmed()
     {
         var pending = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -2179,6 +2243,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         page.WaitForAssertion(() => page.Find("[data-testid='tenants-global-admin-remove-state']").TextContent.ShouldContain("UnableToVerify"));
         await page.InvokeAsync(async () => await page.Instance.DisposeAsync());
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+        int priorStatusReads = commandGateway.StatusHandles.Count;
 
         commandGateway.Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 };
         commandApplied = true;
@@ -2186,9 +2251,9 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             .Add(component => component.Intent, RevokeIntent())
             .Add(component => component.CurrentProjection, Projection("other-admin")));
 
-        correction.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Previewed);
+        correction.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
-        commandGateway.StatusHandles.ShouldBeEmpty();
+        commandGateway.StatusHandles.Count.ShouldBe(priorStatusReads);
         commandGateway.RemoveRequests.ShouldHaveSingleItem().UserId.ShouldBe("admin-user");
     }
 
@@ -2379,12 +2444,12 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         wrong.Instance.Snapshot!.MessageId.ShouldBeNull();
         commandGateway.StatusHandles.ShouldBeEmpty();
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
-        wrong.Dispose();
 
         IRenderedComponent<GlobalAdministratorCorrectionPanel> matching = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
             .Add(component => component.Intent, RestoreIntent())
             .Add(component => component.CurrentProjection, Projection("other-admin")));
         matching.WaitForAssertion(() => matching.Instance.Snapshot!.MessageId.ShouldBe("message-safe"));
+        wrong.Instance.Snapshot!.MessageId.ShouldBeNull();
     }
 
     [Theory]

@@ -1793,6 +1793,268 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.FindAll("[data-testid='tenants-audit-receipt-paired']").ShouldBeEmpty();
     }
 
+    [Theory]
+    [InlineData("ready", true)]
+    [InlineData("wrong-category", false)]
+    [InlineData("opaque-version", false)]
+    public void Original_global_receipt_on_second_protected_page_requires_access_and_ordered_version(
+        string originalState, bool shouldPair)
+    {
+        TenantAuditSnapshot loaded = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
+        TenantAuditRow original = loaded.Rows[0];
+        TenantAuditRow corrective = original with
+        {
+            EventReference = "event-corrective",
+            EventType = "GlobalAdministratorSet",
+            Outcome = "GlobalAdministratorSet",
+            Timestamp = original.Timestamp.AddMinutes(5),
+            CommandCorrelationId = "tracking-safe",
+            AggregateSequence = 2,
+        };
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true, GlobalAdmins("admin-user", "other-admin") with { ProjectionVersion = "tenant-sequence:2" }, loaded);
+        gateway.GlobalProof = new GlobalAdministratorAuditProof(corrective);
+        gateway.ProofAuditProvider = request => loaded with
+        {
+            Rows = request.Cursor is null
+                ? [original with { EventReference = "event-unrelated" }]
+                : [original with { Category = originalState == "wrong-category"
+                    ? AuditEventCategory.Administrative : AuditEventCategory.Access }],
+            HasMore = request.Cursor is null,
+            NextCursor = request.Cursor is null ? "second-original-page" : null,
+            From = request.From,
+            To = request.To,
+            RequestCursor = request.Cursor,
+            RequestPageSize = request.PageSize,
+            ProjectionVersion = originalState == "opaque-version" ? "legacy-audit" : "tenant-sequence:2",
+        };
+        var registry = new GlobalAdministratorCorrectionProofRegistry();
+        Services.AddSingleton(registry);
+        TenantCorrectionStartIntent intent = new(
+            original.EventReference, "system", "admin-user", original.EventType,
+            "Current global administrator projection is available.",
+            TenantCorrectionCommandDomain.GlobalAdministrators,
+            TenantCorrectionCommandType.SetGlobalAdministrator, null, [],
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["userId"] = "admin-user",
+                ["originalTimestamp"] = original.Timestamp.ToString("O", CultureInfo.InvariantCulture),
+            });
+        registry.Remember(GlobalAdministratorCorrectionSnapshot.FromIntent(intent) with
+        {
+            CorrelationId = "tracking-safe",
+            CommittedEventSequence = 2,
+            SubmittedAtUtc = original.Timestamp.AddMinutes(1),
+            LifecycleState = TenantCommandLifecycleState.Confirmed,
+            AuditState = TenantCommandAuditState.AuditAvailable,
+            ProofLink = new TenantCorrectionProofLink(
+                original.EventReference, corrective.EventReference, original.Timestamp, corrective.Timestamp,
+                corrective.ReferenceContext),
+        });
+
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/system/audit?receiptReference=event-corrective");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+
+        cut.WaitForAssertion(() => gateway.Requests.Count(request => request.From == original.Timestamp)
+            .ShouldBeGreaterThanOrEqualTo(originalState == "opaque-version" ? 1 : 2));
+        if (shouldPair)
+        {
+            cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-receipt-reference']")
+                .TextContent.ShouldBe("event-corrective"));
+            cut.Find("[data-testid='tenants-audit-receipt-paired']").TextContent.ShouldContain(original.EventReference);
+        }
+        else
+        {
+            cut.FindAll("[data-testid='tenants-audit-receipt-paired']").ShouldBeEmpty();
+        }
+    }
+
+    [Fact]
+    public void Sibling_completion_pairs_only_its_retained_source_after_authorized_audit_return()
+    {
+        TenantAuditSnapshot loaded = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
+        TenantAuditRow original = loaded.Rows[0];
+        TenantAuditRow otherSource = original with { EventReference = "event-other-source" };
+        TenantAuditRow corrective = original with
+        {
+            EventReference = "event-corrective",
+            EventType = "GlobalAdministratorSet",
+            Outcome = "GlobalAdministratorSet",
+            Timestamp = original.Timestamp.AddMinutes(5),
+            CommandCorrelationId = "tracking-safe",
+            AggregateSequence = 2,
+        };
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true, GlobalAdmins("admin-user", "other-admin") with { ProjectionVersion = "tenant-sequence:2" },
+            loaded with { Rows = [original, otherSource] });
+        gateway.GlobalProof = new GlobalAdministratorAuditProof(corrective);
+        gateway.ProofAuditProvider = request => loaded with
+        {
+            Rows = [original, otherSource],
+            From = request.From,
+            To = request.To,
+            RequestCursor = request.Cursor,
+            RequestPageSize = request.PageSize,
+        };
+        var registry = new GlobalAdministratorCorrectionProofRegistry();
+        Services.AddSingleton(registry);
+        GlobalAdministratorGrantPreview preview = GlobalAdministratorGrantPreview.Create(
+            "admin-user", GlobalAdmins("other-admin") with { IsCompleteEvidence = true }, isAuthorized: true);
+        preview.IsComplete.ShouldBeTrue();
+        registry.RememberCompletion(new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Grant, "admin-user", "message-safe", "tracking-safe",
+            TenantCommandLifecycleState.Confirmed, GrantPreview: preview, HasCommandEventEvidence: true)
+        {
+            SourceAuditReference = original.EventReference,
+            SourceAuditTimestampUtc = original.Timestamp,
+            SubmittedAtUtc = original.Timestamp.AddMinutes(1),
+            CommittedEventSequence = 2,
+        });
+        registry.PendingCompletions().Count.ShouldBe(1);
+
+        NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants/system/audit?receiptReference=event-other-source");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForAssertion(() => gateway.Requests.Any(request => request.From == original.Timestamp)
+            .ShouldBeTrue());
+        cut.FindAll("[data-testid='tenants-audit-receipt-paired']").ShouldBeEmpty();
+
+        navigation.NavigateTo("/tenants/system/audit?receiptReference=event-global-admin");
+        cut.Render(parameters => parameters.Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-receipt-paired']").TextContent
+            .ShouldContain(corrective.EventReference);
+        registry.FindAll(otherSource.EventReference).ShouldBeEmpty();
+        registry.FindAll(original.EventReference).Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Principal_change_clears_off_page_global_receipt_and_pair_before_reauthorization()
+    {
+        TenantAuditSnapshot loaded = GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user");
+        TenantAuditRow original = loaded.Rows[0];
+        TenantAuditRow corrective = original with
+        {
+            EventReference = "event-corrective",
+            EventType = "GlobalAdministratorSet",
+            Outcome = "GlobalAdministratorSet",
+            Timestamp = original.Timestamp.AddMinutes(5),
+            CommandCorrelationId = "tracking-safe",
+            AggregateSequence = 2,
+        };
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(
+            authorized: true, GlobalAdmins("other-admin"), loaded);
+        gateway.GlobalProof = new GlobalAdministratorAuditProof(corrective);
+        gateway.ProofAuditProvider = request => loaded with
+        {
+            From = request.From,
+            To = request.To,
+            RequestCursor = request.Cursor,
+            RequestPageSize = request.PageSize,
+        };
+        var registry = new GlobalAdministratorCorrectionProofRegistry();
+        Services.AddSingleton(registry);
+        TenantCorrectionStartIntent intent = new(
+            original.EventReference, "system", "admin-user", original.EventType,
+            "Current global administrator projection is available.",
+            TenantCorrectionCommandDomain.GlobalAdministrators,
+            TenantCorrectionCommandType.SetGlobalAdministrator, null, [],
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["userId"] = "admin-user",
+                ["originalTimestamp"] = original.Timestamp.ToString("O", CultureInfo.InvariantCulture),
+            });
+        registry.Remember(GlobalAdministratorCorrectionSnapshot.FromIntent(intent) with
+        {
+            CorrelationId = "tracking-safe",
+            CommittedEventSequence = 2,
+            SubmittedAtUtc = original.Timestamp.AddMinutes(1),
+            LifecycleState = TenantCommandLifecycleState.Confirmed,
+            AuditState = TenantCommandAuditState.AuditAvailable,
+            ProofLink = new TenantCorrectionProofLink(original.EventReference, corrective.EventReference,
+                original.Timestamp, corrective.Timestamp, corrective.ReferenceContext),
+        });
+
+        Services.GetRequiredService<NavigationManager>()
+            .NavigateTo("/tenants/system/audit?receiptReference=event-corrective");
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-receipt-paired']");
+        StubBffComposition authorization = (StubBffComposition)Services.GetRequiredService<ITenantsBffComposition>();
+        StubAuthenticationStateProvider authentication = (StubAuthenticationStateProvider)Services
+            .GetRequiredService<AuthenticationStateProvider>();
+        gateway.QueueResponse(Task.FromResult(TenantAuditSnapshot.Unauthorized(new TenantAuditRequest("system"))));
+        authorization.Authorized = false;
+        var pendingPrincipal = new TaskCompletionSource<AuthenticationState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        authentication.ChangePrincipal(pendingPrincipal.Task);
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty());
+        cut.FindAll("[data-testid='tenants-audit-receipt-paired']").ShouldBeEmpty();
+        ((Dictionary<string, TenantAuditRow>)typeof(TenantAuditPage)
+            .GetField("_verifiedGlobalRows", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)!).ShouldBeEmpty();
+        pendingPrincipal.SetResult(new AuthenticationState(new ClaimsPrincipal()));
+        cut.WaitForElement("[data-testid='tenants-audit-unauthorized']");
+        cut.FindAll("[data-testid='tenants-audit-receipt-paired']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Faulted_authentication_transition_shows_recoverable_unavailable_state()
+    {
+        RegisterGlobalAdminServices(true, GlobalAdmins("other-admin"),
+            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-audit-grid']");
+        StubAuthenticationStateProvider authentication = (StubAuthenticationStateProvider)Services
+            .GetRequiredService<AuthenticationStateProvider>();
+
+        authentication.ChangePrincipal(Task.FromException<AuthenticationState>(new InvalidOperationException("auth failed")));
+
+        cut.WaitForElement("[data-testid='tenants-audit-unavailable']");
+        cut.Find("[data-testid='tenants-audit-recovery-refresh']");
+        cut.FindAll("[data-testid='tenants-audit-grid']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Authentication_transition_invalidates_global_correction_open_waiting_on_authorization()
+    {
+        StubTenantQueryGateway gateway = RegisterGlobalAdminServices(true, GlobalAdmins("other-admin"),
+            GlobalAdminAuditSnapshot("GlobalAdministratorRemoved", "admin-user"));
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "system"));
+        cut.WaitForElement("[data-testid='tenants-correction-start']");
+        StubBffComposition authorization = (StubBffComposition)Services.GetRequiredService<ITenantsBffComposition>();
+        var pendingAuthorization = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        authorization.GlobalAuthorizationTask = pendingAuthorization.Task;
+        int callsBeforeOpen = authorization.GlobalAuthorizationCalls;
+        Task open = cut.Find("[data-testid='tenants-correction-start']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => authorization.GlobalAuthorizationCalls.ShouldBeGreaterThan(callsBeforeOpen));
+
+        StubAuthenticationStateProvider authentication = (StubAuthenticationStateProvider)Services
+            .GetRequiredService<AuthenticationStateProvider>();
+        var pendingPrincipal = new TaskCompletionSource<AuthenticationState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        authentication.ChangePrincipal(pendingPrincipal.Task);
+        pendingAuthorization.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await open.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        ((GlobalAdministratorsSnapshot?)typeof(TenantAuditPage)
+            .GetField("_globalAdministratorsProjection", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(cut.Instance)).ShouldBeNull();
+        gateway.QueueResponse(Task.FromResult(TenantAuditSnapshot.Unauthorized(new TenantAuditRequest("system"))));
+        authorization.GlobalAuthorizationTask = null;
+        authorization.Authorized = false;
+        pendingPrincipal.SetResult(new AuthenticationState(new ClaimsPrincipal()));
+        cut.WaitForElement("[data-testid='tenants-audit-unauthorized']");
+        cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+    }
+
     [Fact]
     public void Mounted_global_panel_notifies_page_when_a_new_proven_pair_becomes_available()
     {
@@ -4148,7 +4410,7 @@ public sealed class TenantAuditPageTests : BunitContext
             new TenantAuditRequest("system")) with
         {
             Lifecycle = ProjectionLifecycleState.Current,
-            ProjectionVersion = "audit-v1",
+            ProjectionVersion = "tenant-sequence:2",
         };
 
     /// <summary>
@@ -4519,6 +4781,9 @@ public sealed class TenantAuditPageTests : BunitContext
         string? escalationHref = "/support/audit-incident") : ITenantsBffComposition
     {
         public Exception? GlobalAuthorizationFault { get; init; }
+        public Task<TenantLifecycleAuthorizationReflectionState>? GlobalAuthorizationTask { get; set; }
+        public int GlobalAuthorizationCalls { get; private set; }
+        public bool Authorized { get; set; } = authorized;
         public bool IsReadSurfaceConnected => readConnected;
 
         public bool IsCommandSurfaceConnected => commandConnected;
@@ -4541,24 +4806,29 @@ public sealed class TenantAuditPageTests : BunitContext
             string targetUserId,
             GlobalAdministratorsSnapshot completeSnapshot,
             CancellationToken cancellationToken = default)
-            => ValueTask.FromResult(GlobalAdministratorGrantPreview.Create(targetUserId, completeSnapshot, authorized));
+            => ValueTask.FromResult(GlobalAdministratorGrantPreview.Create(targetUserId, completeSnapshot, Authorized));
 
         public ValueTask<GlobalAdministratorRemovePreview> ComposeGlobalAdministratorRemovePreviewAsync(
             string targetUserId,
             GlobalAdministratorsSnapshot completeSnapshot,
             CancellationToken cancellationToken = default)
-            => ValueTask.FromResult(GlobalAdministratorRemovePreview.Create(targetUserId, "operator", completeSnapshot, authorized));
+            => ValueTask.FromResult(GlobalAdministratorRemovePreview.Create(targetUserId, "operator", completeSnapshot, Authorized));
 
         public TenantLifecycleAuthorizationReflectionState GlobalAdministratorsAuthorizationReflection
-            => authorized
+            => Authorized
                 ? TenantLifecycleAuthorizationReflectionState.Authorized
                 : TenantLifecycleAuthorizationReflectionState.Indeterminate;
 
         public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
             CancellationToken cancellationToken = default)
-            => GlobalAuthorizationFault is null
-                ? ValueTask.FromResult(GlobalAdministratorsAuthorizationReflection)
-                : ValueTask.FromException<TenantLifecycleAuthorizationReflectionState>(GlobalAuthorizationFault);
+        {
+            GlobalAuthorizationCalls++;
+            return GlobalAuthorizationTask is { } pending
+                ? new ValueTask<TenantLifecycleAuthorizationReflectionState>(pending)
+                : GlobalAuthorizationFault is null
+                    ? ValueTask.FromResult(GlobalAdministratorsAuthorizationReflection)
+                    : ValueTask.FromException<TenantLifecycleAuthorizationReflectionState>(GlobalAuthorizationFault);
+        }
     }
 
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
@@ -4625,9 +4895,21 @@ public sealed class TenantAuditPageTests : BunitContext
 
     private sealed class StubAuthenticationStateProvider : AuthenticationStateProvider
     {
+        private AuthenticationState _state = new(new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "operator")], "test")));
+
         public override Task<AuthenticationState> GetAuthenticationStateAsync()
-            => Task.FromResult(new AuthenticationState(new ClaimsPrincipal(
-                new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, "operator")], "test"))));
+            => Task.FromResult(_state);
+
+        public void ChangePrincipal(Task<AuthenticationState> nextState)
+        {
+            if (nextState.IsCompletedSuccessfully)
+            {
+                _state = nextState.Result;
+            }
+
+            NotifyAuthenticationStateChanged(nextState);
+        }
     }
 
     /// <summary>

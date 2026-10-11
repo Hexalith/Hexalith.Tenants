@@ -66,6 +66,8 @@ public sealed class TenantAggregateCommandAdmissionGate
             owner,
             expectedActionKind: null,
             expectedTargetUserId: null,
+            expectedSourceAuditReference: null,
+            expectedSourceAuditTimestampUtc: null,
             out lease,
             out reconciliation);
 
@@ -91,6 +93,41 @@ public sealed class TenantAggregateCommandAdmissionGate
             owner,
             expectedActionKind,
             expectedTargetUserId,
+            expectedSourceAuditReference: null,
+            expectedSourceAuditTimestampUtc: null,
+            out lease,
+            out reconciliation);
+    }
+
+    /// <summary>Adopts only the command initiated by this exact global audit row.</summary>
+    /// <param name="aggregateLockKey">AggregateIdentity-shaped lock key.</param>
+    /// <param name="owner">Replacement correction panel owner.</param>
+    /// <param name="expectedActionKind">Expected fixed-scope action.</param>
+    /// <param name="expectedTargetUserId">Expected literal target identity.</param>
+    /// <param name="expectedSourceAuditReference">Exact initiating audit reference.</param>
+    /// <param name="expectedSourceAuditTimestampUtc">UTC time of the initiating audit row.</param>
+    /// <param name="lease">Exclusively adopted lease.</param>
+    /// <param name="reconciliation">Retained reconciliation evidence.</param>
+    /// <returns><see langword="true"/> when the exact originating correction was claimed.</returns>
+    internal bool TryAdoptRetainedLease(
+        string aggregateLockKey,
+        object owner,
+        GlobalAdministratorActionKind expectedActionKind,
+        string expectedTargetUserId,
+        string expectedSourceAuditReference,
+        DateTimeOffset expectedSourceAuditTimestampUtc,
+        out TenantAggregateCommandLease? lease,
+        out GlobalAdministratorReconciliationState? reconciliation)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedTargetUserId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(expectedSourceAuditReference);
+        return TryAdoptRetainedLeaseCore(
+            aggregateLockKey,
+            owner,
+            expectedActionKind,
+            expectedTargetUserId,
+            expectedSourceAuditReference,
+            expectedSourceAuditTimestampUtc.ToUniversalTime(),
             out lease,
             out reconciliation);
     }
@@ -100,6 +137,8 @@ public sealed class TenantAggregateCommandAdmissionGate
         object owner,
         GlobalAdministratorActionKind? expectedActionKind,
         string? expectedTargetUserId,
+        string? expectedSourceAuditReference,
+        DateTimeOffset? expectedSourceAuditTimestampUtc,
         out TenantAggregateCommandLease? lease,
         out GlobalAdministratorReconciliationState? reconciliation)
     {
@@ -117,6 +156,9 @@ public sealed class TenantAggregateCommandAdmissionGate
                 && (expectedActionKind is null
                     || retained.ActionKind == expectedActionKind
                         && string.Equals(retained.TargetUserId, expectedTargetUserId, StringComparison.Ordinal))
+                && (expectedSourceAuditReference is null
+                    || string.Equals(retained.SourceAuditReference, expectedSourceAuditReference, StringComparison.Ordinal)
+                        && retained.SourceAuditTimestampUtc == expectedSourceAuditTimestampUtc)
                 && !candidate.IsReleased)
             {
                 candidate.CurrentOwner = owner;

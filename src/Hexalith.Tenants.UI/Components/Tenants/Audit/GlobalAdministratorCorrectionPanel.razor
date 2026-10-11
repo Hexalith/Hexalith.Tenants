@@ -1041,6 +1041,12 @@
                     CurrentProjection = current;
                     _snapshot = _snapshot.EvaluateCurrentProjection(current);
                 }
+                else
+                {
+                    // The earlier preview remains available for recovery, but its count and
+                    // presence no longer describe a verified current projection.
+                    _snapshot = _snapshot with { LastConfirmedProjectionEvidence = null };
+                }
 
                 _snapshot = _snapshot.WithRemovePreview(preview);
                 ready = preview.IsComplete
@@ -1073,6 +1079,7 @@
         TenantAggregateCommandLease? submissionLease = null;
         long completionToken = 0;
         bool removeInitialDispatch = false;
+        bool grantInitialDispatch = false;
         _ = await InvokeRendererSafelyAsync(() =>
         {
             if (!CanApplyOperation(generation)
@@ -1100,10 +1107,20 @@
 
                 removeInitialDispatch = true;
             }
-            else if (!acquiredLease.TryMarkDispatched(_admissionOwner))
+            else if (!acquiredLease.TryMarkDispatched(_admissionOwner)
+                || requestSent.ToCompletionReconciliation() is not { } grantDispatchBasis
+                || !acquiredLease.TryBeginReconciliationDispatch(
+                    _admissionOwner,
+                    grantDispatchBasis,
+                    out completionToken))
             {
                 _ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);
                 return;
+            }
+            else
+            {
+                grantInitialDispatch = true;
+                _adoptedReconciliation = grantDispatchBasis;
             }
 
             _admissionLease = acquiredLease;
@@ -1204,6 +1221,7 @@
             ITenantCommandGateway? gateway = CommandGateway;
             if (gateway is null)
             {
+                _ = submissionLease.TryAbortReconciliationDispatch(completionToken);
                 await InvokeRendererSafelyAsync(() =>
                 {
                     if (!CanApplyOperation(generation) || !ReferenceEquals(_snapshot, requestSentSnapshot))
@@ -1256,6 +1274,10 @@
                 submissionApplied = true;
                 StateHasChanged();
             }).ConfigureAwait(false);
+            if (grantInitialDispatch && submissionSnapshot.ToCompletionReconciliation() is { } grantCompletion)
+            {
+                _ = submissionLease.TryCompleteReconciliationDispatch(completionToken, grantCompletion);
+            }
             if (resumeAdopted)
             {
                 TryAdoptEligibleReconciliation();
@@ -1317,6 +1339,10 @@
                 requestSentSnapshot,
                 failedSnapshot,
                 submissionLease).ConfigureAwait(false);
+            if (grantInitialDispatch && failedSnapshot.ToCompletionReconciliation() is { } grantFailure)
+            {
+                _ = submissionLease.TryCompleteReconciliationDispatch(completionToken, grantFailure);
+            }
         }
         finally
         {
@@ -2039,6 +2065,7 @@
         if (_admissionLease is not null
             || !CanOwnReconciliation()
             || _snapshot is not { } snapshot
+            || !TryParseOriginalTimestamp(snapshot.Intent, out DateTimeOffset sourceTimestamp)
             || _admissionGate?.TryAdoptRetainedLease(
                 TenantCommandAggregateLock.ForGlobalAdministrators(),
                 _admissionOwner,
@@ -2046,6 +2073,8 @@
                     ? GlobalAdministratorActionKind.Remove
                     : GlobalAdministratorActionKind.Grant,
                 snapshot.TargetUserId,
+                snapshot.OriginalAuditReference,
+                sourceTimestamp,
                 out TenantAggregateCommandLease? lease,
                 out GlobalAdministratorReconciliationState? reconciliation) is not true
             || lease is null

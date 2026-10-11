@@ -302,6 +302,42 @@ public sealed class TenantAggregateCommandAdmissionGateTests
     }
 
     [Fact]
+    public void Correction_adoption_requires_the_exact_source_reference_and_timestamp()
+    {
+        var gate = new TenantAggregateCommandAdmissionGate();
+        string key = TenantCommandAggregateLock.ForGlobalAdministrators();
+        object originalOwner = new();
+        DateTimeOffset sourceTime = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        var retained = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove, "admin-user", "message-safe", "correlation-safe",
+            TenantCommandLifecycleState.Accepted, RemovePreview: RemovePreview())
+        {
+            SourceAuditReference = "event-original",
+            SourceAuditTimestampUtc = sourceTime,
+        };
+        gate.TryAcquireLease(key, originalOwner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(originalOwner).ShouldBeTrue();
+        lease.TryRetainReconciliation(originalOwner, retained).ShouldBeTrue();
+
+        foreach ((string reference, DateTimeOffset timestamp) in new[]
+        {
+            ("event-other", sourceTime),
+            ("event-original", sourceTime.AddSeconds(1)),
+        })
+        {
+            gate.TryAdoptRetainedLease(key, new object(), GlobalAdministratorActionKind.Remove,
+                "admin-user", reference, timestamp, out _, out _).ShouldBeFalse();
+        }
+
+        object matchingOwner = new();
+        gate.TryAdoptRetainedLease(key, matchingOwner, GlobalAdministratorActionKind.Remove,
+            "admin-user", "event-original", sourceTime, out TenantAggregateCommandLease? adopted,
+            out GlobalAdministratorReconciliationState? reconciliation).ShouldBeTrue();
+        adopted.ShouldBeSameAs(lease);
+        reconciliation.ShouldBe(retained);
+    }
+
+    [Fact]
     public async Task RetainAndTerminalReleaseAreSerializedWithoutResurrectingAReleasedLease()
     {
         var gate = new TenantAggregateCommandAdmissionGate();

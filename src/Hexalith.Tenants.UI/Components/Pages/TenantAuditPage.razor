@@ -678,6 +678,7 @@
     {
         long version = Interlocked.Increment(ref _authenticationTransitionVersion);
         Volatile.Write(ref _authenticationTransitionPending, true);
+        Interlocked.Increment(ref _correctionOpenGeneration);
         Interlocked.Increment(ref _pairedProofGeneration);
         Interlocked.Increment(ref _loadGeneration);
         CancelActiveCancellation();
@@ -723,6 +724,17 @@
         }
         catch
         {
+            await InvokeAsync(() =>
+            {
+                if (_disposed || version != Volatile.Read(ref _authenticationTransitionVersion))
+                {
+                    return;
+                }
+
+                _snapshot = TenantAuditSnapshot.Unavailable(new TenantAuditRequest(TenantId));
+                Volatile.Write(ref _authenticationTransitionPending, false);
+                StateHasChanged();
+            }).ConfigureAwait(false);
             return;
         }
 
@@ -1932,7 +1944,8 @@
         }
         await InvokeAsync(() =>
         {
-            if (_disposed || generation != _correctionOpenGeneration || !HasMeasuredSafeViewport)
+            if (_disposed || generation != _correctionOpenGeneration || !HasAuthorizedAuditSurface
+                || !HasMeasuredSafeViewport || !string.Equals(TenantId, "system", StringComparison.Ordinal))
             {
                 return;
             }

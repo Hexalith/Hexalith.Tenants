@@ -606,7 +606,11 @@ public class TenantsProjectionActorTests {
                 "GlobalAdministratorSet",
                 AuditEventCategory.Access,
                 tenantId: "system",
-                narrativePayload: new Dictionary<string, string> { ["userId"] = "admin-2" })));
+                narrativePayload: new Dictionary<string, string> { ["userId"] = "admin-2" }) with
+            {
+                CommandCorrelationId = "global-command-correlation",
+                AggregateSequence = 42,
+            }));
 
         var actor = CreateActor(store);
         QueryResult result = await actor.QueryAsync(CreateEnvelope(
@@ -622,6 +626,8 @@ public class TenantsProjectionActorTests {
         entry.Target.ShouldBe("admin-2");
         entry.Scope.ShouldBe("system");
         entry.Outcome.ShouldBe("GlobalAdministratorSet");
+        entry.CommandCorrelationId.ShouldBe("global-command-correlation");
+        entry.AggregateSequence.ShouldBe(42);
     }
 
     // --- Q27: Non-admin hitting audit endpoint gets 403 not 501 ---

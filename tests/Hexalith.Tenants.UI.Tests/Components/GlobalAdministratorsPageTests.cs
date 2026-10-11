@@ -6049,6 +6049,124 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Theory]
+    [InlineData(GlobalAdministratorActionKind.Grant)]
+    [InlineData(GlobalAdministratorActionKind.Remove)]
+    public void Sibling_completion_records_the_correction_source_for_audit_reverification(
+        GlobalAdministratorActionKind action)
+    {
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            ComponentReady("tenant-sequence:1", "target-admin", "other-admin")) { RepeatLastResponse = true });
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var registry = new GlobalAdministratorCorrectionProofRegistry();
+        Services.AddSingleton(registry);
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        object owner = PrivateField<object>(cut.Instance, "_fixedAggregateOwner");
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        GlobalAdministratorsSnapshot before = action is GlobalAdministratorActionKind.Grant
+            ? ComponentReady("tenant-sequence:1", "other-admin")
+            : ComponentReady("tenant-sequence:1", "target-admin", "other-admin");
+        DateTimeOffset sourceTime = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        var reconciliation = new GlobalAdministratorReconciliationState(
+            action, "target-admin", "message-safe", "correlation-safe", TenantCommandLifecycleState.ProjectionPending,
+            GrantPreview: action is GlobalAdministratorActionKind.Grant
+                ? GlobalAdministratorGrantPreview.Create("target-admin", before, isAuthorized: true) : null,
+            HasCommandEventEvidence: true,
+            RemovePreview: action is GlobalAdministratorActionKind.Remove
+                ? GlobalAdministratorRemovePreview.Create("target-admin", "operator-admin", before, isAuthorized: true) : null)
+        {
+            SourceAuditReference = "event-original",
+            SourceAuditTimestampUtc = sourceTime,
+            SubmittedAtUtc = sourceTime.AddMinutes(1),
+            CommittedEventSequence = 2,
+        };
+        lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
+
+        typeof(GlobalAdministratorsPage)
+            .GetMethod("RememberCorrectionCompletion", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, [lease, TenantCommandLifecycleState.Confirmed, true]);
+
+        GlobalAdministratorReconciliationState retained = registry.PendingCompletions().ShouldHaveSingleItem();
+        retained.ActionKind.ShouldBe(action);
+        retained.SourceAuditReference.ShouldBe("event-original");
+        retained.SourceAuditTimestampUtc.ShouldBe(sourceTime);
+        retained.CommittedEventSequence.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Rendered_revoke_handoff_retains_completion_for_a_verified_audit_pair()
+    {
+        GlobalAdministratorsSnapshot before = ComponentReady("tenant-sequence:1", "target-admin", "other-admin");
+        GlobalAdministratorsSnapshot after = ComponentReady("tenant-sequence:2", "other-admin");
+        DateTimeOffset sourceTime = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        var registry = new GlobalAdministratorCorrectionProofRegistry();
+        Services.AddSingleton(registry);
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(after));
+        var commands = new StubTenantCommandGateway(statuses:
+        [
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
+                HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 },
+        ]);
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+
+        var owner = new object();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.TryRetainReconciliation(owner, new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove, "target-admin", "message-safe", "correlation-safe",
+            TenantCommandLifecycleState.Accepted,
+            RemovePreview: GlobalAdministratorRemovePreview.Create(
+                "target-admin", "operator-admin", before, isAuthorized: true))
+        {
+            HasCommandEventEvidence = true,
+            SourceAuditReference = "event-original",
+            SourceAuditTimestampUtc = sourceTime,
+            SubmittedAtUtc = sourceTime.AddMinutes(1),
+            CommittedEventSequence = 2,
+        }).ShouldBeTrue();
+
+        IRenderedComponent<GlobalAdministratorsPage> page = Render<GlobalAdministratorsPage>();
+        page.WaitForAssertion(() => page.Find("[data-testid='tenants-global-admin-remove-state']")
+            .TextContent.ShouldContain("Confirmed"));
+        GlobalAdministratorReconciliationState completion = registry.PendingCompletions().ShouldHaveSingleItem();
+        completion.ActionKind.ShouldBe(GlobalAdministratorActionKind.Remove);
+        completion.SourceAuditReference.ShouldBe("event-original");
+        completion.SourceAuditTimestampUtc.ShouldBe(sourceTime);
+        completion.CommittedEventSequence.ShouldBe(2);
+        commands.StatusHandles.ShouldHaveSingleItem().MessageId.ShouldBe("message-safe");
+
+        TenantAuditRow original = new(
+            "event-original", "GlobalAdministratorSet", AuditEventCategory.Access,
+            "operator-admin", sourceTime, "system", "target-admin", "system", "GlobalAdministratorSet",
+            "userId: target-admin", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current,
+            QueryResponseProvenance.ProjectionBacked, new TenantAuditNarrative(UserId: "target-admin"));
+        TenantAuditRow corrective = original with
+        {
+            EventReference = "event-corrective",
+            EventType = "GlobalAdministratorRemoved",
+            Outcome = "GlobalAdministratorRemoved",
+            Timestamp = sourceTime.AddMinutes(2),
+            CommandCorrelationId = "correlation-safe",
+            AggregateSequence = 2,
+        };
+        GlobalAdministratorCorrectionSnapshot? verified = GlobalAdministratorCorrectionSnapshot.RebuildVerifiedCompletion(
+            completion, original, after, new GlobalAdministratorAuditProof(corrective));
+        verified.ShouldNotBeNull().AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+        verified.ProofLink.ShouldNotBeNull().OriginalAuditReference.ShouldBe("event-original");
+        verified.ProofLink.CorrectiveAuditReference.ShouldBe("event-corrective");
+    }
+
+    [Theory]
     [InlineData("accepted")]
     [InlineData("rejected")]
     public async Task SupersededAmbiguousRemoveRetryRetainsOrReleasesItsExactLease(string outcome)
