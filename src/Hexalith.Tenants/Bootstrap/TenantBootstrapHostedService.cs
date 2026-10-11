@@ -35,6 +35,11 @@ public partial class TenantBootstrapHostedService(
     private const long MaxExpectedRejectionProbeBytes = 8192;
 
     public Task StartAsync(CancellationToken cancellationToken) {
+        if (!options.Value.BootstrapGlobalAdminEnabled) {
+            Log.BootstrapDisabled(logger);
+            return Task.CompletedTask;
+        }
+
         string? userId = options.Value.BootstrapGlobalAdminUserId;
 
         if (string.IsNullOrWhiteSpace(userId)) {
@@ -148,6 +153,12 @@ public partial class TenantBootstrapHostedService(
     }
 
     private static partial class Log {
+        [LoggerMessage(
+            EventId = 2007,
+            Level = LogLevel.Information,
+            Message = "Bootstrap skipped: Tenants:BootstrapGlobalAdminEnabled is false")]
+        public static partial void BootstrapDisabled(ILogger logger);
+
         [LoggerMessage(
             EventId = 2000,
             Level = LogLevel.Information,

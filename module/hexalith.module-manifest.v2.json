@@ -57,6 +57,121 @@
                 "key": "Jwt:SigningKey",
                 "source": "secret",
                 "reference": "api-signing-key"
+              },
+              {
+                "key": "Tenants:BootstrapGlobalAdminEnabled",
+                "source": "configuration",
+                "reference": "bootstrapglobaladminenabled"
+              },
+              {
+                "key": "Tenants:BootstrapGlobalAdminUserId",
+                "source": "configuration",
+                "reference": "bootstrapglobaladminuserid"
+              },
+              {
+                "key": "EventStore:Authentication:Authority",
+                "source": "configuration",
+                "reference": "authority"
+              },
+              {
+                "key": "EventStore:Authentication:ClientId",
+                "source": "configuration",
+                "reference": "clientid"
+              },
+              {
+                "key": "EventStore:Authentication:Username",
+                "source": "configuration",
+                "reference": "username"
+              },
+              {
+                "key": "EventStore:Authentication:Issuer",
+                "source": "configuration",
+                "reference": "issuer"
+              },
+              {
+                "key": "EventStore:Authentication:Audience",
+                "source": "configuration",
+                "reference": "audience"
+              },
+              {
+                "key": "EventStore:Authentication:RequireHttpsMetadata",
+                "source": "configuration",
+                "reference": "requirehttpsmetadata"
+              },
+              {
+                "key": "Authentication:JwtBearer:Authority",
+                "source": "configuration",
+                "reference": "authority"
+              },
+              {
+                "key": "Authentication:JwtBearer:Issuer",
+                "source": "configuration",
+                "reference": "issuer"
+              },
+              {
+                "key": "Authentication:JwtBearer:Audience",
+                "source": "configuration",
+                "reference": "audience"
+              },
+              {
+                "key": "Authentication:JwtBearer:ValidAudiences",
+                "source": "configuration",
+                "reference": "validaudiences"
+              },
+              {
+                "key": "Authentication:JwtBearer:AllowedAlgorithms",
+                "source": "configuration",
+                "reference": "allowedalgorithms"
+              },
+              {
+                "key": "Authentication:JwtBearer:RequireHttpsMetadata",
+                "source": "configuration",
+                "reference": "requirehttpsmetadata"
+              },
+              {
+                "key": "Authentication:JwtBearer:AllowInsecureSymmetricKey",
+                "source": "configuration",
+                "reference": "allowinsecuresymmetrickey"
+              },
+              {
+                "key": "Authentication:Workload:Audience",
+                "source": "configuration",
+                "reference": "audience"
+              },
+              {
+                "key": "Authentication:Workload:AllowedCallers",
+                "source": "configuration",
+                "reference": "allowedcallers"
+              },
+              {
+                "key": "Authentication:Workload:MaximumLifetimeSeconds",
+                "source": "configuration",
+                "reference": "maximumlifetimeseconds"
+              },
+              {
+                "key": "EventStore:DataProtection:PersistToStateStore",
+                "source": "configuration",
+                "reference": "persisttostatestore"
+              },
+              {
+                "key": "EventStore:Authentication:Password",
+                "source": "secret",
+                "reference": "bootstrap-delegated-password"
+              },
+              {
+                "key": "EventStore:Authentication:SigningKey",
+                "source": "secret",
+                "reference": "api-eventstore-signing-key"
+              },
+              {
+                "key": "Authentication:JwtBearer:SigningKey",
+                "source": "secret",
+                "reference": "domain-jwt-signing-key"
+              },
+              {
+                "key": "Tenants:AppChannelToken",
+                "source": "secret",
+                "reference": "domain-app-channel-token"
               }
             ]
           }
@@ -216,13 +331,74 @@
           {
             "name": "api-signing-key",
             "configurationKey": "Jwt:SigningKey"
+          },
+          {
+            "name": "bootstrap-delegated-password",
+            "configurationKey": "EventStore:Authentication:Password"
+          },
+          {
+            "name": "api-eventstore-signing-key",
+            "configurationKey": "EventStore:Authentication:SigningKey"
+          },
+          {
+            "name": "domain-jwt-signing-key",
+            "configurationKey": "Authentication:JwtBearer:SigningKey"
+          },
+          {
+            "name": "domain-app-channel-token",
+            "configurationKey": "Tenants:AppChannelToken"
           }
         ],
         "dynamicSecretNamespaces": [],
         "identityNeeds": [],
-        "egress": [],
+        "egress": [
+          {
+            "name": "bootstrap-oidc-token",
+            "protocol": "oidc",
+            "destination": "EventStore:Authentication:Authority/protocol/openid-connect/token"
+          },
+          {
+            "name": "domain-oidc-metadata",
+            "protocol": "https",
+            "destination": "Authentication:JwtBearer:Authority/.well-known/openid-configuration"
+          },
+          {
+            "name": "domain-oidc-jwks",
+            "protocol": "https",
+            "destination": "Authentication:JwtBearer:Authority -> metadata.jwks_uri"
+          },
+          {
+            "name": "public-api-oidc-metadata",
+            "protocol": "https",
+            "destination": "Oidc:Authority/.well-known/openid-configuration"
+          },
+          {
+            "name": "public-api-oidc-jwks",
+            "protocol": "https",
+            "destination": "Oidc:Authority -> metadata.jwks_uri"
+          },
+          {
+            "name": "public-api-eventstore-oidc-metadata",
+            "protocol": "https",
+            "destination": "EventStore:Authentication:Authority/.well-known/openid-configuration"
+          },
+          {
+            "name": "public-api-eventstore-oidc-jwks",
+            "protocol": "https",
+            "destination": "EventStore:Authentication:Authority -> metadata.jwks_uri"
+          }
+        ],
         "providers": [],
-        "workers": []
+        "workers": [
+          {
+            "name": "global-administrator-bootstrap",
+            "kind": "external-effect",
+            "disableControl": {
+              "configurationKey": "Tenants:BootstrapGlobalAdminEnabled",
+              "disabledValue": false
+            }
+          }
+        ]
       },
       "lifecycle": {
         "readiness": [

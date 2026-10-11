@@ -27,6 +27,40 @@ namespace Hexalith.Tenants.Server.Tests.Bootstrap;
 
 public class TenantBootstrapHostedServiceTests {
     [Fact]
+    public async Task StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator() {
+        bool httpCalled = false;
+        var handler = new TestHttpMessageHandler((_, _) => {
+            httpCalled = true;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+        var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+            ["Tenants:BootstrapGlobalAdminEnabled"] = "false",
+            ["Tenants:BootstrapGlobalAdminUserId"] = "admin-user-1",
+        }).Build();
+        TenantBootstrapOptions boundOptions = configuration.GetSection("Tenants").Get<TenantBootstrapOptions>()!;
+        boundOptions.BootstrapGlobalAdminUserId.ShouldBe("admin-user-1");
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(boundOptions),
+            lifetime,
+            logger);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await Task.Delay(50);
+
+        httpCalled.ShouldBeFalse();
+        logger.Entries.ShouldContain(entry => entry.EventId.Id == 2007);
+    }
+
+    [Fact]
+    public void BootstrapControlDefaultsToEnabled() {
+        new TenantBootstrapOptions().BootstrapGlobalAdminEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task StartAsync_with_configured_userId_sends_BootstrapGlobalAdmin_command() {
         // Arrange
         string? capturedBody = null;

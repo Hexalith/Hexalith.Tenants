@@ -36,8 +36,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = string.IsNullOrWhiteSpace(audience) ? "hexalith-eventstore" : audience,
         };
 
-        string? authority = builder.Configuration["EventStore:Authentication:Authority"]
-            ?? builder.Configuration["Oidc:Authority"];
+        string? authority = FirstConfigured(
+            builder.Configuration["EventStore:Authentication:Authority"],
+            builder.Configuration["Oidc:Authority"]);
         if (!string.IsNullOrWhiteSpace(authority))
         {
             options.Authority = authority;
@@ -51,8 +52,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             options.TokenValidationParameters.ValidIssuer = string.IsNullOrWhiteSpace(issuer) ? "hexalith-dev" : issuer;
 
-            string? signingKey = builder.Configuration["EventStore:Authentication:SigningKey"]
-                ?? builder.Configuration["Jwt:SigningKey"];
+            string? signingKey = FirstConfigured(
+                builder.Configuration["EventStore:Authentication:SigningKey"],
+                builder.Configuration["Jwt:SigningKey"]);
             if (string.IsNullOrWhiteSpace(signingKey))
             {
                 throw new InvalidOperationException("EventStore:Authentication:SigningKey is required when Authority is not configured.");
@@ -98,5 +100,8 @@ app.MapControllers();
 app.MapDefaultEndpoints();
 
 app.Run();
+
+static string? FirstConfigured(string? legacy, string? alias)
+    => !string.IsNullOrWhiteSpace(legacy) ? legacy : alias;
 
 public partial class Program;

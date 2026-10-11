@@ -555,6 +555,98 @@ public sealed class TenantsApiGeneratedControllerTests
         key.KeySize.ShouldBe(256);
     }
 
+    [Fact]
+    public async Task Public_api_accepts_jwt_signing_key_alias_without_eventstore_authentication_keys()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        await using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?> { ["Jwt:SigningKey"] = JwtSigningKey });
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            CreateJwt("test-user", "queries:*", JwtIssuer, JwtAudience));
+
+        using HttpResponseMessage response = await client.GetAsync(
+            "/api/tenants",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        gateway.SubmittedQueries.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Public_api_accepts_oidc_authority_alias_without_eventstore_authentication_keys()
+    {
+        const string authority = "https://identity.example.test";
+        var discoveryConfiguration = new OpenIdConnectConfiguration { Issuer = authority };
+        discoveryConfiguration.SigningKeys.Add(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)));
+        CapturingEventStoreGatewayClient gateway = new();
+        gateway.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        await using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?> { ["Oidc:Authority"] = authority },
+            services => services.PostConfigure<JwtBearerOptions>(
+                JwtBearerDefaults.AuthenticationScheme,
+                options => options.ConfigurationManager =
+                    new StaticConfigurationManager<OpenIdConnectConfiguration>(discoveryConfiguration)));
+        using HttpClient client = factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer",
+            CreateJwt("test-user", "queries:*", authority, JwtAudience));
+
+        using HttpResponseMessage response = await client.GetAsync(
+            "/api/tenants",
+            TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        gateway.SubmittedQueries.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Blank_legacy_signing_key_uses_valid_alias()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?>
+            {
+                ["EventStore:Authentication:SigningKey"] = " ",
+                ["Jwt:SigningKey"] = JwtSigningKey,
+                ["EventStore:Authentication:Issuer"] = JwtIssuer,
+                ["EventStore:Authentication:Audience"] = JwtAudience,
+            });
+
+        JwtBearerOptions options = factory.Services
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
+
+        options.TokenValidationParameters.IssuerSigningKey.ShouldBeOfType<SymmetricSecurityKey>()
+            .KeySize.ShouldBeGreaterThanOrEqualTo(256);
+    }
+
+    [Fact]
+    public void Blank_legacy_authority_uses_valid_alias()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?>
+            {
+                ["EventStore:Authentication:Authority"] = " ",
+                ["Oidc:Authority"] = "https://identity.example.test",
+                ["EventStore:Authentication:Issuer"] = "https://identity.example.test",
+                ["EventStore:Authentication:Audience"] = JwtAudience,
+            });
+
+        JwtBearerOptions options = factory.Services
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
+
+        options.Authority.ShouldBe("https://identity.example.test");
+    }
+
     private static async Task AssertNotModifiedWithoutStrongETagMapsToBadGatewayAsync(string? eTag)
     {
         CapturingEventStoreGatewayClient gateway = new();
