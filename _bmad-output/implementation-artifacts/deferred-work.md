@@ -4098,3 +4098,20 @@ Diff reviewed: Tenants `2b91a52f..f6e7d7a5`, Story 5.6 paths only (the pass-39 f
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
   summary: Verify whether BFF submit-time and EventStore event-time clock skew can hide an exact global-administrator correction audit proof.
   evidence: The BFF records SubmittedAtUtc while EventStore stamps the event independently; measured production skew or a shared timestamp ordering guarantee is needed to establish whether the current post-submit boundary can exclude a valid exact-correlation event.
+
+## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md (2026-10-11)
+
+Diff reviewed: Tenants `66072cc4..362a957d`. The diff was 4,351 lines (260,201 bytes; SHA-256 `80873fa0559d09b80c66f547286074324c610c366b9f7f069dcb05e37c6a000b`) and is not archived. Triage produced 1 decision, 21 patches, 3 defers and 20 rejected. Two of the defers are new entries below. The third, BFF and EventStore clock skew, is already recorded above.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: unverified medium; `GlobalAdministratorProjectionHandler` takes the projection and `audit:system` version from the last event iterated, not the highest sequence. Owner: Tenants global-administrator projection.
+  evidence:
+  - **Code:** `src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs:71-76` overwrites `ProjectionVersion` on every event. `TenantProjectionHandler.StampAggregateProjectionVersion` instead keeps a monotonic maximum.
+  - **Consequence:** if `ProjectionRequest.Events` ever arrives out of sequence order, both versions understate progress. Story 5.7 confirmation and the audit-proof walk would then stay pending.
+  - **To settle:** find out whether EventStore guarantees sequence order for the full-history projection payload. If it does not, stamp the maximum.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: medium; an ambiguous global-administrator delivery that actually committed can never be redelivered or resolved in the same circuit. Owner: global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7).
+  evidence:
+  - **Code:** `GlobalAdministratorCorrectionPanel.RetryAmbiguousDeliveryAsync` (`:1349-1383` restore, `:1384-1420` removal) and `GlobalAdministratorsPage` `WithdrawDeliveryRetry` withdraw same-ULID redelivery once the projection no longer matches the preview.
+  - **Consequence:** a POST that committed but returned an ambiguous result changes that projection. The attempt then stays ambiguous without a correlation, and the fixed-aggregate admission lease stays held until a new circuit.
+  - **To settle:** choose between two fixes: (a) idempotent same-MessageId redelivery that is allowed after preconditions change, or (b) a MessageId-keyed status lookup. Either must keep the "never dispatch already-applied work" boundary.
