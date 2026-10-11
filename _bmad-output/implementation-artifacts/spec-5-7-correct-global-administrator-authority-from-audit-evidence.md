@@ -2,7 +2,7 @@
 title: 'Correct global administrator authority from audit evidence'
 type: 'feature'
 created: '2026-10-10'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 3
 baseline_commit: '66072cc410834e2c34f7d30f121e447940ea6fc6'
@@ -204,6 +204,140 @@ This review covered only the review-fix commits: 19 files, 1,534 diff lines (116
 - Keeping the remove preview relies on `null == null` version equality, and the test does not prove the compose was skipped — false: an unordered version never reaches Previewed, and the synchronous compose stub would fail `ShouldBeSameAs`.
 - The `RequestSent` page test does not assert how the attempt ends — low: it pins the guarded behaviour, and the panel tests cover acceptance and confirmation.
 - Relative versus absolute `source_spec` paths in the ledger — maybe-false, low: there is no evidence that the sweep requires absolute paths.
+
+### Review Findings — fix-pass range `4f0abcae..94faa46b` (2026-10-11)
+
+Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9e9cc92`, `85a5a6cc` and `94faa46b`.
+- **Diff:** 22 files, 3,297 lines, 223,048 bytes (SHA-256 `f15a5379f218a1b690575c44d5b7d57c4c320f6472dcdc9aa6e5a32bcd661b5f`). It is not archived.
+- **Excluded:** the `references/` gitlinks, which the guard checks, and the four `711e1008` `/pushall` files (module manifest, Api `Program.cs`, readiness health check and its test).
+- **Layers:** Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor all ran, and none failed.
+- **Triage:** 40 findings became 1 decision-needed, 10 patch, 0 defer and 18 rejected entries. The decision was resolved on 2026-10-11 (option a), which made it a patch and made the guard-test patch moot, so the final tally is 10 patch and 19 rejected.
+- **Gitlink guard:**
+  - `python3 scripts/validate-story-gitlinks.py <spec>` passes (exit 0) only through the `Non-Story Gitlink Commits` mode that `94faa46b` added.
+  - The guard as it was before `94faa46b` (`94faa46b^:scripts/validate-story-gitlinks.py`), run with `--ref 94faa46b`, exits 1. It reports 6 `[UNDECLARED]` pointers: Builds, EventStore, FrontComposer, McpCli, Memories and Platform.
+  - All six target SHAs are reachable on their remotes' `origin/main`.
+
+- [ ] [Review][Patch] (medium) Story commits moved six submodule pointers, and the story changed the gitlink guard to exempt them [scripts/validate-story-gitlinks.py:432]
+  - **Resolution (2026-10-11, option a):** declare the moves the existing way and remove the new mode.
+    - Rename `## Non-Story Gitlink Commits` to `## Story-Owned Gitlink Commits`, keeping the same two full commit IDs.
+    - Add a `## File List` that lists each of the six paths. Each path gets an `old -> new -- reason` line, in story 4.3's format. The reason states that the move was workspace drift carried by the story commit, and that no story code depends on it.
+    - Restore `scripts/validate-story-gitlinks.py` and `tests/scripts/test_validate_story_gitlinks.py` from `94faa46b^`.
+    - Correct the "six independent pointer updates" prose.
+  - **Dry run:** a scratch copy of this spec, modified this way, passes both the current guard and the guard from before `94faa46b`.
+  - **Evidence:**
+    - The story code adds no imports from any moved submodule.
+    - CI runs only the guard's self-tests (`story-guards.yml`).
+    - No other file uses the `Non-Story` mode.
+  - **Original finding:**
+  - **What happened:**
+    - Story commits `b9e9cc92` ("feat: enhance global administrator correction functionality") and `85a5a6cc` move 8 pointers across 6 submodules. The `85a5a6cc` message itself says "Updated submodule references for Hexalith.EventStore and Hexalith.Platform".
+    - `94faa46b` then added a repo-wide `Non-Story Gitlink Commits` mode to the guard. In that mode a commit ID with no File List entry and no per-pointer reason is enough.
+    - The story lists its own two commits under that heading and calls them "six independent `references/` pointer updates". There are eight moves, and they are not independent.
+  - **Why it matters:**
+    - The project-context rule requires either a File List entry with a reason for each moved pointer, or a revert plus a separate `build(deps)` commit.
+    - FrontComposer builds from source by default, and Builds owns the package catalog. So the recorded 4,062/4,062 UI run used the moved pointers.
+    - Both commits are already on `origin/main`, so reverting them would mean new pointer-reverting commits, not a history rewrite.
+  - **Options:**
+    - (a) Declare the pointers under `Story-Owned Gitlink Commits` with File List entries and per-pointer reasons, and remove the `Non-Story` mode from the guard and its tests. Recommended.
+    - (b) Keep the `Non-Story` mode as repo policy, but require a reason and owner for each excluded commit, correct the "six independent" claim, and update the project-context gitlink rule.
+    - (c) Accept as is.
+
+  [auditor+blind+edge]
+- [ ] [Review][Patch] (medium) Count, presence and provenance render as verified next to "Current projection evidence is unavailable." [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:531]
+  - **Cause:** this diff made `IsProjectionStateVerifiable` depend only on `LastConfirmedProjectionEvidence` and dropped the `CurrentProjectionUnavailable` marker check. Only the revoke-confirm branch clears the evidence on a failed read.
+  - **Where it shows:**
+    - Restore Confirm with a null projection read (`:980`).
+    - The grant retry preflight (`RetainAmbiguousPreflight`, `:1447`), which also keeps old evidence when the rebuilt preview differs.
+    - A changed revoke preview at Confirm (`:1065`), where the evidence is current but the state says unavailable.
+  - **Effect:** in all three cases the panel shows the earlier count, Present/Absent and "Complete, current system projection…" beside the unavailable alert.
+  - **Fix:** require both the readable complete evidence and `SafeMessageKey != "Tenants.Correction.Unavailable.CurrentProjectionUnavailable"`. Update the stale comment above the property. Assert the neutral rendered facts for the restore null-read and changed-revoke paths.
+
+  [edge+auditor+verification]
+- [ ] [Review][Patch] (medium) Every load of the `system` audit page re-walks every pending completion, even proven ones and even with no receipt selected [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1685]
+  - **Cause:**
+    - `LoadAsync` (`:1190`) calls `RefreshPairedGlobalReceiptAsync` on every system load, including read-refresh notifications.
+    - The new condition dropped `selectedReference is not null`. That short-circuit is what the earlier rejection "Each system load reads the complete projection — false" relied on.
+    - `GlobalAdministratorCorrectionProofRegistry` never removes a pending completion, even after `Remember` succeeds.
+  - **Effect:** after one correction, each load, page change or notification costs an authorization read, a complete global-administrator projection walk, and two protected audit walks of up to 50 pages for each completion in the circuit.
+  - **Fix:** run the pending walk only when a receipt is selected. Remove a completion from the pending list once its pair is remembered. This cannot lose a delayed pair, because only proven entries are removed.
+
+  [blind]
+- [ ] [Review][Patch] (medium) The contradiction-alert regression assertions cannot fail [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:800]
+  - **Problem:**
+    - `Reached_sequence_with_wrong_postcondition_releases_global_lease` checks "another global-administrator attempt" on `tenants-correction-safe-message`, which never shows the decision reason.
+    - It checks "audit evidence is delayed" on `tenants-correction-state`, which never shows audit copy.
+    - The stub localizer has no AggregateBusy entry.
+  - **Effect:** deleting the `IsVerifiedContradiction` check at `GlobalAdministratorCorrectionPanel.razor:276` brings the misleading busy alert back, and the test stays green.
+  - **Fix:** assert the exact text of `tenants-correction-unavailable-recovery` ("Restore the blocked authorization, lifecycle, viewport, or projection evidence before retrying.") and `tenants-correction-audit-state` ("Corrective audit evidence is unavailable.").
+
+  [verification]
+- [ ] [Review][Patch] (medium) Nothing tests that the Global Administrators page records a completion on its out-of-date path [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:4105]
+  - **Scope:** this also covers `:4922`.
+  - **Gap:** deleting either `RememberCorrectionCompletion` call in `RetainOrReleaseGrantCompletion`/`RetainOrReleaseRemoveCompletion` leaves every test green. Those calls are reached when the projection read that confirms the command is superseded.
+  - **Fix:** add a grant/remove theory with a correction-origin lease (source, sequence and submit time) whose confirming projection read is superseded. Assert one pending completion that carries the source and `ConfirmedProjectionEvidence`, and assert the lease is released.
+
+  [verification]
+- [ ] [Review][Patch] (medium) Re-subscribing after a principal change and unsubscribing on dispose are both untested [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:759]
+  - **Scope:** this also covers `:718` and `:2596`.
+  - **Gap:** the principal-change tests register no `TenantReadRefreshSubscription`, so the subscribe step returns early. Deleting the re-subscribe, the lease disposal or the unsubscribe leaves every test green.
+  - **Fix:** add a test with a substitute `IProjectionSubscription`. Assert the first lease is disposed and `SubscribeAsync(..., "system", ...)` is received twice. Add another test asserting that after `DisposeAsync` the page no longer reacts to an authentication change.
+
+  [verification]
+- [ ] [Review][Patch] (low) A failed grant dispatch start leaves the fixed global-administrators lease held and the dispatch token open [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1122]
+  - **Lease held:**
+    - The grant branch calls `TryMarkDispatched` before `ToCompletionReconciliation()` and `TryBeginReconciliationDispatch`.
+    - If either of those fails, `TryAbandonBeforeDispatch` refuses the dispatch-marked lease (`TenantAggregateCommandAdmissionGate.cs:556`), and `_admissionLease` is never set.
+    - The lease therefore stays locked for the whole circuit.
+  - **Token open:** the grant completion is written only after the renderer apply (`:1289`, `:1354`), and the `completedIoSnapshot` catch branch neither completes nor aborts the token.
+  - **Fix:** use `TryBeginInitialReconciliationDispatch` as the remove branch does. Then complete the token before the renderer apply, or abort it when completion is refused or the catch branch runs.
+
+  [blind+edge]
+- [ ] [Review][Patch] (low) The authentication transition reads `TenantId` and writes `_initialLoadStartedTenantId` off the dispatcher [src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:746]
+  - **Problem:** after `await authenticationStateTask.ConfigureAwait(false)`, lines `:746` and `:756` run on a thread-pool thread. `OnParametersSetAsync` reads and writes the same field on the dispatcher (`:951`).
+  - **Fix:** move both into the `InvokeAsync` block that clears `_authenticationTransitionPending`, following the page's own "Marshalled for the same reason" convention at `:1178`.
+
+  [blind]
+- [ ] [Review][Patch] (low) The list of circuit-only proof-input fields is maintained by hand in three places [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:5061]
+  - **Where:** the unchanged-lease guard resets the same five init-only fields at `:5061` and `:5142`. `CarryProofInputs` (`TenantAggregateCommandAdmissionGate.cs:547`) carries the same list.
+  - **Risk:** review 2 already found that adding these fields broke the guard. The next init-only member added to `GlobalAdministratorReconciliationState` will break it again silently.
+  - **Fix:** centralize the list in one helper on the record and use it in all three places.
+
+  [blind]
+- [ ] [Review][Patch] (low) The new deferred-work entries are filed under the wrong review [_bmad-output/implementation-artifacts/deferred-work.md:4128]
+  - **Misfiled:** the four module-manifest entries came from the dev loop's "Review 6" of the independent commit `711e100858e59cf8de2b626ea21790d59f969023`, but they sit under the heading for the `362a957d..4f0abcae` code review.
+  - **Absolute path:** the first entry uses the machine-specific `source_spec` path `/home/administrator/…`.
+  - **Fix:** move the manifest entries under a heading that names their real source, and make the path relative like its neighbours.
+
+  [blind+auditor]
+
+**Rejected** (one line each):
+- The guard's `Non-Story` mode has no failing test for a bogus exclusion or an off-path baseline — moot: decision option (a) removes the mode and its tests. The finding was valid: the Verification Gap layer removed both checks and the suite still passed 28/28. [verification+blind]
+- The off-dispatcher regression test can pass without the `InvokeAsync` wrap — low: the panel now applies Confirmed and the proof link before notifying, and the page's handler renders through its own `InvokeAsync`. Removing the wrap therefore has no user-visible effect left to detect, and an off-dispatcher affinity probe would be a new test harness.
+- A projection-loader throw in the pending walk clears pairs that were already verified — low: the production `TenantQueryGateway` catches every exception and returns an unreadable snapshot, which the readable check skips. A guard would protect a state that was never demonstrated. [auditor+edge]
+- A contradiction reports `AuditUnavailable` without reading the audit — low: review 2's approved patch prescribed exactly this. The panel offers no corrective evidence, and a separate "not checked" state needs new copy.
+- The proof-input carry-forward test misses the initial-dispatch site — low: a fresh lease has no earlier reconciliation, so the carry at that site has nothing to carry.
+- Spec `done` versus sprint `review`, the stale "13 open" narrative, and undated verification counts — rejected: the fix edits the spec under review, and this review's status sync sets both statuses. [auditor+blind+edge]
+- XML documentation missing on the new internal registry and snapshot members — low: the existing internal members of those files (`Remember`, `Find`, `FindAll`, `WithReconciliation`, `ToReconciliation`) are also undocumented, and no analyzer enforces it.
+- A principal change leaves the circuit-wide admission gate and proof registry in place — low:
+  - **Reachability:** a same-circuit principal change needs an in-circuit identity switch, because sign-out normally ends the circuit.
+  - **No exposure:** the next principal's walks reauthorize as that principal, and adoption exposes only an attempt that principal could start from the same row.
+  - **Cost of a fix:** binding attempts to a principal would add new state.
+
+  [auditor+blind]
+- A correction command adopted by the Global Administrators page can stay pending forever — false:
+  - **Missing reconciliation:** page leases always carry reconciliation through `TryBeginInitialReconciliationDispatch` (`:3589`, `:4346`).
+  - **Missing sequence:** staying pending is the intended fail-closed policy (review 3 rejection).
+  - **Sequence at or below the baseline:** this is unreachable, because the baseline is read before dispatch.
+- A contradiction is declared final when a later change supersedes it — low, carried: this needs a concurrent change from another circuit, and the copy is accurate for the current projection.
+- "Confirm is unavailable for the reason shown above." can point at "Preview is ready…" — low: it happens only while the revoke preview is still being composed. The claim that sometimes no reason is shown is false, because `DisabledDecision` always produces one.
+- A changed revoke preview uses the wrong copy, focuses the disabled Refresh and offers no re-preview — low, carried from the review 1 restore rejection: it needs a concurrent change between preview and Confirm, and close/reopen recovers. The verified-facts part is in the patch above.
+- Recovering from a faulted authentication change does not re-subscribe to live updates — low: the authentication task has to fault, and the fix adds re-subscription to `RefreshAsync`.
+- The new catches swallow exceptions without logging — low: neither component has a logger, and bare fail-closed catches are already the page pattern (10 instances).
+- A retained page-origin removal blocks the audit surface with only the generic AggregateBusy recovery — low: it needs a disposed Global Administrators page with an ambiguous removal, adoption is restricted by the loop-2 spec, and the fix needs new copy.
+- An unparseable `originalTimestamp` stops a replacement panel from adopting — false: production intents format it from the row's `DateTimeOffset` with `"O"` (`TenantCorrectionStartIntent.cs:61`), so it is always parseable.
+- An exception thrown by `LoadAsync` after an authentication change leaves the page in Loading — low: `LoadAsync` already catches the gateway exception types, and the normal `OnParametersSetAsync` path has the same exposure.
+- The second-Start guard blocks correlated terminal attempts but allows an uncorrelated Failed one — low: terminal blocking predates this diff (the old `MessageId` guard), and the review 2 patch prescribed the new condition.
+- Moving the proof notification after the apply means a panel disposed mid-walk never notifies the page — false: during the submit walk `CanClose` is false (the lease is dispatch-marked and the state is not terminal), and the Refresh walk, where Close is allowed, still notifies after a failed apply.
 
 ## Implementation Notes
 
