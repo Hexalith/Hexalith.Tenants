@@ -273,6 +273,11 @@
                 "Tenants.Correction.Recovery.Failed"));
         }
 
+        if (IsVerifiedContradiction(snapshot))
+        {
+            return DisabledDecision(snapshot, canRefresh, "Tenants.Correction.Recovery.Unavailable");
+        }
+
         if (snapshot.HasCommandTracking && TryGetTrackedLiveBlock(snapshot, out string? liveReason, out string? liveRecovery))
         {
             return new(IsConfirmDisabled: true, CanRefresh: false, liveReason, liveRecovery);
@@ -384,6 +389,7 @@
         => snapshot.HasCommandTracking
             && (snapshot.LifecycleState is TenantCommandLifecycleState.Confirmed
                 ? snapshot.AuditState is not TenantCommandAuditState.AuditAvailable
+                    && HasCorrectiveProofInputs(snapshot)
                     && QueryGateway is not null
                     && _authenticationStateProvider is not null
                     && _authorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
@@ -523,8 +529,9 @@
     // current-projection-unavailable marker), the admin count and present/absent are not verifiable
     // truth, so render a neutral placeholder instead of an authoritative "0"/"Absent".
     private bool IsProjectionStateVerifiable
-        => _snapshot is not null
-        && _snapshot.SafeMessageKey != "Tenants.Correction.Unavailable.CurrentProjectionUnavailable";
+        => _snapshot?.LastConfirmedProjectionEvidence is { } projection
+            && GlobalAdministratorCorrectionSnapshot.ProjectionIsReadable(projection)
+            && projection.IsCompleteEvidence && !projection.HasMore;
 
     private string AdminCountLabel
         => IsProjectionStateVerifiable && _snapshot is not null
@@ -711,7 +718,8 @@
             if (CurrentProjection is not null && ShouldLiveUpdatePreview(_snapshot))
             {
                 GlobalAdministratorCorrectionSnapshot refreshed = GlobalAdministratorCorrectionSnapshot.FromIntent(Intent, CurrentProjection);
-                if (_snapshot.RemovePreview is { IsComplete: true } removePreview
+                if (refreshed.LifecycleState is TenantCommandLifecycleState.Previewed
+                    && _snapshot.RemovePreview is { IsComplete: true } removePreview
                     && string.Equals(removePreview.ProjectionVersion, CurrentProjection.ProjectionVersion, StringComparison.Ordinal))
                 {
                     refreshed = refreshed.WithRemovePreview(removePreview);
@@ -1767,7 +1775,6 @@
             if (projectionSnapshot.ProofLink is not null)
             {
                 Services.GetService<GlobalAdministratorCorrectionProofRegistry>()?.Remember(projectionSnapshot);
-                await InvokeAsync(() => OnProofAvailable.InvokeAsync()).ConfigureAwait(false);
             }
         }
 
@@ -1805,6 +1812,11 @@
             await DrainAdoptedReconciliationAsync().ConfigureAwait(false);
         }
 
+        if (projectionSnapshot.ProofLink is not null)
+        {
+            await NotifyProofAvailableSafelyAsync().ConfigureAwait(false);
+        }
+
     }
 
     private async Task RefreshConfirmedAuditProofAsync(
@@ -1831,7 +1843,6 @@
         if (refreshed.ProofLink is not null)
         {
             Services.GetService<GlobalAdministratorCorrectionProofRegistry>()?.Remember(refreshed);
-            await InvokeAsync(() => OnProofAvailable.InvokeAsync()).ConfigureAwait(false);
         }
 
         _ = await InvokeRendererSafelyAsync(() =>
@@ -1843,6 +1854,23 @@
                 StateHasChanged();
             }
         }).ConfigureAwait(false);
+
+        if (refreshed.ProofLink is not null)
+        {
+            await NotifyProofAvailableSafelyAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task NotifyProofAvailableSafelyAsync()
+    {
+        try
+        {
+            await InvokeAsync(() => OnProofAvailable.InvokeAsync()).ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // The circuit registry keeps the proven pair even if the page cannot refresh now.
+        }
     }
 
     private async Task<bool> ReauthorizeAsync(long operationGeneration)
@@ -2141,6 +2169,9 @@
         GlobalAdministratorReconciliationState reconciliation,
         GlobalAdministratorCorrectionSnapshot snapshot)
         => string.Equals(reconciliation.TargetUserId, snapshot.TargetUserId, StringComparison.Ordinal)
+            && string.Equals(reconciliation.SourceAuditReference, snapshot.OriginalAuditReference, StringComparison.Ordinal)
+            && GlobalAdministratorCorrectionSnapshot.TryParseOriginalTimestamp(snapshot.Intent, out DateTimeOffset sourceTimestamp)
+            && reconciliation.SourceAuditTimestampUtc == sourceTimestamp.ToUniversalTime()
             && reconciliation.ActionKind == (snapshot.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
                 ? GlobalAdministratorActionKind.Remove
                 : GlobalAdministratorActionKind.Grant);

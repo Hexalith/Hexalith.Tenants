@@ -1,3 +1,6 @@
+using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantCommands;
+
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
 /// <summary>Retains completed correction provenance for receipt navigation within one interactive circuit.</summary>
@@ -5,6 +8,41 @@ public sealed class GlobalAdministratorCorrectionProofRegistry
 {
     private readonly object _sync = new();
     private readonly Queue<GlobalAdministratorCorrectionSnapshot> _retainedPairs = new();
+    private readonly List<GlobalAdministratorReconciliationState> _pendingCompletions = [];
+
+    internal void RememberCompletion(GlobalAdministratorReconciliationState completion)
+    {
+        ArgumentNullException.ThrowIfNull(completion);
+        if (completion.LifecycleState is not TenantCommandLifecycleState.Confirmed
+            || !completion.HasCommandEventEvidence
+            || completion.CommittedEventSequence is not > 0
+            || completion.SubmittedAtUtc is null
+            || string.IsNullOrWhiteSpace(completion.CorrelationId)
+            || string.IsNullOrWhiteSpace(completion.SourceAuditReference)
+            || completion.SourceAuditTimestampUtc is null
+            || (completion.ActionKind is GlobalAdministratorActionKind.Grant
+                ? completion.GrantPreview?.IsComplete != true
+                : completion.RemovePreview?.IsComplete != true))
+        {
+            return;
+        }
+
+        lock (_sync)
+        {
+            if (_pendingCompletions.All(existing => !string.Equals(existing.MessageId, completion.MessageId, StringComparison.Ordinal)))
+            {
+                _pendingCompletions.Add(completion);
+            }
+        }
+    }
+
+    internal IReadOnlyList<GlobalAdministratorReconciliationState> PendingCompletions()
+    {
+        lock (_sync)
+        {
+            return _pendingCompletions.ToArray();
+        }
+    }
 
     internal void Remember(GlobalAdministratorCorrectionSnapshot snapshot)
     {

@@ -1,5 +1,6 @@
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
@@ -162,6 +163,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         {
             CommittedEventSequence = CommittedEventSequence,
             SubmittedAtUtc = SubmittedAtUtc,
+            SourceAuditReference = OriginalAuditReference,
+            SourceAuditTimestampUtc = TryParseOriginalTimestamp(Intent, out DateTimeOffset sourceTimestamp)
+                ? sourceTimestamp.ToUniversalTime() : null,
         };
     }
 
@@ -195,6 +199,9 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         {
             CommittedEventSequence = CommittedEventSequence,
             SubmittedAtUtc = SubmittedAtUtc,
+            SourceAuditReference = OriginalAuditReference,
+            SourceAuditTimestampUtc = TryParseOriginalTimestamp(Intent, out DateTimeOffset sourceTimestamp)
+                ? sourceTimestamp.ToUniversalTime() : null,
         };
     }
 
@@ -674,7 +681,12 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
         if (!projectionProvesCorrection) {
             return withEvidence.UnableToVerify(IsRestoreAccessAction
                 ? "Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm"
-                : "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent");
+                : "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent") with
+            {
+                AuditState = TenantCommandAuditState.AuditUnavailable,
+                SafeRecoveryKey = null,
+                FocusTarget = TenantCommandFocusTarget.Lifecycle,
+            };
         }
 
         return withEvidence with {
@@ -725,6 +737,78 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     // proven by a GlobalAdministratorSet row, a revoke by a GlobalAdministratorRemoved row.
     public string CorrectiveEventType
         => IsRestoreAccessAction ? "GlobalAdministratorSet" : "GlobalAdministratorRemoved";
+
+    internal static GlobalAdministratorCorrectionSnapshot? RebuildVerifiedCompletion(
+        GlobalAdministratorReconciliationState completion,
+        TenantAuditRow original,
+        GlobalAdministratorsSnapshot projection,
+        GlobalAdministratorAuditProof correctiveProof)
+    {
+        ArgumentNullException.ThrowIfNull(completion);
+        ArgumentNullException.ThrowIfNull(original);
+        ArgumentNullException.ThrowIfNull(projection);
+        ArgumentNullException.ThrowIfNull(correctiveProof);
+
+        string? baseline = completion.ActionKind is GlobalAdministratorActionKind.Grant
+            ? completion.GrantPreview?.ProjectionVersion : completion.RemovePreview?.ProjectionVersion;
+        string expectedOriginalType = completion.ActionKind is GlobalAdministratorActionKind.Grant
+            ? "GlobalAdministratorRemoved" : "GlobalAdministratorSet";
+        if (completion.LifecycleState is not TenantCommandLifecycleState.Confirmed
+            || !completion.HasCommandEventEvidence
+            || completion.CommittedEventSequence is not > 0
+            || completion.SubmittedAtUtc is null
+            || string.IsNullOrWhiteSpace(completion.CorrelationId)
+            || string.IsNullOrWhiteSpace(completion.SourceAuditReference)
+            || completion.SourceAuditTimestampUtc is not { } sourceTime
+            || !string.Equals(original.EventReference, completion.SourceAuditReference, StringComparison.Ordinal)
+            || original.Timestamp != sourceTime
+            || !string.Equals(original.TenantId, "system", StringComparison.Ordinal)
+            || !string.Equals(original.Scope, "system", StringComparison.Ordinal)
+            || original.Category is not AuditEventCategory.Access
+            || !string.Equals(original.Target, completion.TargetUserId, StringComparison.Ordinal)
+            || !string.Equals(original.EventType, expectedOriginalType, StringComparison.Ordinal)
+            || TenantAuditReceipt.FromRow(original).State is not TenantAuditReceiptState.Ready
+            || !TenantLifecycleProjectionVersion.IsOrdered(baseline))
+        {
+            return null;
+        }
+
+        var inputs = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["originalAuditReference"] = completion.SourceAuditReference,
+            ["originalTimestamp"] = sourceTime.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+            ["userId"] = completion.TargetUserId,
+        };
+        TenantCorrectionStartIntent intent = new(
+            completion.SourceAuditReference,
+            "system",
+            completion.TargetUserId,
+            expectedOriginalType,
+            baseline ?? string.Empty,
+            TenantCorrectionCommandDomain.GlobalAdministrators,
+            completion.ActionKind is GlobalAdministratorActionKind.Grant
+                ? TenantCorrectionCommandType.SetGlobalAdministrator
+                : TenantCorrectionCommandType.RemoveGlobalAdministrator,
+            IntendedRole: null,
+            UnavailableReasons: [],
+            RequiredPreviewInputs: inputs);
+        GlobalAdministratorCorrectionSnapshot basis = FromIntent(intent, projection) with
+        {
+            MessageId = completion.MessageId,
+            CorrelationId = completion.CorrelationId,
+            LifecycleState = TenantCommandLifecycleState.ProjectionPending,
+            GrantPreview = completion.GrantPreview,
+            RemovePreview = completion.RemovePreview,
+            HasCommandEventEvidence = true,
+            CommittedEventSequence = completion.CommittedEventSequence,
+            SubmittedAtUtc = completion.SubmittedAtUtc,
+        };
+        GlobalAdministratorCorrectionSnapshot verified = basis.ConfirmProjection(projection)
+            .WithCorrectiveProof(correctiveProof);
+        return verified.LifecycleState is TenantCommandLifecycleState.Confirmed
+            && verified.AuditState is TenantCommandAuditState.AuditAvailable
+            ? verified : null;
+    }
 
     private GlobalAdministratorCorrectionSnapshot AmbiguousTrackingFailure()
         => string.IsNullOrWhiteSpace(MessageId)
@@ -862,7 +946,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
     // fixed projection is never honest evidence for a platform-authority mutation. Only a genuinely
     // current Ready/Empty read can drive a submittable correction; Empty-current is kept so the
     // first-administrator restore path stays reachable (start gate + ConfirmProjection require Current too).
-    private static bool ProjectionIsReadable(GlobalAdministratorsSnapshot projection)
+    internal static bool ProjectionIsReadable(GlobalAdministratorsSnapshot projection)
         => projection.Kind is GlobalAdministratorsSurfaceKind.Ready or GlobalAdministratorsSurfaceKind.Empty
         && projection.IsMutationEvidenceBacked
         && TenantLifecycleProjectionVersion.IsOrdered(projection.ProjectionVersion)
@@ -883,7 +967,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             SafeMessageKey = "Tenants.Correction.Unavailable.CurrentProjectionUnavailable",
         };
 
-    private static bool TryParseOriginalTimestamp(
+    internal static bool TryParseOriginalTimestamp(
         TenantCorrectionStartIntent intent,
         out DateTimeOffset originalTimestamp)
     {

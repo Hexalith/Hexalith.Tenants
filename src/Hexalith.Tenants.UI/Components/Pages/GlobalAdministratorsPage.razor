@@ -3845,6 +3845,7 @@
             }
 
             SetGrantSnapshot(statusSnapshot);
+            RetainCorrectionCommandSequence(statusLease, statusSnapshot, status.CommittedEventSequence);
             statusApplied = true;
             StateHasChanged();
         }).ConfigureAwait(false);
@@ -4057,6 +4058,7 @@
         {
             _ = _grantAdmissionLease?.TryAdvanceReconciliation(_fixedAggregateOwner, reconciliation);
         }
+        RememberCorrectionCompletion(_grantAdmissionLease, snapshot.State, snapshot.HasCommandEventEvidence);
         if (_grantAdmissionLease?.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State) == true)
         {
             _grantAdmissionLease = null;
@@ -4094,9 +4096,13 @@
             AdoptRetainedReconciliation();
             return true;
         }
-        else if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
+        else
         {
-            _grantAdmissionLease = null;
+            RememberCorrectionCompletion(submissionLease, snapshot.State, snapshot.HasCommandEventEvidence);
+            if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
+            {
+                _grantAdmissionLease = null;
+            }
         }
 
         return false;
@@ -4737,6 +4743,7 @@
             }
 
             SetRemoveSnapshot(statusSnapshot);
+            RetainCorrectionCommandSequence(statusLease, statusSnapshot, status.CommittedEventSequence);
             statusApplied = true;
             StateHasChanged();
         }).ConfigureAwait(false);
@@ -4863,6 +4870,7 @@
         {
             _ = _removeAdmissionLease?.TryAdvanceReconciliation(_fixedAggregateOwner, reconciliation);
         }
+        RememberCorrectionCompletion(_removeAdmissionLease, snapshot.State, snapshot.HasCommandEventEvidence);
         if (_removeAdmissionLease?.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State) == true)
         {
             _removeAdmissionLease = null;
@@ -4901,9 +4909,13 @@
 
             return false;
         }
-        else if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
+        else
         {
-            _removeAdmissionLease = null;
+            RememberCorrectionCompletion(submissionLease, snapshot.State, snapshot.HasCommandEventEvidence);
+            if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
+            {
+                _removeAdmissionLease = null;
+            }
         }
 
         return false;
@@ -5032,7 +5044,7 @@
                         && !Equals(_grantSnapshot.PreviewEvidence, reconciliation.GrantPreview))
             // Presentation-only fields such as IsDeliveryRetryWithdrawn are not durable reconciliation;
             // an unchanged lease must not rebuild the snapshot and discard them.
-            || Equals(CreateReconciliation(_grantSnapshot), reconciliation))
+            || Equals(CreateReconciliation(_grantSnapshot), reconciliation with { SubmittedAtUtc = null, CommittedEventSequence = null }))
         {
             return false;
         }
@@ -5106,7 +5118,7 @@
                         && !Equals(_removeSnapshot.PreviewEvidence, reconciliation.RemovePreview))
             // Presentation-only fields such as LastConfirmedProjection are not durable reconciliation; an
             // unchanged lease must not rebuild the snapshot, re-focus the lifecycle, or nudge status.
-            || Equals(CreateReconciliation(_removeSnapshot), reconciliation))
+            || Equals(CreateReconciliation(_removeSnapshot), reconciliation with { SubmittedAtUtc = null, CommittedEventSequence = null }))
         {
             return false;
         }
@@ -5168,6 +5180,46 @@
             SafeMessageKey: reconciliation.SafeMessageKey,
             SafeRecoveryKey: reconciliation.SafeRecoveryKey,
             RejectionCode: reconciliation.RejectionCode);
+    }
+
+    private void RememberCorrectionCompletion(
+        TenantAggregateCommandLease? lease,
+        TenantCommandLifecycleState state,
+        bool hasCommandEventEvidence)
+    {
+        if (state is TenantCommandLifecycleState.Confirmed
+            && hasCommandEventEvidence
+            && lease?.TryReadReconciliation(_fixedAggregateOwner, out GlobalAdministratorReconciliationState? reconciliation) == true
+            && reconciliation is not null)
+        {
+            Services.GetService<GlobalAdministratorCorrectionProofRegistry>()?.RememberCompletion(reconciliation with
+            {
+                LifecycleState = state,
+                HasCommandEventEvidence = true,
+            });
+        }
+    }
+
+    private void RetainCorrectionCommandSequence(
+        TenantAggregateCommandLease? lease,
+        GlobalAdministratorGrantCommandSnapshot snapshot,
+        long? sequence)
+    {
+        if (sequence is > 0 && CreateReconciliation(snapshot) is { } reconciliation)
+        {
+            _ = lease?.TryAdvanceReconciliation(_fixedAggregateOwner, reconciliation with { CommittedEventSequence = sequence });
+        }
+    }
+
+    private void RetainCorrectionCommandSequence(
+        TenantAggregateCommandLease? lease,
+        GlobalAdministratorRemoveCommandSnapshot snapshot,
+        long? sequence)
+    {
+        if (sequence is > 0 && CreateReconciliation(snapshot) is { } reconciliation)
+        {
+            _ = lease?.TryAdvanceReconciliation(_fixedAggregateOwner, reconciliation with { CommittedEventSequence = sequence });
+        }
     }
 
     private static GlobalAdministratorReconciliationState? CreateReconciliation(

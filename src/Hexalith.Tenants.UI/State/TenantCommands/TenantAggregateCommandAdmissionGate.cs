@@ -505,6 +505,8 @@ public sealed class TenantAggregateCommandAdmissionGate
             {
                 SubmittedAtUtc = next.SubmittedAtUtc ?? current.SubmittedAtUtc,
                 CommittedEventSequence = next.CommittedEventSequence ?? current.CommittedEventSequence,
+                SourceAuditReference = current.SourceAuditReference,
+                SourceAuditTimestampUtc = current.SourceAuditTimestampUtc,
             }
             : next;
 
@@ -666,7 +668,11 @@ public sealed class TenantAggregateCommandAdmissionGate
             && (current.CorrelationId is null
                 || string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal))
             && Equals(current.GrantPreview, next.GrantPreview)
-            && Equals(current.RemovePreview, next.RemovePreview);
+            && Equals(current.RemovePreview, next.RemovePreview)
+            && (next.SourceAuditReference is null
+                || string.Equals(current.SourceAuditReference, next.SourceAuditReference, StringComparison.Ordinal))
+            && (next.SourceAuditTimestampUtc is null
+                || current.SourceAuditTimestampUtc == next.SourceAuditTimestampUtc);
 
     private static bool IsLifecycleRegression(
         TenantCommandLifecycleState current,

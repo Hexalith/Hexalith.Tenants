@@ -131,8 +131,12 @@ public sealed class TenantAggregateCommandAdmissionGateTests
         gate.IsLocked(key).ShouldBeFalse();
     }
 
-    [Fact]
-    public void Sibling_reconciliation_preserves_verified_proof_inputs_for_the_same_command()
+    [Theory]
+    [InlineData("advance")]
+    [InlineData("begin")]
+    [InlineData("complete")]
+    [InlineData("retain")]
+    public void Sibling_reconciliation_preserves_verified_proof_inputs_for_the_same_command(string writeSite)
     {
         var gate = new TenantAggregateCommandAdmissionGate();
         object owner = new();
@@ -146,6 +150,8 @@ public sealed class TenantAggregateCommandAdmissionGateTests
         {
             SubmittedAtUtc = new DateTimeOffset(2026, 6, 1, 10, 1, 0, TimeSpan.Zero),
             CommittedEventSequence = 2,
+            SourceAuditReference = "event-original",
+            SourceAuditTimestampUtc = new DateTimeOffset(2026, 6, 1, 10, 0, 0, TimeSpan.Zero),
         };
         lease.TryAdvanceReconciliation(owner, initial).ShouldBeTrue();
         var sibling = initial with
@@ -153,13 +159,107 @@ public sealed class TenantAggregateCommandAdmissionGateTests
             LifecycleState = TenantCommandLifecycleState.ProjectionPending,
             SubmittedAtUtc = null,
             CommittedEventSequence = null,
+            SourceAuditReference = null,
+            SourceAuditTimestampUtc = null,
         };
-        lease.TryRetainReconciliation(owner, sibling).ShouldBeTrue();
+        GlobalAdministratorReconciliationState? observed;
+        switch (writeSite)
+        {
+            case "advance":
+                lease.TryAdvanceReconciliation(owner, sibling).ShouldBeTrue();
+                lease.TryReadReconciliation(owner, out observed).ShouldBeTrue();
+                break;
+            case "begin":
+                lease.TryBeginReconciliationDispatch(owner, initial with
+                {
+                    SubmittedAtUtc = null,
+                    SourceAuditReference = null,
+                    SourceAuditTimestampUtc = null,
+                }, out long beginToken)
+                    .ShouldBeTrue();
+                beginToken.ShouldBeGreaterThan(0);
+                lease.TryReadReconciliation(owner, out observed).ShouldBeTrue();
+                lease.TryAbortReconciliationDispatch(beginToken).ShouldBeTrue();
+                break;
+            case "complete":
+                lease.TryBeginReconciliationDispatch(owner, initial, out long completionToken).ShouldBeTrue();
+                lease.TryCompleteReconciliationDispatch(completionToken, sibling).ShouldBeTrue();
+                lease.TryReadReconciliation(owner, out observed).ShouldBeTrue();
+                break;
+            case "retain":
+                lease.TryRetainReconciliation(owner, sibling).ShouldBeTrue();
+                gate.TryAdoptRetainedLease(key, replacement, out _, out observed).ShouldBeTrue();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(writeSite));
+        }
 
-        gate.TryAdoptRetainedLease(key, replacement, out _, out GlobalAdministratorReconciliationState? adopted)
-            .ShouldBeTrue();
-        adopted!.SubmittedAtUtc.ShouldBe(initial.SubmittedAtUtc);
-        adopted.CommittedEventSequence.ShouldBe(2);
+        observed!.SubmittedAtUtc.ShouldBe(initial.SubmittedAtUtc);
+        observed.CommittedEventSequence.ShouldBe(2);
+        observed.SourceAuditReference.ShouldBe("event-original");
+        observed.SourceAuditTimestampUtc.ShouldBe(initial.SourceAuditTimestampUtc);
+    }
+
+    [Theory]
+    [InlineData("other-message", GlobalAdministratorActionKind.Remove)]
+    [InlineData("message-safe", GlobalAdministratorActionKind.Grant)]
+    public void Different_command_identity_cannot_inherit_verified_proof_inputs(
+        string messageId, GlobalAdministratorActionKind action)
+    {
+        var gate = new TenantAggregateCommandAdmissionGate();
+        object owner = new();
+        string key = TenantCommandAggregateLock.ForGlobalAdministrators();
+        gate.TryAcquireLease(key, owner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        var initial = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove, "admin-user", "message-safe", "correlation-safe",
+            TenantCommandLifecycleState.Accepted, RemovePreview: RemovePreview())
+        {
+            SubmittedAtUtc = new DateTimeOffset(2026, 6, 1, 10, 1, 0, TimeSpan.Zero),
+            CommittedEventSequence = 2,
+        };
+        lease.TryAdvanceReconciliation(owner, initial).ShouldBeTrue();
+        GlobalAdministratorReconciliationState other = initial with
+        {
+            MessageId = messageId,
+            ActionKind = action,
+            GrantPreview = action is GlobalAdministratorActionKind.Grant
+                ? GlobalAdministratorGrantPreview.Create(
+                    "admin-user", Complete("projection-v1", "other-admin"), isAuthorized: true)
+                : null,
+            RemovePreview = action is GlobalAdministratorActionKind.Remove ? initial.RemovePreview : null,
+            SubmittedAtUtc = null,
+            CommittedEventSequence = null,
+        };
+        lease.TryAdvanceReconciliation(owner, other).ShouldBeFalse();
+        lease.TryReadReconciliation(owner, out GlobalAdministratorReconciliationState? retained).ShouldBeTrue();
+        retained.ShouldBe(initial);
+    }
+
+    [Fact]
+    public void Same_command_cannot_rewrite_its_source_audit_row()
+    {
+        var gate = new TenantAggregateCommandAdmissionGate();
+        object owner = new();
+        gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        var original = new GlobalAdministratorReconciliationState(
+            GlobalAdministratorActionKind.Remove, "admin-user", "message-safe", "correlation-safe",
+            TenantCommandLifecycleState.Accepted, RemovePreview: RemovePreview())
+        {
+            SourceAuditReference = "event-original",
+            SourceAuditTimestampUtc = new DateTimeOffset(2026, 6, 1, 10, 0, 0, TimeSpan.Zero),
+        };
+        lease.TryAdvanceReconciliation(owner, original).ShouldBeTrue();
+
+        lease.TryAdvanceReconciliation(owner, original with
+        {
+            SourceAuditReference = "event-other",
+            LifecycleState = TenantCommandLifecycleState.ProjectionPending,
+        }).ShouldBeFalse();
+        lease.TryReadReconciliation(owner, out GlobalAdministratorReconciliationState? observed).ShouldBeTrue();
+        observed.ShouldBe(original);
     }
 
     [Fact]

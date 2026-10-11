@@ -119,6 +119,28 @@ public class TenantAuditReadModelTests {
     }
 
     [Fact]
+    public void Apply_retains_removed_global_command_provenance() {
+        var model = new TenantAuditReadModel();
+        model.Apply(CreateEvent(new GlobalAdministratorRemoved(
+            TenantIdentity.DefaultTenantId, "admin-2", "admin-1", Timestamp)));
+
+        TenantAuditEntry entry = model.Entries.Single();
+        entry.CommandCorrelationId.ShouldBe("corr-1");
+        entry.AggregateSequence.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Apply_omits_command_provenance_from_system_tenant_events() {
+        var model = new TenantAuditReadModel();
+        model.Apply(CreateEvent(new UserRoleChanged(
+            TenantIdentity.DefaultTenantId, "user-1", TenantRole.TenantReader, TenantRole.TenantContributor)));
+
+        TenantAuditEntry entry = model.Entries.Single();
+        entry.CommandCorrelationId.ShouldBeNull();
+        entry.AggregateSequence.ShouldBeNull();
+    }
+
+    [Fact]
     public void Apply_omits_command_provenance_from_tenant_scoped_entries() {
         var model = new TenantAuditReadModel();
         model.Apply(CreateEvent(new UserRoleChanged(

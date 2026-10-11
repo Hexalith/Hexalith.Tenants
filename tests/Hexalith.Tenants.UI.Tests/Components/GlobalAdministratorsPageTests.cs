@@ -5985,6 +5985,70 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Theory]
+    [InlineData(GlobalAdministratorActionKind.Grant)]
+    [InlineData(GlobalAdministratorActionKind.Remove)]
+    public void Adopted_panel_lease_with_proof_inputs_does_not_rebuild_unchanged_page_snapshot(
+        GlobalAdministratorActionKind action)
+    {
+        GlobalAdministratorsSnapshot complete = action is GlobalAdministratorActionKind.Grant
+            ? ComponentReady("tenant-sequence:1", "other-admin")
+            : ComponentReady("tenant-sequence:1", "target-admin", "other-admin");
+        var reconciliation = new GlobalAdministratorReconciliationState(
+            action,
+            "target-admin",
+            "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            "correlation-safe",
+            TenantCommandLifecycleState.Accepted,
+            GrantPreview: action is GlobalAdministratorActionKind.Grant
+                ? GlobalAdministratorGrantPreview.Create("target-admin", complete, isAuthorized: true) : null,
+            RemovePreview: action is GlobalAdministratorActionKind.Remove
+                ? GlobalAdministratorRemovePreview.Create("target-admin", "operator-admin", complete, isAuthorized: true) : null)
+        {
+            SubmittedAtUtc = new DateTimeOffset(2026, 6, 1, 10, 1, 0, TimeSpan.Zero),
+            CommittedEventSequence = 2,
+        };
+        var page = new GlobalAdministratorsPage();
+        object owner = typeof(GlobalAdministratorsPage)
+            .GetField("_fixedAggregateOwner", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(page)!;
+        var gate = new TenantAggregateCommandAdmissionGate();
+        gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        lease.TryAdvanceReconciliation(owner, reconciliation).ShouldBeTrue();
+
+        string prefix = action is GlobalAdministratorActionKind.Grant ? "Grant" : "Remove";
+        object snapshot = typeof(GlobalAdministratorsPage)
+            .GetMethod($"Create{prefix}Snapshot", BindingFlags.Static | BindingFlags.NonPublic)!
+            .Invoke(null, [reconciliation])!;
+        if (action is GlobalAdministratorActionKind.Grant)
+        {
+            snapshot = ((GlobalAdministratorGrantCommandSnapshot)snapshot) with { IsDeliveryRetryWithdrawn = true };
+        }
+        else
+        {
+            snapshot = ((GlobalAdministratorRemoveCommandSnapshot)snapshot) with
+            {
+                LastConfirmedProjection = new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+            };
+        }
+
+        string field = action is GlobalAdministratorActionKind.Grant ? "_grantSnapshot" : "_removeSnapshot";
+        typeof(GlobalAdministratorsPage).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(page, snapshot);
+        typeof(GlobalAdministratorsPage).GetField(
+            action is GlobalAdministratorActionKind.Grant ? "_grantAdmissionLease" : "_removeAdmissionLease",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page, lease);
+
+        bool rebuilt = (bool)typeof(GlobalAdministratorsPage)
+            .GetMethod($"SynchronizeOwned{prefix}Reconciliation", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(page, null)!;
+        rebuilt.ShouldBeFalse();
+        typeof(GlobalAdministratorsPage).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(page).ShouldBeSameAs(snapshot);
+    }
+
+    [Theory]
     [InlineData("accepted")]
     [InlineData("rejected")]
     public async Task SupersededAmbiguousRemoveRetryRetainsOrReleasesItsExactLease(string outcome)

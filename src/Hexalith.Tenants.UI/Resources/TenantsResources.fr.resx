@@ -4283,6 +4283,6 @@
   <data name="Tenants.Correction.GlobalAdmin.Preview.Provenance.Unverified" xml:space="preserve"><value>La preuve de projection complète et actuelle est indisponible.</value></data>
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission" xml:space="preserve"><value>Autorité et admission de commande actuelles</value></data>
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Ready" xml:space="preserve"><value>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</value></data>
-  <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked" xml:space="preserve"><value>L’autorité, l’admission de commande ou la largeur sûre ne peuvent pas être vérifiées. Actualisez avant de confirmer.</value></data>
+  <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked" xml:space="preserve"><value>La confirmation est indisponible pour la raison indiquée ci-dessus.</value></data>
   <data name="Tenants.Audit.Receipt.Paired.OpenReference" xml:space="preserve"><value>Voir le reçu d’audit associé {0}</value></data>
 </root>

@@ -56,6 +56,32 @@ public sealed class GlobalAdministratorAuditProofLookupTests
     }
 
     [Fact]
+    public async Task Duplicate_exact_corrective_rows_on_separate_pages_never_prove_a_pair()
+    {
+        int pagesRead = 0;
+        (GlobalAdministratorAuditProof? proof, bool complete) = await GlobalAdministratorAuditProofLookup.FindAsync(
+            (request, _) =>
+            {
+                pagesRead++;
+                TenantAuditRow row = Row("tracking-safe", 2, Submitted.AddMinutes(pagesRead));
+                return Task.FromResult(pagesRead == 1
+                    ? TenantAuditSnapshot.Ready([row], "next-page", true, "\"etag\"",
+                        ReadModelFreshnessState.Current, request) with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Current,
+                        ProjectionVersion = "tenant-sequence:2",
+                    }
+                    : Snapshot(request, [row with { EventReference = "event-second-corrective" }]));
+            },
+            "tracking-safe", 2, "admin-user", "GlobalAdministratorSet", Original, Submitted,
+            CancellationToken.None);
+
+        pagesRead.ShouldBe(2);
+        proof.ShouldBeNull();
+        complete.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Corrective_search_begins_at_submission_boundary()
     {
         DateTimeOffset? requestedFrom = null;

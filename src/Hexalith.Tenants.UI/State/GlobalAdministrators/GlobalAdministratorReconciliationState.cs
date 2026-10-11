@@ -34,6 +34,12 @@ internal sealed record GlobalAdministratorReconciliationState(
 
     internal DateTimeOffset? SubmittedAtUtc { get; init; }
 
+    /// <summary>Exact audit row that initiated this correction, retained only inside the circuit.</summary>
+    internal string? SourceAuditReference { get; init; }
+
+    /// <summary>UTC timestamp of the initiating audit row.</summary>
+    internal DateTimeOffset? SourceAuditTimestampUtc { get; init; }
+
     /// <summary>Returns a support-safe description without identity or tracking values.</summary>
     /// <returns>A bounded diagnostic description.</returns>
     public override string ToString()
