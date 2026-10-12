@@ -57,12 +57,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 builder.Configuration["Jwt:SigningKey"]);
             if (string.IsNullOrWhiteSpace(signingKey))
             {
-                throw new InvalidOperationException("EventStore:Authentication:SigningKey is required when Authority is not configured.");
+                throw new InvalidOperationException("EventStore:Authentication:SigningKey or Jwt:SigningKey is required when neither EventStore:Authentication:Authority nor Oidc:Authority is configured.");
             }
 
             if (Encoding.UTF8.GetByteCount(signingKey) < 32)
             {
-                throw new InvalidOperationException("EventStore:Authentication:SigningKey must be at least 32 bytes (256 bits) for HS256 token validation.");
+                throw new InvalidOperationException("The configured EventStore:Authentication:SigningKey or Jwt:SigningKey must be at least 32 bytes (256 bits) for HS256 token validation.");
             }
 
             options.TokenValidationParameters.IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));

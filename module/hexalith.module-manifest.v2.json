@@ -230,6 +230,51 @@
                 "name": "update-tenant",
                 "kind": "command",
                 "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "enable-tenant",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "disable-tenant",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "add-user-to-tenant",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "remove-user-from-tenant",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "change-user-role",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "get-tenant-users",
+                "kind": "query",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "set-tenant-configuration",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "remove-tenant-configuration",
+                "kind": "command",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "get-tenant-audit",
+                "kind": "query",
+                "authorizationPolicy": "authenticated"
               }
             ]
           },
@@ -315,6 +360,11 @@
               },
               {
                 "name": "replay-state",
+                "kind": "administration",
+                "authorizationPolicy": "authenticated"
+              },
+              {
+                "name": "admin-operational-index-metadata",
                 "kind": "administration",
                 "authorizationPolicy": "authenticated"
               }

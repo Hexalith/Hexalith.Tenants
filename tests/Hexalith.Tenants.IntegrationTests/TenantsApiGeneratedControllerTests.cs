@@ -593,10 +593,10 @@ public sealed class TenantsApiGeneratedControllerTests
     }
 
     [Theory]
-    [InlineData(null, "EventStore:Authentication:SigningKey is required when Authority is not configured.")]
-    [InlineData("", "EventStore:Authentication:SigningKey is required when Authority is not configured.")]
-    [InlineData("   ", "EventStore:Authentication:SigningKey is required when Authority is not configured.")]
-    [InlineData("short-key", "EventStore:Authentication:SigningKey must be at least 32 bytes (256 bits) for HS256 token validation.")]
+    [InlineData(null, "EventStore:Authentication:SigningKey or Jwt:SigningKey is required when neither EventStore:Authentication:Authority nor Oidc:Authority is configured.")]
+    [InlineData("", "EventStore:Authentication:SigningKey or Jwt:SigningKey is required when neither EventStore:Authentication:Authority nor Oidc:Authority is configured.")]
+    [InlineData("   ", "EventStore:Authentication:SigningKey or Jwt:SigningKey is required when neither EventStore:Authentication:Authority nor Oidc:Authority is configured.")]
+    [InlineData("short-key", "The configured EventStore:Authentication:SigningKey or Jwt:SigningKey must be at least 32 bytes (256 bits) for HS256 token validation.")]
     public void Symmetric_key_mode_rejects_missing_blank_or_short_signing_key(
         string? signingKey,
         string expectedMessage)
@@ -732,6 +732,71 @@ public sealed class TenantsApiGeneratedControllerTests
             .Get(JwtBearerDefaults.AuthenticationScheme);
 
         options.Authority.ShouldBe("https://identity.example.test");
+    }
+
+    [Fact]
+    public void Legacy_signing_key_wins_over_alias()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?>
+            {
+                ["EventStore:Authentication:SigningKey"] = JwtSigningKey,
+                ["Jwt:SigningKey"] = "alias-signing-key-that-is-at-least-32-bytes-long",
+                ["EventStore:Authentication:Issuer"] = JwtIssuer,
+                ["EventStore:Authentication:Audience"] = JwtAudience,
+            });
+
+        JwtBearerOptions options = factory.Services
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
+
+        options.TokenValidationParameters.IssuerSigningKey.ShouldBeOfType<SymmetricSecurityKey>()
+            .Key.ShouldBe(Encoding.UTF8.GetBytes(JwtSigningKey));
+    }
+
+    [Fact]
+    public void Legacy_authority_wins_over_alias()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?>
+            {
+                ["EventStore:Authentication:Authority"] = "https://legacy-identity.example.test",
+                ["Oidc:Authority"] = "https://alias-identity.example.test",
+                ["EventStore:Authentication:Issuer"] = "https://legacy-identity.example.test",
+                ["EventStore:Authentication:Audience"] = JwtAudience,
+            });
+
+        JwtBearerOptions options = factory.Services
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
+
+        options.Authority.ShouldBe("https://legacy-identity.example.test");
+    }
+
+    [Fact]
+    public void Short_alias_signing_key_names_both_key_aliases()
+    {
+        CapturingEventStoreGatewayClient gateway = new();
+        using var factory = new TenantsApiWebApplicationFactory(
+            gateway,
+            new Dictionary<string, string?>
+            {
+                ["Jwt:SigningKey"] = "short-key",
+                ["EventStore:Authentication:Issuer"] = JwtIssuer,
+                ["EventStore:Authentication:Audience"] = JwtAudience,
+            });
+
+        InvalidOperationException exception = Should.Throw<InvalidOperationException>(() =>
+            factory.Services
+                .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+                .Get(JwtBearerDefaults.AuthenticationScheme));
+
+        exception.Message.ShouldBe(
+            "The configured EventStore:Authentication:SigningKey or Jwt:SigningKey must be at least 32 bytes (256 bits) for HS256 token validation.");
     }
 
     private static async Task AssertNotModifiedWithoutStrongETagMapsToBadGatewayAsync(string? eTag)
