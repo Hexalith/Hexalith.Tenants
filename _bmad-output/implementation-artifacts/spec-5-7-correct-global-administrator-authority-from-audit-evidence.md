@@ -500,6 +500,85 @@ Code review 2026-10-12 of `2315aad9`, the fix pass for the seven patches above. 
 
   [blind]
 
+### Review Findings — range `2315aad9..9345d9d0` (2026-10-12)
+
+Code review 2026-10-12 of everything after the last reviewed commit `2315aad9`: `6869ec4a` (recorded the previous findings and moved five gitlinks), `3440ff01` (moved two gitlinks) and `9345d9d0` (Review 10 and fix-pass patches).
+- **Diff:** 16 files, +300/−31, 609 lines, 49,710 bytes (SHA-256 `4c329b7ddbc5cab496e71bdd5e006b9b999958099a981767dd69cccc636eebe6`). It is not archived. It includes five net `references/` pointer moves.
+- **Layers:** Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor all ran, and none failed.
+- **Triage:** 41 findings became 1 decision-needed, 9 patch, 1 defer and 17 rejected entries.
+- **Gitlink guard:** `python3 scripts/validate-story-gitlinks.py <spec>` passes (exit 0), but only because it ignores "later committed pointer updates", so it does not see the moves below.
+- **Test evidence at HEAD:** `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-class '*GeneratedTenantsSurfaceTests'` fails 5 of 9. The test build (13:59) is newer than every changed source and the FrontComposer Shell build. The failures are `Generated_tenant_summary_projection_renders_tenant_columns_and_count` ("Expected generated projection markup to include the FrontComposer DataGrid envelope", thrown from `references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/Assertions.cs:51`), `Three_call_host_renders_generated_projection_route`, and three `Manifest_projection_route_*` waits that find no `table`.
+
+- [ ] [Review][Decision] (high) Story-range commits move seven `references/` pointers without declaring them, and the FrontComposer move breaks five Tier 1 UI tests — `6869ec4a`, a findings-recording commit, moves Builds `1bde4d92`→`608c164c`, EventStore `b57310fb`→`1b7b8ce2`, FrontComposer `19f48392`→`c7491c7c`, Memories `499b7a83`→`b16ab01b` and Platform `053ee05a`→`3217e632`. `3440ff01` then moves FrontComposer to `29c95846` and Memories to `b1d8014f`, typed `fix(submodule)` instead of `build(deps)`. The File List still records the older endpoints. The previous review recorded 4,075/4,075 at `2315aad9`, and no Tenants change in this range touches the generated projection surface. FrontComposer `19f48392..29c95846` adds `DataGridViewOwnership`/`ProjectionStateScopeOwnership` services. `Directory.Build.props` builds FrontComposer from source for `Hexalith.Tenants.UI` and its tests whenever the submodule is present, and `story-guards.yml` initializes all root submodules. So the CI UI lane builds against the moved source. Options: (1) restore the five pointers to their `2315aad9` values and move any wanted bump to a separate `build(deps)` change that also makes `GeneratedTenantsSurfaceTests` pass; (2) keep the pointers, declare all seven moves in the File List with reasons, and fix the Tenants side in this story; (3) keep them as out-of-story drift and record the five failures as a blocker in `deferred-work.md`, with the story staying `in-progress`.
+
+  [blind+verification+auditor]
+- [ ] [Review][Patch] (medium) After the page releases a baseline-failed grant, Refresh can confirm it from target presence alone [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1178]
+  - **Path:** the new block (`:3914-3938`) sets `UnableToVerify("…CommandProofUnavailable")`, which keeps both IDs, releases the lease and nulls `_grantAdmissionLease`. `CanRefreshGrantStatus` still enables Refresh for `UnableToVerify` without a lease. Refresh then maps `Completed` + events back to `ProjectionPending`. `RequeryGrantProjectionAsync` runs with a null lease, so `IsPermanentCorrectionBaselineFailure(null)` is false and `CanConfirmCorrectionProjection(null, …)` returns true (`:5270-5273`). `ConfirmProjection` then confirms on presence plus any version advancement (`GlobalAdministratorGrantCommandSnapshot.cs:406-444`).
+  - **Violates:** "Confirm only a fresh complete postcondition reaching verified command progress beyond the baseline", and the Review 10 row's own condition that grant/remove `ConfirmProjection` must not be used for this case. The copy invites that Refresh. Remove is not affected, because `CanRefreshRemoveStatus` requires an owned lease.
+  - **Fix:** exclude the released state (`UnableToVerify`, `CommandProofUnavailable`, no `_grantAdmissionLease`) from `CanRefreshGrantStatus`, matching the panel, where Refresh needs a dispatch-marked lease.
+
+  [edge+auditor]
+- [ ] [Review][Patch] (medium) A superseded baseline-failure requery releases the lease but leaves the snapshot pending [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3928]
+  - **Path:** in both new blocks (`:3928-3935` grant, `:4830-4837` remove), the release runs whenever the field still holds the lease, even when the generation or snapshot guard rejected the snapshot write. Refresh stays enabled during an in-flight `ProjectionPending` requery. A second click calls `BeginGrantMutation`, which cancels and supersedes the first requery. The first requery still reaches the block, because `IsPermanentCorrectionBaselineFailure` does not read the loaded snapshot, and it releases the lease. The second refresh then fails its lease guard, so `_grantSnapshot` stays `ProjectionPending` with no lease.
+  - **Effect:** for grant, that pending snapshot is refreshable and reaches the null-lease generic confirmation above. For remove, Refresh needs an owned lease, so the pending state has no status recovery.
+  - **Fix:** release only inside the branch that applied the `UnableToVerify` snapshot. A superseding refresh or adoption re-runs the same lease check.
+
+  [edge+auditor]
+- [ ] [Review][Patch] (medium) No page test reaches the new baseline-failure release on either path [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:6110]
+  - **Gap:** every page test with a `SourceAuditReference` lease uses `CommittedEventSequence = 2` against a `tenant-sequence:1` baseline. Deleting either `IsPermanentCorrectionBaselineFailure` block, or only its `TryReleaseTerminal`, leaves the suite green.
+  - **Fix:** next to `Correction_origin_waits_for_committed_sequence_before_sibling_confirms`, add a grant/remove theory with `Completed` and `CommittedEventSequence = 1`. It should assert the `CommandProofUnavailable` snapshot, an unlocked fixed-aggregate gate, an empty `PendingCompletions()`, and (with the two patches above) that grant Refresh is disabled and a superseded requery leaves the lease held.
+
+  [verification+blind+auditor]
+- [ ] [Review][Patch] (medium) The new panel test reads neither the rendered decision nor the revoke path [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:875]
+  - **Gap:** `Completed_status_not_beyond_preview_baseline_releases_global_lease` asserts only state, key, gate and request count, for restore only. Deleting the new decision branch (`GlobalAdministratorCorrectionPanel.razor:281-287`) makes the released panel fall through to `TryGetTrackedLiveBlock`, which reports `AggregateBusy` because the lease is now null. The test stays green.
+  - **Fix:** make it a restore/revoke theory, and assert the text of `[data-testid='tenants-correction-unavailable-reason']` and `[data-testid='tenants-correction-unavailable-recovery']`.
+
+  [verification+blind]
+- [ ] [Review][Patch] (medium) No test drives the panel's superseded permanent-failure release [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:860]
+  - **Gap:** every superseded panel case uses `CommittedEventSequence = 2`. Removing `|| IsPermanentCommandProofFailure(snapshot)` from `RetainOrReleaseCompletion` sends the failure back to `TryRetainReconciliation`, which accepts the non-terminal state and re-adopts it for another status lookup. No test fails.
+  - **Fix:** add a `CommittedEventSequence = 1` variant of `Superseded_status_completion_is_immediately_adopted_resumed_and_confirmed` (`:2152`). It should assert that the gate is unlocked and `StatusHandles` has a single item.
+
+  [verification]
+- [ ] [Review][Patch] (low) The new grant baseline-failure block uses raw `InvokeAsync` [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3918]
+  - **Problem:** its remove twin (`:4820`) uses `InvokeRendererSafelyAsync`, which Review 10 adopted for exactly this teardown hazard. If the renderer is torn down during the projection load, the grant block throws out of the refresh, and its release never runs.
+  - **Fix:** `_ = await InvokeRendererSafelyAsync(() => { … }).ConfigureAwait(false);`.
+
+  [blind+edge+auditor]
+- [ ] [Review][Patch] (low) The reworked grant-dispatch pin anchors loosely and no longer counts the remove-branch call [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:2241]
+  - **Problem 1:** `grantBasisArgument` may match any `grantDispatchBasis,` up to the lease assignment, not only inside the call.
+  - **Problem 2:** dropping `secondDispatchGuard` means deleting the remove branch's `TryBeginInitialReconciliationDispatch` call (`GlobalAdministratorCorrectionPanel.razor:1133`) leaves the pin green. `dispatchGuard` then finds the grant call, and `completionToken` is pre-initialized to `0`, so the deletion still compiles.
+  - **Fix:** assert `dispatchGuard.ShouldBeLessThan(grantBranch)`, and bound `grantBasisArgument` by the call's closing `out completionToken)`.
+
+  [edge+auditor]
+- [ ] [Review][Patch] (low) The Review 10 deferred-work entries lack the severity prefix and locations this range added to Review 9 [_bmad-output/implementation-artifacts/deferred-work.md:4173]
+  - **Fix:** prefix the four summaries with `medium;` / `low;` from their triage rows. Give the sequence-0 entry file paths (`src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs` and `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs`), and add `Program.cs` line anchors and commit `6b6a35f0` to the API entries. The absolute `source_spec` paths match most of the ledger and are not part of this patch.
+
+  [blind+auditor]
+- [ ] [Review][Patch] (low) `UnableToVerify` became `internal` without the XML documentation the Hexalith baseline requires on internal members [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:461]
+  - **Fix:** add `<summary>`, `<param>` and `<returns>` to it and to its twin in `GlobalAdministratorRemoveCommandSnapshot.cs:477`.
+
+  [blind]
+- [x] [Review][Defer] (unverified medium) The page holds the fixed-aggregate lease for a `Completed` correction with no valid committed sequence, while the panel now releases it [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:5252] — deferred: the page behavior predates this diff, because `IsPermanentCorrectionBaselineFailure` and `CanConfirmCorrectionProjection` both require `CommittedEventSequence is > 0`. `TenantCommandGateway.cs:710-718` returns a null sequence with verified identity only when the status record breaks its own invariants. What would settle it: whether EventStore can return `Completed` with events but no valid `CommittedEventSequence` for the global-administrators aggregate.
+
+  [edge]
+
+**Rejected** (one line each):
+- The panel's key-only `IsPermanentCommandProofFailure` releases recoverable states — false: `GlobalAdministratorCorrectionSnapshot.cs:696` is unreachable, because `:690` already returns for an unordered current version, and the other producers (`:501` and `:684`) come from a terminal `Completed` record that polling cannot change. [blind]
+- Releasing on a missing committed sequence lets a reopened intent dispatch already-applied work — low: a new intent rechecks current complete state, a duplicate grant or removal is answered by the domain, and separating the cases needs a new key or flag. [auditor]
+- The new `Volatile.Read(ref _authenticationTransitionPending)` in `TenantAuditPage` has no effect, and the triage premise was false — false as a defect: `HasAuthorizedRetainedSurface` (`:571-572`) already reads the flag, so the duplicate read changes no behavior. Correcting the triage row edits the spec. [blind+edge+verification]
+- `_correctionOpenGeneration` is still read without `Volatile.Read`, and no test covers the race — false: every write is now `Interlocked`, and the reads are atomic `int` reads on the renderer context after awaits, so no lost update remains to test. [blind+auditor]
+- The remove-preview `InvokeRendererSafelyAsync` swap has no behavioral test — low: it matters only during renderer teardown, and pinning it needs a throwing-dispatcher harness that this suite lacks. [verification+auditor]
+- After the final release, the shared copy says "cannot yet … Refresh status" and "tenant evidence" — low: it appears only after a baseline anomaly, and the fix needs new EN/FR global keys. [blind+verification+auditor]
+- The Global Administrators page now renders tenant-correction copy — low: same as the line above. [auditor]
+- The spec is `done` while sprint status is `review`, `review_loop_iteration` is stale, and the Review 10 row says `in-review` — rejected: the fix edits the spec, and this review's status sync sets both. [blind+auditor]
+- The spec is marked `done` without a passing full suite — rejected as a status edit. The failing tests themselves are the decision above. [auditor]
+- Review 10 has no Review Findings section and no mutation evidence — rejected: the fix edits the spec. [blind]
+- The unsubscribe verdicts contradict each other, and their anchors are stale — rejected: the fix edits the spec's triage log. The underlying test gap is already deferred. [blind+auditor]
+- The fix-pass triage totals do not add up, and the `RequeryRemoveProjectionAsync` reorder went unrecorded — rejected: the fix edits the spec, and the reorder is behavior-neutral. [blind]
+- The Verification headings point at the wrong reviews — rejected: the fix edits the spec. [blind]
+- The `CommandProofUnavailable` literal is copied across producers and the panel check — low: the panel test asserts the key on both sides, so drift fails a test, and a shared constant is more than a direct correction. [blind]
+- The Review 10 deferred entries use absolute `source_spec` paths — false as a convention break: most of the ledger uses absolute paths. [blind]
+
 ## Implementation Notes
 
 - Correction is available from authorized `system` audit rows after a complete current platform projection read. Both commands use the fixed global-administrators aggregate and retain one circuit-local attempt across component replacement and reconnect.
