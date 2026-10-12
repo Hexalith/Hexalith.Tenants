@@ -584,6 +584,64 @@ Code review 2026-10-12 of everything after the last reviewed commit `2315aad9`: 
 - The `CommandProofUnavailable` literal is copied across producers and the panel check — low: the panel test asserts the key on both sides, so drift fails a test, and a shared constant is more than a direct correction. [blind]
 - The Review 10 deferred entries use absolute `source_spec` paths — false as a convention break: most of the ledger uses absolute paths. [blind]
 
+### Review Findings — range `9345d9d0..6a81aee1` (2026-10-12)
+
+Code review 2026-10-12 of everything after the last reviewed commit `9345d9d0`: `b71a53ea` (recorded the previous findings and moved three gitlinks), `a5f28aec` (status) and `6a81aee1` (fix pass for the previous review's patches).
+- **Diff:** 14 files, +425/−60, 787 lines, 68,494 bytes (SHA-256 `9439758893d5d017c149d10e89645ff3ba9f4895efd5a31f45bb5afd9041697c`). It is not archived. It includes three `references/` pointer moves (EventStore, FrontComposer and Platform), all from `b71a53ea`.
+- **Layers:** Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor all ran, and none failed.
+- **Triage:** 33 normalized findings. Ten became 3 patch entries and one became a defer. The other 23 were rejected; they are listed as 14 lines below, with duplicates merged.
+- **Gitlink guard:** `python3 scripts/validate-story-gitlinks.py <spec>` exits 0 and lists all five pointer-bearing commits. `git log 66072cc4..HEAD -- references/` shows exactly those five commits, and the net endpoints match the recorded targets.
+- **Tests:** this review did not run any tests.
+
+- [x] [Review][Patch] (medium) The grant baseline-failure block renders before it clears the lease, so Refresh stays enabled off the click path and can still confirm from target presence [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3930]
+  - **Path:** the applied branch calls `SetGrantSnapshot(unverified)` and `StateHasChanged()` before `TryReleaseTerminal` and `_grantAdmissionLease = null`.
+    - Outside a Blazor event, the render runs inline, while the lease is still set. `TryReleaseTerminal` then raises the gate's `StateChanged`, and `ApplyFixedAggregateAdmissionChangeAsync` re-renders inline, still before the field is cleared.
+    - Nothing renders afterwards. `OnAfterRenderAsync` re-renders only for an ambiguous-delivery retry.
+    - So on the notification path (`RefreshFromNotificationAsync`, subscribed at `:2333`) and the gate-resume path, the grant Refresh button stays enabled although `CanRefreshGrantStatus` is now false.
+  - **Effect:** a click reaches `RefreshGrantStatusAsync` with a null lease. `ApplyStatus` maps `Completed` with events back to `ProjectionPending`. `CanConfirmCorrectionProjection(null, …)` returns true (`:5272-5275`), and `ConfirmProjection` confirms on presence plus any version advancement. That is the bypass the previous review's patch meant to close.
+  - **Test gap:** the new sequence-1 page test only asserts `disabled` after a Refresh click, and the click handler re-renders when it finishes. The remove twin is not exposed, because `CanRefreshCorrelatedRemoveStatus` requires `HasOwnedRemoveLease`.
+  - **Fix:** in the grant block, release the lease and clear `_grantAdmissionLease` before `StateHasChanged()`. Use the same order in the remove twin (`:4830-4838`). Add a page test that reaches the baseline failure outside an event handler (a direct requery or a projection notification) and asserts that `[data-testid='tenants-global-admin-grant-refresh']` is disabled.
+
+  [blind+edge+verification]
+- [x] [Review][Patch] (medium) The tenant summary page's post-scope-change dispatch is never exercised after a scope change [src/Hexalith.Tenants.UI/Components/Pages/TenantSummaryProjectionPage.razor:191]
+  - **Why it matters:** `DispatchProjection` now sends `LoadRequested` before `Loaded`, so that FrontComposer's generated reducers accept a reload after `ScopeChangedAction` sets `RequiresScopedRequest` and bumps `ScopeGeneration`.
+  - **Gap:** every `GeneratedTenantsSurfaceTests` case starts from a fresh store and never sends `ScopeChangedAction`. `Manifest_projection_route_clears_rows_on_authentication_change` keeps the same tenant and user. So deleting the `LoadRequested` dispatch, or nulling `OriginScopeGeneration`, leaves the suite green. In production, a user switch in the same circuit would then leave the grid empty.
+  - **Fix:** add `Manifest_projection_route_reloads_rows_after_scope_change`:
+    1. Use a mutable authentication provider with a gateway that returns `Ready` rows on both calls.
+    2. Wait for the first rows.
+    3. Dispatch `new ScopeChangedAction()` and assert that `Items` is null.
+    4. Publish the authentication change.
+    5. Assert that `IState<TenantSummaryProjectionState>.Value.Items` holds the reloaded rows.
+
+  [verification+blind]
+- [x] [Review][Patch] (low) The new deferred-work entry's page anchors are already stale [_bmad-output/implementation-artifacts/deferred-work.md:4192]
+  - **Problem:** `(:5252, :5287)` were written before `6a81aee1` shifted `GlobalAdministratorsPage.razor` by two lines. At HEAD, the two `CommittedEventSequence` conditions are at `:5254` and `:5290`, and `:5252` is `|| reconciliation is null`.
+  - **Fix:** update the anchors after the first patch above lands, because that patch shifts the file again.
+
+  [blind]
+- [x] [Review][Defer] (medium) The gitlink guard ignores pointer moves in unrecorded commits once a Story-Owned Gitlink Commits section exists [scripts/validate-story-gitlinks.py:412] — deferred: pre-existing tooling, not changed by this diff.
+  - **Gap:** in that branch, `check()` validates only the listed commits' chain, their stated targets and working-tree movement. It never compares the baseline's pointers with HEAD's, so a later unrecorded pointer-moving commit passes. That is how `6869ec4a` and `3440ff01` passed the previous review.
+  - **Today:** at HEAD all five pointer-moving commits are recorded and the net endpoints match, so nothing is hidden now.
+  - **Fix:** in that branch, also fail when `gitlink_changes(baseline, head)` has a path whose HEAD pointer differs from its last owned target, or from the baseline when the path has no owned target.
+
+  [blind]
+
+**Rejected** (one line each; merged duplicates keep every contributing layer):
+- The `CommandProofUnavailable` copy says "Refresh status" while Refresh is now disabled — low: the key is shared with tenant correction (`TenantCorrectionPreviewSnapshot.cs:278`, `:349`), so the fix needs new global EN/FR keys and wiring; the state appears only after a committed-sequence baseline anomaly, and "escalate" remains valid. [blind+auditor]
+- `TenantSummaryProjectionPage` stamps scope when the result arrives, so a late result can be accepted under a new scope — false: nothing calls `ScopeBoundaryService.Synchronize()` directly, so `ScopeChangedAction` comes only from an authentication change; the page cancels and bumps `_loadVersion` on that same event and dispatches only after its fresh read; the FrontComposer contract says to stamp "from current state". [blind]
+- A failed tenant-context lookup leaves a silent empty `Ready` grid — false: the generated view renders `FcScopeBlocked` ("Workspace unavailable") when the scope cannot be resolved (`RazorEmitter.cs:1986-1989`). [blind+edge+auditor]
+- A skipped clear dispatch on dispose or authentication change leaves the previous principal's rows in the store — false: `ScopeBoundaryService.SynchronizeCore` dispatches `ScopeChangedAction` (which nulls `Items`) on any tenant or user change, including a change to a null scope, and the view rejects mismatched producer scope through `ProjectionStateScopeOwnership.IsCurrent`. [edge]
+- `Superseded_baseline_failure_keeps_lease_until_current_requery_releases_it` does not reproduce the real superseding path — false: moving the release outside the applied branch makes the first read release the lease and fails `IsLocked(...).ShouldBeTrue()`; a cancelled real requery fails the same generation guard before applying. [blind]
+- The panel's superseded sequence-1 row asserts only `ShouldNotBe(Confirmed)`, and the panel then shows a stale `AggregateBusy` state — low: real, because `RetainOrReleaseCompletion` releases the lease without replacing `_snapshot`. But it fails closed (no dispatch, no false success, the gate is free, and Close then reopen recovers), it needs a Refresh click during the submit's own status read plus a baseline anomaly, and the fix needs a new apply-on-release branch. [blind+auditor]
+- The spec's review records are inconsistent (the Review 11 triage rows have no findings section, the version-drift patch has no checkbox, and 17 rejects are claimed but 15 listed) — rejected: the fix edits the spec. [blind+auditor]
+- The spec is `done` while sprint status is `review` — rejected as a spec edit; this review's status sync sets both. [blind]
+- The new File List reasons only restate the moves — rejected: the fix edits the spec. [blind+auditor]
+- The File List collapses two EventStore hops and two Platform hops into one entry each — rejected: the fix edits the spec. [blind]
+- `b71a53ea` mixes three pointer moves with findings and is typed `fix(submodule)` — low: it is already on `origin/main`, so correcting it needs a published-history rewrite. [blind+auditor]
+- The new deferred-work entry uses a relative `source_spec` path — false as a convention break: the ledger has 353 relative and 150 absolute `source_spec` paths. [blind+auditor]
+- Nothing shows the version-drift tests catch the defect — false: without the equality check, the lookup test receives a complete proof and the page test's second-page original row matches. [blind]
+- The page test's version-drift negative check can run before the pairing decision renders — false: `ProofAuditProvider` returns `Task.FromResult` and this test uses the synchronous `GlobalProof`, so the walk and its apply complete inside the request that the wait observes. [blind]
+
 ## Implementation Notes
 
 - Correction is available from authorized `system` audit rows after a complete current platform projection read. Both commands use the fixed global-administrators aggregate and retain one circuit-local attempt across component replacement and reconnect.
@@ -828,6 +886,21 @@ These commits include the pointer moves listed above. The full IDs pin pointer p
 - `b71a53ea27b20a0df9fa105c256d3241ce2794aa`
 
 ## Verification
+
+**Review `9345d9d0..6a81aee1` patch verification (2026-10-12):**
+- **Patches:**
+  - Both `GlobalAdministratorsPage.razor` baseline-failure blocks now release the lease and clear the field before `StateHasChanged()`.
+  - `Superseded_baseline_failure_keeps_lease_until_current_requery_releases_it` asserts the rendered grant Refresh is disabled, and that any remove Refresh is disabled.
+  - `GeneratedTenantsSurfaceTests` adds `Manifest_projection_route_reloads_rows_after_scope_change`.
+  - The deferred-work anchors now read `:5256` and `:5292`.
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` — passed with zero warnings/errors.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-class '*GeneratedTenantsSurfaceTests' --filter-class '*GlobalAdministratorsPageTests'` — passed 248/248.
+- **Mutation check:** two temporary edits, reverted before the final build:
+  - Restoring render-before-release in the grant block fails `Superseded_baseline_failure_keeps_lease_until_current_requery_releases_it(action: Grant)` on the rendered `disabled` assertion; the Remove row still passes.
+  - Deleting the `LoadRequested` dispatch fails `Manifest_projection_route_reloads_rows_after_scope_change` because `Items` stays null.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` after rebuilding the reverted sources — passed 4,085/4,085, none skipped.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md` (exit 0) and `git diff --check` — passed.
+- **Not run:** the browser focus lane (`validate-tenants-focus-browser.sh`). No browser fixture or rendered correction markup changed.
 
 **Review 11 post-review verification (2026-10-12):**
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` — passed with zero warnings/errors after the two version-drift test cases.

@@ -6289,11 +6289,15 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         {
             PrivateField<GlobalAdministratorGrantCommandSnapshot>(page.Instance, "_grantSnapshot")
                 .State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+            page.Find("[data-testid='tenants-global-admin-grant-refresh']")
+                .HasAttribute("disabled").ShouldBeTrue();
         }
         else
         {
             PrivateField<GlobalAdministratorRemoveCommandSnapshot>(page.Instance, "_removeSnapshot")
                 .State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+            page.FindAll("[data-testid='tenants-global-admin-remove-refresh']")
+                .ShouldAllBe(button => button.HasAttribute("disabled"));
         }
     }
 

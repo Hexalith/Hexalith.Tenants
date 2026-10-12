@@ -3928,7 +3928,6 @@
                     && ReferenceEquals(_grantAdmissionLease, projectionLease))
                 {
                     SetGrantSnapshot(unverified);
-                    StateHasChanged();
                     if (projectionLease is not null
                         && projectionLease.TryReleaseTerminal(
                             _fixedAggregateOwner,
@@ -3936,6 +3935,8 @@
                     {
                         _grantAdmissionLease = null;
                     }
+
+                    StateHasChanged();
                 }
             }).ConfigureAwait(false);
             return;
@@ -4828,7 +4829,6 @@
                     && ReferenceEquals(_removeAdmissionLease, projectionLease))
                 {
                     SetRemoveSnapshot(unverified);
-                    StateHasChanged();
                     if (projectionLease is not null
                         && projectionLease.TryReleaseTerminal(
                             _fixedAggregateOwner,
@@ -4836,6 +4836,8 @@
                     {
                         _removeAdmissionLease = null;
                     }
+
+                    StateHasChanged();
                 }
             }).ConfigureAwait(false);
             return;

@@ -7,6 +7,7 @@ using Fluxor;
 using Hexalith.FrontComposer.Contracts.Registration;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Extensions;
+using Hexalith.FrontComposer.Shell.State.Navigation;
 using Hexalith.FrontComposer.Testing;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.Tenants.Contracts.Enums;
@@ -287,6 +288,48 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
             Services.GetRequiredService<IState<TenantSummaryProjectionState>>()
                 .Value.Items.ShouldBeEmpty();
         });
+    }
+
+    [Fact]
+    public async Task Manifest_projection_route_reloads_rows_after_scope_change()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(
+                Arg.Any<TenantListRequest>(),
+                null,
+                Arg.Any<CancellationToken>())
+            .Returns(
+                TenantListSnapshot.Ready(
+                    [TenantListRow.FromSummary(new TenantSummary("tenant-a", "Tenant A", TenantStatus.Active))],
+                    nextCursor: null,
+                    hasMore: false,
+                    eTag: null,
+                    ReadModelFreshnessState.Current,
+                    isDegraded: false),
+                TenantListSnapshot.Ready(
+                    [TenantListRow.FromSummary(new TenantSummary("tenant-b", "Tenant B", TenantStatus.Active))],
+                    nextCursor: null,
+                    hasMore: false,
+                    eTag: null,
+                    ReadModelFreshnessState.Current,
+                    isDegraded: false));
+        Services.AddSingleton(gateway);
+        MutableAuthenticationStateProvider authentication = new();
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        await InitializeStoreAsync();
+        IState<TenantSummaryProjectionState> projection = Services.GetRequiredService<IState<TenantSummaryProjectionState>>();
+
+        IRenderedComponent<TenantSummaryProjectionPage> cut = Render<TenantSummaryProjectionPage>();
+        cut.WaitForAssertion(() => cut.Find("table").GetAttribute("aria-rowcount").ShouldBe("2"));
+
+        Services.GetRequiredService<IDispatcher>().Dispatch(new ScopeChangedAction());
+        projection.Value.Items.ShouldBeNull();
+        projection.Value.RequiresScopedRequest.ShouldBeTrue();
+
+        authentication.PublishChange();
+
+        cut.WaitForAssertion(() => projection.Value.Items.ShouldNotBeNull()
+            .ShouldHaveSingleItem().Id.ShouldBe("tenant-b"));
     }
 
     private sealed class MutableAuthenticationStateProvider : AuthenticationStateProvider
