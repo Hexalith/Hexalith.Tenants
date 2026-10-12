@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 07-19-2026 16:57
-last_updated: 10-12-2026
+last_updated: 10-12-2026 17:06
 project: tenants
 project_key: NOKEY
 tracking_system: file-system
@@ -72,7 +72,7 @@ development_status:
   4-3-remove-global-administrator-with-last-administrator-hard-sto: done
   epic-4-retrospective: done
 
-  epic-5: in-progress
+  epic-5: done
   5-1-browse-tenant-audit-trail: done
   5-2-reach-scoped-audit-evidence-from-context: done
   5-3-view-a-support-safe-audit-evidence-receipt: done
