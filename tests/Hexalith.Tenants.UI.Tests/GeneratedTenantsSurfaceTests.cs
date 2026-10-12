@@ -164,7 +164,11 @@ public sealed class GeneratedTenantsSurfaceTests : FrontComposerTestBase
 
         Services.GetRequiredService<IDispatcher>().Dispatch(new TenantSummaryProjectionLoadedAction(
             "tenant-summary",
-            [new TenantSummaryProjection { Id = "tenant-a", Name = "Tenant A", Status = TenantStatus.Active }]));
+            [new TenantSummaryProjection { Id = "tenant-a", Name = "Tenant A", Status = TenantStatus.Active }])
+        {
+            ScopeTenantId = UserContext.TenantId,
+            ScopeUserId = UserContext.UserId,
+        });
 
         IRenderedComponent<TenantSummaryProjectionView> cut = Render<TenantSummaryProjectionView>();
 

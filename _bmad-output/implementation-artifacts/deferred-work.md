@@ -4173,17 +4173,17 @@ Diff reviewed: Tenants `66072cc4..362a957d`. The diff was 4,351 lines (260,201 b
 ## Deferred from: Story 5.7 Review 10 triage (2026-10-12)
 
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-  summary: A global-administrator event persisted at sequence 0 cannot be paired from audit evidence.
-  evidence: `GlobalAdministratorProjectionHandler` stamps `ProjectionVersion` for `SequenceNumber >= 0`, while `TenantAuditReadModel.CreateEntry` stores `AggregateSequence` only when `SequenceNumber > 0`. Whether EventStore can persist a global-administrator event at sequence 0 is unverified; that fact would settle whether the proof walk can miss a real event.
+  summary: unverified medium; a global-administrator event persisted at sequence 0 cannot be paired from audit evidence.
+  evidence: `src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs` stamps `ProjectionVersion` for `SequenceNumber >= 0`, while `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs` stores `AggregateSequence` only when `SequenceNumber > 0`. Whether EventStore can persist a global-administrator event at sequence 0 is unverified; that fact would settle whether the proof walk can miss a real event.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-  summary: The missing signing-key exception names only the legacy EventStore setting.
-  evidence: `src/Hexalith.Tenants.Api/Program.cs` throws that `EventStore:Authentication:SigningKey` is required when neither that value nor `Jwt:SigningKey` is configured. `FirstConfigured` was introduced by the independent bootstrap commit `6b6a35f0`.
+  summary: low; the missing signing-key exception names only the legacy EventStore setting.
+  evidence: `src/Hexalith.Tenants.Api/Program.cs:60` throws that `EventStore:Authentication:SigningKey` is required when neither that value nor `Jwt:SigningKey` is configured. `FirstConfigured` was introduced by the independent bootstrap commit `6b6a35f0`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-  summary: The public API readiness registration does not prove its three-second gateway timeout.
-  evidence: `src/Hexalith.Tenants.Api/Program.cs` registers `eventstore-gateway` with `TimeSpan.FromSeconds(3)`, and `tests/Hexalith.Tenants.IntegrationTests/TenantsApiReadinessTests.cs` returns a completed response without reading `HealthCheckRegistration.Timeout`. Dropping the timeout argument leaves that test green. The registration comes from the independent API commits in this range.
+  summary: medium; the public API readiness registration does not prove its three-second gateway timeout.
+  evidence: `src/Hexalith.Tenants.Api/Program.cs:83` registers `eventstore-gateway` with `TimeSpan.FromSeconds(3)`, and `tests/Hexalith.Tenants.IntegrationTests/TenantsApiReadinessTests.cs` returns a completed response without reading `HealthCheckRegistration.Timeout`. Dropping the timeout argument leaves that test green. The registration comes from the independent API commit `6b6a35f0`.
 - source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-  summary: Legacy authentication settings are not tested against a different non-blank alias.
-  evidence: `FirstConfigured` in `src/Hexalith.Tenants.Api/Program.cs` keeps a non-blank legacy value over `Oidc:Authority` or `Jwt:SigningKey`. The alias tests in `tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs` set only the alias, or a blank legacy value. Those settings come from `6b6a35f0`.
+  summary: medium; legacy authentication settings are not tested against a different non-blank alias.
+  evidence: `FirstConfigured` in `src/Hexalith.Tenants.Api/Program.cs:104` keeps a non-blank legacy value over `Oidc:Authority` or `Jwt:SigningKey`. The alias tests in `tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs` set only the alias, or a blank legacy value. Those settings come from `6b6a35f0`.
 
 ## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, range `2315aad9..9345d9d0` (2026-10-12)
 

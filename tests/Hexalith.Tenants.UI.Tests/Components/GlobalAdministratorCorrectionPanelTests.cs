@@ -871,8 +871,10 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             .ShouldBe("Corrective audit evidence is unavailable.");
     }
 
-    [Fact]
-    public void Completed_status_not_beyond_preview_baseline_releases_global_lease()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Completed_status_not_beyond_preview_baseline_releases_global_lease(bool revoke)
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         var commandGateway = new StubTenantCommandGateway
@@ -886,20 +888,38 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             },
         };
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        GlobalAdministratorsSnapshot baseline = revoke
+            ? Projection("admin-user", "other-admin")
+            : Projection("other-admin");
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
-            Projection("other-admin"),
+            baseline,
             TenantAuditSnapshot.Unavailable(new TenantAuditRequest("system"))));
         TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
         IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
-            .Add(component => component.Intent, RestoreIntent())
-            .Add(component => component.CurrentProjection, Projection("other-admin")));
+            .Add(component => component.Intent, revoke ? RevokeIntent() : RestoreIntent())
+            .Add(component => component.CurrentProjection, baseline));
 
         cut.Find("[data-testid='tenants-correction-confirm']").Click();
 
         cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
         cut.Instance.Snapshot!.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CommandProofUnavailable");
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
-        commandGateway.SetRequests.ShouldHaveSingleItem();
+        cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.Trim()
+            .ShouldBe("The completed correction cannot yet be verified against current tenant evidence. Refresh status or escalate before relying on the result.");
+        cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent.Trim()
+            .ShouldBe(revoke
+                ? "Refresh the complete fixed-scope projection before continuing."
+                : "Refresh the complete fixed-scope projection and rebuild the preview.");
+        if (revoke)
+        {
+            commandGateway.RemoveRequests.ShouldHaveSingleItem();
+            commandGateway.SetRequests.ShouldBeEmpty();
+        }
+        else
+        {
+            commandGateway.SetRequests.ShouldHaveSingleItem();
+            commandGateway.RemoveRequests.ShouldBeEmpty();
+        }
     }
 
     [Fact]
@@ -2148,8 +2168,10 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.WaitForAssertion(() => ReferenceEquals(cut.Instance.Snapshot, adoptedSnapshot).ShouldBeFalse());
     }
 
-    [Fact]
-    public async Task Superseded_status_completion_is_immediately_adopted_resumed_and_confirmed()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Superseded_status_completion_is_immediately_adopted_resumed_and_confirmed(long committedSequence)
     {
         var pendingStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
         var commandGateway = new StubTenantCommandGateway { StatusResultTask = pendingStatus.Task };
@@ -2165,7 +2187,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         Task submit = cut.Find("[data-testid='tenants-correction-confirm']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         await commandGateway.StatusEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         (Task rendererBlock, TaskCompletionSource releaseRenderer) = await BlockRendererAsync(cut);
-        pendingStatus.SetResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
+        pendingStatus.SetResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = committedSequence });
         for (int iteration = 0; iteration < 20; iteration++)
         {
             await Task.Yield();
@@ -2175,8 +2197,15 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         releaseRenderer.SetResult();
         await Task.WhenAll(rendererBlock, submit).WaitAsync(TimeSpan.FromSeconds(5));
 
-        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
-        commandGateway.StatusHandles.Count.ShouldBe(2);
+        if (committedSequence == 1)
+        {
+            cut.Instance.Snapshot!.LifecycleState.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
+        }
+        else
+        {
+            cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        }
+        commandGateway.StatusHandles.Count.ShouldBe(committedSequence == 1 ? 1 : 2);
         string callerOwnedMessageId = commandGateway.TrackedMessageIds.ShouldHaveSingleItem();
         commandGateway.StatusHandles.ShouldAllBe(handle => handle == new TenantCommandTrackingHandle(
             callerOwnedMessageId,
@@ -2250,13 +2279,16 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         operationGuard.ShouldBeInRange(callback, assignment);
         dispatchGuard.ShouldBeInRange(callback, assignment);
         grantBranch.ShouldBeInRange(callback, assignment);
+        dispatchGuard.ShouldBeLessThan(grantBranch);
         int grantDispatch = submit.IndexOf(
             "acquiredLease.TryBeginInitialReconciliationDispatch(",
             grantBranch,
             StringComparison.Ordinal);
         grantDispatch.ShouldBeInRange(grantBranch, assignment);
         int grantBasisArgument = submit.IndexOf("grantDispatchBasis,", grantDispatch, StringComparison.Ordinal);
-        grantBasisArgument.ShouldBeInRange(grantDispatch, assignment);
+        int grantDispatchClose = submit.IndexOf("out completionToken)", grantDispatch, StringComparison.Ordinal);
+        grantDispatchClose.ShouldBeGreaterThan(grantDispatch);
+        grantBasisArgument.ShouldBeInRange(grantDispatch, grantDispatchClose);
         submit.ShouldNotContain("TryMarkDispatched(_admissionOwner)");
         submit.ShouldContain("_ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);");
         submit.ShouldNotContain("out _admissionLease");
@@ -3688,6 +3720,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.Correction.Proof.Link"] = "View corrective proof from {0}",
             ["Tenants.Correction.Unavailable.GlobalAdministratorCommandSupportUnavailable"] = "Global administrator correction commands are not connected.",
             ["Tenants.Correction.Unavailable.CurrentProjectionUnavailable"] = "Current projection evidence is unavailable.",
+            ["Tenants.Correction.Unavailable.CommandProofUnavailable"] = "The completed correction cannot yet be verified against current tenant evidence. Refresh status or escalate before relying on the result.",
+            ["Tenants.GlobalAdministrators.Grant.Preview.Recovery.Refresh"] = "Refresh the complete fixed-scope projection and rebuild the preview.",
             ["Tenants.Correction.Recovery.AlreadyApplied"] = "Close this correction; the current projection already reflects the intended state.",
             ["Tenants.Correction.Recovery.Confirmed"] = "Keep the confirmed projection visible while corrective audit evidence catches up.",
             ["Tenants.Correction.Recovery.Rejected"] = "Review the rejection, refresh current evidence, and start a new correction only if it is still required.",

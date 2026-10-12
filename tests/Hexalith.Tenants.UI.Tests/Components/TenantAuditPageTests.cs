@@ -1797,6 +1797,7 @@ public sealed class TenantAuditPageTests : BunitContext
     [InlineData("ready", true)]
     [InlineData("wrong-category", false)]
     [InlineData("opaque-version", false)]
+    [InlineData("version-drift", false)]
     public void Original_global_receipt_on_second_protected_page_requires_access_and_ordered_version(
         string originalState, bool shouldPair)
     {
@@ -1826,7 +1827,12 @@ public sealed class TenantAuditPageTests : BunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
-            ProjectionVersion = originalState == "opaque-version" ? "legacy-audit" : "tenant-sequence:2",
+            ProjectionVersion = originalState switch
+            {
+                "opaque-version" => "legacy-audit",
+                "version-drift" when request.Cursor is not null => "tenant-sequence:3",
+                _ => "tenant-sequence:2",
+            },
         };
         var registry = new GlobalAdministratorCorrectionProofRegistry();
         Services.AddSingleton(registry);

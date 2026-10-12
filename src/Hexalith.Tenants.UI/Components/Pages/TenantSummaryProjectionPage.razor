@@ -5,7 +5,9 @@
 @inject ITenantQueryGateway QueryGateway
 @inject IDispatcher Dispatcher
 @inject IStore Store
+@inject IState<TenantSummaryProjectionState> ProjectionState
 @inject IServiceProvider Services
+@inject Hexalith.FrontComposer.Shell.Infrastructure.Tenancy.IFrontComposerTenantContextAccessor TenantContextAccessor
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
 <FcPageHeader PageTitle="@Localizer["Tenants.Navigation.Tenants"]"
@@ -60,7 +62,7 @@
             return;
         }
 
-        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction("tenant-summary", []));
+        DispatchProjection([]);
         _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
         if (_authenticationStateProvider is not null)
         {
@@ -105,14 +107,12 @@
             return;
         }
 
-        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction(
-            "tenant-summary",
-            snapshot.Rows.Select(static row => new TenantSummaryProjection
+        DispatchProjection(snapshot.Rows.Select(static row => new TenantSummaryProjection
             {
                 Id = row.TenantId,
                 Name = row.Name,
                 Status = row.Status,
-            }).ToArray()));
+            }).ToArray());
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
@@ -132,7 +132,7 @@
         _cancellation.Cancel();
         _cancellation.Dispose();
         _cancellation = new CancellationTokenSource();
-        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction("tenant-summary", []));
+        DispatchProjection([]);
         _kind = TenantListSurfaceKind.Loading;
         StateHasChanged();
 
@@ -185,6 +185,29 @@
 
         _cancellation.Cancel();
         _cancellation.Dispose();
-        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction("tenant-summary", []));
+        DispatchProjection([]);
+    }
+
+    private void DispatchProjection(IReadOnlyList<TenantSummaryProjection> items)
+    {
+        var scope = TenantContextAccessor.TryGetContext(operationKind: "projection-render");
+        if (scope.Context is not { } context || !scope.Succeeded)
+        {
+            return;
+        }
+
+        long generation = ProjectionState.Value.ScopeGeneration;
+        Dispatcher.Dispatch(new TenantSummaryProjectionLoadRequestedAction("tenant-summary")
+        {
+            ScopeTenantId = context.TenantId,
+            ScopeUserId = context.UserId,
+            OriginScopeGeneration = generation,
+        });
+        Dispatcher.Dispatch(new TenantSummaryProjectionLoadedAction("tenant-summary", items)
+        {
+            ScopeTenantId = context.TenantId,
+            ScopeUserId = context.UserId,
+            OriginScopeGeneration = generation,
+        });
     }
 }

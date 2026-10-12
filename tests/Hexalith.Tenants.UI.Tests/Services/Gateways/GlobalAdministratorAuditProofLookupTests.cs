@@ -82,6 +82,32 @@ public sealed class GlobalAdministratorAuditProofLookupTests
     }
 
     [Fact]
+    public async Task Corrective_search_rejects_projection_version_drift_between_pages()
+    {
+        int pagesRead = 0;
+        (GlobalAdministratorAuditProof? proof, bool complete) = await GlobalAdministratorAuditProofLookup.FindAsync(
+            (request, _) =>
+            {
+                pagesRead++;
+                return Task.FromResult(pagesRead == 1
+                    ? TenantAuditSnapshot.Ready(
+                        [Row("tracking-safe", 2, Submitted.AddMinutes(1))],
+                        "next-page", true, "\"etag\"", ReadModelFreshnessState.Current, request) with
+                    {
+                        Lifecycle = ProjectionLifecycleState.Current,
+                        ProjectionVersion = "tenant-sequence:2",
+                    }
+                    : Snapshot(request, []) with { ProjectionVersion = "tenant-sequence:3" });
+            },
+            "tracking-safe", 2, "admin-user", "GlobalAdministratorSet", Original, Submitted,
+            CancellationToken.None);
+
+        pagesRead.ShouldBe(2);
+        proof.ShouldBeNull();
+        complete.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Corrective_search_begins_at_submission_boundary()
     {
         DateTimeOffset? requestedFrom = null;

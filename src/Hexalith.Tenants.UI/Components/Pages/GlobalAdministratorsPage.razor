@@ -1177,6 +1177,12 @@
 
     private bool CanRefreshGrantStatus
         => _grantSnapshot.MessageId is not null
+        && !(_grantAdmissionLease is null
+            && _grantSnapshot.State is TenantCommandLifecycleState.UnableToVerify
+            && string.Equals(
+                _grantSnapshot.SafeMessageKey,
+                "Tenants.Correction.Unavailable.CommandProofUnavailable",
+                StringComparison.Ordinal))
         && (_grantSnapshot.IsSubmissionAmbiguous || _grantSnapshot.CorrelationId is not null)
         && _grantSnapshot.State is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.RequestSent
@@ -3915,7 +3921,7 @@
         {
             GlobalAdministratorGrantCommandSnapshot unverified = projectionBasis.UnableToVerify(
                 "Tenants.Correction.Unavailable.CommandProofUnavailable");
-            await InvokeAsync(() =>
+            _ = await InvokeRendererSafelyAsync(() =>
             {
                 if (CanApplyGrantMutation(generation)
                     && ReferenceEquals(_grantSnapshot, projectionBasis)
@@ -3923,15 +3929,13 @@
                 {
                     SetGrantSnapshot(unverified);
                     StateHasChanged();
-                }
-
-                if (projectionLease is not null
-                    && ReferenceEquals(_grantAdmissionLease, projectionLease)
-                    && projectionLease.TryReleaseTerminal(
-                        _fixedAggregateOwner,
-                        TenantCommandLifecycleState.Failed))
-                {
-                    _grantAdmissionLease = null;
+                    if (projectionLease is not null
+                        && projectionLease.TryReleaseTerminal(
+                            _fixedAggregateOwner,
+                            TenantCommandLifecycleState.Failed))
+                    {
+                        _grantAdmissionLease = null;
+                    }
                 }
             }).ConfigureAwait(false);
             return;
@@ -4825,15 +4829,13 @@
                 {
                     SetRemoveSnapshot(unverified);
                     StateHasChanged();
-                }
-
-                if (projectionLease is not null
-                    && ReferenceEquals(_removeAdmissionLease, projectionLease)
-                    && projectionLease.TryReleaseTerminal(
-                        _fixedAggregateOwner,
-                        TenantCommandLifecycleState.Failed))
-                {
-                    _removeAdmissionLease = null;
+                    if (projectionLease is not null
+                        && projectionLease.TryReleaseTerminal(
+                            _fixedAggregateOwner,
+                            TenantCommandLifecycleState.Failed))
+                    {
+                        _removeAdmissionLease = null;
+                    }
                 }
             }).ConfigureAwait(false);
             return;

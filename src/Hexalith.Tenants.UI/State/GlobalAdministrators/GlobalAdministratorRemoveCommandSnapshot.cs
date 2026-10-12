@@ -474,6 +474,9 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
 
+    /// <summary>Marks a completed command as unverifiable from its required evidence.</summary>
+    /// <param name="safeMessageKey">The localized, support-safe reason key.</param>
+    /// <returns>A snapshot that does not claim projection or audit confirmation.</returns>
     internal GlobalAdministratorRemoveCommandSnapshot UnableToVerify(string safeMessageKey)
         => this with
         {

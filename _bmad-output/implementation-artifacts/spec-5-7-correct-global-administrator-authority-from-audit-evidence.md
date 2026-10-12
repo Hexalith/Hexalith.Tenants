@@ -2,7 +2,7 @@
 title: 'Correct global administrator authority from audit evidence'
 type: 'feature'
 created: '2026-10-10'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 3
 baseline_commit: '66072cc410834e2c34f7d30f121e447940ea6fc6'
@@ -512,54 +512,54 @@ Code review 2026-10-12 of everything after the last reviewed commit `2315aad9`: 
 - [x] [Review][Decision] (resolved 2026-10-12: the user chose option (2); see the first patch below) (high) Story-range commits move seven `references/` pointers without declaring them, and the FrontComposer move breaks five Tier 1 UI tests — `6869ec4a`, a findings-recording commit, moves Builds `1bde4d92`→`608c164c`, EventStore `b57310fb`→`1b7b8ce2`, FrontComposer `19f48392`→`c7491c7c`, Memories `499b7a83`→`b16ab01b` and Platform `053ee05a`→`3217e632`. `3440ff01` then moves FrontComposer to `29c95846` and Memories to `b1d8014f`, typed `fix(submodule)` instead of `build(deps)`. The File List still records the older endpoints. The previous review recorded 4,075/4,075 at `2315aad9`, and no Tenants change in this range touches the generated projection surface. FrontComposer `19f48392..29c95846` adds `DataGridViewOwnership`/`ProjectionStateScopeOwnership` services. `Directory.Build.props` builds FrontComposer from source for `Hexalith.Tenants.UI` and its tests whenever the submodule is present, and `story-guards.yml` initializes all root submodules. So the CI UI lane builds against the moved source. Options: (1) restore the five pointers to their `2315aad9` values and move any wanted bump to a separate `build(deps)` change that also makes `GeneratedTenantsSurfaceTests` pass; (2) keep the pointers, declare all seven moves in the File List with reasons, and fix the Tenants side in this story; (3) keep them as out-of-story drift and record the five failures as a blocker in `deferred-work.md`, with the story staying `in-progress`.
 
   [blind+verification+auditor]
-- [ ] [Review][Patch] (high) Keep the moved pointers, declare every move, and make `GeneratedTenantsSurfaceTests` pass against the current FrontComposer pointer [tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs:171]
+- [x] [Review][Patch] (high) Keep the moved pointers, declare every move, and make `GeneratedTenantsSurfaceTests` pass against the current FrontComposer pointer [tests/Hexalith.Tenants.UI.Tests/GeneratedTenantsSurfaceTests.cs:171]
   - **File List:** add entries for each move with a reason: `6869ec4a` (Builds, EventStore, FrontComposer, Memories, Platform) and `3440ff01` (FrontComposer, Memories). `b71a53ea`, committed after this review's range together with the findings above, moves EventStore `1b7b8ce2`→`cf43d21a`, FrontComposer `29c95846`→`167309a9` and Platform `3217e632`→`e229df9a`, so declare it too. Make the guard see them, for example by recording both commits under Story-Owned Gitlink Commits, and rerun `python3 scripts/validate-story-gitlinks.py <spec>`.
   - **Tests:** find what FrontComposer `19f48392..167309a9` changed in the DataGrid envelope and generated projection route rendering (`DataGridViewOwnership`, `ProjectionStateScopeOwnership`). Fix the Tenants UI or the test host registration so that all nine `GeneratedTenantsSurfaceTests` and the full UI suite pass.
 
   [blind+verification+auditor]
-- [ ] [Review][Patch] (medium) After the page releases a baseline-failed grant, Refresh can confirm it from target presence alone [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1178]
+- [x] [Review][Patch] (medium) After the page releases a baseline-failed grant, Refresh can confirm it from target presence alone [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1178]
   - **Path:** the new block (`:3914-3938`) sets `UnableToVerify("…CommandProofUnavailable")`, which keeps both IDs, releases the lease and nulls `_grantAdmissionLease`. `CanRefreshGrantStatus` still enables Refresh for `UnableToVerify` without a lease. Refresh then maps `Completed` + events back to `ProjectionPending`. `RequeryGrantProjectionAsync` runs with a null lease, so `IsPermanentCorrectionBaselineFailure(null)` is false and `CanConfirmCorrectionProjection(null, …)` returns true (`:5270-5273`). `ConfirmProjection` then confirms on presence plus any version advancement (`GlobalAdministratorGrantCommandSnapshot.cs:406-444`).
   - **Violates:** "Confirm only a fresh complete postcondition reaching verified command progress beyond the baseline", and the Review 10 row's own condition that grant/remove `ConfirmProjection` must not be used for this case. The copy invites that Refresh. Remove is not affected, because `CanRefreshRemoveStatus` requires an owned lease.
   - **Fix:** exclude the released state (`UnableToVerify`, `CommandProofUnavailable`, no `_grantAdmissionLease`) from `CanRefreshGrantStatus`, matching the panel, where Refresh needs a dispatch-marked lease.
 
   [edge+auditor]
-- [ ] [Review][Patch] (medium) A superseded baseline-failure requery releases the lease but leaves the snapshot pending [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3928]
+- [x] [Review][Patch] (medium) A superseded baseline-failure requery releases the lease but leaves the snapshot pending [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3928]
   - **Path:** in both new blocks (`:3928-3935` grant, `:4830-4837` remove), the release runs whenever the field still holds the lease, even when the generation or snapshot guard rejected the snapshot write. Refresh stays enabled during an in-flight `ProjectionPending` requery. A second click calls `BeginGrantMutation`, which cancels and supersedes the first requery. The first requery still reaches the block, because `IsPermanentCorrectionBaselineFailure` does not read the loaded snapshot, and it releases the lease. The second refresh then fails its lease guard, so `_grantSnapshot` stays `ProjectionPending` with no lease.
   - **Effect:** for grant, that pending snapshot is refreshable and reaches the null-lease generic confirmation above. For remove, Refresh needs an owned lease, so the pending state has no status recovery.
   - **Fix:** release only inside the branch that applied the `UnableToVerify` snapshot. A superseding refresh or adoption re-runs the same lease check.
 
   [edge+auditor]
-- [ ] [Review][Patch] (medium) No page test reaches the new baseline-failure release on either path [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:6110]
+- [x] [Review][Patch] (medium) No page test reaches the new baseline-failure release on either path [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:6110]
   - **Gap:** every page test with a `SourceAuditReference` lease uses `CommittedEventSequence = 2` against a `tenant-sequence:1` baseline. Deleting either `IsPermanentCorrectionBaselineFailure` block, or only its `TryReleaseTerminal`, leaves the suite green.
   - **Fix:** next to `Correction_origin_waits_for_committed_sequence_before_sibling_confirms`, add a grant/remove theory with `Completed` and `CommittedEventSequence = 1`. It should assert the `CommandProofUnavailable` snapshot, an unlocked fixed-aggregate gate, an empty `PendingCompletions()`, and (with the two patches above) that grant Refresh is disabled and a superseded requery leaves the lease held.
 
   [verification+blind+auditor]
-- [ ] [Review][Patch] (medium) The new panel test reads neither the rendered decision nor the revoke path [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:875]
+- [x] [Review][Patch] (medium) The new panel test reads neither the rendered decision nor the revoke path [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:875]
   - **Gap:** `Completed_status_not_beyond_preview_baseline_releases_global_lease` asserts only state, key, gate and request count, for restore only. Deleting the new decision branch (`GlobalAdministratorCorrectionPanel.razor:281-287`) makes the released panel fall through to `TryGetTrackedLiveBlock`, which reports `AggregateBusy` because the lease is now null. The test stays green.
   - **Fix:** make it a restore/revoke theory, and assert the text of `[data-testid='tenants-correction-unavailable-reason']` and `[data-testid='tenants-correction-unavailable-recovery']`.
 
   [verification+blind]
-- [ ] [Review][Patch] (medium) No test drives the panel's superseded permanent-failure release [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:860]
+- [x] [Review][Patch] (medium) No test drives the panel's superseded permanent-failure release [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:860]
   - **Gap:** every superseded panel case uses `CommittedEventSequence = 2`. Removing `|| IsPermanentCommandProofFailure(snapshot)` from `RetainOrReleaseCompletion` sends the failure back to `TryRetainReconciliation`, which accepts the non-terminal state and re-adopts it for another status lookup. No test fails.
   - **Fix:** add a `CommittedEventSequence = 1` variant of `Superseded_status_completion_is_immediately_adopted_resumed_and_confirmed` (`:2152`). It should assert that the gate is unlocked and `StatusHandles` has a single item.
 
   [verification]
-- [ ] [Review][Patch] (low) The new grant baseline-failure block uses raw `InvokeAsync` [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3918]
+- [x] [Review][Patch] (low) The new grant baseline-failure block uses raw `InvokeAsync` [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3918]
   - **Problem:** its remove twin (`:4820`) uses `InvokeRendererSafelyAsync`, which Review 10 adopted for exactly this teardown hazard. If the renderer is torn down during the projection load, the grant block throws out of the refresh, and its release never runs.
   - **Fix:** `_ = await InvokeRendererSafelyAsync(() => { … }).ConfigureAwait(false);`.
 
   [blind+edge+auditor]
-- [ ] [Review][Patch] (low) The reworked grant-dispatch pin anchors loosely and no longer counts the remove-branch call [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:2241]
+- [x] [Review][Patch] (low) The reworked grant-dispatch pin anchors loosely and no longer counts the remove-branch call [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:2241]
   - **Problem 1:** `grantBasisArgument` may match any `grantDispatchBasis,` up to the lease assignment, not only inside the call.
   - **Problem 2:** dropping `secondDispatchGuard` means deleting the remove branch's `TryBeginInitialReconciliationDispatch` call (`GlobalAdministratorCorrectionPanel.razor:1133`) leaves the pin green. `dispatchGuard` then finds the grant call, and `completionToken` is pre-initialized to `0`, so the deletion still compiles.
   - **Fix:** assert `dispatchGuard.ShouldBeLessThan(grantBranch)`, and bound `grantBasisArgument` by the call's closing `out completionToken)`.
 
   [edge+auditor]
-- [ ] [Review][Patch] (low) The Review 10 deferred-work entries lack the severity prefix and locations this range added to Review 9 [_bmad-output/implementation-artifacts/deferred-work.md:4173]
+- [x] [Review][Patch] (low) The Review 10 deferred-work entries lack the severity prefix and locations this range added to Review 9 [_bmad-output/implementation-artifacts/deferred-work.md:4173]
   - **Fix:** prefix the four summaries with `medium;` / `low;` from their triage rows. Give the sequence-0 entry file paths (`src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs` and `src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs`), and add `Program.cs` line anchors and commit `6b6a35f0` to the API entries. The absolute `source_spec` paths match most of the ledger and are not part of this patch.
 
   [blind+auditor]
-- [ ] [Review][Patch] (low) `UnableToVerify` became `internal` without the XML documentation the Hexalith baseline requires on internal members [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:461]
+- [x] [Review][Patch] (low) `UnableToVerify` became `internal` without the XML documentation the Hexalith baseline requires on internal members [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:461]
   - **Fix:** add `<summary>`, `<param>` and `<returns>` to it and to its twin in `GlobalAdministratorRemoveCommandSnapshot.cs:477`.
 
   [blind]
@@ -772,32 +772,75 @@ Code review 2026-10-12 of everything after the last reviewed commit `2315aad9`: 
 | Review 10 edge: retained pair skips a fresh projection read | false — carried: pending completions load a fresh complete projection before `RebuildVerifiedCompletion`; a retained pair is rechecked through both protected audit rows and is not republished without that recheck. | carried reject |
 | Review 10 verification: public ready timeout is not asserted | medium — `Program.cs` registers `eventstore-gateway` with a 3-second timeout, and `TenantsApiReadinessTests` returns immediately, so dropping the timeout stays green. The registration comes from the independent API commits, not the correction flow. | defer |
 | Review 10 verification: legacy and alias authentication keys are not tested together | medium — `FirstConfigured` keeps a non-blank legacy value, but the alias tests never set a different non-blank legacy value and alias together. Those settings come from `6b6a35f0`. | defer |
+| Review 11 blind: replay may replace system tenant audit | medium — carried: the global and tenant projection handlers can both write `audit:system`; whether a managed tenant can use `system` remains unsettled. This predates the story and is already deferred. | carried defer |
+| Review 11 blind: out-of-order projection batch | maybe-false — carried: the handler stamps the last iterated sequence, while the EventStore batch-order guarantee remains unverified. | carried defer (unverified medium) |
+| Review 11 blind: overlapping projection rebuild | maybe-false — carried: the full rebuild lacks a write-version guard, but upstream serialization of projection requests remains unverified. | carried defer (unverified medium) |
+| Review 11 blind: submit and event clock skew | maybe-false — carried: measured clock skew or an event timestamp-order contract is needed to show that an exact corrective event can predate BFF submission. | carried defer (unverified medium) |
+| Review 11 blind: corrective proof beyond fifty pages | low — carried: the bounded walk fails closed beyond 2,500 rows; removing the limit needs a different query contract, and this volume is unlikely in an ordinary correction session. | carried reject |
+| Review 11 blind: ambiguous committed POST | medium — carried: without MessageId status lookup, a changed projection withdraws correlationless redelivery and retains the circuit attempt. The existing fixed-scope limitation remains deferred. | carried defer |
+| Review 11 blind: registry retention and repeated pending walks | low — carried: the circuit must retain all independently verified pairs; pending completions are rechecked, but circuits normally hold few corrections. Pruning could lose delayed recovery. | carried reject |
+| Review 11 blind: receipt opening awaits protected walks | low — selection and heading focus are scheduled before the asynchronous walk, Blazor renders after the event handler first yields, and the generation guard prevents a stale result from applying after navigation. Reads may continue after navigation, but adding cancellation state for this uncommon case is more than a direct correction. | reject |
+| Review 11 blind: manifest event topic mismatch | medium — carried: the independently committed manifest names `tenants-events`, while the published topic is `tenants.events`; the manifest contract decision remains deferred. | carried defer |
+| Review 11 blind: manifest global administrator authorization | medium — carried: the independently committed manifest says `authenticated`, while the query handler requires current global administrator membership. | carried defer |
+| Review 11 blind: manifest tenant API inventory | low — carried: the independent manifest omits existing audit, membership, lifecycle, and configuration operations. | carried defer |
+| Review 11 blind: manifest critical flow omits removal | low — carried: the independent manifest omits its declared removal operation from that flow. | carried defer |
+| Review 11 blind: manifest recovery inventory | low — carried: the independent manifest leaves recovery metadata empty despite the documented singleton replay gate. | carried defer |
+| Review 11 blind: disabled bootstrap test uses timed absence | medium — carried: the independent bootstrap test waits 50 ms while enabled startup schedules work with `Task.Run`, so a late call could evade it. | carried defer |
+| Review 11 edge: completed correction lacks committed sequence | maybe-false — carried: the page retains the lease in this case, but whether EventStore can return `Completed` with events and no valid committed sequence remains unverified. | carried defer (unverified medium) |
+| Review 11 edge: valid proof after fifty pages | low — carried: the bounded proof walk fails closed after 2,500 rows, and the prior query-contract decision applies. | carried reject |
+| Review 11 verification: paged proof walks lack version-drift tests | medium — both proof walks reject mixed projection versions, but their multi-page tests use one version throughout; removing either equality check leaves those tests green and can admit a pair from inconsistent pages. | patch |
 
 ## File List
 
-These pointer moves were workspace drift carried by the two Story 5.7 commits below. No Story 5.7 code depends on the moved versions. The guard validates their exact committed chain and checks for new working-tree movement.
+These pointer moves were committed during Story 5.7. The FrontComposer moves changed generated projection scope ownership, so the Tenants generated surface was updated against the current pointer. The other moves carry workspace dependency updates. The guard validates the declared committed chain and checks for new working-tree movement.
 
 - `references/Hexalith.Builds`
   - `references/Hexalith.Builds` 9e6b6ca3e8b4e22e6642d4f0d70d25edbf2db08b -> 1bde4d92bb9a9ce48b19a6ca17236075ea28a78b -- workspace drift carried by the story commit; no story code depends on this pointer move.
+  - `references/Hexalith.Builds` 1bde4d92bb9a9ce48b19a6ca17236075ea28a78b -> 608c164c3637240fed2dd92dbfdaaf581ba9846d -- `6869ec4a` carried the later Builds catalog state.
 - `references/Hexalith.EventStore`
   - `references/Hexalith.EventStore` 423dfc55c272df33e35b231dba02e65aad31bd06 -> b57310fb44ef2231815f3c3cfea09714d942334d -- workspace drift carried by the story commits; no story code depends on this pointer move.
+  - `references/Hexalith.EventStore` b57310fb44ef2231815f3c3cfea09714d942334d -> 1b7b8ce287d510487946b7db3babd3323b4c52b3 -- `6869ec4a` carried an EventStore update.
+  - `references/Hexalith.EventStore` 1b7b8ce287d510487946b7db3babd3323b4c52b3 -> cf43d21aa48b14af869326b75abfa2d2bebc4325 -- `b71a53ea` carried the current EventStore update.
 - `references/Hexalith.FrontComposer`
   - `references/Hexalith.FrontComposer` 0e114214007c22f5cdbac21a6853cff4208340ee -> 19f4839231ae6ec7cc6318842eb329c2d04caaa9 -- workspace drift carried by the story commit; no story code depends on this pointer move.
+  - `references/Hexalith.FrontComposer` 19f4839231ae6ec7cc6318842eb329c2d04caaa9 -> c7491c7c3baa1fc7d8c4c780bc4ede2f6e5a8425 -- `6869ec4a` introduced generated projection ownership checks.
+  - `references/Hexalith.FrontComposer` c7491c7c3baa1fc7d8c4c780bc4ede2f6e5a8425 -> 29c95846317902dac5da7c40eb890eca7e21bfae -- `3440ff01` advanced the FrontComposer source used by UI tests.
+  - `references/Hexalith.FrontComposer` 29c95846317902dac5da7c40eb890eca7e21bfae -> 167309a9bdbf6a32a153d094c544bbfc3054b4e5 -- `b71a53ea` advanced the current FrontComposer source.
 - `references/Hexalith.McpCli`
   - `references/Hexalith.McpCli` b2820d21ca34ee7a873772b312ac16569bb8a8ce -> 7e99305a621e1bdf7119b6e924348857e2b5a5a4 -- workspace drift carried by the story commit; no story code depends on this pointer move.
 - `references/Hexalith.Memories`
   - `references/Hexalith.Memories` 26d69d4f111d341e02c24d5c2c597cf128e40bf9 -> 499b7a838a36a4cd500ab517d86acf07b1d74ad4 -- workspace drift carried by the story commit; no story code depends on this pointer move.
+  - `references/Hexalith.Memories` 499b7a838a36a4cd500ab517d86acf07b1d74ad4 -> b16ab01bbb0f4575ea02e996d1f8bbf34cea5e40 -- `6869ec4a` carried a Memories update.
+  - `references/Hexalith.Memories` b16ab01bbb0f4575ea02e996d1f8bbf34cea5e40 -> b1d8014fa0dbacaf71528ddda74ff83cf19ca3ca -- `3440ff01` carried the current Memories update.
 - `references/Hexalith.Platform`
   - `references/Hexalith.Platform` 72ba792574926897758bf474021336a114c705ca -> 053ee05abff2d60d06c62734fd9d9e0e8953df43 -- workspace drift carried by the story commits; no story code depends on this pointer move.
+  - `references/Hexalith.Platform` 053ee05abff2d60d06c62734fd9d9e0e8953df43 -> 3217e6329ec015532061f262c55de1f3956fdd46 -- `6869ec4a` carried a Platform update.
+  - `references/Hexalith.Platform` 3217e6329ec015532061f262c55de1f3956fdd46 -> e229df9a58ee6899f2b24ba51f652435bc36dc62 -- `b71a53ea` carried the current Platform update.
 
 ## Story-Owned Gitlink Commits
 
-These commits mix Story 5.7 code edits with eight pointer moves across six root submodules. Their code edits remain in the review diff. The full IDs pin pointer provenance after the preserved baseline.
+These commits include the pointer moves listed above. The full IDs pin pointer provenance after the preserved baseline.
 
 - `b9e9cc926360c802b9de94dc3dd3a8c56e4caba6`
 - `85a5a6cc18ef6a0f2da69e4fd2c2a1a408f32359`
+- `6869ec4acf43b4ea9c59c2823699ad99e6e6527f`
+- `3440ff017d97773ffc008969e98d80ebb1a22d4e`
+- `b71a53ea27b20a0df9fa105c256d3241ce2794aa`
 
 ## Verification
+
+**Review 11 post-review verification (2026-10-12):**
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` — passed with zero warnings/errors after the two version-drift test cases.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` — passed 4,084/4,084, none skipped.
+- `TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh` — passed rendered EN/FR correction and paired receipts, narrow width, forced colors and focus; deliberate mutations were rejected.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md` and `git diff --check 66072cc410834e2c34f7d30f121e447940ea6fc6` — passed.
+
+**Review 11 patch verification (2026-10-12):**
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` — passed with zero warnings/errors against the current FrontComposer pointer.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-class '*GeneratedTenantsSurfaceTests' --filter-class '*GlobalAdministratorCorrectionPanelTests' --filter-class '*GlobalAdministratorsPageTests'` — passed 377/377, none skipped.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` — passed 4,082/4,082, none skipped after the final UI build.
+- `TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh` — passed rendered EN/FR correction and paired receipt checks, narrow width, forced colors and focus; its deliberate mutations were rejected.
+- `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md` — passed with all five pointer-bearing commits declared and no working-tree pointer movement.
 
 **Review 10 patch verification (2026-10-12):**
 - `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-class '*GlobalAdministratorCorrectionPanelTests' --filter-class '*GlobalAdministratorsPageTests' --filter-class '*TenantAuditPageTests' --filter-class '*GlobalAdministratorCorrectionSnapshotTests'` — passed 631/631, none skipped. The built assembly is newer than the review-fix sources.
