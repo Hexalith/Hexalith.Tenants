@@ -395,7 +395,7 @@ public sealed class TenantAggregateCommandAdmissionGate
                 || lease.ActiveReconciliationDispatchToken != completionToken
                 || lease.Reconciliation is not { } current
                 || !IsValidCompletion(completion)
-                || !HasSameCommandIdentity(current, completion)
+                || !GlobalAdministratorReconciliationState.HasSameCommandIdentity(current, completion)
                 || IsLifecycleRegression(current.LifecycleState, completion.LifecycleState))
             {
                 return false;
@@ -495,7 +495,7 @@ public sealed class TenantAggregateCommandAdmissionGate
                 || !IsValidReconciliation(reconciliation)
                 || IsTerminal(reconciliation.LifecycleState)
                 || lease.Reconciliation is { } current
-                    && (!HasSameCommandIdentity(current, reconciliation)
+                    && (!GlobalAdministratorReconciliationState.HasSameCommandIdentity(current, reconciliation)
                         || IsLifecycleRegression(current.LifecycleState, reconciliation.LifecycleState)))
             {
                 return false;
@@ -523,7 +523,7 @@ public sealed class TenantAggregateCommandAdmissionGate
                 || !IsValidReconciliation(reconciliation)
                 || IsTerminal(reconciliation.LifecycleState)
                 || lease.Reconciliation is { } current
-                    && (!HasSameCommandIdentity(current, reconciliation)
+                    && (!GlobalAdministratorReconciliationState.HasSameCommandIdentity(current, reconciliation)
                         || IsLifecycleRegression(current.LifecycleState, reconciliation.LifecycleState)))
             {
                 return false;
@@ -687,26 +687,11 @@ public sealed class TenantAggregateCommandAdmissionGate
     private static bool HasSameReconciliation(
         GlobalAdministratorReconciliationState current,
         GlobalAdministratorReconciliationState expected)
-        => HasSameCommandIdentity(current, expected)
+        => GlobalAdministratorReconciliationState.HasSameCommandIdentity(current, expected)
             && current.LifecycleState == expected.LifecycleState
             && current.HasCommandEventEvidence == expected.HasCommandEventEvidence
             && current.CommittedEventSequence == expected.CommittedEventSequence
             && current.IsSubmissionAmbiguous == expected.IsSubmissionAmbiguous;
-
-    private static bool HasSameCommandIdentity(
-        GlobalAdministratorReconciliationState current,
-        GlobalAdministratorReconciliationState next)
-        => current.ActionKind == next.ActionKind
-            && string.Equals(current.TargetUserId, next.TargetUserId, StringComparison.Ordinal)
-            && string.Equals(current.MessageId, next.MessageId, StringComparison.Ordinal)
-            && (current.CorrelationId is null
-                || string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal))
-            && Equals(current.GrantPreview, next.GrantPreview)
-            && Equals(current.RemovePreview, next.RemovePreview)
-            && (next.SourceAuditReference is null
-                || string.Equals(current.SourceAuditReference, next.SourceAuditReference, StringComparison.Ordinal))
-            && (next.SourceAuditTimestampUtc is null
-                || current.SourceAuditTimestampUtc == next.SourceAuditTimestampUtc);
 
     private static bool IsLifecycleRegression(
         TenantCommandLifecycleState current,

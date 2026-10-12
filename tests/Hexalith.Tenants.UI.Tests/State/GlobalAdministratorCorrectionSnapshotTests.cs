@@ -476,6 +476,7 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         GlobalAdministratorCorrectionSnapshot unavailable = pending.ConfirmProjection(unreadable);
 
         unavailable.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        unavailable.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
         unavailable.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
         unavailable.LastConfirmedProjectionEvidence.ShouldBeSameAs(before);
         unavailable.MessageId.ShouldBe("message-safe");
@@ -488,6 +489,7 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         repeatedStatus.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CurrentProjectionUnavailable");
         GlobalAdministratorCorrectionSnapshot readableButLagging = repeatedStatus.ConfirmProjection(before);
         readableButLagging.LifecycleState.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        readableButLagging.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
         readableButLagging.SafeMessageKey.ShouldBeNull();
         GlobalAdministratorCorrectionSnapshot confirmed = readableButLagging.ConfirmProjection(revoke
             ? ProjectionReadyAtVersion("tenant-sequence:2", "other-admin")

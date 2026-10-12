@@ -6169,6 +6169,93 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
     [Theory]
     [InlineData(GlobalAdministratorActionKind.Grant)]
     [InlineData(GlobalAdministratorActionKind.Remove)]
+    public async Task Superseded_projection_read_retains_the_confirming_projection_for_correction_proof(
+        GlobalAdministratorActionKind action)
+    {
+        GlobalAdministratorsSnapshot before = action is GlobalAdministratorActionKind.Grant
+            ? ComponentReady("tenant-sequence:1", "other-admin")
+            : ComponentReady("tenant-sequence:1", "target-admin", "other-admin");
+        GlobalAdministratorsSnapshot after = action is GlobalAdministratorActionKind.Grant
+            ? ComponentReady("tenant-sequence:2", "target-admin", "other-admin")
+            : ComponentReady("tenant-sequence:2", "other-admin");
+        var heldProjection = new TaskCompletionSource<GlobalAdministratorsSnapshot>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        var queryGateway = new StubTenantQueryGateway(before);
+        var registry = new GlobalAdministratorCorrectionProofRegistry();
+        Services.AddSingleton(registry);
+        Services.AddSingleton<ITenantsBffComposition>(
+            new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queryGateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<GlobalAdministratorsPage> page = Render<GlobalAdministratorsPage>();
+
+        object owner = PrivateField<object>(page.Instance, "_fixedAggregateOwner");
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner,
+            out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        GlobalAdministratorGrantPreview? grantPreview = action is GlobalAdministratorActionKind.Grant
+            ? GlobalAdministratorGrantPreview.Create("target-admin", before, isAuthorized: true) : null;
+        GlobalAdministratorRemovePreview? removePreview = action is GlobalAdministratorActionKind.Remove
+            ? GlobalAdministratorRemovePreview.Create("target-admin", "operator-admin", before, isAuthorized: true) : null;
+        DateTimeOffset sourceTime = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        lease.TryAdvanceReconciliation(owner, new GlobalAdministratorReconciliationState(
+            action, "target-admin", "message-safe", "correlation-safe", TenantCommandLifecycleState.ProjectionPending,
+            GrantPreview: grantPreview, HasCommandEventEvidence: true, RemovePreview: removePreview)
+        {
+            SourceAuditReference = "event-original",
+            SourceAuditTimestampUtc = sourceTime,
+            SubmittedAtUtc = sourceTime.AddMinutes(1),
+            CommittedEventSequence = 2,
+        }).ShouldBeTrue();
+
+        bool grant = action is GlobalAdministratorActionKind.Grant;
+        string prefix = grant ? "Grant" : "Remove";
+        object pending = grant
+            ? new GlobalAdministratorGrantCommandSnapshot(
+                TenantCommandLifecycleState.ProjectionPending, new SetGlobalAdministrator("target-admin"),
+                MessageId: "message-safe", CorrelationId: "correlation-safe",
+                PreviewEvidence: grantPreview, HasCommandEventEvidence: true)
+            : new GlobalAdministratorRemoveCommandSnapshot(
+                TenantCommandLifecycleState.ProjectionPending, new RemoveGlobalAdministrator("target-admin"),
+                MessageId: "message-safe", CorrelationId: "correlation-safe",
+                PreviewEvidence: removePreview, HasCommandEventEvidence: true);
+        typeof(GlobalAdministratorsPage).GetField($"_{prefix.ToLowerInvariant()}AdmissionLease",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page.Instance, lease);
+        typeof(GlobalAdministratorsPage).GetField($"_{prefix.ToLowerInvariant()}Snapshot",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(page.Instance, pending);
+
+        queryGateway.QueueResponse(heldProjection.Task);
+        FieldInfo generationField = typeof(GlobalAdministratorsPage).GetField(
+            grant ? "_grantMutationGeneration" : "_removeMutationGeneration",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        long generation = (long)generationField.GetValue(page.Instance)!;
+        MethodInfo requery = typeof(GlobalAdministratorsPage).GetMethod(
+            grant ? "RequeryGrantProjectionAsync" : "RequeryRemoveProjectionAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            types: grant ? [typeof(long), typeof(CancellationToken)] : [typeof(long)],
+            modifiers: null).ShouldNotBeNull();
+        Task read = (Task)requery.Invoke(page.Instance, grant
+            ? [generation, CancellationToken.None] : [generation])!;
+        await queryGateway.QueuedResponseEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        generationField.SetValue(page.Instance, generation + 1);
+        heldProjection.SetResult(after);
+        await read.WaitAsync(TimeSpan.FromSeconds(5));
+
+        GlobalAdministratorReconciliationState completion = registry.PendingCompletions().ShouldHaveSingleItem();
+        completion.ConfirmedProjectionEvidence.ShouldNotBeNull().ProjectionVersion.ShouldBe("tenant-sequence:2");
+        completion.ConfirmedProjectionEvidence.Rows.Select(row => row.UserId)
+            .ShouldBe(after.Rows.Select(row => row.UserId), ignoreOrder: true);
+        completion.SourceAuditReference.ShouldBe("event-original");
+        completion.CommittedEventSequence.ShouldBe(2);
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(GlobalAdministratorActionKind.Grant)]
+    [InlineData(GlobalAdministratorActionKind.Remove)]
     public void Superseded_confirmed_projection_completion_records_correction_source_and_releases_lease(
         GlobalAdministratorActionKind action)
     {

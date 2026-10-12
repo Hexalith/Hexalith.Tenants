@@ -4145,6 +4145,21 @@ Diff reviewed: Tenants `66072cc4..362a957d`. The diff was 4,351 lines (260,201 b
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
   summary: Add authentication tests for the independently committed manifest configuration fallbacks.
   evidence: Review 6 found no tests for `Oidc:Authority` or `Jwt:SigningKey` when the old `EventStore:Authentication:*` keys are absent; these fallbacks were added by independent commit `711e100858e59cf8de2b626ea21790d59f969023`.
+
+## Deferred from: Story 5.7 Review 8 fix-pass triage (2026-10-11)
+
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
   summary: Reconcile the independent authentication fallback deferred entry with its now-present alias-only API tests.
   evidence: `tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs` contains `Public_api_accepts_jwt_signing_key_alias_without_eventstore_authentication_keys` and `Public_api_accepts_oidc_authority_alias_without_eventstore_authentication_keys`, while the earlier Review 6 ledger entry still requests those tests. Run the owning integration lane and update that entry's resolution in a separate manifest/API follow-up.
+
+## Deferred from: Story 5.7 Review 9 triage (2026-10-12)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Make the disabled-bootstrap test deterministically prove no deferred command is registered.
+  evidence: The independently committed disabled-bootstrap test waits 50 ms for absence of HTTP traffic, but the enabled path schedules its HTTP work with `Task.Run` after `ApplicationStarted`; a late task could escape the assertion.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Record current global-administrator membership in the independent module manifest authorization inventory.
+  evidence: The manifest lists only `authenticated`, while `GetGlobalAdministratorsQueryHandler` rejects authenticated users absent from the singleton administrator projection.
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Decide how the independent module manifest should expose the singleton projection replay prerequisite.
+  evidence: The manifest leaves recovery hooks and inventory empty even though Story 5.7 requires replay of persisted singleton projections before correction becomes available; the appropriate manifest hook or inventory entry needs an owning manifest follow-up.

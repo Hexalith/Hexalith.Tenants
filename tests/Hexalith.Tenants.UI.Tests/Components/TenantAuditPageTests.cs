@@ -2080,10 +2080,14 @@ public sealed class TenantAuditPageTests : BunitContext
         int readsBeforeDispose = gateway.Requests.Count;
 
         await cut.Instance.DisposeAsync();
+        FieldInfo transitionVersionField = typeof(TenantAuditPage).GetField(
+            "_authenticationTransitionVersion", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        long transitionVersionBeforeChange = (long)transitionVersionField.GetValue(cut.Instance)!;
         StubAuthenticationStateProvider authentication = (StubAuthenticationStateProvider)Services
             .GetRequiredService<AuthenticationStateProvider>();
         authentication.ChangePrincipal(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
 
+        ((long)transitionVersionField.GetValue(cut.Instance)!).ShouldBe(transitionVersionBeforeChange);
         gateway.Requests.Count.ShouldBe(readsBeforeDispose);
         await subscription.Received(1).UnsubscribeAsync(
             GetTenantAuditQuery.ProjectionType, "system", Arg.Any<CancellationToken>());

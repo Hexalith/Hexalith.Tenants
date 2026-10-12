@@ -57,14 +57,7 @@ internal sealed record GlobalAdministratorReconciliationState(
     /// <summary>Retains circuit proof inputs for an update to the same command.</summary>
     internal GlobalAdministratorReconciliationState WithCarriedProofInputs(GlobalAdministratorReconciliationState? current)
         => current is not null
-            && ActionKind == current.ActionKind
-            && string.Equals(TargetUserId, current.TargetUserId, StringComparison.Ordinal)
-            && string.Equals(MessageId, current.MessageId, StringComparison.Ordinal)
-            && (current.CorrelationId is null || string.Equals(CorrelationId, current.CorrelationId, StringComparison.Ordinal))
-            && Equals(GrantPreview, current.GrantPreview)
-            && Equals(RemovePreview, current.RemovePreview)
-            && (SourceAuditReference is null || string.Equals(SourceAuditReference, current.SourceAuditReference, StringComparison.Ordinal))
-            && (SourceAuditTimestampUtc is null || SourceAuditTimestampUtc == current.SourceAuditTimestampUtc)
+            && HasSameCommandIdentity(current, this)
             ? this with
             {
                 SubmittedAtUtc = SubmittedAtUtc ?? current.SubmittedAtUtc,
@@ -74,6 +67,22 @@ internal sealed record GlobalAdministratorReconciliationState(
                 SourceAuditTimestampUtc = current.SourceAuditTimestampUtc,
             }
             : this;
+
+    /// <summary>Checks whether a reconciliation update still describes the same command and source evidence.</summary>
+    internal static bool HasSameCommandIdentity(
+        GlobalAdministratorReconciliationState current,
+        GlobalAdministratorReconciliationState next)
+        => current.ActionKind == next.ActionKind
+            && string.Equals(current.TargetUserId, next.TargetUserId, StringComparison.Ordinal)
+            && string.Equals(current.MessageId, next.MessageId, StringComparison.Ordinal)
+            && (current.CorrelationId is null
+                || string.Equals(current.CorrelationId, next.CorrelationId, StringComparison.Ordinal))
+            && Equals(current.GrantPreview, next.GrantPreview)
+            && Equals(current.RemovePreview, next.RemovePreview)
+            && (next.SourceAuditReference is null
+                || string.Equals(current.SourceAuditReference, next.SourceAuditReference, StringComparison.Ordinal))
+            && (next.SourceAuditTimestampUtc is null
+                || current.SourceAuditTimestampUtc == next.SourceAuditTimestampUtc);
 
     /// <summary>Returns a support-safe description without identity or tracking values.</summary>
     /// <returns>A bounded diagnostic description.</returns>
