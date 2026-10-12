@@ -458,7 +458,7 @@ public sealed record GlobalAdministratorGrantCommandSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
 
-    private GlobalAdministratorGrantCommandSnapshot UnableToVerify(string safeMessageKey)
+    internal GlobalAdministratorGrantCommandSnapshot UnableToVerify(string safeMessageKey)
         => this with
         {
             State = TenantCommandLifecycleState.UnableToVerify,

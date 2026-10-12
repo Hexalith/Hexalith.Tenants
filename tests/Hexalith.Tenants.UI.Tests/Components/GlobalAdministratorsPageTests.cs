@@ -6251,6 +6251,10 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         completion.SourceAuditReference.ShouldBe("event-original");
         completion.CommittedEventSequence.ShouldBe(2);
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        object retainedSnapshot = grant
+            ? PrivateField<GlobalAdministratorGrantCommandSnapshot>(page.Instance, "_grantSnapshot")
+            : PrivateField<GlobalAdministratorRemoveCommandSnapshot>(page.Instance, "_removeSnapshot");
+        retainedSnapshot.ShouldBeSameAs(pending);
     }
 
     [Theory]

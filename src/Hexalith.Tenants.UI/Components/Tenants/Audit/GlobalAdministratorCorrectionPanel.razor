@@ -278,6 +278,14 @@
             return DisabledDecision(snapshot, canRefresh, "Tenants.Correction.Recovery.Unavailable");
         }
 
+        if (IsPermanentCommandProofFailure(snapshot))
+        {
+            return DisabledDecision(
+                snapshot,
+                canRefresh,
+                SnapshotRecoveryKey(snapshot, "Tenants.Correction.Recovery.Unavailable"));
+        }
+
         if (snapshot.HasCommandTracking && TryGetTrackedLiveBlock(snapshot, out string? liveReason, out string? liveRecovery))
         {
             return new(IsConfirmDisabled: true, CanRefresh: false, liveReason, liveRecovery);
@@ -755,9 +763,9 @@
 
         GlobalAdministratorRemovePreview preview = await ComposeRemovePreviewSafelyAsync(
             basis.TargetUserId, CurrentProjection).ConfigureAwait(false);
-        await InvokeAsync(() =>
+        _ = await InvokeRendererSafelyAsync(() =>
         {
-            if (!_disposed && ReferenceEquals(_snapshot, basis))
+            if (ReferenceEquals(_snapshot, basis))
             {
                 SetSnapshot(basis.WithRemovePreview(preview));
                 StateHasChanged();
@@ -820,7 +828,7 @@
         // A complete projection that reached this command's sequence but contradicts its
         // postcondition has a final verification answer. Keep the UI's UnableToVerify truth state
         // while releasing the fixed-aggregate lease so a new current-state intent can be opened.
-        TenantCommandLifecycleState leaseOutcome = IsVerifiedContradiction(snapshot)
+        TenantCommandLifecycleState leaseOutcome = IsVerifiedContradiction(snapshot) || IsPermanentCommandProofFailure(snapshot)
             ? TenantCommandLifecycleState.Failed
             : snapshot.LifecycleState;
         if (_admissionLease?.TryReleaseTerminal(_admissionOwner, leaseOutcome) == true)
@@ -849,7 +857,7 @@
             return false;
         }
 
-        if (IsVerifiedContradiction(snapshot))
+        if (IsVerifiedContradiction(snapshot) || IsPermanentCommandProofFailure(snapshot))
         {
             if (submissionLease.TryReleaseTerminal(_admissionOwner, TenantCommandLifecycleState.Failed))
             {
@@ -881,6 +889,10 @@
             && snapshot.CommittedEventSequence is > 0
             && snapshot.SafeMessageKey is "Tenants.GlobalAdministrators.Grant.Confirm.DidNotConfirm"
                 or "Tenants.GlobalAdministrators.Remove.Confirm.StillPresent";
+
+    private static bool IsPermanentCommandProofFailure(GlobalAdministratorCorrectionSnapshot snapshot)
+        => snapshot.LifecycleState is TenantCommandLifecycleState.UnableToVerify
+            && snapshot.SafeMessageKey is "Tenants.Correction.Unavailable.CommandProofUnavailable";
 
     private async Task<bool> InvokeRendererSafelyAsync(Action callback)
     {

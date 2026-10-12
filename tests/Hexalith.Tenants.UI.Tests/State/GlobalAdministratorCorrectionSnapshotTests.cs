@@ -482,6 +482,8 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         unavailable.MessageId.ShouldBe("message-safe");
         unavailable.CommittedEventSequence.ShouldBe(2);
         unavailable.ToReconciliation().ShouldNotBeNull();
+        unavailable.ConfirmProjection(before).LiveRegionPoliteness
+            .ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
 
         GlobalAdministratorCorrectionSnapshot repeatedStatus = unavailable.ApplyStatus(
             new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,

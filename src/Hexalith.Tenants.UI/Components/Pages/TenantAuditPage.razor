@@ -799,7 +799,7 @@
 
                 if (!HasMeasuredSafeViewport && !HasSubmittedCorrection && !HasDisplayedRetainedCorrection)
                 {
-                    _correctionOpenGeneration++;
+                    Interlocked.Increment(ref _correctionOpenGeneration);
                     if (_activeCorrectionIntent is not null || _previewCorrectionIntent is not null)
                     {
                         ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
@@ -1605,7 +1605,7 @@
         _selectedCorrectionRoles.Clear();
         _correctionProjections.Clear();
         _previewCorrectionIntent = null;
-        _correctionOpenGeneration++;
+        Interlocked.Increment(ref _correctionOpenGeneration);
         InvalidateCorrectionFocus();
     }
 
@@ -1930,7 +1930,7 @@
             return;
         }
 
-        int generation = ++_correctionOpenGeneration;
+        int generation = Interlocked.Increment(ref _correctionOpenGeneration);
         GlobalAdministratorsSnapshot? projection;
         TenantLifecycleAuthorizationReflectionState authorization;
         try
@@ -1946,7 +1946,9 @@
         }
         await InvokeAsync(() =>
         {
-            if (_disposed || generation != _correctionOpenGeneration || !HasAuthorizedAuditSurface
+            if (_disposed || generation != _correctionOpenGeneration
+                || Volatile.Read(ref _authenticationTransitionPending)
+                || !HasAuthorizedAuditSurface
                 || !HasMeasuredSafeViewport || !string.Equals(TenantId, "system", StringComparison.Ordinal))
             {
                 return;
@@ -1977,7 +1979,7 @@
 
     private Task CloseGlobalCorrectionAsync()
     {
-        _correctionOpenGeneration++;
+        Interlocked.Increment(ref _correctionOpenGeneration);
         ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
         _globalCorrectionIntent = null;
         return Task.CompletedTask;
@@ -2089,7 +2091,7 @@
             return false;
         }
 
-        int generation = ++_correctionOpenGeneration;
+        int generation = Interlocked.Increment(ref _correctionOpenGeneration);
         _competingCorrectionNotice = false;
         _resumedCorrectionMessageId = null;
         InvalidateCorrectionFocus();
@@ -2160,7 +2162,7 @@
 
     private Task CloseCorrectionAsync()
     {
-        _correctionOpenGeneration++;
+        Interlocked.Increment(ref _correctionOpenGeneration);
         ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);
         _activeCorrectionFocusReference = null;
         _activeCorrectionIntent = null;
@@ -2264,7 +2266,7 @@
             return;
         }
 
-        _correctionOpenGeneration++;
+        Interlocked.Increment(ref _correctionOpenGeneration);
         ScheduleCorrectionFocus(_activeCorrectionFocusReference ?? active.OriginalAuditReference, _activeCorrectionOrigin);
         _previewCorrectionIntent = null;
         _activeCorrectionIntent = null;
@@ -2426,7 +2428,7 @@
         {
             return Task.CompletedTask;
         }
-        _correctionOpenGeneration++;
+        Interlocked.Increment(ref _correctionOpenGeneration);
         if (_activeCorrectionIntent is not null || _previewCorrectionIntent is not null)
         {
             ScheduleCorrectionFocus(_activeCorrectionFocusReference, _activeCorrectionOrigin);

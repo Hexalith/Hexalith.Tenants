@@ -69,6 +69,18 @@ internal sealed record GlobalAdministratorReconciliationState(
             : this;
 
     /// <summary>Checks whether a reconciliation update still describes the same command and source evidence.</summary>
+    /// <param name="current">
+    /// Retained lease state. A null <c>CorrelationId</c> is tolerated only on this side, so a later
+    /// acceptance can supply the correlation. Source-audit null tolerance does not apply here: a null
+    /// <c>SourceAuditReference</c> or <c>SourceAuditTimestampUtc</c> on <paramref name="current"/> fails
+    /// the match when <paramref name="next"/> carries that field.
+    /// </param>
+    /// <param name="next">
+    /// Proposed update. A null <c>SourceAuditReference</c> or <c>SourceAuditTimestampUtc</c> is tolerated
+    /// only on this side, so a writer that omits source evidence can still match the retained lease. A
+    /// null <c>CorrelationId</c> on this side is not tolerated once <paramref name="current"/> has one.
+    /// </param>
+    /// <returns><see langword="true"/> when the retained command and the tolerated identity fields still match.</returns>
     internal static bool HasSameCommandIdentity(
         GlobalAdministratorReconciliationState current,
         GlobalAdministratorReconciliationState next)

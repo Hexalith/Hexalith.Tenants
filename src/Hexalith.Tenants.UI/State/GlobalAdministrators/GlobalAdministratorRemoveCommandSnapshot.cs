@@ -474,7 +474,7 @@ public sealed record GlobalAdministratorRemoveCommandSnapshot(
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };
 
-    private GlobalAdministratorRemoveCommandSnapshot UnableToVerify(string safeMessageKey)
+    internal GlobalAdministratorRemoveCommandSnapshot UnableToVerify(string safeMessageKey)
         => this with
         {
             State = TenantCommandLifecycleState.UnableToVerify,

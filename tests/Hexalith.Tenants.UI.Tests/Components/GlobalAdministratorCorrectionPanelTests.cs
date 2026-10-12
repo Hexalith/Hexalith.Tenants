@@ -872,6 +872,37 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public void Completed_status_not_beyond_preview_baseline_releases_global_lease()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        var commandGateway = new StubTenantCommandGateway
+        {
+            Status = new TenantCommandStatusResult(
+                CommandStatus.Completed,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true)
+            {
+                CommittedEventSequence = 1,
+            },
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(
+            Projection("other-admin"),
+            TenantAuditSnapshot.Unavailable(new TenantAuditRequest("system"))));
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        cut.Instance.Snapshot!.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CommandProofUnavailable");
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        commandGateway.SetRequests.ShouldHaveSingleItem();
+    }
+
+    [Fact]
     public void Restore_confirmation_walks_all_pages_before_accepting_later_page_presence()
     {
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -2208,14 +2239,24 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         int callback = submit.LastIndexOf("await InvokeRendererSafelyAsync(() =>", assignment, StringComparison.Ordinal);
         int operationGuard = submit.IndexOf("CanApplyOperation(generation)", callback, StringComparison.Ordinal);
         int dispatchGuard = submit.IndexOf("acquiredLease.TryBeginInitialReconciliationDispatch(", callback, StringComparison.Ordinal);
-        int secondDispatchGuard = submit.IndexOf("acquiredLease.TryBeginInitialReconciliationDispatch(", dispatchGuard + 1, StringComparison.Ordinal);
+        int grantBranch = submit.IndexOf(
+            "else if (requestSent.ToCompletionReconciliation() is not { } grantDispatchBasis",
+            callback,
+            StringComparison.Ordinal);
 
         submitStart.ShouldBeGreaterThan(-1);
         submitEnd.ShouldBeGreaterThan(submitStart);
         callback.ShouldBeGreaterThan(-1);
         operationGuard.ShouldBeInRange(callback, assignment);
         dispatchGuard.ShouldBeInRange(callback, assignment);
-        secondDispatchGuard.ShouldBeInRange(callback, assignment);
+        grantBranch.ShouldBeInRange(callback, assignment);
+        int grantDispatch = submit.IndexOf(
+            "acquiredLease.TryBeginInitialReconciliationDispatch(",
+            grantBranch,
+            StringComparison.Ordinal);
+        grantDispatch.ShouldBeInRange(grantBranch, assignment);
+        int grantBasisArgument = submit.IndexOf("grantDispatchBasis,", grantDispatch, StringComparison.Ordinal);
+        grantBasisArgument.ShouldBeInRange(grantDispatch, assignment);
         submit.ShouldNotContain("TryMarkDispatched(_admissionOwner)");
         submit.ShouldContain("_ = acquiredLease.TryAbandonBeforeDispatch(_admissionOwner);");
         submit.ShouldNotContain("out _admissionLease");

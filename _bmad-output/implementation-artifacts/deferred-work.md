@@ -4155,17 +4155,32 @@ Diff reviewed: Tenants `66072cc4..362a957d`. The diff was 4,351 lines (260,201 b
 ## Deferred from: Story 5.7 Review 9 triage (2026-10-12)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-  summary: Make the disabled-bootstrap test deterministically prove no deferred command is registered.
-  evidence: The independently committed disabled-bootstrap test waits 50 ms for absence of HTTP traffic, but the enabled path schedules its HTTP work with `Task.Run` after `ApplicationStarted`; a late task could escape the assertion.
+  summary: medium; make the disabled-bootstrap test deterministically prove no deferred command is registered.
+  evidence: `StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator` in `tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs:30`, independently committed in `6b6a35f0`, waits with `Task.Delay(50)` at `:52` for absence of HTTP traffic, but the enabled path schedules its HTTP work with `Task.Run` after `ApplicationStarted`; a late task could escape the assertion.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-  summary: Record current global-administrator membership in the independent module manifest authorization inventory.
-  evidence: The manifest lists only `authenticated`, while `GetGlobalAdministratorsQueryHandler` rejects authenticated users absent from the singleton administrator projection.
+  summary: medium; record current global-administrator membership in the independent module manifest authorization inventory.
+  evidence: `module/hexalith.module-manifest.v2.json`, as changed by `6b6a35f0`, lists `global-administrators-api` authorization policy `authenticated` at `:239` and operation `authorizationPolicy` `authenticated` at `:247`, `:252` and `:257`, while `GetGlobalAdministratorsQueryHandler` rejects authenticated users absent from the singleton administrator projection.
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-  summary: Decide how the independent module manifest should expose the singleton projection replay prerequisite.
-  evidence: The manifest leaves recovery hooks and inventory empty even though Story 5.7 requires replay of persisted singleton projections before correction becomes available; the appropriate manifest hook or inventory entry needs an owning manifest follow-up.
+  summary: low; decide how the independent module manifest should expose the singleton projection replay prerequisite.
+  evidence: `module/hexalith.module-manifest.v2.json`, as changed by `6b6a35f0`, leaves `recoveryHooks` (`:417`) and `recoveryInventory` (`:446`) empty even though the replay prerequisite at `docs/event-contract-reference.md:127` requires replay of persisted singleton projections before correction becomes available; the appropriate manifest hook or inventory entry needs an owning manifest follow-up.
 
 ## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, fix-pass range `44878a58..2315aad9` (2026-10-12)
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
   summary: medium; pin the authentication-state unsubscribe on disposal of `GlobalAdministratorCorrectionPanel` and `GlobalAdministratorsPage`.
   evidence: Pre-existing test gap: both subscriptions exist at Story 5.7 baseline `66072cc4`, and fix pass `2315aad9` closed only the `TenantAuditPage` equivalent. In an isolated checkout of `2315aad9`, deleting `AuthenticationStateChanged -= OnAuthenticationStateChanged` at `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:2367`, or at `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:2397`, leaves the UI suite at 4,075/4,075 green. A regression would keep disposed components referenced by the circuit's provider, and the panel handler (`:2026`) would run `RetainReconciliationForReplacement()` and `InvalidateOperation()` after disposal. Suggested shape: the `TenantAuditPage` dispose test from `2315aad9` — after disposal raise a principal change and assert the handler's counter is unchanged (`_authorizationGeneration` on the panel, `_authorizationTransitionVersion` on the page).
+
+## Deferred from: Story 5.7 Review 10 triage (2026-10-12)
+
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: A global-administrator event persisted at sequence 0 cannot be paired from audit evidence.
+  evidence: `GlobalAdministratorProjectionHandler` stamps `ProjectionVersion` for `SequenceNumber >= 0`, while `TenantAuditReadModel.CreateEntry` stores `AggregateSequence` only when `SequenceNumber > 0`. Whether EventStore can persist a global-administrator event at sequence 0 is unverified; that fact would settle whether the proof walk can miss a real event.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: The missing signing-key exception names only the legacy EventStore setting.
+  evidence: `src/Hexalith.Tenants.Api/Program.cs` throws that `EventStore:Authentication:SigningKey` is required when neither that value nor `Jwt:SigningKey` is configured. `FirstConfigured` was introduced by the independent bootstrap commit `6b6a35f0`.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: The public API readiness registration does not prove its three-second gateway timeout.
+  evidence: `src/Hexalith.Tenants.Api/Program.cs` registers `eventstore-gateway` with `TimeSpan.FromSeconds(3)`, and `tests/Hexalith.Tenants.IntegrationTests/TenantsApiReadinessTests.cs` returns a completed response without reading `HealthCheckRegistration.Timeout`. Dropping the timeout argument leaves that test green. The registration comes from the independent API commits in this range.
+- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: Legacy authentication settings are not tested against a different non-blank alias.
+  evidence: `FirstConfigured` in `src/Hexalith.Tenants.Api/Program.cs` keeps a non-blank legacy value over `Oidc:Authority` or `Jwt:SigningKey`. The alias tests in `tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs` set only the alias, or a blank legacy value. Those settings come from `6b6a35f0`.

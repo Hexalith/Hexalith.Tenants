@@ -3911,6 +3911,32 @@
             return;
         }
 
+        if (IsPermanentCorrectionBaselineFailure(projectionLease))
+        {
+            GlobalAdministratorGrantCommandSnapshot unverified = projectionBasis.UnableToVerify(
+                "Tenants.Correction.Unavailable.CommandProofUnavailable");
+            await InvokeAsync(() =>
+            {
+                if (CanApplyGrantMutation(generation)
+                    && ReferenceEquals(_grantSnapshot, projectionBasis)
+                    && ReferenceEquals(_grantAdmissionLease, projectionLease))
+                {
+                    SetGrantSnapshot(unverified);
+                    StateHasChanged();
+                }
+
+                if (projectionLease is not null
+                    && ReferenceEquals(_grantAdmissionLease, projectionLease)
+                    && projectionLease.TryReleaseTerminal(
+                        _fixedAggregateOwner,
+                        TenantCommandLifecycleState.Failed))
+                {
+                    _grantAdmissionLease = null;
+                }
+            }).ConfigureAwait(false);
+            return;
+        }
+
         GlobalAdministratorGrantCommandSnapshot projectionSnapshot = CanConfirmCorrectionProjection(projectionLease, snapshot)
             ? projectionBasis.ConfirmProjection(snapshot)
             : projectionBasis;
@@ -4777,9 +4803,6 @@
         TenantAggregateCommandLease? projectionLease = _removeAdmissionLease;
         GlobalAdministratorsSnapshot snapshot = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
             .ConfigureAwait(false);
-        GlobalAdministratorRemoveCommandSnapshot projectionSnapshot = CanConfirmCorrectionProjection(projectionLease, snapshot)
-            ? projectionBasis.ConfirmProjection(snapshot)
-            : projectionBasis;
         if (snapshot.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
         {
             await CollapseAuthorizationIfCurrentAsync(
@@ -4789,6 +4812,36 @@
                     && ReferenceEquals(_removeAdmissionLease, projectionLease)).ConfigureAwait(false);
             return;
         }
+
+        if (IsPermanentCorrectionBaselineFailure(projectionLease))
+        {
+            GlobalAdministratorRemoveCommandSnapshot unverified = projectionBasis.UnableToVerify(
+                "Tenants.Correction.Unavailable.CommandProofUnavailable");
+            _ = await InvokeRendererSafelyAsync(() =>
+            {
+                if (CanApplyRemoveMutation(generation)
+                    && ReferenceEquals(_removeSnapshot, projectionBasis)
+                    && ReferenceEquals(_removeAdmissionLease, projectionLease))
+                {
+                    SetRemoveSnapshot(unverified);
+                    StateHasChanged();
+                }
+
+                if (projectionLease is not null
+                    && ReferenceEquals(_removeAdmissionLease, projectionLease)
+                    && projectionLease.TryReleaseTerminal(
+                        _fixedAggregateOwner,
+                        TenantCommandLifecycleState.Failed))
+                {
+                    _removeAdmissionLease = null;
+                }
+            }).ConfigureAwait(false);
+            return;
+        }
+
+        GlobalAdministratorRemoveCommandSnapshot projectionSnapshot = CanConfirmCorrectionProjection(projectionLease, snapshot)
+            ? projectionBasis.ConfirmProjection(snapshot)
+            : projectionBasis;
 
         bool resumeAdopted = false;
         bool confirmed = false;
@@ -5188,6 +5241,26 @@
             SafeMessageKey: reconciliation.SafeMessageKey,
             SafeRecoveryKey: reconciliation.SafeRecoveryKey,
             RejectionCode: reconciliation.RejectionCode);
+    }
+
+    private bool IsPermanentCorrectionBaselineFailure(TenantAggregateCommandLease? lease)
+    {
+        if (lease is null
+            || !lease.TryReadReconciliation(_fixedAggregateOwner, out GlobalAdministratorReconciliationState? reconciliation)
+            || reconciliation is null
+            || string.IsNullOrWhiteSpace(reconciliation.SourceAuditReference)
+            || reconciliation.CommittedEventSequence is not > 0)
+        {
+            return false;
+        }
+
+        string? baseline = reconciliation.ActionKind is GlobalAdministratorActionKind.Grant
+            ? reconciliation.GrantPreview?.ProjectionVersion
+            : reconciliation.RemovePreview?.ProjectionVersion;
+        return !TenantLifecycleProjectionVersion.HasReached(
+            reconciliation.CommittedEventSequence,
+            baseline,
+            requireBeyond: true);
     }
 
     private bool CanConfirmCorrectionProjection(

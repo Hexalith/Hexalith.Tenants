@@ -2,7 +2,7 @@
 title: 'Correct global administrator authority from audit evidence'
 type: 'feature'
 created: '2026-10-10'
-status: 'in-progress'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 3
 baseline_commit: '66072cc410834e2c34f7d30f121e447940ea6fc6'
@@ -441,27 +441,27 @@ Code review 2026-10-12 of `2315aad9`, the fix pass for the seven patches above. 
 - **Gitlink guard:** `python3 scripts/validate-story-gitlinks.py <spec>` passes (exit 0) on the working tree and with `--ref 2315aad9`. The range touches neither `scripts/` nor `tests/scripts/`.
 - **Commit message:** `fix(audit): close global administrator correction review gaps` passes the pinned `@commitlint/cli` 21.2.3 (`node_modules/.bin/commitlint --edit`, exit 0).
 
-- [ ] [Review][Patch] (low) The live-region test cannot fail if the Polite reset is removed [tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs:492]
+- [x] [Review][Patch] (low) The live-region test cannot fail if the Polite reset is removed [tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs:492]
   - **Why it can't fail:** the test builds `readableButLagging` from `repeatedStatus = unavailable.ApplyStatus(Completed…)`, not from `unavailable`. On every row that stays ProjectionPending, `ApplyStatus` already sets Polite. Restore goes through `WithPositiveEventEvidence` (`GlobalAdministratorCorrectionSnapshot.cs:866`), and revoke goes through `GlobalAdministratorRemoveCommandSnapshot.cs:463`. `RetainProjectionReadMarker` (`:625`) restores only `SafeMessageKey`.
   - **Mutation:** deleting `:669-670` leaves all four rows green.
   - **Production reach:** the panel always calls `ApplyStatus` (`GlobalAdministratorCorrectionPanel.razor:1747`) before `ConfirmProjection` (`:1814`). So the reset is not reached today, and no user hears a wrong announcement. The `[x]` above is still not earned.
   - **Fix:** keep the existing assertions. Add `unavailable.ConfirmProjection(before).LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite)`. It passes at HEAD and fails under the mutation on all four rows (Acceptance Auditor probe).
 
   [blind+edge+auditor+verification]
-- [ ] [Review][Patch] (low) The superseded projection-read theory cannot tell the superseded branch from the current one [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:6172]
+- [x] [Review][Patch] (low) The superseded projection-read theory cannot tell the superseded branch from the current one [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:6172]
   - **Gap:** the current-generation path `SetGrantSnapshot(projectionSnapshot, snapshot)` (`GlobalAdministratorsPage.razor:4057-4068`) also passes the projection to `RememberCorrectionCompletion`, and it releases the lease through `TryReleaseTerminal`. So every assertion passes on both paths. The theory pins `:3926` and `:4803` only because the reflected generation write sends the read there.
   - **Effect of a regression:** if the supersession guard stopped seeing the advanced generation, this theory would stay green.
   - **Fix:** after the read, assert that `_grantSnapshot` / `_removeSnapshot` is still `ShouldBeSameAs(pending)`. Only the superseded branch leaves it untouched.
 
   [blind]
-- [ ] [Review][Patch] (low) The shared identity predicate does not document its asymmetric null tolerance [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorReconciliationState.cs:72]
+- [x] [Review][Patch] (low) The shared identity predicate does not document its asymmetric null tolerance [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorReconciliationState.cs:72]
   - **Problem:** the two parameters have the same type and are positional. A null `current.CorrelationId` is tolerated, while the null tolerance for `SourceAuditReference` and `SourceAuditTimestampUtc` applies to `next`. Four gate sites and `WithCarriedProofInputs` now share this method, so a new caller that swaps the arguments would silently loosen the source check.
   - **Fix:** add `<param>` tags. They should say that `current` is the retained lease state and `next` is the proposed update, and which side each null tolerance applies to.
   - **Already pinned:** swapping the arguments in `WithCarriedProofInputs` fails 8 tests.
   - **Not part of this patch:** field-mismatch test cases. The predicate moved unchanged from the gate, so that gap predates this diff.
 
   [blind]
-- [ ] [Review][Patch] (low) The Review 9 deferred-work entries name no file, test or commit [_bmad-output/implementation-artifacts/deferred-work.md:4155]
+- [x] [Review][Patch] (low) The Review 9 deferred-work entries name no file, test or commit [_bmad-output/implementation-artifacts/deferred-work.md:4155]
   - **Problem:** unlike the entries around them, the three entries cite only "the independently committed disabled-bootstrap test" and "the independent module manifest". A ledger sweep cannot find them.
   - **Fix:** add these locations and the triage-row severities (medium, medium, low):
     - the test `StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator` (`tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs:30`, with `Task.Delay(50)` at `:52`), from `6b6a35f0`;
@@ -470,7 +470,7 @@ Code review 2026-10-12 of `2315aad9`, the fix pass for the seven patches above. 
   - **Not a misroute:** pointing `source_spec` at Story 5.7 follows the ledger's convention for independently committed findings raised during a 5.7 review, as the `711e1008` Review 6 entries do.
 
   [blind+auditor]
-- [ ] [Review][Patch] (low) The grant dispatch-start source pin counts matches instead of anchoring to the grant branch [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:2211]
+- [x] [Review][Patch] (low) The grant dispatch-start source pin counts matches instead of anchoring to the grant branch [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:2211]
   - **Problem:** `secondDispatchGuard` accepts any second needle in the callback range. A grant regression paired with a commented-out or duplicate needle elsewhere would therefore pass.
   - **What it already catches:** the historic regression shape. Its mutation is killed, and `ShouldNotContain("TryMarkDispatched(_admissionOwner)")` catches it too.
   - **Why it matters:** the Verification Gap layer found that no behavioral test tells the two forms apart. This pin is the only guard.
@@ -672,6 +672,22 @@ Code review 2026-10-12 of `2315aad9`, the fix pass for the seven patches above. 
 | Review 9 blind: manifest recovery inventory | low — the independent manifest leaves recovery hooks and inventory empty despite the documented singleton replay prerequisite, leaving a manifest consumer without that operational dependency. | defer |
 | Review 9 blind: manifest critical flow omits removal | low — carried: the independent manifest omits its already declared removal operation from the critical flow. | carried defer |
 | Review 9 blind: ambiguous committed POST | medium — carried: a changed projection can withdraw correlationless redelivery and keep the circuit lease; MessageId status lookup is unavailable, so this existing limitation remains deferred. | carried defer |
+| Review 10 blind: open generation increment can lose an authentication invalidation | medium — `OpenGlobalCorrectionAsync` uses a non-atomic `++` while authentication uses `Interlocked.Increment`, and the apply callback does not read `_authenticationTransitionPending`, so a lost increment can mount the previous principal's projection. | patch |
+| Review 10 blind: incomplete proof walk stays delayed | low — `(null, false)` is also the lagging-audit signal that must stay refreshable; duplicate, page-cap, and time-bound aborts are the unlikely cases, and separating them adds a result contract. | reject |
+| Review 10 blind+edge: baseline-failed completed sequence holds the lease and the sibling page | medium — `UnableToVerify` is not terminal, so `CommandProofUnavailable` never releases the fixed aggregate; `CanConfirmCorrectionProjection` also skips confirmation when the sequence is not beyond the preview baseline, and the grant/remove `ConfirmProjection` methods must not be used for that case because they can confirm from presence. | patch |
+| Review 10 blind: sequence 0 is omitted from audit provenance | maybe-false — the projection stamps `SequenceNumber >= 0` and the audit row keeps `AggregateSequence` only when `SequenceNumber > 0`; whether EventStore can persist a global-administrator event at sequence 0 is unverified. If it can, that event cannot be paired. | defer (unverified medium) |
+| Review 10 blind: out-of-order global projection batch | maybe-false — carried: the handler still stamps the last iterated sequence, and EventStore batch order remains unverified. | carried defer (unverified medium) |
+| Review 10 blind: missing-key exception names only the legacy signing key | low — `Program.cs` throws `EventStore:Authentication:SigningKey is required` when `FirstConfigured` finds neither legacy nor `Jwt:SigningKey`. This text comes from the independent bootstrap commit `6b6a35f0`, not the correction flow. | defer |
+| Review 10 blind: global replay may replace system tenant audit | medium — carried: both projection handlers write `audit:system`; this predates the story and is already deferred. | carried defer |
+| Review 10 blind: manifest authorization and empty recovery inventory | medium — carried: the independent manifest still says `authenticated` and leaves recovery hooks empty; both entries are already in the deferred ledger. | carried defer |
+| Review 10 blind: default proof lookup is indistinguishable from an incomplete walk | false — `TenantQueryGateway` overrides `FindGlobalAdministratorCorrectionProofAsync`; the interface default is not the registered BFF path, and `(null, false)` is the fail-closed result for an unimplemented lookup. | reject |
+| Review 10 blind: sprint status lagged the spec, and older verification counts disagree | low — the verification narrative is historical evidence, and editing it is a spec rewrite. Sprint status was still `in-progress` after the spec moved to `in-review`; this review sets that story key to `review`. | patch |
+| Review 10 blind: disposal does not prove the authentication unsubscribe | low — already recorded for `GlobalAdministratorCorrectionPanel.razor:2367` and `GlobalAdministratorsPage.razor:2397`. After `Dispose`, the panel lease is cleared and `CanApplyAuthorization` requires `!_disposed`, so the handler does not keep acting. A new test is more than a direct correction. | reject |
+| Review 10 blind: no live Aspire smoke | low — carried: component, gateway, server, and rendered browser lanes cover the changed seams; earlier reviews rejected a live hosted stack. | carried reject |
+| Review 10 edge: remove-preview composition uses raw InvokeAsync | medium — `OnParametersSetAsync` awaits `InvokeAsync` after `ComposeRemovePreviewSafelyAsync`. A disposed renderer throws out of the lifecycle method. `InvokeRendererSafelyAsync` already catches that teardown. | patch |
+| Review 10 edge: retained pair skips a fresh projection read | false — carried: pending completions load a fresh complete projection before `RebuildVerifiedCompletion`; a retained pair is rechecked through both protected audit rows and is not republished without that recheck. | carried reject |
+| Review 10 verification: public ready timeout is not asserted | medium — `Program.cs` registers `eventstore-gateway` with a 3-second timeout, and `TenantsApiReadinessTests` returns immediately, so dropping the timeout stays green. The registration comes from the independent API commits, not the correction flow. | defer |
+| Review 10 verification: legacy and alias authentication keys are not tested together | medium — `FirstConfigured` keeps a non-blank legacy value, but the alias tests never set a different non-blank legacy value and alias together. Those settings come from `6b6a35f0`. | defer |
 
 ## File List
 
@@ -698,6 +714,15 @@ These commits mix Story 5.7 code edits with eight pointer moves across six root 
 - `85a5a6cc18ef6a0f2da69e4fd2c2a1a408f32359`
 
 ## Verification
+
+**Review 10 patch verification (2026-10-12):**
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-class '*GlobalAdministratorCorrectionPanelTests' --filter-class '*GlobalAdministratorsPageTests' --filter-class '*TenantAuditPageTests' --filter-class '*GlobalAdministratorCorrectionSnapshotTests'` — passed 631/631, none skipped. The built assembly is newer than the review-fix sources.
+
+**Review 9 patch verification (2026-10-12):**
+- `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 -v:q` — passed with zero warnings/errors.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore --filter-method '*Unreadable_postcommand_projection_keeps_attempt_and_clears_marker_only_after_complete_read*' --filter-method '*Superseded_projection_read_retains_the_confirming_projection_for_correction_proof*' --filter-method '*Correction_lease_arming_and_component_field_write_are_renderer_guarded*'` — passed 7/7.
+- Deleting the Polite reset in `GlobalAdministratorCorrectionSnapshot.ConfirmProjection` and rerunning the first method failed all 4 theory rows (`Assertive` instead of `Polite`). The reset was restored before the suite run below.
+- `dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false --no-build --no-restore` — 4,070 passed, 5 failed, none skipped. The failures are `GeneratedTenantsSurfaceTests` projection-grid cases (`Three_call_host_renders_generated_projection_route`, `Generated_tenant_summary_projection_renders_tenant_columns_and_count`, and three canceled manifest-route waits). They do not use the correction snapshot, admission identity, or grant dispatch pin. HEAD is `3440ff01`, the FrontComposer and Memories pointer update.
 
 **Current review patch verification (2026-10-12):**
 - `dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 --no-restore -v:q` — passed with zero warnings/errors.
