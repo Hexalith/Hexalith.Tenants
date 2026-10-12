@@ -4163,3 +4163,9 @@ Diff reviewed: Tenants `66072cc4..362a957d`. The diff was 4,351 lines (260,201 b
 - source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
   summary: Decide how the independent module manifest should expose the singleton projection replay prerequisite.
   evidence: The manifest leaves recovery hooks and inventory empty even though Story 5.7 requires replay of persisted singleton projections before correction becomes available; the appropriate manifest hook or inventory entry needs an owning manifest follow-up.
+
+## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, fix-pass range `44878a58..2315aad9` (2026-10-12)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+  summary: medium; pin the authentication-state unsubscribe on disposal of `GlobalAdministratorCorrectionPanel` and `GlobalAdministratorsPage`.
+  evidence: Pre-existing test gap: both subscriptions exist at Story 5.7 baseline `66072cc4`, and fix pass `2315aad9` closed only the `TenantAuditPage` equivalent. In an isolated checkout of `2315aad9`, deleting `AuthenticationStateChanged -= OnAuthenticationStateChanged` at `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:2367`, or at `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:2397`, leaves the UI suite at 4,075/4,075 green. A regression would keep disposed components referenced by the circuit's provider, and the panel handler (`:2026`) would run `RetainReconciliationForReplacement()` and `InvalidateOperation()` after disposal. Suggested shape: the `TenantAuditPage` dispose test from `2315aad9` — after disposal raise a principal change and assert the handler's counter is unchanged (`_authorizationGeneration` on the panel, `_authorizationTransitionVersion` on the page).

@@ -2,7 +2,7 @@
 title: 'Correct global administrator authority from audit evidence'
 type: 'feature'
 created: '2026-10-10'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 3
 baseline_commit: '66072cc410834e2c34f7d30f121e447940ea6fc6'
@@ -422,6 +422,83 @@ Code review 2026-10-11 of `1ac82206`, the fix pass for the ten patches above. `c
 - A grant apply refused without disposal leaves the lease owned — false: the renderer refuses only during teardown. `Dispose` (`:2350`) retains through `RetainReconciliationForReplacement`, and `TryCompleteReconciliationDispatch` publishes onto an unowned lease. [edge]
 - An unprovable pending completion is re-walked on every load with a receipt selected — low: it is limited to this circuit's own corrections and to loads with a receipt selected, and eviction needs attempt tracking. [edge]
 - `Story-Owned` mode ignores a later unlisted pointer commit — low and by design: the guard's docstring says owned mode excludes later committed dependency updates, and restoring exactly this guard was option (a). [edge]
+
+### Review Findings — fix-pass range `44878a58..2315aad9` (2026-10-12)
+
+Code review 2026-10-12 of `2315aad9`, the fix pass for the seven patches above. `44878a58` only recorded those findings.
+- **Diff:** 9 files, +206/−36, 453 lines, 39,728 bytes (SHA-256 `1851ca48dac8f0a680712efeb0efda0863325c03bf6f5ec0e718e33688875cff`). It is not archived. It has no `references/` changes, and every submodule checkout matches its committed gitlink.
+- **Layers:** Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor all ran, and none failed.
+- **Triage:** 19 findings became 0 decision-needed, 5 patch, 1 defer and 5 rejected entries.
+- **Isolated checkout at `2315aad9`:** the full UI suite passes 4,075/4,075. Every mutation cited below was run against that checkout.
+- **Mutation re-check of the seven patches above:**
+  - **Killed:**
+    - Removing the unsubscribe (`TenantAuditPage.razor:2598`).
+    - Dropping `snapshot` at `GlobalAdministratorsPage.razor:3926` (Grant row) or at `:4803` (Remove row).
+    - Deleting the `if (resumeAdopted)` block, or restoring the publish-before-complete failure order. The transport-exception test catches both.
+    - Reverting the grant branch to `TryMarkDispatched` + `TryBeginReconciliationDispatch`. The source pin catches it.
+    - Swapping the `HasSameCommandIdentity(current, this)` arguments. Eight page, gate and panel tests fail.
+  - **Survived:** deleting the Polite reset (`GlobalAdministratorCorrectionSnapshot.cs:669-670`). See the first patch below.
+- **Gitlink guard:** `python3 scripts/validate-story-gitlinks.py <spec>` passes (exit 0) on the working tree and with `--ref 2315aad9`. The range touches neither `scripts/` nor `tests/scripts/`.
+- **Commit message:** `fix(audit): close global administrator correction review gaps` passes the pinned `@commitlint/cli` 21.2.3 (`node_modules/.bin/commitlint --edit`, exit 0).
+
+- [ ] [Review][Patch] (low) The live-region test cannot fail if the Polite reset is removed [tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs:492]
+  - **Why it can't fail:** the test builds `readableButLagging` from `repeatedStatus = unavailable.ApplyStatus(Completed…)`, not from `unavailable`. On every row that stays ProjectionPending, `ApplyStatus` already sets Polite. Restore goes through `WithPositiveEventEvidence` (`GlobalAdministratorCorrectionSnapshot.cs:866`), and revoke goes through `GlobalAdministratorRemoveCommandSnapshot.cs:463`. `RetainProjectionReadMarker` (`:625`) restores only `SafeMessageKey`.
+  - **Mutation:** deleting `:669-670` leaves all four rows green.
+  - **Production reach:** the panel always calls `ApplyStatus` (`GlobalAdministratorCorrectionPanel.razor:1747`) before `ConfirmProjection` (`:1814`). So the reset is not reached today, and no user hears a wrong announcement. The `[x]` above is still not earned.
+  - **Fix:** keep the existing assertions. Add `unavailable.ConfirmProjection(before).LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite)`. It passes at HEAD and fails under the mutation on all four rows (Acceptance Auditor probe).
+
+  [blind+edge+auditor+verification]
+- [ ] [Review][Patch] (low) The superseded projection-read theory cannot tell the superseded branch from the current one [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:6172]
+  - **Gap:** the current-generation path `SetGrantSnapshot(projectionSnapshot, snapshot)` (`GlobalAdministratorsPage.razor:4057-4068`) also passes the projection to `RememberCorrectionCompletion`, and it releases the lease through `TryReleaseTerminal`. So every assertion passes on both paths. The theory pins `:3926` and `:4803` only because the reflected generation write sends the read there.
+  - **Effect of a regression:** if the supersession guard stopped seeing the advanced generation, this theory would stay green.
+  - **Fix:** after the read, assert that `_grantSnapshot` / `_removeSnapshot` is still `ShouldBeSameAs(pending)`. Only the superseded branch leaves it untouched.
+
+  [blind]
+- [ ] [Review][Patch] (low) The shared identity predicate does not document its asymmetric null tolerance [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorReconciliationState.cs:72]
+  - **Problem:** the two parameters have the same type and are positional. A null `current.CorrelationId` is tolerated, while the null tolerance for `SourceAuditReference` and `SourceAuditTimestampUtc` applies to `next`. Four gate sites and `WithCarriedProofInputs` now share this method, so a new caller that swaps the arguments would silently loosen the source check.
+  - **Fix:** add `<param>` tags. They should say that `current` is the retained lease state and `next` is the proposed update, and which side each null tolerance applies to.
+  - **Already pinned:** swapping the arguments in `WithCarriedProofInputs` fails 8 tests.
+  - **Not part of this patch:** field-mismatch test cases. The predicate moved unchanged from the gate, so that gap predates this diff.
+
+  [blind]
+- [ ] [Review][Patch] (low) The Review 9 deferred-work entries name no file, test or commit [_bmad-output/implementation-artifacts/deferred-work.md:4155]
+  - **Problem:** unlike the entries around them, the three entries cite only "the independently committed disabled-bootstrap test" and "the independent module manifest". A ledger sweep cannot find them.
+  - **Fix:** add these locations and the triage-row severities (medium, medium, low):
+    - the test `StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator` (`tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs:30`, with `Task.Delay(50)` at `:52`), from `6b6a35f0`;
+    - `module/hexalith.module-manifest.v2.json` (authorization `authenticated`, empty recovery inventory), as changed by `6b6a35f0`;
+    - the replay prerequisite at `docs/event-contract-reference.md:127`.
+  - **Not a misroute:** pointing `source_spec` at Story 5.7 follows the ledger's convention for independently committed findings raised during a 5.7 review, as the `711e1008` Review 6 entries do.
+
+  [blind+auditor]
+- [ ] [Review][Patch] (low) The grant dispatch-start source pin counts matches instead of anchoring to the grant branch [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:2211]
+  - **Problem:** `secondDispatchGuard` accepts any second needle in the callback range. A grant regression paired with a commented-out or duplicate needle elsewhere would therefore pass.
+  - **What it already catches:** the historic regression shape. Its mutation is killed, and `ShouldNotContain("TryMarkDispatched(_admissionOwner)")` catches it too.
+  - **Why it matters:** the Verification Gap layer found that no behavioral test tells the two forms apart. This pin is the only guard.
+  - **Fix:** locate `else if (requestSent.ToCompletionReconciliation() is not { } grantDispatchBasis`. Assert that the needle follows it, inside the callback range, with `grantDispatchBasis,` as its basis argument.
+
+  [blind]
+- [x] [Review][Defer] (medium) Nothing pins the authentication unsubscribe on disposal of the correction panel or the Global Administrators page [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:2367] — deferred: pre-existing. Both subscriptions exist at baseline `66072cc4`, and this fix pass closed only the `TenantAuditPage` gap.
+  - **Mutation:** deleting the `-=` at `:2367`, or at `GlobalAdministratorsPage.razor:2397`, leaves 4,075/4,075 green.
+  - **Effect of a regression:** disposed components would stay referenced by the circuit's provider, and the panel would run `RetainReconciliationForReplacement()` and `InvalidateOperation()` after disposal.
+  - **Recorded in:** `deferred-work.md`.
+
+  [blind]
+
+**Rejected** (one line each):
+- Spec `done` versus sprint `review`, `done` set before this review, and a stale `review_loop_iteration` — rejected: the fix edits the spec under review, and this review's status sync sets both. [blind+auditor+verification]
+- The new Verification block records no mutation or commitlint evidence, and its heading names no review — rejected: the fix edits the spec. This review mutation-verified every patch, and the message passes commitlint (exit 0). [blind+auditor]
+- The transport-exception test omits its sibling's "transport detail" and target assertions and orders steps with 20 `Task.Yield()` calls — false:
+  - The failure path's bare `catch` (`GlobalAdministratorCorrectionPanel.razor:1315`) never reads the exception, and the failure snapshot carries only a resource key, so the message cannot reach the markup.
+  - `TrackedMessageIds == [id, id]` pins the same attempt.
+  - The generation bump happens before the renderer is released, so the outcome does not depend on the number of yields.
+
+  [blind]
+- The Review 9 triage rows add `carried reject` / `carried defer` wording, repeat three claims, and leave the recurring "retained pair" claim without a durable record — rejected: the fix edits the spec's triage log. [blind]
+- `RequeryRemoveProjectionAsync` passes `CancellationToken.None` and computes `ConfirmProjection` before its Unauthorized check:
+  - **Order — false:** the Unauthorized branch returns before the computed snapshot is used.
+  - **Token — low:** it predates this diff, the generation and reference guards discard a late result, and the fix adds a parameter.
+
+  [blind]
 
 ## Implementation Notes
 
