@@ -2162,6 +2162,61 @@ public class CommandApiRuntimeIntegrationTests {
         await router.DidNotReceiveWithAnyArgs().RouteCommandAsync(default!, default);
     }
 
+    [Theory]
+    [InlineData("different-admin")]
+    [InlineData("Authenticated-admin")]
+    public async Task AuthenticatedBootstrapCannotAssignDifferentTarget(string targetUserId)
+    {
+        const string actorUserId = "authenticated-admin";
+        var aggregate = new GlobalAdministratorsAggregate();
+        CommandEnvelope? dispatchedEnvelope = null;
+        DomainResult? domainResult = null;
+        ICommandRouter router = Substitute.For<ICommandRouter>();
+        router.RouteCommandAsync(Arg.Any<SubmitPipelineCommand>(), Arg.Any<CancellationToken>())
+            .Returns(async call =>
+            {
+                SubmitPipelineCommand submitted = call.ArgAt<SubmitPipelineCommand>(0);
+                dispatchedEnvelope = new CommandEnvelope(
+                    submitted.MessageId, submitted.Tenant, submitted.Domain, submitted.AggregateId,
+                    submitted.CommandType, submitted.Payload, submitted.CorrelationId, null,
+                    submitted.UserId, submitted.Extensions);
+                domainResult = await aggregate.ProcessAsync(dispatchedEnvelope, currentState: null);
+                return new CommandProcessingResult(
+                    domainResult.IsSuccess,
+                    domainResult.IsRejection ? "Domain rejection: InsufficientPermissionsRejection" : null,
+                    submitted.CorrelationId);
+            });
+        ICommandStatusStore statusStore = Substitute.For<ICommandStatusStore>();
+        statusStore.ReadStatusAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new CommandStatusRecord(
+                CommandStatus.Rejected, DateTimeOffset.UtcNow, "global-administrators", 1,
+                typeof(InsufficientPermissionsRejection).FullName, null, null));
+        await using var factory = new CommandApiWebApplicationFactory(
+            router, statusStore, Substitute.For<ICommandArchiveStore>(), useTestAuthentication: false);
+        string token = CreateJwt(actorUserId, claims:
+        [
+            new Claim("name", targetUserId),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("eventstore:domain", "global-administrators"),
+            new Claim("eventstore:permission", nameof(BootstrapGlobalAdmin)),
+        ]);
+        using HttpClient client = CreateClientWithBearer(factory, token);
+        var request = new Hexalith.EventStore.Contracts.Commands.SubmitCommandRequest(
+            UniqueIdHelper.GenerateSortableUniqueStringId(), "system", "global-administrators", "global-administrators",
+            nameof(BootstrapGlobalAdmin), JsonSerializer.SerializeToElement(new BootstrapGlobalAdmin(targetUserId)));
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/api/v1/commands", request);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.UnprocessableEntity);
+        dispatchedEnvelope.ShouldNotBeNull().UserId.ShouldBe(actorUserId);
+        ProblemDetails details = (await response.Content.ReadFromJsonAsync<ProblemDetails>()).ShouldNotBeNull();
+        GetProblemExtension(details, "reasonCode").ShouldBe("insufficient-permissions-rejection");
+        domainResult.ShouldNotBeNull().IsRejection.ShouldBeTrue();
+        domainResult.Events.Count.ShouldBe(1);
+        domainResult.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>().ActorUserId.ShouldBe(actorUserId);
+        domainResult.Events.ShouldNotContain(static e => e.GetType() == typeof(GlobalAdministratorSet));
+    }
+
     private static HttpClient CreateJwtClient(WebApplicationFactory<TenantBootstrapOptions> factory)
         => CreateClientWithBearer(factory, CreateJwt("admin-user"));
 

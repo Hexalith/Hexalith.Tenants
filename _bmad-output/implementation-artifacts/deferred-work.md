@@ -6,7 +6,7 @@ This ledger remains the source of truth; [the maintenance backlog](../../docs/ma
 
 Evidence distinguishes inspected source/tests/artifacts from executed results. No .NET tests or browser sessions were rerun for this documentation task. Read-only story-gitlink validators and existing hosted CI results were inspected: [current Tenants CI](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269521776) has a successful build/test job and an advisory Aspire lane with 183/184 passed, zero skipped, and the generated API TLS test failing; [current Story Guards](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326) still times out the shipped Chromium profile. These results do not establish an entirely green runtime environment.
 
-Disposition counts for the 439 reconciled records: 86 done, 265 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain. Remaining: 353 open records. Earlier closed records are outside these reconciliation counts.
+Original reconciliation counts for the 439 records: 86 done, 265 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain (353 open). After validated B1 closure of DW-550/DW-567/DW-598: 89 done, 262 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain; 350 open. Earlier closed records are outside these reconciliation counts. The three B1 closures retain their historical findings here; no archive move or unrelated disposition change ran.
 
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
@@ -7124,17 +7124,21 @@ location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: high; bootstrap administrator credential acquisition permits an HTTP authority outside Development.\n  evidence: `TenantBootstrapCredentialProvider.AcquireFromAuthorityAsync` posts the password form to `EventStore:Authentication:Authority` without validating its scheme or environment. Production host validation covers the separate `Authentication:JwtBearer:Authority` setting. The bootstrap hosted service passes the independent authority through unchanged; require production transport validation in the bootstrap owner's work."
-status: open
-disposition: actionable
+status: done 2026-10-12
+disposition: done
 verification-date: 2026-10-12
-verification: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:58-85 passes independent EventStore:Authentication:Authority directly to a password-grant PostAsync without checking HTTPS/environment. Development-only protection exists only for local token generation; separate JwtBearer validation does not validate this authority.
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
+verification-before-b1: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:58-85 passes independent EventStore:Authentication:Authority directly to a password-grant PostAsync without checking HTTPS/environment. Development-only protection exists only for local token generation; separate JwtBearer validation does not validate this authority.
+verification: Validated the independent EventStore:Authentication:Authority before form construction or HTTP I/O; requires well-formed absolute HTTP(S) with host and no userinfo/query/fragment, and HTTPS in every non-Development environment. Stable reason diagnostics and sanitized phase/exception-type failure logs exclude credentials and tokens.
+verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs
 evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: Bootstrap transport validation contract
-next-action: Reject non-HTTPS bootstrap authority outside Development and add production HTTP-authority no-request coverage.
+next-action: none; B1 implementation and maintained checks complete in the working tree.
 related: none
+resolution-date: 2026-10-12
+resolution: Release blocker B1 closed in the working tree over Tenants 2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1; no commit or release approval implied.
+resolution-evidence: [B1 remediation evidence](release-readiness.md#b1-remediation-evidence-2026-10-12); Release build, 881 Server tests, 182 Testing tests, 187 non-performance integration tests and configured 100% isolation/auth coverage gate passed with no failures/skips.
 
 
 ### DW-551: medium; bootstrap authority mode hardcodes the Keycloak token endpoint despite its generic authority contract.
@@ -7472,16 +7476,21 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: high; the first global-administrator bootstrap command can name a different administrator than its authenticated actor.\n  evidence: `src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs:11-19` handles `BootstrapGlobalAdmin` using `command.UserId` without receiving the command envelope or comparing its authenticated `UserId`. It writes `command.UserId` as both the `UserId` and `ActorUserId` of `GlobalAdministratorSet`, so the audit trail can record the target as its own actor. The Story 5.6 credential provider binds only its own hosted-service submission to the configured subject; `AspireTopologyTests.cs:136` and `:332` show that an external JWT caller can submit `BootstrapGlobalAdmin` for its own subject. The global-administrator command owner should require the bootstrap target to equal the authenticated actor and add a mismatch regression at the domain-service boundary."
-status: open
-disposition: actionable
+status: done 2026-10-12
+disposition: done
 verification-date: 2026-10-12
-verification: GlobalAdministratorsAggregate.Handle(BootstrapGlobalAdmin, state) still has no CommandEnvelope and writes command.UserId as both target and actor. The other global commands use envelope.UserId, so bootstrap mismatch and incorrect audit attribution remain possible.
+verification-before-b1: GlobalAdministratorsAggregate.Handle(BootstrapGlobalAdmin, state) still has no CommandEnvelope and writes command.UserId as both target and actor. The other global commands use envelope.UserId, so bootstrap mismatch and incorrect audit attribution remain possible.
+verification: BootstrapGlobalAdmin now consumes CommandEnvelope, requires ordinal actor/target equality before the bootstrap-state check and derives event/rejection audit attribution from envelope.UserId. Permission rejections replay without membership mutation. Authenticated JWT mismatch, null/unbootstrapped state, persisted denial followed by valid bootstrap, audit attribution and already-bootstrapped behavior pass.
+verification-files: src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs; src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsState.cs; src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs; tests/Hexalith.Tenants.Server.Tests/Aggregates/GlobalAdministratorsAggregateTests.cs; tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs; tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs
 evidence-kind: verified-defect
 priority: P1
 owner: global-administrator command owner
 dependencies: Domain-service authenticated command envelope
-next-action: Require authenticated bootstrap actor/target equality and add a boundary mismatch regression.
+next-action: none; B1 implementation and maintained checks complete in the working tree.
 related: DW-575
+resolution-date: 2026-10-12
+resolution: Release blocker B1 closed in the working tree over Tenants 2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1; no commit or release approval implied.
+resolution-evidence: [B1 remediation evidence](release-readiness.md#b1-remediation-evidence-2026-10-12); Release build, 881 Server tests, 182 Testing tests, 187 non-performance integration tests and configured 100% isolation/auth coverage gate passed with no failures/skips.
 
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 31 (2026-10-09)
@@ -8117,17 +8126,22 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Require a secure authority before posting bootstrap administrator credentials.\n  evidence: TenantBootstrapCredentialProvider sends the configured username and password to EventStore:Authentication:Authority without an HTTPS check; production validation checks the separate Authentication:JwtBearer authority setting."
-status: open
-disposition: actionable
+status: done 2026-10-12
+disposition: done
 verification-date: 2026-10-12
-verification: TenantBootstrapCredentialProvider.AcquireFromAuthorityAsync posts username/password directly to EventStore:Authentication:Authority without an HTTPS/scheme gate. Production JWT validation governs a different Authentication:JwtBearer setting.
+verification-before-b1: TenantBootstrapCredentialProvider.AcquireFromAuthorityAsync posts username/password directly to EventStore:Authentication:Authority without an HTTPS/scheme gate. Production JWT validation governs a different Authentication:JwtBearer setting.
+verification: Duplicate of DW-550, closed by the same independent bootstrap-authority gate. Production/Staging/custom non-Development insecure or malformed authorities return no credential and issue zero HTTP requests; valid HTTPS and local Development HTTP/signing behavior remain covered.
+verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs
 evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: Production bootstrap authority contract; local Development exception
-next-action: Reject insecure production credential-post authorities before HTTP I/O and test the independent configuration key.
+next-action: none; B1 implementation and maintained checks complete in the working tree.
 related: DW-550,DW-567
 duplicate-of: DW-550
+resolution-date: 2026-10-12
+resolution: Release blocker B1 closed in the working tree over Tenants 2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1; no commit or release approval implied.
+resolution-evidence: [B1 remediation evidence](release-readiness.md#b1-remediation-evidence-2026-10-12); Release build, 881 Server tests, 182 Testing tests, 187 non-performance integration tests and configured 100% isolation/auth coverage gate passed with no failures/skips.
 
 
 ### DW-599: Enforce tenant configuration read policy at the direct API boundary.

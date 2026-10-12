@@ -38,5 +38,13 @@ public sealed class GlobalAdministratorsState {
         MarkReplayOnlyEventHandled();
     }
 
+    /// <summary>Replays a permission rejection without changing administrator state.</summary>
+    /// <param name="e">The persisted rejection event.</param>
+    public void Apply(InsufficientPermissionsRejection e)
+    {
+        ArgumentNullException.ThrowIfNull(e);
+        MarkReplayOnlyEventHandled();
+    }
+
     private void MarkReplayOnlyEventHandled() => _ = Bootstrapped;
 }

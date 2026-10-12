@@ -388,6 +388,229 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Theory]
+    [InlineData("Production", null)]
+    [InlineData("Production", "")]
+    [InlineData("Production", "   ")]
+    [InlineData("Production", "http://identity.example.test/realms/hexalith")]
+    [InlineData("Production", "realms/hexalith")]
+    [InlineData("Production", "https:///realms/hexalith")]
+    [InlineData("Production", "https://identity.example.test:invalid/realms/hexalith")]
+    [InlineData("Production", "https://identity.example.test:65536/realms/hexalith")]
+    [InlineData("Production", "https://identity.example.test/realms/invalid realm")]
+    [InlineData("Production", "https://identity.example.test/realms/%invalid")]
+    [InlineData("Production", "https://identity.example.test/realms\\hexalith")]
+    [InlineData("Production", "ftp://identity.example.test/realms/hexalith")]
+    [InlineData("Production", "https://diagnostic-username:diagnostic-password@identity.example.test/realms/hexalith")]
+    [InlineData("Production", "https://identity.example.test/realms/hexalith?token=diagnostic-token")]
+    [InlineData("Production", "https://identity.example.test/realms/hexalith#diagnostic-token")]
+    [InlineData("Staging", "http://identity.example.test/realms/hexalith")]
+    [InlineData("Staging", "not-an-authority")]
+    [InlineData("ReleaseCandidate", "http://identity.example.test/realms/hexalith")]
+    [InlineData("ReleaseCandidate", "not-an-authority")]
+    [InlineData("Development", "realms/hexalith")]
+    [InlineData("Development", "ftp://localhost/realms/hexalith")]
+    [InlineData("Development", "http://localhost:invalid/realms/hexalith")]
+    [InlineData("Development", "http://localhost/realms/invalid realm")]
+    [InlineData("Development", "http://localhost/realms/%invalid")]
+    [InlineData("Development", "http://localhost/realms\\hexalith")]
+    [InlineData("Development", "http://diagnostic-username:diagnostic-password@localhost/realms/hexalith")]
+    [InlineData("Development", "http://localhost/realms/hexalith?token=diagnostic-token")]
+    [InlineData("Development", "http://localhost/realms/hexalith#diagnostic-token")]
+    public async Task InvalidAuthorityConfigurationSendsNoHttpRequests(string environmentName, string? authority) {
+        int requestCount = 0;
+        using var handler = new TestHttpMessageHandler((_, _) => {
+            requestCount++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+        using var httpClient = new HttpClient(handler);
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        Dictionary<string, string?> settings = DevelopmentContract();
+        settings["EventStore:Authentication:Authority"] = authority;
+        settings["EventStore:Authentication:Username"] = "diagnostic-username";
+        settings["EventStore:Authentication:Password"] = "diagnostic-password";
+        settings["EventStore:Authentication:ClientId"] = "diagnostic-client";
+        IHostEnvironment environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns(environmentName);
+        var provider = new TenantBootstrapCredentialProvider(
+            new ConfigurationBuilder().AddInMemoryCollection(settings).Build(),
+            environment,
+            TimeProvider.System,
+            logger);
+
+        string? token = await provider.AcquireAsync("diagnostic-administrator", httpClient, CancellationToken.None);
+
+        token.ShouldBeNull();
+        requestCount.ShouldBe(0);
+        logger.Entries.ShouldContain(static entry => entry.EventId.Id == 2006);
+        AssertSupportSafeDiagnostics(logger, "diagnostic-username", "diagnostic-password", "diagnostic-client", "diagnostic-administrator", "diagnostic-token", DevelopmentSigningKey);
+        if (!string.IsNullOrWhiteSpace(authority)) {
+            AssertSupportSafeDiagnostics(logger, authority);
+        }
+    }
+
+    [Theory]
+    [InlineData("Production", "https://identity.example.test/realms/hexalith", true)]
+    [InlineData("Production", "https://identity.example.test/realms/hexalith", false)]
+    [InlineData("Production", "https://identity.example.test/realms/encoded%20realm", true)]
+    [InlineData("Staging", "https://identity.example.test/realms/hexalith/", true)]
+    [InlineData("ReleaseCandidate", "https://identity.example.test/realms/hexalith", true)]
+    [InlineData("Development", "http://localhost:18080/realms/hexalith", true)]
+    [InlineData("Development", "http://localhost:18080/realms/hexalith", false)]
+    [InlineData("Development", "https://identity.example.test/realms/hexalith", true)]
+    public async Task ValidAuthorityPreservesRealmPathAndRequiresAdministratorSubject(string environmentName, string authority, bool subjectMatches) {
+        ArgumentNullException.ThrowIfNull(authority);
+        const string administrator = "diagnostic-administrator";
+        const string username = "diagnostic-username";
+        const string password = "diagnostic-password";
+        string delegatedToken = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor {
+            Claims = new Dictionary<string, object>(StringComparer.Ordinal) {
+                ["sub"] = subjectMatches ? administrator : "diagnostic-other-subject",
+            },
+        });
+        int requestCount = 0;
+        Uri? capturedUri = null;
+        string? capturedForm = null;
+        using var handler = new TestHttpMessageHandler(async (request, cancellationToken) => {
+            requestCount++;
+            request.Method.ShouldBe(HttpMethod.Post);
+            capturedUri = request.RequestUri;
+            capturedForm = await request.Content!.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent(JsonSerializer.Serialize(new { access_token = delegatedToken })),
+            };
+        });
+        using var httpClient = new HttpClient(handler);
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        IHostEnvironment environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns(environmentName);
+        var provider = new TenantBootstrapCredentialProvider(
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+                ["EventStore:Authentication:Authority"] = authority,
+                ["EventStore:Authentication:Username"] = username,
+                ["EventStore:Authentication:Password"] = password,
+            }).Build(),
+            environment,
+            TimeProvider.System,
+            logger);
+
+        string? acquiredToken = await provider.AcquireAsync(administrator, httpClient, CancellationToken.None);
+
+        requestCount.ShouldBe(1);
+        capturedUri.ShouldBe(new Uri($"{authority.TrimEnd('/')}/protocol/openid-connect/token"));
+        capturedForm.ShouldNotBeNull();
+        capturedForm.ShouldContain("grant_type=password");
+        capturedForm.ShouldContain($"username={username}");
+        capturedForm.ShouldContain($"password={password}");
+        acquiredToken.ShouldBe(subjectMatches ? delegatedToken : null);
+        if (!subjectMatches) {
+            logger.Messages.ShouldContain(static message => message.Contains("authority-subject-mismatch", StringComparison.Ordinal));
+        }
+
+        AssertSupportSafeDiagnostics(logger, administrator, username, password, delegatedToken, authority, "diagnostic-other-subject");
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.OK)]
+    public async Task AuthorityResponseDiagnosticsExcludeCredentialsAndTokens(HttpStatusCode statusCode) {
+        const string administrator = "diagnostic-administrator";
+        const string username = "diagnostic-username";
+        const string password = "diagnostic-password";
+        const string malformedToken = "diagnostic-token";
+        int requestCount = 0;
+        using var handler = new TestHttpMessageHandler((_, _) => {
+            requestCount++;
+            return Task.FromResult(new HttpResponseMessage(statusCode) {
+                Content = new StringContent(JsonSerializer.Serialize(new {
+                    access_token = malformedToken,
+                    username,
+                    password,
+                })),
+            });
+        });
+        using var httpClient = new HttpClient(handler);
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        IHostEnvironment environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns(Environments.Production);
+        var provider = new TenantBootstrapCredentialProvider(
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+                ["EventStore:Authentication:Authority"] = "https://identity.example.test/realms/hexalith",
+                ["EventStore:Authentication:Username"] = username,
+                ["EventStore:Authentication:Password"] = password,
+            }).Build(),
+            environment,
+            TimeProvider.System,
+            logger);
+
+        string? token = await provider.AcquireAsync(administrator, httpClient, CancellationToken.None);
+
+        token.ShouldBeNull();
+        requestCount.ShouldBe(1);
+        logger.Entries.ShouldContain(static entry => (entry.EventId.Id == 2005 || entry.EventId.Id == 2006));
+        AssertSupportSafeDiagnostics(logger, administrator, username, password, malformedToken);
+    }
+
+    [Theory]
+    [InlineData("authority-request", "credential-acquisition", "HttpRequestException", 1)]
+    [InlineData("token-json", "credential-acquisition", "JsonReaderException", 1)]
+    [InlineData("command-dispatch", "command-dispatch", "HttpRequestException", 2)]
+    public async Task BootstrapFailureDiagnosticsExcludeExceptionCredentialsAndTokens(string scenario, string phase, string exceptionType, int expectedRequests) {
+        const string administrator = "diagnostic-administrator";
+        const string username = "diagnostic-username";
+        const string password = "diagnostic-password";
+        const string authority = "https://identity.example.test/realms/hexalith";
+        string token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor {
+            Claims = new Dictionary<string, object>(StringComparer.Ordinal) { ["sub"] = administrator },
+        });
+        int requestCount = 0;
+        using var handler = new TestHttpMessageHandler((_, _) => {
+            requestCount++;
+            if (scenario == "token-json")
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent($"{{\"sensitive\":\"{username} {password} {token}\",\"invalid\": }}"),
+                });
+            }
+
+            if (scenario == "command-dispatch" && requestCount == 1)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new { access_token = token })),
+                });
+            }
+
+            throw new HttpRequestException($"{authority} {username} {password}", new InvalidOperationException(token));
+        });
+        using var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = administrator }),
+            lifetime,
+            logger,
+            new Dictionary<string, string?> {
+                ["EventStore:Authentication:Authority"] = authority,
+                ["EventStore:Authentication:Username"] = username,
+                ["EventStore:Authentication:Password"] = password,
+            },
+            Environments.Production);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id == 2002));
+
+        requestCount.ShouldBe(expectedRequests);
+        TestLogEntry failure = logger.Entries.Single(static entry => entry.EventId.Id == 2002);
+        failure.Message.ShouldContain("bootstrap-operation-failed");
+        failure.Message.ShouldContain(phase);
+        failure.Message.ShouldContain(exceptionType);
+        failure.ExceptionText.ShouldBeNull();
+        AssertSupportSafeDiagnostics(logger, administrator, username, password, token, authority);
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task Authority_mode_sends_only_the_configured_administrators_own_token(bool subjectMatches) {
@@ -435,6 +658,74 @@ public class TenantBootstrapHostedServiceTests {
             commandAuthorization.ShouldBeNull();
             logger.Messages.ShouldContain(static message => message.Contains("authority-subject-mismatch", StringComparison.Ordinal));
         }
+    }
+
+    private static void AssertSupportSafeDiagnostics(TestLogger<TenantBootstrapHostedService> logger, params string[] sensitiveValues) {
+        foreach (TestLogEntry entry in logger.Entries) {
+            string diagnostics = $"{entry.Message}\n{entry.DiagnosticState}\n{entry.ExceptionText}";
+            foreach (string sensitiveValue in sensitiveValues) {
+                diagnostics.ShouldNotContain(sensitiveValue);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task HttpClientFactoryDiagnosticsExcludeCredentialFormAndBearerToken()
+    {
+        const string administrator = "diagnostic-administrator";
+        const string username = "diagnostic-username";
+        const string password = "diagnostic-password";
+        string token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+        {
+            Claims = new Dictionary<string, object>(StringComparer.Ordinal) { ["sub"] = administrator },
+        });
+        int requestCount = 0;
+        var handler = new TestHttpMessageHandler((request, _) =>
+        {
+            requestCount++;
+            if (requestCount == 1)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new { access_token = token })),
+                });
+            }
+
+            request.Headers.Authorization!.Parameter.ShouldBe(token);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        ILoggerFactory loggerFactory = Substitute.For<ILoggerFactory>();
+        loggerFactory.CreateLogger(Arg.Any<string>()).Returns(logger);
+        var services = new ServiceCollection();
+        services.AddDaprClient();
+        services.AddLogging();
+        services.AddSingleton(loggerFactory);
+        services.AddHttpClient();
+        services.ConfigureHttpClientDefaults(builder => builder.ConfigurePrimaryHttpMessageHandler(() => handler));
+        await using ServiceProvider provider = services.BuildServiceProvider();
+        using var lifetime = new TestHostApplicationLifetime();
+        TenantBootstrapHostedService service = CreateService(
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = administrator }),
+            lifetime,
+            logger,
+            new Dictionary<string, string?>
+            {
+                ["EventStore:Authentication:Authority"] = "https://identity.example.test/realms/hexalith",
+                ["EventStore:Authentication:Username"] = username,
+                ["EventStore:Authentication:Password"] = password,
+            },
+            Environments.Production);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id == 2001));
+
+        requestCount.ShouldBe(2);
+        logger.Messages.ShouldContain(static message => message.Contains("Sending HTTP request", StringComparison.Ordinal));
+        logger.Messages.ShouldContain(static message => message.Contains("Authorization: *", StringComparison.Ordinal));
+        AssertSupportSafeDiagnostics(logger, administrator, username, password, token);
     }
 
     private const string DevelopmentIssuer = "hexalith-dev";
@@ -533,7 +824,10 @@ public class TenantBootstrapHostedServiceTests {
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) {
             string message = formatter(state, exception);
             _messages.Enqueue(message);
-            _entries.Enqueue(new TestLogEntry(logLevel, eventId, message));
+            string diagnosticState = state is IEnumerable<KeyValuePair<string, object?>> fields
+                ? string.Join("\n", fields.Select(static field => $"{field.Key}={field.Value}"))
+                : state?.ToString() ?? string.Empty;
+            _entries.Enqueue(new TestLogEntry(logLevel, eventId, message, diagnosticState, exception?.ToString()));
         }
 
         private sealed class NullScope : IDisposable {
@@ -544,5 +838,5 @@ public class TenantBootstrapHostedServiceTests {
         }
     }
 
-    private sealed record TestLogEntry(LogLevel LogLevel, EventId EventId, string Message);
+    private sealed record TestLogEntry(LogLevel LogLevel, EventId EventId, string Message, string DiagnosticState, string? ExceptionText);
 }

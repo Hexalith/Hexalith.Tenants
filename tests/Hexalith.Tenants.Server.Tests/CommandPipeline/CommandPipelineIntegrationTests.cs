@@ -27,7 +27,7 @@ public class CommandPipelineIntegrationTests {
         var aggregate = new GlobalAdministratorsAggregate();
 
         // First bootstrap — should succeed
-        CommandEnvelope firstCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-1"));
+        CommandEnvelope firstCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-1"), "admin-1");
         DomainResult firstResult = await aggregate.ProcessAsync(firstCmd, currentState: null);
         firstResult.IsSuccess.ShouldBeTrue();
 
@@ -36,7 +36,7 @@ public class CommandPipelineIntegrationTests {
         state.Apply((GlobalAdministratorSet)firstResult.Events[0]);
 
         // Second bootstrap — should be rejected
-        CommandEnvelope secondCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-2"));
+        CommandEnvelope secondCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-2"), "admin-2");
         DomainResult secondResult = await aggregate.ProcessAsync(secondCmd, currentState: state);
         secondResult.IsRejection.ShouldBeTrue();
         _ = secondResult.Events[0].ShouldBeOfType<GlobalAdminAlreadyBootstrappedRejection>();
@@ -118,7 +118,7 @@ public class CommandPipelineIntegrationTests {
         var globalAggregate = new GlobalAdministratorsAggregate();
 
         // Step 1: Bootstrap global admin
-        CommandEnvelope bootstrapCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-1"));
+        CommandEnvelope bootstrapCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-1"), "admin-1");
         DomainResult bootstrapResult = await globalAggregate.ProcessAsync(bootstrapCmd, currentState: null);
         bootstrapResult.IsSuccess.ShouldBeTrue();
 
@@ -148,7 +148,7 @@ public class CommandPipelineIntegrationTests {
         tenantState.Status.ShouldBe(TenantStatus.Active);
     }
 
-    private static CommandEnvelope CreateGlobalAdminCommand<T>(T command)
+    private static CommandEnvelope CreateGlobalAdminCommand<T>(T command, string actorUserId)
         where T : notnull
         => new(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
@@ -159,7 +159,7 @@ public class CommandPipelineIntegrationTests {
             JsonSerializer.SerializeToUtf8Bytes(command),
             UniqueIdHelper.GenerateSortableUniqueStringId(),
             null,
-            "sub",
+            actorUserId,
             null);
 
     private static CommandEnvelope CreateTenantCommand<T>(T command, bool isGlobalAdmin = true)

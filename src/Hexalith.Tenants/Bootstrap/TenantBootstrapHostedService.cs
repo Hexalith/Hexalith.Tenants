@@ -66,6 +66,7 @@ public partial class TenantBootstrapHostedService(
     }
 
     private async Task RunBootstrapAsync(string userId, CancellationToken cancellationToken) {
+        string phase = "initialization";
         try {
             AsyncServiceScope scope = scopeFactory.CreateAsyncScope();
             await using (scope.ConfigureAwait(false)) {
@@ -95,6 +96,7 @@ public partial class TenantBootstrapHostedService(
                     environment,
                     timeProvider ?? TimeProvider.System,
                     logger);
+                phase = "credential-acquisition";
                 string? accessToken = await credentialProvider.AcquireAsync(userId, httpClient, cancellationToken).ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(accessToken)) {
                     return;
@@ -107,6 +109,7 @@ public partial class TenantBootstrapHostedService(
                 httpRequest.Content = JsonContent.Create(commandBody);
                 httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
+                phase = "command-dispatch";
                 using HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
                 if (httpResponse.StatusCode == HttpStatusCode.Accepted) {
@@ -114,6 +117,7 @@ public partial class TenantBootstrapHostedService(
                     return;
                 }
 
+                phase = "command-response";
                 string errorBody = await ReadExpectedRejectionProbeAsync(httpResponse.Content, cancellationToken).ConfigureAwait(false);
 
                 // Bootstrap is idempotent at the domain level. The GlobalAdminAlreadyBootstrappedRejection
@@ -133,7 +137,8 @@ public partial class TenantBootstrapHostedService(
             throw;
         }
         catch (Exception ex) {
-            Log.BootstrapFailed(logger, ex);
+            // HTTP and token-parser exception details may contain credentials, bearer tokens, or authority URLs.
+            Log.BootstrapFailed(logger, "bootstrap-operation-failed", phase, ex.GetType().Name);
         }
     }
 
@@ -180,8 +185,8 @@ public partial class TenantBootstrapHostedService(
         [LoggerMessage(
             EventId = 2002,
             Level = LogLevel.Warning,
-            Message = "Bootstrap failed — the global administrator may not have been created. The service will retry on next restart")]
-        public static partial void BootstrapFailed(ILogger logger, Exception ex);
+            Message = "Bootstrap failed: Reason={Reason}, Phase={Phase}, ExceptionType={ExceptionType}. The global administrator may not have been created. The service will retry on next restart")]
+        public static partial void BootstrapFailed(ILogger logger, string reason, string phase, string exceptionType);
 
         [LoggerMessage(
             EventId = 2004,

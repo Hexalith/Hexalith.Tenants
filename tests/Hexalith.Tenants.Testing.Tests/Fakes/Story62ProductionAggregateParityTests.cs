@@ -18,6 +18,28 @@ namespace Hexalith.Tenants.Testing.Tests.Fakes;
 
 public class Story62ProductionAggregateParityTests {
     [Fact]
+    public void BootstrapMismatchDoesNotCreateAdministratorOrAppendHistory()
+    {
+        var service = new InMemoryTenantService();
+        var command = new BootstrapGlobalAdmin("target-admin");
+        CommandEnvelope envelope = TenantTestHelpers.CreateCommandEnvelope(command, TenantIdentity.GlobalAdministratorsAggregateId, "actor-admin");
+
+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, null, envelope);
+        DomainResult fakeResult = service.ProcessCommand(command, "actor-admin");
+
+        AssertResultsMatchIgnoringTimestamps(aggregateResult, fakeResult);
+        fakeResult.IsRejection.ShouldBeTrue();
+        fakeResult.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>().ActorUserId.ShouldBe("actor-admin");
+        service.EventHistory.ShouldBeEmpty();
+        service.GetGlobalAdminState().ShouldBeNull();
+
+        DomainResult valid = service.ProcessCommand(new BootstrapGlobalAdmin("actor-admin"), "actor-admin");
+        valid.IsSuccess.ShouldBeTrue();
+        valid.Events[0].ShouldBeOfType<GlobalAdministratorSet>().ActorUserId.ShouldBe("actor-admin");
+        service.GetGlobalAdminState()!.Administrators.ShouldBe(["actor-admin"]);
+    }
+
+    [Fact]
     public void ProcessTenantCommand_matches_TenantAggregate_for_representative_success_paths() {
         var service = new InMemoryTenantService();
         TenantState? aggregateState = null;
@@ -64,7 +86,8 @@ public class Story62ProductionAggregateParityTests {
 
         DomainResult bootstrapAggregateResult = GlobalAdministratorsAggregate.Handle(
             new BootstrapGlobalAdmin("admin1"),
-            aggregateState);
+            aggregateState,
+            TenantTestHelpers.CreateCommandEnvelope(new BootstrapGlobalAdmin("admin1"), TenantIdentity.GlobalAdministratorsAggregateId, "admin1"));
         DomainResult bootstrapFakeResult = service.ProcessCommand(new BootstrapGlobalAdmin("admin1"));
         AssertResultsMatchIgnoringTimestamps(bootstrapAggregateResult, bootstrapFakeResult);
         aggregateState = ApplyGlobalAdminEvents(aggregateState, bootstrapAggregateResult);

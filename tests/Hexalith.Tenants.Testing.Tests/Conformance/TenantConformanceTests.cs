@@ -7,6 +7,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.Testing.Fakes;
 using Hexalith.Tenants.Testing.Helpers;
@@ -698,7 +699,7 @@ public sealed class TenantConformanceTests {
         var command = new BootstrapGlobalAdmin("admin1");
 
         // Act
-        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, null);
+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, null, TenantTestHelpers.CreateCommandEnvelope(command, TenantIdentity.GlobalAdministratorsAggregateId, command.UserId));
         DomainResult serviceResult = svc.ProcessCommand(command);
 
         // Assert
@@ -916,7 +917,7 @@ public sealed class TenantConformanceTests {
         var command = new BootstrapGlobalAdmin("admin2");
 
         // Act
-        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState);
+        DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, gaState, TenantTestHelpers.CreateCommandEnvelope(command, TenantIdentity.GlobalAdministratorsAggregateId, command.UserId));
         DomainResult serviceResult = svc.ProcessCommand(command);
 
         // Assert
@@ -1541,7 +1542,7 @@ public sealed class TenantConformanceTests {
 
         public void ExecuteGlobal(BootstrapGlobalAdmin command) {
             ArgumentNullException.ThrowIfNull(command);
-            DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, _aggregateGlobalAdminState);
+            DomainResult aggregateResult = GlobalAdministratorsAggregate.Handle(command, _aggregateGlobalAdminState, TenantTestHelpers.CreateCommandEnvelope(command, TenantIdentity.GlobalAdministratorsAggregateId, command.UserId));
             ApplyAggregateGlobalAdminEvents(aggregateResult);
             DomainResult serviceResult = Service.ProcessCommand(command);
             _steps.Add(new CommandStepResult(nameof(BootstrapGlobalAdmin), aggregateResult, serviceResult));

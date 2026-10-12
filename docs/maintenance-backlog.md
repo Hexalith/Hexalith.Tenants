@@ -2,20 +2,22 @@
 
 Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependencies. [Deferred work](../_bmad-output/implementation-artifacts/deferred-work.md) is the source of truth. Update dispositions and evidence there first; this file indexes remaining actions. Epics 1–5 and their retrospectives are `done` in [sprint status](../_bmad-output/implementation-artifacts/sprint-status.yaml). Artifacts remain in place.
 
+**B1 update (2026-10-12):** DW-567 and DW-550/DW-598 are closed in the validated working tree over Tenants `2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1`. Authenticated bootstrap actor/target binding, secure authority validation before I/O, persisted rejection replay and secret-free diagnostics passed the maintained checks. See [exact commands, results and limits](../_bmad-output/implementation-artifacts/release-readiness.md#b1-remediation-evidence-2026-10-12). The original reconciliation was 86 done/265 actionable/353 open; these three closures explain the current counts and two removed action rows. Historical findings remain in their ledger entries; the archive, sprint tracking, remaining blockers and all decisions are unchanged.
+
 All 439 requested records were reconciled: 152 marked-open DW entries plus 287 previously unnumbered records, now DW-357–DW-643. Original findings and resolution history are retained, including lossless JSON `legacy-detail` for migrated records. Duplicate references share an index row; they remain separate ledger records.
 
 | Disposition | Records |
 | --- | ---: |
-| done | 86 |
-| actionable | 265 |
+| done | 89 |
+| actionable | 262 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 38 |
 
-**Remaining: 353 open records across 314 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 350 open records across 312 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
-**Highest priority:** bootstrap actor/target and secure credential transport (DW-567, DW-550/DW-598); caller-bound retained reads (DW-142/DW-580, DW-351/DW-366); exact command/projection/removal proof (DW-300, DW-286, DW-222); command ownership and late-status safety (DW-199, DW-287, DW-288, DW-458, DW-471/DW-472, DW-500); support-safe mappings/identifiers (DW-315, DW-441). Platform-owned publication/status repair and secret-scan coverage remain with EventStore (DW-499, DW-502, DW-517).
+**Highest priority:** caller-bound retained reads (DW-142/DW-580, DW-351/DW-366); exact command/projection/removal proof (DW-300, DW-286, DW-222); command ownership and late-status safety (DW-199, DW-287, DW-288, DW-458, DW-471/DW-472, DW-500); support-safe mappings/identifiers (DW-315, DW-441). Platform-owned publication/status repair and secret-scan coverage remain with EventStore (DW-499, DW-502, DW-517).
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -46,8 +48,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-499 | P1 | Defect / actionable | Hexalith.EventStore | EventStore terminal-status recovery design | Design and test durable repair of terminal advisory status using the original command event range, including failed write/crash and exact-duplicate cases. |
 | DW-500 | P1 | Defect / actionable | unassigned | Shared member ambiguous-delivery contract | Retain admission and identity for ambiguous add/change delivery; cover 408/429/5xx and transport outcomes with same-ID recovery and no competing dispatch. |
 | DW-502 | P1 | Defect / actionable | Hexalith.EventStore | EventStore quarantine/recovery contract | Add a platform-owned rejection/quarantine path for unverifiable resume ranges and persisted-evidence-preserving tests before pub/sub invocation. |
-| DW-550, DW-598 | P1 | Defect / actionable | unassigned | Bootstrap transport validation contract; Production bootstrap authority contract; local Development exception | Reject non-HTTPS bootstrap authority outside Development and add production HTTP-authority no-request coverage. |
-| DW-567 | P1 | Defect / actionable | global-administrator command owner | Domain-service authenticated command envelope | Require authenticated bootstrap actor/target equality and add a boundary mismatch regression. |
 | DW-437, DW-451, DW-534 | P1 | Gap / actionable | unassigned | Story attribution must avoid including unrelated later pointer updates; DW-437 CI gate and story attribution; DW-198 historical story-range selection; DW-520 declaration format | Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling. |
 | DW-517 | P1 | Gap / actionable | Hexalith.EventStore | EventStore secret-guard evidence-retirement governance | Restore content scanning for these textual evidence paths or bind each approved retirement to verified content with injected-secret negative controls. |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |

@@ -156,12 +156,24 @@ public sealed class InMemoryTenantService {
         return result;
     }
 
-    // ─── Global Admin Commands (no envelope needed) ───
+    // ─── Global Admin Commands ───
 
     /// <summary>Processes a BootstrapGlobalAdmin command.</summary>
     public DomainResult ProcessCommand(BootstrapGlobalAdmin command) {
         ArgumentNullException.ThrowIfNull(command);
-        DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState);
+        return ProcessCommand(command, command.UserId);
+    }
+
+    /// <summary>Processes bootstrap using the supplied authenticated actor.</summary>
+    /// <param name="command">The bootstrap command.</param>
+    /// <param name="actorUserId">The authenticated actor to bind to the command envelope.</param>
+    /// <returns>The aggregate result.</returns>
+    public DomainResult ProcessCommand(BootstrapGlobalAdmin command, string actorUserId)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentException.ThrowIfNullOrWhiteSpace(actorUserId);
+        CommandEnvelope envelope = CreateGlobalAdminEnvelope(command, actorUserId);
+        DomainResult result = GlobalAdministratorsAggregate.Handle(command, _globalAdminState, envelope);
         ApplyGlobalAdminEvents(result);
         return result;
     }

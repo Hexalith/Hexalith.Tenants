@@ -8,14 +8,26 @@ using Hexalith.Tenants.Contracts.Identity;
 namespace Hexalith.Tenants.Server.Aggregates;
 
 public class GlobalAdministratorsAggregate : EventStoreAggregate<GlobalAdministratorsState> {
-    public static DomainResult Handle(BootstrapGlobalAdmin command, GlobalAdministratorsState? state) {
+    /// <summary>Bootstraps only the authenticated command actor as the first administrator.</summary>
+    /// <param name="command">The bootstrap target.</param>
+    /// <param name="state">The current administrator state.</param>
+    /// <param name="envelope">The envelope carrying the authenticated actor.</param>
+    /// <returns>A bootstrap event or a permission/already-bootstrapped rejection.</returns>
+    public static DomainResult Handle(BootstrapGlobalAdmin command, GlobalAdministratorsState? state, CommandEnvelope envelope)
+    {
         ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(envelope);
+        if (!string.Equals(command.UserId, envelope.UserId, StringComparison.Ordinal))
+        {
+            return Unauthorized(command, envelope.UserId);
+        }
+
         return state?.Bootstrapped == true
             ? DomainResult.Rejection([new GlobalAdminAlreadyBootstrappedRejection(TenantIdentity.DefaultTenantId)])
             : DomainResult.Success([new GlobalAdministratorSet(
                 TenantIdentity.DefaultTenantId,
                 command.UserId,
-                command.UserId,
+                envelope.UserId,
                 DateTimeOffset.UtcNow)]);
     }
 

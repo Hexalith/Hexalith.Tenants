@@ -55,7 +55,7 @@ public class GlobalAdministratorsAggregateTests {
     [Fact]
     public async Task Bootstrap_with_no_prior_state_produces_GlobalAdministratorSet() {
         var aggregate = new GlobalAdministratorsAggregate();
-        CommandEnvelope cmd = CreateCommand(new BootstrapGlobalAdmin("admin-1"));
+        CommandEnvelope cmd = CreateCommand(new BootstrapGlobalAdmin("admin-1"), "admin-1");
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: null);
 
@@ -64,13 +64,14 @@ public class GlobalAdministratorsAggregateTests {
         IEventPayload evt = result.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
         ((GlobalAdministratorSet)evt).TenantId.ShouldBe("system");
         ((GlobalAdministratorSet)evt).UserId.ShouldBe("admin-1");
+        ((GlobalAdministratorSet)evt).ActorUserId.ShouldBe(cmd.UserId);
     }
 
     [Fact]
     public async Task Two_bootstrap_submissions_against_same_aggregate_produce_one_success_and_one_rejection() {
         var aggregate = new GlobalAdministratorsAggregate();
-        CommandEnvelope firstCommand = CreateCommand(new BootstrapGlobalAdmin("admin-1"));
-        CommandEnvelope secondCommand = CreateCommand(new BootstrapGlobalAdmin("admin-2"));
+        CommandEnvelope firstCommand = CreateCommand(new BootstrapGlobalAdmin("admin-1"), "admin-1");
+        CommandEnvelope secondCommand = CreateCommand(new BootstrapGlobalAdmin("admin-2"), "admin-2");
 
         DomainResult firstResult = await aggregate.ProcessAsync(firstCommand, currentState: null);
         var state = new GlobalAdministratorsState();
@@ -96,7 +97,7 @@ public class GlobalAdministratorsAggregateTests {
     // This is the genuine first-admin bootstrap when the aggregate has never been created.
     [Fact]
     public void Handle_BootstrapGlobalAdmin_with_null_state_produces_GlobalAdministratorSet() {
-        DomainResult result = GlobalAdministratorsAggregate.Handle(new BootstrapGlobalAdmin("admin-1"), state: null);
+        DomainResult result = GlobalAdministratorsAggregate.Handle(new BootstrapGlobalAdmin("admin-1"), state: null, CreateCommand(new BootstrapGlobalAdmin("admin-1"), "admin-1"));
 
         result.IsSuccess.ShouldBeTrue();
         result.Events.Count.ShouldBe(1);
@@ -110,13 +111,68 @@ public class GlobalAdministratorsAggregateTests {
     // state (the other half of the guard's branch, complementing the already-bootstrapped rejection).
     [Fact]
     public void Handle_BootstrapGlobalAdmin_with_unbootstrapped_state_produces_GlobalAdministratorSet() {
-        DomainResult result = GlobalAdministratorsAggregate.Handle(new BootstrapGlobalAdmin("admin-1"), state: new GlobalAdministratorsState());
+        DomainResult result = GlobalAdministratorsAggregate.Handle(new BootstrapGlobalAdmin("admin-1"), state: new GlobalAdministratorsState(), CreateCommand(new BootstrapGlobalAdmin("admin-1"), "admin-1"));
 
         result.IsSuccess.ShouldBeTrue();
         result.Events.Count.ShouldBe(1);
         GlobalAdministratorSet evt = result.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
         evt.TenantId.ShouldBe("system");
         evt.UserId.ShouldBe("admin-1");
+    }
+
+    [Theory]
+    [InlineData("other-admin", false)]
+    [InlineData("Admin-1", false)]
+    [InlineData("admin-1 ", false)]
+    [InlineData("other-admin", true)]
+    public async Task BootstrapRejectsDifferentAuthenticatedActor(string actorUserId, bool bootstrapped)
+    {
+        var aggregate = new GlobalAdministratorsAggregate();
+        var state = new GlobalAdministratorsState();
+        if (bootstrapped)
+        {
+            state.Apply(new GlobalAdministratorSet("system", "existing-admin"));
+        }
+
+        CommandEnvelope command = CreateCommand(new BootstrapGlobalAdmin("admin-1"), actorUserId) with
+        {
+            Extensions = new Dictionary<string, string> { ["actor:globalAdmin"] = "true" },
+        };
+
+        DomainResult result = await aggregate.ProcessAsync(command, state);
+
+        result.IsRejection.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        InsufficientPermissionsRejection rejection = result.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>();
+        rejection.ActorUserId.ShouldBe(actorUserId);
+        rejection.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
+        rejection.CommandName.ShouldBe(nameof(BootstrapGlobalAdmin));
+        state.Apply(rejection);
+        state.Bootstrapped.ShouldBe(bootstrapped);
+        state.Administrators.ShouldBe(bootstrapped ? ["existing-admin"] : Array.Empty<string>());
+    }
+
+    [Fact]
+    public async Task DeniedBootstrapReplaysWithoutPreventingValidFirstAdministrator()
+    {
+        var aggregate = new GlobalAdministratorsAggregate();
+        CommandEnvelope deniedCommand = CreateCommand(new BootstrapGlobalAdmin("target-admin"), "authenticated-admin");
+        DomainResult denied = await aggregate.ProcessAsync(deniedCommand, currentState: null);
+        denied.IsRejection.ShouldBeTrue();
+        var currentState = new DomainServiceCurrentState(
+            SnapshotState: null,
+            Events: [CreateEventEnvelope(denied.Events[0].ShouldBeOfType<InsufficientPermissionsRejection>(), 1)],
+            LastSnapshotSequence: 0,
+            CurrentSequence: 1);
+        CommandEnvelope validCommand = CreateCommand(new BootstrapGlobalAdmin("authenticated-admin"), "authenticated-admin");
+
+        DomainResult result = await aggregate.ProcessAsync(validCommand, currentState);
+
+        result.IsSuccess.ShouldBeTrue();
+        result.Events.Count.ShouldBe(1);
+        GlobalAdministratorSet created = result.Events[0].ShouldBeOfType<GlobalAdministratorSet>();
+        created.UserId.ShouldBe(validCommand.UserId);
+        created.ActorUserId.ShouldBe(validCommand.UserId);
     }
 
     // Test 2: Bootstrap when already bootstrapped → Rejection (AC #2)
@@ -126,7 +182,7 @@ public class GlobalAdministratorsAggregateTests {
         var state = new GlobalAdministratorsState();
         state.Apply(new GlobalAdministratorSet("system", "admin-1"));
 
-        CommandEnvelope cmd = CreateCommand(new BootstrapGlobalAdmin("admin-2"));
+        CommandEnvelope cmd = CreateCommand(new BootstrapGlobalAdmin("admin-2"), "admin-2");
 
         DomainResult result = await aggregate.ProcessAsync(cmd, currentState: state);
 
@@ -292,7 +348,7 @@ public class GlobalAdministratorsAggregateTests {
         var aggregate = new GlobalAdministratorsAggregate();
 
         // Step 1: Bootstrap
-        CommandEnvelope bootstrapCmd = CreateCommand(new BootstrapGlobalAdmin("admin-1"));
+        CommandEnvelope bootstrapCmd = CreateCommand(new BootstrapGlobalAdmin("admin-1"), "admin-1");
         DomainResult bootstrapResult = await aggregate.ProcessAsync(bootstrapCmd, currentState: null);
         bootstrapResult.IsSuccess.ShouldBeTrue();
 
@@ -335,9 +391,10 @@ public class GlobalAdministratorsAggregateTests {
                 CreateEventEnvelope(new GlobalAdministratorAlreadyExistsRejection("system", "admin-1"), 3),
                 CreateEventEnvelope(new GlobalAdministratorNotFoundRejection("system", "ghost"), 4),
                 CreateEventEnvelope(new LastGlobalAdministratorRejection("system", "admin-1"), 5),
+                CreateEventEnvelope(new InsufficientPermissionsRejection("system", "intruder", null, nameof(BootstrapGlobalAdmin)), 6),
             ],
             LastSnapshotSequence: 0,
-            CurrentSequence: 5);
+            CurrentSequence: 6);
 
         CommandEnvelope cmd = CreateCommand(new SetGlobalAdministrator("admin-2"), "admin-1");
 

@@ -14,6 +14,7 @@ using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
+using Hexalith.Tenants.Server.Aggregates;
 
 using Shouldly;
 
@@ -568,7 +569,8 @@ public class DaprEndToEndTests : IDisposable {
         string uniqueAggId = $"global-administrators-{Guid.NewGuid():N}";
         CommandEnvelope command = CreateGlobalAdminCommand(
             new BootstrapGlobalAdmin("admin-e2e-1"),
-            uniqueAggId);
+            uniqueAggId,
+            "admin-e2e-1");
 
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, command);
 
@@ -587,6 +589,53 @@ public class DaprEndToEndTests : IDisposable {
         persisted.TenantId.ShouldBe(TenantIdentity.DefaultTenantId);
         persisted.Domain.ShouldBe(TenantIdentity.GlobalAdministratorsDomain);
         persisted.AggregateId.ShouldBe(uniqueAggId);
+        GlobalAdministratorSet created = JsonSerializer.Deserialize<GlobalAdministratorSet>(persisted.Payload).ShouldNotBeNull();
+        created.UserId.ShouldBe(command.UserId);
+        created.ActorUserId.ShouldBe(command.UserId);
+        persisted.UserId.ShouldBe(command.UserId);
+    }
+
+    [DaprFact]
+    public async Task BootstrapMismatchPersistsOnlyRejectionAndAllowsAuthenticatedActorBootstrap()
+    {
+        _fixture.SkipIfUnavailable();
+        ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
+        string aggregateId = $"global-administrators-{Guid.NewGuid():N}";
+        CommandEnvelope mismatch = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("target-admin"), aggregateId, "authenticated-admin");
+        IAggregateActor proxy = CreateActorProxy(actorProxyFactory, mismatch);
+
+        CommandProcessingResult denied = await proxy.ProcessCommandAsync(mismatch);
+
+        denied.Accepted.ShouldBeFalse();
+        EventEnvelope rejectionEnvelope = await AssertPersistedOnceAsync<InsufficientPermissionsRejection>(proxy, mismatch, 1);
+        InsufficientPermissionsRejection rejection = JsonSerializer.Deserialize<InsufficientPermissionsRejection>(rejectionEnvelope.Payload).ShouldNotBeNull();
+        rejection.ActorUserId.ShouldBe(mismatch.UserId);
+        rejection.CommandName.ShouldBe(nameof(BootstrapGlobalAdmin));
+        EventEnvelope[] rejectedStream = await proxy.GetEventsAsync(0);
+        rejectedStream.Length.ShouldBe(1);
+        rejectedStream.ShouldNotContain(static e => e.EventTypeName == typeof(GlobalAdministratorSet).FullName);
+
+        CommandEnvelope valid = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("authenticated-admin"), aggregateId, "authenticated-admin");
+        CommandProcessingResult accepted = await proxy.ProcessCommandAsync(valid);
+        accepted.Accepted.ShouldBeTrue();
+        EventEnvelope createdEnvelope = await AssertPersistedOnceAsync<GlobalAdministratorSet>(proxy, valid, 2);
+        GlobalAdministratorSet created = JsonSerializer.Deserialize<GlobalAdministratorSet>(createdEnvelope.Payload).ShouldNotBeNull();
+        created.UserId.ShouldBe(valid.UserId);
+        created.ActorUserId.ShouldBe(valid.UserId);
+
+        CommandEnvelope duplicate = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("next-admin"), aggregateId, "next-admin");
+        CommandProcessingResult alreadyBootstrapped = await proxy.ProcessCommandAsync(duplicate);
+        alreadyBootstrapped.Accepted.ShouldBeFalse();
+        _ = await AssertPersistedOnceAsync<GlobalAdminAlreadyBootstrappedRejection>(proxy, duplicate, 3);
+        EventEnvelope[] stream = await proxy.GetEventsAsync(0);
+        stream.Length.ShouldBe(3);
+        stream.Count(static e => e.EventTypeName == typeof(GlobalAdministratorSet).FullName).ShouldBe(1);
+        var state = new GlobalAdministratorsState();
+        state.Apply(rejection);
+        state.Apply(created);
+        state.Apply(JsonSerializer.Deserialize<GlobalAdminAlreadyBootstrappedRejection>(stream[2].Payload).ShouldNotBeNull());
+        state.Bootstrapped.ShouldBeTrue();
+        state.Administrators.ShouldBe(["authenticated-admin"]);
     }
 
     [DaprFact]
@@ -597,19 +646,20 @@ public class DaprEndToEndTests : IDisposable {
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string uniqueAggId = $"global-administrators-{Guid.NewGuid():N}";
 
-        CommandEnvelope firstCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-e2e-dup"), uniqueAggId);
+        CommandEnvelope firstCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-e2e-dup"), uniqueAggId, "admin-e2e-dup");
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, firstCmd);
         CommandProcessingResult firstResult = await proxy.ProcessCommandAsync(firstCmd);
         firstResult.Accepted.ShouldBeTrue("Setup: first bootstrap must succeed");
 
         // Act — second bootstrap should be rejected
-        CommandEnvelope secondCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-e2e-dup2"), uniqueAggId);
+        CommandEnvelope secondCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-e2e-dup2"), uniqueAggId, "admin-e2e-dup2");
         CommandProcessingResult result = await proxy.ProcessCommandAsync(secondCmd);
 
         // Assert
         _ = result.ShouldNotBeNull();
         result.Accepted.ShouldBeFalse("Duplicate BootstrapGlobalAdmin should be rejected");
         result.EventCount.ShouldBe(1, "Rejection event should be persisted");
+        _ = await AssertPersistedOnceAsync<GlobalAdminAlreadyBootstrappedRejection>(proxy, secondCmd, 2);
     }
 
     [DaprFact]
@@ -619,7 +669,7 @@ public class DaprEndToEndTests : IDisposable {
 
         ActorProxyFactory actorProxyFactory = CreateActorProxyFactory();
         string uniqueAggId = $"global-administrators-{Guid.NewGuid():N}";
-        CommandEnvelope bootstrapCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-e2e-shared-1"), uniqueAggId);
+        CommandEnvelope bootstrapCmd = CreateGlobalAdminCommand(new BootstrapGlobalAdmin("admin-e2e-shared-1"), uniqueAggId, "admin-e2e-shared-1");
         IAggregateActor proxy = CreateActorProxy(actorProxyFactory, bootstrapCmd);
 
         CommandProcessingResult bootstrapResult = await proxy.ProcessCommandAsync(bootstrapCmd);
@@ -823,7 +873,7 @@ public class DaprEndToEndTests : IDisposable {
     private static CommandEnvelope CreateGlobalAdminCommand<T>(
         T command,
         string aggregateId,
-        string actorUserId = "test-user") where T : notnull
+        string actorUserId) where T : notnull
         => new(
             UniqueIdHelper.GenerateSortableUniqueStringId(),
             "system",

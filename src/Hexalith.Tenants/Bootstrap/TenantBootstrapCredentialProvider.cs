@@ -67,6 +67,24 @@ internal sealed partial class TenantBootstrapCredentialProvider(
         string userId,
         HttpClient httpClient,
         CancellationToken cancellationToken) {
+        if (!Uri.TryCreate(authority.Trim(), UriKind.Absolute, out Uri? authorityUri)
+            || !authorityUri.IsWellFormedOriginalString()
+            || string.IsNullOrWhiteSpace(authorityUri.Host)
+            || !string.IsNullOrEmpty(authorityUri.UserInfo)
+            || !string.IsNullOrEmpty(authorityUri.Query)
+            || !string.IsNullOrEmpty(authorityUri.Fragment)
+            || (!string.Equals(authorityUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(authorityUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))) {
+            Log.CredentialUnavailable(logger, "authority-invalid");
+            return null;
+        }
+
+        if (!environment.IsDevelopment()
+            && !string.Equals(authorityUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
+            Log.CredentialUnavailable(logger, "authority-https-required");
+            return null;
+        }
+
         string? username = configuration["EventStore:Authentication:Username"];
         string? password = configuration["EventStore:Authentication:Password"];
         string clientId = configuration["EventStore:Authentication:ClientId"] ?? "hexalith-eventstore";
@@ -82,7 +100,7 @@ internal sealed partial class TenantBootstrapCredentialProvider(
             ["password"] = password,
         });
 
-        string tokenEndpoint = $"{authority.Trim().TrimEnd('/')}/protocol/openid-connect/token";
+        var tokenEndpoint = new Uri($"{authorityUri.AbsoluteUri.TrimEnd('/')}/protocol/openid-connect/token");
         using HttpResponseMessage response = await httpClient.PostAsync(tokenEndpoint, form, cancellationToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode) {
             Log.TokenRequestFailed(logger, (int)response.StatusCode);
