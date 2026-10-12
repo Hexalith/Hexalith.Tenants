@@ -2,7 +2,7 @@
 title: 'Correct global administrator authority from audit evidence'
 type: 'feature'
 created: '2026-10-10'
-status: 'done'
+status: 'in-progress'
 route: 'dispatch'
 review_loop_iteration: 3
 baseline_commit: '66072cc410834e2c34f7d30f121e447940ea6fc6'
@@ -338,6 +338,90 @@ Code review 2026-10-11 of the commits since the previous review: `d54b6d51`, `b9
 - An exception thrown by `LoadAsync` after an authentication change leaves the page in Loading — low: `LoadAsync` already catches the gateway exception types, and the normal `OnParametersSetAsync` path has the same exposure.
 - The second-Start guard blocks correlated terminal attempts but allows an uncorrelated Failed one — low: terminal blocking predates this diff (the old `MessageId` guard), and the review 2 patch prescribed the new condition.
 - Moving the proof notification after the apply means a panel disposed mid-walk never notifies the page — false: during the submit walk `CanClose` is false (the lease is dispatch-marked and the state is not terminal), and the Refresh walk, where Close is allowed, still notifies after a failed apply.
+
+### Review Findings — fix-pass range `c3f46c12..1ac82206` (2026-10-11)
+
+Code review 2026-10-11 of `1ac82206`, the fix pass for the ten patches above. `c3f46c12` only recorded those findings.
+- **History note:** after the previous review, `94faa46b` was rebased unchanged as `db87514f` (`git range-diff` shows `=`), on top of the independent commit `6b6a35f0` (bootstrap option). `6b6a35f0` is outside this story and this review.
+- **Diff:** 16 files, +442/−193, 1,119 lines, 78,900 bytes (SHA-256 `07e1bd8bb311cd7341b28b5845c993efebeb0221e54cb07cd182b9d5c25b6714`). It is not archived. It has no `references/` changes.
+- **Layers:** Blind Hunter, Edge Case Hunter, Verification Gap and Acceptance Auditor all ran, and none failed.
+- **Triage:** 38 findings became 0 decision-needed, 7 patch, 0 defer and 14 rejected entries.
+- **Isolated checkout at `1ac82206`:** the full UI suite passes 4,072/4,072. Every mutation cited below was run against that checkout.
+- **Gitlink guard:**
+  - `python3 scripts/validate-story-gitlinks.py <spec>` passes (exit 0) on the working tree and with `--ref 1ac82206`.
+  - The guard and its tests are byte-identical to `94faa46b^`. The `Non-Story` mode is gone, and the eight moves are declared under `Story-Owned Gitlink Commits` with per-pointer File List reasons.
+
+- [ ] [Review][Patch] (medium) The dispose test cannot fail if the authentication unsubscribe is removed [tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2067]
+  - **Why it can't fail:** `DisposeAsync` sets `_disposed` before unsubscribing (`TenantAuditPage.razor:2595`). `ApplyAuthenticationStateChangedAsync` returns on `_disposed` before any read or subscribe. So `Disposed_audit_page_does_not_react_to_principal_change` passes even with a live handler.
+  - **Mutation:** deleting `AuthenticationStateChanged -= OnAuthenticationStateChanged` (`TenantAuditPage.razor:2598`) leaves 4,072/4,072 green. A missing unsubscribe would keep every disposed audit page referenced by the circuit's provider.
+  - **Fix:** after `DisposeAsync`, read `_authenticationTransitionVersion` by reflection. Raise `ChangePrincipal`, then assert the value is unchanged. `OnAuthenticationStateChanged` increments it unconditionally.
+
+  [verification+blind+auditor+edge]
+- [ ] [Review][Patch] (medium) Nothing pins the confirming projection passed by the superseded-read call sites [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3926]
+  - **Scope:** this also covers `:4803`.
+  - **Gap:** `Superseded_confirmed_projection_completion_records_correction_source_and_releases_lease` (`GlobalAdministratorsPageTests.cs:6172`) invokes `RetainOrRelease{Grant,Remove}Completion` by reflection and passes `after` itself. It never runs the call sites that forward `snapshot` as `confirmedProjection`.
+  - **Mutation:** dropping that argument at both call sites leaves 4,072/4,072 green.
+  - **Effect:** `RememberCompletion` then receives a null `ConfirmedProjectionEvidence` and silently rejects it (`GlobalAdministratorCorrectionProofRegistry.cs:20`). A correction confirmed on the page's superseded path would then never produce its paired receipt (acceptance criterion: sibling-page completion).
+  - **Fix:** drive the real superseded projection read for grant and remove. Advance the page's mutation generation while the confirming read is pending. Assert that the pending completion carries that read as `ConfirmedProjectionEvidence`.
+
+  [blind+auditor+edge]
+- [ ] [Review][Patch] (medium) Nothing tests resuming a superseded grant whose POST throws [src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:947]
+  - **Gap:** this diff added the `if (resumeAdopted)` resume block to `PublishCorrectionDeliveryCompletionAsync`. It also moved the grant failure path to complete or abort the token before publishing (`:1362-1378`).
+  - **Mutation:** deleting the block, or restoring the old failure-path order, each leaves 4,072/4,072 green.
+  - **Probe:** a copy of `Superseded_accepted_correction_is_immediately_adopted_resumed_and_confirmed` (`GlobalAdministratorCorrectionPanelTests.cs:1846`) whose pending POST faults with `HttpRequestException` passes at HEAD and fails under both mutations.
+  - **Effect of a regression:** the superseded grant stays retained, the same-ID ambiguous resend never starts, and the global-administrators lock stays held until an unrelated event.
+  - **Fix:** add that test. Assert Confirmed, `TrackedMessageIds` equal to `[id, id]`, and `IsLocked == false`.
+
+  [verification]
+- [ ] [Review][Patch] (low) The grant dispatch-start source pin matches the remove branch [tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs:2166]
+  - **Problem:** the needle `acquiredLease.TryBeginInitialReconciliationDispatch(` first matches the remove branch (`GlobalAdministratorCorrectionPanel.razor:1121`). The grant call is at `:1133`.
+  - **Effect:** reverting the grant branch to `TryMarkDispatched` plus `TryBeginReconciliationDispatch` leaves the suite green. The pass-3 lease-held fix is then unpinned.
+  - **Fix:** assert that the needle occurs twice inside the callback range, and that `SubmitAsync` no longer contains `TryMarkDispatched(_admissionOwner)`.
+
+  [blind+auditor+edge]
+- [ ] [Review][Patch] (low) Nothing tests that the live region returns to polite once a readable projection clears the unavailable marker [tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs:491]
+  - **Mutation:** deleting the Polite reset (`GlobalAdministratorCorrectionSnapshot.cs:669-670`) leaves 4,072/4,072 green.
+  - **Effect of a regression:** a readable-but-lagging refresh would keep announcing the pending state assertively.
+  - **Fix:** in the existing theory, assert `unavailable.LiveRegionPoliteness` is Assertive and `readableButLagging.LiveRegionPoliteness` is Polite.
+
+  [verification]
+- [ ] [Review][Patch] (low) The command-identity predicate now exists twice [src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorReconciliationState.cs:58]
+  - **Problem:** `WithCarriedProofInputs` repeats `HasSameCommandIdentity` (`TenantAggregateCommandAdmissionGate.cs:696`). The gate still uses its own copy at `:398`, `:498`, `:526` and `:690`.
+  - **Risk:** `TryCompleteReconciliationDispatch` validates with one copy and carries with the other. If only one is tightened, a validated completion silently drops `SourceAuditReference` and `ConfirmedProjectionEvidence`, so the pair is lost.
+  - **Fix:** make the predicate one internal method on the record, called by both the gate and `WithCarriedProofInputs`.
+
+  [blind+auditor]
+- [ ] [Review][Patch] (low) The new deferral is filed under the wrong heading again [_bmad-output/implementation-artifacts/deferred-work.md:4148]
+  - **Problem:** "Reconcile the independent authentication fallback deferred entry…" comes from the dev loop's Review 8 triage ("Review 8 blind: deferred alias-test entry is stale"). It sits under the `711e1008` "(Review 6)" heading.
+  - **Fix:** give it its own heading that names the Review 8 fix-pass source.
+
+  [blind+auditor+edge]
+
+**Rejected** (one line each):
+- Spec `done` versus sprint `review` — rejected: this review's status sync sets both. [blind+edge+verification]
+- The spec still cites `94faa46b`, which no branch contains, and the closeout block still says "28/28" and "non-story" — rejected: the fix edits the spec under review. The history note above maps `94faa46b` to `db87514f`. [blind+auditor]
+- The "no story code depends on this pointer move" reasons are untested, and the File List names only gitlinks — rejected: that wording and format are the human's option (a) resolution, and the fix edits the spec. [blind]
+- No Release or package-mode build is recorded — low: CI `build-and-test` passed on `6b6a35f0`, which carries all eight pointer moves. This diff changes no package or project references, and recording evidence is a spec edit. [blind]
+- The `_isSubmitting` guard drops a loss of authorization during submit — false: authorization changes go through the panel's `OnAuthenticationStateChanged` (`:2026`). It retains for replacement and calls `InvalidateOperation`, which clears `_isSubmitting`. Three tests fail when the guard is removed. [blind]
+- The failed-read marker lives in `SafeMessageKey`. It is lost when a null-status, unverified-identity or sequence-guard transition leaves ProjectionPending, and it reaches the Global Administrators page through reconciliation — low:
+  - **Lost marker:** those transitions end in UnableToVerify. Its existing presentation shows the last-confirmed facts without the contradicting alert that the pass-3 patch removed.
+  - **Global Administrators page:** the copy it carries there is accurate.
+  - **Cost of a fix:** a dedicated flag adds state, and it needs a clearing rule outside ProjectionPending.
+
+  [blind+edge]
+- Two new adoption calls run after `ConfigureAwait(false)` — low:
+  - **Existing pattern:** five sites already do the same (`:1304`, `:1653`, `:1727`, `:1778`, `:1871`).
+  - **Effect:** the method only writes fields and calls the locked gate. The gate's `StateChanged` re-renders through `InvokeAsync`, so any inconsistency lasts one frame.
+  - **Cost of a fix:** a consistent fix means refactoring all seven sites.
+
+  [blind+edge]
+- No mutation checks are recorded — rejected: the fix is a spec edit, and this review mutation-verified each test gap. [blind]
+- The commit message hides the guard revert — low: the message passes the pinned commitlint, the revert is the recorded option (a) decision, and changing it means rewriting history. [blind]
+- The new ProjectionPending unavailable state has no browser or EN/FR fixture — low: the resource key and its EN/FR copy predate this diff, and the markup reuses the existing fact and provenance fields. The live-region part is the patch above. [blind]
+- A second `RetainOrReleaseCompletion` runs when the callback throws after retaining — low: it needs the gate or renderer to throw after retention, and the fix adds an "entered" flag. [edge]
+- A grant apply refused without disposal leaves the lease owned — false: the renderer refuses only during teardown. `Dispose` (`:2350`) retains through `RetainReconciliationForReplacement`, and `TryCompleteReconciliationDispatch` publishes onto an unowned lease. [edge]
+- An unprovable pending completion is re-walked on every load with a receipt selected — low: it is limited to this circuit's own corrections and to loads with a receipt selected, and eviction needs attempt tracking. [edge]
+- `Story-Owned` mode ignores a later unlisted pointer commit — low and by design: the guard's docstring says owned mode excludes later committed dependency updates, and restoring exactly this guard was option (a). [edge]
 
 ## Implementation Notes
 
