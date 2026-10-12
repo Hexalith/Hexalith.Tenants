@@ -1,0 +1,353 @@
+# Maintenance backlog
+
+Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependencies. [Deferred work](../_bmad-output/implementation-artifacts/deferred-work.md) is the source of truth. Update dispositions and evidence there first; this file indexes remaining actions. Epics 1–5 and their retrospectives are `done` in [sprint status](../_bmad-output/implementation-artifacts/sprint-status.yaml). Artifacts remain in place.
+
+All 439 requested records were reconciled: 152 marked-open DW entries plus 287 previously unnumbered records, now DW-357–DW-643. Original findings and resolution history are retained, including lossless JSON `legacy-detail` for migrated records. Duplicate references share an index row; they remain separate ledger records.
+
+| Disposition | Records |
+| --- | ---: |
+| done | 86 |
+| actionable | 265 |
+| blocked | 15 |
+| awaiting-decision | 26 |
+| accepted-limitation | 9 |
+| uncertain | 38 |
+
+**Remaining: 353 open records across 314 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+
+**Highest priority:** bootstrap actor/target and secure credential transport (DW-567, DW-550/DW-598); caller-bound retained reads (DW-142/DW-580, DW-351/DW-366); exact command/projection/removal proof (DW-300, DW-286, DW-222); command ownership and late-status safety (DW-199, DW-287, DW-288, DW-458, DW-471/DW-472, DW-500); support-safe mappings/identifiers (DW-315, DW-441). Platform-owned publication/status repair and secret-scan coverage remain with EventStore (DW-499, DW-502, DW-517).
+
+**Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
+
+**Verification limits:** source, tests and supporting artifacts were inspected; no .NET or browser suite was rerun for this documentation task. Read-only story-gitlink checks ran. Existing exact-HEAD [CI](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269521776) shows the build/test job green and the advisory Aspire lane 183/184 passed (zero skipped), with the generated API `/alive` TLS case failing. [Story Guards](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326) still times out Chromium. The ledger records exact evidence and missing checks for each item.
+
+`Defect` means the contradictory behavior or missing guard is present in current source; it does not imply a newly reproduced incident. `Gap` means a specific contract or validation proof is missing. `Recommendation` and `Unverified` do not assert a verified product defect. Accepted limitations retain an existing intentional boundary and stay open for visibility.
+
+## Verified defects and gaps
+
+| DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
+| --- | --- | --- | --- | --- | --- |
+| DW-142, DW-580 | P1 | Defect / actionable | unassigned | shared caller-scope contract; Caller provenance on retained query snapshots | Bind retained snapshots/validators to caller identity and invalidate them on authentication transitions. |
+| DW-199 | P1 | Defect / actionable | unassigned | none | Wire aggregate-scoped create admission through accepted/pending states and verify unrelated aggregates remain available. |
+| DW-222 | P1 | Defect / actionable | unassigned | command correlation/sequence proof contract | Bind removal receipts to the submitted command identity/sequence and reject a concurrent same-target removal. |
+| DW-286 | P1 | Defect / actionable | unassigned | shared proof carriers | Require Current authoritative evidence before forwarding payloads to create/membership confirmers. |
+| DW-287 | P1 | Defect / actionable | unassigned | shared retained-attempt ownership | Retain membership/metadata aggregate ownership until terminal status across route changes and disposal. |
+| DW-288 | P1 | Defect / actionable | unassigned | none | Retain the resolved identity and ambiguous outcome before any retry, with an indeterminate delivery regression. |
+| DW-300 | P1 | Defect / actionable | unassigned | shared tracking handle contract | Migrate the remaining handles to exact aggregate/command identity and nonterminal propagation-lag handling. |
+| DW-315 | P1 | Defect / actionable | unassigned | shared failure contract | Use a support-safe allowlisted code/key mapping and prove unknown backend text cannot render. |
+| DW-351, DW-366 | P1 | Defect / actionable | unassigned | current audit caller-scope contract; Current caller identity must be available to detail evidence checks | Pass and require current caller scope in detail capability/proof matching and test another caller snapshot. |
+| DW-421 | P1 | Defect / actionable | unassigned | Ownerless grant completion fixture | Add ownerless-terminal-grant completion/adoption coverage, then route adopted terminal grant snapshots through the release-aware setter. |
+| DW-428 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Require an attached intended branch or retain/merge the exact detached commit before default-branch push; add a procedure fixture for dirty detached HEAD. |
+| DW-429 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Resolve the remote default first, validate its branch/ref, and handle missing or ambiguous remote-default evidence explicitly. |
+| DW-441 | P1 | Defect / actionable | unassigned | Preserve approved D5 and literal identifier contract; no new policy request | Implement the approved shared identifier allowlist/confusable policy and add regressions for every listed dotted-phone, fullwidth-percent, and divider shape. |
+| DW-458 | P1 | Defect / actionable | unassigned | Shared command-attempt retention contract | Gate each shared Continue read-only delegate by owned-attempt safety and cover an ambiguous in-flight submission. |
+| DW-471 | P1 | Defect / actionable | unassigned | DW-458 safe Continue read-only delegate | Capture the attempt identity/generation before each lookup and discard results after reset; add held-lookup/reset regressions including aggregate activity. |
+| DW-472 | P1 | Defect / actionable | unassigned | Shared terminal command-state contract | Guard terminal attempts before and after status awaits and in snapshot ApplyStatus; cover coalesced member refreshes and concurrent Create refresh paths. |
+| DW-499 | P1 | Defect / actionable | Hexalith.EventStore | EventStore terminal-status recovery design | Design and test durable repair of terminal advisory status using the original command event range, including failed write/crash and exact-duplicate cases. |
+| DW-500 | P1 | Defect / actionable | unassigned | Shared member ambiguous-delivery contract | Retain admission and identity for ambiguous add/change delivery; cover 408/429/5xx and transport outcomes with same-ID recovery and no competing dispatch. |
+| DW-502 | P1 | Defect / actionable | Hexalith.EventStore | EventStore quarantine/recovery contract | Add a platform-owned rejection/quarantine path for unverifiable resume ranges and persisted-evidence-preserving tests before pub/sub invocation. |
+| DW-550, DW-598 | P1 | Defect / actionable | unassigned | Bootstrap transport validation contract; Production bootstrap authority contract; local Development exception | Reject non-HTTPS bootstrap authority outside Development and add production HTTP-authority no-request coverage. |
+| DW-567 | P1 | Defect / actionable | global-administrator command owner | Domain-service authenticated command envelope | Require authenticated bootstrap actor/target equality and add a boundary mismatch regression. |
+| DW-437, DW-451, DW-534 | P1 | Gap / actionable | unassigned | Story attribution must avoid including unrelated later pointer updates; DW-437 CI gate and story attribution; DW-198 historical story-range selection; DW-520 declaration format | Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling. |
+| DW-517 | P1 | Gap / actionable | Hexalith.EventStore | EventStore secret-guard evidence-retirement governance | Restore content scanning for these textual evidence paths or bind each approved retirement to verified content with injected-secret negative controls. |
+| DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
+| DW-105, DW-108 | P2 | Defect / actionable | unassigned | none | Define a stable DOM-safe encoding shared by both grids and navigation; cover whitespace and selector characters. |
+| DW-112 | P2 | Defect / actionable | unassigned | none | Use the same scope-aware resource key for both labels and assert authoritative-search accessible naming. |
+| DW-121 | P2 | Defect / actionable | Hexalith.Builds | Hexalith.Builds owning workflow change | Align the input description/contract and callers with the recorded main-only policy. |
+| DW-128 | P2 | Defect / actionable | unassigned | coordinate DW-127 privacy contract | Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches. |
+| DW-150 | P2 | Defect / actionable | unassigned | none | Drive a held member read plus detail refresh, then widen rerouting/coalescing to preserve that refresh. |
+| DW-164, DW-183 | P2 | Defect / actionable | unassigned | none | Add a held old-tenant subscribe/route-switch regression and trigger current-tenant retry after completion. |
+| DW-166 | P2 | Defect / actionable | unassigned | shared bound implementation with DW-173 | Apply the recorded shared finite timeout and count timeout against recovery attempts. |
+| DW-173 | P2 | Defect / actionable | unassigned | shared timeout policy implementation | Propagate replaceable page/circuit cancellation and implement the recorded finite resolver/subscription bound. |
+| DW-176 | P2 | Defect / actionable | unassigned | DW-173 | Wire replaceable cancellation and the shared finite bound into workspace authority resolution. |
+| DW-184 | P2 | Defect / actionable | unassigned | DW-173 | Apply the shared timeout/cancellation while keeping authority hidden on expiry. |
+| DW-195 | P2 | Defect / actionable | unassigned | shared viewport observation | Use the selected viewport observation gate and refuse unknown/narrow submissions. |
+| DW-206 | P2 | Defect / actionable | unassigned | role-aware BFF seam | Bind tenant-scoped contributor/global-administrator evidence and fail closed while authority is indeterminate. |
+| DW-215 | P2 | Defect / actionable | unassigned | none | Validate candidate tags with the same SemVer parser/range as semantic-release and test rejected numeric forms. |
+| DW-216 | P2 | Defect / actionable | unassigned | none | Validate normalized NuGet grammar before stable/prerelease classification and cover malformed suffixes. |
+| DW-217 | P2 | Defect / actionable | unassigned | release-lineage policy | Align recovery guidance with authentic-tag-only lineage and reviewed recovery. |
+| DW-218 | P2 | Defect / actionable | unassigned | verified current release-line evidence | Correct current trigger/line guidance using committed release evidence; preserve historical observations. |
+| DW-225 | P2 | Defect / actionable | unassigned | DW-222 | Replace wall-clock qualification with exact command causation/sequence in coordination with DW-222. |
+| DW-227 | P2 | Defect / actionable | unassigned | shared modal/focus contract | Focus the native/Fluent interactive Cancel and launcher controls and assert browser keyboard behavior. |
+| DW-234 | P2 | Defect / actionable | unassigned | none | Convert shared failure/status results to whole-string EN/FR keys and preserve those keys in flows. |
+| DW-235 | P2 | Defect / actionable | unassigned | role-aware BFF reflection | Bind live tenant-scoped authority to every membership launcher and fail closed with specific reasons. |
+| DW-241 | P2 | Defect / actionable | unassigned | DW-194 focus contract | Restore to an existing launcher or stable member heading, containing stale-reference failures. |
+| DW-243, DW-262 | P2 | Defect / actionable | unassigned | none | Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard. |
+| DW-245, DW-265, DW-290 | P2 | Defect / actionable | unassigned | shared membership refresh coalescer | Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression. |
+| DW-247 | P2 | Defect / actionable | unassigned | configured membership budget | Apply the already-selected bounded retry/time transition to UnableToVerify with recovery. |
+| DW-251 | P2 | Defect / actionable | unassigned | none | Localize the remaining status/validation branches in the shared pass. |
+| DW-264 | P2 | Defect / actionable | unassigned | create authority reflection | Bind create availability to resolved authority while preserving the documented first-tenant freshness exception. |
+| DW-268 | P2 | Defect / actionable | unassigned | browser style evidence | Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width. |
+| DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
+| DW-285 | P2 | Defect / actionable | unassigned | none | Guard reentrant submission before any active snapshot mutation and test a held dispatch plus parameter change. |
+| DW-308, DW-314 | P2 | Defect / actionable | unassigned | none | Require explicit authority at construction and reconcile unused status parameters with compatibility tests. |
+| DW-316 | P2 | Defect / actionable | unassigned | none | Localize every remaining unavailable result in one pass and retain keyed results throughout UI mapping. |
+| DW-317 | P2 | Defect / actionable | unassigned | browser layout fixture | Repair the remaining form/label scope stamping and verify computed layout at supported widths. |
+| DW-325, DW-587 | P2 | Defect / actionable | unassigned | retained remove activity ownership; Removal tracker expiry notification | Represent flow-owned activity separately from retained-attempt activity and pin expiry plus visible confirmation. |
+| DW-331 | P2 | Defect / actionable | unassigned | none | Fail closed on contradictory complete-scope flags and add a pure evaluator regression. |
+| DW-337 | P2 | Defect / actionable | unassigned | none | Extract the settled retryable-transport classifier and assert parity for identical failures across commands. |
+| DW-341 | P2 | Defect / actionable | unassigned | release recovery inventory contract | Use one validated manifest consistently through recovery validation, packing and publication. |
+| DW-349 | P2 | Defect / actionable | unassigned | none | Marshal request validation state onto the renderer and prove notification-triggered invalid fields repaint. |
+| DW-371 | P2 | Defect / actionable | unassigned | BFF readiness reason contract | Expose the localization-specific unavailable reason and recovery on removal and correction consumers, with missing-EN/FR regressions. |
+| DW-387 | P2 | Defect / actionable | unassigned | Same-id idempotency/recovery contract | Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards. |
+| DW-388 | P2 | Defect / actionable | unassigned | Removal operation cancellation lifetime | Pass an attempt-owned cancellation token through removal projection requery and verify supersession/disposal cancels the bounded walk. |
+| DW-400 | P2 | Defect / actionable | unassigned | Captured authorization transition generation | Guard subscription assignment against authorization generation/collapse and add the same interleaving with sign-out rather than disposal. |
+| DW-406 | P2 | Defect / actionable | unassigned | Approved rejection-code-to-copy map | Add support-safe EN/FR grant rejection reasons keyed by recognised platform-governance codes for submission and status, with page/gateway regressions. |
+| DW-417 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Add an explicit per-repository fetch-failure stop/skip path before merge, push, or pruning, and synchronize tracked skill copies. |
+| DW-418 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome. |
+| DW-419 | P2 | Defect / actionable | unassigned | Story baseline ownership policy | Fail the legacy guard when the baseline already contains this story work, or require an explicit verified true-start override with regression coverage. |
+| DW-420 | P2 | Defect / actionable | unassigned | none | Read unchanged legacy-mode gitlinks from the superproject index/tree and test an uninitialized declared submodule directory. |
+| DW-422 | P2 | Defect / actionable | unassigned | none | Gate Continue read-only on the actual rendered grid/heading condition and cover stale retained rows with invalid filter input. |
+| DW-424 | P2 | Defect / actionable | unassigned | none | Reject supplied-but-malformed date/category filter fields with InvalidEnvelope and add direct query-handler tests for each malformed JSON kind/date. |
+| DW-444 | P2 | Defect / actionable | unassigned | Focus only when the removed panel actually owned focus | Capture/reset/remount focus and restore the actual correction launcher at safe and narrow widths. |
+| DW-447 | P2 | Defect / actionable | unassigned | Current per-flow callback/recovery availability | Make flow-level recovery text describe only currently rendered actions, with no-callback and exhausted-retry component coverage in EN/FR. |
+| DW-448 | P2 | Defect / actionable | unassigned | Attempt wait/deadline threshold | Choose a bounded unmatched-walk/deadline threshold within the existing recovery contract and transition exhausted waiting to Delayed with tests. |
+| DW-449 | P2 | Defect / actionable | unassigned | Preserve Story 5.4 option-b command/audit separation | Handle IsPending in the five command lifecycle snapshots without assertive unverifiable feedback, preserving their already-correct independent audit state. |
+| DW-464, DW-496, DW-555 | P2 | Defect / actionable | unassigned | Hosted runner Chromium launch diagnosis | Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios. |
+| DW-469 | P2 | Defect / actionable | unassigned | Configuration tracker resumed-identity result | Pass retry identity to lifecycle audit mapping and expose whether configuration BeginDispatch resumed a retained identity; test pre-dispatch failure on retry. |
+| DW-470 | P2 | Defect / actionable | unassigned | none | Preserve SafeMessageKey in both nonaccepted result paths and cover a keyed-only failure. |
+| DW-480 | P2 | Defect / actionable | unassigned | Member command pre-dispatch state contract | Keep the pre-dispatch lease refusal resubmittable and prove a second submit dispatches once after the lease becomes available. |
+| DW-505 | P2 | Defect / actionable | unassigned | DW-464 hosted Chromium repair | Repair and rerun the pinned hosted Chromium launch and subsequent correction preview/negative controls; no further package-boundary repair is needed for this record. |
+| DW-506 | P2 | Defect / actionable | unassigned | Global correction recovery-label contract | Use the actual retry-eligibility predicate for retry-specific text and cover ambiguous-but-ineligible and blank-correlation states. |
+| DW-511 | P2 | Defect / actionable | Hexalith.EventStore | EventStore ambiguity contract | Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions. |
+| DW-520 | P2 | Defect / actionable | unassigned | Gitlink declaration format policy | Support three-column base/target rows with a negative MISSTATED fixture, or explicitly declare and enforce their nonbinding status. |
+| DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
+| DW-522 | P2 | Defect / actionable | Hexalith.EventStore | DW-511 general ambiguity wording | Align the served ambiguity catalog and problem reference with the general scope-aware runtime remediation. |
+| DW-523 | P2 | Defect / actionable | Hexalith.EventStore | EventStore publication recovery status contract | Define recoverable versus exhausted PublishFailed polling semantics and align runtime Retry-After plus all lifecycle/replay documentation. |
+| DW-524 | P2 | Defect / actionable | unassigned | Shared singleton-index sequence contract | Add per-aggregate index replay ordering and persisted-index end-state regression covering older TenantUpdated and membership/lifecycle events. |
+| DW-525 | P2 | Defect / actionable | unassigned | EventStore legacy projection admission contract | Add equivalent fail-closed projection evolution admission at this custom route and route-level no-persistence rejection coverage. |
+| DW-526 | P2 | Defect / actionable | unassigned | Gitlink recorded-provenance tests | Normalize absent/null pointer representations and add valid addition/removal CLI cases. |
+| DW-528, DW-542 | P2 | Defect / actionable | unassigned | Bootstrap authority response contract | Use headers-first bounded token response reading and add an oversized authority-response test. |
+| DW-545 | P2 | Defect / actionable | unassigned | Global-administrator projection completeness contract | Reject conflicting duplicate administrator rows as incomplete evidence and cover same/conflicting duplicates across cursor pages. |
+| DW-573 | P2 | Defect / actionable | release owner | Validated recovery missing-package inventory | Condition account validation/login on packages needing publication while retaining their publication gate. |
+| DW-575 | P2 | Defect / actionable | Tenants bootstrap and quickstart documentation | DW-567 bootstrap identity boundary | Require configured administrator verification before optional bootstrap checks, and replace the wrong-subject command example. |
+| DW-581 | P2 | Defect / actionable | unassigned | Release asset inventory | Upload verified missing assets to existing releases without replacing matching assets. |
+| DW-586 | P2 | Defect / actionable | unassigned | Pending-status UX contract | Preserve a polite waiting lifecycle for Pending status and cover 404-before-first-status. |
+| DW-588 | P2 | Defect / actionable | unassigned | Validated GitHub tag/release inventory | Reject existing-release/missing-tag recovery before any publication. |
+| DW-594 | P2 | Defect / actionable | Tenants integration-test fixture | Runner TLS trust or selected HTTP endpoint | Expose safe inner TLS cause, repair endpoint/trust, then require this exact live test to pass in CI. |
+| DW-595 | P2 | Defect / blocked | EventStore (Story 6.1-P1R evidence, contracts packaging) | EventStore-maintainer fixes at adopted source revision | Route current failing upstream tests to EventStore and capture a green exact-pin CI result. |
+| DW-597 | P2 | Defect / actionable | unassigned | Multitenant claim normalization contract | Allow explicit unambiguous system membership within valid multivalued claims and add the shipped-realm principal regression. |
+| DW-603 | P2 | Defect / actionable | unassigned | Refresh callback cancellation/deadline contract | Bound or isolate callbacks so a stalled subscriber cannot block later refresh notifications. |
+| DW-607 | P2 | Defect / actionable | unassigned | Partial-release eligibility policy | Require concrete existing publication evidence before admitting recovery, with an all-destinations-absent rejection case. |
+| DW-610 | P2 | Defect / actionable | unassigned | Membership paging in-flight state | Guard Next with arrived-page/HasMore and an in-flight gate; cover repeated clicks during a delayed read. |
+| DW-611 | P2 | Defect / actionable | unassigned | Server/authorized membership ordering contract | Define globally ordered protected paging or explicitly constrain the UI sort promise to the current page. |
+| DW-618 | P2 | Defect / actionable | unassigned | Authorization-safe index paging design | Design bounded authorized paging that continues through hidden windows without exposing raw-result pagination facts. |
+| DW-619 | P2 | Defect / actionable | unassigned | Authorized search ordering contract | Move ordering before page selection or specify an honest current-window sorting UX. |
+| DW-621 | P2 | Defect / actionable | unassigned | SemVer prerelease classification | Set and verify GitHub prerelease metadata for suffix-bearing versions. |
+| DW-625 | P2 | Defect / awaiting-decision | global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7) | Platform MessageId lookup/idempotent redelivery capability | Choose an authorized MessageId status lookup or compatible same-ID resolution route that preserves the settled dispatch boundary. |
+| DW-626 | P2 | Defect / actionable | unassigned | Read-model key namespace migration/compatibility | Separate or safely merge tenant-system and global-administrator audit streams with replay regression coverage. |
+| DW-628 | P2 | Defect / actionable | Tenants global-administrator projection and rollout docs | DW-626 storage separation/rebuild plan | Document the safe replay precondition and complete the audit-stream separation plan before applying it to affected installations. |
+| DW-104 | P2 | Gap / blocked | unassigned | healthy authenticated browser/API fixture | Capture the invalid-cursor problem-details response and browser width/forced-colors traces. |
+| DW-114 | P2 | Gap / blocked | unassigned | Memories owning contract/integration lane | Obtain a Memories server contract test for offset-before-filtering and untrimmed totals. |
+| DW-122 | P2 | Gap / blocked | Memories | Memories index uniqueness guarantee | Add an owning Memories uniqueness contract test across raw windows. |
+| DW-154 | P2 | Gap / blocked | unassigned | concurrent teardown harness | Use a concurrency-capable renderer/browser harness to pin reset and disposed-notification behavior. |
+| DW-161 | P2 | Gap / blocked | unassigned | healthy live topology and endpoint/auth evidence | Capture all six production-client routes, conditional 304 and headers through a healthy authenticated deployed topology. |
+| DW-198, DW-549 | P2 | Gap / actionable/awaiting-decision | unassigned | historical story-range attribution; DW-198 historical story-range policy | Record an immutable story-end range or migrate the historical artifact to owned-commit provenance; keep later dependency moves separate. |
+| DW-200 | P2 | Gap / actionable | unassigned | none | Wire workspace notification nudges to create authoritative requery without notify-only confirmation. |
+| DW-284 | P2 | Gap / actionable | unassigned | none | Dispatch through the first component, remount using real scoped services, and assert no redispatch plus correct baseline retention. |
+| DW-299 | P2 | Gap / blocked | unassigned | authenticated browser configuration fixture | Capture real set/remove form and warning visibility at both sides of the breakpoint. |
+| DW-333, DW-335 | P2 | Gap / blocked | unassigned | authenticated real-browser workspace fixture | Capture authenticated tab switches with computed visibility, activeElement and accessibility-tree evidence. |
+| DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
+| DW-336, DW-357, DW-359 | P2 | Gap / blocked/uncertain | unassigned | authenticated browser grant fixture | Run the real grant-preview keyboard/focus/viewport sequence and preserve its trace. |
+| DW-360, DW-384 | P2 | Gap / actionable | unassigned | Story-owned commit attribution; Story-owned gitlink attribution | Record the actual story-owned gitlink commits and historical endpoints without reverting later dependency updates. |
+| DW-369 | P2 | Gap / actionable | unassigned | A controllable final-dispatch capability boundary | Add a deterministic dispatch-capability read seam or equivalent test that fails when this inner refusal silently returns. |
+| DW-394 | P2 | Gap / actionable | unassigned | Authoritative build-only metadata policy | Add governance coverage for all three build-only edge metadata values and make mutations of each fail. |
+| DW-395 | P2 | Gap / actionable | unassigned | YAML/command structural validation helper | Validate the actual source-reference YAML build/test step commands and bind every required flag to its command; cover comment/misplaced-flag mutations. |
+| DW-396 | P2 | Gap / actionable | unassigned | none | Render restore and revoke correction panels with their tracked-dispatch capability false and verify confirm/retry remain blocked and no dispatch occurs. |
+| DW-407 | P2 | Gap / actionable | unassigned | Held invalid-cursor recovery response | Add a caller-switch test during invalid-cursor recovery whose retry faults, and verify no old caller rows can be retained. |
+| DW-414 | P2 | Gap / actionable | unassigned | none | Use distinct raw gateway text and real/localizer-only expected EN/FR rejection copy, and make a broken rejection key mapping fail. |
+| DW-431 | P2 | Gap / actionable | unassigned | Story-owned pointer attribution | Record precise story-owned pointer commits/endpoints and keep later dependency moves out of historical story scope. |
+| DW-432 | P2 | Gap / blocked | unassigned | DW-436 authenticated caller/scope fixture and healthy Aspire topology | Establish the authenticated route fixture from DW-436, then retain the hosted audit-context route assertions and results. |
+| DW-436 | P2 | Gap / actionable | unassigned | Validated caller/tenant scope and healthy Aspire topology | Add an authenticated FrontComposer route fixture and preserve the useful anonymous fail-closed tests as a separate lane. |
+| DW-456 | P2 | Gap / actionable | Hexalith.Builds | Hexalith.Builds-owned test harness change | Require expected validation diagnostics for mode negatives and reject optimized execution or replace bare asserts; run applicable packet tampering in both candidate and accepted modes. |
+| DW-457 | P2 | Gap / awaiting-decision | Hexalith.Builds | Builds toolchain qualification decision | Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings. |
+| DW-460 | P2 | Gap / awaiting-decision | unassigned | Public receipt API decision | Choose an authoritative-metadata overload or deprecate the misleading FromEntry factory, preserving provenance checks. |
+| DW-461, DW-467, DW-478 | P2 | Gap / awaiting-decision | unassigned | Historical artifact validation policy | Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role. |
+| DW-475 | P2 | Gap / actionable | unassigned | Reusable rendered flow fixtures | Add a rendered denied-audit theory across member, metadata, lifecycle and configuration flows and assert no inspectaudit recovery control or shell appears. |
+| DW-507 | P2 | Gap / actionable | Hexalith.EventStore | EventStore status documentation | Document all three advisory recovery fields, null/legacy behavior and polling implications in the status response reference. |
+| DW-508 | P2 | Gap / actionable | Hexalith.EventStore | EventStore API metadata owner | Declare and verify the status endpoint’s 409 ProblemDetails response in generated OpenAPI. |
+| DW-509 | P2 | Gap / actionable | Hexalith.EventStore | EventStore documentation owner | Update each remaining status-route example to MessageId-first guidance and explain bounded correlation compatibility. |
+| DW-510 | P2 | Gap / actionable | Hexalith.EventStore | EventStore replay API reference | Document separate replay MessageId/correlation fields and the identifier-ambiguity 409 outcome. |
+| DW-512 | P2 | Gap / actionable | unassigned | Controllable concurrent retry test seam | Add a deterministic tracker/consumer regression that observes the EndDelivery outcome before subsequent rendering/update; decide whether rendering should consume only the atomically retained result. |
+| DW-513 | P2 | Gap / actionable | Hexalith.EventStore | EventStore status API reference | Correct the status field table to include concurrency-conflict rejection reasons and distinguish domain rejection markers. |
+| DW-518 | P2 | Gap / actionable | Hexalith.EventStore | EventStore status API reference | Document positive event counts on eventful rejections and preserve the separate Completed-only correction-proof contract. |
+| DW-519 | P2 | Gap / actionable | Hexalith.EventStore | EventStore actor test fixtures | Invoke real AggregateActor.GetEventsAsync at count/payload boundaries and assert LegacyArrayLimit, including an arrayBudget.Add removal control. |
+| DW-527 | P2 | Gap / actionable | unassigned | Release consumer-boundary schema | Preserve and compare dependency version ranges and target-framework groups with negative isolated nuspec fixtures. |
+| DW-529 | P2 | Gap / actionable | unassigned | Performance evidence provenance contract | Capture exact root/submodule source provenance or fail preflight on a dirty tree before claiming a revision-bound performance result. |
+| DW-531 | P2 | Gap / actionable | unassigned | Recorded-provenance synthetic repo fixture | Add CLI cases proving a valid recorded pointer chain passes and omitting an intermediate pointer-changing commit fails CHAIN GAP. |
+| DW-535 | P2 | Gap / actionable | unassigned | Audit component localizer/authorization fixture | Pin Unauthorized role=alert and aria-live=assertive in the blocking rendered component lane. |
+| DW-540 | P2 | Gap / awaiting-decision | Hexalith.Builds | Maintainer CI gating decision | Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow. |
+| DW-544 | P2 | Gap / actionable | unassigned | DW-527 version-aware dependency validation | Validate exception dependency versions against owning restore/catalog evidence and add wrong-version fixtures. |
+| DW-551 | P2 | Gap / awaiting-decision | unassigned | Bootstrap authority compatibility decision | Choose a Keycloak-only documented contract or configurable/discovered token endpoint with validation and compatibility tests. |
+| DW-552 | P2 | Gap / actionable | unassigned | Release recovery artifact-preparation boundary | Separate artifact preparation/hash verification from publication and exchange the temporary credential immediately before push. |
+| DW-554 | P2 | Gap / awaiting-decision | unassigned | Published package dependency-layer decision | Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures. |
+| DW-557 | P2 | Gap / actionable | unassigned | Protected publication test environment | Exercise enabled and disabled login-to-publish handoffs without publishing. |
+| DW-566 | P2 | Gap / actionable | unassigned | Isolated workflow guard fixture | Execute each account guard with populated, blank and whitespace values and assert exits. |
+| DW-569, DW-592 | P2 | Gap / actionable | identity/integration owner; other records unassigned | Keycloak-enabled integration topology; Keycloak-enabled workload token fixture | Obtain a workload client_credentials token and assert an authorized domain-service call without retaining tokens. |
+| DW-572 | P2 | Gap / actionable | unassigned | Separate blocking in-process route lane | Place generated-route ETag agreement coverage in a blocking test lane without changing the accepted advisory topology tier. |
+| DW-576 | P2 | Gap / actionable | Tenants quickstart documentation | Local human-account and administrator handoff contract | Document an executable local administrator-to-human grant runbook. |
+| DW-577 | P2 | Gap / actionable | Tenants CI test tiering | Blocking status-proof contract lane; DW-594 for live proof | Add a blocking UI-gateway status-proof lane without relying on topology-tier success. |
+| DW-579 | P2 | Gap / blocked | unassigned | Builds-maintainer historical provenance repair | Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence. |
+| DW-582 | P2 | Gap / actionable | unassigned | Reviewed container digest/provenance | Compare existing OCI content/provenance with reviewed immutable source before accepting recovery. |
+| DW-583 | P2 | Gap / actionable | unassigned | Immutable release-artifact manifest | Verify every expected destination and artifact content after normal publication. |
+| DW-585 | P2 | Gap / actionable | unassigned | Changed-story selection/base revision | Add actual changed-story validation alongside the validator regression lane. |
+| DW-590 | P2 | Gap / actionable | unassigned | Exact-source publication invariant | Recheck live main after all build/validation work and immediately before publication. |
+| DW-593 | P2 | Gap / awaiting-decision | release recovery (recover-partial-release.yml) | Release-owner exact execution provenance decision | Define and enforce the approved publication/recovery Builds revision relationship. |
+| DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
+| DW-602 | P2 | Gap / actionable | unassigned | Requested page-size propagation to payload validator | Reject oversized item counts before hydration and test bounded detail-call fanout. |
+| DW-604 | P2 | Gap / actionable | unassigned | Platform projection rebuild/versioning contract | Specify a safe tenant projection schema rebuild/version path and its rollout verification. |
+| DW-608 | P2 | Gap / actionable | unassigned | Mock publication tools/state fixture | Execute the mismatch path and assert exit before any package/container/release publication. |
+| DW-609 | P2 | Gap / actionable | unassigned | Permission-change invalidation/reauthorization contract | Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts. |
+| DW-614 | P2 | Gap / actionable | unassigned | Authenticated real Tenants host fixture | Issue a safe multi-tenant test principal and prove the selected current-tenant alias through the rendered host. |
+| DW-615 | P2 | Gap / actionable | unassigned | Blocking in-process host fixture | Add a mandatory anonymous host scope-denial lane without depending on the advisory topology tier. |
+| DW-620 | P2 | Gap / actionable | unassigned | Immutable expected package hashes; recovery asset inventory | Download existing release assets safely and compare each content hash with the reviewed package manifest. |
+| DW-622 | P2 | Gap / actionable | unassigned | Evaluated AppHost environment fixture | Assert the effective tenants-ui Tenants__BaseAddress resolves to the expected tenants-api endpoint. |
+| DW-634 | P2 | Gap / actionable | unassigned | Deterministic host-lifetime/callback fixture | Assert no deferred callback/work registration for disabled bootstrap rather than waiting for absent traffic. |
+| DW-635 | P2 | Gap / actionable | unassigned | Manifest authorization inventory semantics | Record the current-global-administrator condition using the owning schema authorization representation. |
+| DW-637 | P2 | Gap / actionable | unassigned | Observable authentication test provider | Add post-disposal provider-notification regressions for both components that fail if unsubscription is removed. |
+| DW-640 | P2 | Gap / actionable | unassigned | Health-check registration/test fixture | Assert the effective registration timeout or exercise a cancellable stalled gateway health check. |
+| DW-641 | P2 | Gap / actionable | unassigned | Conflicting auth configuration fixture | Test distinct nonblank legacy/alias authority and signing keys and assert legacy precedence. |
+| DW-643 | P2 | Gap / actionable | unassigned | Story-owned commit guard policy; later independent-pointer attribution | Cover an unrecorded later pointer-moving commit and enforce the approved endpoint/attribution rule. |
+| DW-113 | P3 | Defect / actionable | unassigned | none | Add explicit fallback/mapping and EN/FR coverage for every accepted reason. |
+| DW-158 | P3 | Defect / actionable | unassigned | none | Return a diagnostic assertion naming the condition when the two-second wait expires. |
+| DW-186 | P3 | Defect / actionable | unassigned | none | Add the recorded lifecycle reason category with compatible resource/chip mappings. |
+| DW-212 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Implement the recorded shared parameter diagnostic and its component regression. |
+| DW-213 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Add a rendered-element readiness guard and an explicit pre-render focus test. |
+| DW-219 | P3 | Defect / actionable | unassigned | none | Describe the proven lineage/floor gap and collision risk without claiming an uncomputed collision. |
+| DW-244 | P3 | Defect / actionable | unassigned | none | Align rejected recovery copy with rendered actions or provide the explicitly governed destination. |
+| DW-270, DW-306, DW-324, DW-439 | P3 | Defect / actionable | unassigned | French editorial convention | Complete the French accent/apostrophe pass while preserving resource parity. |
+| DW-293, DW-294, DW-298 | P3 | Defect / actionable | unassigned | DW-293 copy decision | Align unavailable/self-lock copy with actual cause and replace spec restatements with DW links. |
+| DW-303 | P3 | Defect / actionable | unassigned | none | Implement the recorded lifecycle-boundary EN/FR missing-version message/recovery without renumbering the enum. |
+| DW-346 | P3 | Defect / actionable | unassigned | grant chrome ownership | Migrate the grant Cancel to the existing Fluent V5 component and verify focus behavior. |
+| DW-355 | P3 | Defect / actionable | unassigned | none | Require supported category names and assert numeric URL/form values produce the field error. |
+| DW-571 | P3 | Defect / actionable | unassigned | EventStore hosting helper/runtime token contract | Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial. |
+| DW-601 | P3 | Defect / actionable | unassigned | Local elicitation catalog ownership | Reject or allocate unique explicit replacement method numbers and add collision coverage. |
+| DW-155 | P3 | Gap / actionable | unassigned | none | Drive member paging through rendered controls while a command/page request is pending. |
+| DW-181 | P3 | Gap / actionable | unassigned | none | Drive a real held detail read through supersession/disposal and assert token lifetime through completion. |
+| DW-209 | P3 | Gap / actionable | unassigned | none | Add runtime shell layout assertions for the three remaining dense pages. |
+| DW-211 | P3 | Gap / actionable | unassigned | authenticated browser navigation fixture | Capture browser activeElement after a missing-row detail return and assert the list heading is focused. |
+| DW-253 | P3 | Gap / actionable | unassigned | none | Drive the defensive branches through a gateway substitute returning the malformed Accepted response. |
+| DW-261 | P3 | Gap / actionable | unassigned | shared flow test seam | Add create minted-ID retention on an indeterminate result and a gateway-driven accepted-with-lost-tracking submission regression. |
+| DW-292 | P3 | Gap / actionable | unassigned | TEA hook test harness | Add focused scanner mode/registry/failure regressions in owning tooling tests. |
+| DW-297 | P3 | Gap / actionable | unassigned | none | Add the existing exact Release validation command/result to formal verification without rerunning historical work. |
+| DW-343 | P3 | Gap / actionable | unassigned | historical refresh commit range | Reconcile exact baseline/end attribution in the refresh artifact without reverting current pointers. |
+| DW-344 | P3 | Gap / actionable | unassigned | AppHost build-mode fixture | Pin/record evaluated Memories package-mode properties in the model test lane. |
+| DW-397 | P3 | Gap / actionable | unassigned | Python 3.11+ and temporary fixture roots | Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics. |
+| DW-462 | P3 | Gap / actionable | unassigned | DW-461 historical guard disposition | Add a dated historical-evidence clarification with current symbol anchors and recover exact commands/mutation identities where available; preserve the original notes. |
+| DW-479, DW-530 | P3 | Gap / actionable | unassigned | none | Split existing command-model types into their matching type-named files in a separate mechanical maintenance change. |
+| DW-504 | P3 | Gap / actionable | unassigned | Artifact historical-claim annotation | Add a dated superseded-behavior note linking the current 5.6 spec and its honest tenant missing-association state, preserving historical acceptance text. |
+| DW-532 | P3 | Gap / actionable | unassigned | Historical evidence wording annotation | Add a concise dated annotation distinguishing parsed-row structural equality from the independent catalog byte/hash guarantee. |
+| DW-533 | P3 | Gap / actionable | unassigned | Authoritative planning context sources | Annotate the context’s historical/current scope and reconcile omitted authoritative constraints and citations before future regeneration or reuse. |
+| DW-536 | P3 | Gap / actionable | unassigned | Blocking detail component resource fixture | Add exact localized Unauthorized-title coverage with the real resources or a parity-aware localizer. |
+| DW-558 | P3 | Gap / actionable | unassigned | Story 5.7 completion evidence | Reconcile the paging spec historical reversal with the final Story 5.7 ownership and verification. |
+| DW-564 | P3 | Gap / actionable | unassigned | DW-562 revocation contract | Document current revocation lag and the eventual-consistency boundary without claiming a bound. |
+| DW-578 | P3 | Gap / actionable | agent-context maintenance | Current CI configuration | Update Tier 2 guidance to include the blocking AppHost model project. |
+| DW-591 | P3 | Gap / actionable | unassigned | Rendered host fixture | Render actual host documents under en/fr cultures and assert html lang. |
+| DW-596 | P3 | Gap / actionable | EventStore 3.120.0 dependency refresh (spec-eventstore-3-117-1.md) and agent-context maintenance | Current dependency/provenance facts | Refresh the dependency narrative and CI project list without claiming unresolved audit acceptance. |
+| DW-605 | P3 | Gap / actionable | unassigned | none | Plan a mechanical split into files named after each C# type without behavior changes. |
+| DW-606 | P3 | Gap / actionable | unassigned | Owning source formatting work | Normalize the affected C# files in a separate formatting-only change. |
+| DW-612 | P3 | Gap / actionable | unassigned | Fluent V5 theme token mapping | Replace the two legacy border tokens with the appropriate Fluent V5 token. |
+| DW-613 | P3 | Gap / actionable | unassigned | Existing FrontComposer not-found conventions | Add a framework-conforming in-app unmatched-route message and safe recovery link. |
+| DW-616 | P3 | Gap / actionable | unassigned | Interactive host/browser fixture | Navigate the running interactive router to a FrontComposer-owned route and assert correct shell content. |
+| DW-639 | P3 | Gap / actionable | unassigned | Supported auth configuration aliases | Name both accepted configuration alternatives in the safe exception and align message tests. |
+
+## Unverified risks and recommendations
+
+| DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
+| --- | --- | --- | --- | --- | --- |
+| DW-345, DW-362, DW-378, DW-383, DW-412 | P1 | Unverified / uncertain | unassigned | authenticated rendered-control browser fixture | Trace document.activeElement/shadow activeElement after focusing the actual Blazor Fluent Cancel control. |
+| DW-116 | P2 | Unverified / blocked | unassigned | BROWSER-SEARCH-1.9 and AT-NVDA-1.9 | Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime. |
+| DW-119 | P2 | Unverified / uncertain | unassigned | authenticated browser search fixture | Record document.activeElement during paging and determine whether restoration is required. |
+| DW-127 | P2 | Unverified / awaiting-decision | Story 1.9 | product/security requirement | Set the privacy/completeness acceptance requirement for partially hidden search windows. |
+| DW-180 | P2 | Unverified / uncertain | unassigned | none | Create a deterministic cancellation callback interleaving and assert the older load cannot apply. |
+| DW-191 | P2 | Unverified / uncertain | unassigned | none | Hold child attachment, deliver a nudge during a retained attempt, and show whether the subsequent authoritative read reconciles it. |
+| DW-242 | P2 | Unverified / uncertain | unassigned | authenticated browser fixture | Measure form visibility and initial/Tab focus at 767px and 768px before closing the remaining risk. |
+| DW-372, DW-382 | P2 | Unverified / uncertain | unassigned | none | Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout. |
+| DW-374 | P2 | Unverified / uncertain | unassigned | none | Verify adoption of a withdrawn ambiguous grant under unchanged blocked prerequisites and assert the reason, label, and disabled state. |
+| DW-381, DW-393 | P2 | Unverified / uncertain | unassigned | none | Run an isolated forced-skip probe of one provenance case with the current four-case MTP command; record exit code and passed/skipped counts. |
+| DW-390 | P2 | Unverified / uncertain | unassigned | none | Capture side-by-side supported-browser/font rendering of accepted whitespace identities and compare visible distinction with accessible names. |
+| DW-391 | P2 | Unverified / uncertain | unassigned | none | Capture authenticated grant and removal page keyboard/viewport/long-identity evidence at desktop, mobile, and short heights. |
+| DW-409 | P2 | Unverified / uncertain | unassigned | none | Add or run a deterministic test that invalidates grant generation after durable completion publication but before renderer sync, and assert UI plus lease completion. |
+| DW-415 | P2 | Unverified / uncertain | unassigned | none | Hold a confirming removal projection read, advance the same attempt snapshot, release the read, and assert retained UI state and lease ownership together. |
+| DW-446 | P2 | Unverified / uncertain | unassigned | none | Run NVDA with a supported browser through the first events-stored availability transition and record whether its first message is announced. |
+| DW-459 | P2 | Unverified / uncertain | unassigned | NVDA or VoiceOver authenticated browser session | Capture an assistive-technology browser trace of the first mounted state before deciding whether an always-mounted empty live container is required. |
+| DW-466 | P2 | Unverified / uncertain | unassigned | Historical full-suite raw logs; controlled load reproduction | Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization. |
+| DW-473 | P2 | Unverified / uncertain | unassigned | Held projection-provider continuation and host callback scheduling evidence | Hold ProjectionEvidenceProvider across Continue read-only in a host-level test and a callback-free component test; determine reachability and assert no stale reconciliation overwrites Idle. |
+| DW-489 | P2 | Unverified / uncertain | unassigned | Authenticated live Aspire/browser environment | Run the authenticated composed audit/correction surface at measured narrow widths and record whether required fields and focus remain usable. |
+| DW-503 | P2 | Unverified / uncertain | unassigned | Controlled renderer/continuation scheduling evidence | Hold a status response across expiry, parameter replacement and remount, then establish or refute a concrete visible state regression before changing threading. |
+| DW-514 | P2 | Unverified / uncertain | Hexalith.EventStore | Non-HTTP command-entry-point reachability evidence | Inventory non-HTTP CommandEnvelope producers and reproduce a supported whitespace-causation resume before deciding normalization/rejection behavior. |
+| DW-568 | P2 | Unverified / uncertain | unassigned | Live store ETag behavior and index-version contract | Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work. |
+| DW-574 | P2 | Unverified / uncertain | Story 5.6 tracker in Tenants UI | Caller-bound retained tenant attempts | Add a principal-transition/remount rendered regression; bind or reauthorize retained attempt provenance if previous-user intent is exposed. |
+| DW-589 | P2 | Unverified / uncertain | unassigned | Live Zot OCI-index negotiation fixture | Probe an existing OCI index safely or emulate registry negotiation and document accepted media types. |
+| DW-623 | P2 | Unverified / uncertain | unassigned | Timestamp/provenance contract; clock synchronization evidence | Establish the clock boundary or select a safe proof lookup policy grounded in exact correlation/sequence. |
+| DW-627 | P2 | Unverified / uncertain | unassigned | Platform distributed delivery/serialization guarantee | Trace all supported delivery/rebuild routes across replicas and document a guarantee or reproduce stale overwrite. |
+| DW-629 | P2 | Unverified / uncertain | unassigned | Module manifest v2 semantics owner | Obtain the schema topic-name contract and compare runtime wiring before changing manifest content. |
+| DW-642 | P2 | Unverified / uncertain | unassigned | Platform completed-status invariant/recovery proof | Trace verified terminal/recovery producers and add a reachable malformed-status regression only after establishing the contract. |
+| DW-137 | P2 | Recommendation / actionable | future Tenants API route-contract work | Tenants API route-contract design | Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior. |
+| DW-144 | P2 | Recommendation / actionable | unassigned | topology/security contract and DW-137 | Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks. |
+| DW-177 | P2 | Recommendation / actionable | unassigned | none | Choose/pin retained-list refresh behavior and preserve visible evidence during a same-scope soft refresh. |
+| DW-187 | P2 | Recommendation / actionable | unassigned | shared open-editor lifecycle contract | Specify and test mid-edit lifecycle-change handling across metadata/set/remove without discarding an accepted attempt. |
+| DW-194 | P2 | Recommendation / actionable | unassigned | FrontComposer modal primitive and browser fixture | Adopt the recorded shared modal contract and obtain browser Tab/Escape/inert evidence. |
+| DW-201 | P2 | Recommendation / actionable | unassigned | create UX acceptance contract | Specify safe create viewport and open-existing navigation behavior, then cover the visible actions. |
+| DW-220 | P2 | Recommendation / actionable | unassigned | none | Remove the recorded default proof implementations and make every adapter/stub implement them explicitly. |
+| DW-221 | P2 | Recommendation / actionable | unassigned | configuration schema compatibility | Define backward-compatible shape metadata and provider tests distinguishing empty arrays from scalar declarations. |
+| DW-254 | P2 | Recommendation / actionable | unassigned | compatibility of tracked APIs | Reconcile the settled identity contract with tracked/untracked APIs and migrate or deprecate legacy methods consistently. |
+| DW-313 | P2 | Recommendation / actionable | unassigned | create identity/ownership contract | Address create retention/late completion before extracting reusable technical retention behavior. |
+| DW-408 | P2 | Recommendation / awaiting-decision | unassigned | Audit contract/versioning decision | Decide the unknown audit event compatibility contract, then update gateway behavior/tests and documentation to that single policy. |
+| DW-498 | P2 | Recommendation / awaiting-decision | unassigned | Product/authorization result-read policy | Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision. |
+| DW-553 | P2 | Recommendation / actionable | unassigned | Reviewed credential-action revision | Resolve the reviewed NuGet/login action revision and pin both invocations to that commit under release governance. |
+| DW-556 | P2 | Recommendation / awaiting-decision | unassigned | Bootstrap recovery product/operator policy | Choose bounded in-process retry with identity-preserving delivery semantics or document an explicit operator recovery path. |
+| DW-560 | P2 | Recommendation / actionable | unassigned | Release workflow ownership | Separate build/dependency execution from the job allowed to request publication OIDC tokens. |
+| DW-561 | P2 | Recommendation / actionable | unassigned | Review approved action revisions | Pin reviewed immutable action SHAs in publication jobs. |
+| DW-563 | P2 | Recommendation / actionable | unassigned | Release build/publication separation | Build and validate immutable packages before credential exchange; limit credential-bearing work to publication. |
+| DW-570 | P2 | Recommendation / actionable | release workflow owner | Approved release-provenance policy | Add the owning workflow closure gate or document an approved equivalent closure procedure. |
+| DW-584 | P2 | Recommendation / awaiting-decision | unassigned | Release-gate policy owner | Decide which separate exact-source workflow outcomes must block publication and document the gate. |
+| DW-600 | P2 | Recommendation / awaiting-decision | unassigned | Complete-evidence duplicate-page policy | Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract. |
+| DW-630 | P2 | Recommendation / uncertain | unassigned | Module manifest v2 inventory contract | Confirm required inventory completeness, then map every required decorated operation. |
+| DW-276 | P3 | Unverified / uncertain | unassigned | none | Hold an existing lease and exercise each refusal path to establish the intended flag/owner behavior. |
+| DW-332 | P3 | Unverified / uncertain | unassigned | none | Drive a controlled evidence transition during a render and capture the resulting associations before choosing a fix. |
+| DW-468 | P3 | Unverified / uncertain | unassigned | Focused current formatter reproduction | Rerun the exact read-only whitespace command recorded in the 2026-10-01 addendum and inspect effective formatting configuration if the conflict persists. |
+| DW-160 | P3 | Recommendation / actionable | unassigned | none | Replace adapter-backed cases with ITenantsRestQueryClient substitutes when the gateway fixture is next maintained. |
+| DW-178 | P3 | Recommendation / actionable | unassigned | none | Short-circuit unchanged authority scope or document why each parameter update requires a fresh resolve. |
+| DW-246 | P3 | Recommendation / actionable | unassigned | DW-198 | Record exact story end/provenance, retaining later dependency changes outside the old story. |
+| DW-248 | P3 | Recommendation / actionable | unassigned | membership coalescer design | Replace recursive tail replay with an iterative shared drain without dropping refresh intent. |
+| DW-252 | P3 | Recommendation / actionable | unassigned | none | Wire metadata nudges to authoritative reconciliation or retire the dead evidence seam. |
+| DW-255 | P3 | Recommendation / actionable | unassigned | none | Inject the chosen clock and consume timing in bounded retained create behavior while preserving the public member. |
+| DW-256 | P3 | Recommendation / actionable | unassigned | DW-200 | Complete the create nudge/evidence wiring or remove the dead seam. |
+| DW-258, DW-282 | P3 | Recommendation / actionable | unassigned | none | Resolve composition consistently and centralize the absence predicate; specify whether reconnect needs notification. |
+| DW-259 | P3 | Recommendation / actionable | unassigned | none | Remove unused evidence entry points or wire one authoritative live seam with focus/fault containment. |
+| DW-266 | P3 | Recommendation / actionable | unassigned | none | Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive. |
+| DW-267 | P3 | Recommendation / actionable | unassigned | DW-245 and DW-300 | Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics. |
+| DW-301 | P3 | Recommendation / actionable | unassigned | none | Extract a keyed proof-scope helper with cancellation and route-generation behavior pinned first. |
+| DW-302 | P3 | Recommendation / actionable | unassigned | public component compatibility | Make high-impact evidence canonical and retain only explicit compatibility shims for public parameters. |
+| DW-319 | P3 | Recommendation / actionable | unassigned | none | Mark the old methods obsolete with tracked replacements and pin compatibility behavior. |
+| DW-320 | P3 | Recommendation / actionable | unassigned | none | Remove the unused lifecycle-only state path while preserving live duplicate handling in other flows. |
+| DW-321 | P3 | Recommendation / actionable | unassigned | lease/focus regression coverage | Extract helpers after explicitly pinning surface owner identity and retention polarity. |
+| DW-322 | P3 | Recommendation / actionable | unassigned | none | Measure render cost and move pruning to a controlled mutation/expiry seam without losing expiration semantics. |
+| DW-323 | P3 | Recommendation / actionable | unassigned | configured poll budget | Implement the recorded tested poll cap and safe UnableToVerify transition. |
+| DW-326 | P3 | Recommendation / actionable | unassigned | existing ten-fact acceptance contract | Document/pin the intentional Current/Current proof fact and prune unreachable resource variants. |
+| DW-327 | P3 | Recommendation / actionable | unassigned | none | Apply the recorded deprecation and compatibility guidance with a direct overload regression. |
+| DW-328 | P3 | Recommendation / actionable | unassigned | independent review capacity | Run a separately scoped independent follow-up on retained removal expiry and proof behavior. |
+| DW-353 | P3 | Recommendation / actionable | unassigned | timestamp input contract | Specify accepted narrative timestamp forms and add missing-fraction/Z cases before expanding the parser. |
+| DW-386 | P3 | Recommendation / actionable | unassigned | Localization immutability/cache-lifetime contract | Assess whether the existing per-circuit fixed-localization cache can safely serve removal composition; change only if the measured cost warrants it. |
+| DW-434 | P3 | Recommendation / actionable | unassigned | Approved Option A fallback remains valid; preserve rejected Option B | For the approved Option C follow-up, browser-check a collapsed in-flight lifecycle/configuration audit round trip and expand its matching item only if the launcher is unreachable. |
+| DW-438 | P3 | Recommendation / awaiting-decision | unassigned | Support-safety policy/opaque-reference contract decision | Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy. |
+| DW-440 | P3 | Recommendation / awaiting-decision | unassigned | UX/support timestamp formatting decision | Choose culture-formatted absolute dates or the stable UTC pattern for both grid and receipt, then align the UX wording/tests. |
+| DW-450, DW-474 | P3 | Recommendation / awaiting-decision | unassigned | Repo-wide UX/design precedence decision; Existing Tint-versus-Filled badge decision | Decide the shared badge appearance/anatomy and align components with DESIGN.md. |
+| DW-538 | P3 | Recommendation / actionable | unassigned | UX exact-copy test policy | Strengthen component assertions to the full approved localized focus-return sentence if exact copy is a maintained contract. |
+| DW-631 | P3 | Recommendation / awaiting-decision | unassigned | Manifest critical-flow scope decision | Decide whether removal belongs in the critical flow and record the chosen inventory rule. |
+| DW-636 | P3 | Recommendation / awaiting-decision | unassigned | Manifest recovery-hook/inventory contract | Choose the supported representation for the documented singleton replay prerequisite. |
+
+## Accepted limitations
+
+| DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
+| --- | --- | --- | --- | --- | --- |
+| DW-117 | P3 | Accepted / accepted-limitation | unassigned | none | Revisit containment only if the documented surfacing policy changes. |
+| DW-118 | P3 | Accepted / accepted-limitation | unassigned | none | Revisit if codec callers begin accepting nullable scope or position inputs. |
+| DW-133 | P3 | Accepted / accepted-limitation | unassigned | none | Keep the historical attribution when archiving; use separately scoped tooling work for future changes. |
+| DW-159 | P3 | Accepted / accepted-limitation | unassigned | none | Require explicit state mapping if a second consumer passes an available model with a denied/not-found surface. |
+| DW-269 | P3 | Accepted / accepted-limitation | unassigned | none | Assign/pin values before introducing numeric serialization; retain the historical observation. |
+| DW-365 | P3 | Accepted / accepted-limitation | unassigned | none | Keep this scope note as history; use the separate pushall safeguards entries for maintenance. |
+| DW-367 | P3 | Accepted / accepted-limitation | unassigned | Explicit contract/product change approval | Keep deliberate role selection; revisit the event schema only through a separately approved contract change. |
+| DW-377 | P3 | Accepted / accepted-limitation | unassigned | none | Retain the historical grant attribution; no removal fix is needed. |
+| DW-402 | P3 | Accepted / accepted-limitation | unassigned | none | Preserve the scope attribution and style; no maintenance fix follows from this note. |
