@@ -62,7 +62,7 @@
             </div>
             <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-target">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Target"]</dt>
-                <dd>@FieldValue(SafeTargetForDisplay(Receipt.Target))</dd>
+                <dd>@FieldValue(SafeTargetForDisplay(Receipt))</dd>
             </div>
             <div class="audit-evidence-receipt__field" data-testid="tenants-audit-receipt-scope">
                 <dt>@Localizer["Tenants.Audit.Receipt.Field.Scope"]</dt>
@@ -257,9 +257,7 @@
             || value.Length > 256 || TenantAuditSupportSafety.ContainsFieldBoundary(value)
             || value.Contains('{', StringComparison.Ordinal) || value.Contains('}', StringComparison.Ordinal))
             || !TenantAuditSupportSafety.IsSafe(receipt.Actor, SupportSafeCopyValueKind.UserId)
-            || !(TenantAuditSupportSafety.IsSafe(receipt.Target, SupportSafeCopyValueKind.UserId)
-                || TenantAuditSupportSafety.IsSafe(receipt.Target, SupportSafeCopyValueKind.ConfigurationKey)
-                || TenantAuditSupportSafety.IsSafe(receipt.Target, SupportSafeCopyValueKind.TenantId))
+            || !TenantAuditSupportSafety.IsSafe(receipt.Target, TargetKind(receipt))
             || !TenantAuditSupportSafety.IsSafe(receipt.Scope, SupportSafeCopyValueKind.TenantId)
             || TenantAuditSupportSafety.SafeApprovedReference(receipt.AuditReference) is null
             || receipt.Timestamp is null || receipt.Timestamp.Value == default
@@ -313,7 +311,7 @@
             string placeholderBoundary = segments[index]
                 .Replace(label, string.Empty, StringComparison.Ordinal)
                 .Replace(placeholder, values[index], StringComparison.Ordinal);
-            if (!IsSafeCompletedSummarySegment(index, placeholderBoundary))
+            if (!IsSafeCompletedSummarySegment(index, placeholderBoundary, TargetKind(receipt)))
             {
                 return null;
             }
@@ -325,13 +323,11 @@
         return summary.Length <= 2048 ? summary : null;
     }
 
-    private static bool IsSafeCompletedSummarySegment(int index, string segment)
+    private static bool IsSafeCompletedSummarySegment(int index, string segment, SupportSafeCopyValueKind targetKind)
         => index switch
         {
-            0 => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.UserId),
-            1 => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.UserId)
-                || TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.ConfigurationKey)
-                || TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.TenantId),
+            0 => TenantAuditSupportSafety.IsSafe(segment.Trim().TrimStart(':').Trim(), SupportSafeCopyValueKind.UserId),
+            1 => TenantAuditSupportSafety.IsSafe(segment.Trim().TrimStart(':').Trim(), targetKind),
             2 => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.TenantId),
             _ => TenantAuditSupportSafety.IsSafe(segment, SupportSafeCopyValueKind.ApprovedReference),
         };
@@ -366,11 +362,13 @@
     private static string SafeReferenceFallback(string? auditReference)
         => FieldValue(TenantAuditSupportSafety.SafeApprovedReference(auditReference));
 
-    private static string SafeTargetForDisplay(string? target)
-        => TenantAuditSupportSafety.IsSafe(target, SupportSafeCopyValueKind.UserId)
-            || TenantAuditSupportSafety.IsSafe(target, SupportSafeCopyValueKind.ConfigurationKey)
-            || TenantAuditSupportSafety.IsSafe(target, SupportSafeCopyValueKind.TenantId)
-                ? target! : string.Empty;
+    private static SupportSafeCopyValueKind TargetKind(TenantAuditReceipt receipt)
+        => receipt.TargetKind is SupportSafeCopyValueKind.Unknown
+            ? TenantAuditReceipt.TargetValueKind(receipt.Outcome)
+            : receipt.TargetKind;
+
+    private static string SafeTargetForDisplay(TenantAuditReceipt receipt)
+        => TenantAuditSupportSafety.SafeIdentifier(receipt.Target, TargetKind(receipt));
 
     // Receipt-local recoveries use the canonical verb spellings the shared availability control renders under the
     // same prefix, so one recovery keeps one selector whichever receipt state renders it.

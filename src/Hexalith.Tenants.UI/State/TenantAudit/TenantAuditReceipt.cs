@@ -32,6 +32,9 @@ public sealed record TenantAuditReceipt(
     TenantAuditReceiptState State,
     bool IsRequestedReferenceMissing = false)
 {
+    /// <summary>The typed target contract retained from mapped evidence.</summary>
+    internal SupportSafeCopyValueKind TargetKind { get; init; }
+
     /// <summary>Formats the event time as absolute UTC using the current culture.</summary>
     public string TimestampLabel
         => Timestamp?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss 'UTC'", CultureInfo.CurrentCulture) ?? string.Empty;
@@ -70,7 +73,7 @@ public sealed record TenantAuditReceipt(
             && row.Provenance is QueryResponseProvenance.ProjectionBacked;
         TenantAuditReceiptState state = ResolveState(surfaceKind, auditState, row.Freshness, complete);
         return new(actor, target, scope, outcome, timestamp,
-            row.Freshness, reference, null, state);
+            row.Freshness, reference, null, state) { TargetKind = TargetValueKind(row) };
     }
 
     /// <summary>Builds an unverified requested-reference state without claiming event proof.</summary>
@@ -151,10 +154,24 @@ public sealed record TenantAuditReceipt(
             : complete ? TenantAuditReceiptState.Ready : TenantAuditReceiptState.Partial;
     }
 
-    private static SupportSafeCopyValueKind TargetValueKind(TenantAuditRow row)
+    /// <summary>Resolves the contract of an audit target without rewriting its literal.</summary>
+    internal static SupportSafeCopyValueKind TargetValueKind(TenantAuditRow row)
         => !string.IsNullOrWhiteSpace(row.Narrative?.UserId)
             ? SupportSafeCopyValueKind.UserId
             : !string.IsNullOrWhiteSpace(row.Narrative?.ConfigurationKey)
+                && string.Equals(row.Target, row.Narrative.ConfigurationKey, StringComparison.Ordinal)
                 ? SupportSafeCopyValueKind.ConfigurationKey
-                : SupportSafeCopyValueKind.TenantId;
+                : string.Equals(row.Target, row.TenantId, StringComparison.Ordinal)
+                    ? SupportSafeCopyValueKind.TenantId
+                    : TargetValueKind(row.EventType);
+    /// <summary>Infers the target contract for a direct receipt from its known outcome.</summary>
+    internal static SupportSafeCopyValueKind TargetValueKind(string outcome)
+        => outcome switch
+        {
+            "UserAddedToTenant" or "UserRemovedFromTenant" or "UserRoleChanged"
+                or "GlobalAdministratorSet" or "GlobalAdministratorRemoved" => SupportSafeCopyValueKind.UserId,
+            "TenantConfigurationSet" or "TenantConfigurationRemoved" => SupportSafeCopyValueKind.ConfigurationKey,
+            _ => SupportSafeCopyValueKind.TenantId,
+        };
 }
+

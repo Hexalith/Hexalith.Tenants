@@ -4285,4 +4285,22 @@
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Ready" xml:space="preserve"><value>L’autorité de plateforme et l’admission de commande sont prêtes. La confirmation les vérifie à nouveau.</value></data>
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked" xml:space="preserve"><value>La confirmation est indisponible pour la raison indiquée ci-dessus.</value></data>
   <data name="Tenants.Audit.Receipt.Paired.OpenReference" xml:space="preserve"><value>Voir le reçu d’audit associé {0}</value></data>
+  <data name="Tenants.Commands.Failure.ConcurrencyConflict" xml:space="preserve">
+    <value>La commande n’a pas pu aboutir car l’état actuel a changé. Relancez la consultation du statut.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.BackpressureExceeded" xml:space="preserve">
+    <value>La commande n’a pas pu aboutir car le service est occupé. Relancez la consultation du statut plus tard.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.DomainRejected" xml:space="preserve">
+    <value>La commande a été rejetée.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.UnavailableSupportDetail" xml:space="preserve">
+    <value>Le statut de la commande contenait un détail d’assistance indisponible.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.PublishFailed" xml:space="preserve">
+    <value>La commande a été acceptée, mais sa publication n’a pas pu être vérifiée.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.TimedOut" xml:space="preserve">
+    <value>Le délai du statut de la commande a expiré avant que le résultat puisse être vérifié.</value>
+  </data>
 </root>

@@ -237,7 +237,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
             return this with {
                 LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
-                SafeMessageKey = null,
+                SafeMessageKey = status.SafeMessageKey,
                 AuditState = TenantCommandAuditState.MissingSupport,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -292,7 +292,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
                     => this with {
                         LifecycleState = TenantCommandLifecycleState.Rejected,
                         SafeMessage = status.SafeMessage,
-                        SafeMessageKey = null,
+                        SafeMessageKey = status.SafeMessageKey,
                         RejectionCode = status.RejectionCode,
                         AuditState = TenantCommandAuditState.MissingSupport,
                         FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -302,7 +302,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
                     => this with {
                         LifecycleState = TenantCommandLifecycleState.Degraded,
                         SafeMessage = status.SafeMessage,
-                        SafeMessageKey = null,
+                        SafeMessageKey = status.SafeMessageKey,
                         AuditState = TenantCommandAuditState.MissingSupport,
                         FocusTarget = TenantCommandFocusTarget.Refresh,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -311,7 +311,7 @@ public sealed record TenantCorrectionPreviewSnapshot(
                     => this with {
                         LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                         SafeMessage = status.SafeMessage,
-                        SafeMessageKey = null,
+                        SafeMessageKey = status.SafeMessageKey,
                         AuditState = TenantCommandAuditState.MissingSupport,
                         FocusTarget = TenantCommandFocusTarget.Refresh,
                         LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,

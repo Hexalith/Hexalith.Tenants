@@ -357,14 +357,9 @@
     {
         get
         {
-            if (!string.IsNullOrWhiteSpace(_snapshot.SafeMessage))
-            {
-                return _snapshot.SafeMessage;
-            }
-
             if (string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey))
             {
-                return null;
+                return _snapshot.SafeMessage;
             }
 
             // A missing or renamed resource makes IStringLocalizer hand back the key itself, which

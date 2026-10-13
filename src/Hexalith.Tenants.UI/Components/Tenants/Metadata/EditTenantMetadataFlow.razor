@@ -479,11 +479,9 @@
                                      IsAvailable="@AuditReadAvailable" />;
 
     private string? SafeMessageText
-        => !string.IsNullOrWhiteSpace(_snapshot.SafeMessage)
-            ? _snapshot.SafeMessage
-            : !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
-                ? ResolveSafeMessageKey(_snapshot.SafeMessageKey)
-                : null;
+        => !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
+            ? ResolveSafeMessageKey(_snapshot.SafeMessageKey)
+            : _snapshot.SafeMessage;
 
     // A drifted or missing key must not surface its raw resource id to the user.
     private string ResolveSafeMessageKey(string key)

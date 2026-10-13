@@ -21,20 +21,20 @@
                         Class="tenants-audit-critical tenants-audit-critical--actor"
                         Width="190px"
                         Pin="DataGridColumnPin.Start">
-            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-actor">@context.ActorId</span>
+            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-actor">@TenantAuditSupportSafety.SafeIdentifier(context.ActorId, SupportSafeCopyValueKind.UserId)</span>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Outcome"]"
                         ColumnId="audit-outcome"
                         Class="tenants-audit-critical tenants-audit-critical--outcome"
                         Width="190px"
                         Pin="DataGridColumnPin.Start">
-            <span class="audit-data-grid__state">@context.Outcome</span>
+            <span class="audit-data-grid__state">@(TenantAuditReceipt.IsKnownOutcome(context.Outcome, context.Category) ? context.Outcome : string.Empty)</span>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Target"]" ColumnId="audit-target" Width="180px">
-            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-target">@context.Target</span>
+            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-target">@TenantAuditSupportSafety.SafeIdentifier(context.Target, TenantAuditReceipt.TargetValueKind(context))</span>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Scope"]" ColumnId="audit-scope" Width="160px">
-            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-scope">@context.Scope</span>
+            <span class="audit-data-grid__wrap" data-testid="tenants-audit-row-scope">@TenantAuditSupportSafety.SafeIdentifier(context.Scope, SupportSafeCopyValueKind.TenantId)</span>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.Audit.Column.Category"]"
                         ColumnId="audit-category"

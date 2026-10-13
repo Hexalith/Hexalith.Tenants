@@ -39,20 +39,6 @@ internal sealed class TenantCommandGateway(
 
     public bool SupportsTrackedRemoveConfigurationDispatch => true;
 
-    // Markers for support-unsafe content (AC9 / Story 1.8 discipline) that must never be echoed
-    // from a backend failure reason into the visible command lifecycle copy.
-    private static readonly string[] UnsafeSupportMarkers =
-    [
-        "payload",
-        "token",
-        "bearer",
-        "jwt",
-        "stack",
-        "correlation",
-        "cursor",
-        "etag",
-    ];
-
     public async Task<TenantCommandSubmissionResult> CreateTenantAsync(
         CreateTenant request,
         string? messageId = null,
@@ -704,9 +690,11 @@ internal sealed class TenantCommandGateway(
                         : null);
             }
 
+            (string? safeMessage, string? safeMessageKey) = SafeMessageForStatus(
+                parsedStatus, status.RejectionEventType, status.FailureReason);
             return new TenantCommandStatusResult(
                 parsedStatus,
-                SafeMessageForStatus(parsedStatus, status.RejectionEventType, status.FailureReason),
+                safeMessage,
                 SafeRejectionCode(status.RejectionEventType),
                 status.EventCount,
                 HasVerifiedCommandIdentity: hasVerifiedCommandIdentity,
@@ -716,9 +704,9 @@ internal sealed class TenantCommandGateway(
                         CommandStatus.Rejected => "Tenants.GlobalAdministrators.Grant.Status.Rejected",
                         CommandStatus.PublishFailed => "Tenants.GlobalAdministrators.Grant.Status.PublishFailed",
                         CommandStatus.TimedOut => "Tenants.GlobalAdministrators.Grant.Status.TimedOut",
-                        _ => null,
+                        _ => safeMessageKey,
                     }
-                    : null) {
+                    : safeMessageKey) {
                         CommittedEventSequence = hasVerifiedCommandIdentity
                             && parsedStatus is CommandStatus.Completed && status.StatusCode == (int)parsedStatus
                             && status.EventCount is > 0 && status.CommittedEventSequence is > 0
@@ -965,18 +953,23 @@ internal sealed class TenantCommandGateway(
         || Contains(ProblemDetailsExtension(exception, GatewayProblemDetailsExtensions.RejectionType), "TenantAlreadyExists")
         || Contains(ProblemDetailsExtension(exception, GatewayProblemDetailsExtensions.CorrectiveAction), "already exists");
 
-    private static string? SafeMessageForStatus(CommandStatus status, string? rejectionEventType, string? failureReason)
-        => status switch {
+    private static (string? Message, string? Key) SafeMessageForStatus(
+        CommandStatus status, string? rejectionEventType, string? failureReason)
+        => status switch
+        {
             CommandStatus.Rejected when SafeSharedStatusRejection(rejectionEventType) is { } rejection
-                => rejection.Message,
-            // GetStatusAsync is shared by every Tenants command (create-tenant, add-member,
-            // change-role), so the generic rejected fallback must stay command-neutral instead of
-            // naming a single command, otherwise an unrecognized rejection would surface one
-            // command's copy in another command's lifecycle panel.
-            CommandStatus.Rejected => "The command was rejected.",
-            CommandStatus.PublishFailed => "The command was accepted, but publication could not be verified.",
-            CommandStatus.TimedOut => "The command status timed out before the result could be verified.",
-            _ => BoundSafeFailureReason(failureReason),
+                => (rejection.Message, null),
+            CommandStatus.Rejected when failureReason is "ConcurrencyConflict" or "BackpressureExceeded"
+                => SafeFailureReason(failureReason)!.Value,
+            CommandStatus.Rejected => ("The command was rejected.", "Tenants.Commands.Failure.DomainRejected"),
+            CommandStatus.PublishFailed => (
+                "The command was accepted, but publication could not be verified.",
+                "Tenants.Commands.Failure.PublishFailed"),
+            CommandStatus.TimedOut => (
+                "The command status timed out before the result could be verified.",
+                "Tenants.Commands.Failure.TimedOut"),
+            _ => SafeFailureReason(failureReason) is { } failure
+                ? (failure.Message, failure.Key) : (null, null),
         };
 
     private static string? SafeRejectionCode(string? rejectionEventType)
@@ -1311,15 +1304,22 @@ internal sealed class TenantCommandGateway(
             && NUlid.Ulid.TryParse(messageId, out NUlid.Ulid parsed)
             && string.Equals(messageId, parsed.ToString(), StringComparison.Ordinal);
 
-    private static string? BoundSafeFailureReason(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) {
-            return null;
-        }
-
-        return UnsafeSupportMarkers.Any(marker => value.Contains(marker, StringComparison.OrdinalIgnoreCase))
-                ? "The command status included an unavailable support detail."
-                : value[..Math.Min(value.Length, 160)];
-    }
+    // FailureReason is backend data, never presentation copy. Match only complete machine codes;
+    // inspection, trimming or substring matching would turn arbitrary details into trusted evidence.
+    private static (string Message, string Key)? SafeFailureReason(string? value)
+        => value switch
+        {
+            "ConcurrencyConflict" => (
+                "The command could not complete because the current state changed. Retry status lookup.",
+                "Tenants.Commands.Failure.ConcurrencyConflict"),
+            "BackpressureExceeded" => (
+                "The command could not complete because the service is busy. Retry status lookup later.",
+                "Tenants.Commands.Failure.BackpressureExceeded"),
+            "DomainRejected" => ("The command was rejected.", "Tenants.Commands.Failure.DomainRejected"),
+            null or "" => null,
+            _ => ("The command status included an unavailable support detail.",
+                "Tenants.Commands.Failure.UnavailableSupportDetail"),
+        };
 
     private static bool Contains(string? value, string expected)
         => value?.Contains(expected, StringComparison.OrdinalIgnoreCase) == true;

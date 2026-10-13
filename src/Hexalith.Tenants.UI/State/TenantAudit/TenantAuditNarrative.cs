@@ -50,8 +50,8 @@ public sealed record TenantAuditNarrative(
     public string ToDisplayString()
     {
         List<string> fields = [];
-        Add(fields, "userId", UserId);
-        Add(fields, "key", ConfigurationKey);
+        Add(fields, "userId", TenantAuditSupportSafety.SafeIdentifier(UserId, SupportSafeCopyValueKind.UserId));
+        Add(fields, "key", TenantAuditSupportSafety.SafeIdentifier(ConfigurationKey, SupportSafeCopyValueKind.ConfigurationKey));
         Add(fields, "role", Role?.ToString());
         Add(fields, "oldRole", OldRole?.ToString());
         Add(fields, "newRole", NewRole?.ToString());

@@ -4285,4 +4285,22 @@
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Ready" xml:space="preserve"><value>Platform authority and command admission are ready. Confirm rechecks both.</value></data>
   <data name="Tenants.Correction.GlobalAdmin.Preview.AuthorityAdmission.Blocked" xml:space="preserve"><value>Confirm is unavailable for the reason shown above.</value></data>
   <data name="Tenants.Audit.Receipt.Paired.OpenReference" xml:space="preserve"><value>View paired audit receipt {0}</value></data>
+  <data name="Tenants.Commands.Failure.ConcurrencyConflict" xml:space="preserve">
+    <value>The command could not complete because the current state changed. Retry status lookup.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.BackpressureExceeded" xml:space="preserve">
+    <value>The command could not complete because the service is busy. Retry status lookup later.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.DomainRejected" xml:space="preserve">
+    <value>The command was rejected.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.UnavailableSupportDetail" xml:space="preserve">
+    <value>The command status included an unavailable support detail.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.PublishFailed" xml:space="preserve">
+    <value>The command was accepted, but publication could not be verified.</value>
+  </data>
+  <data name="Tenants.Commands.Failure.TimedOut" xml:space="preserve">
+    <value>The command status timed out before the result could be verified.</value>
+  </data>
 </root>

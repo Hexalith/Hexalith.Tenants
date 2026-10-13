@@ -303,7 +303,7 @@ public sealed record TenantCreateCommandSnapshot(
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
-                SafeMessageKey = null,
+                SafeMessageKey = status.SafeMessageKey,
                 // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -311,8 +311,7 @@ public sealed record TenantCreateCommandSnapshot(
             };
         }
 
-        // Every branch clears SafeMessageKey: a keyed reason belongs to the transition that set it, so
-        // leaving it in place would render a stale provenance sentence underneath a later state.
+        // Terminal failures use only the fresh status key; processing and success clear previous reasons.
         return status.Status.Value switch {
             CommandStatus.Received or CommandStatus.Processing
                 => this with { State = HasCommandEventEvidence ? TenantCommandLifecycleState.ProjectionPending : TenantCommandLifecycleState.Accepted, SafeMessage = null, SafeMessageKey = null, RejectionCode = null, AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence), LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite },
@@ -324,7 +323,7 @@ public sealed record TenantCreateCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Rejected,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -334,7 +333,7 @@ public sealed record TenantCreateCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Degraded,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -343,7 +342,7 @@ public sealed record TenantCreateCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.UnableToVerify,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -564,7 +563,7 @@ public sealed record TenantAddMemberCommandSnapshot(
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
-                SafeMessageKey = null,
+                SafeMessageKey = status.SafeMessageKey,
                 // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -583,7 +582,7 @@ public sealed record TenantAddMemberCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Rejected,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -593,7 +592,7 @@ public sealed record TenantAddMemberCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Degraded,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -602,7 +601,7 @@ public sealed record TenantAddMemberCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.UnableToVerify,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -811,7 +810,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
-                SafeMessageKey = null,
+                SafeMessageKey = status.SafeMessageKey,
                 // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -842,7 +841,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Rejected,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -852,7 +851,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Degraded,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -861,7 +860,7 @@ public sealed record TenantChangeRoleCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.UnableToVerify,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -1144,7 +1143,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
-                SafeMessageKey = null,
+                SafeMessageKey = status.SafeMessageKey,
                 // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -1163,7 +1162,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Rejected,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -1173,7 +1172,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Degraded,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -1182,7 +1181,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.UnableToVerify,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -1530,7 +1529,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             return this with {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
-                SafeMessageKey = null,
+                SafeMessageKey = status.SafeMessageKey,
                 // A 404 before the first status is a wait that keeps the audit state; any other missing status is unverifiable.
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -1569,7 +1568,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Rejected,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -1579,7 +1578,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.Degraded,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -1588,7 +1587,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
                 => this with {
                     State = TenantCommandLifecycleState.UnableToVerify,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = status.SafeMessageKey,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
@@ -1979,11 +1978,11 @@ public sealed record TenantLifecycleCommandSnapshot(
             return this with
             {
                 SafeMessage = status.SafeMessage,
-                SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                SafeMessageKey = status.SafeMessageKey ?? (string.IsNullOrWhiteSpace(status.SafeMessage)
                     ? status.IsPending
                         ? "Tenants.Lifecycle.StatusEvidence.Pending"
                         : "Tenants.Lifecycle.StatusEvidence.RetryableFailure"
-                    : null,
+                    : null),
                 RecoveryKey = "Tenants.Lifecycle.Retained.Recovery",
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -1999,9 +1998,9 @@ public sealed record TenantLifecycleCommandSnapshot(
             {
                 State = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessage = status.SafeMessage,
-                SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                SafeMessageKey = status.SafeMessageKey ?? (string.IsNullOrWhiteSpace(status.SafeMessage)
                     ? "Tenants.Lifecycle.UnableToVerify.Status"
-                    : null,
+                    : null),
                 RecoveryKey = null,
                 AuditState = TenantCommandAuditStates.FromCommandStatus(null),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -2026,7 +2025,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                     State = State is TenantCommandLifecycleState.ProjectionPending
                         ? TenantCommandLifecycleState.ProjectionPending
                         : TenantCommandLifecycleState.Accepted,
-                    SafeMessage = status.SafeMessage,
+                    SafeMessage = null,
                     SafeMessageKey = null,
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
@@ -2038,7 +2037,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                 {
                     State = TenantCommandLifecycleState.ProjectionPending,
                     HasCommandEventEvidence = true,
-                    SafeMessage = status.SafeMessage,
+                    SafeMessage = null,
                     SafeMessageKey = null,
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
@@ -2057,7 +2056,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                 {
                     State = TenantCommandLifecycleState.ProjectionPending,
                     HasCommandEventEvidence = HasCommandEventEvidence || status.EventCount is > 0,
-                    SafeMessage = status.SafeMessage,
+                    SafeMessage = null,
                     SafeMessageKey = null,
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
@@ -2074,9 +2073,9 @@ public sealed record TenantLifecycleCommandSnapshot(
                 {
                     State = TenantCommandLifecycleState.AlreadyApplied,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                    SafeMessageKey = status.SafeMessageKey ?? (string.IsNullOrWhiteSpace(status.SafeMessage)
                         ? "Tenants.Lifecycle.Message.Rejected.TenantLifecycleStateAlreadySet"
-                        : null,
+                        : null),
                     RecoveryKey = null,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
@@ -2090,7 +2089,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                 {
                     State = TenantCommandLifecycleState.Rejected,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                    SafeMessageKey = status.SafeMessageKey ?? (string.IsNullOrWhiteSpace(status.SafeMessage)
                         ? status.RejectionCode switch
                         {
                             "InsufficientPermissions" => "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions",
@@ -2098,7 +2097,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                             "TenantNotFound" => "Tenants.Lifecycle.Message.Rejected.TenantNotFound",
                             _ => "Tenants.Lifecycle.Message.Rejected",
                         }
-                        : null,
+                        : null),
                     RecoveryKey = null,
                     RejectionCode = status.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
@@ -2112,9 +2111,9 @@ public sealed record TenantLifecycleCommandSnapshot(
                 {
                     State = TenantCommandLifecycleState.Degraded,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                    SafeMessageKey = status.SafeMessageKey ?? (string.IsNullOrWhiteSpace(status.SafeMessage)
                         ? "Tenants.Lifecycle.Message.Degraded"
-                        : null,
+                        : null),
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
@@ -2127,9 +2126,9 @@ public sealed record TenantLifecycleCommandSnapshot(
                 {
                     State = TenantCommandLifecycleState.UnableToVerify,
                     SafeMessage = status.SafeMessage,
-                    SafeMessageKey = string.IsNullOrWhiteSpace(status.SafeMessage)
+                    SafeMessageKey = status.SafeMessageKey ?? (string.IsNullOrWhiteSpace(status.SafeMessage)
                         ? "Tenants.Lifecycle.Message.UnableToVerify"
-                        : null,
+                        : null),
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     FocusTarget = TenantCommandFocusTarget.Refresh,

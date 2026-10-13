@@ -8,6 +8,50 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantAuditSupportSafetyTests
 {
     [Theory]
+    [InlineData("202.555.0100")]
+    [InlineData("202/555/0100")]
+    [InlineData("tel:+1-202-555-0100")]
+    [InlineData(" +1-202-555-0100")]
+    [InlineData("person％40example.test")]
+    [InlineData("user\u2503target")]
+    [InlineData("user\u275Atarget")]
+    [InlineData("user\u01C0target")]
+    [InlineData("user\u23D0target")]
+    [InlineData("user\u204Ftarget")]
+    [InlineData("user\u061Btarget")]
+    public void D5ShapesFailClosedThroughEveryInspectionEncoding(string value)
+    {
+        // Encode every UTF-8 byte, including URI-unreserved punctuation such as dotted phones.
+        string encoded = string.Concat(System.Text.Encoding.UTF8.GetBytes(value)
+            .Select(octet => "%" + octet.ToString("X2", System.Globalization.CultureInfo.InvariantCulture)));
+        string nested = encoded.Replace("%", "%25", StringComparison.Ordinal);
+        string fullwidth = nested.Replace("%", "％", StringComparison.Ordinal);
+        foreach (string candidate in new[] { value, encoded, nested, fullwidth })
+        {
+            TenantAuditSupportSafety.SafeIdentifier(candidate, SupportSafeCopyValueKind.UserId).ShouldBeEmpty();
+        }
+    }
+
+    [Theory]
+    [InlineData("202.555.0100")]
+    [InlineData("202/555/0100")]
+    [InlineData("tel:+1-202-555-0100")]
+    [InlineData(" +1-202-555-0100")]
+    public void D5PhoneInspectionDoesNotChangeNonUserLiteralContracts(string value)
+    {
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.TenantId).ShouldBe(value);
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.ConfigurationKey).ShouldBe(value);
+        TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBe(value);
+    }
+
+    [Theory]
+    [InlineData("  User/CaseSensitive.01  ")]
+    [InlineData("e\u0301quipe-α")]
+    [InlineData("équipe-α")]
+    public void PositiveCharacterInspectionPreservesSafeLiteralIdentity(string value)
+        => TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBe(value);
+
+    [Theory]
     [InlineData("event\u200Bsafe")]
     [InlineData("event\u202Esafe")]
     [InlineData("event\u2060safe")]
