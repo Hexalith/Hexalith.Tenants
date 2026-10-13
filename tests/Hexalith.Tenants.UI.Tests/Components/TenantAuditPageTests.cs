@@ -4462,6 +4462,7 @@ public sealed class TenantAuditPageTests : BunitContext
             eTag: "\"ga-etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = "tenant-sequence:1",
         };
@@ -4816,7 +4817,7 @@ public sealed class TenantAuditPageTests : BunitContext
             => throw new NotSupportedException();
 
         public GlobalAdministratorsSnapshot GlobalAdministrators { get; init; }
-            = GlobalAdministratorsSnapshot.Empty(false, ReadModelFreshnessState.Current, "\"ga-etag\"");
+            = GlobalAdministratorsSnapshot.Empty(false, ReadModelFreshnessState.Current, "\"ga-etag\"") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
 
         public Func<GlobalAdministratorsRequest, GlobalAdministratorsSnapshot>? GlobalAdminProvider { get; set; }
 

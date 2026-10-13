@@ -17,7 +17,8 @@ public sealed record GlobalAdministratorsSnapshot(
     bool IsCompleteEvidence = false,
     bool PagingRecovered = false,
     string? RequestCursor = null,
-    int RequestPageSize = 20) {
+    int RequestPageSize = 20,
+    string? CallerScope = null) {
     public static GlobalAdministratorsSnapshot Loading()
         => new(
             GlobalAdministratorsSurfaceKind.Loading,

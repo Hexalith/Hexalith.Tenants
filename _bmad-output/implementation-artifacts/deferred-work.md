@@ -8,6 +8,8 @@ Evidence distinguishes inspected source/tests/artifacts from executed results. N
 
 Original reconciliation counts for the 439 records: 86 done, 265 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain (353 open). After validated B1 closure of DW-550/DW-567/DW-598: 89 done, 262 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain; 350 open. Earlier closed records are outside these reconciliation counts. The three B1 closures retain their historical findings here; no archive move or unrelated disposition change ran.
 
+After validated B2 closure of DW-142/DW-580/DW-351/DW-366: 93 done, 258 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain; 346 open. These four closures retain pre-fix verification and action history in their records; the archive and every unrelated record remain unchanged. Exact commands and results are in [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12).
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -1088,17 +1090,23 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2075
 source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
 reason: The legacy ledger defers this issue: Retained direct-read snapshots are scoped by entity, filter and paging inputs but not by the authenticated subject, so a principal change inside one scoped circuit can expose the previous subject's authorized rows during a failure or an insensitive `304` response. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` summary: Retained direct-read snapshots are scoped by entity, filter and paging inputs but not by the authenticated subject, so a principal change inside one scoped circuit can expose the previous subject's authorized rows during a failure or an insensitive `304` response. evidence: The gateway retention helpers at `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2075` have no subject dimension, while the scoped server-circuit user context can resolve a new principal instance. The generic retained-snapshot behavior predates Story 1.10's direct-read change. status: open — pre-existing security debt; bind retained evidence to a stable authenticated-subject identity or invalidate all retained snapshots when that identity changes.
-status: open
-disposition: actionable
+status: done 2026-10-12
+disposition: done
 verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs CanRetainUserTenants, CanRetainGlobalAdministrators and CanRetainTenantList compare entity/page/ETag scope without a caller identity; audit retention alone uses CallerScope. A caller transition can reuse prior authorized evidence through those seams.
+verification-before-b2: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs CanRetainUserTenants, CanRetainGlobalAdministrators and CanRetainTenantList compare entity/page/ETag scope without a caller identity; audit retention alone uses CallerScope. A caller transition can reuse prior authorized evidence through those seams.
+verification: TenantQueryGateway binds retained list, user/self memberships and global-administrator snapshots and validators to the resolved authenticated subject; member/detail reads share that guard. Authoritative circuit/provider identity is corroborated when available, and identity faults, authentication events, late responses, BFF composition and 304/cursor/search recovery fail closed. Same-caller retention and supported 304 metadata remain correct.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
 evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: shared caller-scope contract
-next-action: Bind retained snapshots/validators to caller identity and invalidate them on authentication transitions.
+next-action-before-b2: Bind retained snapshots/validators to caller identity and invalidate them on authentication transitions.
+next-action: none; B2 implementation and maintained checks complete in the working tree.
 related: DW-580, DW-609
+resolution-date: 2026-10-12
+resolution: Release blocker B2 closed in the validated working tree over Tenants b4b65dce017bcb3ea0a676f14b3156d908c1e9c0; original findings and B1 closure are preserved, with no commit or release approval implied.
+resolution-evidence: [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12); 4312 Release UI cases, 187 non-performance integration cases, four source provenance cases, maintained build/browser and configured coverage gates passed.
+
 
 ### DW-143: `EventStore:BaseAddress` is accepted with compound service-discovery schemes (e.g. `https+http://eventstore`) by the same `TryGetHttpBaseAddress` gate used for the read side, but no service discovery is attached to the command/status clients, so such a value can only fail at send time
 
@@ -3825,17 +3833,23 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-rem
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: TenantDetailPage uses the caller-free MatchesScope(request) overload while TenantQueryGateway binds retained evidence with MatchesScope(request, callerScope), leaving tenant-detail matching without the caller binding used by Story 5.1 reads.
-status: open
-disposition: actionable
+status: done 2026-10-12
+disposition: done
 verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor IsAuthoritativeAuditCapability and metadata audit proof still call audit.MatchesScope(request) without callerScope. Page authentication-generation guards improved application but do not enforce the caller-bound helper contract used by TenantQueryGateway audit retention.
+verification-before-b2: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor IsAuthoritativeAuditCapability and metadata audit proof still call audit.MatchesScope(request) without callerScope. Page authentication-generation guards improved application but do not enforce the caller-bound helper contract used by TenantQueryGateway audit retention.
+verification: TenantDetailPage requires current caller provenance in audit MatchesScope, capability and metadata/lifecycle/member proof checks. Authentication events clear detail/member/global snapshots, validators, versions and paging/capability state; proof generations and caller-version checks reject stale or ignored-cancellation completions. Configuration evidence is guarded across its await.
 verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
 evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: current audit caller-scope contract
-next-action: Pass and require current caller scope in detail capability/proof matching and test another caller snapshot.
+next-action-before-b2: Pass and require current caller scope in detail capability/proof matching and test another caller snapshot.
+next-action: none; B2 implementation and maintained checks complete in the working tree.
 related: DW-366, DW-580
+resolution-date: 2026-10-12
+resolution: Release blocker B2 closed in the validated working tree over Tenants b4b65dce017bcb3ea0a676f14b3156d908c1e9c0; original findings and B1 closure are preserved, with no commit or release approval implied.
+resolution-evidence: [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12); 4312 Release UI cases, 187 non-performance integration cases, four source provenance cases, maintained build/browser and configured coverage gates passed.
+
 
 ### DW-352: Audit unauthorized and unavailable recovery both navigate to the same BackHref.
 
@@ -4055,18 +4069,24 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-1
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- Tenant detail still uses caller-free `MatchesScope(request)` for audit/capability evidence while Story 5.1 binds retained audit reads with `MatchesScope(request, callerScope)`. Already DW-351; TenantDetailPage is outside this story's File List."
-status: open
-disposition: actionable
+status: done 2026-10-12
+disposition: done
 verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:2170 and :2474 still call audit.MatchesScope(request) / audit.MatchesScope(auditRequest) without AuditCallerScope, unlike TenantQueryGateway retained audit reads. Current route/generation checks do not themselves establish a caller-bound snapshot contract.
+verification-before-b2: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:2170 and :2474 still call audit.MatchesScope(request) / audit.MatchesScope(auditRequest) without AuditCallerScope, unlike TenantQueryGateway retained audit reads. Current route/generation checks do not themselves establish a caller-bound snapshot contract.
+verification: Detail audit capability and metadata-audit proof use MatchesScope(request, currentCallerScope); old/unbound populated and authorization-scoped empty evidence cannot enable current-caller actions. Pending, anonymous, malformed, faulted and changed identity fail closed, with accessible current-caller reacquisition.
 verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
 evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: Current caller identity must be available to detail evidence checks
-next-action: Bind tenant-detail audit capability and metadata-proof reads to the current caller scope and add caller-switch coverage.
+next-action-before-b2: Bind tenant-detail audit capability and metadata-proof reads to the current caller scope and add caller-switch coverage.
+next-action: none; B2 implementation and maintained checks complete in the working tree.
 related: DW-351
 duplicate-of: DW-351
+resolution-date: 2026-10-12
+resolution: Release blocker B2 closed in the validated working tree over Tenants b4b65dce017bcb3ea0a676f14b3156d908c1e9c0; original findings and B1 closure are preserved, with no commit or release approval implied.
+resolution-evidence: [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12); 4312 Release UI cases, 187 non-performance integration cases, four source provenance cases, maintained build/browser and configured coverage gates passed.
+
 
 
 ### DW-367: `UserRemovedFromTenant` typed `PreviousRole`/`Role` cannot be produced because the event and audit projection emit only `userId`. Restore-access therefore cannot take an intended role from typed narrative; that is later correction-story/projection contract work, not browse-grid fail-closed.
@@ -7761,17 +7781,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Bind retained Tenants UI query snapshots to the authenticated caller.\n  evidence: `TenantQueryGateway` retention checks page and validator but not caller, and `TenantsWorkspace` can pass its prior confirmed snapshot after authentication changes; a failed read can retain prior caller rows."
-status: open
-disposition: actionable
+status: done 2026-10-12
+disposition: done
 verification-date: 2026-10-12
-verification: TenantQueryGateway.CanRetainTenantList/UserTenants/TenantUsers checks page and validator without caller binding. Audit now binds CallerScope and FrontComposer remounts changed user/tenant scope, so actual rendered cross-user exposure is not established; missing gateway provenance remains a verified gap.
+verification-before-b2: TenantQueryGateway.CanRetainTenantList/UserTenants/TenantUsers checks page and validator without caller binding. Audit now binds CallerScope and FrontComposer remounts changed user/tenant scope, so actual rendered cross-user exposure is not established; missing gateway provenance remains a verified gap.
+verification: Gateway caller provenance and exact validator matching independently reject another caller at identical entity/page scope; supported FrontComposer remount containment remains in place. Guarded fresh configuration proof reads and complete administrator page walks cannot publish mixed/previous-caller evidence.
 evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Caller provenance on retained query snapshots
-next-action: Test changed-caller retention together with FrontComposer remount containment; bind snapshots if the current consumer boundary is insufficient.
+next-action-before-b2: Test changed-caller retention together with FrontComposer remount containment; bind snapshots if the current consumer boundary is insufficient.
+next-action: none; B2 implementation and maintained checks complete in the working tree.
 related: DW-142,DW-574,DW-609
 duplicate-of: DW-142
+resolution-date: 2026-10-12
+resolution: Release blocker B2 closed in the validated working tree over Tenants b4b65dce017bcb3ea0a676f14b3156d908c1e9c0; original findings and B1 closure are preserved, with no commit or release approval implied.
+resolution-evidence: [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12); 4312 Release UI cases, 187 non-performance integration cases, four source provenance cases, maintained build/browser and configured coverage gates passed.
+
 
 
 ### DW-581: Recover missing package assets on an existing GitHub Release.

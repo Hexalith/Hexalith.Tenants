@@ -8,6 +8,7 @@ using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.FrontComposer.Contracts.Rendering;
+using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -21,6 +22,7 @@ using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TenantUsers;
 using Hexalith.Tenants.UI.State.UserTenants;
 
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.Logging;
 
 using MemoriesOmittedReason = Hexalith.Memories.Contracts.V1.OmittedReason;
@@ -36,7 +38,14 @@ internal sealed class TenantQueryGateway(
     ITenantSearchCursorCodec searchCursorCodec,
     ITenantsBffComposition? bffComposition = null,
     ILogger<TenantQueryGateway>? logger = null,
-    TimeSpan? enrichmentDeadline = null) : ITenantQueryGateway {
+    TimeSpan? enrichmentDeadline = null,
+    CircuitServicesAccessor? circuitServicesAccessor = null,
+    AuthenticationStateProvider? authenticationStateProvider = null) : ITenantQueryGateway {
+    private string? CapturedUserId { get; init; }
+
+    private CallerBoundTenantsRestQueryClient? CallerGuard { get; init; }
+
+    private string? ScopedUserId() => CapturedUserId ?? AuthenticatedUserId();
     public bool SupportsTenantCorrectionStart => bffComposition is not null;
 
     public async Task<TenantCorrectionProjection> GetTenantCorrectionProjectionAsync(
@@ -174,13 +183,37 @@ internal sealed class TenantQueryGateway(
     private const int DefaultPageSize = 20;
     private const int MaximumPageSize = 100;
 
-    public async Task<TenantDetailSnapshot> GetTenantAsync(
+    public Task<TenantDetailSnapshot> GetTenantAsync(
+        TenantDetailRequest request,
+        TenantDetailSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, userId, scope) =>
+            {
+                bool matches = previous is not null
+                    && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
+                    && MatchesRetainedValidator(request.ETag, previous.ETag)
+                    && (HasSameTenantDetail(previous, request.TenantId));
+                return gateway.GetTenantReadCoreAsync(
+                    request with { ETag = matches ? request.ETag : null },
+                    matches ? previous : null,
+                    cancellationToken);
+            },
+            () => TenantDetailSnapshot.Unauthorized(request.TenantId),
+            () => TenantDetailSnapshot.Unavailable("Tenant detail caller could not be verified."),
+            (snapshot, scope) => snapshot.WithCallerScope(scope),
+            cancellationToken);
+    }
+
+    private async Task<TenantDetailSnapshot> GetTenantReadCoreAsync(
         TenantDetailRequest request,
         TenantDetailSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+        if (string.IsNullOrWhiteSpace(ScopedUserId())) {
             return TenantDetailSnapshot.Unauthorized(request.TenantId);
         }
 
@@ -225,8 +258,7 @@ internal sealed class TenantQueryGateway(
                 // same-tenant evidence to retain. Calling the retention helper here fabricates a degraded
                 // state with null detail; this is an unknown first-load truth state instead.
                 return TenantDetailSnapshot.Unknown(
-                    "Tenant detail projection did not provide current payload evidence.",
-                    result.ETag);
+                    "Tenant detail projection did not provide current payload evidence.");
             }
 
             // A payload-less success with nothing to retain is unknown, not degraded: there is no
@@ -234,8 +266,7 @@ internal sealed class TenantQueryGateway(
             // so the surface cannot claim retained data it does not have.
             if (result.Payload is null && !result.IsNotModified && !HasSameTenantDetail(previous, request.TenantId)) {
                 return TenantDetailSnapshot.Unknown(
-                    "Tenant detail projection returned no payload.",
-                    result.ETag);
+                    "Tenant detail projection returned no payload.");
             }
 
             if (result.IsNotModified || result.Payload is null) {
@@ -374,12 +405,21 @@ internal sealed class TenantQueryGateway(
             cancellationToken);
     }
 
-    public async Task<TenantSetConfigurationPreview> GetSetConfigurationPreviewAsync(
+    public Task<TenantSetConfigurationPreview> GetSetConfigurationPreviewAsync(
+        TenantSetConfigurationIntent intent, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, _, _) => gateway.GetSetConfigurationPreviewCoreAsync(intent, cancellationToken),
+            () => TenantSetConfigurationPreview.Unavailable(intent), () => TenantSetConfigurationPreview.Unavailable(intent), (proof, _) => proof, cancellationToken);
+    }
+
+    private async Task<TenantSetConfigurationPreview> GetSetConfigurationPreviewCoreAsync(
         TenantSetConfigurationIntent intent,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(intent);
-        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId) || bffComposition is null)
+        if (string.IsNullOrWhiteSpace(ScopedUserId()) || bffComposition is null)
         {
             return TenantSetConfigurationPreview.Unavailable(intent);
         }
@@ -420,7 +460,16 @@ internal sealed class TenantQueryGateway(
         }
     }
 
-    public async Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+    public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+        TenantSetConfigurationIntent intent, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, _, _) => gateway.GetSetConfigurationProjectionProofCoreAsync(intent, cancellationToken),
+            () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), (proof, _) => proof, cancellationToken);
+    }
+
+    private async Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofCoreAsync(
         TenantSetConfigurationIntent intent,
         CancellationToken cancellationToken = default)
     {
@@ -441,12 +490,21 @@ internal sealed class TenantQueryGateway(
             intent.AttemptFingerprint);
     }
 
-    public async Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewAsync(
+    public Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewAsync(
+        TenantRemoveConfigurationIntent intent, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, _, _) => gateway.GetRemoveConfigurationPreviewCoreAsync(intent, cancellationToken),
+            () => TenantRemoveConfigurationPreview.Unavailable(intent), () => TenantRemoveConfigurationPreview.Unavailable(intent), (proof, _) => proof, cancellationToken);
+    }
+
+    private async Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewCoreAsync(
         TenantRemoveConfigurationIntent intent,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(intent);
-        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId) || bffComposition is null)
+        if (string.IsNullOrWhiteSpace(ScopedUserId()) || bffComposition is null)
         {
             return TenantRemoveConfigurationPreview.Unavailable(intent);
         }
@@ -487,7 +545,16 @@ internal sealed class TenantQueryGateway(
         }
     }
 
-    public async Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+    public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+        TenantRemoveConfigurationIntent intent, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, _, _) => gateway.GetRemoveConfigurationProjectionProofCoreAsync(intent, cancellationToken),
+            () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), (proof, _) => proof, cancellationToken);
+    }
+
+    private async Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofCoreAsync(
         TenantRemoveConfigurationIntent intent,
         CancellationToken cancellationToken = default)
     {
@@ -508,13 +575,37 @@ internal sealed class TenantQueryGateway(
             intent.AttemptFingerprint);
     }
 
-    public async Task<TenantUsersSnapshot> GetTenantUsersAsync(
+    public Task<TenantUsersSnapshot> GetTenantUsersAsync(
+        TenantUsersRequest request,
+        TenantUsersSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, userId, scope) =>
+            {
+                bool matches = previous is not null
+                    && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
+                    && MatchesRetainedValidator(request.ETag, previous.ETag)
+                    && (HasMatchingTenantUsers(previous, request));
+                return gateway.GetTenantUsersReadCoreAsync(
+                    request with { ETag = matches ? request.ETag : null },
+                    matches ? previous : null,
+                    cancellationToken);
+            },
+            () => TenantUsersSnapshot.Unauthorized(request.TenantId),
+            () => TenantUsersSnapshot.Unavailable(request.TenantId),
+            (snapshot, scope) => snapshot with { CallerScope = scope },
+            cancellationToken);
+    }
+
+    private async Task<TenantUsersSnapshot> GetTenantUsersReadCoreAsync(
         TenantUsersRequest request,
         TenantUsersSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+        if (string.IsNullOrWhiteSpace(ScopedUserId())) {
             return TenantUsersSnapshot.Unauthorized(request.TenantId);
         }
 
@@ -675,13 +766,37 @@ internal sealed class TenantQueryGateway(
             cancellationToken);
     }
 
-    public async Task<UserTenantMembershipSnapshot> GetMyTenantsAsync(
+    public Task<UserTenantMembershipSnapshot> GetMyTenantsAsync(
+        UserTenantMembershipRequest request,
+        UserTenantMembershipSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, userId, scope) =>
+            {
+                bool matches = previous is not null
+                    && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
+                    && MatchesRetainedValidator(request.ETag, previous.ETag)
+                    && (HasMatchingUserTenants(previous, request with { TargetUserId = userId }));
+                return gateway.GetMyTenantsReadCoreAsync(
+                    request with { ETag = matches ? request.ETag : null },
+                    matches ? previous : null,
+                    cancellationToken);
+            },
+            () => UserTenantMembershipSnapshot.Unauthorized(UserTenantMembershipReason.MissingAuthenticatedUser),
+            () => UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId),
+            (snapshot, scope) => snapshot with { CallerScope = scope },
+            cancellationToken);
+    }
+
+    private async Task<UserTenantMembershipSnapshot> GetMyTenantsReadCoreAsync(
         UserTenantMembershipRequest request,
         UserTenantMembershipSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        string? authenticatedUserId = userContextAccessor.UserId;
+        string? authenticatedUserId = ScopedUserId();
         if (string.IsNullOrWhiteSpace(authenticatedUserId)) {
             return UserTenantMembershipSnapshot.Unauthorized(UserTenantMembershipReason.MissingAuthenticatedUser);
         }
@@ -694,13 +809,37 @@ internal sealed class TenantQueryGateway(
             .ConfigureAwait(false);
     }
 
-    public async Task<UserTenantMembershipSnapshot> GetUserTenantsAsync(
+    public Task<UserTenantMembershipSnapshot> GetUserTenantsAsync(
+        UserTenantMembershipRequest request,
+        UserTenantMembershipSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, userId, scope) =>
+            {
+                bool matches = previous is not null
+                    && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
+                    && MatchesRetainedValidator(request.ETag, previous.ETag)
+                    && (HasMatchingUserTenants(previous, request));
+                return gateway.GetUserTenantsReadCoreAsync(
+                    request with { ETag = matches ? request.ETag : null },
+                    matches ? previous : null,
+                    cancellationToken);
+            },
+            () => UserTenantMembershipSnapshot.Unauthorized(UserTenantMembershipReason.MissingAuthenticatedUser, request.TargetUserId),
+            () => UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId),
+            (snapshot, scope) => snapshot with { CallerScope = scope },
+            cancellationToken);
+    }
+
+    private async Task<UserTenantMembershipSnapshot> GetUserTenantsReadCoreAsync(
         UserTenantMembershipRequest request,
         UserTenantMembershipSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        string? authenticatedUserId = userContextAccessor.UserId;
+        string? authenticatedUserId = ScopedUserId();
         if (string.IsNullOrWhiteSpace(authenticatedUserId)) {
             return UserTenantMembershipSnapshot.Unauthorized(
                 UserTenantMembershipReason.MissingAuthenticatedUser,
@@ -871,13 +1010,37 @@ internal sealed class TenantQueryGateway(
         }
     }
 
-    public async Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
+    public Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsAsync(
+        GlobalAdministratorsRequest request,
+        GlobalAdministratorsSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, userId, scope) =>
+            {
+                bool matches = previous is not null
+                    && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
+                    && MatchesRetainedValidator(request.ETag, previous.ETag)
+                    && (previous is not null && MatchesPageScope(previous.RequestCursor, previous.RequestPageSize, request.Cursor, request.PageSize));
+                return gateway.GetGlobalAdministratorsReadCoreAsync(
+                    request with { ETag = matches ? request.ETag : null },
+                    matches ? previous : null,
+                    cancellationToken);
+            },
+            () => GlobalAdministratorsSnapshot.Unauthorized(GlobalAdministratorsReason.MissingAuthenticatedUser),
+            () => GlobalAdministratorsSnapshot.Unavailable(),
+            (snapshot, scope) => snapshot with { CallerScope = scope },
+            cancellationToken);
+    }
+
+    private async Task<GlobalAdministratorsSnapshot> GetGlobalAdministratorsReadCoreAsync(
         GlobalAdministratorsRequest request,
         GlobalAdministratorsSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        string? authenticatedUserId = userContextAccessor.UserId;
+        string? authenticatedUserId = ScopedUserId();
         if (string.IsNullOrWhiteSpace(authenticatedUserId)) {
             return GlobalAdministratorsSnapshot.Unauthorized(GlobalAdministratorsReason.MissingAuthenticatedUser);
         }
@@ -1106,13 +1269,34 @@ internal sealed class TenantQueryGateway(
             submittedAtUtc,
             cancellationToken);
 
-    private async Task<TenantAuditSnapshot> GetTenantAuditRawAsync(
+    private Task<TenantAuditSnapshot> GetTenantAuditRawAsync(
+        TenantAuditRequest request,
+        TenantAuditSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, userId, scope) =>
+            {
+                bool matches = previous is not null && previous.MatchesScope(request, scope)
+                    && MatchesRetainedValidator(request.ETag, previous.ETag);
+                return gateway.GetTenantAuditRawCoreAsync(
+                    request with { ETag = matches ? request.ETag : null },
+                    matches ? previous : null, cancellationToken);
+            },
+            () => TenantAuditSnapshot.Unauthorized(request),
+            () => TenantAuditSnapshot.Unavailable(request),
+            (snapshot, scope) => BindAuditCaller(snapshot, scope),
+            cancellationToken);
+    }
+
+    private async Task<TenantAuditSnapshot> GetTenantAuditRawCoreAsync(
         TenantAuditRequest request,
         TenantAuditSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        string? authenticatedUserId = userContextAccessor.UserId;
+        string? authenticatedUserId = ScopedUserId();
         if (string.IsNullOrWhiteSpace(authenticatedUserId)) {
             return TenantAuditSnapshot.Unauthorized(request);
         }
@@ -1352,13 +1536,37 @@ internal sealed class TenantQueryGateway(
         return BindAuditCaller(TenantAuditSnapshot.Ready(rows, payload.Cursor, payload.HasMore, result.ETag, freshness, request) with { Lifecycle = lifecycle, ProjectionVersion = result.Metadata?.ProjectionVersion }, callerScope);
     }
 
-    public async Task<TenantListSnapshot> ListTenantsAsync(
+    public Task<TenantListSnapshot> ListTenantsAsync(
+        TenantListRequest request,
+        TenantListSnapshot? previous,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        return ReadForAuthenticatedCallerAsync(
+            (gateway, userId, scope) =>
+            {
+                bool matches = previous is not null
+                    && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
+                    && MatchesRetainedValidator(request.ETag, previous.ETag)
+                    && (previous is not null && MatchesPageScope(previous.RequestCursor, previous.RequestPageSize, request.Cursor, request.PageSize));
+                return gateway.ListTenantsReadCoreAsync(
+                    request with { ETag = matches ? request.ETag : null },
+                    matches ? previous : null,
+                    cancellationToken);
+            },
+            () => TenantListSnapshot.Unauthorized(),
+            () => TenantListSnapshot.Error(),
+            (snapshot, scope) => snapshot with { CallerScope = scope },
+            cancellationToken);
+    }
+
+    private async Task<TenantListSnapshot> ListTenantsReadCoreAsync(
         TenantListRequest request,
         TenantListSnapshot? previous,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+        if (string.IsNullOrWhiteSpace(ScopedUserId())) {
             return TenantListSnapshot.Unauthorized();
         }
 
@@ -1375,7 +1583,7 @@ internal sealed class TenantQueryGateway(
             return await ListByCursorAsync(canonicalRequest, ordinaryPrevious, cancellationToken).ConfigureAwait(false);
         }
 
-        string userId = userContextAccessor.UserId!;
+        string userId = ScopedUserId()!;
         string scope = TenantSearchCursorScopes.Create(
             userId,
             canonicalRequest.Search,
@@ -1573,7 +1781,8 @@ internal sealed class TenantQueryGateway(
             Explain: false,
             TokenBudget: null,
             AttributeFilters: filters);
-        return await memoriesClient.SearchAsync(memoriesRequest, cancellationToken).ConfigureAwait(false);
+        return await CallerGuard!.ReadAsync(
+            () => memoriesClient.SearchAsync(memoriesRequest, cancellationToken), cancellationToken).ConfigureAwait(false);
     }
 
     // Raw-page accounting: the index is authoritative for *which* entries exist at an offset, not for *how
@@ -2334,13 +2543,20 @@ internal sealed class TenantQueryGateway(
         return result.Payload;
     }
 
-    private async Task<TenantConfigurationProjectionProof> GetConfigurationProjectionProofAsync(
+    private Task<TenantConfigurationProjectionProof> GetConfigurationProjectionProofAsync(
+        string tenantId, string key, string? expectedValue, bool isRemove, CancellationToken cancellationToken)
+        => ReadForAuthenticatedCallerAsync(
+            (gateway, _, _) => gateway.GetConfigurationProjectionProofCoreAsync(tenantId, key, expectedValue, isRemove, cancellationToken),
+            () => TenantConfigurationProjectionProof.Unavailable(tenantId),
+            () => TenantConfigurationProjectionProof.Unavailable(tenantId), (proof, _) => proof, cancellationToken);
+
+    private async Task<TenantConfigurationProjectionProof> GetConfigurationProjectionProofCoreAsync(
         string tenantId,
         string key,
         string? expectedValue,
         bool isRemove,
         CancellationToken cancellationToken) {
-        if (string.IsNullOrWhiteSpace(userContextAccessor.UserId)) {
+        if (string.IsNullOrWhiteSpace(ScopedUserId())) {
             return TenantConfigurationProjectionProof.Unavailable(tenantId);
         }
 
@@ -2762,6 +2978,115 @@ internal sealed class TenantQueryGateway(
             or UserTenantMembershipSurfaceKind.Stale
             or UserTenantMembershipSurfaceKind.Degraded;
 
+    // The original guard owns identity observations. Scoped cores use one immutable subject for
+    // targeting and protected cursor scope; they never resample the mutable request accessor.
+    private async Task<TSnapshot> ReadForAuthenticatedCallerAsync<TSnapshot>(
+        Func<TenantQueryGateway, string, string, Task<TSnapshot>> read,
+        Func<TSnapshot> unauthorized,
+        Func<TSnapshot> unavailable,
+        Func<TSnapshot, string, TSnapshot> bind,
+        CancellationToken cancellationToken)
+    {
+        if (CallerGuard is not null)
+        {
+            TSnapshot nested = await CallerGuard.ReadAsync(
+                () => read(this, CapturedUserId!, AuditCallerScope(CapturedUserId!)), cancellationToken).ConfigureAwait(false);
+            return bind(nested, AuditCallerScope(CapturedUserId!));
+        }
+
+        if (!TryResolveAuthenticationProvider(out AuthenticationStateProvider? provider))
+        {
+            return unauthorized();
+        }
+        string? userId = null;
+        using var guardedClient = new CallerBoundTenantsRestQueryClient(
+            queryClient, () => userId is not null && IsCurrentCaller(userId, provider), provider);
+        userId = AuthenticatedUserId();
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return unauthorized();
+        }
+
+        string scope = AuditCallerScope(userId);
+        TenantQueryGateway gateway = new(
+            guardedClient, userContextAccessor, memoriesClient, searchCursorCodec, bffComposition,
+            logger, enrichmentDeadline, circuitServicesAccessor, authenticationStateProvider)
+        {
+            CapturedUserId = userId,
+            CallerGuard = guardedClient,
+        };
+        try
+        {
+            TSnapshot snapshot = await guardedClient.ReadAsync(
+                () => read(gateway, userId, scope), cancellationToken).ConfigureAwait(false);
+            return bind(snapshot, scope);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception) when (!guardedClient.IsCallerVerified || !IsCurrentCaller(userId, provider))
+        {
+            // Authentication transitions and provider/accessor faults never retain old evidence.
+        }
+
+        string? currentUserId = AuthenticatedUserId();
+        return string.IsNullOrWhiteSpace(currentUserId)
+            ? unauthorized()
+            : bind(unavailable(), AuditCallerScope(currentUserId));
+    }
+
+    private bool TryResolveAuthenticationProvider(out AuthenticationStateProvider? provider)
+    {
+        provider = null;
+        try
+        {
+            if (circuitServicesAccessor?.Services is { } circuit)
+            {
+                provider = circuit.GetService<AuthenticationStateProvider>();
+                return provider is not null;
+            }
+            provider = authenticationStateProvider;
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private string? AuthenticatedUserId()
+    {
+        try
+        {
+            string? subject = userContextAccessor.UserId;
+            if (string.IsNullOrWhiteSpace(subject) || !TryResolveAuthenticationProvider(out AuthenticationStateProvider? provider))
+            {
+                return null;
+            }
+            if (provider is null)
+            {
+                return subject;
+            }
+            Task<AuthenticationState> state = provider.GetAuthenticationStateAsync();
+            if (!state.IsCompletedSuccessfully)
+            {
+                return null;
+            }
+            return TenantsGlobalAdministratorClaims.ResolvePrincipalEvidence(
+                state.Result.User, subject, requireCorroboration: true).Subject;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private bool IsCurrentCaller(string userId, AuthenticationStateProvider? provider)
+        => TryResolveAuthenticationProvider(out AuthenticationStateProvider? currentProvider)
+            && ReferenceEquals(provider, currentProvider)
+            && string.Equals(AuthenticatedUserId(), userId, StringComparison.Ordinal);
+
     internal static string AuditCallerScope(string userId)
         => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(userId)));
 
@@ -2770,7 +3095,7 @@ internal sealed class TenantQueryGateway(
 
     private TenantAuditSnapshot? AuditIdentityFailure(string expectedUserId, TenantAuditRequest request)
     {
-        string? currentUserId = userContextAccessor.UserId;
+        string? currentUserId = ScopedUserId();
         if (string.IsNullOrWhiteSpace(currentUserId))
         {
             return TenantAuditSnapshot.Unauthorized(request);

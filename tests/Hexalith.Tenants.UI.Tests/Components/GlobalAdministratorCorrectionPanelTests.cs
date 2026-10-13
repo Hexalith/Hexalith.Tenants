@@ -3248,6 +3248,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             eTag: "\"ga-etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = "tenant-sequence:1",
         };

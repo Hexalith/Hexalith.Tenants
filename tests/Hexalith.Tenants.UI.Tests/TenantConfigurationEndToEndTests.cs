@@ -285,6 +285,10 @@ public sealed class TenantConfigurationEndToEndTests : BunitContext
             composition);
 
         JSInterop.Mode = JSRuntimeMode.Loose;
+        if (!useStaticSsrPrincipal)
+        {
+            Services.AddSingleton(circuitServicesAccessor.Services!.GetRequiredService<AuthenticationStateProvider>());
+        }
         Services.AddSingleton(queryGateway);
         Services.AddSingleton(composition);
         Services.AddSingleton(commandGateway);

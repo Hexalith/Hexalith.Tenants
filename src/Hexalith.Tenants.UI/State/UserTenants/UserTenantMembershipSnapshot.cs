@@ -17,7 +17,8 @@ public sealed record UserTenantMembershipSnapshot(
     string? ProjectionVersion = null,
     string? RequestCursor = null,
     int RequestPageSize = 20,
-    bool PagingRecovered = false) {
+    bool PagingRecovered = false,
+    string? CallerScope = null) {
     public static UserTenantMembershipSnapshot Loading()
         => new(
             UserTenantMembershipSurfaceKind.Loading,

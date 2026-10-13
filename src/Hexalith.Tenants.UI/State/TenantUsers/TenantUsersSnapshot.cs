@@ -22,7 +22,8 @@ public sealed record TenantUsersSnapshot(
     bool IsRefreshing = false,
     string? RequestCursor = null,
     int RequestPageSize = 20,
-    bool PagingRecovered = false)
+    bool PagingRecovered = false,
+    string? CallerScope = null)
 {
     /// <summary>Creates a first-load state without discarding a separate prior snapshot.</summary>
     public static TenantUsersSnapshot Loading(string? tenantId = null)

@@ -37,6 +37,7 @@ internal static class GlobalAdministratorsProjectionLoader
         var rows = new Dictionary<string, GlobalAdministratorRow>(StringComparer.Ordinal);
         var visitedCursors = new HashSet<string>(StringComparer.Ordinal);
         string? projectionVersion = null;
+        string? callerScope = null;
         GlobalAdministratorsSnapshot? page = null;
 
         for (int pageNumber = 0; pageNumber < maximumPageCount; pageNumber++)
@@ -56,7 +57,10 @@ internal static class GlobalAdministratorsProjectionLoader
                 return GlobalAdministratorsSnapshot.Unauthorized();
             }
 
-            if (!IsCurrentStablePage(page, request, projectionVersion))
+            callerScope ??= page.CallerScope;
+            if (string.IsNullOrWhiteSpace(callerScope)
+                || !string.Equals(callerScope, page.CallerScope, StringComparison.Ordinal)
+                || !IsCurrentStablePage(page, request, projectionVersion))
             {
                 return ToIncomplete(page);
             }

@@ -12,6 +12,34 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class GlobalAdministratorsProjectionLoaderTests
 {
+    [Theory]
+    [InlineData(null)]
+    [InlineData("caller-two")]
+    public async Task Complete_projection_walk_rejects_unbound_or_other_caller_pages(string? secondCaller)
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int calls = 0;
+        gateway.GetGlobalAdministratorsAsync(Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.Arg<GlobalAdministratorsRequest>();
+                return ++calls == 1
+                    ? Page(["private-admin"], "page-two", true, request: request) with
+                    { CallerScope = TenantQueryGateway.AuditCallerScope("caller-one") }
+                    : Page(["current-admin"], null, false, request: request) with
+                    { CallerScope = secondCaller is null ? null : TenantQueryGateway.AuditCallerScope(secondCaller) };
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(gateway);
+
+        result.IsCompleteEvidence.ShouldBeFalse();
+        result.Rows.ShouldBeEmpty();
+        result.ETag.ShouldBeNull();
+        result.ProjectionVersion.ShouldBeNull();
+        calls.ShouldBe(2);
+    }
+
     [Fact]
     public async Task LoadAsyncAggregatesValidPagesAndForwardsOpaqueCursors()
     {
@@ -352,6 +380,7 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
             eTag,
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = projectionVersion,
             RequestCursor = request?.Cursor,

@@ -21,8 +21,10 @@ public sealed class TenantDetailSnapshot
         string? projectionVersion,
         string? errorMessage,
         TenantConfigurationSafeModel configuration,
-        TenantConfigurationManagementContext configurationManagement)
+        TenantConfigurationManagementContext configurationManagement,
+        string? callerScope = null)
     {
+        CallerScope = callerScope;
         Kind = kind;
         Detail = detail;
         ETag = eTag;
@@ -33,6 +35,16 @@ public sealed class TenantDetailSnapshot
         Configuration = configuration;
         ConfigurationManagement = configurationManagement;
     }
+
+    /// <summary>Gets the opaque authenticated caller provenance retained inside BFF state.</summary>
+    public string? CallerScope { get; }
+
+    /// <summary>Copies an already sanitized snapshot with authenticated caller provenance.</summary>
+    /// <param name="callerScope">The opaque authenticated caller scope.</param>
+    /// <returns>The immutable caller-bound snapshot.</returns>
+    internal TenantDetailSnapshot WithCallerScope(string callerScope)
+        => new(Kind, Detail, ETag, Freshness, Lifecycle, ProjectionVersion, ErrorMessage,
+            Configuration, ConfigurationManagement, callerScope);
 
     /// <summary>Gets the detail surface state.</summary>
     public TenantDetailSurfaceKind Kind { get; }

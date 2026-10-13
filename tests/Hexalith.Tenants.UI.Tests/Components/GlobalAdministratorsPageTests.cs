@@ -66,7 +66,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"before\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(
@@ -98,7 +98,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"after\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(
@@ -133,19 +133,19 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 nextCursor: "protected-page-two",
                 hasMore: true,
                 eTag: "\"page-one\"",
-                freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin.page-two", ReadModelFreshnessState.Current)],
                 nextCursor: null,
                 hasMore: false,
                 eTag: "\"page-two\"",
-                freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin.reauthorized", ReadModelFreshnessState.Current)],
                 nextCursor: null,
                 hasMore: false,
                 eTag: "\"reauthorized\"",
-                freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
             TenantLifecycleAuthorizationReflectionState.Authorized,
@@ -191,7 +191,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"real-resolver\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
         Services.AddSingleton<ITenantsBffComposition>(composition);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -228,7 +228,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"before-signout\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
         Services.AddSingleton<ITenantsBffComposition>(composition);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -294,7 +294,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"initial\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
         Services.AddSingleton<ITenantsBffComposition>(composition);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -341,7 +341,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"current\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current };
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current };
         // Five responses for five expected reads left no slack: one extra read -- a notification nudge, an
         // authorization re-read -- made Dequeue() throw InvalidOperationException from inside the gateway
         // call, which LoadAsync does not catch (only OperationCanceledException). The stub repeats its last
@@ -403,7 +403,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -465,7 +465,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Indeterminate));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -508,7 +508,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"after-retry\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(composition);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -562,7 +562,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(composition);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -774,7 +774,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"confirmed\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -807,7 +807,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"refreshed\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
 
         cut.WaitForAssertion(() =>
         {
@@ -838,13 +838,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 null,
                 false,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin.confirmed", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-2\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -945,7 +945,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         var gateway = new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Empty(
             isAuthorizationScoped: true,
             ReadModelFreshnessState.Current,
-            eTag: null))
+            eTag: null) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") })
         {
             RepeatLastResponse = true,
         };
@@ -992,7 +992,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: "page-2",
             hasMore: true,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Stale);
+            freshness: ReadModelFreshnessState.Stale) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
         var gateway = new StubTenantQueryGateway(recoverable) { RepeatLastResponse = true };
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
@@ -1090,7 +1090,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             GlobalAdministratorsSnapshot.Empty(
                 isAuthorizationScoped: true,
                 ReadModelFreshnessState.Current,
-                eTag: "\"recovered\""));
+                eTag: "\"recovered\"") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") });
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -1156,13 +1156,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "protected-next",
                 true,
                 "\"first-etag\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("newest-admin", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"newest-etag\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -1197,7 +1197,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"late-etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         await nextNavigation;
 
         cut.Find("[data-testid='tenants-global-admins-user-id']").TextContent.ShouldBe("newest-admin");
@@ -1225,7 +1225,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Empty(
             isAuthorizationScoped: true,
             ReadModelFreshnessState.Current,
-            eTag: "\"empty\"")));
+            eTag: "\"empty\"") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") }));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
@@ -1288,7 +1288,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Empty(
             isAuthorizationScoped: true,
             ReadModelFreshnessState.Current,
-            eTag: "\"empty\"")));
+            eTag: "\"empty\"") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") }));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
@@ -1319,6 +1319,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = false,
         };
@@ -1348,6 +1349,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = "paged-v1",
             IsCompleteEvidence = false,
@@ -1373,8 +1375,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         string expectedReason)
     {
         GlobalAdministratorsSnapshot snapshot = kind is GlobalAdministratorsSurfaceKind.Stale
-            ? GlobalAdministratorsSnapshot.Stale([new GlobalAdministratorRow("admin-1", freshness)], null, false, "\"etag\"")
-            : GlobalAdministratorsSnapshot.Degraded([new GlobalAdministratorRow("admin-1", freshness)], GlobalAdministratorsReason.ProjectionDegraded, "\"etag\"");
+            ? GlobalAdministratorsSnapshot.Stale([new GlobalAdministratorRow("admin-1", freshness)], null, false, "\"etag\"") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") }
+            : GlobalAdministratorsSnapshot.Degraded([new GlobalAdministratorRow("admin-1", freshness)], GlobalAdministratorsReason.ProjectionDegraded, "\"etag\"") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(snapshot));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -1396,7 +1398,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Unknown)],
             nextCursor: null,
             hasMore: false,
-            eTag: "\"etag\"");
+            eTag: "\"etag\"") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(snapshot));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -1421,6 +1423,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = false,
         };
@@ -1451,6 +1454,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Unknown,
             IsCompleteEvidence = true,
         };
@@ -1482,8 +1486,8 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             GlobalAdministratorsSurfaceKind.Empty => GlobalAdministratorsSnapshot.Empty(
                 isAuthorizationScoped: true,
                 ReadModelFreshnessState.Current,
-                "\"empty\""),
-            GlobalAdministratorsSurfaceKind.Unknown => GlobalAdministratorsSnapshot.Unknown([], null, false, null),
+                "\"empty\"") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") },
+            GlobalAdministratorsSurfaceKind.Unknown => GlobalAdministratorsSnapshot.Unknown([], null, false, null) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") },
             GlobalAdministratorsSurfaceKind.Error => GlobalAdministratorsSnapshot.Error(),
             GlobalAdministratorsSurfaceKind.Invalid => GlobalAdministratorsSnapshot.Invalid(),
             GlobalAdministratorsSurfaceKind.Unavailable => GlobalAdministratorsSnapshot.Unavailable(),
@@ -1512,13 +1516,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 nextCursor: null,
                 hasMore: false,
                 eTag: "\"etag-1\"",
-                freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 nextCursor: null,
                 hasMore: false,
                 eTag: "\"etag-1\"",
-                freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -1544,13 +1548,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 nextCursor: "protected-next-cursor",
                 hasMore: true,
                 eTag: "\"etag-1\"",
-                freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin-2", ReadModelFreshnessState.Current)],
                 nextCursor: null,
                 hasMore: false,
                 eTag: "\"etag-2\"",
-                freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -1580,7 +1584,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "protected-next-cursor",
                 true,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin-2", ReadModelFreshnessState.Current)],
                 null,
@@ -1588,6 +1592,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "\"etag-2\"",
                 ReadModelFreshnessState.Current) with
             {
+                CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
                 Lifecycle = ProjectionLifecycleState.Current,
                 RequestCursor = "protected-next-cursor",
             },
@@ -1596,7 +1601,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "protected-next-cursor",
                 true,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -1621,6 +1626,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag-2\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             RequestCursor = "protected-next-cursor",
         };
@@ -1630,12 +1636,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "protected-next-cursor",
                 true,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             pageTwo,
             GlobalAdministratorsSnapshot.Degraded(
                 pageTwo.Rows,
                 GlobalAdministratorsReason.GatewayUnavailable) with
             {
+                CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
                 RequestCursor = "protected-next-cursor",
             },
             GlobalAdministratorsSnapshot.Ready(
@@ -1643,7 +1650,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "protected-next-cursor",
                 true,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -1698,6 +1705,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                     $"\"etag-{page}\"",
                     ReadModelFreshnessState.Current) with
                 {
+                    CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
                     Lifecycle = ProjectionLifecycleState.Current,
                     RequestCursor = request.Cursor,
                 });
@@ -1762,7 +1770,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -1798,6 +1806,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         }));
@@ -1878,6 +1887,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         }));
@@ -1917,6 +1927,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         }));
@@ -1976,7 +1987,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -2001,7 +2012,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -2041,6 +2052,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = false,
         }));
@@ -2077,6 +2089,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         };
@@ -2135,7 +2148,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 hasMore: false,
                 eTag: "\"etag\"",
                 freshness: ReadModelFreshnessState.Current) with
-            { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true };
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true };
         var gateway = new StubTenantQueryGateway(
             eligible,
             eligible,
@@ -2145,7 +2158,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 hasMore: false,
                 eTag: "\"etag-2\"",
                 freshness: ReadModelFreshnessState.Current) with
-            { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true });
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
@@ -2184,7 +2197,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -2445,7 +2458,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 null,
                 false,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v1" },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v1" },
             GlobalAdministratorsSnapshot.Ready(
                 [
                     new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
@@ -2454,7 +2467,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 null,
                 false,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v1" },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v1" },
             GlobalAdministratorsSnapshot.Ready(
                 [
                     new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
@@ -2463,19 +2476,19 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 null,
                 false,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v1" },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v1" },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-2\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v2" },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v2" },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-2\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v2" });
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true, ProjectionVersion = "projection-v2" });
         var commandGateway = new StubTenantCommandGateway(statuses: [new TenantCommandStatusResult(
             CommandStatus.Completed,
             EventCount: 1,
@@ -2652,6 +2665,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "\"etag\"",
                 ReadModelFreshnessState.Current) with
             {
+                CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
                 Lifecycle = ProjectionLifecycleState.Current,
                 IsCompleteEvidence = true,
             }));
@@ -2691,7 +2705,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway
         {
             RemoveSubmission = TenantCommandSubmissionResult.Rejected(expectedText, rejectionCode),
@@ -2727,7 +2741,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current }));
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current }));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -2756,7 +2770,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current }));
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current }));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -2781,7 +2795,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -2800,6 +2814,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag-1\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = "projection-v1",
         };
@@ -2813,6 +2828,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag-2\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = "projection-v2",
         };
@@ -3804,7 +3820,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true });
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true });
         Services.AddSingleton<ITenantQueryGateway>(queryGateway);
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -3848,7 +3864,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: "opaque-next",
             hasMore: true,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Unknown }));
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Unknown }));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -3878,7 +3894,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -3905,6 +3921,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag-1\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         };
@@ -3957,7 +3974,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current })
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current })
         {
             RepeatLastResponse = true,
         };
@@ -4000,7 +4017,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current })
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current })
         {
             RepeatLastResponse = true,
         });
@@ -4038,7 +4055,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current })
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current })
         {
             RepeatLastResponse = true,
         });
@@ -4073,13 +4090,13 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 null,
                 false,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-2\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current })
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current })
         {
             RepeatLastResponse = true,
         };
@@ -6681,6 +6698,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         };
@@ -6820,7 +6838,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: true,
             eTag: "\"no-cursor\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -6848,7 +6866,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"notification\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current };
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current };
         GlobalAdministratorsSnapshot confirmingSnapshot = GlobalAdministratorsSnapshot.Ready(
             [
                 new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current),
@@ -6857,14 +6875,14 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"confirmed\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current };
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current };
         var queryGateway = new StubTenantQueryGateway(
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin-1", ReadModelFreshnessState.Current)],
                 null,
                 false,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         var commandGateway = new StubTenantCommandGateway(
             TenantCommandSubmissionResult.Accepted("message-grant", "correlation-grant"),
             new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
@@ -6925,6 +6943,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"baseline\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = "projection-v1",
             IsCompleteEvidence = true,
@@ -6936,6 +6955,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"confirmed\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = "projection-v2",
             IsCompleteEvidence = true,
@@ -7554,7 +7574,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current })
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current })
         {
             RepeatLastResponse = true,
         });
@@ -7596,7 +7616,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "\"after-retry\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(composition);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
@@ -7637,7 +7657,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current })
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current })
         {
             RepeatLastResponse = true,
         });
@@ -7681,6 +7701,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         }));
@@ -7723,6 +7744,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         })
@@ -7833,6 +7855,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         })
@@ -7908,6 +7931,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         })
@@ -7977,6 +8001,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             "\"etag\"",
             ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             IsCompleteEvidence = true,
         })
@@ -8065,7 +8090,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: "page-2",
             hasMore: true,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Stale) with { Lifecycle = ProjectionLifecycleState.Current };
+            freshness: ReadModelFreshnessState.Stale) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current };
         var gateway = new StubTenantQueryGateway(recoverable) { RepeatLastResponse = true };
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
@@ -8117,7 +8142,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"current\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current };
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current };
         var gateway = new StubTenantQueryGateway(ready) { RepeatLastResponse = true };
         Services.AddSingleton<ITenantsBffComposition>(composition);
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -8168,7 +8193,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             nextCursor: "page-2",
             hasMore: true,
             eTag: "\"etag\"",
-            freshness: ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current };
+            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current };
         var gateway = new StubTenantQueryGateway(recoverable) { RepeatLastResponse = true };
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
@@ -8215,7 +8240,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             null,
             false,
             "\"etag\"",
-            ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current });
+            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current });
         Services.AddSingleton<ITenantsBffComposition>(
             new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
@@ -8317,6 +8342,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: $"\"{projectionVersion}\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = projectionVersion,
             IsCompleteEvidence = true,
@@ -8338,6 +8364,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             eTag: $"\"{projectionVersion}\"",
             freshness: ReadModelFreshnessState.Current) with
         {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
             Lifecycle = ProjectionLifecycleState.Current,
             ProjectionVersion = projectionVersion,
             RequestCursor = requestCursor,
@@ -9356,6 +9383,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "\"etag\"",
                 ReadModelFreshnessState.Current) with
             {
+                CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
                 Lifecycle = ProjectionLifecycleState.Current,
                 IsCompleteEvidence = true,
             })
@@ -9405,7 +9433,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "cursor-page-2",
                 true,
                 "\"etag-1\"",
-                ReadModelFreshnessState.Current) with { Lifecycle = ProjectionLifecycleState.Current },
+                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current },
             // Page two: the last page (HasMore false) and a cursor was used, so IsCompleteEvidence is false.
             GlobalAdministratorsSnapshot.Ready(
                 [new GlobalAdministratorRow("admin-page-2", ReadModelFreshnessState.Current)],
@@ -9414,6 +9442,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 "\"etag-2\"",
                 ReadModelFreshnessState.Current) with
             {
+                CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"),
                 Lifecycle = ProjectionLifecycleState.Current,
                 RequestCursor = "cursor-page-2",
             }));
@@ -9454,7 +9483,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 hasMore: false,
                 eTag: "\"etag\"",
                 freshness: ReadModelFreshnessState.Current) with
-            { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true };
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true };
         var gateway = new StubTenantQueryGateway(
             eligible,
             eligible,
@@ -9469,7 +9498,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                 hasMore: false,
                 eTag: "\"etag-2\"",
                 freshness: ReadModelFreshnessState.Current) with
-            { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true });
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<ITenantQueryGateway>(gateway);
         Services.AddSingleton<ITenantCommandGateway>(commandGateway);
@@ -9508,7 +9537,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             hasMore: false,
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
-        { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 
@@ -9535,7 +9564,7 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
             hasMore: false,
             eTag: "\"etag\"",
             freshness: ReadModelFreshnessState.Current) with
-        { Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
 

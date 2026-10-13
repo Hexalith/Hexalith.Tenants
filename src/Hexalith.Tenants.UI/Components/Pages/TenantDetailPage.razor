@@ -66,6 +66,14 @@
                           HeadingTabIndex="-1"
                           TestId="tenants-detail-state-header" />
         </section>
+        @if (_authenticationStateProvider is not null && TenantAuditNavigationSafety.IsSafeTenantId(TenantId))
+        {
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="RefreshCallerBoundReadsAsync"
+                          Disabled="@(Volatile.Read(ref _pendingAuditCallerVersion) != 0)"
+                          data-testid="tenants-detail-refresh">
+                @Localizer["Tenants.List.Refresh"]
+            </FluentButton>
+        }
     </UnauthorizedContent>
     <NotFoundContent>
         <section class="tenant-detail__state" role="alert" data-testid="tenants-detail-error">
@@ -86,6 +94,14 @@
                           HeadingTabIndex="-1"
                           TestId="tenants-detail-state-header" />
         </section>
+        @if (_authenticationStateProvider is not null && TenantAuditNavigationSafety.IsSafeTenantId(TenantId))
+        {
+            <FluentButton Appearance="ButtonAppearance.Outline" OnClick="RefreshCallerBoundReadsAsync"
+                          Disabled="@(Volatile.Read(ref _pendingAuditCallerVersion) != 0)"
+                          data-testid="tenants-detail-refresh">
+                @Localizer["Tenants.List.Refresh"]
+            </FluentButton>
+        }
     </UnavailableContent>
     <StaleBanner>
         <section class="tenant-detail__state" role="status" data-testid="tenants-detail-stale">
@@ -130,7 +146,7 @@
                                          AccessibleName="@Localizer["Tenants.Detail.AuditAccessibleLabel", Detail.TenantId]"
                                          ReturnUrl="@DetailReturnUrl"
                                          ReturnFocus="tenants-detail-identity"
-                                         IsAvailable="@(_auditProofCapabilityAvailable && _snapshot.Kind is TenantDetailSurfaceKind.Ready && _snapshot.Freshness is ReadModelFreshnessState.Current && _snapshot.Lifecycle is ProjectionLifecycleState.Current)"
+                                         IsAvailable="@DetailAuditReadAvailable"
                                          AuthorityPending="@(!_auditCapabilityResolved)"
                                          UnavailableReason="@DetailAuditUnavailableReason"
                                          OnRefresh="@RefreshTenantReadsAsync" />
@@ -314,6 +330,10 @@
     private bool _auditStalledNotice;
     private bool _auditPartialReturn;
     private bool _consumedFocuslessReturn;
+    private string? _callerScope;
+    private string? _loadCallerScope;
+    private string? _metadataProofCallerScope;
+    private string? _lifecycleProofCallerScope;
     private long _auditCallerVersion;
     private long _resolvedAuditCallerVersion;
     private long _pendingAuditCallerVersion;
@@ -438,7 +458,8 @@
     }
 
     private bool DetailAuditReadAvailable
-        => _auditProofCapabilityAvailable
+        => IsCurrentCallerScope(_snapshot.CallerScope)
+            && _auditProofCapabilityAvailable
             && _snapshot.Kind is TenantDetailSurfaceKind.Ready
             && _snapshot.Freshness is ReadModelFreshnessState.Current
             && _snapshot.Lifecycle is ProjectionLifecycleState.Current;
@@ -487,7 +508,8 @@
     private TenantDetail Detail => _snapshot.Detail ?? throw new InvalidOperationException("Detail is only used when a snapshot is available.");
 
     private bool IsCommandSurfaceAvailable
-        => !_commandInFlight
+        => IsCurrentCallerScope(_snapshot.CallerScope)
+        && !_commandInFlight
         && !IsCurrentAggregateLocked
         && AggregateAdmissionGate is not null
         && BffComposition.IsCommandSurfaceConnected;
@@ -501,6 +523,7 @@
 
     private TenantHighImpactActionEvidence HighImpactEvidence(TenantHighImpactAction action)
     {
+        bool callerBound = IsCurrentCallerScope(_snapshot.CallerScope);
         TenantHighImpactBffEvidence bffEvidence = BffComposition.ComposeTenantHighImpactEvidence(
             Detail,
             _snapshot.ConfigurationManagement,
@@ -516,14 +539,14 @@
             action,
             TenantHighImpactEvaluationStage.PreviewEntry,
             Detail.Status,
-            _detailRefreshInFlight
+            !callerBound ? TenantHighImpactFreshnessState.Unknown : _detailRefreshInFlight
                 ? TenantHighImpactFreshnessState.Refreshing
                 : TenantHighImpactActionEvidence.FromReadModelFreshness(_snapshot.Freshness),
-            _detailRefreshInFlight
+            callerBound && (_detailRefreshInFlight
                 ? _refreshingBaselineWasCurrent
-                : _snapshot.Freshness is ReadModelFreshnessState.Current,
-            _snapshot.Kind,
-            _snapshot.Lifecycle,
+                : _snapshot.Freshness is ReadModelFreshnessState.Current),
+            callerBound ? _snapshot.Kind : TenantDetailSurfaceKind.Unavailable,
+            callerBound ? _snapshot.Lifecycle : ProjectionLifecycleState.Unknown,
             configurationAction ? bffEvidence.ConfigurationAuthority : bffEvidence.LifecycleAuthority,
             configurationAction
                 ? bffEvidence.ConfigurationScope
@@ -537,7 +560,7 @@
             _highImpactViewportObservation?.State ?? TenantHighImpactViewportState.Unknown,
             IsInputComplete: false,
             targetState,
-            _snapshot.ProjectionVersion);
+            callerBound ? _snapshot.ProjectionVersion : null);
     }
 
     private TenantAggregateCommandAdmissionGate? AggregateAdmissionGate
@@ -660,7 +683,9 @@
             : null;
 
     private bool MemberEvidenceIsVersionConsistent
-        => _snapshot.Kind is TenantDetailSurfaceKind.Ready
+        => IsCurrentCallerScope(_snapshot.CallerScope)
+            && IsCurrentCallerScope(_tenantUsersSnapshot.CallerScope)
+            && _snapshot.Kind is TenantDetailSurfaceKind.Ready
             && _snapshot.Freshness is ReadModelFreshnessState.Current
             && _snapshot.Lifecycle is ProjectionLifecycleState.Current
             && _tenantUsersSnapshot.Kind is TenantUsersSurfaceKind.Ready or TenantUsersSurfaceKind.Empty
@@ -689,6 +714,7 @@
     private FcAggregateDetailState DetailState
         => _snapshot.Kind switch
         {
+            _ when _snapshot.Detail is not null && !IsCurrentCallerScope(_snapshot.CallerScope) => FcAggregateDetailState.Unavailable,
             TenantDetailSurfaceKind.Loading => FcAggregateDetailState.Loading,
             TenantDetailSurfaceKind.Unauthorized => FcAggregateDetailState.Unauthorized,
             TenantDetailSurfaceKind.NotFound => FcAggregateDetailState.NotFound,
@@ -782,6 +808,17 @@
                 await DisposeLeaseSupportSafelyAsync(priorLease).ConfigureAwait(false);
             }
 
+            return;
+        }
+
+        if (!IsCurrentCallerScope(_callerScope))
+        {
+            if (Volatile.Read(ref _pendingAuditCallerVersion) == 0)
+            {
+                _snapshot = TenantDetailSnapshot.Unauthorized(tenantId);
+                _tenantUsersSnapshot = TenantUsersSnapshot.Unauthorized(tenantId);
+                _auditCapabilityResolved = true;
+            }
             return;
         }
 
@@ -929,8 +966,8 @@
             }
 
             // A faulted read resolves to its own terminal state rather than leaving the surface on Loading.
-            _snapshot = detailResult ?? TenantDetailSnapshot.Unavailable(tenantId);
-            _tenantUsersSnapshot = membersResult ?? TenantUsersSnapshot.Unavailable(tenantId);
+            _snapshot = ForCurrentCaller(detailResult);
+            _tenantUsersSnapshot = MembersForCurrentCaller(membersResult);
             StateHasChanged();
         }).ConfigureAwait(false);
 
@@ -939,63 +976,148 @@
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
     {
-        long auditCallerVersion = Interlocked.Increment(ref _auditCallerVersion);
-        Interlocked.Exchange(ref _pendingAuditCallerVersion, auditCallerVersion);
+        long callerVersion = Interlocked.Increment(ref _auditCallerVersion);
+        Interlocked.Exchange(ref _pendingAuditCallerVersion, callerVersion);
+        bool hadPageLoad = Volatile.Read(ref _loadGeneration) != 0;
+        long invalidatedGeneration = Interlocked.Increment(ref _loadGeneration);
+        _callerScope = null;
         Task callback = InvokeAsync(() =>
         {
-            if (_disposed || auditCallerVersion != Volatile.Read(ref _auditCallerVersion))
+            if (_disposed || callerVersion != Volatile.Read(ref _auditCallerVersion))
             {
                 return;
             }
 
-            StartLifecycleAuthorizationResolution(TenantId, authenticationStateTask);
-            _auditProofCapabilityAvailable = false;
-            _auditReadDenied = false;
-            _auditCapabilityResolved = false;
-            CancelAuditCapability();
-            _ = ObserveAuditCallerAsync(authenticationStateTask, auditCallerVersion);
+            InvalidateCallerState();
+            if (hadPageLoad)
+            {
+                StartLifecycleAuthorizationResolution(TenantId, authenticationStateTask);
+            }
+            _ = ObserveAuditCallerAsync(authenticationStateTask, callerVersion, hadPageLoad, invalidatedGeneration);
             StateHasChanged();
         });
         _ = ObserveLifecycleAuthorizationCallbackAsync(callback);
     }
 
-    private async Task ObserveAuditCallerAsync(Task<AuthenticationState> callerTask, long callerVersion)
+    private void InvalidateCallerState()
     {
+        CancelActiveCancellation();
+        CancelSupplementaryReads();
+        ResetMetadataProofScope(tenantId: null);
+        ResetLifecycleProofScope(tenantId: null);
+        _snapshot = TenantDetailSnapshot.Loading();
+        _tenantUsersSnapshot = TenantUsersSnapshot.Loading(TenantId);
+        _globalAdministratorsSnapshot = null;
+        _memberCursor = null;
+        _memberCursorHistory.Clear();
+        _memberPagingHistoryTruncated = false;
+        _memberPagingJumpedToFirstPage = false;
+        _memberPageLoadInFlight = false;
+        _updateMetadataProofProjectionVersion = null;
+        _auditProofCapabilityAvailable = false;
+        _auditReadDenied = false;
+        _auditCapabilityResolved = false;
+        _ = Interlocked.Increment(ref _highImpactRefreshGeneration);
+        _detailRefreshInFlight = false;
+        _refreshingBaselineWasCurrent = false;
+    }
+
+    private async Task ObserveAuditCallerAsync(
+        Task<AuthenticationState> callerTask, long callerVersion, bool hadPageLoad, long invalidatedGeneration)
+    {
+        AuthenticationState? state = null;
         try
         {
-            _ = await callerTask.ConfigureAwait(false);
+            state = await callerTask.ConfigureAwait(false);
         }
         catch
         {
-            if (!_disposed && callerVersion == Volatile.Read(ref _auditCallerVersion))
-            {
-                Interlocked.CompareExchange(ref _pendingAuditCallerVersion, 0, callerVersion);
-                await InvokeAsync(() =>
-                {
-                    if (!_disposed && callerVersion == Volatile.Read(ref _auditCallerVersion))
-                    {
-                        _auditCapabilityResolved = true;
-                        StateHasChanged();
-                    }
-                }).ConfigureAwait(false);
-            }
+            // A faulted authentication task cannot authorize retained state or proof.
+        }
+
+        if (_disposed || callerVersion != Volatile.Read(ref _auditCallerVersion))
+        {
             return;
         }
 
-        if (!_disposed && callerVersion == Volatile.Read(ref _auditCallerVersion))
+        await InvokeAsync(async () =>
         {
-            Interlocked.Exchange(ref _resolvedAuditCallerVersion, callerVersion);
-            Interlocked.CompareExchange(ref _pendingAuditCallerVersion, 0, callerVersion);
-            await InvokeAsync(() =>
+            if (_disposed || callerVersion != Volatile.Read(ref _auditCallerVersion))
             {
-                long generation = Volatile.Read(ref _loadGeneration);
-                if (generation != 0)
+                return;
+            }
+
+            _callerScope = ResolveCallerScope(state?.User);
+            Interlocked.Exchange(ref _resolvedAuditCallerVersion, state is null ? 0 : callerVersion);
+            Interlocked.CompareExchange(ref _pendingAuditCallerVersion, 0, callerVersion);
+            if (_callerScope is null)
+            {
+                _snapshot = state is null
+                    ? TenantDetailSnapshot.Unavailable("Authenticated caller could not be verified.")
+                    : TenantDetailSnapshot.Unauthorized(TenantId);
+                _tenantUsersSnapshot = TenantUsersSnapshot.Unauthorized(TenantId);
+                _auditCapabilityResolved = true;
+                StateHasChanged();
+                return;
+            }
+
+            ResetMetadataProofScope(TenantId);
+            ResetLifecycleProofScope(TenantId);
+            if (hadPageLoad || Volatile.Read(ref _loadGeneration) > invalidatedGeneration)
+            {
+                if (!hadPageLoad)
                 {
-                    StartAuditCapabilityProbe(TenantId, generation);
+                    StartLifecycleAuthorizationResolution(TenantId);
                 }
-            }).ConfigureAwait(false);
+                await RefreshTenantReadsAsync(TenantId);
+            }
+        }).ConfigureAwait(false);
+    }
+
+    private static string? ResolveCallerScope(System.Security.Claims.ClaimsPrincipal? principal)
+    {
+        var evidence = TenantsGlobalAdministratorClaims.ResolvePrincipalEvidence(
+            principal, corroboratedSubject: null, requireCorroboration: false);
+        return string.IsNullOrWhiteSpace(evidence.Subject)
+            ? null
+            : TenantQueryGateway.AuditCallerScope(evidence.Subject);
+    }
+
+    private bool IsCurrentCallerScope(string? scope)
+    {
+        if (string.IsNullOrWhiteSpace(scope)
+            || Volatile.Read(ref _pendingAuditCallerVersion) != 0
+            || Volatile.Read(ref _resolvedAuditCallerVersion) != Volatile.Read(ref _auditCallerVersion)
+            || !string.Equals(scope, _callerScope, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            Task<AuthenticationState>? stateTask = _authenticationStateProvider?.GetAuthenticationStateAsync();
+            return stateTask?.IsCompletedSuccessfully == true
+                && string.Equals(scope, ResolveCallerScope(stateTask.Result.User), StringComparison.Ordinal);
+        }
+        catch
+        {
+            return false;
         }
     }
+
+    private TenantDetailSnapshot ForCurrentCaller(TenantDetailSnapshot? snapshot)
+        => snapshot is not null && (snapshot.Detail is null && snapshot.ETag is null && snapshot.ProjectionVersion is null
+                && !snapshot.Configuration.IsAvailable || IsCurrentCallerScope(snapshot.CallerScope))
+            ? snapshot
+            : TenantDetailSnapshot.Unavailable("Tenant detail caller could not be verified.");
+
+    private TenantUsersSnapshot MembersForCurrentCaller(TenantUsersSnapshot? snapshot)
+        => snapshot is not null && (snapshot.Kind is TenantUsersSurfaceKind.Unauthorized or TenantUsersSurfaceKind.NotFound
+                or TenantUsersSurfaceKind.Invalid or TenantUsersSurfaceKind.Unavailable or TenantUsersSurfaceKind.Error
+                && snapshot.Rows.Count == 0 && snapshot.ETag is null && snapshot.ProjectionVersion is null
+                || IsCurrentCallerScope(snapshot.CallerScope))
+            ? snapshot
+            : TenantUsersSnapshot.Unavailable(TenantId);
 
     private void StartLifecycleAuthorizationResolution(
         string tenantId,
@@ -1327,13 +1449,30 @@
         {
             if (CanApply(generation, tenantId))
             {
-                _snapshot = snapshot;
+                _snapshot = ForCurrentCaller(snapshot);
             }
         }).ConfigureAwait(false);
     }
 
+    private Task RefreshCallerBoundReadsAsync()
+    {
+        if (Volatile.Read(ref _pendingAuditCallerVersion) != 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (!IsCurrentCallerScope(_callerScope))
+        {
+            StartAuditCallerResolution();
+            return Task.CompletedTask;
+        }
+
+        return RefreshTenantReadsAsync(TenantId);
+    }
+
     private Task RefreshTenantReadsAsync()
     {
+        EnsureCurrentAuditCaller();
         // Member-flow refreshes are the equivalent recovery path for the combined detail/member read.
         // Notification callbacks call the tenant-id overload directly and therefore do not reset a failing
         // backend's budget on every nudge.
@@ -1360,6 +1499,10 @@
         catch
         {
             Interlocked.Increment(ref _auditCallerVersion);
+            Interlocked.Increment(ref _loadGeneration);
+            _callerScope = null;
+            InvalidateCallerState();
+            _snapshot = TenantDetailSnapshot.Unavailable("Authenticated caller could not be verified.");
             Interlocked.Exchange(ref _pendingAuditCallerVersion, 0);
             _auditProofCapabilityAvailable = false;
             _auditReadDenied = false;
@@ -1370,7 +1513,8 @@
 
     private async Task RefreshTenantReadsAsync(string tenantId)
     {
-        if (!string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+        if (!IsCurrentCallerScope(_callerScope)
+            || !string.Equals(TenantId, tenantId, StringComparison.Ordinal)
             || !TenantAuditNavigationSafety.IsSafeTenantId(tenantId))
         {
             return;
@@ -1423,7 +1567,7 @@
                 "Tenant detail query gateway returned a safe degraded state.",
                 retainedDetail.ETag,
                 ProjectionLifecycleState.Unknown,
-                retainedDetail.ProjectionVersion);
+                retainedDetail.ProjectionVersion).WithCallerScope(retainedDetail.CallerScope!);
         }
 
         try
@@ -1445,6 +1589,8 @@
             return;
         }
 
+        detail = ForCurrentCaller(detail);
+        members = MembersForCurrentCaller(members);
         bool resetMemberPaging = false;
         if (members.Reason is TenantUsersReason.InvalidCursor)
         {
@@ -1472,7 +1618,8 @@
             {
                 members = TenantUsersSnapshot.Degraded(tenantId, retainedMembers, retainedMembers.Reason);
             }
-            else if (IsUsableMemberPage(recovered, requestedCursor: null))
+            else if (IsCurrentCallerScope(recovered.CallerScope)
+                        && IsUsableMemberPage(recovered, requestedCursor: null))
             {
                 members = recovered with
                 {
@@ -1519,8 +1666,8 @@
                 return;
             }
 
-            _snapshot = detail;
-            _tenantUsersSnapshot = members;
+            _snapshot = ForCurrentCaller(detail);
+            _tenantUsersSnapshot = MembersForCurrentCaller(members);
             // The jump announcement describes the immediately preceding Previous action. Once an
             // authoritative refresh completes it is no longer new recovery evidence and must not remain in
             // the polite live region indefinitely.
@@ -1655,6 +1802,8 @@
                 return;
             }
 
+            snapshot = MembersForCurrentCaller(snapshot);
+
             // An explicitly signalled invalid cursor restarts at page one honestly instead of stranding the
             // table on an Invalid surface with no way back.
             if (snapshot.Reason is TenantUsersReason.InvalidCursor)
@@ -1693,7 +1842,8 @@
                     {
                         _tenantUsersSnapshot = TenantUsersSnapshot.Degraded(tenantId, retained, retained.Reason);
                     }
-                    else if (IsUsableMemberPage(recovered, requestedCursor: null))
+                    else if (IsCurrentCallerScope(recovered.CallerScope)
+                        && IsUsableMemberPage(recovered, requestedCursor: null))
                     {
                         _memberCursor = null;
                         _memberCursorHistory.Clear();
@@ -1711,7 +1861,7 @@
                         _memberCursorHistory.Clear();
                         _memberPagingHistoryTruncated = false;
                         _memberPagingJumpedToFirstPage = false;
-                        _tenantUsersSnapshot = recovered;
+                        _tenantUsersSnapshot = MembersForCurrentCaller(recovered);
                     }
                     else
                     {
@@ -1737,7 +1887,7 @@
                 // then walked back through pages that never rendered.
                 if (IsTerminalMemberPage(snapshot))
                 {
-                    _tenantUsersSnapshot = snapshot;
+                    _tenantUsersSnapshot = MembersForCurrentCaller(snapshot);
                     return;
                 }
 
@@ -1750,7 +1900,7 @@
                     return;
                 }
 
-                _tenantUsersSnapshot = snapshot;
+                _tenantUsersSnapshot = MembersForCurrentCaller(snapshot);
 
                 // A gateway-side page-one recovery answers page one, not the cursor that was requested, so
                 // the requested cursor must never be committed. Doing so stored an expired cursor as the
@@ -2024,7 +2174,9 @@
             {
                 if (CanApply(generation, tenantId))
                 {
-                    _globalAdministratorsSnapshot = snapshot;
+                    _globalAdministratorsSnapshot = IsCurrentCallerScope(snapshot.CallerScope)
+                        ? snapshot
+                        : GlobalAdministratorsSnapshot.Unavailable();
                     StateHasChanged();
                 }
             }).ConfigureAwait(false);
@@ -2064,8 +2216,7 @@
             CancelAuditCapability();
             return;
         }
-        if (Volatile.Read(ref _pendingAuditCallerVersion) != 0
-            || Volatile.Read(ref _resolvedAuditCallerVersion) != Volatile.Read(ref _auditCallerVersion))
+        if (!IsCurrentCallerScope(_callerScope))
         {
             _auditCapabilityResolved = Volatile.Read(ref _pendingAuditCallerVersion) == 0;
             CancelAuditCapability();
@@ -2154,7 +2305,7 @@
         }
     }
 
-    private static bool IsAuthoritativeAuditCapability(
+    private bool IsAuthoritativeAuditCapability(
         TenantAuditSnapshot audit,
         TenantAuditRequest request)
     {
@@ -2167,7 +2318,8 @@
                 or TenantAuditSurfaceKind.Empty
                 or TenantAuditSurfaceKind.FilteredEmpty
                 or TenantAuditSurfaceKind.ListRefreshed
-            && audit.MatchesScope(request)
+            && IsCurrentCallerScope(audit.CallerScope)
+            && audit.MatchesScope(request, _callerScope!)
             && audit.Freshness is ReadModelFreshnessState.Current
             && audit.Lifecycle is ProjectionLifecycleState.Current
             && !string.IsNullOrWhiteSpace(audit.ProjectionVersion)
@@ -2199,6 +2351,7 @@
     private PendingOperation BeginLoad()
     {
         long generation = Interlocked.Increment(ref _loadGeneration);
+        _loadCallerScope = _callerScope;
         CancellationTokenSource source = ReplaceActiveCancellation();
         _memberPageLoadInFlight = false;
         if (_tenantUsersSnapshot.IsRefreshing)
@@ -2214,18 +2367,21 @@
     private bool CanApply(long generation, string tenantId)
         => !_disposed
             && generation == Volatile.Read(ref _loadGeneration)
+            && IsCurrentCallerScope(_loadCallerScope)
             && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
 
     private void ResetMetadataProofScope(string? tenantId)
     {
         lock (_metadataProofLock)
         {
-            if (string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal))
+            if (string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal)
+                && string.Equals(_metadataProofCallerScope, _callerScope, StringComparison.Ordinal))
             {
                 return;
             }
 
             _metadataProofTenantId = tenantId;
+            _metadataProofCallerScope = _callerScope;
             _ = Interlocked.Increment(ref _metadataProofGeneration);
             _updateMetadataProofProjectionVersion = null;
             // Each proof operation owns disposal of its source. Route invalidation only cancels it, avoiding
@@ -2246,6 +2402,7 @@
         lock (_metadataProofLock)
         {
             if (_disposed
+                || !IsCurrentCallerScope(_metadataProofCallerScope)
                 || !string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal)
                 || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
             {
@@ -2284,6 +2441,7 @@
     private bool CanApplyMetadataProofCore(long generation, string tenantId)
         => !_disposed
             && generation == Volatile.Read(ref _metadataProofGeneration)
+            && IsCurrentCallerScope(_metadataProofCallerScope)
             && string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal)
             && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
 
@@ -2301,12 +2459,14 @@
     {
         lock (_lifecycleProofLock)
         {
-            if (string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal))
+            if (string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal)
+                && string.Equals(_lifecycleProofCallerScope, _callerScope, StringComparison.Ordinal))
             {
                 return;
             }
 
             _lifecycleProofTenantId = tenantId;
+            _lifecycleProofCallerScope = _callerScope;
             _ = Interlocked.Increment(ref _lifecycleProofGeneration);
             foreach (CancellationTokenSource source in _lifecycleProofCancellations)
             {
@@ -2322,6 +2482,7 @@
         lock (_lifecycleProofLock)
         {
             if (_disposed
+                || !IsCurrentCallerScope(_lifecycleProofCallerScope)
                 || !string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal)
                 || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
             {
@@ -2341,6 +2502,7 @@
         {
             return !_disposed
                 && generation == Volatile.Read(ref _lifecycleProofGeneration)
+                && IsCurrentCallerScope(_lifecycleProofCallerScope)
                 && string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal)
                 && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
         }
@@ -2358,19 +2520,22 @@
 
     private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
         => Task.FromResult(
-            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+            IsCurrentCallerScope(_snapshot.CallerScope)
+                && string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
 
     private Task<TenantDetail?> GetChangeRoleProjectionEvidenceAsync(ChangeUserRole request)
         => Task.FromResult(
-            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+            IsCurrentCallerScope(_snapshot.CallerScope)
+                && string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
 
     private Task<TenantDetail?> GetRemoveMemberProjectionEvidenceAsync(RemoveUserFromTenant request)
         => Task.FromResult(
-            string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
+            IsCurrentCallerScope(_snapshot.CallerScope)
+                && string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
                 ? _snapshot.Detail
                 : null);
 
@@ -2405,6 +2570,7 @@
         }
 
         if (proof is null
+            || !IsCurrentCallerScope(proof.CallerScope)
             || proof.Kind is not TenantDetailSurfaceKind.Ready
             || proof.Freshness is not ReadModelFreshnessState.Current
             || proof.Lifecycle is not ProjectionLifecycleState.Current
@@ -2471,7 +2637,7 @@
             // the whole attempt window (bounded by MetadataAuditProofMaximumPageCount) may confirm.
             projectionVersion ??= audit.ProjectionVersion;
             bool authoritativePage = audit.Kind is TenantAuditSurfaceKind.Ready
-                && audit.MatchesScope(auditRequest)
+                && audit.MatchesScope(auditRequest, _metadataProofCallerScope!)
                 && audit.Freshness is ReadModelFreshnessState.Current
                 && audit.Lifecycle is ProjectionLifecycleState.Current
                 && !string.IsNullOrWhiteSpace(audit.ProjectionVersion)
@@ -2498,7 +2664,9 @@
 
             if (!audit.HasMore)
             {
-                return matches.Count == 1 ? matches[0] : null;
+                return CanApplyMetadataProof(operation.Generation, request.TenantId)
+                    && IsCurrentCallerScope(audit.CallerScope)
+                    && matches.Count == 1 ? matches[0] : null;
             }
 
             if (string.IsNullOrWhiteSpace(audit.NextCursor))
@@ -2513,29 +2681,56 @@
     }
 
     private Task<TenantSetConfigurationPreview> GetSetConfigurationPreviewEvidenceAsync(TenantSetConfigurationIntent intent)
-        => QueryGateway.GetSetConfigurationPreviewAsync(intent, CancellationToken.None);
+        => ReadConfigurationEvidenceAsync(intent.TenantId,
+            token => QueryGateway.GetSetConfigurationPreviewAsync(intent, token),
+            () => TenantSetConfigurationPreview.Unavailable(intent));
 
     private Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionEvidenceAsync(TenantSetConfigurationIntent intent)
-        => QueryGateway.GetSetConfigurationProjectionProofAsync(intent, CancellationToken.None);
+        => ReadConfigurationEvidenceAsync(intent.TenantId,
+            token => QueryGateway.GetSetConfigurationProjectionProofAsync(intent, token),
+            () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
 
-    private Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewEvidenceAsync(
-        TenantRemoveConfigurationIntent intent)
-        => QueryGateway.GetRemoveConfigurationPreviewAsync(intent, CancellationToken.None);
+    private Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewEvidenceAsync(TenantRemoveConfigurationIntent intent)
+        => ReadConfigurationEvidenceAsync(intent.TenantId,
+            token => QueryGateway.GetRemoveConfigurationPreviewAsync(intent, token),
+            () => TenantRemoveConfigurationPreview.Unavailable(intent));
 
-    private Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionEvidenceAsync(
-        TenantRemoveConfigurationIntent intent)
-        => QueryGateway.GetRemoveConfigurationProjectionProofAsync(intent, CancellationToken.None);
+    private Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionEvidenceAsync(TenantRemoveConfigurationIntent intent)
+        => ReadConfigurationEvidenceAsync(intent.TenantId,
+            token => QueryGateway.GetRemoveConfigurationProjectionProofAsync(intent, token),
+            () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
 
-    // Reads _snapshot.Detail defensively rather than through the throwing Detail property: a refresh
-    // can null the snapshot between render and a queued submit, and a security re-check must fail
-    // closed there instead of throwing out of an event handler and tearing down the circuit.
+    private async Task<T> ReadConfigurationEvidenceAsync<T>(
+        string tenantId, Func<CancellationToken, Task<T>> read, Func<T> unavailable)
+    {
+        using PendingOperation? operation = BeginMetadataProof(tenantId);
+        if (operation is null)
+        {
+            return unavailable();
+        }
+
+        try
+        {
+            T proof = await read(operation.CancellationToken).ConfigureAwait(false);
+            return CanApplyMetadataProof(operation.Generation, tenantId) ? proof : unavailable();
+        }
+        catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
+        {
+            return unavailable();
+        }
+    }
+
     private Task<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync()
-        => _snapshot.Detail is null
-            ? Task.FromResult(TenantConfigurationManagementContext.Unavailable(TenantId, TenantStatus.Unknown))
-            : BffComposition.ReauthorizeConfigurationManagementAsync(
-                _snapshot.Detail,
-                _snapshot.Configuration,
-                CancellationToken.None).AsTask();
+    {
+        TenantDetailSnapshot snapshot = _snapshot;
+        string tenantId = TenantId;
+        return snapshot.Detail is null || !IsCurrentCallerScope(snapshot.CallerScope)
+            ? Task.FromResult(TenantConfigurationManagementContext.Unavailable(tenantId, TenantStatus.Unknown))
+            : ReadConfigurationEvidenceAsync(tenantId,
+                token => BffComposition.ReauthorizeConfigurationManagementAsync(
+                    snapshot.Detail, snapshot.Configuration, token).AsTask(),
+                () => TenantConfigurationManagementContext.Unavailable(tenantId, TenantStatus.Unknown));
+    }
 
     private async Task<TenantDetailSnapshot?> GetLifecycleProjectionEvidenceAsync(
         TenantLifecycleCommandRequest request,
@@ -2562,7 +2757,9 @@
             return null;
         }
 
-        return CanApplyLifecycleProof(operation.Generation, request.TenantId)
+        return !linked.IsCancellationRequested
+            && CanApplyLifecycleProof(operation.Generation, request.TenantId)
+            && IsCurrentCallerScope(proof.CallerScope)
             ? proof
             : null;
     }
@@ -2572,8 +2769,18 @@
     {
         try
         {
-            return await BffComposition.ResolveLifecycleAuthorizationAsync(cancellationToken)
+            string? scope = _callerScope;
+            long callerVersion = Volatile.Read(ref _auditCallerVersion);
+            if (!IsCurrentCallerScope(scope))
+            {
+                return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+            }
+
+            TenantLifecycleAuthorizationReflectionState reflection = await BffComposition.ResolveLifecycleAuthorizationAsync(cancellationToken)
                 .ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return callerVersion == Volatile.Read(ref _auditCallerVersion) && IsCurrentCallerScope(scope)
+                ? reflection : TenantLifecycleAuthorizationReflectionState.Indeterminate;
         }
         catch (OperationCanceledException)
         {

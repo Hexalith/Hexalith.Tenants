@@ -4,20 +4,22 @@ Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependen
 
 **B1 update (2026-10-12):** DW-567 and DW-550/DW-598 are closed in the validated working tree over Tenants `2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1`. Authenticated bootstrap actor/target binding, secure authority validation before I/O, persisted rejection replay and secret-free diagnostics passed the maintained checks. See [exact commands, results and limits](../_bmad-output/implementation-artifacts/release-readiness.md#b1-remediation-evidence-2026-10-12). The original reconciliation was 86 done/265 actionable/353 open; these three closures explain the current counts and two removed action rows. Historical findings remain in their ledger entries; the archive, sprint tracking, remaining blockers and all decisions are unchanged.
 
+**B2 update (2026-10-12):** DW-142/DW-580 and DW-351/DW-366 are closed in the validated working tree over Tenants `b4b65dce017bcb3ea0a676f14b3156d908c1e9c0`. Gateway retention/validators and detail capabilities/proofs require current authenticated caller binding; transition, sign-out, indeterminate identity, failure, 304 and late-proof regressions passed. See [exact commands, results and limits](../_bmad-output/implementation-artifacts/release-readiness.md#b2-remediation-evidence-2026-10-12). Four additional closures and two removed grouped action rows explain the current counts; B1, historical findings, archive, sprint tracking, remaining blockers and all decisions are preserved.
+
 All 439 requested records were reconciled: 152 marked-open DW entries plus 287 previously unnumbered records, now DW-357–DW-643. Original findings and resolution history are retained, including lossless JSON `legacy-detail` for migrated records. Duplicate references share an index row; they remain separate ledger records.
 
 | Disposition | Records |
 | --- | ---: |
-| done | 89 |
-| actionable | 262 |
+| done | 93 |
+| actionable | 258 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 38 |
 
-**Remaining: 350 open records across 312 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 346 open records across 310 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
-**Highest priority:** caller-bound retained reads (DW-142/DW-580, DW-351/DW-366); exact command/projection/removal proof (DW-300, DW-286, DW-222); command ownership and late-status safety (DW-199, DW-287, DW-288, DW-458, DW-471/DW-472, DW-500); support-safe mappings/identifiers (DW-315, DW-441). Platform-owned publication/status repair and secret-scan coverage remain with EventStore (DW-499, DW-502, DW-517).
+**Highest priority:** exact command/projection/removal proof (DW-300, DW-286, DW-222); command ownership and late-status safety (DW-199, DW-287, DW-288, DW-458, DW-471/DW-472, DW-500); support-safe mappings/identifiers (DW-315, DW-441). Platform-owned publication/status repair and secret-scan coverage remain with EventStore (DW-499, DW-502, DW-517).
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -29,7 +31,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
-| DW-142, DW-580 | P1 | Defect / actionable | unassigned | shared caller-scope contract; Caller provenance on retained query snapshots | Bind retained snapshots/validators to caller identity and invalidate them on authentication transitions. |
 | DW-199 | P1 | Defect / actionable | unassigned | none | Wire aggregate-scoped create admission through accepted/pending states and verify unrelated aggregates remain available. |
 | DW-222 | P1 | Defect / actionable | unassigned | command correlation/sequence proof contract | Bind removal receipts to the submitted command identity/sequence and reject a concurrent same-target removal. |
 | DW-286 | P1 | Defect / actionable | unassigned | shared proof carriers | Require Current authoritative evidence before forwarding payloads to create/membership confirmers. |
@@ -37,7 +38,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-288 | P1 | Defect / actionable | unassigned | none | Retain the resolved identity and ambiguous outcome before any retry, with an indeterminate delivery regression. |
 | DW-300 | P1 | Defect / actionable | unassigned | shared tracking handle contract | Migrate the remaining handles to exact aggregate/command identity and nonterminal propagation-lag handling. |
 | DW-315 | P1 | Defect / actionable | unassigned | shared failure contract | Use a support-safe allowlisted code/key mapping and prove unknown backend text cannot render. |
-| DW-351, DW-366 | P1 | Defect / actionable | unassigned | current audit caller-scope contract; Current caller identity must be available to detail evidence checks | Pass and require current caller scope in detail capability/proof matching and test another caller snapshot. |
 | DW-421 | P1 | Defect / actionable | unassigned | Ownerless grant completion fixture | Add ownerless-terminal-grant completion/adoption coverage, then route adopted terminal grant snapshots through the release-aware setter. |
 | DW-428 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Require an attached intended branch or retain/merge the exact detached commit before default-branch push; add a procedure fixture for dirty detached HEAD. |
 | DW-429 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Resolve the remote default first, validate its branch/ref, and handle missing or ambiguous remote-default evidence explicitly. |
