@@ -95,7 +95,8 @@ public static class TenantsUiServiceCollectionExtensions
         services.TryAddScoped<TenantSearchPagingState>();
         services.TryAddScoped<TenantReadRefreshSubscription>();
         services.TryAddScoped<TenantAggregateCommandAdmissionGate>();
-        services.TryAddScoped<TenantCreateAttemptTracker>();
+        services.TryAddScoped<TenantCommandAttemptTracker>();
+        services.TryAddScoped(provider => new TenantCreateAttemptTracker(provider.GetRequiredService<TenantCommandAttemptTracker>()));
         services.TryAddScoped<TenantCreateAuditReturnState>();
         services.TryAddScoped<TenantLifecycleAttemptTracker>();
         services.TryAddScoped<TenantSetConfigurationAttemptTracker>();

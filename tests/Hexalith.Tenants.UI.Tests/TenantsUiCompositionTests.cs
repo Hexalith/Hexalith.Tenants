@@ -166,6 +166,23 @@ public sealed class TenantsUiCompositionTests
     }
 
     [Fact]
+    public void Host_supplied_attempt_store_is_shared_by_create_and_other_tenant_flows()
+    {
+        IConfiguration configuration = new ConfigurationBuilder().Build();
+        ServiceCollection services = new();
+        services.AddSingleton(configuration);
+        TenantAggregateCommandAdmissionGate gate = new();
+        TenantCommandAttemptTracker supplied = new(gate);
+        services.AddScoped(_ => gate);
+        services.AddScoped(_ => supplied);
+        services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
+        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        using IServiceScope scope = provider.CreateScope();
+        scope.ServiceProvider.GetRequiredService<TenantCommandAttemptTracker>().ShouldBeSameAs(supplied);
+        scope.ServiceProvider.GetRequiredService<TenantCreateAttemptTracker>().Attempts.ShouldBeSameAs(supplied);
+    }
+
+    [Fact]
     public void Lifecycle_attempt_tracker_is_scoped_to_a_circuit()
     {
         IConfiguration configuration = new ConfigurationBuilder().Build();

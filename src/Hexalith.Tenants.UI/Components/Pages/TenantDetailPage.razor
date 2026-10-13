@@ -19,6 +19,7 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
+<CascadingValue Value="@(IsCurrentCallerScope(_callerScope) ? _callerScope : null)" Name="CurrentTenantCallerScope">
 <CascadingValue Value="@DetailAuditReadAvailable" Name="AuditReadAvailable">
 <CascadingValue Value="@(!_auditCapabilityResolved)" Name="AuditReadPending">
 <CascadingValue Value="@_auditReadDenied" Name="AuditReadDenied">
@@ -208,6 +209,7 @@
                                             ProjectionVersion="@_snapshot.ProjectionVersion"
                                             ProjectionVersionProvider="@(() => _snapshot.ProjectionVersion)"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
+                                            CommandSurfaceUnavailableReason="@CommandSurfaceUnavailableReason"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                             CommandActivityLease="@MetadataCommandActivityLease"
                                             ProjectionEvidenceProvider="@GetUpdateMetadataProjectionEvidenceAsync"
@@ -308,6 +310,7 @@
     </ReadyContent>
 </FcAggregateDetailPage>
 </div>
+</CascadingValue>
 </CascadingValue>
 </CascadingValue>
 </CascadingValue>
@@ -727,6 +730,10 @@
 
     protected override void OnInitialized()
     {
+        if (AggregateAdmissionGate is { } admissionGate)
+        {
+            admissionGate.StateChanged += OnAggregateAdmissionChanged;
+        }
         _highImpactViewportObservation = Services.GetService<TenantHighImpactViewportObservation>();
         if (_highImpactViewportObservation is not null)
         {
@@ -738,6 +745,34 @@
         {
             _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
             StartAuditCallerResolution();
+        }
+    }
+
+    private void OnAggregateAdmissionChanged(object? sender, EventArgs args)
+        => _ = SynchronizeAggregateAdmissionAsync();
+
+    private async Task SynchronizeAggregateAdmissionAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (_disposed)
+                {
+                    return;
+                }
+                if (_activeAggregateLockKey is { } key && AggregateAdmissionGate?.IsLocked(key) is false)
+                {
+                    _commandInFlight = false;
+                    _activeAggregateLockKey = null;
+                    _activeAggregateTenantId = null;
+                    _aggregateLeaseHolder = null;
+                }
+                StateHasChanged();
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
         }
     }
 
@@ -2931,7 +2966,15 @@
                 return true;
             }
 
-            if (!gate.TryAcquire(aggregateLockKey, admissionOwner)
+            TenantCommandAttemptTracker? retainedTracker = Services.GetService<TenantCommandAttemptTracker>();
+            bool retainedSurfaceOwnsAdmission = retainedTracker?.HasPendingOwnership(leaseTenantId) is true
+                && (ReferenceEquals(surfaceOwner, _metadataLeaseOwner)
+                    ? retainedTracker.Find<TenantUpdateMetadataCommandSnapshot>(leaseTenantId) is not null
+                    : ReferenceEquals(surfaceOwner, _membershipLeaseOwner)
+                        && (retainedTracker.Find<TenantAddMemberCommandSnapshot>(leaseTenantId) is not null
+                            || retainedTracker.Find<TenantChangeRoleCommandSnapshot>(leaseTenantId) is not null
+                            || retainedTracker.Find<TenantRemoveMemberCommandSnapshot>(leaseTenantId) is not null));
+            if (!retainedSurfaceOwnsAdmission && !gate.TryAcquire(aggregateLockKey, admissionOwner)
                 && !gate.IsOwnedBy(aggregateLockKey, admissionOwner))
             {
                 _commandInFlight = false;
@@ -3026,6 +3069,10 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        if (AggregateAdmissionGate is { } admissionGate)
+        {
+            admissionGate.StateChanged -= OnAggregateAdmissionChanged;
+        }
         _ = Interlocked.Increment(ref _loadGeneration);
         _ = Interlocked.Increment(ref _lifecycleAuthorizationGeneration);
         ResetMetadataProofScope(tenantId: null);

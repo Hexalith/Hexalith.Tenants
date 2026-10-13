@@ -57,6 +57,51 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OwnerlessTerminalGrantCompletionReleasesOnlyItsAdoptedLease(bool failed)
+    {
+        var deliveryGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var commandGateway = new StubTenantCommandGateway(failed
+            ? TenantCommandSubmissionResult.Failed("delivery failed")
+            : TenantCommandSubmissionResult.RejectedWithKey("Tenants.GlobalAdministrators.Grant.Submission.Rejected", "InsufficientPermissions"))
+        {
+            SubmissionGate = deliveryGate,
+        };
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(ComponentReady("projection-v1", "admin-a")) { RepeatLastResponse = true });
+        Services.AddSingleton<ITenantCommandGateway>(commandGateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        IRenderedComponent<GlobalAdministratorsPage> first = Render<GlobalAdministratorsPage>();
+        first.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+        OpenGrantPreview(first);
+        AcknowledgeGrantPreview(first);
+        Task submit = first.Find("[data-testid='tenants-global-admin-grant-confirm']").ClickAsync(new MouseEventArgs());
+        await commandGateway.SubmissionEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        string messageId = commandGateway.GrantMessageIds.ShouldHaveSingleItem();
+        await first.InvokeAsync(async () => await first.Instance.DisposeAsync());
+        deliveryGate.SetResult();
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        string key = TenantCommandAggregateLock.ForGlobalAdministrators();
+        gate.IsLocked(key).ShouldBeTrue();
+        IRenderedComponent<GlobalAdministratorsPage> replacement = Render<GlobalAdministratorsPage>();
+        replacement.WaitForAssertion(() =>
+        {
+            GlobalAdministratorGrantCommandSnapshot outcome = PrivateField<GlobalAdministratorGrantCommandSnapshot>(replacement.Instance, "_grantSnapshot");
+            outcome.MessageId.ShouldBe(messageId);
+            outcome.State.ShouldBe(failed ? TenantCommandLifecycleState.Failed : TenantCommandLifecycleState.Rejected);
+            gate.IsLocked(key).ShouldBeFalse();
+        });
+        object nextOwner = new();
+        gate.TryAcquireLease(key, nextOwner, out TenantAggregateCommandLease? next).ShouldBeTrue();
+        await first.InvokeAsync(async () => await first.Instance.DisposeAsync());
+        gate.IsLocked(key).ShouldBeTrue();
+        next!.TryAbandonBeforeDispatch(nextOwner).ShouldBeTrue();
+        commandGateway.GrantMessageIds.ShouldHaveSingleItem();
+    }
+
     [Fact]
     public void Authentication_revocation_collapses_privileged_state_without_another_query()
     {

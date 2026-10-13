@@ -5042,7 +5042,7 @@
         if (reconciliation.ActionKind is GlobalAdministratorActionKind.Grant)
         {
             _grantAdmissionLease = lease;
-            _grantSnapshot = CreateGrantSnapshot(reconciliation);
+            SetGrantSnapshot(CreateGrantSnapshot(reconciliation));
         }
         else
         {

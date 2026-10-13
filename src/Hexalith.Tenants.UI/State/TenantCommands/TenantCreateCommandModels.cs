@@ -264,6 +264,13 @@ public sealed record TenantCreateCommandSnapshot(
     public TenantCreateCommandSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
 
+        if (State is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.AlreadyApplied or TenantCommandLifecycleState.Failed)
+        {
+            return this;
+        }
+
+
         if ((status.IsPending && status.IsRetryableFailure)
             || (status.Status is not null && (status.IsPending || status.IsRetryableFailure))
             || (status.Status is not null && !status.HasVerifiedCommandIdentity))
@@ -518,6 +525,13 @@ public sealed record TenantAddMemberCommandSnapshot(
     public TenantAddMemberCommandSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
 
+        if (State is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.AlreadyApplied or TenantCommandLifecycleState.Failed)
+        {
+            return this;
+        }
+
+
         if ((status.IsPending && status.IsRetryableFailure)
             || (status.Status is not null && (status.IsPending || status.IsRetryableFailure))
             || (status.Status is not null && !status.HasVerifiedCommandIdentity))
@@ -758,6 +772,13 @@ public sealed record TenantChangeRoleCommandSnapshot(
     public TenantChangeRoleCommandSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
 
+        if (State is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.AlreadyApplied or TenantCommandLifecycleState.Failed)
+        {
+            return this;
+        }
+
+
         if ((status.IsPending && status.IsRetryableFailure)
             || (status.Status is not null && (status.IsPending || status.IsRetryableFailure))
             || (status.Status is not null && !status.HasVerifiedCommandIdentity))
@@ -974,6 +995,9 @@ public sealed record TenantRemoveMemberCommandSnapshot(
     /// <summary>Gets caller provenance from the authoritative detail read that confirmed this removal.</summary>
     internal string? ProjectionProofCallerScope { get; init; }
 
+    /// <summary>Gets the support-safe proof assembled for this exact retained removal attempt.</summary>
+    internal TenantAuditReceipt? RemovalProof { get; init; }
+
     public static TenantRemoveMemberCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 
@@ -1079,7 +1103,8 @@ public sealed record TenantRemoveMemberCommandSnapshot(
         // poll -- including the Refresh rendered on the WP-2A receipt -- must never regress it to
         // ProjectionPending or reset AuditAvailable back to AuditPending: confirmed access and audit
         // proof are distinct, non-collapsing states, and the confirmed outcome survives audit flaps.
-        if (State is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.AlreadyApplied) {
+        if (State is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.AlreadyApplied
+            or TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed) {
             return this;
         }
 
@@ -1409,6 +1434,8 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
+    internal string? LastConfirmedCallerScope { get; init; }
+
     public static TenantUpdateMetadataCommandSnapshot Idle(
         string? lastConfirmedName = null,
         string? lastConfirmedDescription = null,
@@ -1463,6 +1490,13 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
 
     public TenantUpdateMetadataCommandSnapshot ApplyStatus(TenantCommandStatusResult status) {
         ArgumentNullException.ThrowIfNull(status);
+
+        if (State is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.Rejected
+            or TenantCommandLifecycleState.AlreadyApplied or TenantCommandLifecycleState.Failed)
+        {
+            return this;
+        }
+
 
         if ((status.IsPending && status.IsRetryableFailure)
             || (status.Status is not null && (status.IsPending || status.IsRetryableFailure))
@@ -1655,6 +1689,7 @@ public sealed record TenantUpdateMetadataCommandSnapshot(
             LastConfirmedName = detailEvidence!.Name,
             LastConfirmedDescription = detailEvidence.Description,
             LastConfirmedDetailProjection = detailEvidence,
+            LastConfirmedCallerScope = proof.CallerScope,
             SafeMessage = null,
             SafeMessageKey = null,
             RejectionCode = null,

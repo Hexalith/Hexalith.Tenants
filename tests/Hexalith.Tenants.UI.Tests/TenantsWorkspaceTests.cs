@@ -50,6 +50,9 @@ public sealed class TenantsWorkspaceTests : BunitContext
         // Protected search paging is a required scoped circuit service; the workspace fails loudly without it.
         Services.AddScoped<TenantSearchPagingState>();
         Services.AddScoped<TenantCreateAuditReturnState>();
+        Services.AddScoped<TenantAggregateCommandAdmissionGate>();
+        Services.AddScoped<TenantCreateAttemptTracker>();
+        Services.AddScoped(provider => provider.GetRequiredService<TenantCreateAttemptTracker>().Attempts);
         Services.AddLocalization();
 #if HFC_ROUTE_OPTIONS
         Services.AddScoped<NavigationFailureNotifier>();

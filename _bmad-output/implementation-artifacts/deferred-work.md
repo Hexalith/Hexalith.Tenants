@@ -12,6 +12,8 @@ After validated B2 closure of DW-142/DW-580/DW-351/DW-366: 93 done, 258 actionab
 
 After validated B3 closure of DW-222/DW-286/DW-300 (2026-10-13): 96 done, 255 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain; 343 open. All 643 unique ledger IDs remain: 300 done and 343 open. The ten B1/B2/B3 closures retain their historical findings in the active ledger; the archive remains at its historical 290 records. Only these three B3 records change in this pass. Exact commands, results, review and limits are in [B3 remediation evidence](release-readiness.md#b3-remediation-evidence-2026-10-13).
 
+After validated B4 closure of DW-199/DW-288/DW-287/DW-458/DW-471/DW-472/DW-500/DW-421 (2026-10-13): 104 reconciled done, 247 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 335 open. All 643 unique ledger IDs remain: 308 done and 335 open. Historical findings and pre-fix verification/actions are retained in these eight records; B1–B3 evidence, unrelated records, archive and sprint tracking are preserved. Exact commands, results, initial failures, review and limits are in [B4 remediation evidence](release-readiness.md#b4-remediation-evidence-2026-10-13).
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -1087,28 +1089,12 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 archived: 2026-10-12
 
 ### DW-142: Retained direct-read snapshots are scoped by entity, filter and paging inputs but not by the authenticated subject, so a principal change inside one scoped circuit can expose the previous subject's authorized rows during a failure or an insensitive `304` response
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29, core transport/state follow-up)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2075
-source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
-reason: The legacy ledger defers this issue: Retained direct-read snapshots are scoped by entity, filter and paging inputs but not by the authenticated subject, so a principal change inside one scoped circuit can expose the previous subject's authorized rows during a failure or an insensitive `304` response. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md` summary: Retained direct-read snapshots are scoped by entity, filter and paging inputs but not by the authenticated subject, so a principal change inside one scoped circuit can expose the previous subject's authorized rows during a failure or an insensitive `304` response. evidence: The gateway retention helpers at `src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs:2075` have no subject dimension, while the scoped server-circuit user context can resolve a new principal instance. The generic retained-snapshot behavior predates Story 1.10's direct-read change. status: open — pre-existing security debt; bind retained evidence to a stable authenticated-subject identity or invalidate all retained snapshots when that identity changes.
-status: done 2026-10-12
-disposition: done
-verification-date: 2026-10-12
-verification-before-b2: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs CanRetainUserTenants, CanRetainGlobalAdministrators and CanRetainTenantList compare entity/page/ETag scope without a caller identity; audit retention alone uses CallerScope. A caller transition can reuse prior authorized evidence through those seams.
-verification: TenantQueryGateway binds retained list, user/self memberships and global-administrator snapshots and validators to the resolved authenticated subject; member/detail reads share that guard. Authoritative circuit/provider identity is corroborated when available, and identity faults, authentication events, late responses, BFF composition and 304/cursor/search recovery fail closed. Same-caller retention and supported 304 metadata remain correct.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
-evidence-kind: verified-defect
-priority: P1
-owner: unassigned
-dependencies: shared caller-scope contract
-next-action-before-b2: Bind retained snapshots/validators to caller identity and invalidate them on authentication transitions.
-next-action: none; B2 implementation and maintained checks complete in the working tree.
-related: DW-580, DW-609
-resolution-date: 2026-10-12
-resolution: Release blocker B2 closed in the validated working tree over Tenants b4b65dce017bcb3ea0a676f14b3156d908c1e9c0; original findings and B1 closure are preserved, with no commit or release approval implied.
-resolution-evidence: [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12); 4312 Release UI cases, 187 non-performance integration cases, four source provenance cases, maintained build/browser and configured coverage gates passed.
 
+status: done 2026-10-12
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-29, core transport/state follow-up)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-1-10-direct-tenants-reads-and-authoritative-freshness.md`
+priority: P1
+archived: 2026-10-13
 
 ### DW-143: `EventStore:BaseAddress` is accepted with compound service-discovery schemes (e.g. `https+http://eventstore`) by the same `TryGetHttpBaseAddress` gate used for the read side, but no service discovery is attached to the command/status clients, so such a value can only fail at send time
 
@@ -1743,22 +1729,12 @@ next-action: Record an immutable story-end range or migrate the historical artif
 related: DW-246
 
 ### DW-199: AggregateIdentity-scoped create admission lock through terminal evidence (unrelated aggregates may proceed; replace create-local submitting flag with TenantAggregateCommandAdmissionGate)
+
+status: done 2026-10-13
 origin: migrated from legacy ledger ("Deferred from: bmad-build scope split of Story 3.1 (2026-08-08)"), 2026-08-25
-location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
-reason: The legacy ledger defers this issue: AggregateIdentity-scoped create admission lock through terminal evidence (unrelated aggregates may proceed; replace create-local submitting flag with TenantAggregateCommandAdmissionGate). Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: AggregateIdentity-scoped create admission lock through terminal evidence (unrelated aggregates may proceed; replace create-local submitting flag with TenantAggregateCommandAdmissionGate). evidence: Split from Story 3.1 so the first delivery goal (provenance-qualified confirmation, first-tenant freshness exception, messageId reuse) stays within the 900–1600 token spec budget.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor still has only _isSubmitting and TenantCreateAttemptTracker; it never acquires TenantAggregateCommandAdmissionGate. A retained create handle is not an aggregate admission lease.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-evidence-kind: verified-defect
 priority: P1
-owner: unassigned
-dependencies: none
-next-action: Wire aggregate-scoped create admission through accepted/pending states and verify unrelated aggregates remain available.
-related: none
+archived: 2026-10-13
 
 ### DW-200: Workspace SignalR / read-refresh nudge wiring into CreateTenantFlow (ApplySignalRNudge + authoritative re-query; never notify-alone confirm)
 origin: migrated from legacy ledger ("Deferred from: bmad-build scope split of Story 3.1 (2026-08-08)"), 2026-08-25
@@ -2078,28 +2054,12 @@ next-action: Define backward-compatible shape metadata and provider tests distin
 related: none
 
 ### DW-222: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof
-origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
-reason: The legacy ledger defers this issue: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof. evidence: TenantAuditRow exposes event, tenant, target, actor, and time but no message or correlation identifier, so a concurrent same-target removal can currently be rendered as this attempt's receipt.
+
 status: done 2026-10-13
-decision: 2026-08-26 Add causation identity — Extend audit projection and API contracts with causation IDs and filter receipts to the exact submitted command.
-disposition: done
-verification-date: 2026-10-13
-verification-before-b3: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs now carries CommandCorrelationId and AggregateSequence, but Components/Tenants/Members/RemoveTenantMemberFlow.razor TryAssembleRemovalProofAsync still selects UserRemovedFromTenant by target/time rather than the submitted correlation/committed sequence. The contract extension is partial; exact attempt binding remains absent.
-verification: Removal proof retains the exact verified Completed committed sequence, rejects conflicting completion evidence and requires current ordered detail evidence to reach that sequence beyond the attempt baseline. The existing audit correlation/aggregate-sequence fields are stamped for UserRemovedFromTenant and retained internally through the BFF. Receipt assembly requires one exact tenant/target/event/correlation/sequence match in a complete bounded current caller-bound audit walk with consistent marker source/token and pagination; concurrent same-target, unrelated, mismatched, duplicate and indeterminate evidence cannot prove this attempt. Projection confirmation and audit availability remain distinct.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
-evidence-kind: verified-defect
+origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 priority: P1
-owner: unassigned
-dependencies: command correlation/sequence proof contract
-next-action-before-b3: Bind removal receipts to the submitted command identity/sequence and reject a concurrent same-target removal.
-next-action: none; B3 implementation and maintained checks complete in the working tree.
-related: DW-225
-resolution-date: 2026-10-13
-resolution: Release blocker B3 closed in the validated working tree over Tenants facc0a41e495c8a66b7797f49d61d2db7d8d6b49; historical findings and B1/B2 closure are preserved, with no commit or release approval implied.
-resolution-evidence: [B3 remediation evidence](release-readiness.md#b3-remediation-evidence-2026-10-13); 5885 maintained Release cases (4381 UI, 188 non-performance integration), four source provenance cases, build/browser/coverage/package gates passed with zero final test failures or skips; bounded-proof and remaining release limits are recorded there.
+archived: 2026-10-13
 
 ### DW-223: Page through bounded tenant-audit results while assembling remove-member proof
 
@@ -2905,63 +2865,28 @@ next-action: Guard reentrant submission before any active snapshot mutation and 
 related: none
 
 ### DW-286: Require current authoritative projection state for create and membership command confirmation evidence
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
-reason: The legacy ledger defers this issue: Require current authoritative projection state for create and membership command confirmation evidence. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Require current authoritative projection state for create and membership command confirmation evidence. evidence: Review found create/list and membership/detail evidence providers that can forward stale, degraded, or non-current-lifecycle payloads to confirmers that cannot recover the discarded freshness metadata.
+
 status: done 2026-10-13
-disposition: done
-verification-date: 2026-10-13
-verification-before-b3: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor GetAddMemberProjectionEvidenceAsync/GetChangeRoleProjectionEvidenceAsync/GetRemoveMemberProjectionEvidenceAsync return matching Detail without freshness/lifecycle qualification; TenantsWorkspace.razor FindTenantProjectionEvidenceAsync returns cached row/version without those gates. Confirmers cannot recover discarded metadata.
-verification: Detail and workspace proof providers return existing complete TenantDetailSnapshot/TenantListSnapshot carriers from unconditional current reads, preserving payload, freshness, lifecycle and version atomically. Five consumers require Ready, Current freshness/lifecycle, usable version and exact tenant/postcondition; create list rows also require current row evidence. Cached matches, stale/degraded/unavailable reads, malformed reserved versions and late caller/route/dismissal proofs fail closed. The legitimate first-tenant appearance exception and B2 caller-bound retention/detail capabilities remain supported.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCommandAuthoritativeProofTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs
-evidence-kind: verified-defect
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 priority: P1
-owner: unassigned
-dependencies: shared proof carriers
-next-action-before-b3: Require Current authoritative evidence before forwarding payloads to create/membership confirmers.
-next-action: none; B3 implementation and maintained checks complete in the working tree.
-related: DW-300
-resolution-date: 2026-10-13
-resolution: Release blocker B3 closed in the validated working tree over Tenants facc0a41e495c8a66b7797f49d61d2db7d8d6b49; historical findings and B1/B2 closure are preserved, with no commit or release approval implied.
-resolution-evidence: [B3 remediation evidence](release-readiness.md#b3-remediation-evidence-2026-10-13); 5885 maintained Release cases (4381 UI, 188 non-performance integration), four source provenance cases, build/browser/coverage/package gates passed with zero final test failures or skips; bounded-proof and remaining release limits are recorded there.
+archived: 2026-10-13
 
 ### DW-287: Retain aggregate command admission across tenant route changes and disposal until the old command is terminal
+
+status: done 2026-10-13
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: TenantDetailPage
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
-reason: The legacy ledger defers this issue: Retain aggregate command admission across tenant route changes and disposal until the old command is terminal. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Retain aggregate command admission across tenant route changes and disposal until the old command is terminal. evidence: `TenantDetailPage` can release the old aggregate lease while command and status operations continue with `CancellationToken.None`, allowing another surface to acquire the same tenant and dispatch concurrently.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor DisposeAsync/route handoff preserve lifecycle/set/remove-config tracker leases, but release membership/metadata leases while their dispatch/status work uses CancellationToken.None. The original cross-route admission gap is narrowed but remains.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-defect
 priority: P1
-owner: unassigned
-dependencies: shared retained-attempt ownership
-next-action: Retain membership/metadata aggregate ownership until terminal status across route changes and disposal.
-related: DW-199
+archived: 2026-10-13
 
 ### DW-288: Preserve the resolved create-command message ID after an indeterminate submission so an exact retry cannot mint a duplicate identity
+
+status: done 2026-10-13
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: CreateTenantFlow
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
-reason: The legacy ledger defers this issue: Preserve the resolved create-command message ID after an indeterminate submission so an exact retry cannot mint a duplicate identity. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Preserve the resolved create-command message ID after an indeterminate submission so an exact retry cannot mint a duplicate identity. evidence: `CreateTenantFlow` does not adopt `TenantCommandSubmissionResult.MessageId` on its non-accepted branch, so a failed result that may already have reached EventStore is retried with a null ID even though the gateway returned the reusable identity.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor non-Accepted result branch still does not adopt result.MessageId; a failed or ambiguous dispatch can lose the reusable identity even though the gateway returns it.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-evidence-kind: verified-defect
 priority: P1
-owner: unassigned
-dependencies: none
-next-action: Retain the resolved identity and ambiguous outcome before any retry, with an indeterminate delivery regression.
-related: none
+archived: 2026-10-13
 
 ### DW-289: Define causal projection-change handling for valid opaque or content-hash version tokens across command flows
 
@@ -3118,28 +3043,11 @@ next-action: Capture real set/remove form and warning visibility at both sides o
 related: DW-317
 
 ### DW-300: Nine other command flows (create, add/remove/change member, metadata, set/remove configuration, global-admin grant/remove) still construct a 2-arg `TenantCommandTrackingHandle` with no aggregate id, so they keep accepting a status response for a different command and keep treating propagation lag as terminal. Story 3.4's Boundaries fence this under "Ask First: broadening shared command infrastructure beyond the focused lifecycle seam"
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
-location: TenantCommandTrackingHandle
-reason: The legacy ledger defers this issue: Nine other command flows (create, add/remove/change member, metadata, set/remove configuration, global-admin grant/remove) still construct a 2-arg `TenantCommandTrackingHandle` with no aggregate id, so they keep accepting a status response for a different command and keep treating propagation lag as terminal. Original context is preserved in legacy-detail.
-legacy-detail: - Nine other command flows (create, add/remove/change member, metadata, set/remove configuration, global-admin grant/remove) still construct a 2-arg `TenantCommandTrackingHandle` with no aggregate id, so they keep accepting a status response for a different command and keep treating propagation lag as terminal. Story 3.4's Boundaries fence this under "Ask First: broadening shared command infrastructure beyond the focused lifecycle seam".
+
 status: done 2026-10-13
-decision: 2026-08-26 Aggregate-aware handles — Design one AggregateId-aware tracking handle and migrate all nine flows with cross-route and remount tests.
-decision: 2026-08-25 Broaden shared tracking — Design one AggregateId-aware tracking handle and migrate all nine flows with cross-route and remount tests.
-disposition: done
-verification-date: 2026-10-13
-verification-before-b3: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor, Members/AddTenantMemberFlow.razor, ChangeTenantMemberRoleFlow.razor, RemoveTenantMemberFlow.razor and Metadata/EditTenantMetadataFlow.razor still build two-argument TenantCommandTrackingHandle values with AggregateId=null. Lifecycle/configuration/global-administrator flows now supply identity-aware handles, so the original nine-flow count is obsolete but five remain.
-verification: All five remaining create/add-member/change-role/remove-member/metadata consumers bind tracking handles to the submitted tenant aggregate and explicit tenants domain, including a tenant literally named global-administrators. Retained create handles must match before adoption. Existing gateway command/message/correlation/aggregate verification is required by their shared snapshots; unverified or contradictory status cannot authorize success, rejection or NoOp. Pending/retryable lookup and delayed Received/Processing preserve attempt identity and established stored-event truth. Lifecycle/configuration/global-administrator migrations remain intact; B4 admission and retained-attempt ownership remain separate.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCommandAuthoritativeProofTests.cs
-evidence-kind: verified-defect
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
 priority: P1
-owner: unassigned
-dependencies: shared tracking handle contract
-next-action-before-b3: Migrate the remaining handles to exact aggregate/command identity and nonterminal propagation-lag handling.
-next-action: none; B3 implementation and maintained checks complete in the working tree.
-related: DW-286
-resolution-date: 2026-10-13
-resolution: Release blocker B3 closed in the validated working tree over Tenants facc0a41e495c8a66b7797f49d61d2db7d8d6b49; historical findings and B1/B2 closure are preserved, with no commit or release approval implied.
-resolution-evidence: [B3 remediation evidence](release-readiness.md#b3-remediation-evidence-2026-10-13); 5885 maintained Release cases (4381 UI, 188 non-performance integration), four source provenance cases, build/browser/coverage/package gates passed with zero final test failures or skips; bounded-proof and remaining release limits are recorded there.
+archived: 2026-10-13
 
 ### DW-301: `TenantDetailPage`'s `ResetLifecycleProofScope`/`BeginLifecycleProof`/`CanApplyLifecycleProof`/`CompleteLifecycleProof` quartet is a verbatim copy of the metadata quartet, and `TenantQueryGateway.GetLifecycleProjectionProofAsync` is byte-identical to `GetMetadataProjectionProofAsync`. Extract a keyed `ProofScope` helper before a third command surface needs one
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
@@ -3846,27 +3754,11 @@ archived: 2026-10-12
 
 ### DW-351: Tenant detail still matches audit/capability scope without the caller binding used by Story 5.1 reads.
 
-origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: TenantDetailPage uses the caller-free MatchesScope(request) overload while TenantQueryGateway binds retained evidence with MatchesScope(request, callerScope), leaving tenant-detail matching without the caller binding used by Story 5.1 reads.
 status: done 2026-10-12
-disposition: done
-verification-date: 2026-10-12
-verification-before-b2: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor IsAuthoritativeAuditCapability and metadata audit proof still call audit.MatchesScope(request) without callerScope. Page authentication-generation guards improved application but do not enforce the caller-bound helper contract used by TenantQueryGateway audit retention.
-verification: TenantDetailPage requires current caller provenance in audit MatchesScope, capability and metadata/lifecycle/member proof checks. Authentication events clear detail/member/global snapshots, validators, versions and paging/capability state; proof generations and caller-version checks reject stale or ignored-cancellation completions. Configuration evidence is guarded across its await.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-defect
+origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-06)"), 2026-09-06
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 priority: P2
-owner: unassigned
-dependencies: current audit caller-scope contract
-next-action-before-b2: Pass and require current caller scope in detail capability/proof matching and test another caller snapshot.
-next-action: none; B2 implementation and maintained checks complete in the working tree.
-related: DW-366, DW-580
-resolution-date: 2026-10-12
-resolution: Release blocker B2 closed in the validated working tree over Tenants b4b65dce017bcb3ea0a676f14b3156d908c1e9c0; original findings and B1 closure are preserved, with no commit or release approval implied.
-resolution-evidence: [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12); 4312 Release UI cases, 187 non-performance integration cases, four source provenance cases, maintained build/browser and configured coverage gates passed.
-
+archived: 2026-10-13
 
 ### DW-352: Audit unauthorized and unavailable recovery both navigate to the same BackHref.
 
@@ -4082,29 +3974,10 @@ related: DW-417, DW-418, DW-428, DW-429
 
 ### DW-366: Tenant detail still uses caller-free `MatchesScope(request)` for audit/capability evidence while Story 5.1 binds retained audit reads with `MatchesScope(request, callerScope)`. Already DW-351; TenantDetailPage is outside this story's File List.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-1-browse-tenant-audit-trail.md (2026-09-06)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- Tenant detail still uses caller-free `MatchesScope(request)` for audit/capability evidence while Story 5.1 binds retained audit reads with `MatchesScope(request, callerScope)`. Already DW-351; TenantDetailPage is outside this story's File List."
 status: done 2026-10-12
-disposition: done
-verification-date: 2026-10-12
-verification-before-b2: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:2170 and :2474 still call audit.MatchesScope(request) / audit.MatchesScope(auditRequest) without AuditCallerScope, unlike TenantQueryGateway retained audit reads. Current route/generation checks do not themselves establish a caller-bound snapshot contract.
-verification: Detail audit capability and metadata-audit proof use MatchesScope(request, currentCallerScope); old/unbound populated and authorization-scoped empty evidence cannot enable current-caller actions. Pending, anonymous, malformed, faulted and changed identity fail closed, with accessible current-caller reacquisition.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-defect
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-1-browse-tenant-audit-trail.md (2026-09-06)"), 2026-10-12
 priority: P1
-owner: unassigned
-dependencies: Current caller identity must be available to detail evidence checks
-next-action-before-b2: Bind tenant-detail audit capability and metadata-proof reads to the current caller scope and add caller-switch coverage.
-next-action: none; B2 implementation and maintained checks complete in the working tree.
-related: DW-351
-duplicate-of: DW-351
-resolution-date: 2026-10-12
-resolution: Release blocker B2 closed in the validated working tree over Tenants b4b65dce017bcb3ea0a676f14b3156d908c1e9c0; original findings and B1 closure are preserved, with no commit or release approval implied.
-resolution-evidence: [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12); 4312 Release UI cases, 187 non-performance integration cases, four source provenance cases, maintained build/browser and configured coverage gates passed.
-
-
+archived: 2026-10-13
 
 ### DW-367: `UserRemovedFromTenant` typed `PreviousRole`/`Role` cannot be produced because the event and audit projection emit only `userId`. Restore-access therefore cannot take an intended role from typed narrative; that is later correction-story/projection contract work, not browse-grid fail-closed.
 
@@ -4955,23 +4828,11 @@ related: DW-419
 
 ### DW-421: Release a terminal grant lease adopted after ownerless delivery completion.
 
+status: done 2026-10-13
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Release a terminal grant lease adopted after ownerless delivery completion.\n  evidence: `GlobalAdministratorsPage.AdoptRetainedReconciliation` assigns `_grantSnapshot` directly, bypassing `SetGrantSnapshot` and its terminal release; the grant replacement test completes delivery after the replacement already adopted the lease. This grant path belongs to Story 4.2 and shares the administrator aggregate lock."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPage.razor::AdoptRetainedReconciliation:5047 assigns _grantSnapshot = CreateGrantSnapshot(reconciliation) directly, while removal calls SetRemoveSnapshot. SetGrantSnapshot alone performs TryReleaseTerminal. A rejected/failed grant delivered while ownerless can therefore be adopted without terminal lease release; the existing grant replacement test mounts the replacement before completion and does not cover this ordering.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: verified-defect
 priority: P1
-owner: unassigned
-dependencies: Ownerless grant completion fixture
-next-action: Add ownerless-terminal-grant completion/adoption coverage, then route adopted terminal grant snapshots through the release-aware setter.
-related: DW-376, DW-409
-
+archived: 2026-10-13
 
 ### DW-422: Keep tenant-audit Continue read-only linked to a rendered grid heading when filter validation is active.
 
@@ -5557,22 +5418,11 @@ related: none
 
 ### DW-458: Withhold the shared control's Continue read-only in the member flows while an owned attempt is still in flight.
 
+status: done 2026-10-13
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29, review 3)"), 2026-10-12
-location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Withhold the shared control's Continue read-only in the member flows while an owned attempt is still in flight.\n  evidence: AddMember, ChangeRole and RemoveMember bind `OnContinueReadOnly=\"ContinueReadOnlyAsync\"` unconditionally (`AddTenantMemberFlow.razor:111`, `ChangeTenantMemberRoleFlow.razor:132`, `RemoveTenantMemberFlow.razor:181`). Their own Continue read-only button is gated by `CanContinueReadOnly` (UnableToVerify or Degraded), but an ambiguous submission leaves `RequestSent` with `AuditUnavailable`, whose verb set includes Continue read-only. Clicking it resets to `Idle()`, drops the retry MessageId and releases the per-aggregate activity lease while the attempt may be in flight. This was pre-existing: the baseline `55f3dc63` had the same binding and the same Unavailable verb. Story 5.4 Review 4 (BH2) found it. The fix mirrors the Metadata, Lifecycle and configuration gate (`!IsOwnedCommandInFlight`)."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/{AddTenantMemberFlow,ChangeTenantMemberRoleFlow,RemoveTenantMemberFlow}.razor:111,132,181 still bind OnContinueReadOnly unconditionally. AuditAvailabilityState exposes this verb for AuditUnavailable; member ContinueReadOnly resets the snapshot and activity while an owned attempt may remain in flight.
-evidence-kind: verified-defect
 priority: P1
-owner: unassigned
-dependencies: Shared command-attempt retention contract
-next-action: Gate each shared Continue read-only delegate by owned-attempt safety and cover an ambiguous in-flight submission.
-related: DW-471,DW-500
-
+archived: 2026-10-13
 
 ## Deferred from: code review of 5-4-audit-availability-state-recovery.md (2026-09-30)
 
@@ -5809,43 +5659,19 @@ Review range `c9cd9045..` working tree (the Review 5 patch closure).
 
 ### DW-471: Drop a late status lookup in AddMember, ChangeRole and RemoveMember when Continue read-only has reset the attempt, as Create now does.
 
+status: done 2026-10-13
 origin: migrated from unnumbered ledger ("Deferred from: build review of spec-5-4-understand-audit-availability-and-recovery-5.md (2026-10-01, review 1)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`\n  summary: Drop a late status lookup in AddMember, ChangeRole and RemoveMember when Continue read-only has reset the attempt, as Create now does.\n  evidence: Pre-existing; this spec fixed Create only. `RefreshCommandStatusCoreAsync` applies `SetSnapshot(_snapshot.ApplyStatus(status))` after the await to whatever snapshot is current (`AddTenantMemberFlow.razor:658-660`, `ChangeTenantMemberRoleFlow.razor:717-719`, `RemoveTenantMemberFlow.razor:998-1000`). Continue read-only stays clickable during the lookup: the shared control renders it for AuditUnavailable whenever the delegate exists (`AuditAvailabilityState.razor:275`), and the flow's own button shows while the state is UnableToVerify or Degraded. A held lookup that resolves `EventsStored` after Continue read-only leaves ProjectionPending/AuditPending with no Intent or MessageId on the reset panel. In AddMember, `UpdateCommandActivityForSnapshotAsync` (`:681`) then re-raises the tenant's command-activity lease, because ProjectionPending retains activity (`TenantCommandFlowGuard.cs:16-20`). No test holds a lookup across Continue read-only in these flows."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:660, ChangeTenantMemberRoleFlow.razor:719 and RemoveTenantMemberFlow.razor:1000 still apply awaited status to the current snapshot without captured-attempt identity/generation checks. Continue read-only remains reachable and resets the snapshot during the lookup. Their tests cover coalescing but no held lookup spanning that reset.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
-evidence-kind: verified-defect
 priority: P1
-owner: unassigned
-dependencies: DW-458 safe Continue read-only delegate
-next-action: Capture the attempt identity/generation before each lookup and discard results after reset; add held-lookup/reset regressions including aggregate activity.
-related: DW-458,DW-472
-
+archived: 2026-10-13
 
 ### DW-472: Do not re-apply a status lookup to a confirmed attempt in AddMember, ChangeRole and Create.
 
+status: done 2026-10-13
 origin: migrated from unnumbered ledger ("Deferred from: build review of spec-5-4-understand-audit-availability-and-recovery-5.md (2026-10-01, review 1)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`\n  summary: Do not re-apply a status lookup to a confirmed attempt in AddMember, ChangeRole and Create.\n  evidence: Pre-existing. In AddMember and ChangeRole, a click merged into a running refresh is replayed through `RefreshCommandStatusCoreAsync` after that refresh has confirmed the attempt. The only check is for a non-blank MessageId and CorrelationId (`AddTenantMemberFlow.razor:599-608`), and `TenantAddMemberCommandSnapshot.ApplyStatus` / `TenantChangeRoleCommandSnapshot.ApplyStatus` (`TenantCreateCommandModels.cs:481`, `:687`) have no terminal guard; RemoveMember's has one (`:970`). Create has no in-flight refresh gate, so its form Refresh (`CreateTenantFlow.razor:88-92`) can confirm while a slower audit-control lookup is pending. Its message-id guard passes, because Confirmed keeps the id, and the late Processing reopens the attempt as Accepted after tracking was forgotten. Metadata got the equivalent guard in this spec (`IsRefreshableAttempt`)."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantCreateCommandModels.cs:263,492,698 ApplyStatus methods still have no terminal guard for Create/AddMember/ChangeRole; RemoveMember has one at :974-983. CreateTenantFlow.razor:565-572 guards only MessageId, which confirmed attempts retain; member refresh replay also checks identifiers without terminal-state exclusion. Late Processing can reopen confirmed lifecycle state.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-evidence-kind: verified-defect
 priority: P1
-owner: unassigned
-dependencies: Shared terminal command-state contract
-next-action: Guard terminal attempts before and after status awaits and in snapshot ApplyStatus; cover coalesced member refreshes and concurrent Create refresh paths.
-related: DW-471
-
+archived: 2026-10-13
 
 ### DW-473: Unverified (would be medium): Create's projection reconcile may write UnableToVerify onto the panel that Continue read-only reset.
 
@@ -6217,23 +6043,11 @@ related: none
 
 ### DW-500: Preserve ambiguous delivery identity and aggregate admission in the ordinary add-member and change-role flows.
 
+status: done 2026-10-13
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Preserve ambiguous delivery identity and aggregate admission in the ordinary add-member and change-role flows.\n  evidence: Those consumers copy the pre-existing Failed result directly and release activity even for uncertain 408/429/5xx or transport delivery; the new correction ambiguity flag does not change their behavior. Add controlled uncertain-delivery and same-ID recovery coverage when implementing this separate flow work."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantCommandGateway maps ambiguous Add/Change outcomes to Failed with IsAmbiguousFailure while preserving MessageId; AddTenantMemberFlow.razor:552-574 and ChangeTenantMemberRoleFlow.razor:611-627 copy result.State directly and update/release activity in finally. They do not adopt the correction flow’s ambiguous delivery admission contract, so uncertain failures can release the aggregate while delivery remains unresolved.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-evidence-kind: verified-defect
 priority: P1
-owner: unassigned
-dependencies: Shared member ambiguous-delivery contract
-next-action: Retain admission and identity for ambiguous add/change delivery; cover 408/429/5xx and transport outcomes with same-ID recovery and no competing dispatch.
-related: DW-458,DW-470
-
+archived: 2026-10-13
 
 ### DW-501: Pin FrontComposer deferred editor-focus preservation when an abandonment warning reopens before its queued callback runs.
 
@@ -7156,27 +6970,11 @@ Diff reviewed: baseline `11e65e37` to the pre-patch working tree over root `5289
 
 ### DW-550: high; bootstrap administrator credential acquisition permits an HTTP authority outside Development.
 
-origin: migrated from unnumbered ledger ("Deferred from: Story 5.6 remediation workflow review, pass 18 (2026-10-08)"), 2026-10-12
-location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: high; bootstrap administrator credential acquisition permits an HTTP authority outside Development.\n  evidence: `TenantBootstrapCredentialProvider.AcquireFromAuthorityAsync` posts the password form to `EventStore:Authentication:Authority` without validating its scheme or environment. Production host validation covers the separate `Authentication:JwtBearer:Authority` setting. The bootstrap hosted service passes the independent authority through unchanged; require production transport validation in the bootstrap owner's work."
 status: done 2026-10-12
-disposition: done
-verification-date: 2026-10-12
-verification-before-b1: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:58-85 passes independent EventStore:Authentication:Authority directly to a password-grant PostAsync without checking HTTPS/environment. Development-only protection exists only for local token generation; separate JwtBearer validation does not validate this authority.
-verification: Validated the independent EventStore:Authentication:Authority before form construction or HTTP I/O; requires well-formed absolute HTTP(S) with host and no userinfo/query/fragment, and HTTPS in every non-Development environment. Stable reason diagnostics and sanitized phase/exception-type failure logs exclude credentials and tokens.
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs
-evidence-kind: verified-defect
+origin: migrated from unnumbered ledger ("Deferred from: Story 5.6 remediation workflow review, pass 18 (2026-10-08)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P1
-owner: unassigned
-dependencies: Bootstrap transport validation contract
-next-action: none; B1 implementation and maintained checks complete in the working tree.
-related: none
-resolution-date: 2026-10-12
-resolution: Release blocker B1 closed in the working tree over Tenants 2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1; no commit or release approval implied.
-resolution-evidence: [B1 remediation evidence](release-readiness.md#b1-remediation-evidence-2026-10-12); Release build, 881 Server tests, 182 Testing tests, 187 non-performance integration tests and configured 100% isolation/auth coverage gate passed with no failures/skips.
-
+archived: 2026-10-13
 
 ### DW-551: medium; bootstrap authority mode hardcodes the Keycloak token endpoint despite its generic authority contract.
 
@@ -7508,27 +7306,11 @@ Diff reviewed: baseline `11e65e37` through root `6e6a7f5b`; input `/tmp/story-5-
 
 ### DW-567: high; the first global-administrator bootstrap command can name a different administrator than its authenticated actor.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 27 (2026-10-09)"), 2026-10-12
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: high; the first global-administrator bootstrap command can name a different administrator than its authenticated actor.\n  evidence: `src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs:11-19` handles `BootstrapGlobalAdmin` using `command.UserId` without receiving the command envelope or comparing its authenticated `UserId`. It writes `command.UserId` as both the `UserId` and `ActorUserId` of `GlobalAdministratorSet`, so the audit trail can record the target as its own actor. The Story 5.6 credential provider binds only its own hosted-service submission to the configured subject; `AspireTopologyTests.cs:136` and `:332` show that an external JWT caller can submit `BootstrapGlobalAdmin` for its own subject. The global-administrator command owner should require the bootstrap target to equal the authenticated actor and add a mismatch regression at the domain-service boundary."
 status: done 2026-10-12
-disposition: done
-verification-date: 2026-10-12
-verification-before-b1: GlobalAdministratorsAggregate.Handle(BootstrapGlobalAdmin, state) still has no CommandEnvelope and writes command.UserId as both target and actor. The other global commands use envelope.UserId, so bootstrap mismatch and incorrect audit attribution remain possible.
-verification: BootstrapGlobalAdmin now consumes CommandEnvelope, requires ordinal actor/target equality before the bootstrap-state check and derives event/rejection audit attribution from envelope.UserId. Permission rejections replay without membership mutation. Authenticated JWT mismatch, null/unbootstrapped state, persisted denial followed by valid bootstrap, audit attribution and already-bootstrapped behavior pass.
-verification-files: src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs; src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsState.cs; src/Hexalith.Tenants.Testing/Fakes/InMemoryTenantService.cs; tests/Hexalith.Tenants.Server.Tests/Aggregates/GlobalAdministratorsAggregateTests.cs; tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs; tests/Hexalith.Tenants.IntegrationTests/DaprEndToEndTests.cs
-evidence-kind: verified-defect
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 27 (2026-10-09)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P1
-owner: global-administrator command owner
-dependencies: Domain-service authenticated command envelope
-next-action: none; B1 implementation and maintained checks complete in the working tree.
-related: DW-575
-resolution-date: 2026-10-12
-resolution: Release blocker B1 closed in the working tree over Tenants 2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1; no commit or release approval implied.
-resolution-evidence: [B1 remediation evidence](release-readiness.md#b1-remediation-evidence-2026-10-12); Release build, 881 Server tests, 182 Testing tests, 187 non-performance integration tests and configured 100% isolation/auth coverage gate passed with no failures/skips.
-
+archived: 2026-10-13
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 31 (2026-10-09)
 
@@ -7793,29 +7575,11 @@ related: DW-596
 
 ### DW-580: Bind retained Tenants UI query snapshots to the authenticated caller.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Bind retained Tenants UI query snapshots to the authenticated caller.\n  evidence: `TenantQueryGateway` retention checks page and validator but not caller, and `TenantsWorkspace` can pass its prior confirmed snapshot after authentication changes; a failed read can retain prior caller rows."
 status: done 2026-10-12
-disposition: done
-verification-date: 2026-10-12
-verification-before-b2: TenantQueryGateway.CanRetainTenantList/UserTenants/TenantUsers checks page and validator without caller binding. Audit now binds CallerScope and FrontComposer remounts changed user/tenant scope, so actual rendered cross-user exposure is not established; missing gateway provenance remains a verified gap.
-verification: Gateway caller provenance and exact validator matching independently reject another caller at identical entity/page scope; supported FrontComposer remount containment remains in place. Guarded fresh configuration proof reads and complete administrator page walks cannot publish mixed/previous-caller evidence.
-evidence-kind: verified-gap
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-dependencies: Caller provenance on retained query snapshots
-next-action-before-b2: Test changed-caller retention together with FrontComposer remount containment; bind snapshots if the current consumer boundary is insufficient.
-next-action: none; B2 implementation and maintained checks complete in the working tree.
-related: DW-142,DW-574,DW-609
-duplicate-of: DW-142
-resolution-date: 2026-10-12
-resolution: Release blocker B2 closed in the validated working tree over Tenants b4b65dce017bcb3ea0a676f14b3156d908c1e9c0; original findings and B1 closure are preserved, with no commit or release approval implied.
-resolution-evidence: [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12); 4312 Release UI cases, 187 non-performance integration cases, four source provenance cases, maintained build/browser and configured coverage gates passed.
-
-
+archived: 2026-10-13
 
 ### DW-581: Recover missing package assets on an existing GitHub Release.
 
@@ -8164,28 +7928,11 @@ related: DW-614
 
 ### DW-598: Require a secure authority before posting bootstrap administrator credentials.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Require a secure authority before posting bootstrap administrator credentials.\n  evidence: TenantBootstrapCredentialProvider sends the configured username and password to EventStore:Authentication:Authority without an HTTPS check; production validation checks the separate Authentication:JwtBearer authority setting."
 status: done 2026-10-12
-disposition: done
-verification-date: 2026-10-12
-verification-before-b1: TenantBootstrapCredentialProvider.AcquireFromAuthorityAsync posts username/password directly to EventStore:Authentication:Authority without an HTTPS/scheme gate. Production JWT validation governs a different Authentication:JwtBearer setting.
-verification: Duplicate of DW-550, closed by the same independent bootstrap-authority gate. Production/Staging/custom non-Development insecure or malformed authorities return no credential and issue zero HTTP requests; valid HTTPS and local Development HTTP/signing behavior remain covered.
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs
-evidence-kind: verified-defect
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-dependencies: Production bootstrap authority contract; local Development exception
-next-action: none; B1 implementation and maintained checks complete in the working tree.
-related: DW-550,DW-567
-duplicate-of: DW-550
-resolution-date: 2026-10-12
-resolution: Release blocker B1 closed in the working tree over Tenants 2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1; no commit or release approval implied.
-resolution-evidence: [B1 remediation evidence](release-readiness.md#b1-remediation-evidence-2026-10-12); Release build, 881 Server tests, 182 Testing tests, 187 non-performance integration tests and configured 100% isolation/auth coverage gate passed with no failures/skips.
-
+archived: 2026-10-13
 
 ### DW-599: Enforce tenant configuration read policy at the direct API boundary.
 

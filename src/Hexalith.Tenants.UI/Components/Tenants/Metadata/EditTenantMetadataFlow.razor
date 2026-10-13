@@ -8,6 +8,7 @@
 @using Microsoft.Extensions.DependencyInjection
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
+@implements IDisposable
 
 <section class="tenants-edit-metadata"
          data-testid="tenants-edit-metadata-flow"
@@ -152,6 +153,11 @@
 </section>
 
 @code {
+    [CascadingParameter(Name = "CurrentTenantCallerScope")]
+    public string? CurrentCallerScope { get; set; }
+
+    private bool _adoptedReadEvidence;
+
     [CascadingParameter(Name = "AuditReadAvailable")]
     public bool AuditReadAvailable { get; set; }
 
@@ -167,6 +173,10 @@
     [CascadingParameter(Name = "DetailAuditReturnUrl")]
     public string? DetailAuditReturnUrl { get; set; }
 
+    private TenantRetainedCommandAttempt? _retainedAttempt;
+    private int _attemptGeneration;
+    private bool _readOnlyDetached;
+    private bool _disposed;
     private readonly object _formModel = new();
     private TenantUpdateMetadataCommandSnapshot _snapshot = TenantUpdateMetadataCommandSnapshot.Idle();
     private string? _name;
@@ -204,6 +214,10 @@
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
     [Parameter]
+    public string? CommandSurfaceUnavailableReason { get; set; }
+
+
+    [Parameter]
     public string? ProjectionVersion { get; set; }
 
     /// <summary>
@@ -237,18 +251,121 @@
 
     internal TenantUpdateMetadataCommandSnapshot Snapshot => _snapshot;
 
-    // Source the confirmed display from the last-confirmed projection evidence, not the ambient
-    // Detail parameter. LastConfirmedDescription is null both for "no confirmation yet" and for a
-    // confirmed clear-to-null, so a `?? Detail.Description` fallback would resurrect the ambient
-    // (potentially newer/optimistic) description after a successful clear, violating AC2/AC8's
-    // "keep last-confirmed visible, never ambient" rule. The snapshot already carries the
-    // unambiguous projection, which the Idle factory seeds and ConfirmProjection advances only on
-    // proof, so it is the single source of confirmed truth here.
+    private void SynchronizeRetainedAttempt()
+    {
+        if (_retainedAttempt is { } attempt
+            && Attempts.TryRead<TenantUpdateMetadataCommandSnapshot>(attempt, this, out TenantUpdateMetadataCommandSnapshot? latest) && latest is not null)
+        {
+            _snapshot = latest;
+        }
+    }
+
+    private void OnRetainedAttemptChanged(object? sender, EventArgs args)
+    {
+        if (_disposed || _retainedAttempt is null)
+        {
+            return;
+        }
+        _ = RenderRetainedAttemptAsync();
+    }
+
+    private async Task RenderRetainedAttemptAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (!_disposed)
+                {
+                    SynchronizeRetainedAttempt();
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+
+    private TenantCommandAttemptTracker Attempts
+        => Services.GetRequiredService<TenantCommandAttemptTracker>();
+
+    private bool CanRetryDelivery
+        => !_isSubmitting && _snapshot.State is TenantCommandLifecycleState.RequestSent
+            && _snapshot.MessageId is not null && _snapshot.CorrelationId is null
+            && _retainedAttempt?.DeliveryInFlight is not true;
+
+    private void RestoreRetainedAttempt()
+    {
+        if (_retainedAttempt is { } current && (!string.Equals(current.TenantId, Detail.TenantId, StringComparison.Ordinal)))
+        {
+            Attempts.Detach(current, this);
+            _retainedAttempt = null;
+            _attemptGeneration++;
+            _hasRaisedCommandActivity = false;
+            _isSubmitting = false;
+            _snapshot = TenantUpdateMetadataCommandSnapshot.Idle();
+        }
+        if (_readOnlyDetached || Services.GetService<TenantAggregateCommandAdmissionGate>() is null || Services.GetService<TenantCommandAttemptTracker>() is null || !IsAuthorized)
+        {
+            return;
+        }
+        SynchronizeRetainedAttempt();
+        if (_retainedAttempt is null && Attempts.Find<TenantUpdateMetadataCommandSnapshot>(Detail.TenantId) is { } candidate
+            && Attempts.TryAdopt<TenantUpdateMetadataCommandSnapshot>(Detail.TenantId, this, out TenantRetainedCommandAttempt? attempt, out TenantUpdateMetadataCommandSnapshot? retained)
+            && retained is not null)
+        {
+            _retainedAttempt = attempt;
+            _attemptGeneration++;
+            _snapshot = retained;
+            _adoptedReadEvidence = true;
+            _name = retained.Intent?.Name;
+            _description = retained.Intent?.Description;
+            _isOpen = !TenantCommandAttemptTracker.IsTerminal(retained);
+        }
+    }
+
+    private bool PublishResult(TenantRetainedCommandAttempt? attempt, int generation,
+        TenantUpdateMetadataCommandSnapshot expected, TenantUpdateMetadataCommandSnapshot result, bool delivery = false)
+    {
+        bool retained = attempt is null || (delivery
+            ? Attempts.TryCompleteDelivery(attempt, expected, result)
+            : Attempts.TryUpdate(attempt, expected, result));
+        if (!retained || _disposed || generation != _attemptGeneration
+            || !ReferenceEquals(_retainedAttempt, attempt)
+            || attempt is not null && !Attempts.IsAttached(attempt, this)
+            || !delivery && !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected) && !ReferenceEquals(_snapshot, result))
+        {
+            return false;
+        }
+        _snapshot = result;
+        if (result.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+            || result.FocusTarget is TenantCommandFocusTarget.Lifecycle)
+        {
+            _focusLifecyclePending = true;
+        }
+        return true;
+    }
+
+    private bool IsCurrentContinuation(int generation, TenantUpdateMetadataCommandSnapshot expected)
+        => !_disposed && generation == _attemptGeneration && TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected)
+            && (_retainedAttempt is null || Attempts.IsAttached(_retainedAttempt, this));
+
+
+    // Retained read facts belong to the caller that read them; command intent and tracking remain retained.
+    private bool CanPresentConfirmedReadEvidence
+        => !_adoptedReadEvidence && _snapshot.LastConfirmedCallerScope is null && CurrentCallerScope is null
+            || !string.IsNullOrWhiteSpace(CurrentCallerScope)
+                && string.Equals(_snapshot.LastConfirmedCallerScope, CurrentCallerScope, StringComparison.Ordinal);
+
     private string ConfirmedName
-        => _snapshot.LastConfirmedDetailProjection?.Name ?? _snapshot.LastConfirmedName ?? Detail.Name;
+        => CanPresentConfirmedReadEvidence
+            ? _snapshot.LastConfirmedDetailProjection?.Name ?? _snapshot.LastConfirmedName ?? Detail.Name
+            : Detail.Name;
 
     private string? ConfirmedDescription
-        => _snapshot.LastConfirmedDetailProjection is { } projection
+        => CanPresentConfirmedReadEvidence && _snapshot.LastConfirmedDetailProjection is { } projection
             ? projection.Description
             : Detail.Description;
 
@@ -257,7 +374,7 @@
             ? Localizer["Tenants.EditMetadata.Description.Empty"]
             : ConfirmedDescription!;
 
-    private string? UnavailableReason
+    private string? EligibilityUnavailableReason
         => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
             ? Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value
             // Decision D-F: strict lifecycle gate retained, evaluated after the surface and freshness
@@ -272,22 +389,31 @@
                 ? Localizer["Tenants.EditMetadata.Unavailable.ProjectionLifecycle"].Value
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.EditMetadata.Unavailable.TenantLifecycle"].Value
-                    : (!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null
+                    : (!IsCommandSurfaceAvailable && !IsOwnAggregateAdmissionUnavailable) || CommandGateway is null || Services.GetService<TenantAggregateCommandAdmissionGate>() is null || Services.GetService<TenantCommandAttemptTracker>() is null
                         ? Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value
-                        : _isSubmitting
-                            ? Localizer["Tenants.EditMetadata.Unavailable.InFlight"].Value
-                            : string.IsNullOrWhiteSpace(Detail.TenantId)
+                        : string.IsNullOrWhiteSpace(Detail.TenantId)
                                 ? Localizer["Tenants.EditMetadata.Unavailable.Identity"].Value
                                 : null;
+
+    private string? UnavailableReason
+        => EligibilityUnavailableReason ?? (_isSubmitting ? Localizer["Tenants.EditMetadata.Unavailable.InFlight"].Value : null);
 
     private bool CanOpen
         => !_isOpen && string.IsNullOrWhiteSpace(UnavailableReason);
 
+    private bool IsOwnAggregateAdmissionUnavailable
+        => _retainedAttempt is { } attempt && Attempts.IsAttached(attempt, this)
+            && Services.GetService<TenantAggregateCommandAdmissionGate>()?.IsOwnedBy(
+                TenantCommandAggregateLock.ForTenant(Detail.TenantId), attempt.LeaseOwner) is true
+            && string.Equals(CommandSurfaceUnavailableReason,
+                Localizer["Tenants.Members.UnavailableReason.AggregateLocked"].Value, StringComparison.Ordinal);
+
     private bool IsOwnedCommandInFlight
-        => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
+        => (_retainedAttempt is not null && !TenantCommandAttemptTracker.IsTerminal(_snapshot))
+            || TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
 
     private bool IsSubmitDisabled
-        => IsOwnedCommandInFlight
+        => (IsOwnedCommandInFlight && !CanRetryDelivery)
         || !string.IsNullOrWhiteSpace(UnavailableReason);
 
     private bool CanRefresh
@@ -333,7 +459,8 @@
     // and no owned command is in flight, so it never renders as a control that does nothing or leaves a retained
     // attempt behind.
     private bool CanContinueReadOnly
-        => _isOpen && !IsOwnedCommandInFlight;
+        => _isOpen && !_isSubmitting && _retainedAttempt?.DeliveryInFlight is not true
+            && (!IsOwnedCommandInFlight || _snapshot.State is TenantCommandLifecycleState.UnableToVerify or TenantCommandLifecycleState.Degraded);
 
     // No fragment at all when audit read is denied, so the shared control renders no empty Inspect-audit shell.
     private RenderFragment? CommandAuditEntryPoint
@@ -397,7 +524,7 @@
 
             // The parent lowers command-surface admission while this flow owns the aggregate lease.
             // That blocks sibling/new commands, but must not disqualify the owner's reconciliation.
-            if ((!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null)
+            if ((!IsCommandSurfaceAvailable && !IsOwnedCommandInFlight) || CommandGateway is null || Services.GetService<TenantAggregateCommandAdmissionGate>() is null || Services.GetService<TenantCommandAttemptTracker>() is null)
             {
                 return Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value;
             }
@@ -466,11 +593,23 @@
         }
     }
 
+    protected override void OnInitialized()
+    {
+        TenantCommandAttemptTracker? attempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
+        if (attempts is not null)
+        {
+            attempts.StateChanged += OnRetainedAttemptChanged;
+        }
+    }
+
     protected override void OnParametersSet()
     {
+        RestoreRetainedAttempt();
         if (_snapshot.State is TenantCommandLifecycleState.Idle)
         {
-            _snapshot = TenantUpdateMetadataCommandSnapshot.Idle(Detail.Name, Detail.Description, Detail);
+            _snapshot = TenantUpdateMetadataCommandSnapshot.Idle(Detail.Name, Detail.Description, Detail)
+                with { LastConfirmedCallerScope = CurrentCallerScope };
+            _adoptedReadEvidence = false;
         }
     }
 
@@ -507,36 +646,73 @@
 
     private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
     {
+        if (_disposed)
+        {
+            return !isActive;
+        }
+        if (isActive && _retainedAttempt is null
+            && !Attempts.TryBegin(Detail.TenantId, this, _snapshot, out _retainedAttempt))
+        {
+            return false;
+        }
         if (_hasRaisedCommandActivity == isActive)
         {
             return true;
         }
 
-        // The lease answer must reach the caller. An EventCallback<bool> cannot return one, so a refused
-        // acquisition used to leave this flow free to dispatch against an aggregate another surface held.
-        if (CommandActivityLease is not null)
+        int generation = _attemptGeneration;
+        TenantRetainedCommandAttempt? attempt = _retainedAttempt;
+        TenantCommandAttemptTracker tracker = Attempts;
+        bool accepted;
+        try
         {
-            bool accepted = await CommandActivityLease(isActive).ConfigureAwait(false);
-            if (isActive && !accepted)
+            if (CommandActivityLease is { } lease)
             {
-                return false;
+                accepted = await lease(isActive).ConfigureAwait(false);
+            }
+            else
+            {
+                await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+                accepted = true;
             }
         }
-
-        _hasRaisedCommandActivity = isActive;
-        if (CommandActivityLease is null)
+        catch (Exception)
         {
-            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
+            if (!isActive)
+            {
+                throw;
+            }
+            tracker.Detach(attempt, this);
+            if (!_disposed && generation == _attemptGeneration && ReferenceEquals(_retainedAttempt, attempt))
+            {
+                _retainedAttempt = null;
+            }
+            return false;
         }
-
+        if (_disposed || generation != _attemptGeneration || !ReferenceEquals(_retainedAttempt, attempt))
+        {
+            return !isActive;
+        }
+        if (isActive && !accepted)
+        {
+            tracker.Detach(attempt, this);
+            _retainedAttempt = null;
+            return false;
+        }
+        _hasRaisedCommandActivity = isActive;
         return true;
     }
 
     private async Task UpdateCommandActivityForSnapshotAsync()
-        => _ = await SetCommandActivityRaisedAsync(TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting)).ConfigureAwait(false);
+        => _ = await SetCommandActivityRaisedAsync(IsOwnedCommandInFlight).ConfigureAwait(false);
 
     private void SetSnapshot(TenantUpdateMetadataCommandSnapshot snapshot)
     {
+        if (_retainedAttempt is { } attempt && !Attempts.TryUpdate(attempt, _snapshot, snapshot))
+        {
+            return;
+        }
+
         _snapshot = snapshot;
         if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
             || _snapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle)
@@ -560,10 +736,10 @@
         };
 
     internal void ApplySignalRNudge()
-        => _snapshot = _snapshot.SignalRNudge();
+        => SetSnapshot(_snapshot.SignalRNudge());
 
     internal void ApplyProjectionEvidence(TenantDetailSnapshot? detail)
-        => _snapshot = _snapshot.ConfirmProjection(detail);
+        => SetSnapshot(_snapshot.ConfirmProjection(detail));
 
     private string? ResolveCurrentProjectionVersion()
     {
@@ -583,6 +759,11 @@
 
     private async Task CloseEditorAsync()
     {
+        if (_disposed || _isSubmitting)
+        {
+            return;
+        }
+        _attemptGeneration++;
         _isOpen = false;
         _validationMessage = null;
         _focusOpenPending = true;
@@ -597,6 +778,35 @@
 
     private async Task SubmitAsync()
     {
+        SynchronizeRetainedAttempt();
+        if (_disposed || _isSubmitting)
+        {
+            return;
+        }
+        string? submittedNameDraft = _name;
+        string? submittedDescriptionDraft = _description;
+        _readOnlyDetached = false;
+        RestoreRetainedAttempt();
+        _name = submittedNameDraft;
+        _description = submittedDescriptionDraft;
+
+        if (CanRetryDelivery)
+        {
+            if (!(!string.IsNullOrWhiteSpace(_name)
+                && _snapshot.Intent == new UpdateTenant(Detail.TenantId, _name, string.IsNullOrWhiteSpace(_description) ? null : _description)))
+            {
+                SetSnapshot(_snapshot with
+                {
+                    SafeMessage = Localizer["Tenants.EditMetadata.Unavailable.InFlight"].Value,
+                    SafeMessageKey = null,
+                    FocusTarget = TenantCommandFocusTarget.Submit,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
+                return;
+            }
+            await RetryDeliveryAsync().ConfigureAwait(false);
+            return;
+        }
         // A queued form event can re-enter while the active dispatch still awaits the gateway. It belongs
         // to the same physical submit, not a retry decision, so it must not replace RequestSent (and its
         // intent/baseline) with the `_isSubmitting` unavailable state or dispatch a second command.
@@ -682,14 +892,41 @@
         DateTimeOffset? attemptStartedAtUtc = isSameRecoverableAttempt
             ? _snapshot.AttemptStartedAtUtc
             : null;
+        Attempts.Detach(_retainedAttempt, this);
+        _retainedAttempt = null;
+        _attemptGeneration++;
         _snapshot = _snapshot.RequestSent(request, attemptBaselineProjectionVersion, attemptStartedAtUtc) with
         {
-            MessageId = retryMessageId,
+            MessageId = retryMessageId ?? Services.GetService<Hexalith.FrontComposer.Contracts.Lifecycle.IUlidFactory>()?.NewUlid()
+                ?? NUlid.Ulid.NewUlid().ToString(),
             CorrelationId = null,
         };
 
+        int submitGeneration = _attemptGeneration;
         _isSubmitting = true;
-        if (!await SetCommandActivityRaisedAsync(true).ConfigureAwait(false))
+        bool admitted = await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
+        if (_disposed || submitGeneration != _attemptGeneration)
+        {
+            return;
+        }
+        string? eligibilityReason = EligibilityUnavailableReason;
+        if (admitted && (eligibilityReason is not null))
+        {
+            Attempts.Detach(_retainedAttempt, this);
+            _retainedAttempt = null;
+            _isSubmitting = false;
+            _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+            if (_disposed || submitGeneration != _attemptGeneration)
+            {
+                return;
+            }
+            SetSnapshot(BlockCurrentSnapshot(eligibilityReason!, TenantCommandFocusTarget.Submit) with
+            {
+                AuditState = retryMessageId is null ? TenantCommandAuditStates.NotStarted : TenantCommandAuditStates.Unverifiable,
+            });
+            return;
+        }
+        if (!admitted)
         {
             _isSubmitting = false;
             SetSnapshot(BlockCurrentSnapshot(
@@ -709,6 +946,8 @@
             ITenantCommandGateway? gateway = CommandGateway;
             if (gateway is null)
             {
+                Attempts.Detach(_retainedAttempt, this);
+                _retainedAttempt = null;
                 SetSnapshot(BlockCurrentSnapshot(
                     Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value,
                     TenantCommandFocusTarget.Submit) with
@@ -721,35 +960,50 @@
                 return;
             }
 
-            TenantCommandSubmissionResult result = await gateway
-                .UpdateTenantAsync(request, retryMessageId, CancellationToken.None)
-                .ConfigureAwait(false);
-
-            if (result.State is TenantCommandLifecycleState.Accepted)
+            TenantUpdateMetadataCommandSnapshot expected = _snapshot;
+            TenantRetainedCommandAttempt? attempt = _retainedAttempt;
+            int generation = _attemptGeneration;
+            if (attempt is null || !Attempts.TryStartDelivery(attempt, this))
             {
-                SetSnapshot(_snapshot.Accepted(result));
-                await RefreshStatusAsync().ConfigureAwait(false);
+                return;
             }
-            else
+            TenantCommandSubmissionResult result;
+            try
             {
-                SetSnapshot(_snapshot with
+                result = await gateway.UpdateTenantAsync(request, expected.MessageId, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                result = TenantCommandSubmissionResult.Failed(Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value)
+                    with { MessageId = expected.MessageId, IsAmbiguousFailure = true };
+            }
+            TenantUpdateMetadataCommandSnapshot completion = result.State is TenantCommandLifecycleState.Accepted
+                ? expected.Accepted(result)
+                : expected with
                 {
-                    State = result.State,
-                    MessageId = result.MessageId ?? _snapshot.MessageId,
-                    CorrelationId = result.CorrelationId ?? _snapshot.CorrelationId,
+                    State = result.IsAmbiguousFailure ? TenantCommandLifecycleState.RequestSent : result.State,
+                    MessageId = result.MessageId ?? expected.MessageId,
+                    CorrelationId = result.CorrelationId ?? expected.CorrelationId,
                     SafeMessage = result.SafeMessage,
                     SafeMessageKey = result.SafeMessageKey,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromSubmission(result, retryMessageId),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                });
+                };
+            if (PublishResult(attempt, generation, expected, completion, delivery: true)
+                && completion.CorrelationId is not null && !TenantCommandAttemptTracker.IsTerminal(completion))
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
             }
         }
         finally
         {
-            _isSubmitting = false;
-            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            if (!_disposed && submitGeneration == _attemptGeneration)
+            {
+                _isSubmitting = false;
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            }
         }
     }
 
@@ -757,11 +1011,73 @@
     // the shared control's bounded Refresh never counts a merged click as an unchanged retry that no lookup served.
     // SignalR nudges, and anything reachable from inside a running refresh, must pass false: waiting there would
     // deadlock.
+    private async Task RetryDeliveryAsync()
+    {
+        TenantUpdateMetadataCommandSnapshot expected = _snapshot;
+        TenantRetainedCommandAttempt? attempt = _retainedAttempt;
+        int generation = _attemptGeneration;
+        ITenantCommandGateway? gateway = CommandGateway;
+        if (_disposed || _isSubmitting || expected.Intent is null || attempt is null || gateway is null
+            || !string.IsNullOrWhiteSpace(UnavailableReason)
+            || !Attempts.TryStartDelivery(attempt, this))
+        {
+            return;
+        }
+        _isSubmitting = true;
+        try
+        {
+            TenantCommandSubmissionResult result;
+            try
+            {
+                result = await gateway.UpdateTenantAsync(expected.Intent, expected.MessageId, CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                result = TenantCommandSubmissionResult.Failed(Localizer["Tenants.EditMetadata.Unavailable.CommandSurface"].Value)
+                    with { MessageId = expected.MessageId, IsAmbiguousFailure = true };
+            }
+            TenantUpdateMetadataCommandSnapshot completion = result.State is TenantCommandLifecycleState.Accepted
+                ? expected.Accepted(result)
+                : expected with
+                {
+                    State = result.IsAmbiguousFailure ? TenantCommandLifecycleState.RequestSent : result.State,
+                    MessageId = result.MessageId ?? expected.MessageId,
+                    CorrelationId = result.CorrelationId ?? expected.CorrelationId,
+                    SafeMessage = result.SafeMessage,
+                    SafeMessageKey = result.SafeMessageKey,
+                    RejectionCode = result.RejectionCode,
+                    AuditState = TenantCommandAuditStates.FromSubmission(result, expected.MessageId),
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                };
+            if (PublishResult(attempt, generation, expected, completion, delivery: true)
+                && completion.CorrelationId is not null && !TenantCommandAttemptTracker.IsTerminal(completion))
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            if (!_disposed && generation == _attemptGeneration)
+            {
+                _isSubmitting = false;
+                await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
+            }
+        }
+    }
+
     private Task RefreshStatusAsync()
         => RefreshAttemptStatusAsync(waitForRunningRefresh: true);
 
     private async Task RefreshAttemptStatusAsync(bool waitForRunningRefresh)
     {
+        SynchronizeRetainedAttempt();
+        if (_disposed || TenantCommandAttemptTracker.IsTerminal(_snapshot))
+        {
+            return;
+        }
+        int generation = _attemptGeneration;
+        TenantRetainedCommandAttempt? attempt = _retainedAttempt;
+        TenantUpdateMetadataCommandSnapshot expected = _snapshot;
         if (_isRefreshing)
         {
             if (waitForRunningRefresh && _refreshCompletion is { } running)
@@ -825,15 +1141,23 @@
             }
             catch (Exception)
             {
-                SetUnableToVerify("Tenants.EditMetadata.Status.UnableToVerify.OperationalFailure");
+                if (IsCurrentContinuation(generation, expected))
+                {
+                    SetUnableToVerify("Tenants.EditMetadata.Status.UnableToVerify.OperationalFailure");
+                }
                 return;
             }
 
-            SetSnapshot(_snapshot.ApplyStatus(status));
+            if (!PublishResult(attempt, generation, expected, expected.ApplyStatus(status)))
+            {
+                return;
+            }
+            expected = _snapshot;
 
             await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
 
-            if (_snapshot.Intent is null || _snapshot.State is not TenantCommandLifecycleState.ProjectionPending)
+            if (!IsCurrentContinuation(generation, expected) || expected.Intent is null
+                || expected.State is not TenantCommandLifecycleState.ProjectionPending)
             {
                 return;
             }
@@ -862,8 +1186,12 @@
                     return;
                 }
 
-                UpdateTenant intent = _snapshot.Intent;
+                UpdateTenant intent = expected.Intent;
                 TenantDetailSnapshot? evidence = await ProjectionEvidenceProvider(intent).ConfigureAwait(false);
+                if (!IsCurrentContinuation(generation, expected))
+                {
+                    return;
+                }
                 if (evidence is null)
                 {
                     SetProjectionUnverified("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
@@ -879,9 +1207,7 @@
                         _snapshot.AttemptStartedAtUtc).ConfigureAwait(false);
                 }
 
-                SetSnapshot(_snapshot.ConfirmProjection(
-                    evidence,
-                    auditEvidence));
+                _ = PublishResult(attempt, generation, expected, expected.ConfirmProjection(evidence, auditEvidence));
             }
             catch (OperationCanceledException)
             {
@@ -889,7 +1215,10 @@
             }
             catch (Exception)
             {
-                SetProjectionUnverified("Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure");
+                if (IsCurrentContinuation(generation, expected))
+                {
+                    SetProjectionUnverified("Tenants.EditMetadata.Confirm.UnableToVerify.OperationalFailure");
+                }
             }
         }
         finally
@@ -943,5 +1272,16 @@
         {
             await CloseEditorAsync().ConfigureAwait(false);
         }
+    }
+    public void Dispose()
+    {
+        _disposed = true;
+        TenantCommandAttemptTracker? attempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
+        if (attempts is not null)
+        {
+            attempts.StateChanged -= OnRetainedAttemptChanged;
+        }
+        _attemptGeneration++;
+        attempts?.Detach(_retainedAttempt, this);
     }
 }

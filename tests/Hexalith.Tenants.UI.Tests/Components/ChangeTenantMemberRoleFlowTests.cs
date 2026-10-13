@@ -134,7 +134,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantOwner));
         cut.Find("form").Submit();
 
-        gateway.LastChangeRoleMessageId.ShouldBeNull();
+        NUlid.Ulid.TryParse(gateway.LastChangeRoleMessageId, out _).ShouldBeTrue();
         gateway.ChangeRoleCallCount.ShouldBe(3);
     }
 
@@ -395,7 +395,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         gateway.ChangeRoleCallCount.ShouldBe(1);
         cut.Find("[data-testid='tenants-change-role-unavailable-reason']").TextContent.ShouldContain("already in progress");
-        cut.Find("[data-testid='tenants-change-role-state']").TextContent.ShouldContain("Unable to verify");
+        cut.Find("[data-testid='tenants-change-role-state']").TextContent.ShouldContain("request sent", Case.Insensitive);
 
         pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
     }

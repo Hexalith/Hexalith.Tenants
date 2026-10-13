@@ -330,6 +330,9 @@
     // Tracks the exact child that owns the aggregate lease. A single Boolean lets teardown of an unrelated
     // conditional flow lower the add flow's lease, so ownership must survive independently of render branches.
     private MemberCommandLeaseOwner? _childCommandLeaseOwner;
+    private long _childAdmissionGeneration;
+    private bool _childAdmissionGranted;
+    private bool _disposed;
 
     // The member record captured when the flow was launched. Resolving the open flow's target against
     // Members.Rows on every render made a successful removal destroy its own evidence: the confirmation
@@ -341,6 +344,7 @@
     private TenantMember? _activeChangeRoleCapture;
     private TenantMember? _activeRemoveMemberCapture;
     private string? _renderedTenantId;
+    private bool _hasRestoredRetainedAttempt;
     private string? _renderedMemberCursor;
     private AddTenantMemberFlow? _addMemberFlow;
     private ChangeTenantMemberRoleFlow? _changeRoleFlow;
@@ -750,6 +754,10 @@
 
     protected override async Task OnParametersSetAsync()
     {
+        if (!string.Equals(_renderedTenantId, Detail.TenantId, StringComparison.Ordinal))
+        {
+            _hasRestoredRetainedAttempt = false;
+        }
         // Clear any open flow target when the rendered page changes. Without this the active user id
         // outlives the page it belonged to, so returning to that page re-opens a change-role or remove flow
         // the operator never re-initiated.
@@ -765,7 +773,6 @@
         {
             _renderedTenantId = Detail.TenantId;
             _renderedMemberCursor = Members.RequestCursor;
-            bool hadOpenFlow = HasOpenMemberCommandFlow;
             _activeChangeRoleUserId = null;
             _activeRemoveMemberUserId = null;
             _activeChangeRoleCapture = null;
@@ -778,11 +785,25 @@
             // TenantDetailPage._commandInFlight stayed raised for the life of the circuit and every command
             // surface on the page -- lifecycle, metadata, configuration, membership -- was disabled behind a
             // command no longer on screen.
-            if (hadOpenFlow
-                && _childCommandLeaseOwner is MemberCommandLeaseOwner.ChangeRole
-                    or MemberCommandLeaseOwner.RemoveMember)
+            if (_childCommandLeaseOwner is not null)
             {
                 await ReleaseChildCommandActivityAsync().ConfigureAwait(false);
+            }
+        }
+        if (!_hasRestoredRetainedAttempt && !HasTerminalMemberRead
+            && Services.GetService<TenantAggregateCommandAdmissionGate>() is not null
+            && Services.GetService<TenantCommandAttemptTracker>() is { } retainedTracker)
+        {
+            _hasRestoredRetainedAttempt = true;
+            if (retainedTracker.Find<TenantChangeRoleCommandSnapshot>(Detail.TenantId) is { Intent: { } change } retainedChange)
+            {
+                _activeChangeRoleUserId = change.UserId;
+                _activeChangeRoleCapture = new TenantMember(change.UserId, retainedChange.CurrentConfirmedRole);
+            }
+            else if (retainedTracker.Find<TenantRemoveMemberCommandSnapshot>(Detail.TenantId) is { Intent: { } remove } retainedRemove)
+            {
+                _activeRemoveMemberUserId = remove.UserId;
+                _activeRemoveMemberCapture = new TenantMember(remove.UserId, retainedRemove.CurrentConfirmedRole);
             }
         }
     }
@@ -800,70 +821,61 @@
 
     private async Task<bool> HandleCommandActivityLeaseAsync(MemberCommandLeaseOwner owner, bool isActive)
     {
+        if (_disposed)
+        {
+            return !isActive;
+        }
         if (isActive)
         {
             if (_childCommandLeaseOwner is not null)
             {
-                return false;
+                return _childCommandLeaseOwner == owner && _childAdmissionGranted;
             }
-
-            // Reserve before awaiting the parent. Otherwise two child submissions can both observe the
-            // owner as null while the first parent acquisition is suspended, and both enter the aggregate.
             _childCommandLeaseOwner = owner;
-
+            _childAdmissionGranted = false;
+            long generation = ++_childAdmissionGeneration;
+            Func<bool, Task<bool>>? lease = CommandActivityLease;
+            EventCallback<bool> activity = OnCommandActivityChanged;
             try
             {
-                bool acquired = CommandActivityLease is null
-                    || await CommandActivityLease(true).ConfigureAwait(false);
+                bool acquired;
+                if (lease is not null)
+                {
+                    acquired = await lease(true).ConfigureAwait(false);
+                }
+                else
+                {
+                    await InvokeAsync(() => activity.InvokeAsync(true)).ConfigureAwait(false);
+                    acquired = true;
+                }
+                if (_disposed || generation != _childAdmissionGeneration || _childCommandLeaseOwner != owner)
+                {
+                    return false;
+                }
                 if (!acquired)
                 {
                     _childCommandLeaseOwner = null;
                     return false;
                 }
-
-                if (CommandActivityLease is null)
-                {
-                    await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(true)).ConfigureAwait(false);
-                }
-
+                _childAdmissionGranted = true;
                 return true;
             }
             catch
             {
-                if (_childCommandLeaseOwner == owner)
+                if (generation == _childAdmissionGeneration && _childCommandLeaseOwner == owner)
                 {
                     _childCommandLeaseOwner = null;
+                    _childAdmissionGranted = false;
                 }
-
                 throw;
             }
         }
-
         if (_childCommandLeaseOwner != owner)
         {
             return true;
         }
-
-        bool released;
-        try
-        {
-            released = CommandActivityLease is not null
-                ? await CommandActivityLease(false).ConfigureAwait(false)
-                : true;
-        }
-        finally
-        {
-            // Always clear the owner, even if the release delegate throws -- otherwise this tenant's
-            // OpenChangeRole/OpenRemoveMember stay permanently blocked with no way to recover the lease.
-            _childCommandLeaseOwner = null;
-        }
-
-        if (CommandActivityLease is null)
-        {
-            await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(false)).ConfigureAwait(false);
-        }
-
-        return released;
+        await ReleaseChildCommandActivityAsync().ConfigureAwait(false);
+        return true;
     }
 
     /// <summary>
@@ -899,6 +911,8 @@
         }
 
         _childCommandLeaseOwner = null;
+        _childAdmissionGranted = false;
+        _childAdmissionGeneration++;
         if (CommandActivityLease is not null)
         {
             _ = await CommandActivityLease(false).ConfigureAwait(false);
@@ -1084,6 +1098,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
         try
         {
             await ReleaseChildCommandActivityAsync().ConfigureAwait(false);

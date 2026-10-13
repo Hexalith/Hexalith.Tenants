@@ -1,9 +1,8 @@
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
 /// <summary>
-/// Circuit-local retention for in-flight create-tenant attempt handles, so one logical attempt keeps its
-/// message id and correlation across component re-mounts such as workspace tab round trips, accordion
-/// collapse, or a re-render triggered by a read refresh.
+/// Circuit-local retention for complete create attempts, including original intent, baseline, timestamps,
+/// delivery uncertainty, tracking and exact aggregate admission across component replacement.
 /// </summary>
 /// <remarks>
 /// Scope is the interactive circuit, matching <see cref="TenantAggregateCommandAdmissionGate"/>. A brand
@@ -16,8 +15,40 @@ public sealed class TenantCreateAttemptTracker
     private readonly object _sync = new();
     private readonly Dictionary<string, TenantCommandTrackingHandle> _handleByTenantId = new(StringComparer.Ordinal);
 
+    /// <summary>Creates a tracker using the circuit's aggregate admission service.</summary>
+    /// <param name="admissionGate">Circuit-scoped aggregate admission service.</param>
+    public TenantCreateAttemptTracker(TenantAggregateCommandAdmissionGate admissionGate)
+    {
+        Attempts = new(admissionGate);
+    }
+
+    /// <summary>Creates the create adapter over the already-registered circuit attempt store.</summary>
+    internal TenantCreateAttemptTracker(TenantCommandAttemptTracker attempts)
+    {
+        Attempts = attempts;
+    }
+
+    /// <summary>Gets the complete attempt store shared by tenant command surfaces.</summary>
+    internal TenantCommandAttemptTracker Attempts { get; }
+
+    /// <summary>Retains the original create intent, baseline, tracking and admission for replacement rendering.</summary>
+    /// <param name="snapshot">Complete original create attempt.</param>
+    public void Remember(TenantCreateCommandSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        ArgumentNullException.ThrowIfNull(snapshot.Intent);
+        object owner = new();
+        if (Attempts.TryBegin(snapshot.Intent.TenantId, owner, snapshot, out TenantRetainedCommandAttempt? attempt))
+        {
+            _ = Attempts.TryStartDelivery(attempt!, owner);
+            _ = Attempts.TryCompleteDelivery(attempt!, snapshot, snapshot);
+            Attempts.Detach(attempt, owner);
+        }
+    }
+
     /// <summary>
-    /// Retains <paramref name="handle"/> as the tracked attempt for <paramref name="tenantId"/>.
+    /// Retains legacy tracking evidence for <paramref name="tenantId"/>. A handle alone cannot establish
+    /// the original intent and baseline, so command surfaces fail closed until complete evidence exists.
     /// </summary>
     /// <param name="tenantId">Literal caller-supplied tenant id the attempt targets.</param>
     /// <param name="handle">Tracking handle returned when the command was accepted.</param>
@@ -46,6 +77,13 @@ public sealed class TenantCreateAttemptTracker
 
         lock (_sync)
         {
+            if (Attempts.Find<TenantCreateCommandSnapshot>(tenantId) is { } snapshot)
+            {
+                return !snapshot.IsTerminal && snapshot.MessageId is { } messageId && snapshot.CorrelationId is { } correlationId
+                    ? new TenantCommandTrackingHandle(messageId, correlationId, tenantId) { ExpectedDomain = Hexalith.Tenants.Contracts.Identity.TenantIdentity.Domain }
+                    : null;
+            }
+
             return _handleByTenantId.TryGetValue(tenantId, out TenantCommandTrackingHandle? handle)
                 ? handle
                 : null;
@@ -53,7 +91,8 @@ public sealed class TenantCreateAttemptTracker
     }
 
     /// <summary>
-    /// Drops the retained attempt for <paramref name="tenantId"/> once it reaches a terminal outcome.
+    /// Clears legacy tracking for <paramref name="tenantId"/>. Complete terminal outcomes remain retained
+    /// independently of their already-released aggregate lease.
     /// </summary>
     /// <param name="tenantId">Literal caller-supplied tenant id to forget.</param>
     public void Forget(string tenantId)

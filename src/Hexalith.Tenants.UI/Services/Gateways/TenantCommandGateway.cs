@@ -84,6 +84,10 @@ internal sealed class TenantCommandGateway(
         catch (EventStoreGatewayException ex) {
             return MapGatewayException(ex) with { MessageId = resolvedMessageId };
         }
+        catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException or JsonException or TimeoutException) {
+            return TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified.")
+                with { MessageId = resolvedMessageId, IsAmbiguousFailure = true };
+        }
     }
 
     public async Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
@@ -119,6 +123,10 @@ internal sealed class TenantCommandGateway(
         catch (EventStoreGatewayException ex) {
             return MapAddUserToTenantGatewayException(ex) with { MessageId = resolvedMessageId };
         }
+        catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException or JsonException or TimeoutException) {
+            return TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified.")
+                with { MessageId = resolvedMessageId, IsAmbiguousFailure = true };
+        }
     }
 
     public async Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
@@ -153,6 +161,10 @@ internal sealed class TenantCommandGateway(
         }
         catch (EventStoreGatewayException ex) {
             return MapChangeUserRoleGatewayException(ex) with { MessageId = resolvedMessageId };
+        }
+        catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException or JsonException or TimeoutException) {
+            return TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified.")
+                with { MessageId = resolvedMessageId, IsAmbiguousFailure = true };
         }
     }
 
@@ -763,10 +775,12 @@ internal sealed class TenantCommandGateway(
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.Rejected("You are not authorized to create tenants.", "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
-                => TenantCommandSubmissionResult.Failed("The create tenant request was not accepted. Check the form fields and try again."),
+                => TenantCommandSubmissionResult.Failed("The create tenant request was not accepted. Check the form fields and try again.") with { IsAmbiguousFailure = exception.Retryable is true },
             (int)HttpStatusCode.ServiceUnavailable
-                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable."),
-            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified."),
+                => TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable.") with { IsAmbiguousFailure = true },
+            _ => TenantCommandSubmissionResult.Failed("Tenant command submission failed before it could be verified.")
+                with { IsAmbiguousFailure = exception.Retryable is true || exception.StatusCode < 400
+                    || IsRetryableStatusCode((HttpStatusCode)exception.StatusCode) },
         };
     }
 

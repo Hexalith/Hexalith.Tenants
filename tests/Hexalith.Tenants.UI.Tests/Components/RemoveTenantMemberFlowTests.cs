@@ -76,7 +76,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemovalWithAuditReturn(
             "/tenants/tenant.alpha", composition, auditReadAvailable: false, auditReadDenied: true);
 
-        cut.FindComponent<AuditEvidenceReceipt>().Instance.OnInspectAudit.HasDelegate.ShouldBeFalse();
+        cut.FindComponents<AuditEvidenceReceipt>().ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-remove-member-inspect-unavailable']").ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-command-audit-entrypoint']").ShouldBeEmpty();
     }
@@ -90,7 +91,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemovalWithAuditReturn(
             "/tenants/tenant.alpha", composition, auditReadAvailable: false, auditReadUnavailableReason: unconfirmed);
 
-        cut.Find("[data-testid='tenants-remove-member-inspect-unavailable']").TextContent.ShouldBe(unconfirmed);
+        cut.FindComponents<AuditEvidenceReceipt>().ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-remove-member-inspect-unavailable']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-command-audit-entrypoint']")
             .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
         cut.Find(".tenants-audit-entrypoint__reason").TextContent.ShouldBe(unconfirmed);
@@ -504,8 +506,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.Find("form").Submit();
 
         gateway.RemoveMemberCallCount.ShouldBe(1);
-        cut.Find("[data-testid='tenants-remove-member-state']").TextContent.ShouldContain("Duplicate");
-        cut.Find("[data-testid='tenants-remove-member-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        cut.Find("[data-testid='tenants-remove-member-state']").TextContent.ShouldContain("request sent", Case.Insensitive);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").GetAttribute("aria-live").ShouldBe("polite");
 
         pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
     }
@@ -587,7 +589,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("second-owner");
         cut.Find("form").Submit();
 
-        gateway.LastRemoveMemberMessageId.ShouldBeNull();
+        NUlid.Ulid.TryParse(gateway.LastRemoveMemberMessageId, out _).ShouldBeTrue();
         gateway.RemoveMemberCallCount.ShouldBe(3);
     }
 
@@ -1116,28 +1118,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway, queryGateway);
         BunitJSModuleInterop clipboard = JSInterop.SetupModule("./js/tenantsClipboard.js");
 
-        string liveProjectionVersion = "tenant-sequence:1";
-        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
-            .Add(p => p.AuditProofCapabilityAvailable, true)
-            .Add(p => p.Detail, Detail("tenant.alpha"))
-            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
-            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionVersion, "tenant-sequence:1")
-            .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
-            .Add(p => p.ProjectionEvidenceProvider, request =>
-            {
-                liveProjectionVersion = "tenant-sequence:2";
-                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
-                    request.TenantId,
-                    [
-                        new TenantMember("owner-user", TenantRole.TenantOwner),
-                        new TenantMember("second-owner", TenantRole.TenantOwner),
-                    ]), liveProjectionVersion));
-            }));
-
-        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
-        cut.Find("form").Submit();
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemoval(gateway);
 
         cut.WaitForAssertion(() =>
         {
@@ -1749,6 +1730,76 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.Markup.ShouldNotContain("AggregateSequence");
     }
 
+    [Theory]
+    [InlineData("test-caller", true, false, false, true)]
+    [InlineData("other-caller", true, false, false, false)]
+    [InlineData(null, false, true, false, false)]
+    [InlineData("test-caller", false, false, true, false)]
+    public void ReadyRemovalReceiptRemountPreservesProofButShowsOnlyCurrentAuthorizedCallerEvidence(
+        string? caller, bool available, bool pending, bool denied, bool visible)
+    {
+        StubTenantCommandGateway gateway = CompletedGateway();
+        ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
+        queries.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => CurrentAuditPage([StrongRemovalRow(call.Arg<TenantAuditRequest>())], call.Arg<TenantAuditRequest>(), "ready-audit"));
+        RegisterServices(gateway, queries);
+        IRenderedComponent<RemoveTenantMemberFlow> first = RenderConfirmedRemoval(gateway);
+        first.WaitForElement("[data-testid='tenants-audit-receipt']");
+        TenantRemoveMemberCommandSnapshot original = first.Instance.Snapshot;
+        string reference = first.FindComponent<AuditEvidenceReceipt>().Instance.Receipt.ShouldNotBeNull().AuditReference;
+        first.Instance.Dispose();
+        IRenderedComponent<RemoveTenantMemberFlow> replacement = RenderConfirmedRemoval(gateway, caller, available, pending, denied, submit: false);
+        replacement.Instance.Snapshot.ShouldBe(original);
+        replacement.Instance.Snapshot.RemovalProof!.AuditReference.ShouldBe(reference);
+        if (visible)
+        {
+            replacement.FindComponent<AuditEvidenceReceipt>().Instance.Receipt.ShouldNotBeNull().AuditReference.ShouldBe(reference);
+            replacement.Find("[data-testid='tenants-audit-receipt']");
+        }
+        else
+        {
+            replacement.FindComponents<AuditEvidenceReceipt>().ShouldBeEmpty();
+            replacement.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
+            replacement.Markup.ShouldNotContain(reference);
+            replacement.Markup.ShouldNotContain("actor-1");
+        }
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task AuthoritativeRemovalConfirmationPreservesQualifiedReceiptAcrossLateStatusAndReleasesOnlyItsLease()
+    {
+        StubTenantCommandGateway gateway = CompletedGateway();
+        ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
+        queries.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => CurrentAuditPage([StrongRemovalRow(call.Arg<TenantAuditRequest>())], call.Arg<TenantAuditRequest>(), "ready-audit"));
+        RegisterServices(gateway, queries);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemoval(gateway, projectionAvailable: false);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        var heldStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.StatusAsync = (_, _) => heldStatus.Task;
+        Task refresh = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        await WaitUntilAsync(() => gateway.StatusCallCount == 2, TimeSpan.FromSeconds(5));
+        TenantDetail after = Detail("tenant.alpha", [new("owner-user", TenantRole.TenantOwner), new("second-owner", TenantRole.TenantOwner)]);
+        await cut.InvokeAsync(() => cut.Instance.ApplyProjectionEvidence(Proof(after, "tenant-sequence:2")));
+        cut.WaitForElement("[data-testid='tenants-audit-receipt']");
+        TenantRemoveMemberCommandSnapshot confirmed = cut.Instance.Snapshot;
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        string key = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        gate.IsLocked(key).ShouldBeFalse();
+        object foreignOwner = new();
+        gate.TryAcquireLease(key, foreignOwner, out TenantAggregateCommandLease? foreign).ShouldBeTrue();
+        heldStatus.SetResult(new(CommandStatus.Processing, HasVerifiedCommandIdentity: true));
+        await refresh.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        cut.Instance.Snapshot.RemovalProof.ShouldBe(confirmed.RemovalProof);
+        cut.FindComponent<AuditEvidenceReceipt>().Instance.Receipt.ShouldNotBeNull().AuditReference.ShouldBe(confirmed.RemovalProof!.AuditReference);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(key).ShouldBeTrue();
+        foreign!.TryAbandonBeforeDispatch(foreignOwner).ShouldBeTrue();
+    }
+
     private void RegisterServices(StubTenantCommandGateway gateway, ITenantQueryGateway? queryGateway = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -1777,10 +1828,18 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         return gateway;
     }
 
-    private IRenderedComponent<RemoveTenantMemberFlow> RenderConfirmedRemoval(StubTenantCommandGateway gateway)
+    private IRenderedComponent<RemoveTenantMemberFlow> RenderConfirmedRemoval(StubTenantCommandGateway gateway, string? callerScope = "test-caller", bool auditAvailable = true, bool auditPending = false, bool auditDenied = false, bool submit = true, bool projectionAvailable = true)
     {
         string liveProjectionVersion = "tenant-sequence:1";
-        IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+        IRenderedComponent<CascadingValue<string?>> wrapper = Render<CascadingValue<string?>>(scope => scope
+            .Add(p => p.Name, "CurrentTenantCallerScope").Add(p => p.Value, callerScope)
+            .AddChildContent<CascadingValue<bool>>(available => available
+            .Add(p => p.Name, "AuditReadAvailable").Add(p => p.Value, auditAvailable)
+            .AddChildContent<CascadingValue<bool>>(pending => pending
+            .Add(p => p.Name, "AuditReadPending").Add(p => p.Value, auditPending)
+            .AddChildContent<CascadingValue<bool>>(denied => denied
+            .Add(p => p.Name, "AuditReadDenied").Add(p => p.Value, auditDenied)
+            .AddChildContent<RemoveTenantMemberFlow>(parameters => parameters
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
@@ -1790,6 +1849,10 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.ProjectionVersionProvider, () => liveProjectionVersion)
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
+                if (!projectionAvailable)
+                {
+                    return Task.FromResult<TenantDetailSnapshot?>(null);
+                }
                 liveProjectionVersion = "tenant-sequence:2";
                 return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                     request.TenantId,
@@ -1797,8 +1860,12 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
                         new TenantMember("owner-user", TenantRole.TenantOwner),
                         new TenantMember("second-owner", TenantRole.TenantOwner),
                     ]), liveProjectionVersion));
-            }));
-
+            }))))));
+        IRenderedComponent<RemoveTenantMemberFlow> cut = wrapper.FindComponent<RemoveTenantMemberFlow>();
+        if (!submit)
+        {
+            return cut;
+        }
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
         gateway.RemoveMemberCallCount.ShouldBe(1);
@@ -1837,6 +1904,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .AddChildContent<CascadingValue<string>>(nested => nested
                 .Add(p => p.Name, "DetailAuditReturnUrl")
                 .Add(p => p.Value, returnUrl)
+                .AddChildContent<CascadingValue<string>>(scope => scope
+                .Add(p => p.Name, "CurrentTenantCallerScope").Add(p => p.Value, "test-caller")
                 .AddChildContent<RemoveTenantMemberFlow>(child => child
                     .Add(p => p.AuditProofCapabilityAvailable, true)
                     .Add(p => p.Detail, Detail("tenant.alpha"))
@@ -1853,11 +1922,15 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
                             new TenantMember("owner-user", TenantRole.TenantOwner),
                             new TenantMember("second-owner", TenantRole.TenantOwner),
                         ]), liveProjectionVersion));
-                    }))))));
+                    })))))));
         IRenderedComponent<RemoveTenantMemberFlow> cut = wrapper.FindComponent<RemoveTenantMemberFlow>();
         cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
         cut.Find("form").Submit();
-        cut.WaitForElement("[data-testid='tenants-audit-receipt']");
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable));
+        if (auditReadAvailable && !auditReadDenied)
+        {
+            cut.WaitForElement("[data-testid='tenants-audit-receipt']");
+        }
         return cut;
     }
 

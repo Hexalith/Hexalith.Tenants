@@ -1,5 +1,7 @@
 using Bunit;
 
+using Hexalith.Tenants.UI.State.TenantCommands;
+
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.FluentUI.AspNetCore.Components;
@@ -19,6 +21,9 @@ public abstract class FluentBunitContext : BunitContext
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddFluentUIComponents();
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCreateAttemptTracker>();
+        Services.AddSingleton(provider => provider.GetRequiredService<TenantCreateAttemptTracker>().Attempts);
     }
 }
 

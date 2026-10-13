@@ -350,7 +350,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
             Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
-        TenantCreateAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        TenantCreateAttemptTracker tracker = new(gate);
+        Services.AddSingleton(gate);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         Services.AddSingleton(tracker);
@@ -613,7 +615,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
         };
-        TenantCreateAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        TenantCreateAttemptTracker tracker = new(gate);
+        Services.AddSingleton(gate);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         Services.AddSingleton(tracker);
@@ -1083,8 +1087,12 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         {
             Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
-        TenantCreateAttemptTracker tracker = new();
-        tracker.Remember("tenant.alpha", new TenantCommandTrackingHandle("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123", "tenant.alpha") { ExpectedDomain = TenantIdentity.Domain });
+        TenantAggregateCommandAdmissionGate gate = new();
+        TenantCreateAttemptTracker tracker = new(gate);
+        Services.AddSingleton(gate);
+        tracker.Remember(TenantCreateCommandSnapshot.Idle()
+            .RequestSent(new CreateTenant("tenant.alpha", "Alpha", null), "tenant-sequence:1", true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123")));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         Services.AddSingleton(tracker);
@@ -1109,7 +1117,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
     public void MismatchedRetainedCreateHandleIsNeitherAdoptedNorRedispatched(string? aggregate, string? domain)
     {
         StubTenantCommandGateway gateway = new();
-        TenantCreateAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        TenantCreateAttemptTracker tracker = new(gate);
+        Services.AddSingleton(gate);
         tracker.Remember("tenant.alpha", new TenantCommandTrackingHandle("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123", aggregate)
             { ExpectedDomain = domain });
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -1198,6 +1208,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
     {
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
+            ["Tenants.Commands.Unavailable.InvalidTrackingReference"] = "This command could not be submitted because its tracking identifier was not valid. Refresh the tenant and start the action again.",
+            ["Tenants.Commands.Unavailable.AggregateInFlight"] = "Another command is already in progress for this tenant, so this one was not submitted. Wait for its outcome, then try again.",
             ["Tenants.Create.Title"] = "Create tenant",
             ["Tenants.Create.Description"] = "Submit a tenant creation command and wait for projection confirmation before treating it as visible.",
             ["Tenants.Create.TenantId.Label"] = "Tenant id",

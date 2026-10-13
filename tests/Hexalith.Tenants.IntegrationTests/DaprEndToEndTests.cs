@@ -46,6 +46,78 @@ public class DaprEndToEndTests : IDisposable {
     }
 
     [DaprFact]
+    public async Task SameIdentityRecoveryPersistsTheOriginalDomainEventExactlyOnce()
+    {
+        _fixture.SkipIfUnavailable();
+        foreach (string kind in new[] { "create", "add", "change", "metadata" })
+        {
+            _fixture.EventPublisher.Reset();
+            string tenantId = $"t-retained-{Guid.NewGuid():N}";
+            CommandEnvelope create = CreateTenantCommand(new CreateTenant(tenantId, "Original", "Original description"));
+            IAggregateActor proxy = CreateActorProxy(CreateActorProxyFactory(), create);
+            long expectedSequence = 1;
+            if (kind != "create")
+            {
+                AssertAccepted(await proxy.ProcessCommandAsync(create), create, "Create setup must succeed");
+                expectedSequence++;
+            }
+            if (kind == "change")
+            {
+                CommandEnvelope add = CreateTenantCommand(new AddUserToTenant(tenantId, "literal-user", TenantRole.TenantReader));
+                AssertAccepted(await proxy.ProcessCommandAsync(add), add, "Membership setup must succeed");
+                expectedSequence++;
+            }
+            CommandEnvelope command = kind switch
+            {
+                "create" => create,
+                "add" => CreateTenantCommand(new AddUserToTenant(tenantId, "literal-user", TenantRole.TenantReader)),
+                "change" => CreateTenantCommand(new ChangeUserRole(tenantId, "literal-user", TenantRole.TenantContributor)),
+                _ => CreateTenantCommand(new UpdateTenant(tenantId, "Updated", "Original edit intent")),
+            };
+            AssertAccepted(await proxy.ProcessCommandAsync(command), command, "Original delivery must succeed");
+            AssertAccepted(await proxy.ProcessCommandAsync(command), command, "Same identity recovery must remain accepted");
+            (await proxy.GetCurrentSequenceAsync()).ShouldBe(expectedSequence);
+            EventEnvelope persisted = kind switch
+            {
+                "create" => await AssertPersistedOnceAsync<TenantCreated>(proxy, command, expectedSequence),
+                "add" => await AssertPersistedOnceAsync<UserAddedToTenant>(proxy, command, expectedSequence),
+                "change" => await AssertPersistedOnceAsync<UserRoleChanged>(proxy, command, expectedSequence),
+                _ => await AssertPersistedOnceAsync<TenantUpdated>(proxy, command, expectedSequence),
+            };
+            persisted.AggregateId.ShouldBe(tenantId);
+            persisted.CorrelationId.ShouldBe(command.CorrelationId);
+            switch (kind)
+            {
+                case "create":
+                    TenantCreated created = JsonSerializer.Deserialize<TenantCreated>(persisted.Payload).ShouldNotBeNull();
+                    created.TenantId.ShouldBe(tenantId);
+                    created.Name.ShouldBe("Original");
+                    created.Description.ShouldBe("Original description");
+                    break;
+                case "add":
+                    UserAddedToTenant added = JsonSerializer.Deserialize<UserAddedToTenant>(persisted.Payload).ShouldNotBeNull();
+                    added.TenantId.ShouldBe(tenantId);
+                    added.UserId.ShouldBe("literal-user");
+                    added.Role.ShouldBe(TenantRole.TenantReader);
+                    break;
+                case "change":
+                    UserRoleChanged changed = JsonSerializer.Deserialize<UserRoleChanged>(persisted.Payload).ShouldNotBeNull();
+                    changed.TenantId.ShouldBe(tenantId);
+                    changed.UserId.ShouldBe("literal-user");
+                    changed.OldRole.ShouldBe(TenantRole.TenantReader);
+                    changed.NewRole.ShouldBe(TenantRole.TenantContributor);
+                    break;
+                default:
+                    TenantUpdated updated = JsonSerializer.Deserialize<TenantUpdated>(persisted.Payload).ShouldNotBeNull();
+                    updated.TenantId.ShouldBe(tenantId);
+                    updated.Name.ShouldBe("Updated");
+                    updated.Description.ShouldBe("Original edit intent");
+                    break;
+            }
+        }
+    }
+
+    [DaprFact]
     public async Task CreateTenant_succeeds_end_to_end_with_events_published() {
         _fixture.SkipIfUnavailable();
         _fixture.EventPublisher.Reset();

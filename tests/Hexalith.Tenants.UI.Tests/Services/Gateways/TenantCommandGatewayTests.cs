@@ -20,6 +20,69 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class TenantCommandGatewayTests
 {
+    [Theory]
+    [InlineData("create", 408)]
+    [InlineData("create", 429)]
+    [InlineData("create", 500)]
+    [InlineData("create", 503)]
+    [InlineData("create", 0)]
+    [InlineData("create", -1)]
+    [InlineData("add", 408)]
+    [InlineData("add", 429)]
+    [InlineData("add", 500)]
+    [InlineData("add", 503)]
+    [InlineData("add", 0)]
+    [InlineData("add", -1)]
+    [InlineData("change", 408)]
+    [InlineData("change", 429)]
+    [InlineData("change", 500)]
+    [InlineData("change", 503)]
+    [InlineData("change", 0)]
+    [InlineData("change", -1)]
+    public async Task AmbiguousTenantDeliveryKeepsTheOriginalUlidAndPayload(string kind, int statusCode)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        Exception failure = statusCode switch
+        {
+            0 => new HttpRequestException("unsafe transport payload"),
+            -1 => new TimeoutException("unsafe transport payload"),
+            _ => new EventStoreGatewayException(statusCode, "unsafe transport payload"),
+        };
+        CapturingGatewayClient client = new(failure);
+        TenantCommandGateway gateway = CreateGateway(client);
+        TenantCommandSubmissionResult result = kind switch
+        {
+            "create" => await gateway.CreateTenantAsync(new("tenant.alpha", "Original", "Original intent"), messageId),
+            "add" => await gateway.AddUserToTenantAsync(new("tenant.alpha", "literal-user", TenantRole.TenantReader), messageId),
+            _ => await gateway.ChangeUserRoleAsync(new("tenant.alpha", "literal-user", TenantRole.TenantContributor), messageId),
+        };
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe(messageId);
+        result.CorrelationId.ShouldBeNull();
+        result.SafeMessage.ShouldNotBeNull().ShouldNotContain("unsafe transport payload");
+        SubmitCommandRequest dispatched = client.SubmittedCommands.ShouldHaveSingleItem();
+        dispatched.MessageId.ShouldBe(messageId);
+        dispatched.AggregateId.ShouldBe("tenant.alpha");
+        dispatched.Domain.ShouldBe("tenants");
+        CapturingGatewayClient retryClient = new(new SubmitCommandResponse("correlation-original"));
+        TenantCommandGateway retry = CreateGateway(retryClient);
+        TenantCommandSubmissionResult accepted = kind switch
+        {
+            "create" => await retry.CreateTenantAsync(new("tenant.alpha", "Original", "Original intent"), result.MessageId),
+            "add" => await retry.AddUserToTenantAsync(new("tenant.alpha", "literal-user", TenantRole.TenantReader), result.MessageId),
+            _ => await retry.ChangeUserRoleAsync(new("tenant.alpha", "literal-user", TenantRole.TenantContributor), result.MessageId),
+        };
+        accepted.MessageId.ShouldBe(messageId);
+        accepted.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        SubmitCommandRequest replay = retryClient.SubmittedCommands.ShouldHaveSingleItem();
+        replay.MessageId.ShouldBe(dispatched.MessageId);
+        replay.Tenant.ShouldBe(dispatched.Tenant);
+        replay.Domain.ShouldBe(dispatched.Domain);
+        replay.AggregateId.ShouldBe(dispatched.AggregateId);
+        replay.CommandType.ShouldBe(dispatched.CommandType);
+        replay.Payload.GetRawText().ShouldBe(dispatched.Payload.GetRawText());
+    }
+
     [Fact]
     public void FixedScopeGatewayCapabilitiesFailClosedOrAdvertiseOnlyConcreteSupport()
     {

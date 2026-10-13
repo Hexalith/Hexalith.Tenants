@@ -357,7 +357,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public async Task Lost_tracking_refresh_maps_to_unable_to_verify_without_second_dispatch()
+    public async Task LostRendererTrackingIsRecoveredWithoutSecondDispatch()
     {
         StubTenantCommandGateway gateway = new()
         {
@@ -389,10 +389,12 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         });
         cut.Render();
 
-        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        cut.Instance.Snapshot.MessageId.ShouldBe(snapshot.MessageId);
+        cut.Instance.Snapshot.CorrelationId.ShouldBe(snapshot.CorrelationId);
         gateway.AddMemberCallCount.ShouldBe(1);
-        TenantCommandFlowGuard.RetainsCommandActivity(cut.Instance.Snapshot.State).ShouldBeFalse();
-        cut.Find("[data-testid='tenants-add-member-continue-read-only']");
+        TenantCommandFlowGuard.RetainsCommandActivity(cut.Instance.Snapshot.State).ShouldBeTrue();
+        cut.FindAll("[data-testid='tenants-add-member-continue-read-only']").ShouldBeEmpty();
 
         cut.Find("form").Submit();
         gateway.AddMemberCallCount.ShouldBe(1);
@@ -483,7 +485,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("different-user");
         cut.Find("form").Submit();
 
-        gateway.LastAddMemberMessageId.ShouldBeNull();
+        NUlid.Ulid.TryParse(gateway.LastAddMemberMessageId, out _).ShouldBeTrue();
         gateway.AddMemberCallCount.ShouldBe(3);
     }
 
@@ -566,7 +568,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
 
         gateway.AddMemberCallCount.ShouldBe(1);
         cut.Find("[data-testid='tenants-add-member-unavailable-reason']").TextContent.ShouldContain("already in progress");
-        cut.Find("[data-testid='tenants-add-member-state']").TextContent.ShouldContain("Unable to verify");
+        cut.Find("[data-testid='tenants-add-member-state']").TextContent.ShouldContain("request sent", Case.Insensitive);
         gateway.LastAddMemberRequest.ShouldNotBeNull().UserId.ShouldBe("literal-user");
         cut.Instance.Snapshot.LastConfirmedMemberProjection.ShouldBeNull();
 
@@ -1042,6 +1044,8 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
     {
         private static readonly Dictionary<string, string> Values = new(StringComparer.Ordinal)
         {
+            ["Tenants.Commands.Unavailable.InvalidTrackingReference"] = "This command could not be submitted because its tracking identifier was not valid. Refresh the tenant and start the action again.",
+            ["Tenants.Commands.Unavailable.AggregateInFlight"] = "Another command is already in progress for this tenant, so this one was not submitted. Wait for its outcome, then try again.",
             ["Tenants.AddMember.Title"] = "Add tenant member",
             ["Tenants.AddMember.Description"] = "Add a literal user id to tenant {0}. Current visible owner count is {1}.",
             ["Tenants.AddMember.UserId.Label"] = "User id",

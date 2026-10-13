@@ -64,6 +64,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 #endif
         Services.AddScoped<TenantSearchPagingState>();
         Services.AddScoped<TenantAggregateCommandAdmissionGate>();
+        Services.AddScoped<TenantCreateAttemptTracker>();
+        Services.AddScoped(provider => provider.GetRequiredService<TenantCreateAttemptTracker>().Attempts);
         Services.AddSingleton(new TenantHighImpactViewportObservation(TenantHighImpactViewportState.Safe));
         Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider());
     }
@@ -2934,7 +2936,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     /// the life of the circuit.
     /// </summary>
     [Fact]
-    public async Task Unmounting_the_member_landmark_releases_the_aggregate_lease()
+    public async Task UnmountingMemberLandmarkRetainsItsExactAttemptUntilTerminalDelivery()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         var admissionGate = new TenantAggregateCommandAdmissionGate();
@@ -2970,9 +2972,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .OnProjectionRefreshRequested.InvokeAsync());
 
         cut.WaitForAssertion(() => cut.FindComponents<MemberAccessReview>().ShouldBeEmpty());
-        cut.WaitForAssertion(() => admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse());
+        admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeTrue();
 
         pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
+        cut.WaitForAssertion(() => admissionGate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse());
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
     }
 
     [Fact]
@@ -4186,6 +4191,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         // Confirmed without an attempt-matched Ready receipt: proof is unsupported in-panel, never pending forever.
         metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
         metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
         _ = gateway.DidNotReceive().GetTenantAuditAsync(
             Arg.Is<TenantAuditRequest>(request => request.From.HasValue),
             Arg.Any<TenantAuditSnapshot?>(),
@@ -4239,6 +4246,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         metadataFlow.Snapshot.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
         metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
         metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
         _ = gateway.Received(1).GetTenantAuditAsync(
             Arg.Is<TenantAuditRequest>(request =>
                 request.TenantId == "tenant.alpha"
@@ -4661,7 +4670,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         // keeps what the Completed status established.
         metadataFlow.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha");
-        metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        metadataFlow.IsCommandSurfaceAvailable.ShouldBeFalse();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
 
         if (evidenceKind is "ambiguous-cross-page" or "version-drift-cross-page")
         {
@@ -4732,7 +4743,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         metadataFlow.Snapshot.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
         metadataFlow.Snapshot.LastConfirmedName.ShouldBe("Alpha");
         projectionVersionProvider().ShouldBe("projection-v1");
-        metadataFlow.IsCommandSurfaceAvailable.ShouldBeTrue();
+        metadataFlow.IsCommandSurfaceAvailable.ShouldBeFalse();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
 
         // A non-authoritative proof reaches the flow as no proof: a provenance failure, not a failed audit read,
         // so the audit record the Completed status established stays pending.
@@ -6969,11 +6982,145 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Select(static match => match.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-    private void RegisterComponentServices()
+    [Theory]
+    [InlineData("change", false)]
+    [InlineData("change", true)]
+    [InlineData("remove", false)]
+    [InlineData("remove", true)]
+    public void LandmarkReplacementRestoresRetainedLiteralTargetEvenWhenAbsentFromCurrentPage(string kind, bool absent)
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        object original = kind is "change"
+            ? TenantChangeRoleCommandSnapshot.Idle().RequestSent(new("tenant.alpha", "reader-user", TenantRole.TenantContributor), TenantRole.TenantReader, 1, "tenant-sequence:1")
+                .Accepted(TenantCommandSubmissionResult.Accepted("original-id", "original-correlation"))
+            : TenantRemoveMemberCommandSnapshot.Idle().Previewed(new("tenant.alpha", "reader-user"), TenantRole.TenantReader, 1, false, detail)
+                .RequestSent("tenant-sequence:1").Accepted(TenantCommandSubmissionResult.Accepted("original-id", "original-correlation"));
+        object owner = new();
+        tracker.TryBegin("tenant.alpha", owner, original, out TenantRetainedCommandAttempt? attempt).ShouldBeTrue();
+        tracker.TryStartDelivery(attempt!, owner).ShouldBeTrue();
+        tracker.TryCompleteDelivery(attempt!, original, original).ShouldBeTrue();
+        tracker.Detach(attempt, owner);
+        IRenderedComponent<MemberAccessReview> RenderLandmark() => Render<MemberAccessReview>(p => p
+            .Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(x => x.ProjectionVersion, "tenant-sequence:900").Add(x => x.AuditProofCapabilityAvailable, true)
+            .Add(x => x.Members, absent ? MemberSnapshot(detail) with { Rows = [detail.Members[0]] } : MemberSnapshot(detail)));
+        IRenderedComponent<MemberAccessReview> first = RenderLandmark();
+        if (kind is "change")
+        {
+            ChangeTenantMemberRoleFlow child = first.FindComponent<ChangeTenantMemberRoleFlow>().Instance;
+            tracker.IsAttached(attempt!, child).ShouldBeTrue();
+            child.Dispose();
+            tracker.IsAttached(attempt!, child).ShouldBeFalse();
+        }
+        else
+        {
+            RemoveTenantMemberFlow child = first.FindComponent<RemoveTenantMemberFlow>().Instance;
+            tracker.IsAttached(attempt!, child).ShouldBeTrue();
+            child.Dispose();
+            tracker.IsAttached(attempt!, child).ShouldBeFalse();
+        }
+        first.Dispose();
+        IRenderedComponent<MemberAccessReview> replacement = RenderLandmark();
+        if (kind is "change")
+        {
+            replacement.FindComponent<ChangeTenantMemberRoleFlow>().Instance.Member.UserId.ShouldBe("reader-user");
+            replacement.FindComponent<ChangeTenantMemberRoleFlow>().Instance.Snapshot.ShouldBe(original);
+        }
+        else
+        {
+            replacement.FindComponent<RemoveTenantMemberFlow>().Instance.Member.UserId.ShouldBe("reader-user");
+            replacement.FindComponent<RemoveTenantMemberFlow>().Instance.Snapshot.ShouldBe(original);
+        }
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LandmarkChildReplacementWaitsForItsOwnParentAdmissionAndOldCompletionCannotClearIt(bool oldApproved)
+    {
+        TrackingMembershipCommandGateway gateway = new(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
+        RegisterComponentServices(gateway);
+        var oldAdmission = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var replacementAdmission = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        Func<bool, Task<bool>> lease = active => !active ? Task.FromResult(true)
+            : Interlocked.Increment(ref acquisitions) == 1 ? oldAdmission.Task : replacementAdmission.Task;
+        TenantDetail detail = Detail("tenant.alpha");
+        IRenderedComponent<MemberAccessReview> landmark = Render<MemberAccessReview>(p => p
+            .Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(x => x.ProjectionVersion, "tenant-sequence:1").Add(x => x.Members, MemberSnapshot(detail))
+            .Add(x => x.CommandActivityLease, lease));
+        landmark.FindAll("[data-testid='tenants-change-role-open']").Last().Click();
+        IRenderedComponent<ChangeTenantMemberRoleFlow> first = landmark.FindComponent<ChangeTenantMemberRoleFlow>();
+        FluentSelectInterop.ChangeFluentSelect(first, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        Task oldSubmit = first.Find("form").SubmitAsync();
+        landmark.WaitForAssertion(() => acquisitions.ShouldBe(1));
+        MethodInfo enter = typeof(MemberAccessReview).GetMethod("HandleChangeRoleCommandActivityLeaseAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        (await landmark.InvokeAsync(() => (Task<bool>)enter.Invoke(landmark.Instance, [true])!)).ShouldBeFalse();
+        gateway.ChangeRoleCallCount.ShouldBe(0);
+        landmark.Render(p => p.Add(x => x.Members, MemberSnapshot(detail) with { RequestCursor = "replacement-page" }));
+        landmark.FindAll("[data-testid='tenants-change-role-open']").Last().Click();
+        IRenderedComponent<ChangeTenantMemberRoleFlow> replacement = landmark.FindComponent<ChangeTenantMemberRoleFlow>();
+        FluentSelectInterop.ChangeFluentSelect(replacement, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        Task nextSubmit = replacement.Find("form").SubmitAsync();
+        landmark.WaitForAssertion(() => acquisitions.ShouldBe(2));
+        oldAdmission.SetResult(oldApproved);
+        await oldSubmit.WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.ChangeRoleCallCount.ShouldBe(0);
+        (await landmark.InvokeAsync(() => (Task<bool>)enter.Invoke(landmark.Instance, [true])!)).ShouldBeFalse();
+        replacementAdmission.SetResult(true);
+        await nextSubmit.WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.ChangeRoleCallCount.ShouldBe(1);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task PageReplacementRendersSiblingAvailabilityWhenOwnerlessTerminalEvidenceReleasesAdmission()
+    {
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:1")));
+        var heldStatus = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
+        gateway.AddUserToTenantAsync(Arg.Any<AddUserToTenant>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "original-correlation")));
+        gateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>()).Returns(heldStatus.Task);
+        Services.AddSingleton(gateway);
+        IRenderedComponent<TenantDetailPage> first = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        first.WaitForElement("[data-testid='tenants-add-member-user-id']");
+        IRenderedComponent<AddTenantMemberFlow> add = first.FindComponent<AddTenantMemberFlow>();
+        add.Find("[data-testid='tenants-add-member-user-id']").Change("new-reader");
+        FluentSelectInterop.ChangeFluentSelect(add, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        Task submission = add.Find("form").SubmitAsync();
+        first.WaitForAssertion(() => gateway.ReceivedCalls().Count(call => call.GetMethodInfo().Name is nameof(ITenantCommandGateway.GetStatusAsync)).ShouldBe(1));
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantRetainedCommandAttempt retained = (TenantRetainedCommandAttempt)typeof(AddTenantMemberFlow)
+            .GetField("_retainedAttempt", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(add.Instance)!;
+        tracker.IsAttached(retained, add.Instance).ShouldBeTrue();
+        add.Instance.Dispose();
+        tracker.IsAttached(retained, add.Instance).ShouldBeFalse();
+        first.Dispose();
+        IRenderedComponent<TenantDetailPage> replacement = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        replacement.WaitForAssertion(() => replacement.FindComponent<EditTenantMetadataFlow>().Instance.IsCommandSurfaceAvailable.ShouldBeFalse());
+        heldStatus.SetResult(new(CommandStatus.Rejected, HasVerifiedCommandIdentity: true));
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        replacement.WaitForAssertion(() =>
+        {
+            replacement.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+            replacement.FindComponent<EditTenantMetadataFlow>().Instance.IsCommandSurfaceAvailable.ShouldBeTrue();
+            replacement.Find("[data-testid='tenants-edit-metadata-open']");
+        });
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    private void RegisterComponentServices(ITenantCommandGateway? commandGateway = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
-        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton(commandGateway ?? new StubTenantCommandGateway());
         Services.AddSingleton<ITenantQueryGateway>(Substitute.For<ITenantQueryGateway>());
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddFluentUIComponents();

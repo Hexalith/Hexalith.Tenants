@@ -6,6 +6,7 @@
 @using Microsoft.Extensions.Localization
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
+@implements IDisposable
 
 <section class="tenants-create-flow" data-testid="tenants-create-flow"
          aria-labelledby="@(ShowHeading ? "tenants-create-heading" : null)"
@@ -149,6 +150,9 @@
     public string? WorkspaceAuditReturnUrl { get; set; }
 
     private readonly object _formModel = new();
+    private TenantRetainedCommandAttempt? _retainedAttempt;
+    private int _attemptGeneration;
+    private bool _disposed;
     private TenantCreateCommandSnapshot _snapshot = TenantCreateCommandSnapshot.Idle();
     private bool _returnStateConsumed;
     private string? _tenantId;
@@ -195,8 +199,51 @@
 
     internal TenantCreateCommandSnapshot Snapshot => _snapshot;
 
+    private void SynchronizeRetainedAttempt()
+    {
+        if (_retainedAttempt is { } attempt
+            && Attempts.TryRead<TenantCreateCommandSnapshot>(attempt, this, out TenantCreateCommandSnapshot? latest) && latest is not null)
+        {
+            _snapshot = latest;
+        }
+    }
+
+    private void OnRetainedAttemptChanged(object? sender, EventArgs args)
+    {
+        if (_disposed || _retainedAttempt is null)
+        {
+            return;
+        }
+        _ = RenderRetainedAttemptAsync();
+    }
+
+    private async Task RenderRetainedAttemptAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (!_disposed)
+                {
+                    SynchronizeRetainedAttempt();
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+
     protected override void OnInitialized()
     {
+        TenantCommandAttemptTracker? attempts = AttemptTracker?.Attempts;
+        if (attempts is not null)
+        {
+            attempts.StateChanged += OnRetainedAttemptChanged;
+        }
+
         TenantCreateAuditReturnState? returnState = Services.GetService<TenantCreateAuditReturnState>();
         if (!RestoreAuditReturn || !IsAuthorized)
         {
@@ -211,6 +258,20 @@
             _tenantId = retained.TenantId;
             _name = retained.Name;
             _description = retained.Description;
+            if (retained.Snapshot.Intent is { } intent && AttemptTracker is not null)
+            {
+                if (Attempts.Find<TenantCreateCommandSnapshot>(intent.TenantId) is null)
+                {
+                    AttemptTracker.Remember(retained.Snapshot);
+                }
+                if (Attempts.TryAdopt<TenantCreateCommandSnapshot>(intent.TenantId, this, out TenantRetainedCommandAttempt? attempt, out TenantCreateCommandSnapshot? snapshot)
+                    && snapshot is not null)
+                {
+                    _retainedAttempt = attempt;
+                    _snapshot = snapshot;
+                    _attemptGeneration++;
+                }
+            }
         }
     }
 
@@ -229,7 +290,7 @@
             ? Localizer["Tenants.Create.Unavailable.Authorization"].Value
             : !IsFresh
                 ? Localizer["Tenants.Create.Availability.Stale"].Value
-                : !IsCommandSurfaceAvailable || CommandGateway is null
+                : !IsCommandSurfaceAvailable || CommandGateway is null || AttemptTracker is null
                     ? Localizer["Tenants.Create.Unavailable.CommandSurface"].Value
                     : _isSubmitting
                         ? Localizer["Tenants.Create.Unavailable.InFlight"].Value
@@ -382,6 +443,11 @@
     // polite progress (request sent, accepted, projection pending, confirmed) never steals focus.
     private void SetSnapshot(TenantCreateCommandSnapshot snapshot)
     {
+        if (_retainedAttempt is { } attempt && !Attempts.TryUpdate(attempt, _snapshot, snapshot))
+        {
+            return;
+        }
+
         _snapshot = snapshot;
         if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
         {
@@ -390,7 +456,9 @@
     }
 
     private TenantCreateAttemptTracker? AttemptTracker
-        => Services.GetService<TenantCreateAttemptTracker>();
+        => Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCreateAttemptTracker>();
+
+    private TenantCommandAttemptTracker Attempts => AttemptTracker!.Attempts;
 
     internal void ApplySignalRNudge()
         => SetSnapshot(_snapshot.SignalRNudge());
@@ -407,13 +475,49 @@
     private void OnDescriptionInput(string? value)
         => _description = value;
 
+    private bool CanRetryDelivery
+        => !_isSubmitting && _snapshot.State is TenantCommandLifecycleState.RequestSent
+            && _snapshot.MessageId is not null && _snapshot.CorrelationId is null
+            && _retainedAttempt?.DeliveryInFlight is not true;
+
+    private bool PublishResult(TenantRetainedCommandAttempt? attempt, int generation,
+        TenantCreateCommandSnapshot expected, TenantCreateCommandSnapshot result, bool delivery = false)
+    {
+        bool retained = attempt is null || (delivery
+            ? Attempts.TryCompleteDelivery(attempt, expected, result)
+            : Attempts.TryUpdate(attempt, expected, result));
+        if (!retained || _disposed || generation != _attemptGeneration
+            || !ReferenceEquals(_retainedAttempt, attempt)
+            || attempt is not null && !Attempts.IsAttached(attempt, this)
+            || !delivery && !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected) && !ReferenceEquals(_snapshot, result))
+        {
+            return false;
+        }
+
+        _snapshot = result;
+        if (result.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
+        {
+            _focusLifecyclePending = true;
+        }
+
+        return true;
+    }
+
     private async Task SubmitAsync()
     {
-        _validationMessage = null;
+        SynchronizeRetainedAttempt();
+        if (_disposed || _isSubmitting)
+        {
+            return;
+        }
 
+        _validationMessage = null;
         if (!string.IsNullOrWhiteSpace(UnavailableReason))
         {
-            SetSnapshot(TenantCreateCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            if (_retainedAttempt is null)
+            {
+                SetSnapshot(TenantCreateCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            }
             return;
         }
 
@@ -423,7 +527,6 @@
             _focusTenantIdPending = true;
             return;
         }
-
         if (string.IsNullOrWhiteSpace(_name))
         {
             _validationMessage = Localizer["Tenants.Create.Validation.NameRequired"];
@@ -432,232 +535,245 @@
         }
 
         var request = new CreateTenant(_tenantId, _name, _description);
-        if (_snapshot.Intent != request)
+        if (_retainedAttempt is not null && !_snapshot.IsTerminal)
         {
-            _returnStateConsumed = false;
-        }
-
-        if (_snapshot.MessageId is not null || _snapshot.CorrelationId is not null)
-        {
-            if (_snapshot.Intent == request && _snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
+            if (_snapshot.Intent != request)
             {
-                // Same logical attempt: refresh its tracked status. Never dispatch a second command.
-                await RefreshStatusAsync().ConfigureAwait(false);
-                return;
-            }
-
-            if (!_snapshot.IsTerminal)
-            {
-                // A different intent while the tracked attempt is still resolving. Surface the block but
-                // keep MessageId/CorrelationId so the refresh recovery the copy names stays operable.
                 SetSnapshot(_snapshot.BlockedWithTracking(Localizer["Tenants.Create.Unavailable.Tracking"].Value));
                 return;
             }
-
-            // The tracked attempt reached a terminal outcome, so a different intent is a deliberate new
-            // attempt: release the old tracking and let a fresh ULID be minted for it.
-            if (_snapshot.Intent is not null)
+            if (_snapshot.CorrelationId is not null)
             {
-                AttemptTracker?.Forget(_snapshot.Intent.TenantId);
-            }
-
-            _snapshot = TenantCreateCommandSnapshot.Idle();
-        }
-
-        // This component instance carries no tracking of its own but the circuit still retains a handle
-        // for this tenant id (re-mount, workspace tab round trip): adopt it and reconcile rather than
-        // dispatching the same create a second time.
-        if (AttemptTracker?.Find(request.TenantId) is TenantCommandTrackingHandle retained)
-        {
-            if (string.IsNullOrWhiteSpace(retained.MessageId) || string.IsNullOrWhiteSpace(retained.CorrelationId)
-                || !string.Equals(retained.AggregateId, request.TenantId, StringComparison.Ordinal)
-                || !string.Equals(retained.ExpectedDomain, TenantIdentity.Domain, StringComparison.Ordinal))
-            {
-                SetSnapshot(TenantCreateCommandSnapshot.Blocked(
-                    Localizer["Tenants.Create.Unavailable.Tracking"].Value, TenantCommandFocusTarget.Refresh));
+                await RefreshStatusAsync().ConfigureAwait(false);
                 return;
             }
-
-            SetSnapshot(_snapshot
-                .RequestSent(request, BaselineProjectionVersion, BaselineTenantAbsent)
-                .Accepted(TenantCommandSubmissionResult.Accepted(retained.MessageId, retained.CorrelationId)));
-            await RefreshStatusAsync().ConfigureAwait(false);
+            if (!CanRetryDelivery)
+            {
+                return;
+            }
+            await DispatchAttemptAsync().ConfigureAwait(false);
             return;
         }
 
-        _isSubmitting = true;
+        if (Attempts.TryAdopt<TenantCreateCommandSnapshot>(request.TenantId, this, out TenantRetainedCommandAttempt? adopted,
+            out TenantCreateCommandSnapshot? retained) && retained is not null && !retained.IsTerminal)
+        {
+            _retainedAttempt = adopted;
+            _attemptGeneration++;
+            _snapshot = retained;
+            if (retained.Intent != request)
+            {
+                SetSnapshot(retained.BlockedWithTracking(Localizer["Tenants.Create.Unavailable.Tracking"].Value));
+            }
+            else if (retained.CorrelationId is not null)
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
+            }
+            else if (CanRetryDelivery)
+            {
+                await DispatchAttemptAsync().ConfigureAwait(false);
+            }
+            return;
+        }
 
+        // An old handle without its intent and baseline cannot prove a create. Keep it fail closed.
+        if (AttemptTracker?.Find(request.TenantId) is not null || Attempts.HasPendingOwnership(request.TenantId))
+        {
+            SetSnapshot(TenantCreateCommandSnapshot.Blocked(Localizer["Tenants.Create.Unavailable.Tracking"].Value,
+                TenantCommandFocusTarget.Refresh));
+            return;
+        }
+
+        Attempts.Detach(_retainedAttempt, this);
+        _retainedAttempt = null;
+        _returnStateConsumed = false;
+        _snapshot = TenantCreateCommandSnapshot.Idle().RequestSent(request, BaselineProjectionVersion, BaselineTenantAbsent);
+        if (!Attempts.TryBegin(request.TenantId, this, _snapshot, out _retainedAttempt))
+        {
+            SetSnapshot(TenantCreateCommandSnapshot.Blocked(Localizer["Tenants.Commands.Unavailable.AggregateInFlight"].Value,
+                TenantCommandFocusTarget.Submit));
+            return;
+        }
+
+        int generation = ++_attemptGeneration;
+        _isSubmitting = true;
         try
         {
             CreateAttemptBaseline? baseline = await CaptureBaselineAsync(request.TenantId).ConfigureAwait(false);
+            if (_disposed || generation != _attemptGeneration)
+            {
+                return;
+            }
+            if (!IsAuthorized || !IsFresh || !IsCommandSurfaceAvailable || CommandGateway is null || AttemptTracker is null)
+            {
+                Attempts.Detach(_retainedAttempt, this);
+                _retainedAttempt = null;
+                SetSnapshot(TenantCreateCommandSnapshot.Blocked(
+                    !IsAuthorized ? Localizer["Tenants.Create.Unavailable.Authorization"].Value
+                        : !IsFresh ? Localizer["Tenants.Create.Availability.Stale"].Value
+                        : Localizer["Tenants.Create.Unavailable.CommandSurface"].Value,
+                    TenantCommandFocusTarget.Submit));
+                return;
+            }
             if (baseline is null)
             {
-                SetSnapshot(TenantCreateCommandSnapshot.Blocked(
-                    Localizer["Tenants.Create.Unavailable.Freshness"].Value,
+                Attempts.Detach(_retainedAttempt, this);
+                _retainedAttempt = null;
+                SetSnapshot(TenantCreateCommandSnapshot.Blocked(Localizer["Tenants.Create.Unavailable.Freshness"].Value,
                     TenantCommandFocusTarget.Refresh));
                 return;
             }
 
-            _snapshot = _snapshot.RequestSent(
-                request,
-                BaselineProjectionVersion,
-                baseline.Value.TenantAbsent,
-                baseline.Value.DetailProjectionVersion);
-            ITenantCommandGateway? gateway = CommandGateway;
-            if (gateway is null)
+            SetSnapshot(_snapshot with
             {
-                SetSnapshot(TenantCreateCommandSnapshot.Blocked(
-                    Localizer["Tenants.Create.Unavailable.CommandSurface"].Value,
-                    TenantCommandFocusTarget.Submit));
-                return;
+                BaselineTenantAbsent = baseline.Value.TenantAbsent,
+                BaselineDetailProjectionVersion = baseline.Value.DetailProjectionVersion,
+                MessageId = Services.GetService<Hexalith.FrontComposer.Contracts.Lifecycle.IUlidFactory>()?.NewUlid()
+                    ?? NUlid.Ulid.NewUlid().ToString(),
+            });
+        }
+        finally
+        {
+            if (generation == _attemptGeneration)
+            {
+                _isSubmitting = false;
             }
+        }
+        await DispatchAttemptAsync().ConfigureAwait(false);
+    }
 
-            // Reuse the tracked message id when one exists so a re-dispatch of the same logical attempt
-            // collapses onto the same command instead of creating a second one.
-            TenantCommandSubmissionResult result = await gateway
-                .CreateTenantAsync(request, messageId: _snapshot.MessageId, cancellationToken: CancellationToken.None)
-                .ConfigureAwait(false);
+    private async Task DispatchAttemptAsync()
+    {
+        TenantRetainedCommandAttempt? attempt = _retainedAttempt;
+        TenantCreateCommandSnapshot expected = _snapshot;
+        int generation = _attemptGeneration;
+        ITenantCommandGateway? gateway = CommandGateway;
+        if (_disposed || attempt is null || expected.Intent is null || gateway is null
+            || !Attempts.TryStartDelivery(attempt, this))
+        {
+            return;
+        }
 
-            if (result.State is TenantCommandLifecycleState.Accepted)
+        _isSubmitting = true;
+        try
+        {
+            TenantCommandSubmissionResult result;
+            try
             {
-                SetSnapshot(_snapshot.Accepted(result));
-                if (_snapshot.MessageId is not null && _snapshot.CorrelationId is not null)
-                {
-                    AttemptTracker?.Remember(
-                        request.TenantId,
-                        new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId, request.TenantId) { ExpectedDomain = TenantIdentity.Domain });
-                }
-
-                await RefreshStatusAsync().ConfigureAwait(false);
+                result = await gateway.CreateTenantAsync(expected.Intent, expected.MessageId, CancellationToken.None).ConfigureAwait(false);
             }
-            else
+            catch (Exception)
             {
-                SetSnapshot(_snapshot with
+                result = TenantCommandSubmissionResult.Failed(Localizer["Tenants.Create.Unavailable.CommandSurface"].Value)
+                    with { MessageId = expected.MessageId, IsAmbiguousFailure = true };
+            }
+            TenantCreateCommandSnapshot completion = result.State is TenantCommandLifecycleState.Accepted
+                ? expected.Accepted(result)
+                : expected with
                 {
-                    State = result.State,
+                    State = result.IsAmbiguousFailure ? TenantCommandLifecycleState.RequestSent : result.State,
+                    MessageId = result.MessageId ?? expected.MessageId,
+                    CorrelationId = result.CorrelationId ?? expected.CorrelationId,
                     SafeMessage = result.SafeMessage,
-                    SafeMessageKey = null,
+                    SafeMessageKey = result.SafeMessageKey,
                     RejectionCode = result.RejectionCode,
                     AuditState = TenantCommandAuditStates.FromSubmission(result),
-                    // Focus moves to refresh only when refresh is operable. A rejected or failed
-                    // submission carries no correlation, so CanRefresh is false and sending focus there
-                    // would land the caller on a disabled control.
-                    FocusTarget = result.CorrelationId is not null
-                        ? TenantCommandFocusTarget.Refresh
-                        : TenantCommandFocusTarget.Submit,
+                    FocusTarget = result.CorrelationId is not null ? TenantCommandFocusTarget.Refresh : TenantCommandFocusTarget.Submit,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                });
+                };
+            if (PublishResult(attempt, generation, expected, completion, delivery: true)
+                && completion.CorrelationId is not null && !completion.IsTerminal)
+            {
+                await RefreshStatusAsync().ConfigureAwait(false);
             }
         }
         finally
         {
-            _isSubmitting = false;
+            if (generation == _attemptGeneration)
+            {
+                _isSubmitting = false;
+            }
         }
     }
 
     private async Task RefreshStatusAsync()
     {
-        if (_snapshot.MessageId is null || _snapshot.CorrelationId is null)
+        SynchronizeRetainedAttempt();
+        TenantCreateCommandSnapshot expected = _snapshot;
+        TenantRetainedCommandAttempt? attempt = _retainedAttempt;
+        int generation = _attemptGeneration;
+        if (_disposed || expected.IsTerminal || expected.MessageId is null || expected.CorrelationId is null)
         {
             return;
         }
 
         ITenantCommandGateway? gateway = CommandGateway;
-        if (gateway is null)
-        {
-            SetSnapshot(_snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(Localizer["Tenants.Create.Unavailable.CommandSurface"].Value)));
-            return;
-        }
-
-        // The status belongs to the attempt tracked before the await. Continue read-only can reset the panel while
-        // the lookup runs; applying the late result then would write a dismissed attempt back onto the Idle panel.
-        string messageId = _snapshot.MessageId;
-        TenantCommandStatusResult status = await gateway
-            .GetStatusAsync(new TenantCommandTrackingHandle(messageId, _snapshot.CorrelationId, _snapshot.Intent?.TenantId) { ExpectedDomain = TenantIdentity.Domain }, CancellationToken.None)
-            .ConfigureAwait(false);
-        if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
+        TenantCommandStatusResult status = gateway is null
+            ? TenantCommandStatusResult.Unknown(Localizer["Tenants.Create.Unavailable.CommandSurface"].Value)
+            : await gateway.GetStatusAsync(new TenantCommandTrackingHandle(expected.MessageId, expected.CorrelationId, expected.Intent?.TenantId)
+                { ExpectedDomain = TenantIdentity.Domain }, CancellationToken.None).ConfigureAwait(false);
+        if (!PublishResult(attempt, generation, expected, expected.ApplyStatus(status)))
         {
             return;
         }
 
-        SetSnapshot(_snapshot.ApplyStatus(status));
-
-        // Marshal the EventCallback back onto the renderer's Dispatcher: the preceding
-        // ConfigureAwait(false) awaits leave us on a thread-pool thread, and invoking the
-        // callback there triggers the parent's StateHasChanged off-Dispatcher, which throws
-        // "The current thread is not associated with the Dispatcher" and tears down the circuit.
+        expected = _snapshot;
         await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
-
-        // Reconciliation applies only while the attempt is projection-pending. Running it on a terminal
-        // Rejected/Failed/Degraded attempt would issue a pointless detail read, and a throw from that read
-        // would overwrite a definitive rejection with "unable to verify".
-        if (_snapshot.Intent is null || _snapshot.State is not TenantCommandLifecycleState.ProjectionPending)
+        if (_disposed || generation != _attemptGeneration || !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected)
+            || expected.Intent is null || expected.State is not TenantCommandLifecycleState.ProjectionPending)
         {
-            ReleaseTrackingIfTerminal();
             return;
         }
 
-        CreateTenant intent = _snapshot.Intent;
         try
         {
-            TenantListSnapshot? listResult = ProjectionEvidenceProvider is null
-                ? null
-                : await ProjectionEvidenceProvider(intent.TenantId).ConfigureAwait(false);
-            if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
+            TenantListSnapshot? list = ProjectionEvidenceProvider is null ? null
+                : await ProjectionEvidenceProvider(expected.Intent.TenantId).ConfigureAwait(false);
+            if (_disposed || generation != _attemptGeneration || !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected))
             {
                 return;
             }
-
-            TenantDetailSnapshot? detailEvidence = null;
-            if (Services.GetService<ITenantQueryGateway>() is ITenantQueryGateway queryGateway)
-            {
-                detailEvidence = await queryGateway
-                    .GetTenantAsync(
-                        new TenantDetailRequest(intent.TenantId),
-                        previous: null,
-                        cancellationToken: CancellationToken.None)
-                    .ConfigureAwait(false);
-            }
-
-            if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            SetSnapshot(_snapshot.ConfirmProjection(listResult, detailEvidence));
+            TenantDetailSnapshot? detail = Services.GetService<ITenantQueryGateway>() is ITenantQueryGateway query
+                ? await query.GetTenantAsync(new(expected.Intent.TenantId), previous: null, CancellationToken.None).ConfigureAwait(false)
+                : null;
+            _ = PublishResult(attempt, generation, expected, expected.ConfirmProjection(list, detail));
         }
         catch (Exception)
         {
-            if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
+            _ = PublishResult(attempt, generation, expected, expected with
             {
-                return;
-            }
-
-            SetSnapshot(UnableToVerifyProjection());
+                State = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.Create.Confirm.UnableToVerify.MissingProvenance",
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            });
         }
-
-        ReleaseTrackingIfTerminal();
     }
 
-    // Continue read-only resets the attempt panel to Idle and focuses the lifecycle section; it does not navigate to
-    // the tenant list. A still-resolving attempt keeps its circuit tracking handle, so resubmitting the same tenant id
-    // adopts and reconciles it instead of dispatching a second create.
     private void ContinueReadOnly()
     {
-        ReleaseTrackingIfTerminal();
+        if (!CanContinueReadOnly || _disposed)
+        {
+            return;
+        }
+        Attempts.Detach(_retainedAttempt, this);
+        _retainedAttempt = null;
+        _attemptGeneration++;
         _snapshot = TenantCreateCommandSnapshot.Idle();
-
-        // The Idle snapshot unmounts the shared control and the button that had focus, so focus moves to the
-        // lifecycle section instead of falling back to the document body.
         _focusLifecyclePending = true;
     }
 
-    private void ReleaseTrackingIfTerminal()
+    public void Dispose()
     {
-        if (_snapshot.IsTerminal && _snapshot.Intent is not null)
+        _disposed = true;
+        TenantCommandAttemptTracker? attempts = AttemptTracker?.Attempts;
+        if (attempts is not null)
         {
-            AttemptTracker?.Forget(_snapshot.Intent.TenantId);
+            attempts.StateChanged -= OnRetainedAttemptChanged;
         }
+        _attemptGeneration++;
+        AttemptTracker?.Attempts.Detach(_retainedAttempt, this);
     }
 
     // Returns null when baseline absence can be neither proved nor disproved, so the caller fails closed
@@ -699,18 +815,6 @@
             return null;
         }
     }
-
-    // A failed projection read is projection truth only: the command stays unverified, and the audit dimension
-    // keeps what command status established, because no audit read happened.
-    private TenantCreateCommandSnapshot UnableToVerifyProjection()
-        => _snapshot with
-        {
-            State = TenantCommandLifecycleState.UnableToVerify,
-            SafeMessage = null,
-            SafeMessageKey = "Tenants.Create.Confirm.UnableToVerify.MissingProvenance",
-            FocusTarget = TenantCommandFocusTarget.Refresh,
-            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-        };
 
     private readonly record struct CreateAttemptBaseline(bool TenantAbsent, string? DetailProjectionVersion);
 }
