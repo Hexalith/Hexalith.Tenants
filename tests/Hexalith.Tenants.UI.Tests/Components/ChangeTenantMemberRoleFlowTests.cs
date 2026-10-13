@@ -1,3 +1,5 @@
+using Hexalith.Tenants.Contracts.Identity;
+using static Hexalith.Tenants.UI.Tests.TenantCommandProofFixtures;
 using System.Globalization;
 
 using AngleSharp.Dom;
@@ -81,7 +83,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-789"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -142,7 +144,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.PublishFailed),
+            Status = new TenantCommandStatusResult(CommandStatus.PublishFailed, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
@@ -169,7 +171,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
@@ -200,7 +202,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-789"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -215,12 +217,12 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 liveProjectionVersion = "v2";
-                return Task.FromResult<TenantDetail?>(Detail(
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                     request.TenantId,
                     [
                         new TenantMember("owner-user", TenantRole.TenantOwner),
                         new TenantMember(request.UserId, request.NewRole),
-                    ]));
+                    ]), liveProjectionVersion));
             }));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
@@ -245,7 +247,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-789"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         TenantDetail originalDetail = Detail("tenant.alpha");
@@ -255,7 +257,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(originalDetail)));
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(Proof(originalDetail, "tenant-sequence:2"))));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
@@ -349,7 +351,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-789"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         TenantDetail detail = Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]);
@@ -488,8 +490,8 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-789"),
             StatusAsync = _ => Task.FromResult(++statusCalls == 1
-                ? new TenantCommandStatusResult(CommandStatus.Received)
-                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+                ? new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true)
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)),
         };
         RegisterServices(gateway);
 
@@ -505,16 +507,16 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             {
                 if (++projectionCalls == 1)
                 {
-                    return Task.FromResult<TenantDetail?>(Detail(request.TenantId));
+                    return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId), liveProjectionVersion));
                 }
 
                 liveProjectionVersion = "v2";
-                return Task.FromResult<TenantDetail?>(Detail(
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                     request.TenantId,
                     [
                         new TenantMember("owner-user", TenantRole.TenantOwner),
                         new TenantMember(request.UserId, request.NewRole),
-                    ]));
+                    ]), liveProjectionVersion));
             }));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
@@ -544,7 +546,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-789"),
-            Status = new TenantCommandStatusResult(status, "Safe status message.", "SafeCode"),
+            Status = new TenantCommandStatusResult(status, "Safe status message.", "SafeCode", HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -553,12 +555,12 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Detail(
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                 request.TenantId,
                 [
                     new TenantMember("owner-user", TenantRole.TenantOwner),
                     new TenantMember(request.UserId, request.NewRole),
-                ]))));
+                ]), "tenant-sequence:2"))));
 
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
@@ -629,7 +631,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
                         await releaseOverlappingStatus.Task.ConfigureAwait(false);
                     }
 
-                    return new TenantCommandStatusResult(CommandStatus.Received);
+                    return new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true);
                 }
                 finally
                 {
@@ -677,7 +679,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
                     await releaseNudgeLookup.Task.ConfigureAwait(false);
                 }
 
-                return new TenantCommandStatusResult(CommandStatus.EventsStored);
+                return new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true);
             },
         };
         RegisterServices(gateway);
@@ -732,7 +734,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
                 {
                     MessageId = "message-1",
                 },
-            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         IRenderedComponent<ChangeTenantMemberRoleFlow> cut = RenderReaderFlow();
@@ -754,7 +756,7 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         string liveProjectionVersion = "v1";
@@ -768,12 +770,12 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 liveProjectionVersion = "v2";
-                return Task.FromResult<TenantDetail?>(Detail(
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                     request.TenantId,
                     [
                         new TenantMember("owner-user", TenantRole.TenantOwner),
                         new TenantMember(request.UserId, request.NewRole),
-                    ]));
+                    ]), liveProjectionVersion));
             }));
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
         cut.Find("form").Submit();
@@ -1063,6 +1065,8 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
         {
+            handle.AggregateId.ShouldNotBeNullOrWhiteSpace();
+            handle.ExpectedDomain.ShouldBe(TenantIdentity.Domain);
             StatusCallCount++;
             return StatusAsync is null ? Task.FromResult(Status) : StatusAsync(handle);
         }

@@ -206,7 +206,7 @@
                                             Freshness="@_snapshot.Freshness"
                                             Lifecycle="@_snapshot.Lifecycle"
                                             ProjectionVersion="@_snapshot.ProjectionVersion"
-                                            ProjectionVersionProvider="@(() => _updateMetadataProofProjectionVersion ?? _snapshot.ProjectionVersion)"
+                                            ProjectionVersionProvider="@(() => _snapshot.ProjectionVersion)"
                                             IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                             OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                             CommandActivityLease="@MetadataCommandActivityLease"
@@ -1013,7 +1013,6 @@
         _memberPagingHistoryTruncated = false;
         _memberPagingJumpedToFirstPage = false;
         _memberPageLoadInFlight = false;
-        _updateMetadataProofProjectionVersion = null;
         _auditProofCapabilityAvailable = false;
         _auditReadDenied = false;
         _auditCapabilityResolved = false;
@@ -2383,7 +2382,6 @@
             _metadataProofTenantId = tenantId;
             _metadataProofCallerScope = _callerScope;
             _ = Interlocked.Increment(ref _metadataProofGeneration);
-            _updateMetadataProofProjectionVersion = null;
             // Each proof operation owns disposal of its source. Route invalidation only cancels it, avoiding
             // the CancellationToken.Register-after-Dispose race described for the main page-load path. Keep
             // cancellation under the same lock as completion so a source cannot be disposed between selection
@@ -2421,20 +2419,6 @@
         lock (_metadataProofLock)
         {
             return CanApplyMetadataProofCore(generation, tenantId);
-        }
-    }
-
-    private bool TryApplyMetadataProofVersion(long generation, string tenantId, string? projectionVersion)
-    {
-        lock (_metadataProofLock)
-        {
-            if (!CanApplyMetadataProofCore(generation, tenantId))
-            {
-                return false;
-            }
-
-            _updateMetadataProofProjectionVersion = projectionVersion;
-            return true;
         }
     }
 
@@ -2518,33 +2502,40 @@
         source.Dispose();
     }
 
-    private Task<TenantDetail?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
-        => Task.FromResult(
-            IsCurrentCallerScope(_snapshot.CallerScope)
-                && string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
-                ? _snapshot.Detail
-                : null);
+    private Task<TenantDetailSnapshot?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
+        => GetMemberProjectionEvidenceAsync(request.TenantId);
 
-    private Task<TenantDetail?> GetChangeRoleProjectionEvidenceAsync(ChangeUserRole request)
-        => Task.FromResult(
-            IsCurrentCallerScope(_snapshot.CallerScope)
-                && string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
-                ? _snapshot.Detail
-                : null);
+    private Task<TenantDetailSnapshot?> GetChangeRoleProjectionEvidenceAsync(ChangeUserRole request)
+        => GetMemberProjectionEvidenceAsync(request.TenantId);
 
-    private Task<TenantDetail?> GetRemoveMemberProjectionEvidenceAsync(RemoveUserFromTenant request)
-        => Task.FromResult(
-            IsCurrentCallerScope(_snapshot.CallerScope)
-                && string.Equals(_snapshot.Detail?.TenantId, request.TenantId, StringComparison.Ordinal)
-                ? _snapshot.Detail
-                : null);
+    private Task<TenantDetailSnapshot?> GetRemoveMemberProjectionEvidenceAsync(RemoveUserFromTenant request)
+        => GetMemberProjectionEvidenceAsync(request.TenantId);
 
-    // Projection version observed by the last authoritative metadata proof read. The flow asks for evidence
-    // first and the version second, so this is always the version of the very read that produced the
-    // evidence -- never a version from an unrelated refresh that happened in between.
-    private string? _updateMetadataProofProjectionVersion;
+    private async Task<TenantDetailSnapshot?> GetMemberProjectionEvidenceAsync(string tenantId)
+    {
+        using PendingOperation? operation = BeginLifecycleProof(tenantId);
+        if (operation is null)
+        {
+            return null;
+        }
 
-    private async Task<TenantDetail?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenant request)
+        TenantDetailSnapshot proof;
+        try
+        {
+            proof = await QueryGateway.GetTenantAsync(new TenantDetailRequest(tenantId),
+                previous: null, operation.CancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
+        {
+            return null;
+        }
+
+        return CanApplyLifecycleProof(operation.Generation, tenantId)
+            && IsCurrentCallerScope(proof.CallerScope)
+            ? proof : null;
+    }
+
+    private async Task<TenantDetailSnapshot?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenant request)
     {
         using PendingOperation? operation = BeginMetadataProof(request.TenantId);
         if (operation is null)
@@ -2579,14 +2570,12 @@
             || !string.Equals(proof.Detail?.TenantId, request.TenantId, StringComparison.Ordinal))
         {
             // Fail closed: payload presence alone is not authoritative. A stale, unknown, or non-current
-            // proof must also clear any version retained from an earlier proof so it cannot qualify this read.
-            _ = TryApplyMetadataProofVersion(operation.Generation, request.TenantId, projectionVersion: null);
+            // proof cannot qualify this read; the payload and version are carried together.
             return null;
         }
 
-        return TryApplyMetadataProofVersion(operation.Generation, request.TenantId, proof.ProjectionVersion)
-            ? proof.Detail
-            : null;
+        return CanApplyMetadataProof(operation.Generation, request.TenantId)
+            && IsCurrentCallerScope(proof.CallerScope) ? proof : null;
     }
 
     private async Task<TenantAuditRow?> GetUpdateMetadataAuditEvidenceAsync(

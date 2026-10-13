@@ -1,3 +1,4 @@
+@using Hexalith.Tenants.Contracts.Identity
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.Services.Gateways
@@ -318,7 +319,7 @@
     public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
-    public Func<RemoveUserFromTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<RemoveUserFromTenant, Task<TenantDetailSnapshot?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantRemoveMemberCommandSnapshot Snapshot => _snapshot;
 
@@ -727,9 +728,9 @@
         await RefreshCommandStatusAsync(requestProjectionRefresh: false, waitForRunningRefresh: false).ConfigureAwait(false);
     }
 
-    internal void ApplyProjectionEvidence(TenantDetail? detail)
+    internal void ApplyProjectionEvidence(TenantDetailSnapshot? detail)
     {
-        _snapshot = _snapshot.ConfirmProjection(detail, ResolveCurrentProjectionVersion());
+        _snapshot = _snapshot.ConfirmProjection(detail);
         _ = InvokeAsync(async () =>
         {
             await TryAssembleRemovalProofAsync().ConfigureAwait(false);
@@ -995,7 +996,7 @@
             }
 
             TenantCommandStatusResult status = await gateway
-                .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+                .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId, _snapshot.Intent?.TenantId) { ExpectedDomain = TenantIdentity.Domain }, CancellationToken.None)
                 .ConfigureAwait(false);
             SetSnapshot(_snapshot.ApplyStatus(status));
         }
@@ -1030,10 +1031,10 @@
             }
         }
 
-        if (ProjectionEvidenceProvider is not null)
+        if (ProjectionEvidenceProvider is not null && _snapshot.Intent is not null)
         {
-            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(evidence, ResolveCurrentProjectionVersion()));
+            TenantDetailSnapshot? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(evidence));
         }
 
         await TryAssembleRemovalProofAsync().ConfigureAwait(false);
@@ -1074,7 +1075,9 @@
             return;
         }
 
-        if (_snapshot.AttemptStartedAtUtc is null)
+        if (_snapshot.CommittedEventSequence is not > 0
+            || string.IsNullOrWhiteSpace(_snapshot.CorrelationId)
+            || string.IsNullOrWhiteSpace(_snapshot.ProjectionProofCallerScope))
         {
             CancelProofSearch();
             if (CanApplyProof(proofGeneration, intent))
@@ -1085,11 +1088,18 @@
             return;
         }
 
-        DateTimeOffset attemptStartedAtUtc = _snapshot.AttemptStartedAtUtc.Value;
+        string correlationId = _snapshot.CorrelationId;
+        long committedEventSequence = _snapshot.CommittedEventSequence.Value;
+        string callerScope = _snapshot.ProjectionProofCallerScope;
         CancellationTokenSource source = ReplaceProofCancellation();
-        TenantAuditRequest request = new(intent.TenantId, From: attemptStartedAtUtc);
+        // Exact correlation/sequence is causal proof; UI clock skew must not hide the exact event.
+        TenantAuditRequest request = new(intent.TenantId);
         var visitedCursors = new HashSet<string>(StringComparer.Ordinal);
         bool weakMatchObserved = false;
+        string? projectionVersion = null;
+        bool? usesProjectionVersion = null;
+        TenantAuditReceipt? matchedReceipt = null;
+        int exactMatchCount = 0;
         try
         {
             for (int pageNumber = 0; pageNumber < MaximumAuditProofPageCount; pageNumber++)
@@ -1121,31 +1131,51 @@
                     return;
                 }
 
+                // Tenant audit models may expose only their strong state-store ETag. It is a consistent
+                // snapshot marker, while command causation remains the exact correlation/sequence pair.
+                string? pageVersion = audit.ProjectionVersion ?? audit.ETag;
+                bool pageUsesProjectionVersion = audit.ProjectionVersion is not null;
                 bool currentLifecycleBackedPage = audit.Kind is TenantAuditSurfaceKind.Ready
                         or TenantAuditSurfaceKind.Empty
                         or TenantAuditSurfaceKind.FilteredEmpty
                         or TenantAuditSurfaceKind.ListRefreshed
                     && audit.Freshness is ReadModelFreshnessState.Current
-                    && audit.Lifecycle is ProjectionLifecycleState.Current;
+                    && audit.Lifecycle is ProjectionLifecycleState.Current
+                    && audit.MatchesScope(request, callerScope)
+                    && !string.IsNullOrWhiteSpace(pageVersion)
+                    && (projectionVersion is null || string.Equals(projectionVersion, pageVersion, StringComparison.Ordinal))
+                    && (!usesProjectionVersion.HasValue || usesProjectionVersion.Value == pageUsesProjectionVersion)
+                    && audit.Rows.Count <= request.PageSize
+                    && audit.HasMore != string.IsNullOrWhiteSpace(audit.NextCursor)
+                    && audit.Rows.All(row => string.Equals(row.TenantId, intent.TenantId, StringComparison.Ordinal)
+                        && row.Freshness is ReadModelFreshnessState.Current
+                        && row.Lifecycle is ProjectionLifecycleState.Current
+                        && row.Provenance is QueryResponseProvenance.ProjectionBacked);
                 if (!currentLifecycleBackedPage)
                 {
                     SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
                     return;
                 }
 
+                projectionVersion ??= pageVersion;
+                usesProjectionVersion ??= pageUsesProjectionVersion;
                 foreach (TenantAuditRow match in TenantRemoveMemberCommandSnapshot.EnumerateMatchingRemovalProofs(
                     audit.Rows,
                     intent.TenantId,
                     intent.UserId,
-                    attemptStartedAtUtc))
+                    correlationId,
+                    committedEventSequence))
                 {
                     bool currentLifecycleBackedRow = match.Freshness is ReadModelFreshnessState.Current
                         && match.Lifecycle is ProjectionLifecycleState.Current
                         && match.Provenance is QueryResponseProvenance.ProjectionBacked;
-                    // This authorized audit row proves that a matching removal occurred after the attempt
-                    // began, but the audit contract does not carry command causation, so the receipt carries
-                    // no command reference: the current attempt's tracking id may not belong to this evidence
-                    // (a concurrent operator's removal). Command context remains available through Inspect audit.
+                    if (++exactMatchCount > 1)
+                    {
+                        SetSnapshot(_snapshot.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed));
+                        return;
+                    }
+
+                    // Only the exact verified command correlation and committed sequence may supply a receipt.
                     TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(
                         match,
                         surfaceKind: TenantAuditSurfaceKind.Ready,
@@ -1153,12 +1183,8 @@
                     bool receiptReady = receipt.State is TenantAuditReceiptState.Ready;
                     if (currentLifecycleBackedRow && receiptReady)
                     {
-                        _removalProof = receipt;
-                        SetSnapshot(_snapshot.ApplyRemovalProofMatch(
-                            matched: true,
-                            hasCurrentLifecycleBackedEvidence: true,
-                            hasReadyReceipt: true));
-                        return;
+                        matchedReceipt = receipt;
+                        continue;
                     }
 
                     weakMatchObserved = true;
@@ -1166,6 +1192,16 @@
 
                 if (!audit.HasMore)
                 {
+                    if (matchedReceipt is not null)
+                    {
+                        _removalProof = matchedReceipt;
+                        SetSnapshot(_snapshot.ApplyRemovalProofMatch(
+                            matched: true,
+                            hasCurrentLifecycleBackedEvidence: true,
+                            hasReadyReceipt: true));
+                        return;
+                    }
+
                     if (_snapshot.AuditState is not TenantCommandAuditState.AuditAvailable)
                     {
                         _removalProof = null;

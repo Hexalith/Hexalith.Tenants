@@ -1,3 +1,5 @@
+@using Hexalith.Tenants.UI.State.TenantList
+@using Hexalith.Tenants.Contracts.Identity
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Microsoft.Extensions.DependencyInjection
@@ -189,7 +191,7 @@
     public EventCallback OnProjectionRefreshRequested { get; set; }
 
     [Parameter]
-    public Func<string, Task<(TenantSummary? Summary, string? ProjectionVersion)>>? ProjectionEvidenceProvider { get; set; }
+    public Func<string, Task<TenantListSnapshot?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantCreateCommandSnapshot Snapshot => _snapshot;
 
@@ -393,8 +395,8 @@
     internal void ApplySignalRNudge()
         => SetSnapshot(_snapshot.SignalRNudge());
 
-    internal void ApplyProjectionEvidence(TenantSummary? summary, string? projectionVersion)
-        => SetSnapshot(_snapshot.ConfirmProjection(summary, null, projectionVersion));
+    internal void ApplyProjectionEvidence(TenantListSnapshot? proof)
+        => SetSnapshot(_snapshot.ConfirmProjection(proof, null));
 
     private void OnTenantIdInput(string? value)
         => _tenantId = value;
@@ -467,6 +469,15 @@
         // dispatching the same create a second time.
         if (AttemptTracker?.Find(request.TenantId) is TenantCommandTrackingHandle retained)
         {
+            if (string.IsNullOrWhiteSpace(retained.MessageId) || string.IsNullOrWhiteSpace(retained.CorrelationId)
+                || !string.Equals(retained.AggregateId, request.TenantId, StringComparison.Ordinal)
+                || !string.Equals(retained.ExpectedDomain, TenantIdentity.Domain, StringComparison.Ordinal))
+            {
+                SetSnapshot(TenantCreateCommandSnapshot.Blocked(
+                    Localizer["Tenants.Create.Unavailable.Tracking"].Value, TenantCommandFocusTarget.Refresh));
+                return;
+            }
+
             SetSnapshot(_snapshot
                 .RequestSent(request, BaselineProjectionVersion, BaselineTenantAbsent)
                 .Accepted(TenantCommandSubmissionResult.Accepted(retained.MessageId, retained.CorrelationId)));
@@ -514,7 +525,7 @@
                 {
                     AttemptTracker?.Remember(
                         request.TenantId,
-                        new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId));
+                        new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId, request.TenantId) { ExpectedDomain = TenantIdentity.Domain });
                 }
 
                 await RefreshStatusAsync().ConfigureAwait(false);
@@ -562,7 +573,7 @@
         // the lookup runs; applying the late result then would write a dismissed attempt back onto the Idle panel.
         string messageId = _snapshot.MessageId;
         TenantCommandStatusResult status = await gateway
-            .GetStatusAsync(new TenantCommandTrackingHandle(messageId, _snapshot.CorrelationId), CancellationToken.None)
+            .GetStatusAsync(new TenantCommandTrackingHandle(messageId, _snapshot.CorrelationId, _snapshot.Intent?.TenantId) { ExpectedDomain = TenantIdentity.Domain }, CancellationToken.None)
             .ConfigureAwait(false);
         if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
         {
@@ -586,26 +597,42 @@
             return;
         }
 
+        CreateTenant intent = _snapshot.Intent;
         try
         {
-            (TenantSummary? Summary, string? ProjectionVersion) listResult = ProjectionEvidenceProvider is null
-                ? (null, null)
-                : await ProjectionEvidenceProvider(_snapshot.Intent.TenantId).ConfigureAwait(false);
+            TenantListSnapshot? listResult = ProjectionEvidenceProvider is null
+                ? null
+                : await ProjectionEvidenceProvider(intent.TenantId).ConfigureAwait(false);
+            if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             TenantDetailSnapshot? detailEvidence = null;
             if (Services.GetService<ITenantQueryGateway>() is ITenantQueryGateway queryGateway)
             {
                 detailEvidence = await queryGateway
                     .GetTenantAsync(
-                        new TenantDetailRequest(_snapshot.Intent.TenantId),
+                        new TenantDetailRequest(intent.TenantId),
                         previous: null,
                         cancellationToken: CancellationToken.None)
                     .ConfigureAwait(false);
             }
 
-            SetSnapshot(_snapshot.ConfirmProjection(listResult.Summary, detailEvidence, listResult.ProjectionVersion));
+            if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            SetSnapshot(_snapshot.ConfirmProjection(listResult, detailEvidence));
         }
         catch (Exception)
         {
+            if (!string.Equals(_snapshot.MessageId, messageId, StringComparison.Ordinal))
+            {
+                return;
+            }
+
             SetSnapshot(UnableToVerifyProjection());
         }
 

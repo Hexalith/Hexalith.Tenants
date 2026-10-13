@@ -131,7 +131,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 administrators.IsCompleteEvidence.ShouldBeFalse();
             }
             DetailField(cut, "_auditProofCapabilityAvailable").ShouldBe(false);
-            DetailField(cut, "_updateMetadataProofProjectionVersion").ShouldBeNull();
             DetailField(cut, "_memberCursor").ShouldBeNull();
             ((ICollection)DetailField(cut, "_memberCursorHistory")!).Count.ShouldBe(0);
             cut.Markup.ShouldNotContain("private-member");
@@ -164,7 +163,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         };
         authentication.Notify(principal);
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
-        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "v1")));
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "tenant-sequence:1")));
         ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters.Add(page => page.TenantId, "tenant.alpha"));
@@ -184,7 +183,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         ((ClaimsIdentity)principal.Identity!).AddClaim(new Claim("sub", "operator.alpha"));
         authentication.Notify(principal);
         Services.AddSingleton<AuthenticationStateProvider>(authentication);
-        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "v1")));
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "tenant-sequence:1")));
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters.Add(page => page.TenantId, "tenant.alpha"));
 
@@ -197,7 +196,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [InlineData("previous-caller")]
     public void Detail_audit_capability_rejects_unbound_or_previous_caller_empty_evidence(string? producer)
     {
-        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "v1")));
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "tenant-sequence:1")));
         ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
         gateway.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(call => TenantAuditSnapshot.Empty(true, ReadModelFreshnessState.Current, "old-validator", call.Arg<TenantAuditRequest>()) with
@@ -219,10 +218,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     [InlineData("previous-caller")]
     public void Member_empty_authorization_evidence_requires_current_caller_provenance(string? producer)
     {
-        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "v1")));
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "tenant-sequence:1")));
         ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
         gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(TenantUsersSnapshot.Empty("tenant.alpha", true, null, "v1", ReadModelFreshnessState.Current,
+            .Returns(TenantUsersSnapshot.Empty("tenant.alpha", true, null, "tenant-sequence:1", ReadModelFreshnessState.Current,
                 ProjectionLifecycleState.Current) with { CallerScope = producer is null ? null : TenantQueryGateway.AuditCallerScope(producer) });
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters.Add(page => page.TenantId, "tenant.alpha"));
@@ -267,7 +266,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-detail-identity']");
         if (proofKind.StartsWith("member-", StringComparison.Ordinal))
         {
-            typeof(TenantDetailPage).GetField("_snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(cut.Instance, oldDetail);
+            gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>()).Returns(oldDetail);
         }
         (string method, object[] arguments) = proofKind switch
         {
@@ -282,13 +281,15 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         object? proof = await InvokeDetailProofAsync(cut, method, arguments);
 
         proof.ShouldBeNull();
-        DetailField(cut, "_updateMetadataProofProjectionVersion").ShouldBeNull();
     }
 
     [Theory]
     [InlineData("metadata")]
     [InlineData("lifecycle")]
     [InlineData("audit")]
+    [InlineData("member-add")]
+    [InlineData("member-role")]
+    [InlineData("member-remove")]
     public async Task Authentication_transition_cancels_and_rejects_ignored_cancellation_proof_completions(string proofKind)
     {
         var authentication = new MutableAuthenticationStateProvider();
@@ -312,8 +313,16 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         {
             "metadata" => ("GetUpdateMetadataProjectionEvidenceAsync", new object[] {new UpdateTenant("tenant.alpha", "Alpha", null)}),
             "lifecycle" => ("GetLifecycleProjectionEvidenceAsync", new object[] {new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), CancellationToken.None}),
-            _ => ("GetUpdateMetadataAuditEvidenceAsync", new object[] {new UpdateTenant("tenant.alpha", "Alpha", null), "message-a", started}),
+            "audit" => ("GetUpdateMetadataAuditEvidenceAsync", new object[] {new UpdateTenant("tenant.alpha", "Alpha", null), "message-a", started}),
+            "member-add" => ("GetAddMemberProjectionEvidenceAsync", new object[] {new AddUserToTenant("tenant.alpha", "member-a", TenantRole.TenantReader)}),
+            "member-role" => ("GetChangeRoleProjectionEvidenceAsync", new object[] {new ChangeUserRole("tenant.alpha", "member-a", TenantRole.TenantReader)}),
+            _ => ("GetRemoveMemberProjectionEvidenceAsync", new object[] {new RemoveUserFromTenant("tenant.alpha", "member-a")}),
         };
+        if (proofKind.StartsWith("member-", StringComparison.Ordinal))
+        {
+            gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+                .Returns(call => { observed = call.Arg<CancellationToken>(); return pendingDetail.Task; });
+        }
         Task<object?> proofTask = InvokeDetailProofAsync(cut, method, arguments);
         cut.WaitForAssertion(() => observed.CanBeCanceled.ShouldBeTrue());
 
@@ -327,11 +336,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         object? proof = await proofTask;
 
         proof.ShouldBeNull();
-        DetailField(cut, "_updateMetadataProofProjectionVersion").ShouldBeNull();
         cut.FindAll("[data-testid='tenants-detail-audit-entrypoint']").ShouldBeEmpty();
         identity.SetResult(new AuthenticationState(AdministratorPrincipal()));
         cut.WaitForElement("[data-testid='tenants-detail-identity']");
-        _ = gateway.Received(2).GetTenantAsync(Arg.Is<TenantDetailRequest>(request => request.ETag == null),
+        _ = gateway.Received(proofKind.StartsWith("member-", StringComparison.Ordinal) ? 3 : 2).GetTenantAsync(Arg.Is<TenantDetailRequest>(request => request.ETag == null),
             Arg.Is<TenantDetailSnapshot?>(previous => previous == null || previous.Detail == null && previous.ETag == null), Arg.Any<CancellationToken>());
     }
 
@@ -546,14 +554,14 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
                 Detail("tenant.alpha"),
                 ProjectionLifecycleState.Current,
-                "v1")));
+                "tenant-sequence:1")));
         gateway.GetTenantUsersAsync(
                 Arg.Any<TenantUsersRequest>(),
                 Arg.Any<TenantUsersSnapshot?>(),
                 Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha")) with
             {
-                ProjectionVersion = "v1",
+                ProjectionVersion = "tenant-sequence:1",
             }));
         gateway.GetTenantAuditAsync(
                 Arg.Any<TenantAuditRequest>(),
@@ -597,7 +605,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Returns(Task.FromResult(ReadyWithSafeConfiguration(
                 detail,
                 ProjectionLifecycleState.Current,
-                "v1")));
+                "tenant-sequence:1")));
         gateway.GetTenantUsersAsync(
                 Arg.Any<TenantUsersRequest>(),
                 Arg.Any<TenantUsersSnapshot?>(),
@@ -680,7 +688,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Returns(Task.FromResult(ReadyWithSafeConfiguration(
                 detail,
                 ProjectionLifecycleState.Current,
-                "v1")));
+                "tenant-sequence:1")));
         gateway.GetTenantUsersAsync(
                 Arg.Any<TenantUsersRequest>(),
                 Arg.Any<TenantUsersSnapshot?>(),
@@ -1134,10 +1142,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         await backendSubscription.Received(1)
             .SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
 
-        commandGateway.Status = new TenantCommandStatusResult(
-            CommandStatus.Completed,
-            EventCount: 1,
-            HasVerifiedCommandIdentity: true);
+        commandGateway.Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 };
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
 
         cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>()
@@ -1496,10 +1501,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         await backendSubscription.Received(1)
             .SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
 
-        commandGateway.Status = new TenantCommandStatusResult(
-            CommandStatus.Completed,
-            EventCount: 1,
-            HasVerifiedCommandIdentity: true);
+        commandGateway.Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 };
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
 
         cut.WaitForAssertion(() => cut.FindComponent<RemoveTenantConfigurationFlow>()
@@ -2072,7 +2074,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         caller.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(AdministratorPrincipal())));
         Services.AddSingleton(caller);
         RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
-            Detail("tenant.alpha"), ProjectionLifecycleState.Current, "v1")));
+            Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:1")));
         ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
         gateway.GetTenantAuditAsync(
                 Arg.Is<TenantAuditRequest>(request => request.PageSize == 1),
@@ -2650,7 +2652,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             AddMemberSubmission = TenantCommandSubmissionResult.Accepted(
                 "01ARZ3NDEKTSV4RRFFQ69G5FAV",
                 "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 },
         });
         Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
@@ -2663,7 +2665,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.WaitForAssertion(() =>
         {
-            detailReads.ShouldBe(2);
+            detailReads.ShouldBe(3);
             memberReads.ShouldBe(2);
             cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("new-member");
             cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State
@@ -3004,7 +3006,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             }));
         var commandGateway = new TrackingMembershipCommandGateway(
             Task.FromResult(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456")),
-            new TenantCommandStatusResult(CommandStatus.Received));
+            new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
         Services.AddSingleton(gateway);
         Services.AddSingleton(new TenantAggregateCommandAdmissionGate());
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -3042,7 +3044,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             Task.FromResult(TenantCommandSubmissionResult.Accepted(
                 "01ARZ3NDEKTSV4RRFFQ69G5FAV",
                 "correlation-456")),
-            new TenantCommandStatusResult(CommandStatus.Received));
+            new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
         RegisterMembershipPageServices(commandGateway, new StubTenantsBffComposition());
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
@@ -3341,10 +3343,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         StubTenantCommandGateway gateway = new()
         {
             SetConfigurationSubmission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-config"),
-            Status = new TenantCommandStatusResult(
-                CommandStatus.Completed,
-                EventCount: 1,
-                HasVerifiedCommandIdentity: true),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 },
         };
         StubTenantsBffComposition composition = new()
         {
@@ -3440,7 +3439,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         StubTenantCommandGateway gateway = new()
         {
             SetConfigurationSubmission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 },
         };
         StubTenantsBffComposition composition = new()
         {
@@ -4149,7 +4148,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
         commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }));
 
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -4220,7 +4219,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
         commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }));
 
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -4283,7 +4282,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
         commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }));
 
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -4360,7 +4359,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("alpha-message", "alpha-correlation")));
         commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }));
 
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -4465,7 +4464,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("alpha-message", "alpha-correlation")));
         commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }));
 
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -4637,7 +4636,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
         commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }));
 
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -4708,7 +4707,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         commandGateway.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1")));
         commandGateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
-            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)));
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }));
 
         Services.AddSingleton(gateway);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
@@ -5136,7 +5135,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("OWNER/User.01");
@@ -5176,7 +5175,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail) with { Freshness = ReadModelFreshnessState.Stale })
             .Add(view => view.DetailAuditReturnUrl, "/tenants/tenant.alpha")
             .Add(view => view.OnProjectionRefreshRequested, EventCallback.Factory.Create(this, () => projectionRefreshes++)));
@@ -5207,7 +5206,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail) with { Freshness = ReadModelFreshnessState.Stale })
             .Add(view => view.DetailAuditReturnUrl, "/tenants/tenant.alpha")
             .Add(view => view.OnProjectionRefreshRequested, EventCallback.Factory.Create(this, async () =>
@@ -5248,7 +5247,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail) with
             {
                 Freshness = ReadModelFreshnessState.Current,
@@ -5281,7 +5280,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         HashSet<string> reasonListIds = cut.FindAll("[data-testid='tenants-member-reason-list']")
@@ -5323,7 +5322,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         IElement launch = cut.FindAll($"[data-testid='{launchTestId}']")[0];
@@ -5352,7 +5351,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersion, "tenant-sequence:1")
             .Add(p => p.Members, MemberSnapshot(detail)));
 
         cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
@@ -5386,7 +5385,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersion, "tenant-sequence:1")
             .Add(p => p.Members, MemberSnapshot(detail))
             .Add(p => p.CommandActivityLease, active =>
             {
@@ -5441,7 +5440,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersion, "tenant-sequence:1")
             .Add(p => p.Members, MemberSnapshot(detail))
             .Add(p => p.CommandActivityLease, active => !active
                 ? Task.FromResult(true)
@@ -5472,7 +5471,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersion, "tenant-sequence:1")
             .Add(p => p.Members, MemberSnapshot(detail))
             .Add(p => p.CommandActivityLease, active => active
                 ? Task.FromResult(true)
@@ -5500,7 +5499,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersion, "tenant-sequence:1")
             .Add(p => p.Members, MemberSnapshot(detail))
             .Add(p => p.IsCommandSurfaceAvailable, false)
             .Add(p => p.CommandSurfaceUnavailableReason, string.Empty));
@@ -5541,7 +5540,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail))
             .Add(view => view.GlobalAdministrators, completeGa));
 
@@ -5583,7 +5582,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail))
             .Add(view => view.GlobalAdministrators, incompleteGa));
 
@@ -5606,7 +5605,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         string[] categories =
@@ -5660,7 +5659,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, members));
 
         cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeFalse();
@@ -5684,7 +5683,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(alpha)));
         cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
         cut.Find("[data-testid='tenants-change-role-flow']");
@@ -5694,7 +5693,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(beta)));
 
         cut.FindAll("[data-testid='tenants-change-role-flow']").ShouldBeEmpty();
@@ -5711,7 +5710,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         cut.Find("[data-testid='tenants-change-role-open']").Click();
@@ -5755,7 +5754,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, surfaceKind)
             .Add(view => view.Freshness, freshness)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         cut.Find("[data-testid='tenants-member-section']").TextContent.ShouldContain(expectedReason);
@@ -5782,7 +5781,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Unauthorized)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("missing permission");
@@ -5807,7 +5806,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("literal-user");
@@ -5835,7 +5834,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Unknown)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         cut.Find("[data-testid='tenants-member-empty']").TextContent.ShouldContain("No visible members");
@@ -5866,7 +5865,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         // Built through the production factories, not `MemberSnapshot(detail) with { Kind = kind }`. Every
         // terminal read state routes through TenantUsersSnapshot.EmptyState, which forces ETag,
         // ProjectionVersion, Freshness and Lifecycle to their no-evidence values. The `with` form kept
-        // eTag "members-etag", projectionVersion "v1" and Current/Current, so ActionsAreEvidenceBacked
+        // eTag "members-etag", projectionVersion "tenant-sequence:1" and Current/Current, so ActionsAreEvidenceBacked
         // evaluated TRUE against evidence no producer can emit and no regression in the evidence gate for a
         // terminal read state was catchable here.
         TenantUsersSnapshot members = TerminalMemberSnapshot(kind, detail.TenantId);
@@ -5877,7 +5876,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, members));
 
         cut.Find($"[data-testid='{expectedTestId}']").TextContent.ShouldContain(expectedMessageFragment);
@@ -5967,7 +5966,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, members));
 
         cut.Find($"[data-testid='{expectedTestId}']");
@@ -5995,7 +5994,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             nextCursor: null,
             hasMore: false,
             eTag: "members-etag",
-            projectionVersion: "v1",
+            projectionVersion: "tenant-sequence:1",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
 
@@ -6005,7 +6004,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, authoritative));
 
         cut.FindAll("[data-testid='tenants-member-row']").Count.ShouldBe(1);
@@ -6032,7 +6031,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, members));
 
         // epic-1-context: invalid or stale cursor state restarts at page 1 with an honest localized notice.
@@ -6070,7 +6069,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
 
         agreeing.Find("[data-testid='tenants-member-owner-context']").TextContent
@@ -6996,7 +6995,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 return Task.FromResult(ReadyWithSafeConfiguration(
                     Detail(tenantId),
                     ProjectionLifecycleState.Current,
-                    "v1"));
+                    "tenant-sequence:1"));
             });
         gateway.GetTenantUsersAsync(
                 Arg.Any<TenantUsersRequest>(),
@@ -7007,7 +7006,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 string tenantId = call.ArgAt<TenantUsersRequest>(0).TenantId;
                 return Task.FromResult(MemberSnapshot(Detail(tenantId)) with
                 {
-                    ProjectionVersion = "v1",
+                    ProjectionVersion = "tenant-sequence:1",
                 });
             });
         return gateway;
@@ -7041,6 +7040,37 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         Services.AddSingleton(bffComposition ?? new StubTenantsBffComposition());
         Services.AddFluentUIComponents();
         SetRendererInfo(new RendererInfo("Server", isInteractive: true));
+    }
+
+    [Theory]
+    [InlineData("add")]
+    [InlineData("role")]
+    [InlineData("remove")]
+    public async Task MemberProofReadsUnconditionallyAndRetainsFailedReadMetadata(string flow)
+    {
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantDetailSnapshot cached = ReadyWithSafeConfiguration(detail, projectionVersion: "tenant-sequence:42");
+        RegisterServices(_ => Task.FromResult(cached));
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+        TenantDetailSnapshot failure = TenantDetailSnapshot.Degraded(detail, "Proof refresh failed", "failed-validator",
+            ProjectionLifecycleState.Current, "tenant-sequence:43").WithCallerScope(cached.CallerScope!);
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>()).Returns(failure);
+        gateway.ClearReceivedCalls();
+        (string method, object[] arguments) = flow switch
+        {
+            "add" => ("GetAddMemberProjectionEvidenceAsync", new object[] { new AddUserToTenant("tenant.alpha", "reader-user", TenantRole.TenantReader) }),
+            "role" => ("GetChangeRoleProjectionEvidenceAsync", new object[] { new ChangeUserRole("tenant.alpha", "reader-user", TenantRole.TenantReader) }),
+            _ => ("GetRemoveMemberProjectionEvidenceAsync", new object[] { new RemoveUserFromTenant("tenant.alpha", "reader-user") }),
+        };
+        object? result = await InvokeDetailProofAsync(cut, method, arguments);
+        TenantDetailSnapshot returned = result.ShouldBeOfType<TenantDetailSnapshot>();
+        returned.ShouldBeSameAs(failure);
+        returned.Kind.ShouldBe(TenantDetailSurfaceKind.Degraded);
+        returned.ProjectionVersion.ShouldBe("tenant-sequence:43");
+        _ = gateway.Received(1).GetTenantAsync(Arg.Is<TenantDetailRequest>(request => request.ETag == null),
+            Arg.Is<TenantDetailSnapshot?>(previous => previous == null), Arg.Any<CancellationToken>());
     }
 
     private void RegisterServices(TenantListSnapshot snapshot)
@@ -7449,7 +7479,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 detail.TenantId,
                 isAuthorizationScoped: true,
                 eTag: "members-etag",
-                projectionVersion: "v1",
+                projectionVersion: "tenant-sequence:1",
                 ReadModelFreshnessState.Current,
                 ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") }
             : TenantUsersSnapshot.Ready(
@@ -7458,7 +7488,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 nextCursor: null,
                 hasMore: false,
                 eTag: "members-etag",
-                projectionVersion: "v1",
+                projectionVersion: "tenant-sequence:1",
                 ReadModelFreshnessState.Current,
                 ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
 
@@ -8573,7 +8603,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             nextCursor: "cursor-page-2",
             hasMore: true,
             eTag: "members-etag",
-            projectionVersion: "v1",
+            projectionVersion: "tenant-sequence:1",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
@@ -8582,7 +8612,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, page));
 
         cut.FindAll("[data-testid='tenants-remove-member-open']")[0].Click();
@@ -8598,7 +8628,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, afterRemoval));
 
         // The flow keeps rendering from its captured intent, so the receipt survives...
@@ -8623,7 +8653,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
         cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
         cut.Find("[data-testid='tenants-change-role-flow']");
@@ -8633,7 +8663,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail) with { Rows = [] }));
 
         cut.Find("[data-testid='tenants-change-role-flow']");
@@ -8655,7 +8685,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             nextCursor: "cursor-page-2",
             hasMore: true,
             eTag: "members-etag",
-            projectionVersion: "v1",
+            projectionVersion: "tenant-sequence:1",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), IsRefreshing = true };
 
@@ -8665,7 +8695,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.CanGoPrevious, true)
             .Add(view => view.Members, refreshing)
             .Add(view => view.OnNextPageRequested, EventCallback.Factory.Create(this, () => nextRequests++))
@@ -8683,7 +8713,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.CanGoPrevious, true)
             .Add(view => view.Members, refreshing with { IsRefreshing = false })
             .Add(view => view.OnNextPageRequested, EventCallback.Factory.Create(this, () => nextRequests++))
@@ -8710,7 +8740,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.CanGoPrevious, false)
             .Add(view => view.Members, MemberSnapshot(detail))
             .Add(view => view.OnNextPageRequested, EventCallback.Factory.Create(this, () => nextRequests++))
@@ -9102,7 +9132,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             detail.TenantId,
             isAuthorizationScoped: true,
             eTag: "members-etag",
-            projectionVersion: "v1",
+            projectionVersion: "tenant-sequence:1",
             freshness,
             ProjectionLifecycleState.Unknown) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
 
@@ -9146,7 +9176,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                     .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
                     .Add(view => view.Freshness, ReadModelFreshnessState.Current)
                     .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-                    .Add(view => view.ProjectionVersion, "v1")
+                    .Add(view => view.ProjectionVersion, "tenant-sequence:1")
                     .Add(view => view.Members, members));
                 return cut.Find("[data-testid='tenants-member-empty']").TextContent;
             }
@@ -9194,7 +9224,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             detail.TenantId,
             isAuthorizationScoped: true,
             eTag: "members-etag",
-            projectionVersion: "v1",
+            projectionVersion: "tenant-sequence:1",
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
         authorizedEmpty.IsAuthorizationScopedEmpty.ShouldBeTrue();
@@ -9211,7 +9241,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, degraded));
 
         cut.Find("[data-testid='tenants-member-degraded']");
@@ -9251,7 +9281,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
         cut.FindAll("[data-testid='tenants-remove-member-open']")[0].Click();
         cut.Find("[data-testid='tenants-remove-member-flow']");
@@ -9261,7 +9291,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.CanGoPrevious, true)
             .Add(view => view.Members, TerminalMemberSnapshot(kind, detail.TenantId)));
 
@@ -9296,7 +9326,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.Members, MemberSnapshot(detail)));
         cut.FindAll("[data-testid='tenants-remove-member-open']")[0].Click();
         cut.Find("[data-testid='tenants-remove-member-flow']");
@@ -9306,7 +9336,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "v1")
+            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.CanGoPrevious, true)
             .Add(view => view.Members, TerminalMemberSnapshot(kind, detail.TenantId)));
 

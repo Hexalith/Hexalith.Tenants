@@ -10,6 +10,8 @@ Original reconciliation counts for the 439 records: 86 done, 265 actionable, 15 
 
 After validated B2 closure of DW-142/DW-580/DW-351/DW-366: 93 done, 258 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain; 346 open. These four closures retain pre-fix verification and action history in their records; the archive and every unrelated record remain unchanged. Exact commands and results are in [B2 remediation evidence](release-readiness.md#b2-remediation-evidence-2026-10-12).
 
+After validated B3 closure of DW-222/DW-286/DW-300 (2026-10-13): 96 done, 255 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain; 343 open. All 643 unique ledger IDs remain: 300 done and 343 open. The ten B1/B2/B3 closures retain their historical findings in the active ledger; the archive remains at its historical 290 records. Only these three B3 records change in this pass. Exact commands, results, review and limits are in [B3 remediation evidence](release-readiness.md#b3-remediation-evidence-2026-10-13).
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -2081,18 +2083,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof. evidence: TenantAuditRow exposes event, tenant, target, actor, and time but no message or correlation identifier, so a concurrent same-target removal can currently be rendered as this attempt's receipt.
-status: open
+status: done 2026-10-13
 decision: 2026-08-26 Add causation identity — Extend audit projection and API contracts with causation IDs and filter receipts to the exact submitted command.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs now carries CommandCorrelationId and AggregateSequence, but Components/Tenants/Members/RemoveTenantMemberFlow.razor TryAssembleRemovalProofAsync still selects UserRemovedFromTenant by target/time rather than the submitted correlation/committed sequence. The contract extension is partial; exact attempt binding remains absent.
-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+disposition: done
+verification-date: 2026-10-13
+verification-before-b3: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditRow.cs now carries CommandCorrelationId and AggregateSequence, but Components/Tenants/Members/RemoveTenantMemberFlow.razor TryAssembleRemovalProofAsync still selects UserRemovedFromTenant by target/time rather than the submitted correlation/committed sequence. The contract extension is partial; exact attempt binding remains absent.
+verification: Removal proof retains the exact verified Completed committed sequence, rejects conflicting completion evidence and requires current ordered detail evidence to reach that sequence beyond the attempt baseline. The existing audit correlation/aggregate-sequence fields are stamped for UserRemovedFromTenant and retained internally through the BFF. Receipt assembly requires one exact tenant/target/event/correlation/sequence match in a complete bounded current caller-bound audit walk with consistent marker source/token and pagination; concurrent same-target, unrelated, mismatched, duplicate and indeterminate evidence cannot prove this attempt. Projection confirmation and audit availability remain distinct.
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.Server/Projections/TenantAuditReadModel.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
 evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: command correlation/sequence proof contract
-next-action: Bind removal receipts to the submitted command identity/sequence and reject a concurrent same-target removal.
+next-action-before-b3: Bind removal receipts to the submitted command identity/sequence and reject a concurrent same-target removal.
+next-action: none; B3 implementation and maintained checks complete in the working tree.
 related: DW-225
+resolution-date: 2026-10-13
+resolution: Release blocker B3 closed in the validated working tree over Tenants facc0a41e495c8a66b7797f49d61d2db7d8d6b49; historical findings and B1/B2 closure are preserved, with no commit or release approval implied.
+resolution-evidence: [B3 remediation evidence](release-readiness.md#b3-remediation-evidence-2026-10-13); 5885 maintained Release cases (4381 UI, 188 non-performance integration), four source provenance cases, build/browser/coverage/package gates passed with zero final test failures or skips; bounded-proof and remaining release limits are recorded there.
 
 ### DW-223: Page through bounded tenant-audit results while assembling remove-member proof
 
@@ -2903,17 +2910,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Require current authoritative projection state for create and membership command confirmation evidence. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Require current authoritative projection state for create and membership command confirmation evidence. evidence: Review found create/list and membership/detail evidence providers that can forward stale, degraded, or non-current-lifecycle payloads to confirmers that cannot recover the discarded freshness metadata.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor GetAddMemberProjectionEvidenceAsync/GetChangeRoleProjectionEvidenceAsync/GetRemoveMemberProjectionEvidenceAsync return matching Detail without freshness/lifecycle qualification; TenantsWorkspace.razor FindTenantProjectionEvidenceAsync returns cached row/version without those gates. Confirmers cannot recover discarded metadata.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+status: done 2026-10-13
+disposition: done
+verification-date: 2026-10-13
+verification-before-b3: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor GetAddMemberProjectionEvidenceAsync/GetChangeRoleProjectionEvidenceAsync/GetRemoveMemberProjectionEvidenceAsync return matching Detail without freshness/lifecycle qualification; TenantsWorkspace.razor FindTenantProjectionEvidenceAsync returns cached row/version without those gates. Confirmers cannot recover discarded metadata.
+verification: Detail and workspace proof providers return existing complete TenantDetailSnapshot/TenantListSnapshot carriers from unconditional current reads, preserving payload, freshness, lifecycle and version atomically. Five consumers require Ready, Current freshness/lifecycle, usable version and exact tenant/postcondition; create list rows also require current row evidence. Cached matches, stale/degraded/unavailable reads, malformed reserved versions and late caller/route/dismissal proofs fail closed. The legitimate first-tenant appearance exception and B2 caller-bound retention/detail capabilities remain supported.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCommandAuthoritativeProofTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs
 evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: shared proof carriers
-next-action: Require Current authoritative evidence before forwarding payloads to create/membership confirmers.
+next-action-before-b3: Require Current authoritative evidence before forwarding payloads to create/membership confirmers.
+next-action: none; B3 implementation and maintained checks complete in the working tree.
 related: DW-300
+resolution-date: 2026-10-13
+resolution: Release blocker B3 closed in the validated working tree over Tenants facc0a41e495c8a66b7797f49d61d2db7d8d6b49; historical findings and B1/B2 closure are preserved, with no commit or release approval implied.
+resolution-evidence: [B3 remediation evidence](release-readiness.md#b3-remediation-evidence-2026-10-13); 5885 maintained Release cases (4381 UI, 188 non-performance integration), four source provenance cases, build/browser/coverage/package gates passed with zero final test failures or skips; bounded-proof and remaining release limits are recorded there.
 
 ### DW-287: Retain aggregate command admission across tenant route changes and disposal until the old command is terminal
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -3110,19 +3122,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: TenantCommandTrackingHandle
 reason: The legacy ledger defers this issue: Nine other command flows (create, add/remove/change member, metadata, set/remove configuration, global-admin grant/remove) still construct a 2-arg `TenantCommandTrackingHandle` with no aggregate id, so they keep accepting a status response for a different command and keep treating propagation lag as terminal. Original context is preserved in legacy-detail.
 legacy-detail: - Nine other command flows (create, add/remove/change member, metadata, set/remove configuration, global-admin grant/remove) still construct a 2-arg `TenantCommandTrackingHandle` with no aggregate id, so they keep accepting a status response for a different command and keep treating propagation lag as terminal. Story 3.4's Boundaries fence this under "Ask First: broadening shared command infrastructure beyond the focused lifecycle seam".
-status: open
+status: done 2026-10-13
 decision: 2026-08-26 Aggregate-aware handles — Design one AggregateId-aware tracking handle and migrate all nine flows with cross-route and remount tests.
 decision: 2026-08-25 Broaden shared tracking — Design one AggregateId-aware tracking handle and migrate all nine flows with cross-route and remount tests.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor, Members/AddTenantMemberFlow.razor, ChangeTenantMemberRoleFlow.razor, RemoveTenantMemberFlow.razor and Metadata/EditTenantMetadataFlow.razor still build two-argument TenantCommandTrackingHandle values with AggregateId=null. Lifecycle/configuration/global-administrator flows now supply identity-aware handles, so the original nine-flow count is obsolete but five remain.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor
+disposition: done
+verification-date: 2026-10-13
+verification-before-b3: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor, Members/AddTenantMemberFlow.razor, ChangeTenantMemberRoleFlow.razor, RemoveTenantMemberFlow.razor and Metadata/EditTenantMetadataFlow.razor still build two-argument TenantCommandTrackingHandle values with AggregateId=null. Lifecycle/configuration/global-administrator flows now supply identity-aware handles, so the original nine-flow count is obsolete but five remain.
+verification: All five remaining create/add-member/change-role/remove-member/metadata consumers bind tracking handles to the submitted tenant aggregate and explicit tenants domain, including a tenant literally named global-administrators. Retained create handles must match before adoption. Existing gateway command/message/correlation/aggregate verification is required by their shared snapshots; unverified or contradictory status cannot authorize success, rejection or NoOp. Pending/retryable lookup and delayed Received/Processing preserve attempt identity and established stored-event truth. Lifecycle/configuration/global-administrator migrations remain intact; B4 admission and retained-attempt ownership remain separate.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCommandAuthoritativeProofTests.cs
 evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: shared tracking handle contract
-next-action: Migrate the remaining handles to exact aggregate/command identity and nonterminal propagation-lag handling.
+next-action-before-b3: Migrate the remaining handles to exact aggregate/command identity and nonterminal propagation-lag handling.
+next-action: none; B3 implementation and maintained checks complete in the working tree.
 related: DW-286
+resolution-date: 2026-10-13
+resolution: Release blocker B3 closed in the validated working tree over Tenants facc0a41e495c8a66b7797f49d61d2db7d8d6b49; historical findings and B1/B2 closure are preserved, with no commit or release approval implied.
+resolution-evidence: [B3 remediation evidence](release-readiness.md#b3-remediation-evidence-2026-10-13); 5885 maintained Release cases (4381 UI, 188 non-performance integration), four source provenance cases, build/browser/coverage/package gates passed with zero final test failures or skips; bounded-proof and remaining release limits are recorded there.
 
 ### DW-301: `TenantDetailPage`'s `ResetLifecycleProofScope`/`BeginLifecycleProof`/`CanApplyLifecycleProof`/`CompleteLifecycleProof` quartet is a verbatim copy of the metadata quartet, and `TenantQueryGateway.GetLifecycleProjectionProofAsync` is byte-identical to `GetMetadataProjectionProofAsync`. Extract a keyed `ProofScope` helper before a third command surface needs one
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25

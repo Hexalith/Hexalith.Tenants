@@ -1,3 +1,5 @@
+using Hexalith.Tenants.UI.State.TenantDetail;
+using static Hexalith.Tenants.UI.Tests.TenantCommandProofFixtures;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
@@ -21,23 +23,19 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Original", "Original description", Detail("Tenant.Mixed-01", "Original", "Original description"))
             .RequestSent(intent, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         snapshot.LastConfirmedName.ShouldBe("Original");
         snapshot.BaselineProjectionVersion.ShouldBe("v1");
 
-        TenantUpdateMetadataCommandSnapshot withoutEvidence = snapshot.ConfirmProjection(
-            Detail("Tenant.Mixed-01", "Original", "Original description"),
-            currentProjectionVersion: "v1");
+        TenantUpdateMetadataCommandSnapshot withoutEvidence = snapshot.ConfirmProjection(Proof(Detail("Tenant.Mixed-01", "Original", "Original description"), "v1"));
 
         withoutEvidence.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         withoutEvidence.LastConfirmedName.ShouldBe("Original");
         withoutEvidence.LastConfirmedDetailProjection.ShouldNotBeNull().Name.ShouldBe("Original");
 
-        TenantUpdateMetadataCommandSnapshot matchWithoutProvenance = snapshot.ConfirmProjection(
-            Detail("Tenant.Mixed-01", "Updated", null),
-            currentProjectionVersion: "v1");
+        TenantUpdateMetadataCommandSnapshot matchWithoutProvenance = snapshot.ConfirmProjection(Proof(Detail("Tenant.Mixed-01", "Updated", null), "v1"));
 
         matchWithoutProvenance.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         matchWithoutProvenance.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
@@ -46,9 +44,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
         matchWithoutProvenance.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
         matchWithoutProvenance.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
 
-        TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(
-            Detail("Tenant.Mixed-01", "Updated", null),
-            currentProjectionVersion: "v2");
+        TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(Proof(Detail("Tenant.Mixed-01", "Updated", null), "v2"));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedName.ShouldBe("Updated");
@@ -66,19 +62,15 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Original", "Original description", Detail("tenant.alpha", "Original", "Original description"))
             .RequestSent(intent, baselineProjectionVersion: "projection-v2")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
-        TenantUpdateMetadataCommandSnapshot regressed = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", null),
-            currentProjectionVersion: "projection-v1");
+        TenantUpdateMetadataCommandSnapshot regressed = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", null), "projection-v1"));
 
         regressed.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         regressed.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         regressed.LastConfirmedName.ShouldBe("Original");
 
-        TenantUpdateMetadataCommandSnapshot unorderedToken = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", null),
-            currentProjectionVersion: "an-unrelated-opaque-token");
+        TenantUpdateMetadataCommandSnapshot unorderedToken = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", null), "an-unrelated-opaque-token"));
 
         unorderedToken.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         unorderedToken.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
@@ -95,14 +87,12 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Original", "Original description", Detail("tenant.alpha", "Original", "Original description"))
             .RequestSent(intent, baselineProjectionVersion: "projection-v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0, HasVerifiedCommandIdentity: true));
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         snapshot.HasCommandEventEvidence.ShouldBeFalse();
 
-        TenantUpdateMetadataCommandSnapshot borrowed = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", null),
-            currentProjectionVersion: "projection-v2");
+        TenantUpdateMetadataCommandSnapshot borrowed = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", null), "projection-v2"));
 
         borrowed.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         borrowed.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
@@ -110,9 +100,9 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
     }
 
     [Fact]
-    public void Signalr_elevated_projection_pending_cannot_confirm_without_event_evidence()
+    public void Signalr_preserves_accepted_and_cannot_confirm_without_event_evidence()
     {
-        // SignalRNudge promotes Accepted to ProjectionPending with no status evidence. It must not become a
+        // SignalRNudge preserves Accepted without status evidence. It must not become a
         // confirmation channel just because an unrelated write advanced the version.
         var intent = new UpdateTenant("tenant.alpha", "Updated", null);
         TenantUpdateMetadataCommandSnapshot nudged = TenantUpdateMetadataCommandSnapshot
@@ -121,12 +111,10 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .SignalRNudge();
 
-        nudged.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        nudged.State.ShouldBe(TenantCommandLifecycleState.Accepted);
         nudged.HasCommandEventEvidence.ShouldBeFalse();
 
-        TenantUpdateMetadataCommandSnapshot confirmed = nudged.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", null),
-            currentProjectionVersion: "projection-v2");
+        TenantUpdateMetadataCommandSnapshot confirmed = nudged.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", null), "projection-v2"));
 
         confirmed.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedName.ShouldBe("Original");
@@ -140,11 +128,9 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Alpha", "same description")
             .RequestSent(intent, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
-        TenantUpdateMetadataCommandSnapshot unable = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Alpha", "same description"),
-            currentProjectionVersion: "v2");
+        TenantUpdateMetadataCommandSnapshot unable = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Alpha", "same description"), "v2"));
 
         unable.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         unable.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
@@ -164,12 +150,9 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Alpha", "same description")
             .RequestSent(intent, baselineProjectionVersion: "v1", attemptStartedAtUtc)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
-        TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Alpha", "same description"),
-            currentProjectionVersion: "v2",
-            auditEvidence: AuditProof("message-1", "tenant.alpha", attemptStartedAtUtc));
+        TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Alpha", "same description"), "v2"), auditEvidence: AuditProof("message-1", "tenant.alpha", attemptStartedAtUtc));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
@@ -197,7 +180,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Alpha", "same description")
             .RequestSent(intent, "v1", attemptStartedAtUtc)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
         TenantAuditRow proof = AuditProof("message-1", "tenant.alpha", attemptStartedAtUtc);
         proof = invalidField switch
         {
@@ -212,10 +195,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             _ => throw new ArgumentOutOfRangeException(nameof(invalidField), invalidField, null),
         };
 
-        TenantUpdateMetadataCommandSnapshot unable = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Alpha", "same description"),
-            "v2",
-            proof);
+        TenantUpdateMetadataCommandSnapshot unable = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Alpha", "same description"), "v2"), proof);
 
         unable.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         unable.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
@@ -234,11 +214,9 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Original", "Original description")
             .RequestSent(intent, baselineProjectionVersion: null)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
-        TenantUpdateMetadataCommandSnapshot result = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", "submitted"),
-            currentProjectionVersion: "v2");
+        TenantUpdateMetadataCommandSnapshot result = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", "submitted"), "v2"));
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingBaseline");
@@ -254,11 +232,9 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Original", "Original description")
             .RequestSent(intent, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Received));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
 
-        TenantUpdateMetadataCommandSnapshot stillAccepted = accepted.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", "submitted"),
-            currentProjectionVersion: "v2");
+        TenantUpdateMetadataCommandSnapshot stillAccepted = accepted.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", "submitted"), "v2"));
 
         stillAccepted.State.ShouldBe(TenantCommandLifecycleState.Accepted);
         stillAccepted.State.ShouldNotBe(TenantCommandLifecycleState.ProjectionPending);
@@ -277,12 +253,9 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Original", "Original description")
             .RequestSent(intent, baselineProjectionVersion: "v1", attemptStartedAtUtc)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
-        TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", null),
-            currentProjectionVersion: "v1",
-            auditEvidence: AuditProof("message-1", "tenant.alpha", attemptStartedAtUtc));
+        TenantUpdateMetadataCommandSnapshot confirmed = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", null), "v1"), auditEvidence: AuditProof("message-1", "tenant.alpha", attemptStartedAtUtc));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
@@ -298,17 +271,15 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .SignalRNudge();
 
-        snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
-        // The nudge may move the lifecycle, but never the audit dimension: no events are known stored.
+        snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        // The nudge moves neither lifecycle nor audit truth: no events are known stored.
         snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         snapshot.LastConfirmedName.ShouldBe("Original");
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
 
-        TenantUpdateMetadataCommandSnapshot nudgedConfirm = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", "submitted"),
-            currentProjectionVersion: "v1");
-        nudgedConfirm.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
-        nudgedConfirm.SafeMessageKey.ShouldBe("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
+        TenantUpdateMetadataCommandSnapshot nudgedConfirm = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", "submitted"), "v1"));
+        nudgedConfirm.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        nudgedConfirm.SafeMessageKey.ShouldBeNull();
     }
 
     [Fact]
@@ -325,13 +296,13 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             };
 
         TenantUpdateMetadataCommandSnapshot accepted = withStaleKey.ApplyStatus(
-            new TenantCommandStatusResult(CommandStatus.Received));
+            new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
         accepted.State.ShouldBe(TenantCommandLifecycleState.Accepted);
         accepted.SafeMessage.ShouldBeNull();
         accepted.SafeMessageKey.ShouldBeNull();
 
         TenantUpdateMetadataCommandSnapshot pending = withStaleKey.ApplyStatus(
-            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
         pending.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         pending.SafeMessage.ShouldBeNull();
         pending.SafeMessageKey.ShouldBeNull();
@@ -345,7 +316,7 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Alpha", "same description")
             .RequestSent(intent, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0, HasVerifiedCommandIdentity: true));
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         snapshot.State.ShouldNotBe(TenantCommandLifecycleState.AlreadyApplied);
@@ -365,11 +336,9 @@ public sealed class TenantUpdateMetadataCommandSnapshotTests
             .Idle("Original", "Original description")
             .RequestSent(intent, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success message."));
+            .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success message.", HasVerifiedCommandIdentity: true));
 
-        TenantUpdateMetadataCommandSnapshot withProjectionEvidence = snapshot.ConfirmProjection(
-            Detail("tenant.alpha", "Updated", "submitted"),
-            currentProjectionVersion: "v2");
+        TenantUpdateMetadataCommandSnapshot withProjectionEvidence = snapshot.ConfirmProjection(Proof(Detail("tenant.alpha", "Updated", "submitted"), "v2"));
 
         withProjectionEvidence.State.ShouldBe(expectedState);
         withProjectionEvidence.AuditState.ShouldBe(expectedAudit);

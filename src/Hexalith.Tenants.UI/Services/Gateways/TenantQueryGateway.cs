@@ -12,6 +12,7 @@ using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
@@ -1243,11 +1244,15 @@ internal sealed class TenantQueryGateway(
         TenantAuditSnapshot result = await GetTenantAuditRawAsync(request, previous, cancellationToken).ConfigureAwait(false);
         return result with
         {
-            Rows = result.Rows.Select(static row => row with
-            {
-                CommandCorrelationId = null,
-                AggregateSequence = null,
-            }).ToArray(),
+            // Removal proof consumes these existing internal fields inside the BFF. They are excluded
+            // from serialized/rendered row contracts; other audit journeys keep their existing redaction.
+            Rows = result.Rows.Select(static row => row.EventType == nameof(UserRemovedFromTenant)
+                ? row
+                : row with
+                {
+                    CommandCorrelationId = null,
+                    AggregateSequence = null,
+                }).ToArray(),
         };
     }
 

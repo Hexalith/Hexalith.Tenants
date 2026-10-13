@@ -237,6 +237,7 @@ public class TenantProjectionHandlerTests {
                     "evt-added",
                     timestamp.AddMinutes(1),
                     sequenceNumber: 10),
+                CreateEvent(new UserRemovedFromTenant("tenant-1", "user-1"), "evt-removed", timestamp.AddMinutes(2), sequenceNumber: 11),
             ]);
 
         ProjectionResponse response = await CreateHandler(stateStore).ProjectAsync(request);
@@ -244,8 +245,14 @@ public class TenantProjectionHandlerTests {
         TenantReadModel saved = (TenantReadModel)stateStore.TrySaveAttempts
             .Single(attempt => attempt.Key == TenantProjectionKey)
             .Value;
-        saved.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "10");
-        response.State.Deserialize<TenantReadModel>()!.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "10");
+        saved.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "11");
+        response.State.Deserialize<TenantReadModel>()!.ProjectionVersion.ShouldBe(TenantProjectionVersionFormat.SequencePrefix + "11");
+        saved.Members.ShouldNotContainKey("user-1");
+        TenantAuditReadModel audit = (TenantAuditReadModel)stateStore.TrySaveAttempts.Single(attempt => attempt.Key == TenantAuditProjectionKey).Value;
+        TenantAuditEntry removal = audit.Entries.Single(entry => entry.EventType == nameof(UserRemovedFromTenant));
+        removal.EventId.ShouldBe("evt-removed");
+        removal.CommandCorrelationId.ShouldBe("corr-1");
+        removal.AggregateSequence.ShouldBe(11);
     }
 
     [Fact]

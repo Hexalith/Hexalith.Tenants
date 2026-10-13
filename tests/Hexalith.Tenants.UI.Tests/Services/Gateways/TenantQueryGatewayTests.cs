@@ -662,6 +662,46 @@ public sealed class TenantQueryGatewayTests
             Arg.Is<GetTenantAuditQuery>(query => query.From == submitted), null, Arg.Any<CancellationToken>());
     }
 
+    [Theory]
+    [InlineData("UserRemovedFromTenant", true)]
+    [InlineData("UserAddedToTenant", false)]
+    [InlineData("GlobalAdministratorRemoved", false)]
+    public async Task AuditGatewayPreservesOnlyInternalRemovalProofAndRedactsSerializedEvidence(string eventType, bool retained)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        TenantAuditEntry entry = AuditEntry("approved-event-reference", AuditEventCategory.Access,
+            timestamp: DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture), eventType: eventType) with
+        {
+            CommandCorrelationId = "exact-attempt-correlation",
+            AggregateSequence = 42,
+        };
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantAuditEntry>([entry], null, false), projectionVersion: "opaque-audit-version"));
+        TenantAuditSnapshot snapshot = await CreateGateway(client).GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null);
+        TenantAuditRow row = snapshot.Rows.ShouldHaveSingleItem();
+        row.CommandCorrelationId.ShouldBe(retained ? "exact-attempt-correlation" : null);
+        row.AggregateSequence.ShouldBe(retained ? 42L : null);
+        string serialized = JsonSerializer.Serialize(row);
+        serialized.ShouldContain("approved-event-reference");
+        serialized.ShouldNotContain("CommandCorrelationId");
+        serialized.ShouldNotContain("AggregateSequence");
+        serialized.ShouldNotContain("exact-attempt-correlation");
+        string snapshotJson = JsonSerializer.Serialize(snapshot);
+        snapshotJson.ShouldContain("approved-event-reference");
+        snapshotJson.ShouldNotContain("exact-attempt-correlation");
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row);
+        string receiptJson = JsonSerializer.Serialize(receipt);
+        receiptJson.ShouldContain("approved-event-reference");
+        receiptJson.ShouldNotContain("exact-attempt-correlation");
+
+        // Controls prove these actual serialized surfaces can disclose the value if it enters public evidence.
+        TenantAuditRow unsafeRow = row with { ReferenceContext = "exact-attempt-correlation" };
+        JsonSerializer.Serialize(unsafeRow).ShouldContain("exact-attempt-correlation");
+        JsonSerializer.Serialize(snapshot with { Rows = [unsafeRow] }).ShouldContain("exact-attempt-correlation");
+        JsonSerializer.Serialize(receipt with { CommandReference = "exact-attempt-correlation" })
+            .ShouldContain("exact-attempt-correlation");
+    }
+
     [Fact]
     public async Task AuditPageCorrectionCaptureUsesOneReadForMultipleTargets()
     {

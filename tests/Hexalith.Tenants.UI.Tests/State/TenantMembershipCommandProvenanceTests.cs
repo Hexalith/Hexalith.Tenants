@@ -96,6 +96,24 @@ public sealed class TenantMembershipCommandProvenanceTests
             .HasProjectionVersionAdvancement(baseline, current, hasCommandEventEvidence: true)
             .ShouldBeFalse();
 
+    [Theory]
+    [InlineData("tenant-sequence:9223372036854775807", true)]
+    [InlineData("tenant-sequence:9223372036854775808", false)]
+    [InlineData("tenant-sequence:18446744073709551615", false)]
+    public void AuthoritativeReservedSequenceMustFitTheSignedEventStoreContract(string version, bool supported)
+    {
+        var detail = new Hexalith.Tenants.Contracts.Queries.TenantDetail("tenant.alpha", "Alpha", null,
+            Hexalith.Tenants.Contracts.Enums.TenantStatus.Active, [], new Dictionary<string, string>(), DateTimeOffset.UtcNow);
+        TenantMembershipCommandProvenance.IsAuthoritative(TenantCommandProofFixtures.Proof(detail, version))
+            .ShouldBe(supported);
+        var summary = new Hexalith.Tenants.Contracts.Queries.TenantSummary("tenant.alpha", "Alpha",
+            Hexalith.Tenants.Contracts.Enums.TenantStatus.Active);
+        TenantMembershipCommandProvenance.IsAuthoritative(TenantCommandProofFixtures.ListProof(summary, version))
+            .ShouldBe(supported);
+        TenantMembershipCommandProvenance.HasProjectionVersionAdvancement("tenant-sequence:9223372036854775806",
+            version, hasCommandEventEvidence: true).ShouldBe(supported);
+    }
+
     [Fact]
     public void Audit_provenance_admits_same_instant_evidence_as_documented()
     {

@@ -1,3 +1,4 @@
+@using Hexalith.Tenants.Contracts.Identity
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State.TenantCommands
@@ -203,7 +204,7 @@
     public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
-    public Func<AddUserToTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<AddUserToTenant, Task<TenantDetailSnapshot?>>? ProjectionEvidenceProvider { get; set; }
 
     internal TenantAddMemberCommandSnapshot Snapshot => _snapshot;
 
@@ -419,8 +420,8 @@
         await RefreshCommandStatusAsync(requestProjectionRefresh: false, waitForRunningRefresh: false).ConfigureAwait(false);
     }
 
-    internal void ApplyProjectionEvidence(TenantDetail? detail)
-        => _snapshot = _snapshot.ConfirmProjection(detail, ResolveCurrentProjectionVersion());
+    internal void ApplyProjectionEvidence(TenantDetailSnapshot? detail)
+        => _snapshot = _snapshot.ConfirmProjection(detail);
 
     private string? ResolveCurrentProjectionVersion()
         => ProjectionVersionProvider?.Invoke() ?? ProjectionVersion;
@@ -655,7 +656,7 @@
         }
 
         TenantCommandStatusResult status = await gateway
-            .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+            .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId, _snapshot.Intent?.TenantId) { ExpectedDomain = TenantIdentity.Domain }, CancellationToken.None)
             .ConfigureAwait(false);
         SetSnapshot(_snapshot.ApplyStatus(status));
 
@@ -674,8 +675,8 @@
 
         if (_snapshot.Intent is not null && ProjectionEvidenceProvider is not null)
         {
-            TenantDetail? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
-            SetSnapshot(_snapshot.ConfirmProjection(evidence, ResolveCurrentProjectionVersion()));
+            TenantDetailSnapshot? evidence = await ProjectionEvidenceProvider(_snapshot.Intent).ConfigureAwait(false);
+            SetSnapshot(_snapshot.ConfirmProjection(evidence));
         }
 
         await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);

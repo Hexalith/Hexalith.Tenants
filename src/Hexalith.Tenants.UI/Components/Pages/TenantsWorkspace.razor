@@ -1376,21 +1376,20 @@
     private static bool ExplainsSearchRestart(TenantListReason reason)
         => reason is TenantListReason.SearchRefreshed or TenantListReason.SearchPagingRestarted;
 
-    private async Task<(TenantSummary? Summary, string? ProjectionVersion)> FindTenantProjectionEvidenceAsync(string tenantId)
+    private async Task<TenantListSnapshot?> FindTenantProjectionEvidenceAsync(string tenantId)
     {
-        TenantListSnapshot evidenceSnapshot = _lastConfirmedSnapshot ?? _snapshot;
-        IReadOnlyList<TenantListRow> confirmedRows = evidenceSnapshot.Rows;
-        if (!confirmedRows.Any(row => string.Equals(row.TenantId, tenantId, StringComparison.Ordinal)))
+        string? caller = AuthenticatedUserId;
+        if (string.IsNullOrWhiteSpace(caller))
         {
-            await LoadAsync(reuseETag: false);
-            evidenceSnapshot = _lastConfirmedSnapshot ?? _snapshot;
-            confirmedRows = evidenceSnapshot.Rows;
+            return null;
         }
 
-        TenantListRow? row = confirmedRows.FirstOrDefault(r => string.Equals(r.TenantId, tenantId, StringComparison.Ordinal));
-        return row is null
-            ? (null, evidenceSnapshot.ProjectionVersion)
-            : (new TenantSummary(row.TenantId, row.Name, row.Status), evidenceSnapshot.ProjectionVersion);
+        // Proof always comes from this refresh, including its failure state, never retained matching rows.
+        await LoadAsync(reuseETag: false);
+        TenantListSnapshot proof = _snapshot;
+        return !_disposed && string.Equals(caller, AuthenticatedUserId, StringComparison.Ordinal)
+            && string.Equals(proof.CallerScope, TenantQueryGateway.AuditCallerScope(caller), StringComparison.Ordinal)
+            ? proof : null;
     }
 
     private async Task ResetFiltersAsync()

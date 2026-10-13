@@ -125,6 +125,23 @@ public class TenantAuditProjectionTests {
         result.Entries.Single().EventId.ShouldBe("evt-1");
     }
 
+    [Theory]
+    [InlineData(7L, 7L)]
+    [InlineData(0L, null)]
+    [InlineData(-1L, null)]
+    public void RemovalPreservesExactCorrelationAndPositiveSequence(long sequence, long? expectedSequence)
+    {
+        DateTimeOffset timestamp = new(2026, 10, 13, 12, 0, 0, TimeSpan.Zero);
+        ProjectionEventDto removal = CreateEvent(new UserRemovedFromTenant("global-administrators", "reader"),
+            "persisted-event-reference", timestamp) with { CorrelationId = "exact-attempt-correlation", SequenceNumber = sequence };
+        TenantAuditReadModel model = TenantAuditProjection.ProjectAuditEvents([removal]);
+        var row = model.Entries.ShouldHaveSingleItem();
+        row.EventId.ShouldBe("persisted-event-reference");
+        row.CommandCorrelationId.ShouldBe("exact-attempt-correlation");
+        row.AggregateSequence.ShouldBe(expectedSequence);
+        row.TenantId.ShouldBe("global-administrators");
+    }
+
     private static ProjectionEventDto CreateEvent(IEventPayload payload, string messageId, DateTimeOffset timestamp) =>
         new(
             payload.GetType().FullName!,

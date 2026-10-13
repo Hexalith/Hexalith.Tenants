@@ -134,11 +134,13 @@ public sealed class TenantAuditReadModel : IReadModelFreshness {
             tenantId,
             narrative)
         {
-            CommandCorrelationId = tenantId == TenantIdentity.DefaultTenantId
-                && eventType is nameof(GlobalAdministratorSet) or nameof(GlobalAdministratorRemoved)
+            CommandCorrelationId = eventType is nameof(UserRemovedFromTenant)
+                || (tenantId == TenantIdentity.DefaultTenantId
+                    && eventType is nameof(GlobalAdministratorSet) or nameof(GlobalAdministratorRemoved))
                     ? evt.CorrelationId : null,
-            AggregateSequence = tenantId == TenantIdentity.DefaultTenantId
-                && eventType is nameof(GlobalAdministratorSet) or nameof(GlobalAdministratorRemoved)
+            AggregateSequence = (eventType is nameof(UserRemovedFromTenant)
+                || (tenantId == TenantIdentity.DefaultTenantId
+                    && eventType is nameof(GlobalAdministratorSet) or nameof(GlobalAdministratorRemoved)))
                 && evt.SequenceNumber > 0 ? evt.SequenceNumber : null,
         };
 

@@ -969,7 +969,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         TenantCreateCommandSnapshot snapshot = TenantCreateCommandSnapshot.Idle()
             .RequestSent(new CreateTenant("tenant.alpha", "Alpha", null), null, true)
             .Accepted(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.EventsStored));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true));
         TenantCreateAuditReturnState returnState = Services.GetRequiredService<TenantCreateAuditReturnState>();
         returnState.Remember(snapshot, "tenant.alpha", "Alpha", null);
         Services.GetRequiredService<NavigationManager>()
@@ -1408,6 +1408,36 @@ public sealed class TenantsWorkspaceTests : BunitContext
             CultureInfo.CurrentCulture = previousCulture;
             CultureInfo.CurrentUICulture = previousUiCulture;
         }
+    }
+
+    [Fact]
+    public async Task CreateListProofRefreshCannotReuseMatchingLastConfirmedCache()
+    {
+        string scope = TenantQueryGateway.AuditCallerScope("operator.alpha");
+        TenantListSnapshot cached = TenantCommandProofFixtures.ListProof(
+            new Hexalith.Tenants.Contracts.Queries.TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active), "tenant-sequence:42")! with { CallerScope = scope };
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>()).Returns(cached);
+        var caller = Substitute.For<Hexalith.FrontComposer.Contracts.Rendering.IUserContextAccessor>();
+        caller.UserId.Returns("operator.alpha");
+        Services.AddSingleton(caller);
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForAssertion(() => PrivateField<TenantListSnapshot>(cut.Instance, "_snapshot").Rows.Count.ShouldBe(1));
+        TenantListSnapshot failure = TenantListSnapshot.Error() with { CallerScope = scope };
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>()).Returns(failure);
+        gateway.ClearReceivedCalls();
+        var method = typeof(TenantsWorkspace).GetMethod("FindTenantProjectionEvidenceAsync", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        TenantListSnapshot? proof = null;
+        await cut.InvokeAsync(async () => proof = await (Task<TenantListSnapshot?>)method.Invoke(cut.Instance, ["tenant.alpha"])!);
+        proof.ShouldBeSameAs(failure);
+        proof.ShouldNotBeNull().Kind.ShouldBe(TenantListSurfaceKind.Error);
+        _ = gateway.Received(1).ListTenantsAsync(Arg.Is<TenantListRequest>(request => request.ETag == null), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
     }
 
     private static UserTenantMembershipRow MembershipRow(string tenantId, string name, TenantRole role)

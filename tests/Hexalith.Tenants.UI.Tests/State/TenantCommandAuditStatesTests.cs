@@ -1,3 +1,4 @@
+using static Hexalith.Tenants.UI.Tests.TenantCommandProofFixtures;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
@@ -102,7 +103,7 @@ public sealed class TenantCommandAuditStatesTests
                 .ShouldBe(TenantCommandAuditState.AuditUnavailable, $"failed status read from {current}");
             foreach ((CommandStatus status, TenantCommandAuditState expected) in CanonicalStatusTable)
             {
-                TenantCommandAuditStates.FromStatusLookup(new TenantCommandStatusResult(status, EventCount: 1), current)
+                TenantCommandAuditStates.FromStatusLookup(new TenantCommandStatusResult(status, EventCount: 1, HasVerifiedCommandIdentity: true), current)
                     .ShouldBe(expected, $"status {status} from {current}");
             }
         }
@@ -433,23 +434,17 @@ public sealed class TenantCommandAuditStatesTests
         TenantUpdateMetadataCommandSnapshot pending = MetadataPending();
         TenantDetail updated = MetadataDetail("Updated", "submitted");
 
-        TenantUpdateMetadataCommandSnapshot withReadyRow = pending.ConfirmProjection(
-            updated,
-            "v2",
-            UpdateRow(pending.AttemptStartedAtUtc!.Value.AddSeconds(1)));
+        TenantUpdateMetadataCommandSnapshot withReadyRow = pending.ConfirmProjection(Proof(updated, "v2"), UpdateRow(pending.AttemptStartedAtUtc!.Value.AddSeconds(1)));
         withReadyRow.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         withReadyRow.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
 
         // The row still proves this attempt's provenance, but its non-UTC timestamp makes the receipt
         // incomplete: the projection confirms, the audit dimension never claims availability.
-        TenantUpdateMetadataCommandSnapshot withIncompleteRow = pending.ConfirmProjection(
-            updated,
-            "v2",
-            UpdateRow(pending.AttemptStartedAtUtc!.Value.AddSeconds(1).ToOffset(TimeSpan.FromHours(2))));
+        TenantUpdateMetadataCommandSnapshot withIncompleteRow = pending.ConfirmProjection(Proof(updated, "v2"), UpdateRow(pending.AttemptStartedAtUtc!.Value.AddSeconds(1).ToOffset(TimeSpan.FromHours(2))));
         withIncompleteRow.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         withIncompleteRow.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
 
-        TenantUpdateMetadataCommandSnapshot withoutRow = pending.ConfirmProjection(updated, "v2");
+        TenantUpdateMetadataCommandSnapshot withoutRow = pending.ConfirmProjection(Proof(updated, "v2"));
         withoutRow.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         withoutRow.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
     }
@@ -577,28 +572,28 @@ public sealed class TenantCommandAuditStatesTests
 
     private static (TenantCommandLifecycleState State, TenantCommandAuditState Audit) Confirm(string flow)
     {
-        var completed = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true);
+        var completed = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 };
         switch (flow)
         {
             case "create":
                 TenantCreateCommandSnapshot create = CreateAccepted().ApplyStatus(completed)
-                    .ConfirmProjection(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active), null, "projection-v2");
+                    .ConfirmProjection(ListProof(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active), "projection-v2"), null);
                 return (create.State, create.AuditState);
             case "add-member":
                 TenantAddMemberCommandSnapshot add = AddAccepted().ApplyStatus(completed)
-                    .ConfirmProjection(MemberDetail(new TenantMember("literal-user", TenantRole.TenantReader)), "v2");
+                    .ConfirmProjection(Proof(MemberDetail(new TenantMember("literal-user", TenantRole.TenantReader)), "v2"));
                 return (add.State, add.AuditState);
             case "change-role":
                 TenantChangeRoleCommandSnapshot change = ChangeAccepted().ApplyStatus(completed)
-                    .ConfirmProjection(MemberDetail(new TenantMember("literal-user", TenantRole.TenantContributor)), "v2");
+                    .ConfirmProjection(Proof(MemberDetail(new TenantMember("literal-user", TenantRole.TenantContributor)), "v2"));
                 return (change.State, change.AuditState);
             case "remove-member":
                 TenantRemoveMemberCommandSnapshot remove = RemoveAccepted().ApplyStatus(completed)
-                    .ConfirmProjection(MemberDetail(), "v2");
+                    .ConfirmProjection(Proof(MemberDetail(), "tenant-sequence:2"));
                 return (remove.State, remove.AuditState);
             case "edit-metadata":
                 TenantUpdateMetadataCommandSnapshot metadata = MetadataPending()
-                    .ConfirmProjection(MetadataDetail("Updated", "submitted"), "v2");
+                    .ConfirmProjection(Proof(MetadataDetail("Updated", "submitted"), "v2"));
                 return (metadata.State, metadata.AuditState);
             case "lifecycle":
                 TenantLifecycleCommandSnapshot lifecycle = LifecycleStarted()
@@ -666,7 +661,7 @@ public sealed class TenantCommandAuditStatesTests
 
     private static (TenantCommandLifecycleState State, TenantCommandAuditState Before, TenantCommandAuditState After) ProvenanceFailure(string failure)
     {
-        var completed = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true);
+        var completed = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 };
         switch (failure)
         {
             case "create":
@@ -676,8 +671,7 @@ public sealed class TenantCommandAuditStatesTests
                     .RequestSent(new CreateTenant("tenant.alpha", "Alpha", null), "projection-v1", baselineTenantAbsent: false)
                     .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
                     .ApplyStatus(completed);
-                TenantCreateCommandSnapshot result = pending.ConfirmProjection(
-                    new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active), null, "projection-v2");
+                TenantCreateCommandSnapshot result = pending.ConfirmProjection(ListProof(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active), "projection-v2"), null);
                 return (result.State, pending.AuditState, result.AuditState);
             }
 
@@ -691,15 +685,14 @@ public sealed class TenantCommandAuditStatesTests
                         baselinePostconditionMet: failure == "add-member-baseline-met")
                     .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
                     .ApplyStatus(completed);
-                TenantAddMemberCommandSnapshot result = pending.ConfirmProjection(
-                    MemberDetail(new TenantMember("literal-user", TenantRole.TenantReader)), "v2");
+                TenantAddMemberCommandSnapshot result = pending.ConfirmProjection(Proof(MemberDetail(new TenantMember("literal-user", TenantRole.TenantReader)), "v2"));
                 return (result.State, pending.AuditState, result.AuditState);
             }
 
             case "change-role-missing-target":
             {
                 TenantChangeRoleCommandSnapshot pending = ChangeAccepted().ApplyStatus(completed);
-                TenantChangeRoleCommandSnapshot result = pending.ConfirmProjection(MemberDetail(), "v2");
+                TenantChangeRoleCommandSnapshot result = pending.ConfirmProjection(Proof(MemberDetail(), "v2"));
                 return (result.State, pending.AuditState, result.AuditState);
             }
 
@@ -713,8 +706,7 @@ public sealed class TenantCommandAuditStatesTests
                         baselineProjectionVersion: null)
                     .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
                     .ApplyStatus(completed);
-                TenantChangeRoleCommandSnapshot result = pending.ConfirmProjection(
-                    MemberDetail(new TenantMember("literal-user", TenantRole.TenantContributor)), "v2");
+                TenantChangeRoleCommandSnapshot result = pending.ConfirmProjection(Proof(MemberDetail(new TenantMember("literal-user", TenantRole.TenantContributor)), "v2"));
                 return (result.State, pending.AuditState, result.AuditState);
             }
 
@@ -730,7 +722,7 @@ public sealed class TenantCommandAuditStatesTests
                     .RequestSent(baselineProjectionVersion: null)
                     .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
                     .ApplyStatus(completed);
-                TenantRemoveMemberCommandSnapshot result = pending.ConfirmProjection(MemberDetail(), "v2");
+                TenantRemoveMemberCommandSnapshot result = pending.ConfirmProjection(Proof(MemberDetail(), "v2"));
                 return (result.State, pending.AuditState, result.AuditState);
             }
 
@@ -740,7 +732,7 @@ public sealed class TenantCommandAuditStatesTests
                     .RequestSent(new UpdateTenant("tenant.alpha", "Updated", "submitted"), baselineProjectionVersion: null, AttemptStartedAtUtc)
                     .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
                     .ApplyStatus(completed);
-                TenantUpdateMetadataCommandSnapshot result = pending.ConfirmProjection(MetadataDetail("Updated", "submitted"), "v2");
+                TenantUpdateMetadataCommandSnapshot result = pending.ConfirmProjection(Proof(MetadataDetail("Updated", "submitted"), "v2"));
                 return (result.State, pending.AuditState, result.AuditState);
             }
 
@@ -751,10 +743,7 @@ public sealed class TenantCommandAuditStatesTests
                     .RequestSent(new UpdateTenant("tenant.alpha", "Updated", "submitted"), baselineProjectionVersion: "v1", AttemptStartedAtUtc)
                     .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"))
                     .ApplyStatus(completed);
-                TenantUpdateMetadataCommandSnapshot result = pending.ConfirmProjection(
-                    MetadataDetail("Updated", "submitted"),
-                    "v2",
-                    UpdateRow(AttemptStartedAtUtc.AddSeconds(1)) with { EventReference = "another-message" });
+                TenantUpdateMetadataCommandSnapshot result = pending.ConfirmProjection(Proof(MetadataDetail("Updated", "submitted"), "v2"), UpdateRow(AttemptStartedAtUtc.AddSeconds(1)) with { EventReference = "another-message" });
                 return (result.State, pending.AuditState, result.AuditState);
             }
 
@@ -832,7 +821,7 @@ public sealed class TenantCommandAuditStatesTests
                 ownerCount: 1,
                 targetGlobalAdministratorFriction: false,
                 MemberDetail(new TenantMember("literal-user", TenantRole.TenantReader)))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted(MessageId, "correlation-1"));
 
     private static TenantUpdateMetadataCommandSnapshot MetadataAccepted()

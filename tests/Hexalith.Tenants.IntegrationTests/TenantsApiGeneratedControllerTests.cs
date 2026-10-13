@@ -18,6 +18,8 @@ using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Authorization;
 using Hexalith.EventStore.Contracts.Commands;
+using Hexalith.EventStore.Contracts.Projections;
+using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.EventStore.Controllers;
@@ -28,6 +30,7 @@ using Hexalith.EventStore.Server.Queries;
 using Hexalith.Tenants.Contracts;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.FrontComposer.Contracts.Rendering;
@@ -37,6 +40,9 @@ using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Projections;
 using Hexalith.Tenants.Telemetry;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
+using Hexalith.Tenants.UI.State.TenantAudit;
+using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.UI.Services.Gateways;
 
 using MediatR;
@@ -346,6 +352,87 @@ public sealed class TenantsApiGeneratedControllerTests
             expectedProvenance is QueryResponseProvenance.ProjectionBacked ? projectionVersion : null);
         snapshot.IsCompleteEvidence.ShouldBe(expectedCompleteEvidence);
         snapshot.Rows.Select(static row => row.UserId).ShouldBe(["admin.current", "target.user"]);
+    }
+
+    [Fact]
+    public async Task PersistedRemovalProofSurvivesRealProjectionHandlerQueryRouterRestAndUiGateway()
+    {
+        DateTimeOffset now = new(2026, 10, 13, 12, 0, 0, TimeSpan.Zero);
+        const string tenantId = "tenant.alpha";
+        const string correlation = "exact-removal-attempt";
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var persisted = new Dictionary<string, object>(StringComparer.Ordinal);
+        ConfigurePersistedModel<TenantReadModel>(store, persisted);
+        ConfigurePersistedModel<TenantAuditReadModel>(store, persisted);
+        ConfigurePersistedModel<TenantIndexReadModel>(store, persisted);
+        ConfigurePersistedModel<GlobalAdministratorReadModel>(store, persisted);
+        persisted["projection:global-administrators:singleton"] = new GlobalAdministratorReadModel
+        {
+            Administrators = ["admin.current"], ProjectedAt = now, ProjectionVersion = "tenant-sequence:1",
+        };
+        ProjectionEventDto[] events =
+        [
+            ProjectionEvent(new TenantCreated(tenantId, "Alpha", null, now), "evt-created-1", 1, now),
+            ProjectionEvent(new UserAddedToTenant(tenantId, "reader", TenantRole.TenantReader), "evt-added-2", 2, now),
+            ProjectionEvent(new UserRemovedFromTenant(tenantId, "reader"), "evt-removal-3", 3, now) with { CorrelationId = correlation },
+        ];
+        _ = await new TenantProjectionHandler(store, NullLogger<TenantProjectionHandler>.Instance, new FixedTimeProvider(now))
+            .ProjectAsync(new ProjectionRequest("system", "tenants", tenantId, events), TestContext.Current.CancellationToken);
+        TenantReadModel tenant = persisted["projection:tenants:" + tenantId].ShouldBeOfType<TenantReadModel>();
+        tenant.Members.ShouldNotContainKey("reader");
+        tenant.ProjectionVersion.ShouldBe("tenant-sequence:3");
+        TenantAuditReadModel audit = persisted["audit:" + tenantId].ShouldBeOfType<TenantAuditReadModel>();
+        TenantAuditEntry storedRemoval = audit.Entries.Single(row => row.EventType == nameof(UserRemovedFromTenant));
+        storedRemoval.EventId.ShouldBe("evt-removal-3");
+        storedRemoval.CommandCorrelationId.ShouldBe(correlation);
+        storedRemoval.AggregateSequence.ShouldBe(3);
+
+        using var diagnostics = new EventStoreDomainDiagnostics("tenants");
+        var handler = new GetTenantAuditQueryHandler(store,
+            new QueryCursorCodec(new EphemeralDataProtectionProvider(), "Hexalith.Tenants.Integration.QueryCursor.v1"),
+            new TenantTelemetry(diagnostics), NullLogger<GetTenantAuditQueryHandler>.Instance,
+            timeProvider: new FixedTimeProvider(now));
+        using var gateway = new HandlerRoutedEventStoreGatewayClient(handler);
+        await using var factory = new TenantsApiWebApplicationFactory(gateway);
+        using HttpClient serviceClient = CreateAuthenticatedClient(factory);
+        using HttpResponseMessage response = await serviceClient.GetAsync("/api/tenants/" + tenantId + "/audit", TestContext.Current.CancellationToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Headers.GetValues("X-Hexalith-Projection-Lifecycle").ShouldHaveSingleItem().ShouldBe("Current");
+        // Tenant audit versions may use store ETags; exact row sequence is independent of that opaque version.
+        response.Headers.Contains("X-Hexalith-Projection-Version").ShouldBeFalse();
+        response.Headers.ETag.ShouldBe(new EntityTagHeaderValue("\"stored-validator\""));
+        using var replayClient = new HttpClient(new ReplayHandler(response)) { BaseAddress = new Uri("https://tenants.invalid") };
+        var memoriesClient = new MemoriesClient(new HttpClient { BaseAddress = new Uri("https://memories.invalid") },
+            Options.Create(new MemoriesClientOptions()), NullLogger<MemoriesClient>.Instance);
+        var uiGateway = new TenantQueryGateway(new TenantsRestQueryClient(replayClient),
+            new FixedUserContextAccessor("admin.current"), memoriesClient,
+            new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()));
+        TenantAuditSnapshot snapshot = await uiGateway.GetTenantAuditAsync(new TenantAuditRequest(tenantId), null, TestContext.Current.CancellationToken);
+        snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
+        snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
+        snapshot.ProjectionVersion.ShouldBeNull();
+        snapshot.ETag.ShouldBe("stored-validator");
+        TenantAuditRow row = snapshot.Rows.Single(entry => entry.EventType == nameof(UserRemovedFromTenant));
+        row.CommandCorrelationId.ShouldBe(correlation);
+        row.AggregateSequence.ShouldBe(3);
+        TenantRemoveMemberCommandSnapshot.IsMatchingRemovalProof(row, tenantId, "reader", correlation, 3).ShouldBeTrue();
+        TenantRemoveMemberCommandSnapshot.IsMatchingRemovalProof(row, tenantId, "reader", "other-attempt", 3).ShouldBeFalse();
+        TenantRemoveMemberCommandSnapshot.IsMatchingRemovalProof(row, tenantId, "reader", correlation, 4).ShouldBeFalse();
+        TenantAuditReceipt receipt = TenantAuditReceipt.FromRow(row);
+        receipt.State.ShouldBe(TenantAuditReceiptState.Ready);
+        receipt.ToString().ShouldNotContain(correlation);
+    }
+
+    private static ProjectionEventDto ProjectionEvent(IEventPayload payload, string eventId, long sequence, DateTimeOffset timestamp)
+        => new(payload.GetType().FullName!, JsonSerializer.SerializeToUtf8Bytes(payload, payload.GetType()), "json", sequence,
+            timestamp, "unrelated-correlation", eventId, "admin.current");
+
+    private static void ConfigurePersistedModel<T>(IReadModelStore store, Dictionary<string, object> persisted) where T : class
+    {
+        store.GetAsync<T>(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => new ReadModelEntry<T>(persisted.TryGetValue(call.ArgAt<string>(1), out object? value) ? (T)value : null, "stored-validator"));
+        store.TrySaveAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<T>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => { persisted[call.ArgAt<string>(1)] = call.ArgAt<T>(2); return true; });
     }
 
     [Fact]
@@ -1355,6 +1442,13 @@ public sealed class TenantsApiGeneratedControllerTests
                 new UnexpectedInnerQueryRouter(),
                 new AlwaysSupportedDomainQueryHandlerRegistry(),
                 new DirectDomainQueryInvoker(handler),
+                NullLogger<HandlerAwareQueryRouter>.Instance);
+        }
+
+        public HandlerRoutedEventStoreGatewayClient(IDomainQueryHandler handler)
+        {
+            _router = new HandlerAwareQueryRouter(new UnexpectedInnerQueryRouter(),
+                new AlwaysSupportedDomainQueryHandlerRegistry(), new DirectDomainQueryInvoker(handler),
                 NullLogger<HandlerAwareQueryRouter>.Instance);
         }
 

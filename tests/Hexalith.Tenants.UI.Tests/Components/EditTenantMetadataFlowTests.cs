@@ -1,3 +1,5 @@
+using Hexalith.Tenants.Contracts.Identity;
+using static Hexalith.Tenants.UI.Tests.TenantCommandProofFixtures;
 using System.Globalization;
 
 using Bunit;
@@ -218,7 +220,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            StatusAsync = _ => Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+            StatusAsync = _ => Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)),
         };
         RegisterServices(gateway);
 
@@ -234,11 +236,11 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
                 projectionCalls++;
                 if (projectionCalls == 1)
                 {
-                    return Task.FromResult<TenantDetail?>(Detail(request.TenantId, "Alpha", "Tenant alpha description"));
+                    return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, "Alpha", "Tenant alpha description"), "tenant-sequence:2"));
                 }
 
                 currentProjectionVersion = "v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -275,7 +277,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -292,7 +294,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 currentProjectionVersion = "v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -315,7 +317,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -329,7 +331,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 currentProjectionVersion = "v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -356,7 +358,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -372,7 +374,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             {
                 // This proof only catches up to state that existed before submit. It must not qualify the attempt.
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -398,7 +400,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
                     MessageId = messageId,
                 }
                 : TenantCommandSubmissionResult.Accepted(messageId, "correlation-update")),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -409,8 +411,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "projection-v1")
             .Add(p => p.ProjectionVersionProvider, () => proofProjectionVersion)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, request.Name, request.Description))));
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), proofProjectionVersion))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
@@ -432,8 +433,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "projection-v2")
             .Add(p => p.ProjectionVersionProvider, () => proofProjectionVersion)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, request.Name, request.Description))));
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), proofProjectionVersion))));
 
         cut.Find("form").Submit();
 
@@ -454,8 +454,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
             StatusAsync = _ => Task.FromResult(++statusCalls == 1
-                ? new TenantCommandStatusResult(CommandStatus.TimedOut, "Status timed out.")
-                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+                ? new TenantCommandStatusResult(CommandStatus.TimedOut, "Status timed out.", HasVerifiedCommandIdentity: true)
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)),
         };
         RegisterServices(gateway);
 
@@ -469,7 +469,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -496,8 +496,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
             StatusAsync = _ => Task.FromResult(++statusCalls == 1
-                ? new TenantCommandStatusResult(CommandStatus.PublishFailed, "Publish failed.")
-                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+                ? new TenantCommandStatusResult(CommandStatus.PublishFailed, "Publish failed.", HasVerifiedCommandIdentity: true)
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)),
         };
         RegisterServices(gateway);
 
@@ -511,7 +511,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -536,7 +536,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 0, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -547,7 +547,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "v1")
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(null)));
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(Proof(null, "tenant-sequence:2"))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("form").Submit();
@@ -572,7 +572,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -584,8 +584,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionVersion, "projection-v1")
             .Add(p => p.ProjectionVersionProvider, () => "projection-v2")
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active))
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, request.Name, request.Description)))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "projection-v2")))
             .Add(p => p.AuditEvidenceProvider, (request, messageId, attemptStartedAtUtc) =>
             {
                 auditProofCalls++;
@@ -612,7 +611,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -645,7 +644,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -655,8 +654,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "v1")
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, request.Name, request.Description))));
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "v1"))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
@@ -678,8 +676,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
             StatusAsync = _ => Task.FromResult(++statusCalls == 1
-                ? new TenantCommandStatusResult(CommandStatus.Received)
-                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+                ? new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true)
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)),
         };
         RegisterServices(gateway);
 
@@ -694,7 +692,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -713,7 +711,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
         cut.Find("[data-testid='tenants-edit-metadata-refresh']").Click();
 
@@ -731,8 +729,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
             StatusAsync = _ => Task.FromResult(++statusCalls == 1
-                ? new TenantCommandStatusResult(CommandStatus.Received)
-                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+                ? new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true)
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)),
         };
         RegisterServices(gateway);
 
@@ -746,7 +744,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -764,7 +762,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
         cut.Find("[data-testid='tenants-edit-metadata-refresh']").Click();
 
@@ -785,8 +783,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
             StatusAsync = _ => Task.FromResult(++statusCalls == 1
-                ? new TenantCommandStatusResult(CommandStatus.Received)
-                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1)),
+                ? new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true)
+                : new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)),
         };
         RegisterServices(gateway);
 
@@ -800,7 +798,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -818,7 +816,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 proofProjectionVersion = "projection-v2";
-                return Task.FromResult<TenantDetail?>(Detail(request.TenantId, request.Name, request.Description));
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"));
             }));
         cut.Find("[data-testid='tenants-edit-metadata-refresh']").Click();
 
@@ -833,7 +831,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -844,8 +842,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "projection-v1")
             .Add(p => p.ProjectionVersionProvider, () => "projection-v2")
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, request.Name, request.Description)))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "projection-v2")))
             .Add(p => p.AuditEvidenceProvider, (_, _, _) =>
                 Task.FromException<TenantAuditRow?>(new InvalidOperationException("raw audit failure"))));
 
@@ -866,7 +863,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -938,7 +935,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             StatusAsync = _ => cancelDuringProjectionProof
-                ? Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+                ? Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true))
                 : Task.FromException<TenantCommandStatusResult>(new OperationCanceledException()),
         };
         RegisterServices(gateway);
@@ -949,7 +946,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "projection-v1")
-            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromException<TenantDetail?>(
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromException<TenantDetailSnapshot?>(
                 new OperationCanceledException())));
 
         System.Reflection.FieldInfo snapshotField = typeof(EditTenantMetadataFlow)
@@ -978,7 +975,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -988,8 +985,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, (string?)null)
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, request.Name, request.Description))));
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "tenant-sequence:2"))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
@@ -1009,7 +1005,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -1043,7 +1039,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -1098,7 +1094,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -1149,7 +1145,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(status, "Safe status message.", "SafeCode"),
+            Status = new TenantCommandStatusResult(status, "Safe status message.", "SafeCode", HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -1161,7 +1157,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "v1")
             .Add(p => p.OnProjectionRefreshRequested, () => projectionRefreshRequestedCount++)
-            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(Detail("tenant.alpha", "Updated", null))));
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail("tenant.alpha", "Updated", null), "tenant-sequence:2"))));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
@@ -1399,7 +1395,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
                 {
                     MessageId = "message-1",
                 },
-            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
@@ -1480,7 +1476,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
@@ -1490,8 +1486,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "projection-v1")
             .Add(p => p.ProjectionVersionProvider, () => "projection-v2")
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, request.Name, request.Description)))
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, request.Name, request.Description), "projection-v2")))
             .Add(p => p.OnCloseRequested, () => closeCount++));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
@@ -1583,7 +1578,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
                     await releaseLookup.Task.ConfigureAwait(false);
                 }
 
-                return new TenantCommandStatusResult(CommandStatus.EventsStored);
+                return new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true);
             },
         };
         RegisterServices(gateway);
@@ -1593,8 +1588,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "v1")
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(
-                Detail(request.TenantId, "Alpha", "Tenant alpha description"))));
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(request.TenantId, "Alpha", "Tenant alpha description"), "tenant-sequence:2"))));
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
         cut.Find("form").Submit();
@@ -1755,10 +1749,10 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
                 {
                     lookupStarted.SetResult();
                     await releaseLookup.Task.ConfigureAwait(false);
-                    return new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1);
+                    return new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true);
                 }
 
-                return new TenantCommandStatusResult(CommandStatus.EventsStored);
+                return new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true);
             },
         };
         RegisterServices(gateway);
@@ -1769,9 +1763,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "projection-v1")
             .Add(p => p.ProjectionVersionProvider, () => Volatile.Read(ref projected) ? "projection-v2" : "projection-v1")
-            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetail?>(Volatile.Read(ref projected)
+            .Add(p => p.ProjectionEvidenceProvider, request => Task.FromResult<TenantDetailSnapshot?>(Proof(Volatile.Read(ref projected)
                 ? Detail(request.TenantId, request.Name, request.Description)
-                : Detail(request.TenantId, "Alpha", "Tenant alpha description"))));
+                : Detail(request.TenantId, "Alpha", "Tenant alpha description"), Volatile.Read(ref projected) ? "projection-v2" : "projection-v1"))));
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
         cut.Find("form").Submit();
@@ -1835,10 +1829,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             new Dictionary<string, string>(),
             DateTimeOffset.Parse("2026-06-01T12:00:00Z", CultureInfo.InvariantCulture));
 
-    private static TenantAuditRow AuditProof(
-        string messageId,
-        string tenantId,
-        DateTimeOffset timestamp)
+    private static TenantAuditRow AuditProof(string messageId, string tenantId, DateTimeOffset timestamp)
         => new(
             messageId,
             "TenantUpdated",
@@ -1915,6 +1906,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
         {
+            handle.AggregateId.ShouldNotBeNullOrWhiteSpace();
+            handle.ExpectedDomain.ShouldBe(TenantIdentity.Domain);
             StatusCallCount++;
             return StatusAsync is null ? Task.FromResult(Status) : StatusAsync(handle);
         }

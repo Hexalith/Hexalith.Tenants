@@ -1,3 +1,5 @@
+using Hexalith.Tenants.UI.State.TenantDetail;
+using static Hexalith.Tenants.UI.Tests.TenantCommandProofFixtures;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -18,22 +20,20 @@ public sealed class TenantAddMemberCommandSnapshotTests
             .Idle()
             .RequestSent(intent, baselineProjectionVersion: "v1", baselinePostconditionMet: false)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
 
-        TenantAddMemberCommandSnapshot withoutEvidence = snapshot.ConfirmProjection(Detail(
+        TenantAddMemberCommandSnapshot withoutEvidence = snapshot.ConfirmProjection(Proof(Detail(
             "Tenant.Mixed-01",
-            [new TenantMember("other-user", TenantRole.TenantContributor)]),
-            currentProjectionVersion: "v2");
+            [new TenantMember("other-user", TenantRole.TenantContributor)]), "v2"));
 
         withoutEvidence.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         withoutEvidence.LastConfirmedMemberProjection.ShouldBeNull();
 
-        TenantAddMemberCommandSnapshot confirmed = snapshot.ConfirmProjection(Detail(
+        TenantAddMemberCommandSnapshot confirmed = snapshot.ConfirmProjection(Proof(Detail(
             "Tenant.Mixed-01",
-            [new TenantMember("User/CaseSensitive.01", TenantRole.TenantContributor)]),
-            currentProjectionVersion: "v2");
+            [new TenantMember("User/CaseSensitive.01", TenantRole.TenantContributor)]), "v2"));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedMemberProjection.ShouldNotBeNull().Members
@@ -48,12 +48,11 @@ public sealed class TenantAddMemberCommandSnapshotTests
             .Idle()
             .RequestSent(intent, baselineProjectionVersion: "v1", baselinePostconditionMet: false)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
-        TenantAddMemberCommandSnapshot pending = snapshot.ConfirmProjection(Detail(
+        TenantAddMemberCommandSnapshot pending = snapshot.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("literal-user", TenantRole.TenantReader)]),
-            currentProjectionVersion: "v1");
+            [new TenantMember("literal-user", TenantRole.TenantReader)]), "v1"));
 
         pending.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         pending.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
@@ -71,10 +70,8 @@ public sealed class TenantAddMemberCommandSnapshotTests
             .Idle()
             .RequestSent(intent, baselineProjectionVersion)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(
-                Detail("tenant.alpha", [new TenantMember("literal-user", TenantRole.TenantReader)]),
-                currentProjectionVersion: "v2");
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true))
+            .ConfirmProjection(Proof(Detail("tenant.alpha", [new TenantMember("literal-user", TenantRole.TenantReader)]), "v2"));
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.SafeMessageKey.ShouldBe("Tenants.AddMember.Confirm.UnableToVerify.MissingProvenance");
@@ -94,10 +91,8 @@ public sealed class TenantAddMemberCommandSnapshotTests
             .Idle()
             .RequestSent(intent, baselineProjectionVersion)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: eventCount))
-            .ConfirmProjection(
-                Detail("tenant.alpha", [new TenantMember("literal-user", TenantRole.TenantReader)]),
-                currentProjectionVersion);
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: eventCount, HasVerifiedCommandIdentity: true))
+            .ConfirmProjection(Proof(Detail("tenant.alpha", [new TenantMember("literal-user", TenantRole.TenantReader)]), currentProjectionVersion));
 
         result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         result.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
@@ -118,7 +113,7 @@ public sealed class TenantAddMemberCommandSnapshotTests
         };
 
         TenantAddMemberCommandSnapshot result = snapshot.ApplyStatus(
-            new TenantCommandStatusResult(status, EventCount: status is CommandStatus.Completed ? 1 : null));
+            new TenantCommandStatusResult(status, EventCount: status is CommandStatus.Completed ? 1 : null, HasVerifiedCommandIdentity: true));
 
         result.SafeMessageKey.ShouldBeNull();
     }
@@ -131,12 +126,11 @@ public sealed class TenantAddMemberCommandSnapshotTests
             .Idle()
             .RequestSent(intent, baselineProjectionVersion: "v1", baselinePostconditionMet: true)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
 
-        TenantAddMemberCommandSnapshot result = snapshot.ConfirmProjection(Detail(
+        TenantAddMemberCommandSnapshot result = snapshot.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("literal-user", TenantRole.TenantReader)]),
-            currentProjectionVersion: "v2");
+            [new TenantMember("literal-user", TenantRole.TenantReader)]), "v2"));
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
@@ -153,12 +147,11 @@ public sealed class TenantAddMemberCommandSnapshotTests
             .Idle()
             .RequestSent(intent, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Received));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
 
-        TenantAddMemberCommandSnapshot stillAccepted = accepted.ConfirmProjection(Detail(
+        TenantAddMemberCommandSnapshot stillAccepted = accepted.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("other-user", TenantRole.TenantReader)]),
-            currentProjectionVersion: "v2");
+            [new TenantMember("other-user", TenantRole.TenantReader)]), "v2"));
 
         stillAccepted.State.ShouldBe(TenantCommandLifecycleState.Accepted);
         stillAccepted.State.ShouldNotBe(TenantCommandLifecycleState.ProjectionPending);
@@ -194,12 +187,11 @@ public sealed class TenantAddMemberCommandSnapshotTests
             .Idle()
             .RequestSent(intent, baselineProjectionVersion: "v1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success message."));
+            .ApplyStatus(new TenantCommandStatusResult(status, "Safe non-success message.", HasVerifiedCommandIdentity: true));
 
-        TenantAddMemberCommandSnapshot withProjectionEvidence = snapshot.ConfirmProjection(Detail(
+        TenantAddMemberCommandSnapshot withProjectionEvidence = snapshot.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("literal-user", TenantRole.TenantReader)]),
-            currentProjectionVersion: "v2");
+            [new TenantMember("literal-user", TenantRole.TenantReader)]), "v2"));
 
         withProjectionEvidence.State.ShouldBe(expectedState);
         withProjectionEvidence.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);

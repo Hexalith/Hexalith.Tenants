@@ -1,3 +1,5 @@
+using Hexalith.Tenants.UI.State.TenantDetail;
+using static Hexalith.Tenants.UI.Tests.TenantCommandProofFixtures;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -42,32 +44,30 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "Tenant.Mixed-01",
                 [new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
 
         snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
 
-        TenantRemoveMemberCommandSnapshot stillPending = snapshot.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot stillPending = snapshot.ConfirmProjection(Proof(Detail(
             "Tenant.Mixed-01",
-            [new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader)]));
+            [new TenantMember("User/CaseSensitive.01", TenantRole.TenantReader)])));
 
         stillPending.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         stillPending.LastConfirmedMemberProjection.ShouldNotBeNull().Members
             .ShouldContain(member => member.UserId == "User/CaseSensitive.01");
 
-        TenantRemoveMemberCommandSnapshot withoutAdvancement = snapshot.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot withoutAdvancement = snapshot.ConfirmProjection(Proof(Detail(
             "Tenant.Mixed-01",
-            [new TenantMember("other-user", TenantRole.TenantOwner)]),
-            currentProjectionVersion: "v1");
+            [new TenantMember("other-user", TenantRole.TenantOwner)]), "tenant-sequence:1"));
 
         withoutAdvancement.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         withoutAdvancement.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
 
-        TenantRemoveMemberCommandSnapshot confirmed = snapshot.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot confirmed = snapshot.ConfirmProjection(Proof(Detail(
             "Tenant.Mixed-01",
-            [new TenantMember("other-user", TenantRole.TenantOwner)]),
-            currentProjectionVersion: "v2");
+            [new TenantMember("other-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.LastConfirmedMemberProjection.ShouldNotBeNull().Members
@@ -84,20 +84,20 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Rejected, "Safe rejection.", "UserNotInTenant"));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Rejected, "Safe rejection.", "UserNotInTenant", HasVerifiedCommandIdentity: true));
 
-        TenantRemoveMemberCommandSnapshot stillRejected = rejected.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot stillRejected = rejected.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("literal-user", TenantRole.TenantReader)]));
+            [new TenantMember("literal-user", TenantRole.TenantReader)])));
 
         stillRejected.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         stillRejected.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
 
-        TenantRemoveMemberCommandSnapshot alreadyApplied = rejected.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot alreadyApplied = rejected.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("owner-user", TenantRole.TenantOwner)]));
+            [new TenantMember("owner-user", TenantRole.TenantOwner)])));
 
         alreadyApplied.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
         alreadyApplied.SafeMessageKey.ShouldBe("Tenants.RemoveMember.Confirm.AlreadyApplied.RejectedAbsence");
@@ -115,14 +115,13 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]))
-            .RequestSent(baselineProjectionVersion: "v1", baselinePostconditionMet: true)
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1", baselinePostconditionMet: true)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
 
-        TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-            currentProjectionVersion: "v2");
+            [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         result.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
         result.State.ShouldNotBe(TenantCommandLifecycleState.Confirmed);
@@ -137,7 +136,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
             .SignalRNudge();
 
@@ -177,13 +176,13 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(status, "Safe status.", "SafeCode"));
+            .ApplyStatus(new TenantCommandStatusResult(status, "Safe status.", "SafeCode", HasVerifiedCommandIdentity: true));
 
-        TenantRemoveMemberCommandSnapshot withAbsentProjection = snapshot.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot withAbsentProjection = snapshot.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("owner-user", TenantRole.TenantOwner)]));
+            [new TenantMember("owner-user", TenantRole.TenantOwner)])));
 
         withAbsentProjection.State.ShouldBe(expectedState);
         withAbsentProjection.AuditState.ShouldBe(expectedAuditState);
@@ -201,12 +200,11 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
             .RequestSent(baselineProjectionVersion: null)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
 
-        TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-            currentProjectionVersion: "v2");
+            [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.SafeMessageKey.ShouldBe("Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline");
@@ -233,10 +231,8 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
                 Detail("tenant.alpha", [new TenantMember("literal-user", TenantRole.TenantReader)]))
             .RequestSent(baselineProjectionVersion)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(
-                Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-                currentProjectionVersion: "v2");
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
+            .ConfirmProjection(Proof(Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         result.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
         result.SafeMessageKey.ShouldBe("Tenants.RemoveMember.Confirm.UnableToVerify.MissingBaseline");
@@ -253,14 +249,13 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1", attemptStartedAtUtc: started)
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1", attemptStartedAtUtc: started)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
 
-        TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Detail(
+        TenantRemoveMemberCommandSnapshot result = snapshot.ConfirmProjection(Proof(Detail(
             "tenant.alpha",
-            [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-            currentProjectionVersion: "v1");
+            [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:1"));
 
         result.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         result.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
@@ -277,13 +272,12 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1", attemptStartedAtUtc: started)
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1", attemptStartedAtUtc: started)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(Detail(
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
+            .ConfirmProjection(Proof(Detail(
                 "tenant.alpha",
-                [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-                currentProjectionVersion: "v2");
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         confirmed.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
@@ -313,13 +307,12 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(new RemoveUserFromTenant("tenant.alpha", "literal-user"), TenantRole.TenantReader, 2, false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(Detail(
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
+            .ConfirmProjection(Proof(Detail(
                 "tenant.alpha",
-                [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-                currentProjectionVersion: "v2");
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         TenantRemoveMemberCommandSnapshot result = confirmed.ApplyRemovalProofMatch(
             matched: true,
@@ -338,13 +331,12 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(new RemoveUserFromTenant("tenant.alpha", "literal-user"), TenantRole.TenantReader, 2, false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(Detail(
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
+            .ConfirmProjection(Proof(Detail(
                 "tenant.alpha",
-                [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-                currentProjectionVersion: "v2");
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         TenantRemoveMemberCommandSnapshot delayed = confirmed.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditDelayed);
         delayed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
@@ -367,13 +359,12 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(new RemoveUserFromTenant("tenant.alpha", "literal-user"), TenantRole.TenantReader, 2, false, Detail(
                 "tenant.alpha",
                 [new TenantMember("literal-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(Detail(
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
+            .ConfirmProjection(Proof(Detail(
                 "tenant.alpha",
-                [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-                currentProjectionVersion: "v2");
+                [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         // One failed audit read made the status unreadable; the next complete read succeeds without the row yet.
         TenantRemoveMemberCommandSnapshot unreadable = confirmed.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditUnavailable);
@@ -392,31 +383,22 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     }
 
     [Fact]
-    public void FindMatchingRemovalProof_requires_event_type_tenant_target_and_causal_bound()
+    public void RemovalProofRequiresExactCorrelationAndSequenceAndAcceptsClockSkew()
     {
         DateTimeOffset started = DateTimeOffset.Parse("2026-08-08T12:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
-        TenantAuditRow older = RemovalRow("tenant.alpha", "literal-user", started.AddMinutes(-1));
-        TenantAuditRow equalBound = RemovalRow("tenant.alpha", "literal-user", started);
-        TenantAuditRow match = RemovalRow("tenant.alpha", "literal-user", started.AddMinutes(1));
-        TenantAuditRow wrongTarget = RemovalRow("tenant.alpha", "other-user", started.AddMinutes(1));
-
+        TenantAuditRow exact = RemovalRow("tenant.alpha", "literal-user", started.AddMinutes(-1));
+        TenantAuditRow concurrent = exact with { CommandCorrelationId = "other-command" };
+        TenantAuditRow otherSequence = exact with { AggregateSequence = 3 };
+        TenantAuditRow missingProof = exact with { CommandCorrelationId = null, AggregateSequence = null };
+        TenantAuditRow wrongTarget = exact with { Target = "another-user" };
         TenantRemoveMemberCommandSnapshot.FindMatchingRemovalProof(
-            [older, wrongTarget],
-            "tenant.alpha",
-            "literal-user",
-            started).ShouldBeNull();
-
+            [concurrent, otherSequence, missingProof, wrongTarget], "tenant.alpha", "literal-user", "correlation-1", 2).ShouldBeNull();
         TenantRemoveMemberCommandSnapshot.FindMatchingRemovalProof(
-            [older, wrongTarget, equalBound],
-            "tenant.alpha",
-            "literal-user",
-            started).ShouldBe(equalBound);
-
+            [concurrent, exact], "tenant.alpha", "literal-user", "correlation-1", 2).ShouldBe(exact);
         TenantRemoveMemberCommandSnapshot.FindMatchingRemovalProof(
-            [older, wrongTarget, match],
-            "tenant.alpha",
-            "literal-user",
-            started).ShouldBe(match);
+            [exact], "tenant.alpha", "literal-user", null, 2).ShouldBeNull();
+        TenantRemoveMemberCommandSnapshot.FindMatchingRemovalProof(
+            [exact], "tenant.alpha", "literal-user", "correlation-1", null).ShouldBeNull();
     }
 
     [Fact]
@@ -428,12 +410,10 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("reader-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1")
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1")
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(
-                Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-                currentProjectionVersion: "v2")
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
+            .ConfirmProjection(Proof(Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"))
             .ApplyRemovalProofMatch(matched: true, hasCurrentLifecycleBackedEvidence: true, hasReadyReceipt: true);
 
         confirmed.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
@@ -443,7 +423,7 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
         // confirmed removal back to ProjectionPending nor reset proof to AuditPending: confirmed access
         // and audit proof are distinct states and the confirmed outcome survives audit flaps.
         TenantRemoveMemberCommandSnapshot afterRefresh = confirmed
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1));
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
 
         afterRefresh.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
         afterRefresh.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
@@ -464,17 +444,15 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             .Previewed(intent, TenantRole.TenantReader, ownerCount: 2, targetGlobalAdministratorFriction: false, Detail(
                 "tenant.alpha",
                 [new TenantMember("reader-user", TenantRole.TenantReader)]))
-            .RequestSent(baselineProjectionVersion: "v1", baselinePostconditionMet: true)
+            .RequestSent(baselineProjectionVersion: "tenant-sequence:1", baselinePostconditionMet: true)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"))
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
-            .ConfirmProjection(
-                Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]),
-                currentProjectionVersion: "v2");
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
+            .ConfirmProjection(Proof(Detail("tenant.alpha", [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2"));
 
         alreadyApplied.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
 
         alreadyApplied
-            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
             .State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
     }
 
@@ -494,13 +472,13 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             [older, wrongTarget, equalBound, newest],
             "tenant.alpha",
             "literal-user",
-            started).ShouldBe([newest, equalBound]);
+            "correlation-1", 2).ShouldBe([newest, equalBound, older]);
 
         TenantRemoveMemberCommandSnapshot.FindMatchingRemovalProof(
             [older, wrongTarget, equalBound, newest],
             "tenant.alpha",
             "literal-user",
-            started).ShouldBe(newest);
+            "correlation-1", 2).ShouldBe(newest);
     }
 
     private static TenantAuditRow RemovalRow(string tenantId, string target, DateTimeOffset timestamp)
@@ -513,9 +491,10 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
             TenantId: tenantId,
             Target: target,
             Scope: tenantId,
-            Outcome: "removed",
+            Outcome: "UserRemovedFromTenant",
             ReferenceContext: $"userId: {target}",
-            Freshness: Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current);
+            Freshness: Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current)
+        { CommandCorrelationId = "correlation-1", AggregateSequence = 2 };
 
     private static TenantDetail Detail(string tenantId, IReadOnlyList<TenantMember> members)
         => new(

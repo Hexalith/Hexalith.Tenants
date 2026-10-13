@@ -1,3 +1,5 @@
+using Hexalith.Tenants.Contracts.Identity;
+using static Hexalith.Tenants.UI.Tests.TenantCommandProofFixtures;
 using System.Globalization;
 
 using Bunit;
@@ -88,7 +90,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         TenantDetail originalDetail = Detail("tenant.alpha");
@@ -97,7 +99,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Detail, originalDetail)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(originalDetail)));
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(Proof(originalDetail, "tenant-sequence:2"))));
 
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("User/CaseSensitive.01");
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantContributor));
@@ -118,7 +120,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -132,12 +134,12 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 liveProjectionVersion = "v2";
-                return Task.FromResult<TenantDetail?>(Detail(
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                     request.TenantId,
                     [
                         new TenantMember("owner-user", TenantRole.TenantOwner),
                         new TenantMember(request.UserId, request.Role),
-                    ]));
+                    ]), liveProjectionVersion));
             }));
 
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
@@ -164,7 +166,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
@@ -186,12 +188,12 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
                     .Add(p => p.ProjectionEvidenceProvider, request =>
                     {
                         liveProjectionVersion = "v2";
-                        return Task.FromResult<TenantDetail?>(Detail(
+                        return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                             request.TenantId,
                             [
                                 new TenantMember("owner-user", TenantRole.TenantOwner),
                                 new TenantMember(request.UserId, request.Role),
-                            ]));
+                            ]), liveProjectionVersion));
                     }))));
         IRenderedComponent<AddTenantMemberFlow> cut = wrapper.FindComponent<AddTenantMemberFlow>();
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("attempt-user");
@@ -214,7 +216,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -224,12 +226,12 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.ProjectionVersion, "v1")
             .Add(p => p.ProjectionVersionProvider, () => "v2")
-            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetail?>(Detail(
+            .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                 "tenant.alpha",
                 [
                     new TenantMember("owner-user", TenantRole.TenantOwner),
                     new TenantMember("literal-user", TenantRole.TenantReader),
-                ]))));
+                ]), "tenant-sequence:2"))));
 
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
@@ -253,7 +255,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -332,7 +334,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
                     await releaseOverlappingStatus.Task.ConfigureAwait(false);
                 }
 
-                return new TenantCommandStatusResult(CommandStatus.Received);
+                return new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true);
             },
         };
         RegisterServices(gateway);
@@ -360,7 +362,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
 
@@ -491,7 +493,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.TimedOut),
+            Status = new TenantCommandStatusResult(CommandStatus.TimedOut, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
@@ -629,7 +631,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
                     await releaseNudgeLookup.Task.ConfigureAwait(false);
                 }
 
-                return new TenantCommandStatusResult(CommandStatus.EventsStored);
+                return new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true);
             },
         };
         RegisterServices(gateway);
@@ -692,7 +694,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
                 {
                     MessageId = "message-1",
                 },
-            Status = new TenantCommandStatusResult(CommandStatus.EventsStored),
+            Status = new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
@@ -719,7 +721,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         StubTenantCommandGateway gateway = new()
         {
             Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
-            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1),
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
         };
         RegisterServices(gateway);
         string liveProjectionVersion = "v1";
@@ -732,12 +734,12 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.ProjectionEvidenceProvider, request =>
             {
                 liveProjectionVersion = "v2";
-                return Task.FromResult<TenantDetail?>(Detail(
+                return Task.FromResult<TenantDetailSnapshot?>(Proof(Detail(
                     request.TenantId,
                     [
                         new TenantMember("owner-user", TenantRole.TenantOwner),
                         new TenantMember(request.UserId, request.Role),
-                    ]));
+                    ]), liveProjectionVersion));
             }));
         cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
         FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
@@ -1029,6 +1031,8 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
 
         public Task<TenantCommandStatusResult> GetStatusAsync(TenantCommandTrackingHandle handle, CancellationToken cancellationToken = default)
         {
+            handle.AggregateId.ShouldNotBeNullOrWhiteSpace();
+            handle.ExpectedDomain.ShouldBe(TenantIdentity.Domain);
             StatusCallCount++;
             return StatusAsync is null ? Task.FromResult(Status) : StatusAsync(handle);
         }

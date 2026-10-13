@@ -21,6 +21,7 @@ using Hexalith.FrontComposer.Shell.Services.Lifecycle;
 using Hexalith.Memories.Client.Rest;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.Contracts.Identity;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Queries;
@@ -418,16 +419,23 @@ public class AspireTopologyTests : IDisposable {
         JsonElement granted = await WaitForAccessAsync(tenantId, userId, "granted", timeout.Token);
         GetStringProperty(granted, "role").ShouldBe(nameof(TenantRole.TenantContributor));
 
+        SubmitCommandRequest removeCommand = CreateCommand("tenants", tenantId,
+            nameof(RemoveUserFromTenant), new RemoveUserFromTenant(tenantId, userId));
         CommandStatusResponse removeStatus = await SubmitAndWaitForTerminalStatusAsync(
             _fixture.CommandApiClient,
-            CreateCommand(
-                "tenants",
-                tenantId,
-                nameof(RemoveUserFromTenant),
-                new RemoveUserFromTenant(tenantId, userId)),
+            removeCommand,
             token,
             timeout.Token);
         removeStatus.Status.ShouldBe("Completed");
+        removeStatus.CommittedEventSequence.ShouldNotBeNull().ShouldBeGreaterThan(addStatus.CommittedEventSequence!.Value);
+        TenantCommandStatusResult verifiedRemove = await commandGateway.GetStatusAsync(
+            new TenantCommandTrackingHandle(removeCommand.MessageId, removeStatus.CorrelationId, tenantId)
+                { ExpectedDomain = TenantIdentity.Domain }, timeout.Token);
+        verifiedRemove.HasVerifiedCommandIdentity.ShouldBeTrue();
+        verifiedRemove.CommittedEventSequence.ShouldBe(removeStatus.CommittedEventSequence);
+        TenantReadModel persistedAfterRemoval = await WaitForPersistedTenantAsync(tenantId,
+            TenantProjectionVersionFormat.SequencePrefix + removeStatus.CommittedEventSequence.Value.ToString(CultureInfo.InvariantCulture), timeout.Token);
+        persistedAfterRemoval.Members.ShouldNotContainKey(userId);
 
         JsonElement denied = await WaitForAccessAsync(tenantId, userId, "denied", timeout.Token);
         GetStringProperty(denied, "reason").ShouldBe("User is not a member");
@@ -447,6 +455,20 @@ public class AspireTopologyTests : IDisposable {
         auditSnapshot.Rows.ShouldAllBe(row => row.Provenance == QueryResponseProvenance.ProjectionBacked);
         TenantAuditRow removal = auditSnapshot.Rows.Single(row => row.EventType == nameof(UserRemovedFromTenant));
         TenantAuditReceipt.FromRow(removal).State.ShouldBe(TenantAuditReceiptState.Ready);
+        removal.CommandCorrelationId.ShouldBe(removeStatus.CorrelationId);
+        removal.AggregateSequence.ShouldBe(verifiedRemove.CommittedEventSequence);
+        removal.EventReference.ShouldNotBe(removeCommand.MessageId);
+        using RedisConnectionMultiplexer redis = await RedisConnection.ConnectAsync(new RedisConfigurationOptions
+        {
+            EndPoints = { $"localhost:{DaprDiagnostics.DefaultRedisPort}" },
+            ConnectTimeout = 5_000, SyncTimeout = 5_000, AbortOnConnectFail = true,
+        });
+        RedisValue storedAudit = await redis.GetDatabase().HashGetAsync($"tenants||audit:{tenantId}", "data").WaitAsync(timeout.Token);
+        TenantAuditReadModel persistedAudit = JsonSerializer.Deserialize<TenantAuditReadModel>(storedAudit.ToString(), WebJsonOptions).ShouldNotBeNull();
+        TenantAuditEntry persistedRemoval = persistedAudit.Entries.Single(entry => entry.EventType == nameof(UserRemovedFromTenant));
+        persistedRemoval.CommandCorrelationId.ShouldBe(removeStatus.CorrelationId);
+        persistedRemoval.AggregateSequence.ShouldBe(verifiedRemove.CommittedEventSequence);
+        persistedRemoval.EventId.ShouldBe(removal.EventReference);
     }
 
     private static Dictionary<string, string> GlobalAdminExtensions()

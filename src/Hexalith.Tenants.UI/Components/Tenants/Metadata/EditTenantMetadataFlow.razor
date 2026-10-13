@@ -1,3 +1,4 @@
+@using Hexalith.Tenants.Contracts.Identity
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State.TenantAudit
@@ -229,7 +230,7 @@
     public Func<bool, Task<bool>>? CommandActivityLease { get; set; }
 
     [Parameter]
-    public Func<UpdateTenant, Task<TenantDetail?>>? ProjectionEvidenceProvider { get; set; }
+    public Func<UpdateTenant, Task<TenantDetailSnapshot?>>? ProjectionEvidenceProvider { get; set; }
 
     [Parameter]
     public Func<UpdateTenant, string?, DateTimeOffset?, Task<TenantAuditRow?>>? AuditEvidenceProvider { get; set; }
@@ -561,8 +562,8 @@
     internal void ApplySignalRNudge()
         => _snapshot = _snapshot.SignalRNudge();
 
-    internal void ApplyProjectionEvidence(TenantDetail? detail)
-        => _snapshot = _snapshot.ConfirmProjection(detail, ResolveCurrentProjectionVersion());
+    internal void ApplyProjectionEvidence(TenantDetailSnapshot? detail)
+        => _snapshot = _snapshot.ConfirmProjection(detail);
 
     private string? ResolveCurrentProjectionVersion()
     {
@@ -815,7 +816,7 @@
             try
             {
                 status = await gateway
-                    .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId), CancellationToken.None)
+                    .GetStatusAsync(new TenantCommandTrackingHandle(_snapshot.MessageId, _snapshot.CorrelationId, _snapshot.Intent?.TenantId) { ExpectedDomain = TenantIdentity.Domain }, CancellationToken.None)
                     .ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -862,7 +863,7 @@
                 }
 
                 UpdateTenant intent = _snapshot.Intent;
-                TenantDetail? evidence = await ProjectionEvidenceProvider(intent).ConfigureAwait(false);
+                TenantDetailSnapshot? evidence = await ProjectionEvidenceProvider(intent).ConfigureAwait(false);
                 if (evidence is null)
                 {
                     SetProjectionUnverified("Tenants.EditMetadata.Confirm.UnableToVerify.MissingProvenance");
@@ -880,7 +881,6 @@
 
                 SetSnapshot(_snapshot.ConfirmProjection(
                     evidence,
-                    ResolveCurrentProjectionVersion(),
                     auditEvidence));
             }
             catch (OperationCanceledException)

@@ -1,4 +1,8 @@
 using Hexalith.Tenants.Contracts.Projections;
+using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.UI.State.TenantDetail;
+using Hexalith.Tenants.UI.State.TenantList;
 
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
@@ -8,6 +12,24 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 internal static class TenantMembershipCommandProvenance
 {
     private const string TenantSequencePrefix = TenantProjectionVersionFormat.SequencePrefix;
+
+    /// <summary>Requires payload and current lifecycle, freshness, and version from one detail read.</summary>
+    internal static bool IsAuthoritative(TenantDetailSnapshot? proof)
+        => proof is { Kind: TenantDetailSurfaceKind.Ready, Detail: not null,
+            Freshness: ReadModelFreshnessState.Current, Lifecycle: ProjectionLifecycleState.Current }
+            && HasUsableProjectionVersion(proof.ProjectionVersion);
+
+    /// <summary>Requires rows and current lifecycle, freshness, and version from one list read.</summary>
+    internal static bool IsAuthoritative(TenantListSnapshot? proof)
+        => proof is { Kind: TenantListSurfaceKind.Ready, IsDegraded: false,
+            Freshness: ReadModelFreshnessState.Current, Lifecycle: ProjectionLifecycleState.Current }
+            && HasUsableProjectionVersion(proof.ProjectionVersion);
+
+
+    private static bool HasUsableProjectionVersion(string? version)
+        => !string.IsNullOrWhiteSpace(version)
+            && (!version.StartsWith(TenantSequencePrefix, StringComparison.Ordinal)
+                || TryParseTenantSequence(version, out _));
 
     /// <summary>
     /// Returns whether two opaque projection versions differ.
@@ -78,7 +100,8 @@ internal static class TenantMembershipCommandProvenance
                 value.AsSpan(TenantSequencePrefix.Length),
                 System.Globalization.NumberStyles.None,
                 System.Globalization.CultureInfo.InvariantCulture,
-                out sequence);
+                out sequence)
+            && sequence <= long.MaxValue;
     }
 
     private static bool HasOrderedProjectionVersionAdvancement(
