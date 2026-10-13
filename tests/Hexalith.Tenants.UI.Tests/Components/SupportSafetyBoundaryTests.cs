@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 
 using Bunit;
@@ -38,6 +39,67 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
     private const string MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
     private const string CorrelationId = "tracking-original";
 
+    /// <summary>Unknown backend details and near-miss machine codes in both supported cultures.</summary>
+    public static TheoryData<string, string, string[]> UnknownBackendDetails
+    {
+        get
+        {
+            string[] details =
+            [
+                "ordinary-private-detail-Canary", "password=Canary123", "person-canary@example.test",
+                "%73%65%63%72%65%74-Canary", "％73％65％63％72％65％74-Canary", "<Canary-équipe>",
+                "ConcurrencyConflict Canary", " ConcurrencyConflict", "concurrencyconflict",
+                "ConcurrencyConflict ", "BackpressureExceeded Canary", " BackpressureExceeded",
+                "BackpressureExceeded ", "backpressureexceeded", "DomainRejected Canary",
+                " DomainRejected", "DomainRejected ", "domainrejected",
+            ];
+            TheoryData<string, string, string[]> cases = [];
+            foreach (string culture in new[] { "en", "fr" })
+            {
+                foreach (string detail in details)
+                {
+                    cases.Add(culture, detail, UnsafeRepresentations(detail));
+                }
+            }
+
+            return cases;
+        }
+    }
+
+    /// <summary>D5 unsafe user identifiers, including repeated percent encodings, in both supported cultures.</summary>
+    public static TheoryData<string, string, string[]> UnsafeUserIdentifiers
+    {
+        get
+        {
+            string[] identifiers =
+            [
+                "202.555.0100", "202/555/0100", "tel:+1-202-555-0100", " +1-202-555-0100",
+                "person％40example.test", "person%2540example.test", "person%EF%BC%8540example.test",
+                "user\u2503target", "user\u275Atarget", "user\u01C0target", "user\u23D0target",
+                "user\u204Ftarget", "user\u061Btarget", "user%25C7%2580target", "ѕecret-canary",
+                "tοken-canary", "ｓｅｃｒｅｔ-canary", "user%not-encoded",
+                "user★target", "user§target", "user☃target", "user\U0001F680target",
+            ];
+            TheoryData<string, string, string[]> cases = [];
+            foreach (string culture in new[] { "en", "fr" })
+            {
+                foreach (string identifier in identifiers)
+                {
+                    string encoded = string.Concat(Encoding.UTF8.GetBytes(identifier)
+                        .Select(octet => "%" + octet.ToString("X2", CultureInfo.InvariantCulture)));
+                    string nested = encoded.Replace("%", "%25", StringComparison.Ordinal);
+                    string fullwidth = nested.Replace("%", "％", StringComparison.Ordinal);
+                    foreach (string value in new[] { identifier, encoded, nested, fullwidth })
+                    {
+                        cases.Add(culture, value, UnsafeRepresentations(identifier, value));
+                    }
+                }
+            }
+
+            return cases;
+        }
+    }
+
     [Theory]
     [InlineData("en", "ConcurrencyConflict")]
     [InlineData("fr", "ConcurrencyConflict")]
@@ -49,26 +111,11 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
     {
         UseCulture(culture);
         ConfigureCreate(Gateway(code, CommandStatus.Rejected));
-        Hexalith.Tenants.Contracts.Queries.TenantDetail detail = new("tenant.alpha", "Alpha", "Description",
-            TenantStatus.Active, [new TenantMember("owner-user", TenantRole.TenantOwner)],
-            new Dictionary<string, string>(), new DateTimeOffset(2026, 10, 13, 10, 0, 0, TimeSpan.Zero));
-        IRenderedComponent<EditTenantMetadataFlow> cut = Render<CascadingValue<string>>(parameters => parameters
-            .Add(component => component.Name, "CurrentTenantCallerScope")
-            .Add(component => component.Value, "test-caller")
-            .AddChildContent<EditTenantMetadataFlow>(child => child
-                .Add(component => component.Detail, detail)
-                .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
-                .Add(component => component.Freshness, ReadModelFreshnessState.Current)
-                .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
-                .Add(component => component.ProjectionVersion, "tenant-sequence:1")))
-            .FindComponent<EditTenantMetadataFlow>();
-        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
-        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Alpha updated");
-        cut.Find("form").Submit();
+        IRenderedComponent<EditTenantMetadataFlow> cut = SubmitMetadata();
         IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
         string key = $"Tenants.Commands.Failure.{code}";
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent.ShouldBe(localizer[key].Value));
-        Live(cut).ShouldContain(localizer[key].Value);
+        Live(cut).ShouldContain(localizer["Tenants.EditMetadata.State.Rejected"].Value);
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         cut.Instance.Snapshot.MessageId.ShouldBe(MessageId);
         cut.Instance.Snapshot.CorrelationId.ShouldBe(CorrelationId);
@@ -120,22 +167,30 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData("ordinary-private-detail-Canary")]
-    [InlineData("password=Canary123")]
-    [InlineData("person-canary@example.test")]
-    [InlineData("%73%65%63%72%65%74-Canary")]
-    [InlineData("％73％65％63％72％65％74-Canary")]
-    [InlineData("ConcurrencyConflict Canary")]
-    [InlineData(" ConcurrencyConflict")]
-    [InlineData("concurrencyconflict")]
-    [InlineData("<Canary-équipe>")]
-    public async Task UnknownBackendDetailsCannotReachSupportObservers(string canary)
+    [MemberData(nameof(UnknownBackendDetails))]
+    public async Task UnknownBackendDetailsCannotReachSupportObservers(string culture, string canary, string[] unsafeRepresentations)
     {
-        Services.AddLocalization();
+        ArgumentNullException.ThrowIfNull(unsafeRepresentations);
+        UseCulture(culture);
         ConfigureCreate(Gateway(canary, CommandStatus.Rejected));
+        string expectedRejection = culture == "fr" ? "La commande a été rejetée." : "The command was rejected.";
+        string expectedDetail = culture == "fr"
+            ? "Le statut de la commande contenait un détail d’assistance indisponible."
+            : "The command status included an unavailable support detail.";
+        string expectedCopied = culture == "fr" ? "Copié." : "Copied.";
+        string expectedMetadataRejection = culture == "fr"
+            ? "Commande de mise a jour des metadonnees rejetee."
+            : "Metadata update command rejected.";
+        AssertLocalizedResource("Tenants.Commands.Failure.DomainRejected", expectedRejection);
+        AssertLocalizedResource("Tenants.Commands.Failure.UnavailableSupportDetail", expectedDetail);
+        AssertLocalizedResource("Tenants.Copy.Feedback.Copied", expectedCopied);
+        AssertLocalizedResource("Tenants.EditMetadata.State.Rejected", expectedMetadataRejection);
         BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
         JSRuntimeInvocationHandler write = module.SetupVoid("writeText", _ => true).SetVoidResult();
-        ProveDisclosureObservers(canary, write);
+        foreach (string representation in unsafeRepresentations)
+        {
+            ProveDisclosureObservers(representation, write);
+        }
         int controlWrites = write.Invocations.Count;
 
         TenantCommandStatusResult processing = await Gateway(canary, CommandStatus.Processing)
@@ -144,46 +199,69 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
         processing.SafeMessageKey.ShouldBe("Tenants.Commands.Failure.UnavailableSupportDetail");
         processing.Status.ShouldBe(CommandStatus.Processing);
         processing.HasVerifiedCommandIdentity.ShouldBeTrue();
+        processing.EventCount.ShouldBe(0);
+        processing.IsPending.ShouldBeFalse();
+        processing.IsRetryableFailure.ShouldBeFalse();
+        processing.RejectionCode.ShouldBeNull();
+        processing.CommittedEventSequence.ShouldBeNull();
 
         IRenderedComponent<CreateTenantFlow> cut = SubmitCreate();
         cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));
-        Dom(cut).ShouldNotContain(canary);
-        Live(cut).ShouldNotContain(canary);
-        JsonStrings(new { processing, snapshot = cut.Instance.Snapshot }).ShouldNotContain(canary);
+        cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldBe(expectedRejection);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Commands.Failure.DomainRejected");
+        AssertNoUnsafeRepresentations(Dom(cut), unsafeRepresentations);
+        Live(cut).ShouldContain(expectedRejection);
+        AssertNoUnsafeRepresentations(Live(cut), unsafeRepresentations);
+        IRenderedComponent<EditTenantMetadataFlow> metadata = SubmitMetadata();
+        metadata.WaitForAssertion(() => metadata.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));
+        metadata.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent.ShouldBe(expectedRejection);
+        metadata.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Commands.Failure.DomainRejected");
+        AssertNoUnsafeRepresentations(Dom(metadata), unsafeRepresentations);
+        Live(metadata).ShouldContain(expectedMetadataRejection);
+        AssertNoUnsafeRepresentations(Live(metadata), unsafeRepresentations);
+        // Exclude only the three fixed resource keys asserted above; scan all remaining evidence without case sensitivity.
+        AssertNoUnsafeRepresentations(JsonStrings(new
+        {
+            processing = processing with { SafeMessageKey = null },
+            snapshot = cut.Instance.Snapshot with { SafeMessageKey = null },
+            metadata = metadata.Instance.Snapshot with { SafeMessageKey = null },
+        }), unsafeRepresentations);
 
         // Exercise a real allowed support copy in the same observer after the negative command render.
         IRenderedComponent<AuditEvidenceReceipt> receipt = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, TenantAuditReceipt.FromRow(SafeRow())));
         receipt.Find("[data-surface-testid='tenants-audit-receipt-copy']").Click();
         receipt.WaitForAssertion(() => write.Invocations.Count.ShouldBe(controlWrites + 1));
-        Clipboard(write, controlWrites).ShouldNotContain(canary);
+        receipt.WaitForAssertion(() => receipt.Find("[data-testid='tenants-audit-receipt-copy-feedback']").TextContent.ShouldBe(expectedCopied));
+        Live(receipt).ShouldContain(expectedCopied);
+        AssertNoUnsafeRepresentations(Dom(receipt), unsafeRepresentations);
+        AssertNoUnsafeRepresentations(JsonStrings(receipt.Instance.Receipt!), unsafeRepresentations);
+        AssertNoUnsafeRepresentations(Live(receipt), unsafeRepresentations);
+        AssertNoUnsafeRepresentations(Clipboard(write, controlWrites), unsafeRepresentations);
     }
 
     [Theory]
-    [InlineData("202.555.0100")]
-    [InlineData("202/555/0100")]
-    [InlineData("tel:+1-202-555-0100")]
-    [InlineData(" +1-202-555-0100")]
-    [InlineData("person％40example.test")]
-    [InlineData("person%2540example.test")]
-    [InlineData("person%EF%BC%8540example.test")]
-    [InlineData("user\u2503target")]
-    [InlineData("user\u275Atarget")]
-    [InlineData("user\u01C0target")]
-    [InlineData("user\u23D0target")]
-    [InlineData("user\u204Ftarget")]
-    [InlineData("user\u061Btarget")]
-    [InlineData("user%25C7%2580target")]
-    [InlineData("ѕecret-canary")]
-    [InlineData("tοken-canary")]
-    [InlineData("ｓｅｃｒｅｔ-canary")]
-    [InlineData("user%not-encoded")]
-    public void D5UserShapesAreRedactedInMappedAndDirectAuditConsumers(string canary)
+    [MemberData(nameof(UnsafeUserIdentifiers))]
+    public void D5UserShapesAreRedactedInMappedAndDirectAuditConsumers(string culture, string canary, string[] unsafeRepresentations)
     {
-        Services.AddLocalization();
+        ArgumentNullException.ThrowIfNull(unsafeRepresentations);
+        UseCulture(culture);
+        string expectedPartial = culture == "fr"
+            ? "La preuve d'audit est partielle. Le recu ne peut pas citer une preuve complete."
+            : "Audit evidence is partial. The receipt cannot cite a complete proof.";
+        string expectedBlocked = culture == "fr"
+            ? "Le résumé du reçu ne peut pas être copié sans risque. Continuez en lecture seule ou contactez l’assistance."
+            : "The receipt summary cannot be copied safely. Continue read-only or contact support.";
+        string expectedCopied = culture == "fr" ? "Copié." : "Copied.";
+        AssertLocalizedResource("Tenants.Audit.Receipt.State.Partial", expectedPartial);
+        AssertLocalizedResource("Tenants.Audit.Receipt.CopyBlocked", expectedBlocked);
+        AssertLocalizedResource("Tenants.Copy.Feedback.Copied", expectedCopied);
         BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsClipboard.js");
         JSRuntimeInvocationHandler write = module.SetupVoid("writeText", _ => true).SetVoidResult();
-        ProveDisclosureObservers(canary, write);
+        foreach (string representation in unsafeRepresentations)
+        {
+            ProveDisclosureObservers(representation, write);
+        }
         int controlWrites = write.Invocations.Count;
 
         TenantAuditEntry entry = Entry(canary, canary);
@@ -197,41 +275,72 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
             ReferenceContext = $"userId: {canary}",
         };
         TenantAuditReceipt directReceipt = TenantAuditReceipt.FromRow(direct);
-        JsonStrings(new { mapped, mappedReceipt, directReceipt }).ShouldNotContain(canary);
+        AssertNoUnsafeRepresentations(JsonStrings(new { mapped, mappedReceipt, directReceipt }), unsafeRepresentations);
         mapped.Narrative.ShouldNotBeNull().UserId.ShouldBeNull();
         mappedReceipt.State.ShouldBe(TenantAuditReceiptState.Partial);
         directReceipt.State.ShouldBe(TenantAuditReceiptState.Partial);
+
+        IRenderedComponent<AuditDataGrid> mappedGrid = Render<AuditDataGrid>(parameters => parameters
+            .Add(component => component.Rows, new[] { mapped }));
+        mappedGrid.WaitForAssertion(() => mappedGrid.Find("[data-testid='tenants-audit-row-actor']").TextContent.ShouldBeEmpty());
+        mappedGrid.Find("[data-testid='tenants-audit-row-target']").TextContent.ShouldBe("tenant.alpha");
+        AssertNoUnsafeRepresentations(Dom(mappedGrid), unsafeRepresentations);
+        AssertNoUnsafeRepresentations(Live(mappedGrid), unsafeRepresentations);
+        foreach (TenantAuditReceipt partial in new[] { mappedReceipt, directReceipt })
+        {
+            IRenderedComponent<AuditEvidenceReceipt> partialReceipt = Render<AuditEvidenceReceipt>(parameters => parameters
+                .Add(component => component.Receipt, partial));
+            partialReceipt.Find("[data-testid='tenants-audit-receipt-state']").TextContent.Trim().ShouldEndWith(expectedPartial);
+            partialReceipt.Find("[data-testid='tenants-audit-receipt-actor'] dd").TextContent.ShouldBe("-");
+            partialReceipt.Find("[data-testid='tenants-audit-receipt-target'] dd").TextContent
+                .ShouldBe(partial == mappedReceipt ? "tenant.alpha" : "-");
+            partialReceipt.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+            Live(partialReceipt).ShouldContain(expectedPartial);
+            AssertNoUnsafeRepresentations(Dom(partialReceipt), unsafeRepresentations);
+            AssertNoUnsafeRepresentations(Live(partialReceipt), unsafeRepresentations);
+        }
 
         IRenderedComponent<AuditDataGrid> grid = Render<AuditDataGrid>(parameters => parameters
             .Add(component => component.Rows, new[] { direct }));
         grid.WaitForAssertion(() => grid.Find("[data-testid='tenants-audit-row-actor']").TextContent.ShouldBeEmpty());
         grid.Find("[data-testid='tenants-audit-row-target']").TextContent.ShouldBeEmpty();
-        Dom(grid).ShouldNotContain(canary);
-        Live(grid).ShouldNotContain(canary);
+        AssertNoUnsafeRepresentations(Dom(grid), unsafeRepresentations);
+        AssertNoUnsafeRepresentations(Live(grid), unsafeRepresentations);
         grid.Find("[data-surface-testid='tenants-audit-copy-reference']").Click();
         grid.WaitForAssertion(() => write.Invocations.Count.ShouldBe(controlWrites + 1));
+        grid.WaitForAssertion(() => grid.Find("[data-testid='tenants-audit-copy-reference-feedback']").TextContent.ShouldBe(expectedCopied));
+        Live(grid).ShouldContain(expectedCopied);
+        AssertNoUnsafeRepresentations(Live(grid), unsafeRepresentations);
 
         // A direct Ready receipt must not approve a user target under the less restrictive tenant policy.
         TenantAuditReceipt forged = TenantAuditReceipt.FromRow(SafeRow()) with { Target = canary, Actor = "actor-user" };
         IRenderedComponent<AuditEvidenceReceipt> receipt = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, forged));
-        Dom(receipt).ShouldNotContain(canary);
-        Live(receipt).ShouldNotContain(canary);
+        AssertNoUnsafeRepresentations(Dom(receipt), unsafeRepresentations);
+        AssertNoUnsafeRepresentations(Live(receipt), unsafeRepresentations);
         receipt.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        receipt.Find("[data-testid='tenants-audit-receipt-target'] dd").TextContent.ShouldBe("-");
         receipt.Find("[data-testid='tenants-audit-receipt-copy-blocked']").GetAttribute("aria-live").ShouldBe("assertive");
+        receipt.Find("[data-testid='tenants-audit-receipt-copy-blocked']").TextContent.Trim().ShouldBe(expectedBlocked);
+        Live(receipt).ShouldContain(expectedBlocked);
         TenantAuditReceipt directReady = new("actor-user", canary, "tenant.alpha", "UserAddedToTenant",
             direct.Timestamp, ReadModelFreshnessState.Current, "event-visible-1", null, TenantAuditReceiptState.Ready);
         IRenderedComponent<AuditEvidenceReceipt> untypedReceipt = Render<AuditEvidenceReceipt>(parameters => parameters
             .Add(component => component.Receipt, directReady));
-        Dom(untypedReceipt).ShouldNotContain(canary);
-        Live(untypedReceipt).ShouldNotContain(canary);
+        AssertNoUnsafeRepresentations(Dom(untypedReceipt), unsafeRepresentations);
+        AssertNoUnsafeRepresentations(Live(untypedReceipt), unsafeRepresentations);
         untypedReceipt.FindAll("[data-surface-testid='tenants-audit-receipt-copy']").ShouldBeEmpty();
+        untypedReceipt.Find("[data-testid='tenants-audit-receipt-target'] dd").TextContent.ShouldBe("-");
+        untypedReceipt.Find("[data-testid='tenants-audit-receipt-copy-blocked']").TextContent.Trim().ShouldBe(expectedBlocked);
+        Live(untypedReceipt).ShouldContain(expectedBlocked);
         IRenderedComponent<AuditDataGrid> untypedGrid = Render<AuditDataGrid>(parameters => parameters
             .Add(component => component.Rows, new[] { direct with { Narrative = new(), ReferenceContext = string.Empty } }));
         untypedGrid.WaitForAssertion(() => untypedGrid.Find("[data-testid='tenants-audit-row-target']").TextContent.ShouldBeEmpty());
-        Dom(untypedGrid).ShouldNotContain(canary);
+        AssertNoUnsafeRepresentations(Dom(untypedGrid), unsafeRepresentations);
+        AssertNoUnsafeRepresentations(Live(untypedGrid), unsafeRepresentations);
+        write.Invocations.Count.ShouldBe(controlWrites + 1);
         Clipboard(write, controlWrites).ShouldBe("event-visible-1");
-        Clipboard(write, controlWrites).ShouldNotContain(canary);
+        AssertNoUnsafeRepresentations(Clipboard(write, controlWrites), unsafeRepresentations);
     }
 
     [Theory]
@@ -311,6 +420,34 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
         return cut;
     }
 
+    private IRenderedComponent<EditTenantMetadataFlow> SubmitMetadata()
+    {
+        Hexalith.Tenants.Contracts.Queries.TenantDetail detail = new("tenant.alpha", "Alpha", "Description",
+            TenantStatus.Active, [new TenantMember("owner-user", TenantRole.TenantOwner)],
+            new Dictionary<string, string>(), new DateTimeOffset(2026, 10, 13, 10, 0, 0, TimeSpan.Zero));
+        IRenderedComponent<EditTenantMetadataFlow> cut = Render<CascadingValue<string>>(parameters => parameters
+            .Add(component => component.Name, "CurrentTenantCallerScope")
+            .Add(component => component.Value, "test-caller")
+            .AddChildContent<EditTenantMetadataFlow>(child => child
+                .Add(component => component.Detail, detail)
+                .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
+                .Add(component => component.Freshness, ReadModelFreshnessState.Current)
+                .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
+                .Add(component => component.ProjectionVersion, "tenant-sequence:1")))
+            .FindComponent<EditTenantMetadataFlow>();
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Alpha updated");
+        cut.Find("form").Submit();
+        return cut;
+    }
+
+    private void AssertLocalizedResource(string key, string expected)
+    {
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        localizer[key].ResourceNotFound.ShouldBeFalse();
+        localizer[key].Value.ShouldBe(expected);
+    }
+
     private void UseCulture(string culture)
     {
         Services.AddLocalization();
@@ -342,6 +479,40 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
         {
             BaseAddress = new Uri("https://eventstore.example/"),
         });
+    }
+
+    private static string[] UnsafeRepresentations(params string[] values)
+    {
+        HashSet<string> representations = new(StringComparer.Ordinal);
+        foreach (string value in values)
+        {
+            string candidate = value;
+            for (int attempt = 0; attempt < 8; attempt++)
+            {
+                representations.Add(candidate);
+                candidate = candidate.Normalize(NormalizationForm.FormKC);
+                representations.Add(candidate);
+                string decoded = Uri.UnescapeDataString(candidate);
+                if (string.Equals(decoded, candidate, StringComparison.Ordinal))
+                {
+                    break;
+                }
+
+                candidate = decoded;
+            }
+
+            representations.Add(candidate);
+        }
+
+        return [.. representations];
+    }
+
+    private static void AssertNoUnsafeRepresentations(string observed, IEnumerable<string> unsafeRepresentations)
+    {
+        foreach (string representation in unsafeRepresentations)
+        {
+            observed.ShouldNotContain(representation, Case.Insensitive);
+        }
     }
 
     private void ProveDisclosureObservers(string canary, JSRuntimeInvocationHandler write)

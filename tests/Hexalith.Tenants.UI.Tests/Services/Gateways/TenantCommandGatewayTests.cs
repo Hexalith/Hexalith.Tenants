@@ -2713,6 +2713,62 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("etag", Case.Insensitive);
     }
 
+    /// <summary>Unknown backend details change safe copy while retaining existing commit and rejection evidence.</summary>
+    [Theory]
+    [InlineData(CommandStatus.Completed, "ordinary-private-detail-Canary")]
+    [InlineData(CommandStatus.Completed, "%73%65%63%72%65%74-Canary")]
+    [InlineData(CommandStatus.Rejected, "ordinary-private-detail-Canary")]
+    [InlineData(CommandStatus.Rejected, "%73%65%63%72%65%74-Canary")]
+    public async Task UnknownFailureDetailsPreserveCommittedAndRecognizedRejectionEvidence(CommandStatus status, string failureReason)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        const string correlationId = "tracking-evidence";
+        int eventCount = status is CommandStatus.Completed ? 3 : 1;
+        string? rejectionType = status is CommandStatus.Rejected
+            ? "Hexalith.Tenants.Contracts.Events.Rejections.InsufficientPermissionsRejection" : null;
+
+        Task<TenantCommandStatusResult> ReadStatusAsync(string? detail)
+        {
+            string json = JsonSerializer.Serialize(new
+            {
+                tenantId = "system",
+                domain = "tenants",
+                aggregateId = "tenant.alpha",
+                messageId,
+                correlationId,
+                status = status.ToString(),
+                statusCode = (int)status,
+                eventCount,
+                committedEventSequence = 17L,
+                rejectionEventType = rejectionType,
+                failureReason = detail,
+            });
+            TenantCommandGateway gateway = new(new CapturingGatewayClient(new SubmitCommandResponse(correlationId)),
+                new StubUlidFactory(messageId), new HttpClient(new StatusHandler(json))
+                {
+                    BaseAddress = new Uri("https://eventstore.example/"),
+                });
+            return gateway.GetStatusAsync(new(messageId, correlationId, "tenant.alpha"));
+        }
+
+        TenantCommandStatusResult baseline = await ReadStatusAsync(null);
+        TenantCommandStatusResult result = await ReadStatusAsync(failureReason);
+        result.Status.ShouldBe(status);
+        result.HasVerifiedCommandIdentity.ShouldBeTrue();
+        result.EventCount.ShouldBe(eventCount);
+        result.CommittedEventSequence.ShouldBe(status is CommandStatus.Completed ? 17L : null);
+        result.RejectionCode.ShouldBe(status is CommandStatus.Rejected ? "InsufficientPermissions" : null);
+        result.IsPending.ShouldBeFalse();
+        result.IsRetryableFailure.ShouldBeFalse();
+        result.SafeMessage.ShouldBe(status is CommandStatus.Completed
+            ? "The command status included an unavailable support detail."
+            : "You are not authorized to submit this command.");
+        result.SafeMessageKey.ShouldBe(status is CommandStatus.Completed
+            ? "Tenants.Commands.Failure.UnavailableSupportDetail" : null);
+        JsonSerializer.Serialize(result).ShouldNotContain(failureReason);
+        (result with { SafeMessage = baseline.SafeMessage, SafeMessageKey = baseline.SafeMessageKey }).ShouldBe(baseline);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

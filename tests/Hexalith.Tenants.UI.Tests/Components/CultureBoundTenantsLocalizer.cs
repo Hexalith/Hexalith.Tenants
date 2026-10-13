@@ -3,6 +3,8 @@ using System.Globalization;
 using Hexalith.Tenants.UI.Resources;
 
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
@@ -12,6 +14,14 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 internal sealed class CultureBoundTenantsLocalizer(IStringLocalizer resources, CultureInfo culture)
     : IStringLocalizer<TenantsResources>
 {
+    /// <summary>Initializes a real neutral-culture resource localizer for the maintained parity gate.</summary>
+    public CultureBoundTenantsLocalizer()
+        : this(new ResourceManagerStringLocalizerFactory(
+            Options.Create(new LocalizationOptions()), NullLoggerFactory.Instance).Create(typeof(TenantsResources)),
+            CultureInfo.InvariantCulture)
+    {
+    }
+
     /// <inheritdoc />
     public LocalizedString this[string name] => InCulture(() => resources[name]);
 

@@ -10,20 +10,22 @@ Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependen
 
 **B4 update (2026-10-13):** DW-199/DW-288/DW-287/DW-458/DW-471/DW-472/DW-500/DW-421 are closed in the validated working tree over Tenants `2156db8c59e71bbaf6edfc6a6bebc7026c191631`. Shared aggregate admission, complete retained attempts, exact same-ID recovery, route/remount/ownerless reconciliation, safe Continue and late/terminal guards passed independent review and maintained checks: 4,506 UI and 189 non-performance integration cases, zero failures/skips, plus source provenance, browser, coverage and package gates. See [exact commands, initial failures and limits](../_bmad-output/implementation-artifacts/release-readiness.md#b4-remediation-evidence-2026-10-13). Eight closures and eight removed action rows explain the current counts; historical findings, B1–B3 evidence, archive, sprint tracking, B5–B7 and all decisions remain preserved.
 
+**B5 update (2026-10-13):** DW-315/DW-441 are closed in the validated working tree over Tenants `8216f9927700e39d67b2235ed83a4dbcef03d35a`. Source reverification found both core fixes already committed; this pass completed EN/FR observer/encoding/fallback regressions, non-default evidence checks and the real-resource parity fixture. Independent review, 4,765 UI and 189 non-performance integration cases, browser, coverage and package/consumer gates pass with zero final failures/skips. See [exact commands, initial failures and limits](../_bmad-output/implementation-artifacts/release-readiness.md#b5-remediation-evidence-2026-10-13). Two closures and two removed action rows explain the current counts; historical findings, B1–B4 evidence, unrelated records, archive, sprint, B6/B7 and all decisions are preserved.
+
 All 439 requested records were reconciled: 152 marked-open DW entries plus 287 previously unnumbered records, now DW-357–DW-643. Original findings and resolution history are retained, including lossless JSON `legacy-detail` for migrated records. Duplicate references share an index row; they remain separate ledger records.
 
 | Disposition | Records |
 | --- | ---: |
-| done | 104 |
-| actionable | 247 |
+| done | 106 |
+| actionable | 245 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 38 |
 
-**Remaining: 335 open records across 299 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 333 open records across 297 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
-**Highest priority:** remaining support-safe mappings/identifiers (DW-315, DW-441), audit-stream collision/replay (DW-626/DW-628) and live authority/viewport admission (DW-195/DW-206/DW-235/DW-264). Platform-owned publication/status repair and secret-scan coverage remain with EventStore (DW-499, DW-502, DW-517).
+**Highest priority:** audit-stream collision/replay (DW-626/DW-628) and live authority/viewport admission (DW-195/DW-206/DW-235/DW-264). Platform-owned publication/status repair and secret-scan coverage remain with EventStore (DW-499, DW-502, DW-517).
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -35,10 +37,8 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
-| DW-315 | P1 | Defect / actionable | unassigned | shared failure contract | Use a support-safe allowlisted code/key mapping and prove unknown backend text cannot render. |
 | DW-428 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Require an attached intended branch or retain/merge the exact detached commit before default-branch push; add a procedure fixture for dirty detached HEAD. |
 | DW-429 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Resolve the remote default first, validate its branch/ref, and handle missing or ambiguous remote-default evidence explicitly. |
-| DW-441 | P1 | Defect / actionable | unassigned | Preserve approved D5 and literal identifier contract; no new policy request | Implement the approved shared identifier allowlist/confusable policy and add regressions for every listed dotted-phone, fullwidth-percent, and divider shape. |
 | DW-499 | P1 | Defect / actionable | Hexalith.EventStore | EventStore terminal-status recovery design | Design and test durable repair of terminal advisory status using the original command event range, including failed write/crash and exact-duplicate cases. |
 | DW-502 | P1 | Defect / actionable | Hexalith.EventStore | EventStore quarantine/recovery contract | Add a platform-owned rejection/quarantine path for unverifiable resume ranges and persisted-evidence-preserving tests before pub/sub invocation. |
 | DW-437, DW-451, DW-534 | P1 | Gap / actionable | unassigned | Story attribution must avoid including unrelated later pointer updates; DW-437 CI gate and story attribution; DW-198 historical story-range selection; DW-520 declaration format | Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling. |

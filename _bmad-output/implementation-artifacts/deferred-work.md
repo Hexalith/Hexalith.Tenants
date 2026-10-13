@@ -14,6 +14,8 @@ After validated B3 closure of DW-222/DW-286/DW-300 (2026-10-13): 96 done, 255 ac
 
 After validated B4 closure of DW-199/DW-288/DW-287/DW-458/DW-471/DW-472/DW-500/DW-421 (2026-10-13): 104 reconciled done, 247 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 335 open. All 643 unique ledger IDs remain: 308 done and 335 open. Historical findings and pre-fix verification/actions are retained in these eight records; B1–B3 evidence, unrelated records, archive and sprint tracking are preserved. Exact commands, results, initial failures, review and limits are in [B4 remediation evidence](release-readiness.md#b4-remediation-evidence-2026-10-13).
 
+After validated B5 closure of DW-315/DW-441 (2026-10-13): 106 reconciled done, 245 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 333 open. All 643 unique IDs remain: 310 done and 333 open. The two historical findings, legacy text and pre-B5 verification/actions remain in their records. B1–B4 evidence, unrelated records, archive and sprint are preserved. The current baseline archive contains 308 IDs and is unchanged; these two closures remain in the active ledger. Exact commands, initial failures, review and limits are in [B5 remediation evidence](release-readiness.md#b5-remediation-evidence-2026-10-13).
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -3220,16 +3222,22 @@ origin: deferred from code review of spec-3-4-disable-or-enable-tenant-with-comp
 location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:1034-1041
 source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
 reason: The existing sanitizer replaces values only when a short marker denylist matches; every other backend failure reason is returned verbatim, truncated to 160 characters. A backend detail or secret outside that marker list could therefore reach command UI. Replacing the denylist with an allow-listed support-safe mapping is shared gateway hardening beyond the focused lifecycle patch.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs BoundSafeFailureReason still returns the first 160 backend characters unless a short denylist marker matches; most arbitrary backend strings therefore reach SafeMessage.
+status: done 2026-10-13
+pre-b5-status: open
+disposition: done
+pre-b5-disposition: actionable
+verification-date: 2026-10-13
+pre-b5-verification-date: 2026-10-12
+verification: Reverified current source at 8216f9927700e39d67b2235ed83a4dbcef03d35a: BoundSafeFailureReason is already replaced by exact case-sensitive ConcurrencyConflict/BackpressureExceeded/DomainRejected code-to-resource mapping and fixed unknown/status fallbacks. Completed B5 regressions prove arbitrary details, secrets, encoded text and code near misses cannot reach DOM, live regions, serialized evidence or clipboard in EN/FR; non-default commit/rejection evidence remains intact. Final maintained UI 4765/4765 and integration 189/189 pass; exact commands, initial failures, review and limits: release-readiness.md#b5-remediation-evidence-2026-10-13.
+pre-b5-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs BoundSafeFailureReason still returns the first 160 backend characters unless a short denylist marker matches; most arbitrary backend strings therefore reach SafeMessage.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
 evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: shared failure contract
-next-action: Use a support-safe allowlisted code/key mapping and prove unknown backend text cannot render.
+next-action: None; B5 closure proven. Preserve remaining localization, runtime/AT qualifications and unrelated support-policy work.
+pre-b5-next-action: Use a support-safe allowlisted code/key mapping and prove unknown backend text cannot render.
+closure-evidence: release-readiness.md#b5-remediation-evidence-2026-10-13
 related: DW-234
 
 ### DW-316: Localize all `UnavailableTenantCommandGateway` failure results
@@ -5151,16 +5159,22 @@ location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Move typed audit identifiers from a deny-list to an allow-listed character set with a confusable-skeleton check.\n  evidence: Decision D5 (2026-09-28): stop adding characters one at a time; this was the seventh round. `TenantAuditSupportSafety.IsSafe` still admits phone numbers written with `.`, `/`, `tel:` or a leading space (`202.555.0100`); a fullwidth `％40` (NFKC turns it into `%40` only after the `%` check); and the dividers U+2503, U+275A, U+01C0, U+23D0, U+204F and U+061B. These values can reach the grid target, the receipt and the copied summary."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: State/TenantAudit/TenantAuditSupportSafety.cs::IsSafe still uses fragment/character deny-lists; its percent check occurs before FormKC normalization, ContainsFieldBoundary omits the listed confusable dividers, and LooksLikePhoneNumber permits only +/dash/parentheses/spaces for detection, so dotted/slashed/tel-prefixed numbers bypass it. These approved identifiers feed audit row/receipt display. The recorded 2026-09-28 D5 decision already approved allow-listed characters plus confusable skeleton handling.
+status: done 2026-10-13
+pre-b5-status: open
+disposition: done
+pre-b5-disposition: actionable
+verification-date: 2026-10-13
+pre-b5-verification-date: 2026-10-12
+verification: Reverified current source at 8216f9927700e39d67b2235ed83a4dbcef03d35a: typed UserId character allowlist, compatibility normalization before repeated percent decoding, confusable skeleton, dotted/slashed/tel/leading-space phone detection and all six recorded dividers are already implemented. Completed B5 EN/FR regressions inspect raw/decoded/normalized representations through mapped/direct grids and receipts, real clipboard invocations and live regions; unsafe summaries refuse safely, while approved literal user/non-user contracts remain exact. Final boundary 227/227, audit safety 54/54 and maintained UI 4765/4765 pass; commands, review and limits: release-readiness.md#b5-remediation-evidence-2026-10-13.
+pre-b5-verification: State/TenantAudit/TenantAuditSupportSafety.cs::IsSafe still uses fragment/character deny-lists; its percent check occurs before FormKC normalization, ContainsFieldBoundary omits the listed confusable dividers, and LooksLikePhoneNumber permits only +/dash/parentheses/spaces for detection, so dotted/slashed/tel-prefixed numbers bypass it. These approved identifiers feed audit row/receipt display. The recorded 2026-09-28 D5 decision already approved allow-listed characters plus confusable skeleton handling.
 verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
 evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: Preserve approved D5 and literal identifier contract; no new policy request
-next-action: Implement the approved shared identifier allowlist/confusable policy and add regressions for every listed dotted-phone, fullwidth-percent, and divider shape.
+next-action: None; B5 closure proven. Preserve remaining localization, runtime/AT qualifications and unrelated support-policy work.
+pre-b5-next-action: Implement the approved shared identifier allowlist/confusable policy and add regressions for every listed dotted-phone, fullwidth-percent, and divider shape.
+closure-evidence: release-readiness.md#b5-remediation-evidence-2026-10-13
 related: DW-438
 
 

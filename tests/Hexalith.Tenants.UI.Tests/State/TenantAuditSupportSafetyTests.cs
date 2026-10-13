@@ -52,6 +52,19 @@ public sealed class TenantAuditSupportSafetyTests
         => TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBe(value);
 
     [Theory]
+    [InlineData("user★target")]
+    [InlineData("user§target")]
+    [InlineData("user☃target")]
+    [InlineData("user\U0001F680target")]
+    public void UnlistedSymbolsFailClosedOnlyForTypedUserIdentifiers(string value)
+    {
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.UserId).ShouldBeEmpty();
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.TenantId).ShouldBe(value);
+        TenantAuditSupportSafety.SafeIdentifier(value, SupportSafeCopyValueKind.ConfigurationKey).ShouldBe(value);
+        TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBe(value);
+    }
+
+    [Theory]
     [InlineData("event\u200Bsafe")]
     [InlineData("event\u202Esafe")]
     [InlineData("event\u2060safe")]
