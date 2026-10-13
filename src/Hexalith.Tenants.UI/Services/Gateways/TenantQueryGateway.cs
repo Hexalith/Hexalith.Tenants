@@ -1404,6 +1404,7 @@ internal sealed class TenantQueryGateway(
             From = request.From,
             To = request.To,
             Category = request.Category,
+            Stream = request.Stream,
             Cursor = request.Cursor,
             PageSize = NormalizePageSize(request.PageSize),
         };
@@ -3115,7 +3116,8 @@ internal sealed class TenantQueryGateway(
         => (request.From is null || (request.From.Value != default(DateTimeOffset) && request.From.Value.Offset == TimeSpan.Zero))
             && (request.To is null || (request.To.Value != default(DateTimeOffset) && request.To.Value.Offset == TimeSpan.Zero))
             && (request.From is null || request.To is null || request.From <= request.To)
-            && (request.Category is null || Enum.IsDefined(request.Category.Value));
+            && (request.Category is null || Enum.IsDefined(request.Category.Value))
+            && (request.Stream is null or "tenant" || request.Stream == "global-administrators" && request.TenantId == "system");
 
     private static bool IsValidTenantAuditPayload(
         PaginatedResult<TenantAuditEntry> payload,

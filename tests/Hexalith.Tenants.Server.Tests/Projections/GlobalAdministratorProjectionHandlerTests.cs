@@ -25,7 +25,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_GlobalAdministratorSet_WritesSingletonKeyWithUserAddedAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
 
@@ -42,16 +42,16 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_GlobalAdministratorEvents_WriteSystemAuditStateAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-1", "bootstrapper"),
             new GlobalAdministratorRemoved("system", "admin-1", "admin-2"));
 
         _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
-            "audit:system",
+            TenantAuditStreams.GlobalAdministratorsKey,
             Arg.Is<TenantAuditReadModel>(m =>
                 m != null
                 && m.Entries.Count == 2
@@ -63,6 +63,7 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Entries[1].EventType == nameof(GlobalAdministratorRemoved)
                 && m.ProjectionVersion == "tenant-sequence:2"
                 && m.Entries[1].AggregateSequence == 2),
+            string.Empty,
             Arg.Any<CancellationToken>());
         await store.Received(1).SaveAsync(
             StateStoreName,
@@ -73,7 +74,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_MultipleAdministratorsSet_WritesAllAdministratorsAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-1"),
             new GlobalAdministratorSet("system", "admin-2"),
@@ -95,7 +96,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_GlobalAdministratorRemoved_WritesSingletonKeyWithUserRemovedAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-1"),
             new GlobalAdministratorSet("system", "admin-2"),
@@ -116,7 +117,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_EmptyEventList_WritesEmptySingletonAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = new("system", "global-administrators", "global-administrators", []);
 
         _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
@@ -130,7 +131,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_RemoveBeforeSet_LeavesAdministratorsEmptyAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorRemoved("system", "ghost"));
 
@@ -145,7 +146,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_DoesNotWriteForbiddenTenantKeyAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
 
@@ -160,7 +161,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_DoesNotTouchTenantIndexProjectionAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
 
@@ -175,11 +176,11 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_NullEventEntries_AreSkippedAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionEventDto[] events = [
             CreateEventDto(new GlobalAdministratorSet("system", "admin-1")),
             null!,
-            CreateEventDto(new GlobalAdministratorSet("system", "admin-2")),
+            CreateEventDto(new GlobalAdministratorSet("system", "admin-2"), "evt-2", 2),
         ];
         ProjectionRequest request = new("system", "global-administrators", "global-administrators", events);
 
@@ -198,7 +199,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_StampsSingletonAndAuditProjectionWritesWithTimeProviderAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
 
@@ -210,16 +211,17 @@ public class GlobalAdministratorProjectionHandlerTests {
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.ProjectedAt == ProjectionTime),
             Arg.Any<CancellationToken>());
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
-            "audit:system",
+            TenantAuditStreams.GlobalAdministratorsKey,
             Arg.Is<TenantAuditReadModel>(m => m != null && m.ProjectedAt == ProjectionTime),
+            string.Empty,
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task ProjectAsync_WithPreCancelledTokenThrowsBeforeSaveAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
         using var cancellation = new CancellationTokenSource();
@@ -238,7 +240,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
     [Fact]
     public async Task ProjectAsync_PassesCancellationTokenToSaveStateBoundaryAsync() {
-        IReadModelStore store = Substitute.For<IReadModelStore>();
+        IReadModelStore store = CreateStore();
         ProjectionRequest request = CreateRequest(
             new GlobalAdministratorSet("system", "admin-user"));
         using var cancellation = new CancellationTokenSource();
@@ -251,6 +253,16 @@ public class GlobalAdministratorProjectionHandlerTests {
             SingletonKey,
             Arg.Any<GlobalAdministratorReadModel>(),
             cancellation.Token);
+    }
+
+    private static IReadModelStore CreateStore()
+    {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        store.GetAsync<TenantAuditReadModel>(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TenantAuditReadModel>(null, null));
+        store.TrySaveAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<TenantAuditReadModel>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
+        return store;
     }
 
     private static ProjectionRequest CreateRequest(params object[] events) {

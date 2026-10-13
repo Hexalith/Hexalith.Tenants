@@ -124,7 +124,7 @@ All query contracts implement `IQueryContract`; controllers are REST adapters th
 | `TenantAuditEntry` | `EventId`, `EventType`, `Category`, `ActorId`, `Timestamp`, `TenantId`, `NarrativePayload`, computed `Target`, computed `Scope`, computed `Outcome`, `CommandCorrelationId`, `AggregateSequence` (authorized command provenance only on `system` global-administrator set/removed rows; null elsewhere; keep out of operator-facing copy) |
 | `GlobalAdministratorSummary` | `UserId` |
 
-For audit-based global-administrator correction on an existing installation, rebuild the `system` / `global-administrators` singleton projection from its durable event history after deploying the sequence-writing projection handler. Existing persisted read models have no ordered `ProjectionVersion`. Keep correction unavailable until an authorized, complete `GET /api/global-administrators` read reports a `tenant-sequence:<number>` value in `X-Hexalith-Projection-Version`. Do not substitute wall time or a similar audit event for that sequence; a missing version remains a fail-closed recovery state.
+For audit-based global-administrator correction on an existing installation, first complete the [audit storage rollout and replay prerequisites](audit-stream-rollout.md). Deploy compatible readers and separated writers together, stop old writers, preserve legacy evidence and resolve ownership uncertainty before any separately authorized replay. The singleton and literal tenant `system` have distinct durable histories and dedicated audit keys; replaying only the singleton cannot restore previously lost tenant evidence. Keep correction unavailable until authorized, complete global-administrator and explicit global audit reads report ordered `tenant-sequence:<number>` provenance covering the committed sequence. Do not substitute wall time, a combined-stream version or a similar audit event. This change performs no production replay or migration.
 
 ### Rejection and Enum Contracts
 
@@ -815,7 +815,9 @@ Cursors are signed, opaque, and bound to the query type and authorization scope.
 | `outcome` | Event type outcome |
 | `narrativePayload` | Support-safe key/value summary, not a raw event payload dump |
 
-Global-administrator events are also projected into system-scoped audit state under `audit:system`, so `GlobalAdministratorSet` and `GlobalAdministratorRemoved` can be queried through the same audit contract when the system tenant scope is requested.
+Global-administrator events are projected under `audit-global-administrators:singleton`; the valid literal tenant `system` uses `audit-tenants:system`. Other tenants retain `audit:{tenantId}`. The old `audit:system` record remains immutable legacy evidence and is read through strict ownership classification. Unknown or conflicting ownership fails closed; existing recognized evidence is preserved.
+
+The query contract's nullable `Stream` member is exposed as optional `stream=tenant` to isolate tenant evidence. `stream=global-administrators` is allowed only with tenant identifier `system` and isolates global evidence. Omitted `stream` preserves ordinary tenant reads and the combined system-scope feed. Cursors, validators and retained snapshots bind the selected stream. Combined system versions are opaque; only an explicit canonical global stream can provide ordered global audit provenance. See [storage compatibility, rollout and replay](audit-stream-rollout.md) for safe operational prerequisites and remaining limits.
 
 ---
 

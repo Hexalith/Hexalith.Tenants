@@ -111,6 +111,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     [Fact]
     public async Task DispatchAsync_GlobalAdministratorsDomain_ShouldEmitCompletedOutcomeAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupSuccessfulGuardedSave<TenantAuditReadModel>(store, TenantAuditStreams.GlobalAdministratorsKey);
         ProjectionRequest request = CreateGlobalAdminRequest();
 
         IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);

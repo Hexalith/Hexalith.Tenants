@@ -136,6 +136,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
                 ("from", query.From?.ToString("O", CultureInfo.InvariantCulture)),
                 ("to", query.To?.ToString("O", CultureInfo.InvariantCulture)),
                 ("category", query.Category?.ToString()),
+                ("stream", query.Stream),
                 ("cursor", query.Cursor),
                 ("pageSize", query.PageSize)),
             eTag,

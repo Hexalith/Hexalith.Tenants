@@ -9,4 +9,5 @@ public sealed record TenantAuditRequest(
     AuditEventCategory? Category = null,
     string? Cursor = null,
     int PageSize = 50,
-    string? ETag = null);
+    string? ETag = null,
+    string? Stream = null);

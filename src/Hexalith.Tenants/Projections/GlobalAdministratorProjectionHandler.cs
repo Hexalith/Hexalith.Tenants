@@ -3,8 +3,11 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Server.Projections;
+
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Hexalith.Tenants.Projections;
 
@@ -22,7 +25,6 @@ public sealed class GlobalAdministratorProjectionHandler {
     public const string GlobalAdministratorsProjectionKey = "projection:global-administrators:singleton";
     public const string GlobalAdministratorsAggregateId = "global-administrators";
     public const string SystemTenantId = "system";
-    internal const string TenantAuditProjectionKeyPrefix = "audit:";
 
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
@@ -54,6 +56,7 @@ public sealed class GlobalAdministratorProjectionHandler {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
         TenantAuditReadModel auditState = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
+        TenantAuditStreams.ValidateIncoming(auditState, SystemTenantId, TenantAuditStreams.GlobalAdministrators);
         DateTimeOffset projectedAt = _timeProvider.GetUtcNow();
         auditState.ProjectedAt = projectedAt;
         cancellationToken.ThrowIfCancellationRequested();
@@ -68,26 +71,33 @@ public sealed class GlobalAdministratorProjectionHandler {
 
             cancellationToken.ThrowIfCancellationRequested();
             ApplyEvent(state, evt);
-            if (evt.SequenceNumber >= 0)
+            if (evt.SequenceNumber >= 0
+                && (!TenantAuditStreams.TryGetSequence(state.ProjectionVersion, out long previousSequence)
+                    || previousSequence < evt.SequenceNumber))
             {
                 state.ProjectionVersion = TenantProjectionVersionFormat.SequencePrefix
                     + evt.SequenceNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                auditState.ProjectionVersion = state.ProjectionVersion;
             }
         }
 
+        auditState.ProjectionVersion = IsCompleteGlobalReplay(events, auditState) ? state.ProjectionVersion : null;
         cancellationToken.ThrowIfCancellationRequested();
+        _ = await ReadModelWritePolicy.MergeAsync(
+            _store,
+            StateStoreName,
+            TenantAuditStreams.GlobalAdministratorsKey,
+            auditState,
+            static () => new TenantAuditReadModel(),
+            static (persisted, incoming) => TenantAuditStreams.Merge(persisted, incoming),
+            new ReadModelWriteContext("global-administrator audit", nameof(TenantAuditReadModel)).WithEventDiagnostics(events),
+            NullLogger<GlobalAdministratorProjectionHandler>.Instance,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+
         await _store.SaveAsync(
             StateStoreName,
             GlobalAdministratorsProjectionKey,
             state,
-            cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-
-        await _store.SaveAsync(
-            StateStoreName,
-            TenantAuditProjectionKeyPrefix + request.TenantId,
-            auditState,
             cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -100,6 +110,60 @@ public sealed class GlobalAdministratorProjectionHandler {
         => string.Equals(request.TenantId, SystemTenantId, StringComparison.Ordinal)
             && string.Equals(request.AggregateId, GlobalAdministratorsAggregateId, StringComparison.Ordinal);
 
+    private static bool IsCompleteGlobalReplay(IReadOnlyCollection<ProjectionEventDto?> events, TenantAuditReadModel audit)
+    {
+        // A suffix, a gapped history, or a malformed/unknown event cannot establish canonical ordering.
+        var sequences = new HashSet<long>();
+        var messageBySequence = new Dictionary<long, string>();
+        var successIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (ProjectionEventDto? evt in events)
+        {
+            if (evt is null || evt.SequenceNumber <= 0 || string.IsNullOrWhiteSpace(evt.MessageId))
+            {
+                return false;
+            }
+
+            string type = evt.EventTypeName;
+            bool success = type == typeof(GlobalAdministratorSet).FullName || type == nameof(GlobalAdministratorSet)
+                || type == typeof(GlobalAdministratorRemoved).FullName || type == nameof(GlobalAdministratorRemoved);
+            bool rejection = type == typeof(LastGlobalAdministratorRejection).FullName
+                || type == typeof(GlobalAdminAlreadyBootstrappedRejection).FullName
+                || type == typeof(GlobalAdministratorAlreadyExistsRejection).FullName
+                || type == typeof(GlobalAdministratorNotFoundRejection).FullName
+                || type == typeof(InsufficientPermissionsRejection).FullName;
+            if (!success && !rejection)
+            {
+                return false;
+            }
+
+            try
+            {
+                using JsonDocument payload = JsonDocument.Parse(evt.Payload);
+                if (!(payload.RootElement.TryGetProperty("TenantId", out JsonElement tenantId)
+                    || payload.RootElement.TryGetProperty("tenantId", out tenantId))
+                    || tenantId.ValueKind != JsonValueKind.String || tenantId.GetString() != SystemTenantId)
+                {
+                    return false;
+                }
+            }
+            catch (JsonException)
+            {
+                return false;
+            }
+
+            if (messageBySequence.TryGetValue(evt.SequenceNumber, out string? priorMessage) && priorMessage != evt.MessageId)
+            {
+                return false;
+            }
+            messageBySequence[evt.SequenceNumber] = evt.MessageId;
+            sequences.Add(evt.SequenceNumber);
+            if (success) successIds.Add(evt.MessageId);
+        }
+
+        return sequences.Count > 0 && sequences.Max() == sequences.Count
+            && successIds.SetEquals(audit.Entries.Select(row => row.EventId));
+    }
+
     private static void ApplyEvent(GlobalAdministratorReadModel state, ProjectionEventDto evt) {
         string name = evt.EventTypeName;
         if (string.IsNullOrEmpty(name)) {
@@ -108,13 +172,13 @@ public sealed class GlobalAdministratorProjectionHandler {
 
         JsonElement payload = JsonSerializer.Deserialize<JsonElement>(evt.Payload, s_options);
 
-        if (name.EndsWith(nameof(GlobalAdministratorSet), StringComparison.Ordinal)) {
+        if ((name == nameof(GlobalAdministratorSet) || name == typeof(GlobalAdministratorSet).FullName)) {
             GlobalAdministratorSet? e = JsonSerializer.Deserialize<GlobalAdministratorSet>(payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
-        else if (name.EndsWith(nameof(GlobalAdministratorRemoved), StringComparison.Ordinal)) {
+        else if ((name == nameof(GlobalAdministratorRemoved) || name == typeof(GlobalAdministratorRemoved).FullName)) {
             GlobalAdministratorRemoved? e = JsonSerializer.Deserialize<GlobalAdministratorRemoved>(payload, s_options);
             if (e is not null) {
                 state.Apply(e);

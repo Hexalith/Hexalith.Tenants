@@ -20,7 +20,8 @@ public sealed record TenantAuditSnapshot(
     string? ProjectionVersion = null,
     string? RequestCursor = null,
     int RequestPageSize = 50,
-    string? CallerScope = null) {
+    string? CallerScope = null,
+    string? Stream = null) {
     public static TenantAuditSnapshot Loading(string? tenantId = null)
         => new(
             TenantAuditSurfaceKind.Loading,
@@ -219,7 +220,8 @@ public sealed record TenantAuditSnapshot(
             && To == request.To
             && string.Equals(Category, request.Category?.ToString(), StringComparison.Ordinal)
             && string.Equals(RequestCursor, request.Cursor, StringComparison.Ordinal)
-            && RequestPageSize == request.PageSize;
+            && RequestPageSize == request.PageSize
+            && string.Equals(Stream, request.Stream, StringComparison.Ordinal);
 
     /// <summary>Returns a support-safe description that omits rows, identities, filters, cursors, validators, and versions.</summary>
     public override string ToString()
@@ -249,7 +251,8 @@ public sealed record TenantAuditSnapshot(
             request.To,
             request.Category?.ToString(),
             RequestCursor: request.Cursor,
-            RequestPageSize: request.PageSize);
+            RequestPageSize: request.PageSize,
+            Stream: request.Stream);
 
     private static bool HasFilters(TenantAuditRequest request)
         => request.From is not null || request.To is not null || request.Category is not null;

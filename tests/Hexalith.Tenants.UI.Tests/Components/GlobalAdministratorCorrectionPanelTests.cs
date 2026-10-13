@@ -589,6 +589,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
+            Stream = request.Stream,
         });
         await submit;
 
@@ -3634,6 +3635,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
                 Category = request.Category?.ToString(),
                 RequestCursor = request.Cursor,
                 RequestPageSize = request.PageSize,
+                Stream = request.Stream,
             });
         }
 

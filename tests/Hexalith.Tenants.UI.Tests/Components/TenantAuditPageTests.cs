@@ -1659,6 +1659,7 @@ public sealed class TenantAuditPageTests : BunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
+            Stream = request.Stream,
         };
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
@@ -1779,6 +1780,7 @@ public sealed class TenantAuditPageTests : BunitContext
                 To = request.To,
                 RequestCursor = request.Cursor,
                 RequestPageSize = request.PageSize,
+                Stream = request.Stream,
             };
         };
 
@@ -1797,6 +1799,7 @@ public sealed class TenantAuditPageTests : BunitContext
     [InlineData("ready", true)]
     [InlineData("wrong-category", false)]
     [InlineData("opaque-version", false)]
+    [InlineData("wrong-stream", false)]
     [InlineData("version-drift", false)]
     public void Original_global_receipt_on_second_protected_page_requires_access_and_ordered_version(
         string originalState, bool shouldPair)
@@ -1827,6 +1830,7 @@ public sealed class TenantAuditPageTests : BunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
+            Stream = originalState == "wrong-stream" ? "tenant" : request.Stream,
             ProjectionVersion = originalState switch
             {
                 "opaque-version" => "legacy-audit",
@@ -1864,7 +1868,9 @@ public sealed class TenantAuditPageTests : BunitContext
             .Add(p => p.TenantId, "system"));
 
         cut.WaitForAssertion(() => gateway.Requests.Count(request => request.From == original.Timestamp)
-            .ShouldBeGreaterThanOrEqualTo(originalState == "opaque-version" ? 1 : 2));
+            .ShouldBeGreaterThanOrEqualTo(originalState is "opaque-version" or "wrong-stream" ? 1 : 2));
+        gateway.Requests.Where(request => request.From == original.Timestamp)
+            .ShouldAllBe(request => request.Stream == "global-administrators");
         if (shouldPair)
         {
             cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-audit-receipt-reference']")
@@ -1904,6 +1910,7 @@ public sealed class TenantAuditPageTests : BunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
+            Stream = request.Stream,
         };
         var registry = new GlobalAdministratorCorrectionProofRegistry();
         Services.AddSingleton(registry);
@@ -1971,6 +1978,7 @@ public sealed class TenantAuditPageTests : BunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
+            Stream = request.Stream,
         };
         var registry = new GlobalAdministratorCorrectionProofRegistry();
         Services.AddSingleton(registry);
@@ -2179,6 +2187,7 @@ public sealed class TenantAuditPageTests : BunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
+            Stream = request.Stream,
         };
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
@@ -2231,6 +2240,7 @@ public sealed class TenantAuditPageTests : BunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
+            Stream = request.Stream,
         };
 
         IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
@@ -2296,6 +2306,7 @@ public sealed class TenantAuditPageTests : BunitContext
             To = request.To,
             RequestCursor = request.Cursor,
             RequestPageSize = request.PageSize,
+            Stream = request.Stream,
         };
         foreach ((TenantAuditRow original, TenantAuditRow corrective, string correlation,
             TenantCorrectionCommandType commandType) in new[]

@@ -1616,6 +1616,9 @@ public class PackageGovernanceTests {
         script.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs");
         script.ShouldContain("src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs");
         script.ShouldContain("src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs");
+        script.ShouldContain("src/Hexalith.Tenants.Server/Projections/TenantAuditOwnership.cs");
+        File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "ci.yml"))
+            .ShouldContain("src/Hexalith.Tenants.Server/Projections/TenantAuditOwnership.cs");
         script.ShouldContain("GITHUB_STEP_SUMMARY");
         script.ShouldContain("No publishable-package line coverage data found");
         script.ShouldContain("No isolation/auth branch coverage data found");

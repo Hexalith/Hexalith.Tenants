@@ -13,6 +13,26 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class TenantsRestQueryClientTests
 {
+    [Theory]
+    [InlineData("tenant")]
+    [InlineData("global-administrators")]
+    public async Task Audit_stream_selector_survives_the_direct_rest_transport(string stream)
+    {
+        var handler = new RecordingHandler(Success("{\"items\":[],\"cursor\":null,\"hasMore\":false}"));
+        using var httpClient = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://tenants.invalid"),
+        };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        _ = await client.GetTenantAuditAsync(
+            new GetTenantAuditQuery { TenantId = "system", Stream = stream, PageSize = 30 },
+            null,
+            TestContext.Current.CancellationToken);
+
+        handler.Requests.ShouldHaveSingleItem().PathAndQuery.ShouldContain("stream=" + stream);
+    }
+
     [Fact]
     public async Task Six_typed_reads_use_only_the_canonical_direct_routes_and_query_fields()
     {

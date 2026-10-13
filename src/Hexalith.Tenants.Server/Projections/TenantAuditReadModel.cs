@@ -149,8 +149,9 @@ public sealed class TenantAuditReadModel : IReadModelFreshness {
         ?? throw new InvalidOperationException($"Unable to deserialize audit event payload as {typeof(TEvent).Name}.");
 
     private static string GetEventType(string eventTypeName) {
-        int index = eventTypeName.LastIndexOf('.');
-        return index < 0 ? eventTypeName : eventTypeName[(index + 1)..];
+        const string prefix = "Hexalith.Tenants.Contracts.Events.";
+        return eventTypeName.StartsWith(prefix, StringComparison.Ordinal)
+            ? eventTypeName[prefix.Length..] : eventTypeName;
     }
 
     private static string GetTenantId(IEventPayload payload) =>

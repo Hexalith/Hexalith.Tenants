@@ -83,6 +83,10 @@ public class ProjectionDispatcherTests {
     [Fact]
     public async Task DispatchAsync_GlobalAdministratorsDomain_RoutesToGlobalAdminHandlerAndWritesSingletonAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
+        store.GetAsync<TenantAuditReadModel>("statestore", TenantAuditStreams.GlobalAdministratorsKey, Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TenantAuditReadModel>(null, null));
+        store.TrySaveAsync("statestore", TenantAuditStreams.GlobalAdministratorsKey, Arg.Any<TenantAuditReadModel>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(true);
         ProjectionRequest request = new(
             "system",
             "global-administrators",

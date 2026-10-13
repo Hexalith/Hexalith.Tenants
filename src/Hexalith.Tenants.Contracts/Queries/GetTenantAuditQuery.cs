@@ -18,6 +18,9 @@ public sealed class GetTenantAuditQuery : IQueryContract {
 
     public AuditEventCategory? Category { get; init; }
 
+    /// <summary>Optional owner selector: tenant or global-administrators (system scope only).</summary>
+    public string? Stream { get; init; }
+
     public string? Cursor { get; init; }
 
     public int PageSize { get; init; }

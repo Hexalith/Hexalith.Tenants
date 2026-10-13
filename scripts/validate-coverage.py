@@ -56,6 +56,7 @@ DEFAULT_ISOLATION_AUTH_TARGETS = [
     "src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs",
     "src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs",
     "src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs",
+    "src/Hexalith.Tenants.Server/Projections/TenantAuditOwnership.cs",
 ]
 
 

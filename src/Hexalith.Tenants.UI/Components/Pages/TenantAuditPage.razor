@@ -1838,7 +1838,7 @@
         for (int page = 0; page < 50; page++)
         {
             TenantAuditRequest request = new("system", From: timestamp,
-                To: timestamp, Cursor: cursor);
+                To: timestamp, Cursor: cursor, Stream: "global-administrators");
             TenantAuditSnapshot audit = await QueryGateway.GetTenantAuditAsync(request, null, CancellationToken.None)
                 .ConfigureAwait(false);
             if (audit.Kind is not TenantAuditSurfaceKind.Ready and not TenantAuditSurfaceKind.Empty

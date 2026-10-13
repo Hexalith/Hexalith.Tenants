@@ -83,6 +83,9 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
     /// <inheritdoc/>
     public abstract string QueryType { get; }
 
+    /// <summary>Gets the persisted read-model store for domain-specific read composition.</summary>
+    private protected IReadModelStore ReadModelStore => _store;
+
     /// <summary>Gets the protected pagination cursor codec.</summary>
     protected IQueryCursorCodec CursorCodec { get; }
 
@@ -258,14 +261,16 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         IEnumerable<TenantAuditEntry> entries,
         string? cursor,
         int pageSize,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool distinguishOwners = false) {
         cancellationToken.ThrowIfCancellationRequested();
         IEnumerable<TenantAuditEntry> ordered = entries
             .OrderBy(e => e.Timestamp)
-            .ThenBy(e => e.EventId, StringComparer.Ordinal);
+            .ThenBy(e => e.EventId, StringComparer.Ordinal)
+            .ThenBy(e => distinguishOwners ? TenantAuditOwnership.GetOwner(e, "system") : null, StringComparer.Ordinal);
 
         if (cursor is not null) {
-            ordered = ordered.Where(e => string.Compare(GetAuditCursor(e), cursor, StringComparison.Ordinal) > 0);
+            ordered = ordered.Where(e => string.Compare(GetAuditCursor(e, distinguishOwners), cursor, StringComparison.Ordinal) > 0);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -276,18 +281,23 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             page.RemoveAt(page.Count - 1);
         }
 
-        string? nextCursor = hasMore ? GetAuditCursor(page[^1]) : null;
+        string? nextCursor = hasMore ? GetAuditCursor(page[^1], distinguishOwners) : null;
         return new PaginatedResult<TenantAuditEntry>(page, nextCursor, hasMore);
     }
 
-    private protected static string GetAuditCursor(TenantAuditEntry entry) =>
-        string.Create(
-            System.Globalization.CultureInfo.InvariantCulture,
-            $"{entry.Timestamp.UtcDateTime.Ticks:D20}:{entry.EventId}");
+    private protected static string GetAuditCursor(TenantAuditEntry entry, bool distinguishOwners = false)
+    {
+        string eventKey = distinguishOwners
+            ? string.Concat(entry.EventId.Select(value => ((int)value).ToString("X4", System.Globalization.CultureInfo.InvariantCulture)))
+                + "!" + TenantAuditOwnership.GetOwner(entry, "system")
+            : entry.EventId;
+        return string.Create(System.Globalization.CultureInfo.InvariantCulture,
+            $"{entry.Timestamp.UtcDateTime.Ticks:D20}:{eventKey}");
+    }
 
     private protected static TenantAuditQueryPayload DeserializeAuditPayload(byte[]? payload) {
         if (payload is null || payload.Length == 0) {
-            return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null);
+            return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, null);
         }
 
         try {
@@ -295,7 +305,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             JsonElement root = doc.RootElement;
 
             if (root.ValueKind != JsonValueKind.Object) {
-                return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, QueryAdapterFailureReason.InvalidEnvelope);
+                return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
             }
 
             DateTimeOffset? from = TryGetDateTimeOffset(root, "from");
@@ -330,10 +340,23 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
                 errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit query payload: 'from' must not be after 'to'.";
             }
 
-            return new(from, to, category, cursor, pageSize, errorMessage);
+            string? stream = null;
+            if (root.TryGetProperty("stream", out JsonElement streamElement) && streamElement.ValueKind != JsonValueKind.Null)
+            {
+                if (streamElement.ValueKind == JsonValueKind.String)
+                {
+                    stream = streamElement.GetString();
+                }
+                else
+                {
+                    errorMessage = QueryAdapterFailureReason.InvalidEnvelope;
+                }
+            }
+
+            return new(from, to, category, cursor, pageSize, stream, errorMessage);
         }
         catch (JsonException) {
-            return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, QueryAdapterFailureReason.InvalidEnvelope);
+            return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
         }
     }
 
@@ -422,15 +445,6 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
 
         return adminModel is not null && adminModel.Administrators.Contains(userId);
     }
-
-    /// <summary>Common audit query payload fields parsed from the request body.</summary>
-    private protected sealed record TenantAuditQueryPayload(
-        DateTimeOffset? From,
-        DateTimeOffset? To,
-        AuditEventCategory? Category,
-        string? Cursor,
-        int PageSize,
-        string? ErrorMessage);
 
     private static partial class Log {
         [LoggerMessage(

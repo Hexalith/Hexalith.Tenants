@@ -33,7 +33,7 @@ internal static class GlobalAdministratorAuditProofLookup
         TenantAuditRow? matching = null;
         for (int page = 0; page < 50; page++)
         {
-            TenantAuditRequest request = new("system", From: submittedAtUtc, Cursor: cursor);
+            TenantAuditRequest request = new("system", From: submittedAtUtc, Cursor: cursor, Stream: "global-administrators");
             TenantAuditSnapshot audit = await read(request, cancellationToken).ConfigureAwait(false);
             if (audit.Kind is not TenantAuditSurfaceKind.Ready and not TenantAuditSurfaceKind.Empty
                 and not TenantAuditSurfaceKind.FilteredEmpty

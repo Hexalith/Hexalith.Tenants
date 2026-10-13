@@ -36,8 +36,8 @@ public sealed class GetTenantAuditQueryHandler(
         // raised in review is unreachable through any constructor path.
 
         TenantAuditQueryPayload query = DeserializeAuditPayload(envelope.Payload);
-        if (query.ErrorMessage is not null) {
-            return new QueryResult(false, default, ErrorMessage: query.ErrorMessage);
+        if (query.ErrorMessage is not null || !TenantAuditOwnership.IsValidSelector(query.Stream, envelope.AggregateId)) {
+            return new QueryResult(false, default, ErrorMessage: query.ErrorMessage ?? QueryAdapterFailureReason.InvalidEnvelope);
         }
 
         string scope = TenantQueryCursorScopes.GetTenantAudit(
@@ -45,15 +45,32 @@ public sealed class GetTenantAuditQueryHandler(
             envelope.AggregateId,
             query.From,
             query.To,
-            query.Category);
+            query.Category,
+            query.Stream);
         if (!CursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(GetTenantAuditQuery.QueryType, "get-tenant-audit", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        ReadModelEntry<TenantAuditReadModel>? auditEntry = await GetStateEntryAsync<TenantAuditReadModel>(
-            TenantAuditProjectionKeyPrefix + envelope.AggregateId, cancellationToken).ConfigureAwait(false);
-        TenantAuditReadModel? model = auditEntry?.Value;
+        TenantAuditReadModel? model;
+        string? eTag;
+        if (envelope.AggregateId == "system")
+        {
+            bool available;
+            (model, eTag, available) = await TenantSystemAuditReader.ReadAsync(
+                ReadModelStore, StateStoreName, query.Stream, cancellationToken).ConfigureAwait(false);
+            if (!available)
+            {
+                return new QueryResult(false, default, ErrorMessage: "AuditUnavailable");
+            }
+        }
+        else
+        {
+            ReadModelEntry<TenantAuditReadModel>? auditEntry = await GetStateEntryAsync<TenantAuditReadModel>(
+                TenantAuditStreams.GetTenantKey(envelope.AggregateId), cancellationToken).ConfigureAwait(false);
+            model = auditEntry?.Value;
+            eTag = auditEntry?.ETag;
+        }
         cancellationToken.ThrowIfCancellationRequested();
 
         // NFR5 defense-in-depth: a projection bug must not leak rows from another tenant.
@@ -73,10 +90,11 @@ public sealed class GetTenantAuditQueryHandler(
 
         cancellationToken.ThrowIfCancellationRequested();
         PaginatedResult<TenantAuditEntry> result = ProtectCursor(
-            PaginateAuditEntries(entries, cursor, query.PageSize, cancellationToken),
+            PaginateAuditEntries(entries, cursor, query.PageSize, cancellationToken,
+                distinguishOwners: envelope.AggregateId == "system" && query.Stream is null),
             GetTenantAuditQuery.QueryType,
             scope);
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenants", model, auditEntry?.ETag);
+        return CreateSuccessResult(SerializeToElement(result), "tenants", model, eTag);
     }
 }

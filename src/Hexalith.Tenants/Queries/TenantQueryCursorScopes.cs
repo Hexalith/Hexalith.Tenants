@@ -6,8 +6,8 @@ namespace Hexalith.Tenants.Queries;
 /// <summary>
 /// Builds the per-endpoint cursor scope strings that bind a tenant query cursor to the exact
 /// endpoint/filter set it was issued for. Composed on the platform <see cref="QueryCursorScope"/>
-/// builder (Epic A9) so the canonical strings — and therefore previously-issued cursors — stay
-/// byte-for-byte identical to the retired hand-rolled codec.
+/// builder (Epic A9). Ordinary endpoint scopes retain compatibility; combined system audit scopes
+/// bind the separated storage and paging generation.
 /// </summary>
 internal static class TenantQueryCursorScopes {
     public static string ListTenants(string userId) {
@@ -39,15 +39,24 @@ internal static class TenantQueryCursorScopes {
         string tenantId,
         DateTimeOffset? from,
         DateTimeOffset? to,
-        AuditEventCategory? category) {
+        AuditEventCategory? category,
+        string? stream = null) {
         ArgumentException.ThrowIfNullOrWhiteSpace(requesterUserId);
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
-        return QueryCursorScope.Create()
+        QueryCursorScope scope = QueryCursorScope.Create()
             .Add("requester", requesterUserId)
             .Add("tenant", tenantId)
             .Add("from", from)
             .Add("to", to)
-            .Add("category", category?.ToString())
-            .Build();
+            .Add("category", category?.ToString());
+        if (stream is not null)
+        {
+            scope.Add("stream", stream);
+        }
+        else if (tenantId == "system")
+        {
+            scope.Add("audit-generation", "separated-v1");
+        }
+        return scope.Build();
     }
 }

@@ -435,8 +435,12 @@ public sealed class TenantsApiGeneratedControllerTests
             .Returns(call => { persisted[call.ArgAt<string>(1)] = call.ArgAt<T>(2); return true; });
     }
 
-    [Fact]
-    public async Task TenantAudit_generated_route_submits_tenant_scoped_filter_payload()
+    [Theory]
+    [InlineData("tenant.alpha", null)]
+    [InlineData("system", null)]
+    [InlineData("system", "tenant")]
+    [InlineData("system", "global-administrators")]
+    public async Task TenantAudit_generated_route_submits_tenant_scoped_filter_payload(string tenantId, string? stream)
     {
         CapturingEventStoreGatewayClient gateway = new();
         gateway.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>([], null, false));
@@ -444,20 +448,25 @@ public sealed class TenantsApiGeneratedControllerTests
         using HttpClient client = CreateAuthenticatedClient(factory);
 
         HttpResponseMessage response = await client.GetAsync(
-            "/api/tenants/tenant.alpha/audit?category=Access&cursor=audit-cursor&pageSize=30");
+            $"/api/tenants/{tenantId}/audit?category=Access&cursor=audit-cursor&pageSize=30"
+                + (stream is null ? string.Empty : "&stream=" + stream));
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         SubmittedQuery query = gateway.SubmittedQueries.ShouldHaveSingleItem();
         query.Request.Tenant.ShouldBe("system");
         query.Request.Domain.ShouldBe(GetTenantAuditQuery.Domain);
-        query.Request.AggregateId.ShouldBe("tenant.alpha");
-        query.Request.EntityId.ShouldBe("tenant.alpha");
+        query.Request.AggregateId.ShouldBe(tenantId);
+        query.Request.EntityId.ShouldBe(tenantId);
         query.Request.QueryType.ShouldBe(GetTenantAuditQuery.QueryType);
         query.Request.ProjectionType.ShouldBe(GetTenantAuditQuery.ProjectionType);
         JsonElement payload = query.Request.Payload.ShouldNotBeNull();
         payload.GetProperty("category").GetString().ShouldBe(nameof(AuditEventCategory.Access));
         payload.GetProperty("cursor").GetString().ShouldBe("audit-cursor");
         payload.GetProperty("pageSize").GetInt32().ShouldBe(30);
+        if (stream is not null)
+        {
+            payload.GetProperty("stream").GetString().ShouldBe(stream);
+        }
     }
 
     [Fact]
