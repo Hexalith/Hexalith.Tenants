@@ -16,6 +16,8 @@ After validated B4 closure of DW-199/DW-288/DW-287/DW-458/DW-471/DW-472/DW-500/D
 
 After validated B5 closure of DW-315/DW-441 (2026-10-13): 106 reconciled done, 245 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 333 open. All 643 unique IDs remain: 310 done and 333 open. The two historical findings, legacy text and pre-B5 verification/actions remain in their records. B1–B4 evidence, unrelated records, archive and sprint are preserved. The current baseline archive contains 308 IDs and is unchanged; these two closures remain in the active ledger. Exact commands, initial failures, review and limits are in [B5 remediation evidence](release-readiness.md#b5-remediation-evidence-2026-10-13).
 
+After validated B6 closure of DW-626/DW-628 (2026-10-13): 108 done, 243 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain; 331 open. All 643 IDs remain: 312 done / 331 open, indexed by 295 maintenance rows. Original findings and pre-B6 verification/actions remain in the two records; B1–B5 evidence, B7, unresolved decisions, archive and sprint tracking are preserved. See [B6 remediation evidence](release-readiness.md#b6-remediation-evidence-2026-10-13) and [exact validation, initial failures and provenance limits](b6-validation-evidence.md).
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -8472,16 +8474,19 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: Separate or safely merge the system tenant audit stream and global-administrator audit stream.\n  evidence: Both projection handlers write `audit:system`; the global handler saves a full rebuild while the tenant handler merges its own aggregate history. A tenant aggregate named `system` can lose audit rows when global history replays. This storage collision predates Story 5.7."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorProjectionHandler.SaveAsync writes full audit:system; TenantProjectionHandler merges audit:+AggregateId. CreateTenant accepts envelope.AggregateId=system with no reserved-name guard, so a system tenant stream collides and global rebuild can overwrite its audit rows.
+status: done 2026-10-13
+disposition: done
+verification-date: 2026-10-13
+verification: Separated system-tenant and global audit writers use disjoint keys and guarded evidence-preserving merges. Immutable legacy compatibility validates exact ownership, provenance conflicts and ambiguous combined references; explicit owner reads preserve evidence. Persisted order/replay/duplicate/existing-record and read regressions, independent review and final maintained checks prove this source defect closed. Exact commands, initial failures, external Git movement and remaining limits: b6-validation-evidence.md and release-readiness.md B6 evidence.
 evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: Read-model key namespace migration/compatibility
-next-action: Separate or safely merge tenant-system and global-administrator audit streams with replay regression coverage.
+next-action: B6 source remediation is complete; follow documented rollout prerequisites before any separately authorized replay. B7 and unresolved decisions remain open.
 related: DW-628
+pre-b6-verification-date: 2026-10-12
+pre-b6-verification: GlobalAdministratorProjectionHandler.SaveAsync writes full audit:system; TenantProjectionHandler merges audit:+AggregateId. CreateTenant accepts envelope.AggregateId=system with no reserved-name guard, so a system tenant stream collides and global rebuild can overwrite its audit rows.
+pre-b6-next-action: Separate or safely merge tenant-system and global-administrator audit streams with replay regression coverage.
 
 
 ### DW-627: Establish whether concurrent global-administrator projection rebuilds can overwrite newer state.
@@ -8512,17 +8517,20 @@ location: docs/event-contract-reference.md
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: unverified medium; the documented global-administrator projection replay is the trigger for the existing `audit:system` collision entry above (\"Separate or safely merge the system tenant audit stream…\"). Owner: Tenants global-administrator projection and rollout docs.\n  evidence: `docs/event-contract-reference.md:127` tells operators to rebuild the `system` / `global-administrators` singleton from history. One `ProjectAsync` run also saves `audit:system` as a full rebuild, which can drop rows written by the tenant handler if a tenant aggregate is named `system`. To settle: confirm whether a tenant aggregate can be named `system`. If it can, add a precondition warning to the rollout paragraph or separate the two streams."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: event-contract-reference.md:127 still prescribes global singleton replay; GlobalAdministratorProjectionHandler also overwrites audit:system. TenantAggregate.Handle(CreateTenant) allows system as supplied aggregate identity, establishing the collision precondition left unverified originally.
+status: done 2026-10-13
+disposition: done
+verification-date: 2026-10-13
+verification: Reverified that the previous singleton replay instruction could overwrite a valid literal system tenant audit. Compatible separated storage/read behavior is implemented and verified; event-contract-reference.md and audit-stream-rollout.md require stopping old writers, immutable backups, complete owner histories, ambiguity resolution and replay serialization before separately authorized replay. No production replay or migration ran. Exact validation and external provenance limits: b6-validation-evidence.md.
 verification-files: docs/event-contract-reference.md
 evidence-kind: verified-defect
 priority: P2
 owner: Tenants global-administrator projection and rollout docs
 dependencies: DW-626 storage separation/rebuild plan
-next-action: Document the safe replay precondition and complete the audit-stream separation plan before applying it to affected installations.
+next-action: B6 source remediation is complete; follow documented rollout prerequisites before any separately authorized replay. B7 and unresolved decisions remain open.
 related: DW-626
+pre-b6-verification-date: 2026-10-12
+pre-b6-verification: event-contract-reference.md:127 still prescribes global singleton replay; GlobalAdministratorProjectionHandler also overwrites audit:system. TenantAggregate.Handle(CreateTenant) allows system as supplied aggregate identity, establishing the collision precondition left unverified originally.
+pre-b6-next-action: Document the safe replay precondition and complete the audit-stream separation plan before applying it to affected installations.
 
 
 ## Deferred from: independent module manifest review of `711e100858e59cf8de2b626ea21790d59f969023` (Review 6, 2026-10-11)

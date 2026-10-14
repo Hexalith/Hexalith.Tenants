@@ -95,7 +95,8 @@ public sealed partial class ProjectionDispatcher(
                             title: "Invalid global administrator projection identity");
                     }
 
-                    ProjectionResponse globalAdminResponse = await new GlobalAdministratorProjectionHandler(store, _timeProvider)
+                    ProjectionResponse globalAdminResponse = await new GlobalAdministratorProjectionHandler(store, _timeProvider,
+                        _loggerFactory.CreateLogger<GlobalAdministratorProjectionHandler>())
                         .ProjectAsync(request, cancellationToken).ConfigureAwait(false);
                     outcome = CompletedOutcome;
                     return Results.Ok(globalAdminResponse);

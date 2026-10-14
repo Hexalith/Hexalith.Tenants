@@ -9,6 +9,7 @@ using Hexalith.EventStore.DomainService;
 using Hexalith.EventStore.Testing.Fakes;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Projections;
 using Hexalith.Tenants.Queries.Handlers;
@@ -41,7 +42,7 @@ public sealed class AuditStreamPersistenceTests
         var store = AuthorizedStore();
         ProjectionRequest tenant = TenantRequest("system", TenantEvent("system", "shared-event", 1),
             TenantEvent("system", "tenant-second", 2));
-        ProjectionRequest global = GlobalRequest(GlobalEvent("shared-event", 1), GlobalEvent("global-second", 2));
+        ProjectionRequest global = GlobalRequest(GlobalEvent("global-first", 1), GlobalEvent("global-second", 2));
         var tenantWriter = new TenantProjectionHandler(store);
         var globalWriter = new GlobalAdministratorProjectionHandler(store);
         if (tenantFirst)
@@ -63,7 +64,7 @@ public sealed class AuditStreamPersistenceTests
         Snapshot(store, TenantAuditStreams.SystemTenantKey).Entries.Select(row => row.EventId)
             .ShouldBe(["shared-event", "tenant-second"]);
         TenantAuditReadModel globalState = Snapshot(store, TenantAuditStreams.GlobalAdministratorsKey);
-        globalState.Entries.Select(row => row.EventId).ShouldBe(["global-second", "shared-event"]);
+        globalState.Entries.Select(row => row.EventId).ShouldBe(["global-first", "global-second"]);
         globalState.ProjectionVersion.ShouldBe("tenant-sequence:2");
         store.Snapshot<TenantAuditReadModel>(StoreName, TenantAuditStreams.LegacySystemKey).ShouldBeNull();
         Page(await Read(store)).Items.Count.ShouldBe(4);
@@ -146,7 +147,7 @@ public sealed class AuditStreamPersistenceTests
                 continue;
             }
             response.Success.ShouldBeFalse();
-            response.ErrorMessage.ShouldBe("AuditUnavailable");
+            response.ErrorMessage.ShouldBe(QueryAdapterFailureReason.ActorResponseMismatch);
             response.PayloadBytes.ShouldBeNull();
             response.Metadata.ShouldBeNull();
         }
@@ -157,7 +158,7 @@ public sealed class AuditStreamPersistenceTests
     }
 
     [Fact]
-    public async Task LegacyAndDedicatedDuplicatesDeduplicatePerOwnerAndMaintainCanonicalProof()
+    public async Task LegacyAndDedicatedDuplicatesRetainOwnerReadsAndRefuseAmbiguousCombinedReferences()
     {
         var store = AuthorizedStore();
         await new TenantProjectionHandler(store).ProjectAsync(TenantRequest("system", TenantEvent("system", "same", 1)));
@@ -166,13 +167,12 @@ public sealed class AuditStreamPersistenceTests
         TenantAuditEntry global = Snapshot(store, TenantAuditStreams.GlobalAdministratorsKey).Entries.Single();
         store.SeedRaw(StoreName, TenantAuditStreams.LegacySystemKey, Model([tenant, global, tenant, global]));
 
-        QueryResult first = await Read(store, pageSize: 1);
-        Page(first).Items.Count.ShouldBe(1);
-        Page(first).HasMore.ShouldBeTrue();
-        QueryResult second = await Read(store, cursor: Page(first).Cursor, pageSize: 1);
-        Page(second).Items.Count.ShouldBe(1);
-        Page(second).HasMore.ShouldBeFalse();
-        Page(first).Items.Single().EventType.ShouldNotBe(Page(second).Items.Single().EventType);
+        (await Read(store)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ActorResponseMismatch);
+        (await Read(store, category: AuditEventCategory.Access)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ActorResponseMismatch);
+        Page(await Read(store, TenantAuditStreams.Tenant)).Items.Single().EventId.ShouldBe("same");
+        Page(await Read(store, TenantAuditStreams.GlobalAdministrators)).Items.Single().EventId.ShouldBe("same");
+        Snapshot(store, TenantAuditStreams.SystemTenantKey).Entries.Single().EventId.ShouldBe("same");
+        Snapshot(store, TenantAuditStreams.GlobalAdministratorsKey).Entries.Single().EventId.ShouldBe("same");
         (await Read(store, TenantAuditStreams.GlobalAdministrators)).Metadata!.ProjectionVersion.ShouldBe("tenant-sequence:1");
     }
 
@@ -198,7 +198,7 @@ public sealed class AuditStreamPersistenceTests
 
         legacy.Entries = [canonical with { AggregateSequence = 999 }];
         store.SeedRaw(StoreName, TenantAuditStreams.LegacySystemKey, legacy);
-        (await Read(store, TenantAuditStreams.GlobalAdministrators)).ErrorMessage.ShouldBe("AuditUnavailable");
+        (await Read(store, TenantAuditStreams.GlobalAdministrators)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ActorResponseMismatch);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public sealed class AuditStreamPersistenceTests
         var store = AuthorizedStore();
         store.SeedRaw(StoreName, TenantAuditStreams.SystemTenantKey,
             Model([TenantRow("x"), TenantRow("x:A"), TenantRow("x:global-administrators"), TenantRow("x!"), TenantRow("x:tenant")]));
-        store.SeedRaw(StoreName, TenantAuditStreams.GlobalAdministratorsKey, Model([GlobalRow("x")]));
+        store.SeedRaw(StoreName, TenantAuditStreams.GlobalAdministratorsKey, Model([GlobalRow("x:global")]));
         var seen = new List<(string Id, string Type)>();
         string? cursor = null;
         do
@@ -218,7 +218,7 @@ public sealed class AuditStreamPersistenceTests
             cursor = page.Cursor;
         }
         while (cursor is not null);
-        seen.Select(row => row.Id).ShouldBe(["x", "x", "x!", "x:A", "x:global-administrators", "x:tenant"]);
+        seen.Select(row => row.Id).ShouldBe(["x", "x!", "x:A", "x:global", "x:global-administrators", "x:tenant"]);
         seen.Distinct().Count().ShouldBe(6);
     }
 
@@ -386,6 +386,102 @@ public sealed class AuditStreamPersistenceTests
         store.Snapshot<GlobalAdministratorReadModel>(StoreName, GlobalAdministratorProjectionHandler.GlobalAdministratorsProjectionKey)!
             .Administrators.ShouldBe(["admin"]);
         (await store.GetAsync<TenantAuditReadModel>(StoreName, TenantAuditStreams.LegacySystemKey)).ETag.ShouldBe(legacy.ETag);
+    }
+
+    public static IEnumerable<object[]> RejectionHistories()
+    {
+        object[] payloads = [new LastGlobalAdministratorRejection("system", "admin"),
+            new GlobalAdminAlreadyBootstrappedRejection("system"), new GlobalAdministratorAlreadyExistsRejection("system", "admin"),
+            new GlobalAdministratorNotFoundRejection("system", "admin"),
+            new InsufficientPermissionsRejection("system", "actor", null, "RemoveGlobalAdministrator")];
+        foreach (object payload in payloads)
+        {
+            foreach (bool simpleName in new[] { false, true })
+            {
+                string type = simpleName ? payload.GetType().Name : payload.GetType().FullName!;
+                string json = JsonSerializer.Serialize(payload, payload.GetType());
+                yield return [type, json, true];
+                foreach (string malformed in new[] { "null", "12", "[]", "{}" }) yield return [type, malformed, false];
+                var fields = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)!;
+                foreach (string required in fields.Keys)
+                {
+                    var missing = new Dictionary<string, JsonElement>(fields);
+                    missing.Remove(required);
+                    yield return [type, JsonSerializer.Serialize(missing), false];
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(RejectionHistories))]
+    public async Task CompleteRejectionContractsSupportCanonicalHistoryAndMalformedRowsWithholdIt(string type, string json, bool complete)
+    {
+        var store = AuthorizedStore();
+        ProjectionEventDto rejected = new(type, System.Text.Encoding.UTF8.GetBytes(json), "json", 2, Timestamp, "rejection-correlation", "rejection", "actor");
+        await new GlobalAdministratorProjectionHandler(store).ProjectAsync(GlobalRequest(GlobalEvent("valid-success", 1), rejected));
+        TenantAuditReadModel audit = Snapshot(store, TenantAuditStreams.GlobalAdministratorsKey);
+        audit.Entries.Single().EventId.ShouldBe("valid-success");
+        audit.ProjectionVersion.ShouldBe(complete ? "tenant-sequence:2" : null);
+        store.Snapshot<GlobalAdministratorReadModel>(StoreName, GlobalAdministratorProjectionHandler.GlobalAdministratorsProjectionKey)!
+            .Administrators.ShouldContain("admin");
+    }
+
+    [Theory]
+    [InlineData("exact", true)]
+    [InlineData("timestamp", false)]
+    [InlineData("actor", false)]
+    [InlineData("correlation", false)]
+    [InlineData("format", false)]
+    [InlineData("payload", false)]
+    public async Task DuplicateRejectionSequenceRequiresCompleteEventEvidence(string difference, bool canonical)
+    {
+        var store = AuthorizedStore();
+        ProjectionEventDto rejection = Event(new LastGlobalAdministratorRejection("system", "admin"), "same-rejection", 2);
+        ProjectionEventDto duplicate = difference switch
+        {
+            "timestamp" => rejection with { Timestamp = Timestamp.AddMinutes(1) },
+            "actor" => rejection with { UserId = "other" },
+            "correlation" => rejection with { CorrelationId = "other" },
+            "format" => rejection with { SerializationFormat = "other" },
+            "payload" => rejection with { Payload = JsonSerializer.SerializeToUtf8Bytes(new LastGlobalAdministratorRejection("system", "other")) },
+            _ => rejection with { Payload = [.. rejection.Payload] },
+        };
+        await new GlobalAdministratorProjectionHandler(store).ProjectAsync(GlobalRequest(GlobalEvent("success", 1), rejection, duplicate));
+        TenantAuditReadModel audit = Snapshot(store, TenantAuditStreams.GlobalAdministratorsKey);
+        audit.Entries.Single().EventId.ShouldBe("success");
+        audit.ProjectionVersion.ShouldBe(canonical ? "tenant-sequence:2" : null);
+    }
+
+    [Fact]
+    public async Task UnorderedGlobalHistoryFoldsAuthorityInAggregateSequenceOrder()
+    {
+        var store = AuthorizedStore();
+        ProjectionEventDto set = Event(new GlobalAdministratorSet("system", "target", "actor", Timestamp), "set", 1);
+        ProjectionEventDto removed = Event(new GlobalAdministratorRemoved("system", "target", "actor", Timestamp), "removed", 2);
+        await new GlobalAdministratorProjectionHandler(store).ProjectAsync(GlobalRequest(removed, set));
+        store.Snapshot<GlobalAdministratorReadModel>(StoreName, GlobalAdministratorProjectionHandler.GlobalAdministratorsProjectionKey)!
+            .Administrators.ShouldBeEmpty();
+        Snapshot(store, TenantAuditStreams.GlobalAdministratorsKey).Entries.Count.ShouldBe(2);
+        Snapshot(store, TenantAuditStreams.GlobalAdministratorsKey).ProjectionVersion.ShouldBe("tenant-sequence:2");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(1)]
+    public async Task InvalidPersistedGlobalSequenceWithholdsOrderedVersionWithoutRemovingRows(long secondSequence)
+    {
+        var store = AuthorizedStore();
+        TenantAuditReadModel audit = Model([GlobalRow("first") with { AggregateSequence = 1 },
+            GlobalRow("second") with { AggregateSequence = secondSequence }]);
+        audit.ProjectionVersion = "tenant-sequence:2";
+        store.SeedRaw(StoreName, TenantAuditStreams.GlobalAdministratorsKey, audit);
+        ReadModelEntry<TenantAuditReadModel> before = await store.GetAsync<TenantAuditReadModel>(StoreName, TenantAuditStreams.GlobalAdministratorsKey);
+        QueryResult response = await Read(store, TenantAuditStreams.GlobalAdministrators);
+        Page(response).Items.Count.ShouldBe(2);
+        response.Metadata!.ProjectionVersion.ShouldBeNull();
+        (await store.GetAsync<TenantAuditReadModel>(StoreName, TenantAuditStreams.GlobalAdministratorsKey)).ETag.ShouldBe(before.ETag);
     }
 
     private GetTenantAuditQueryHandler Handler(InMemoryReadModelStore store)

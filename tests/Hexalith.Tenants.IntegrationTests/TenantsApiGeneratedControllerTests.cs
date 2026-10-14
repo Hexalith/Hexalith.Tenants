@@ -48,6 +48,7 @@ using Hexalith.Tenants.UI.Services.Gateways;
 using MediatR;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -426,6 +427,68 @@ public sealed class TenantsApiGeneratedControllerTests
     private static ProjectionEventDto ProjectionEvent(IEventPayload payload, string eventId, long sequence, DateTimeOffset timestamp)
         => new(payload.GetType().FullName!, JsonSerializer.SerializeToUtf8Bytes(payload, payload.GetType()), "json", sequence,
             timestamp, "unrelated-correlation", eventId, "admin.current");
+
+    [Fact]
+    public async Task AmbiguousLegacyUsesExistingSdkHttpFailureAndUiErrorWithoutEvidence()
+    {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        var persisted = new Dictionary<string, object>
+        {
+            ["projection:global-administrators:singleton"] = new GlobalAdministratorReadModel { Administrators = ["admin.current"] },
+            [TenantAuditStreams.LegacySystemKey] = new TenantAuditReadModel
+            {
+                Entries = [new TenantAuditEntry("private-evidence-reference", "UnknownEvent", AuditEventCategory.Access,
+                    "private-actor", DateTimeOffset.UtcNow, "system", new Dictionary<string, string>())],
+            },
+        };
+        ConfigurePersistedModel<GlobalAdministratorReadModel>(store, persisted);
+        ConfigurePersistedModel<TenantAuditReadModel>(store, persisted);
+        using var diagnostics = new EventStoreDomainDiagnostics("tenants");
+        var handler = new GetTenantAuditQueryHandler(store,
+            new QueryCursorCodec(new EphemeralDataProtectionProvider(), "failure-boundary"),
+            new TenantTelemetry(diagnostics), NullLogger<GetTenantAuditQueryHandler>.Instance);
+        var router = new HandlerAwareQueryRouter(new UnexpectedInnerQueryRouter(), new AlwaysSupportedDomainQueryHandlerRegistry(),
+            new DirectDomainQueryInvoker(handler), NullLogger<HandlerAwareQueryRouter>.Instance);
+        var submit = new Hexalith.EventStore.Server.Pipeline.SubmitQueryHandler(router,
+            NullLogger<Hexalith.EventStore.Server.Pipeline.SubmitQueryHandler>.Instance);
+        var exceptionHandler = new Hexalith.EventStore.ErrorHandling.QueryExecutionFailedExceptionHandler(
+            NullLogger<Hexalith.EventStore.ErrorHandling.QueryExecutionFailedExceptionHandler>.Instance);
+        var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        await using var app = builder.Build();
+        app.MapGet("/api/tenants/system/audit", async context =>
+        {
+            try
+            {
+                _ = await submit.Handle(new SubmitQuery("system", "tenants", "system", GetTenantAuditQuery.QueryType,
+                    [], "safe-query-reference", "admin.current"), context.RequestAborted);
+            }
+            catch (QueryExecutionFailedException failure)
+            {
+                failure.StatusCode.ShouldBe(500);
+                _ = await exceptionHandler.TryHandleAsync(context, failure, context.RequestAborted);
+            }
+        });
+        await app.StartAsync();
+        using HttpClient client = app.GetTestClient();
+        using HttpResponseMessage response = await client.GetAsync("/api/tenants/system/audit");
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        string body = await response.Content.ReadAsStringAsync();
+        body.ShouldNotContain("private-evidence-reference");
+        body.ShouldNotContain("private-actor");
+        response.Headers.Contains("X-Hexalith-Projection-Version").ShouldBeFalse();
+        response.Headers.ETag.ShouldBeNull();
+        using var replayClient = new HttpClient(new ReplayHandler(response)) { BaseAddress = new Uri("https://tenants.invalid") };
+        var memories = new MemoriesClient(new HttpClient { BaseAddress = new Uri("https://memories.invalid") },
+            Options.Create(new MemoriesClientOptions()), NullLogger<MemoriesClient>.Instance);
+        TenantAuditSnapshot snapshot = await new TenantQueryGateway(new TenantsRestQueryClient(replayClient),
+            new FixedUserContextAccessor("admin.current"), memories,
+            new TenantSearchCursorCodec(new EphemeralDataProtectionProvider())).GetTenantAuditAsync(new("system"), null);
+        snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.ETag.ShouldBeNull();
+        snapshot.ProjectionVersion.ShouldBeNull();
+    }
 
     private static void ConfigurePersistedModel<T>(IReadModelStore store, Dictionary<string, object> persisted) where T : class
     {

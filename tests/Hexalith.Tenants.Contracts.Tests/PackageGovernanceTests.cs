@@ -1915,7 +1915,7 @@ public class PackageGovernanceTests {
                 },
             };
             process.StartInfo.ArgumentList.Add("-c");
-            process.StartInfo.ArgumentList.Add(script);
+            process.StartInfo.ArgumentList.Add(script.ReplaceLineEndings("\n"));
             process.StartInfo.Environment["GH_TOKEN"] = "fixture-token";
             process.StartInfo.Environment["REPOSITORY"] = "Hexalith/Hexalith.Tenants";
             process.StartInfo.Environment["DISPATCH_SHA"] = dispatchSha;
@@ -2011,7 +2011,7 @@ public class PackageGovernanceTests {
                 },
             };
             process.StartInfo.ArgumentList.Add("-c");
-            process.StartInfo.ArgumentList.Add(script);
+            process.StartInfo.ArgumentList.Add(script.ReplaceLineEndings("\n"));
             process.StartInfo.Environment["GH_TOKEN"] = "fixture-token";
             process.StartInfo.Environment["REPOSITORY"] = "Hexalith/Hexalith.Tenants";
             process.StartInfo.Environment["DISPATCH_SHA"] = dispatchSha ?? GuardDispatchSha;

@@ -3145,7 +3145,9 @@ internal sealed class TenantQueryGateway(
                 || (request.From is not null && entry.Timestamp < request.From.Value)
                 || (request.To is not null && entry.Timestamp > request.To.Value)
                 || (request.Category is not null && entry.Category != request.Category.Value)
-                || !IsSupportedAuditEvent(entry.EventType, entry.Category))
+                || !IsSupportedAuditEvent(entry.EventType, entry.Category)
+                || (request.Stream == "global-administrators" && entry.EventType is not ("GlobalAdministratorSet" or "GlobalAdministratorRemoved"))
+                || (request.Stream == "tenant" && entry.EventType is "GlobalAdministratorSet" or "GlobalAdministratorRemoved"))
             {
                 return false;
             }

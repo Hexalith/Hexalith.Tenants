@@ -216,6 +216,31 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
             && HasTag(tags, "outcome", "retry-exhausted"));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task GlobalAuditGuardedPolicyEmitsConflictAndDispatchDiagnostics(bool recover)
+    {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupSuccessfulGuardedSave<TenantAuditReadModel>(store, TenantAuditStreams.GlobalAdministratorsKey);
+        int writes = 0;
+        store.TrySaveAsync("statestore", TenantAuditStreams.GlobalAdministratorsKey, Arg.Any<TenantAuditReadModel>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(_ => recover && ++writes > 1);
+        var logs = new TestLoggerFactory();
+        if (recover)
+        {
+            _ = await new ProjectionDispatcher(store, _telemetry, logs).DispatchAsync(CreateGlobalAdminRequest());
+            logs.Entries.ShouldContain(entry => entry.EventId.Id == 100301 && Equals(entry.Properties["Outcome"], "completed"));
+        }
+        else
+        {
+            await Should.ThrowAsync<InvalidOperationException>(() => new ProjectionDispatcher(store, _telemetry, logs).DispatchAsync(CreateGlobalAdminRequest()));
+            logs.Entries.ShouldContain(entry => entry.EventId.Id == 200102);
+            logs.Entries.ShouldContain(entry => entry.EventId.Id == 100302 && Equals(entry.Properties["Outcome"], "retry-exhausted"));
+        }
+        logs.Entries.ShouldContain(entry => entry.EventId.Id == 200101);
+    }
+
     [Fact]
     public async Task DispatchAsync_TenantProjectionRecoveredConflict_ShouldKeepEventProcessingCompletedAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();

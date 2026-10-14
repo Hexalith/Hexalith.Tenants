@@ -3,6 +3,7 @@ using System.Text.Json;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Server.Projections;
@@ -30,6 +31,7 @@ public sealed class GlobalAdministratorProjectionHandler {
         PropertyNameCaseInsensitive = true,
     };
 
+    private readonly ILogger<GlobalAdministratorProjectionHandler> _logger;
     private readonly IReadModelStore _store;
     private readonly TimeProvider _timeProvider;
 
@@ -37,10 +39,21 @@ public sealed class GlobalAdministratorProjectionHandler {
         : this(store, TimeProvider.System) {
     }
 
-    public GlobalAdministratorProjectionHandler(IReadModelStore store, TimeProvider timeProvider) {
+    public GlobalAdministratorProjectionHandler(IReadModelStore store, TimeProvider timeProvider)
+        : this(store, timeProvider, NullLogger<GlobalAdministratorProjectionHandler>.Instance) {
+    }
+
+    /// <summary>Initializes the handler with the dispatcher's typed policy diagnostics logger.</summary>
+    /// <param name="store">The persisted read-model store.</param>
+    /// <param name="timeProvider">The clock used for persisted projection freshness.</param>
+    /// <param name="logger">The typed logger for guarded write diagnostics.</param>
+    internal GlobalAdministratorProjectionHandler(IReadModelStore store, TimeProvider timeProvider,
+        ILogger<GlobalAdministratorProjectionHandler> logger) {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(timeProvider);
 
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
         _store = store;
         _timeProvider = timeProvider;
     }
@@ -64,7 +77,7 @@ public sealed class GlobalAdministratorProjectionHandler {
         GlobalAdministratorReadModel state = new() {
             ProjectedAt = projectedAt,
         };
-        foreach (ProjectionEventDto? evt in events) {
+        foreach (ProjectionEventDto? evt in events.OfType<ProjectionEventDto>().OrderBy(evt => evt.SequenceNumber)) {
             if (evt is null) {
                 continue;
             }
@@ -90,7 +103,7 @@ public sealed class GlobalAdministratorProjectionHandler {
             static () => new TenantAuditReadModel(),
             static (persisted, incoming) => TenantAuditStreams.Merge(persisted, incoming),
             new ReadModelWriteContext("global-administrator audit", nameof(TenantAuditReadModel)).WithEventDiagnostics(events),
-            NullLogger<GlobalAdministratorProjectionHandler>.Instance,
+            _logger,
             cancellationToken: cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -114,7 +127,7 @@ public sealed class GlobalAdministratorProjectionHandler {
     {
         // A suffix, a gapped history, or a malformed/unknown event cannot establish canonical ordering.
         var sequences = new HashSet<long>();
-        var messageBySequence = new Dictionary<long, string>();
+        var eventBySequence = new Dictionary<long, ProjectionEventDto>();
         var successIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (ProjectionEventDto? evt in events)
         {
@@ -126,12 +139,10 @@ public sealed class GlobalAdministratorProjectionHandler {
             string type = evt.EventTypeName;
             bool success = type == typeof(GlobalAdministratorSet).FullName || type == nameof(GlobalAdministratorSet)
                 || type == typeof(GlobalAdministratorRemoved).FullName || type == nameof(GlobalAdministratorRemoved);
-            bool rejection = type == typeof(LastGlobalAdministratorRejection).FullName
-                || type == typeof(GlobalAdminAlreadyBootstrappedRejection).FullName
-                || type == typeof(GlobalAdministratorAlreadyExistsRejection).FullName
-                || type == typeof(GlobalAdministratorNotFoundRejection).FullName
-                || type == typeof(InsufficientPermissionsRejection).FullName;
-            if (!success && !rejection)
+            string? rejectionName = new[] { typeof(LastGlobalAdministratorRejection), typeof(GlobalAdminAlreadyBootstrappedRejection),
+                typeof(GlobalAdministratorAlreadyExistsRejection), typeof(GlobalAdministratorNotFoundRejection), typeof(InsufficientPermissionsRejection) }
+                .FirstOrDefault(contract => type == contract.Name || type == contract.FullName)?.Name;
+            if (!success && rejectionName is null)
             {
                 return false;
             }
@@ -139,9 +150,15 @@ public sealed class GlobalAdministratorProjectionHandler {
             try
             {
                 using JsonDocument payload = JsonDocument.Parse(evt.Payload);
-                if (!(payload.RootElement.TryGetProperty("TenantId", out JsonElement tenantId)
-                    || payload.RootElement.TryGetProperty("tenantId", out tenantId))
-                    || tenantId.ValueKind != JsonValueKind.String || tenantId.GetString() != SystemTenantId)
+                JsonElement root = payload.RootElement;
+                if (root.ValueKind != JsonValueKind.Object || !RequiredString(root, "TenantId", out string? tenantId)
+                    || tenantId != SystemTenantId
+                    || (success || rejectionName is nameof(LastGlobalAdministratorRejection)
+                        or nameof(GlobalAdministratorAlreadyExistsRejection) or nameof(GlobalAdministratorNotFoundRejection))
+                        && !RequiredString(root, "UserId", out _)
+                    || rejectionName == nameof(InsufficientPermissionsRejection)
+                        && (!RequiredString(root, "ActorUserId", out _) || !RequiredString(root, "CommandName", out _)
+                            || !Property(root, "ActorRole", out JsonElement role) || !ValidRole(role)))
                 {
                     return false;
                 }
@@ -151,11 +168,12 @@ public sealed class GlobalAdministratorProjectionHandler {
                 return false;
             }
 
-            if (messageBySequence.TryGetValue(evt.SequenceNumber, out string? priorMessage) && priorMessage != evt.MessageId)
+            if (eventBySequence.TryGetValue(evt.SequenceNumber, out ProjectionEventDto? previous)
+                && !JsonSerializer.SerializeToUtf8Bytes(previous).AsSpan().SequenceEqual(JsonSerializer.SerializeToUtf8Bytes(evt)))
             {
                 return false;
             }
-            messageBySequence[evt.SequenceNumber] = evt.MessageId;
+            eventBySequence[evt.SequenceNumber] = evt;
             sequences.Add(evt.SequenceNumber);
             if (success) successIds.Add(evt.MessageId);
         }
@@ -164,22 +182,36 @@ public sealed class GlobalAdministratorProjectionHandler {
             && successIds.SetEquals(audit.Entries.Select(row => row.EventId));
     }
 
+    private static bool Property(JsonElement root, string name, out JsonElement value)
+        => root.TryGetProperty(name, out value) || root.TryGetProperty(char.ToLowerInvariant(name[0]) + name[1..], out value);
+
+    private static bool RequiredString(JsonElement root, string name, out string? value)
+    {
+        value = null;
+        if (!Property(root, name, out JsonElement element) || element.ValueKind != JsonValueKind.String) return false;
+        value = element.GetString();
+        return !string.IsNullOrWhiteSpace(value);
+    }
+
+    private static bool ValidRole(JsonElement role)
+        => role.ValueKind == JsonValueKind.Null
+            || role.ValueKind == JsonValueKind.String && Enum.TryParse(role.GetString(), out TenantRole parsed) && Enum.IsDefined(parsed)
+            || role.ValueKind == JsonValueKind.Number && role.TryGetInt32(out int number) && Enum.IsDefined((TenantRole)number);
+
     private static void ApplyEvent(GlobalAdministratorReadModel state, ProjectionEventDto evt) {
         string name = evt.EventTypeName;
         if (string.IsNullOrEmpty(name)) {
             return;
         }
 
-        JsonElement payload = JsonSerializer.Deserialize<JsonElement>(evt.Payload, s_options);
-
         if ((name == nameof(GlobalAdministratorSet) || name == typeof(GlobalAdministratorSet).FullName)) {
-            GlobalAdministratorSet? e = JsonSerializer.Deserialize<GlobalAdministratorSet>(payload, s_options);
+            GlobalAdministratorSet? e = JsonSerializer.Deserialize<GlobalAdministratorSet>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }
         }
         else if ((name == nameof(GlobalAdministratorRemoved) || name == typeof(GlobalAdministratorRemoved).FullName)) {
-            GlobalAdministratorRemoved? e = JsonSerializer.Deserialize<GlobalAdministratorRemoved>(payload, s_options);
+            GlobalAdministratorRemoved? e = JsonSerializer.Deserialize<GlobalAdministratorRemoved>(evt.Payload, s_options);
             if (e is not null) {
                 state.Apply(e);
             }

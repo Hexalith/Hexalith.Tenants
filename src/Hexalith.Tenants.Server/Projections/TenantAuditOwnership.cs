@@ -7,6 +7,11 @@ namespace Hexalith.Tenants.Server.Projections;
 /// <summary>Enforces the exact event and tenant policy for separated audit evidence.</summary>
 public static class TenantAuditOwnership
 {
+    private static readonly HashSet<string> s_global = new([nameof(GlobalAdministratorSet), nameof(GlobalAdministratorRemoved)], StringComparer.Ordinal);
+    private static readonly HashSet<string> s_access = new([nameof(UserAddedToTenant), nameof(UserRemovedFromTenant), nameof(UserRoleChanged)], StringComparer.Ordinal);
+    private static readonly HashSet<string> s_administrative = new([nameof(TenantCreated), nameof(TenantUpdated), nameof(TenantDisabled), nameof(TenantEnabled),
+        nameof(TenantConfigurationSet), nameof(TenantConfigurationRemoved)], StringComparer.Ordinal);
+
     /// <summary>Checks the optional stream selector and its tenant scope.</summary>
     public static bool IsValidSelector(string? stream, string tenantId)
         => stream is null or TenantAuditStreams.Tenant || stream == TenantAuditStreams.GlobalAdministrators && tenantId == "system";
@@ -21,15 +26,18 @@ public static class TenantAuditOwnership
             return null;
         }
 
-        return entry.EventType switch
+        if (s_global.Contains(entry.EventType))
         {
-            nameof(GlobalAdministratorSet) or nameof(GlobalAdministratorRemoved) when tenantId == "system" && entry.Category == AuditEventCategory.Access => TenantAuditStreams.GlobalAdministrators,
-            nameof(UserAddedToTenant) or nameof(UserRemovedFromTenant) or nameof(UserRoleChanged)
-                when entry.Category == AuditEventCategory.Access => TenantAuditStreams.Tenant,
-            nameof(TenantCreated) or nameof(TenantUpdated) or nameof(TenantDisabled) or nameof(TenantEnabled)
-                or nameof(TenantConfigurationSet) or nameof(TenantConfigurationRemoved)
-                when entry.Category == AuditEventCategory.Administrative => TenantAuditStreams.Tenant,
-            _ => null,
-        };
+            return tenantId == "system" && entry.Category == AuditEventCategory.Access ? TenantAuditStreams.GlobalAdministrators : null;
+        }
+        if (s_access.Contains(entry.EventType))
+        {
+            return entry.Category == AuditEventCategory.Access ? TenantAuditStreams.Tenant : null;
+        }
+        if (s_administrative.Contains(entry.EventType))
+        {
+            return entry.Category == AuditEventCategory.Administrative ? TenantAuditStreams.Tenant : null;
+        }
+        return null;
     }
 }

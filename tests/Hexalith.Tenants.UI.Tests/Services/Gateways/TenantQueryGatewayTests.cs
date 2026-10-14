@@ -642,8 +642,10 @@ public sealed class TenantQueryGatewayTests
             AggregateSequence = 2,
         };
         client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
-            .Returns(DirectResponse(new PaginatedResult<TenantAuditEntry>([entry], null, false),
-                projectionVersion: "tenant-sequence:2"));
+            .Returns(call => DirectResponse(new PaginatedResult<TenantAuditEntry>(
+                call.ArgAt<GetTenantAuditQuery>(0).Stream == "global-administrators" ? [entry] :
+                    [entry with { EventId = "public-row", CommandCorrelationId = null, AggregateSequence = null }], null, false),
+                projectionVersion: call.ArgAt<GetTenantAuditQuery>(0).Stream == "global-administrators" ? "tenant-sequence:2" : "audit-composite:public"));
         TenantQueryGateway gateway = CreateGateway(client);
 
         (GlobalAdministratorAuditProof? proof, bool complete) = await gateway
@@ -659,7 +661,23 @@ public sealed class TenantQueryGatewayTests
         publicAudit.Rows.ShouldHaveSingleItem().CommandCorrelationId.ShouldBeNull();
         publicAudit.Rows[0].AggregateSequence.ShouldBeNull();
         _ = client.Received().GetTenantAuditAsync(
-            Arg.Is<GetTenantAuditQuery>(query => query.From == submitted), null, Arg.Any<CancellationToken>());
+            Arg.Is<GetTenantAuditQuery>(query => query.From == submitted && query.Stream == "global-administrators"), null, Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData("global-administrators", "TenantCreated", AuditEventCategory.Administrative)]
+    [InlineData("tenant", "GlobalAdministratorSet", AuditEventCategory.Access)]
+    public async Task SelectedAuditOwnerRejectsOtherOwnerRestEvidence(string stream, string eventType, AuditEventCategory category)
+    {
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        TenantAuditEntry entry = AuditEntry("approved-reference", category, eventType: eventType, tenantId: "system");
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(DirectResponse(new PaginatedResult<TenantAuditEntry>([entry], null, false), projectionVersion: "tenant-sequence:2"));
+        TenantAuditSnapshot result = await CreateGateway(client).GetTenantAuditAsync(new TenantAuditRequest("system", Stream: stream), null);
+        result.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
+        result.Rows.ShouldBeEmpty();
+        result.ProjectionVersion.ShouldBeNull();
+        _ = client.Received(1).GetTenantAuditAsync(Arg.Is<GetTenantAuditQuery>(query => query.Stream == stream), null, Arg.Any<CancellationToken>());
     }
 
     [Theory]

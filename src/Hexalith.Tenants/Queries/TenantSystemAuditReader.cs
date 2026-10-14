@@ -96,6 +96,13 @@ internal static class TenantSystemAuditReader
             }
         }
 
+        // A receipt reference has no owner discriminator. Refuse the entire composed view
+        // before filters or pagination can hide the other owner of the same reference.
+        if (stream is null && evidence.Keys.GroupBy(key => key.EventId, StringComparer.Ordinal).Any(group => group.Count() > 1))
+        {
+            return (null, null, false);
+        }
+
         byte[] fingerprint = SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(new { Stream = stream, Tenant = tenant,
             GlobalAdministrators = global, Legacy = legacy }));
         string validator = "audit-composite:" + Convert.ToHexString(fingerprint);
@@ -121,10 +128,12 @@ internal static class TenantSystemAuditReader
 
         var canonical = (global.Entries ?? []).GroupBy(row => row.EventId, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var seenSequences = new HashSet<long>();
         foreach (TenantAuditEntry row in evidence.Where(pair => pair.Key.Owner == TenantAuditStreams.GlobalAdministrators)
             .Select(pair => pair.Value))
         {
-            if (row.AggregateSequence is null || row.AggregateSequence > sequence
+            if (row.AggregateSequence is null or <= 0 || row.AggregateSequence > sequence
+                || !seenSequences.Add(row.AggregateSequence.Value)
                 || !canonical.TryGetValue(row.EventId, out TenantAuditEntry? known)
                 || !TenantAuditStreams.SameEvidence(row, known))
             {
