@@ -1,0 +1,141 @@
+{
+  "tenants": {
+    "root": "/home/administrator/projects/hexalith/tenants",
+    "branch": "main",
+    "head": "b58da5f0846c0c78ccfc71c82052056fca0f44f5",
+    "status": "# branch.oid b58da5f0846c0c78ccfc71c82052056fca0f44f5\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0",
+    "diff": "",
+    "index_diff": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Tenants.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Tenants.git (push)",
+    "history": "b58da5f0846c0c78ccfc71c82052056fca0f44f5 fix: update submodule reference for Hexalith.Memories\n91faf19d8a3e9f254596363330a9130a970f4875 feat: add B7 validation evidence, entry state, and live admission spec\n7ad54431996f9f1f0d277005eb2a73b67b55fea6 fix(audit): enhance tenant command gateway failure handling and audit identifier safety\na5de755d204f5adeda60f883834fe8bf0075f261 feat(tests): add integration and telemetry tests for tenant audit and error handling\na8c18a6e435280eb56b866cc4693683716e81ee4 feat(audit): implement tenant audit query payload and system audit reader\n57b881beebfbcdf0fe6d7bc4c23a0fc70903136d fix: close DW-315 and DW-441 by enhancing support-safe failure and audit identifier handling\nb185ae80de474bedc6c60af38bacc5550d4e8cd7 build: sync local changes via /pushall\n9d5d5cd1d389f5b79ac949901ea75e2e91dd311c feat(tenants): declare reference module and gateway readiness",
+    "dependencies": {
+      "references/Hexalith.AI.Tools": {
+        "recorded": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "checked_out": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "initialized": true
+      },
+      "references/Hexalith.Builds": {
+        "recorded": "9b44fedd0017d42ee1b3e887730ab667046bda4d",
+        "checked_out": "9b44fedd0017d42ee1b3e887730ab667046bda4d",
+        "initialized": true
+      },
+      "references/Hexalith.Commons": {
+        "recorded": "b247ed116c6523f8c596ec0a933eff8973d11568",
+        "checked_out": "b247ed116c6523f8c596ec0a933eff8973d11568",
+        "initialized": true
+      },
+      "references/Hexalith.EventStore": {
+        "recorded": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03",
+        "checked_out": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03",
+        "initialized": true
+      },
+      "references/Hexalith.FrontComposer": {
+        "recorded": "c3174dc917b094f3736b098ac78a531f197dbe56",
+        "checked_out": "c3174dc917b094f3736b098ac78a531f197dbe56",
+        "initialized": true
+      },
+      "references/Hexalith.McpCli": {
+        "recorded": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+        "checked_out": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+        "initialized": true
+      },
+      "references/Hexalith.Memories": {
+        "recorded": "ed70998ddb0a26407b08724e347e490f10b67305",
+        "checked_out": "ed70998ddb0a26407b08724e347e490f10b67305",
+        "initialized": true
+      },
+      "references/Hexalith.Platform": {
+        "recorded": "92a02924894f6f2f219801a90e5bf25716abd028",
+        "checked_out": "92a02924894f6f2f219801a90e5bf25716abd028",
+        "initialized": true
+      },
+      "references/Hexalith.PolymorphicSerializations": {
+        "recorded": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "checked_out": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "initialized": true
+      }
+    }
+  },
+  "eventstore": {
+    "root": "/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore",
+    "branch": "main",
+    "head": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03",
+    "status": "# branch.oid 173ad7f4e56a72f44621c7d3d7be86a5ec19dc03\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0",
+    "diff": "",
+    "index_diff": "",
+    "remotes": "origin\thttps://github.com/Hexalith/Hexalith.EventStore.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.EventStore.git (push)",
+    "history": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03 build: merge fix/story-3-6-public-routes into main via /pushall\n21b34c01ec919769cfba9cfe0d47e50886b57ded fix(tests): stabilize P1R successor CI fixtures\n93982b4e1fe312169c57e2735c90be24b49460fb fix: update expected domain list in diagnostics registry test\n2a7b80a4ec639bdba7ff8acc74cacb4f8880b24c test: cover human receipt in Dapr invocation\n8b49ff9b3b9c59663afc66783bfd0ceca370dd09 fix: verify stream-read payload integrity and version\nfb6263de13511e3e2aa81cbae2427f1d9fed5c0f feat: enhance snapshot management and event processing\ne88553d3656497091db25d7f48134517b2652a98 feat: enhance manual snapshot handling and validation for aggregate streams\n1738fff4e301b8b8ddbaace98dc96eaca4d70fa7 feat: enhance folded snapshot compatibility with legacy event handling and serialization",
+    "dependencies": {
+      "references/Hexalith.AI.Tools": {
+        "recorded": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "checked_out": null,
+        "initialized": false
+      },
+      "references/Hexalith.Builds": {
+        "recorded": "608c164c3637240fed2dd92dbfdaaf581ba9846d",
+        "checked_out": null,
+        "initialized": false
+      },
+      "references/Hexalith.Commons": {
+        "recorded": "b247ed116c6523f8c596ec0a933eff8973d11568",
+        "checked_out": null,
+        "initialized": false
+      },
+      "references/Hexalith.FrontComposer": {
+        "recorded": "99d31edac062e251cb3a90fe2de5f9a92a24a3ab",
+        "checked_out": null,
+        "initialized": false
+      },
+      "references/Hexalith.McpCli": {
+        "recorded": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+        "checked_out": null,
+        "initialized": false
+      },
+      "references/Hexalith.Memories": {
+        "recorded": "0281b30fb2618668efa9b8904afc75e18820eed8",
+        "checked_out": null,
+        "initialized": false
+      },
+      "references/Hexalith.Platform": {
+        "recorded": "977f2e01347226ac727b707aee4f140f5dc8b010",
+        "checked_out": null,
+        "initialized": false
+      },
+      "references/Hexalith.PolymorphicSerializations": {
+        "recorded": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+        "checked_out": null,
+        "initialized": false
+      },
+      "references/Hexalith.Tenants": {
+        "recorded": "bd81ec6e63acdc2301eb82562eed184813f3c808",
+        "checked_out": null,
+        "initialized": false
+      }
+    }
+  },
+  "initial_observation": {
+    "tenants_head": "91faf19d8a3e9f254596363330a9130a970f4875",
+    "eventstore_head": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03",
+    "branches": "main",
+    "working_trees": "clean",
+    "tenants_eventstore_gitlink": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03",
+    "recorded_dependencies": {
+      "references/Hexalith.AI.Tools": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+      "references/Hexalith.Builds": "9b44fedd0017d42ee1b3e887730ab667046bda4d",
+      "references/Hexalith.Commons": "b247ed116c6523f8c596ec0a933eff8973d11568",
+      "references/Hexalith.EventStore": "173ad7f4e56a72f44621c7d3d7be86a5ec19dc03",
+      "references/Hexalith.FrontComposer": "c3174dc917b094f3736b098ac78a531f197dbe56",
+      "references/Hexalith.McpCli": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+      "references/Hexalith.Memories": "42b4dc4d58731d4e9ee777285ba1f65f26e4a0c0",
+      "references/Hexalith.Platform": "92a02924894f6f2f219801a90e5bf25716abd028",
+      "references/Hexalith.PolymorphicSerializations": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375"
+    },
+    "dependency_source": "Full canonical identifiers read directly from git ls-tree -r of original entry HEAD; current checkouts recorded in snapshot after external movement."
+  },
+  "concurrent_external_movement": {
+    "commit": "b58da5f0846c0c78ccfc71c82052056fca0f44f5",
+    "subject": "fix: update submodule reference for Hexalith.Memories",
+    "observation": "Arrived after initial read-only inspection, before snapshot. Preserved as inherited external work; no agent Git mutation.",
+    "diff": "commit b58da5f0846c0c78ccfc71c82052056fca0f44f5\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 11:14:00 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 11:14:00 2026 +0200\n\n    fix: update submodule reference for Hexalith.Memories\n\n references/Hexalith.Memories | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n"
+  }
+}
