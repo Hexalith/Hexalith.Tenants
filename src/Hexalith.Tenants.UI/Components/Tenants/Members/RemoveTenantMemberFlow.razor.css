@@ -69,7 +69,7 @@
 
 /* fc-css-exception: vertical region gap on the EditForm; keeping the form element precludes a
    FluentStack wrapper. */
-.tenants-remove-member-flow__form {
+.tenants-remove-member-flow ::deep .tenants-remove-member-flow__form {
     display: grid;
     gap: .75rem;
     max-inline-size: 42rem;
@@ -77,7 +77,7 @@
 
 /* fc-css-exception: vertical stack for the Fluent-generated <label>; cannot restructure the markup
    emitted by FluentTextInput. */
-.tenants-remove-member-flow__form label {
+.tenants-remove-member-flow ::deep .tenants-remove-member-flow__form label {
     display: grid;
     gap: .35rem;
 }
@@ -121,7 +121,7 @@
 @media (max-width: 767px) {
     /* fc-css-exception: narrow layouts hide the form so incomplete safety context cannot be confirmed;
        cancel remains outside the form. No Fluent primitive expresses this fail-closed breakpoint. */
-    .tenants-remove-member-flow__form {
+    .tenants-remove-member-flow ::deep .tenants-remove-member-flow__form {
         display: none;
     }
 

@@ -18,6 +18,8 @@ After validated B5 closure of DW-315/DW-441 (2026-10-13): 106 reconciled done, 2
 
 After validated B6 closure of DW-626/DW-628 (2026-10-13): 108 done, 243 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation, 38 uncertain; 331 open. All 643 IDs remain: 312 done / 331 open, indexed by 295 maintenance rows. Original findings and pre-B6 verification/actions remain in the two records; B1–B5 evidence, B7, unresolved decisions, archive and sprint tracking are preserved. See [B6 remediation evidence](release-readiness.md#b6-remediation-evidence-2026-10-13) and [exact validation, initial failures and provenance limits](b6-validation-evidence.md).
 
+After validated B7 closure of DW-195/DW-206/DW-235/DW-264 (2026-10-14): 112 reconciled done, 239 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation and 38 uncertain; 327 open. All 643 IDs remain: 316 done / 327 open, indexed by 291 maintenance rows. The four original findings, August decisions and pre-B7 verification/actions remain in place; B1–B6 evidence, unrelated records, archive, sprint tracking, pointers and unresolved decisions are preserved. See [B7 readiness](release-readiness.md#b7-remediation-evidence-2026-10-14) and [exact commands, initial failures, review and limits](b7-validation-evidence.md). B7 closure does not establish full release readiness.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -1687,18 +1689,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member. evidence: Matches established RemoveTenantConfigurationFlow CSS-only narrow gate; changing to a runtime viewport gate needs an explicit Ask First decision.
-status: open
+pre-b7-verification-date: 2026-10-12
+pre-b7-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor still has no measured viewport gate at submit; its stylesheet alone hides the form. Existing 2026-08-25/26 decisions require fail-closed runtime measurement.
+pre-b7-next-action: Use the selected viewport observation gate and refuse unknown/narrow submissions.
+status: done 2026-10-14 (B7 closure)
 decision: 2026-08-26 Runtime viewport gate — Reuse viewport observation and refuse submit whenever measured safety is unknown or narrow.
 decision: 2026-08-25 Runtime viewport gate — Reuse the high-impact viewport observation pattern and refuse submit whenever measured safety is unknown or narrow.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor still has no measured viewport gate at submit; its stylesheet alone hides the form. Existing 2026-08-25/26 decisions require fail-closed runtime measurement.
+disposition: done
+verification-date: 2026-10-14
+verification: B7 reuses TenantHighImpactViewportObservation and requires HasMeasurement plus Safe for direct submit/retry and after awaited admission. Missing, unmeasured, measured Unknown, Phone and resize cases prove zero dispatch; safe measured submissions and retained proof pass. See b7-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
-evidence-kind: verified-defect
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
 dependencies: shared viewport observation
-next-action: Use the selected viewport observation gate and refuse unknown/narrow submissions.
+next-action: None for this finding; validated B7 closure does not imply release readiness.
+closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
 related: DW-242
 
 ### DW-196: Remove-member WP-2A assembly only inspects the first audit page; matching UserRemovedFromTenant rows on later pages can leave proof pending
@@ -1810,18 +1816,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Metadata IsAuthorized still defaults true with no contributor/global-admin BFF authorization reflection wired from TenantDetailPage. evidence: Story 3.2 blind-hunter review and Ask First deferral; member flows share the same default-true pattern, so inventing metadata-only reflection was out of this slice.
-status: open
+pre-b7-verification-date: 2026-10-12
+pre-b7-verification: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor still defaults IsAuthorized=true; Components/Pages/TenantDetailPage.razor does not bind it. Recorded 2026-08-25/26 contributor/global-administrator reflection decisions are not implemented for metadata.
+pre-b7-next-action: Bind tenant-scoped contributor/global-administrator evidence and fail closed while authority is indeterminate.
+status: done 2026-10-14 (B7 closure)
 decision: 2026-08-26 Role-aware BFF reflection — Add tenant-scoped contributor or global-administrator reflection and fail closed while authority is indeterminate.
 decision: 2026-08-25 Role-aware BFF reflection — Extend BFF composition with tenant-scoped role-aware reflection and fail closed while contributor authority is indeterminate.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor still defaults IsAuthorized=true; Components/Pages/TenantDetailPage.razor does not bind it. Recorded 2026-08-25/26 contributor/global-administrator reflection decisions are not implemented for metadata.
+disposition: done
+verification-date: 2026-10-14
+verification: B7 binds metadata to the current literal-tenant Owner/Contributor or global-administrator BFF reflection; defaults and failed/pending authority are closed. Real parent/fresh membership, stale caller/tenant/response, preview revocation, post-lease and successful submission regressions pass. See b7-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-defect
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
 dependencies: role-aware BFF seam
-next-action: Bind tenant-scoped contributor/global-administrator evidence and fail closed while authority is indeterminate.
+next-action: None for this finding; validated B7 closure does not imply release readiness.
+closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
 related: DW-235, DW-264
 
 ### DW-207: After Confirmed/Rejected/Failed, retained MessageId can be reused on a deliberate new metadata edit instead of minting a new ULID
@@ -2190,18 +2200,22 @@ location: MemberAccessReview
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Fail membership action availability closed against live authorization reflection. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Fail membership action availability closed against live authorization reflection. evidence: `MemberAccessReview` defaults add/change/remove authorization parameters to true, `TenantDetailPage` does not bind membership authorization evidence, and `BuildActionSlots` ignores the change-role and remove-member authorization values when deciding whether to render launch buttons; denial is enforced only after a flow is opened.
-status: open
+pre-b7-verification-date: 2026-10-12
+pre-b7-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor still defaults authorization flags true and BuildActionSlots ignores change/remove authority; Components/Pages/TenantDetailPage.razor still omits bindings. Recorded owner/global-administrator reflection decisions remain pending; backend enforcement is separate.
+pre-b7-next-action: Bind live tenant-scoped authority to every membership launcher and fail closed with specific reasons.
+status: done 2026-10-14 (B7 closure)
 decision: 2026-08-26 Bind role reflection — Add tenant-scoped owner or global-administrator reflection, bind all flags, and show denial or indeterminate reasons.
 decision: 2026-08-25 Role-aware BFF reflection — Add tenant-scoped owner or global-administrator reflection, bind all flags, and include denial or indeterminate reasons.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor still defaults authorization flags true and BuildActionSlots ignores change/remove authority; Components/Pages/TenantDetailPage.razor still omits bindings. Recorded owner/global-administrator reflection decisions remain pending; backend enforcement is separate.
+disposition: done
+verification-date: 2026-10-14
+verification: B7 binds add/change/remove availability and direct launchers to current tenant Owner or global-administrator reflection with distinct denied/indeterminate reasons. Fresh role changes and target/caller/tenant/preview/retry races prove zero unauthorized dispatch, preserving bootstrap, exact attempts, proof and leases. See b7-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-defect
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
 dependencies: role-aware BFF reflection
-next-action: Bind live tenant-scoped authority to every membership launcher and fail closed with specific reasons.
+next-action: None for this finding; validated B7 closure does not imply release readiness.
+closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
 related: DW-206, DW-264
 
 ### DW-236: Serialize child membership-command lease acquisition
@@ -2606,16 +2620,20 @@ location: IsAuthorized
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: Create availability derives `IsAuthorized` from the tenant-list surface kind rather than `ITenantsBffComposition.GlobalAdministratorsAuthorizationReflection`, so an `Indeterminate` authorization reflection still leaves create enabled -- against the Always fail-closed clause. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: Create availability derives `IsAuthorized` from the tenant-list surface kind rather than `ITenantsBffComposition.GlobalAdministratorsAuthorizationReflection`, so an `Indeterminate` authorization reflection still leaves create enabled -- against the Always fail-closed clause. evidence: Deferred to Story 3.3 by code-review decision D5 (2026-08-21). Story 3.3 is scoped exactly as the fail-closed availability guardrail for lifecycle and configuration; server/API/domain authorization remains the enforcement boundary, so this is UI honesty rather than a security hole. Story 3.3 must cover create availability, not only lifecycle and configuration.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor still binds CreateTenantFlow.IsAuthorized from _snapshot.Kind excluding Error/Unauthorized, rather than the async global authority reflection. Indeterminate authority can still leave create enabled.
+pre-b7-verification-date: 2026-10-12
+pre-b7-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor still binds CreateTenantFlow.IsAuthorized from _snapshot.Kind excluding Error/Unauthorized, rather than the async global authority reflection. Indeterminate authority can still leave create enabled.
+pre-b7-next-action: Bind create availability to resolved authority while preserving the documented first-tenant freshness exception.
+status: done 2026-10-14 (B7 closure)
+disposition: done
+verification-date: 2026-10-14
+verification: B7 derives create availability from resolved current-caller global-administrator reflection, reauthorizes before dispatch and refuses stale/pending/denied results. Authorized first-tenant Unknown freshness and delayed audit return remain supported; denied/indeterminate cases prove zero dispatch. See b7-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: verified-defect
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
 dependencies: create authority reflection
-next-action: Bind create availability to resolved authority while preserving the documented first-tenant freshness exception.
+next-action: None for this finding; validated B7 closure does not imply release readiness.
+closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.md`; `_bmad-output/implementation-artifacts/spec-b7-live-admission.md`
 related: DW-206, DW-235
 
 ### DW-265: Refresh coalescing downgrades a user-initiated projection refresh to a status-only refresh and re-enters recursively

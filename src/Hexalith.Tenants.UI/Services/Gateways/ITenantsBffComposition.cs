@@ -11,6 +11,17 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 namespace Hexalith.Tenants.UI.Services.Gateways;
 
 public interface ITenantsBffComposition {
+    /// <summary>Resolves current circuit authority against one literal tenant detail's membership evidence.</summary>
+    /// <param name="tenantId">Literal tenant scope.</param>
+    /// <param name="detail">Authoritative tenant membership evidence.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Fail-closed metadata and membership authority.</returns>
+    ValueTask<TenantMutationAuthorizationReflection> ResolveTenantMutationAuthorizationAsync(
+        string tenantId,
+        TenantDetail detail,
+        CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(TenantMutationAuthorizationReflection.Indeterminate);
+
     /// <summary>Redacts one direct tenant read after resolving current circuit authority.</summary>
     ValueTask<TenantCorrectionProjection> ComposeTenantCorrectionProjectionAsync(
         string tenantId,

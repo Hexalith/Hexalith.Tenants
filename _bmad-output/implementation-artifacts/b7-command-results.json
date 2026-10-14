@@ -1,0 +1,914 @@
+{
+  "entry_state": "b7-entry-state.json",
+  "root_commands": [
+    {
+      "name": "python-guards",
+      "command": "python3 tests/scripts/test_validate_story_gitlinks.py",
+      "exit_code": 0,
+      "seconds": 0.82,
+      "log": "python-guards.log"
+    },
+    {
+      "name": "focused-ui-build-1",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+      "exit_code": 1,
+      "seconds": 10.45,
+      "log": "focused-ui-build-1.log"
+    },
+    {
+      "name": "focused-ui-build-2",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 13.3,
+      "log": "focused-ui-build-2.log"
+    },
+    {
+      "name": "focused-ui-build-3",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 12.9,
+      "log": "focused-ui-build-3.log"
+    },
+    {
+      "name": "focused-ui-build-4",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 14.01,
+      "log": "focused-ui-build-4.log"
+    },
+    {
+      "name": "focused-live-admission-2",
+      "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -method '*Live*Admission*' -method '*Mutation*Authorization*' -method '*Fresh*Authority*' -method '*Viewport*'",
+      "exit_code": 3,
+      "seconds": 0.15,
+      "log": "focused-live-admission-2.log"
+    },
+    {
+      "name": "focused-flows-2",
+      "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -class '*AddTenantMemberFlowTests' -class '*ChangeTenantMemberRoleFlowTests' -class '*RemoveTenantMemberFlowTests' -class '*CreateTenantFlowTests' -class '*EditTenantMetadataFlowTests' -class '*TenantsBffCompositionTests'",
+      "exit_code": 0,
+      "seconds": 4.2,
+      "log": "focused-flows-2.log"
+    },
+    {
+      "name": "focused-ui-build-5",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 12.43,
+      "log": "focused-ui-build-5.log"
+    },
+    {
+      "name": "focused-ui-build-6",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 12.2,
+      "log": "focused-ui-build-6.log"
+    },
+    {
+      "name": "review-ui-build-1",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 13.93,
+      "log": "review-ui-build-1.log"
+    },
+    {
+      "name": "source-integration-build",
+      "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false --no-incremental",
+      "exit_code": 0,
+      "seconds": 43.91,
+      "log": "source-integration-build.log"
+    },
+    {
+      "name": "source-generated-controller",
+      "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --minimum-expected-tests 4 --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway",
+      "exit_code": 0,
+      "seconds": 1.95,
+      "log": "source-generated-controller.log"
+    },
+    {
+      "name": "review-ui-build-2",
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 13.39,
+      "log": "review-ui-build-2.log"
+    },
+    {
+      "name": "source-integration-build-final",
+      "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false --no-incremental",
+      "exit_code": 0,
+      "seconds": 35.74,
+      "log": "source-integration-build-final.log"
+    },
+    {
+      "name": "source-generated-controller-final",
+      "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --minimum-expected-tests 4 --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway",
+      "exit_code": 0,
+      "seconds": 1.89,
+      "log": "source-generated-controller-final.log"
+    },
+    {
+      "name": "release-restore",
+      "command": "dotnet restore Hexalith.Tenants.slnx -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 4.02,
+      "log": "release-restore.log"
+    },
+    {
+      "name": "release-restore-final",
+      "command": "dotnet restore Hexalith.Tenants.slnx -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 3.8,
+      "log": "release-restore-final.log"
+    },
+    {
+      "name": "release-build-final",
+      "command": "dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror -m:1 -nr:false",
+      "exit_code": 0,
+      "seconds": 26.53,
+      "log": "release-build-final.log"
+    },
+    {
+      "name": "release-contracts",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --configuration Release --no-build --no-restore --minimum-expected-tests 154 --results-directory /tmp/tenants-b7-20261014/test-results/Contracts --report-xunit-trx --report-xunit-trx-filename Contracts.trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml",
+      "exit_code": 0,
+      "seconds": 6.9,
+      "log": "release-contracts.log"
+    },
+    {
+      "name": "release-client",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Client.Tests/Hexalith.Tenants.Client.Tests.csproj --configuration Release --no-build --no-restore --minimum-expected-tests 50 --results-directory /tmp/tenants-b7-20261014/test-results/Client --report-xunit-trx --report-xunit-trx-filename Client.trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml",
+      "exit_code": 0,
+      "seconds": 2.77,
+      "log": "release-client.log"
+    },
+    {
+      "name": "release-testing",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Testing.Tests/Hexalith.Tenants.Testing.Tests.csproj --configuration Release --no-build --no-restore --minimum-expected-tests 182 --results-directory /tmp/tenants-b7-20261014/test-results/Testing --report-xunit-trx --report-xunit-trx-filename Testing.trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml",
+      "exit_code": 0,
+      "seconds": 2.74,
+      "log": "release-testing.log"
+    },
+    {
+      "name": "release-sample",
+      "command": "dotnet test --project samples/Hexalith.Tenants.Sample.Tests/Hexalith.Tenants.Sample.Tests.csproj --configuration Release --no-build --no-restore --minimum-expected-tests 40 --results-directory /tmp/tenants-b7-20261014/test-results/Sample --report-xunit-trx --report-xunit-trx-filename Sample.trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml",
+      "exit_code": 0,
+      "seconds": 3.15,
+      "log": "release-sample.log"
+    },
+    {
+      "name": "release-apphost",
+      "command": "dotnet test --project tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj --configuration Release --no-build --no-restore --minimum-expected-tests 6 --results-directory /tmp/tenants-b7-20261014/test-results/AppHost --report-xunit-trx --report-xunit-trx-filename AppHost.trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml",
+      "exit_code": 0,
+      "seconds": 2.86,
+      "log": "release-apphost.log"
+    },
+    {
+      "name": "release-server",
+      "command": "dotnet test --project tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.csproj --configuration Release --no-build --no-restore --minimum-expected-tests 884 --results-directory /tmp/tenants-b7-20261014/test-results/Server --report-xunit-trx --report-xunit-trx-filename Server.trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml",
+      "exit_code": 0,
+      "seconds": 3.85,
+      "log": "release-server.log"
+    },
+    {
+      "name": "release-ui",
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-build --no-restore --minimum-expected-tests 4765 --results-directory /tmp/tenants-b7-20261014/test-results/UI --report-xunit-trx --report-xunit-trx-filename UI.trx --coverage --coverage-output-format cobertura --coverage-output coverage.cobertura.xml",
+      "exit_code": 0,
+      "seconds": 94.1,
+      "log": "release-ui.log"
+    },
+    {
+      "name": "integration-release-final",
+      "command": "dotnet test --project tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build --no-restore --filter-not-trait Category=Performance --minimum-expected-tests 189 --results-directory /tmp/tenants-b7-20261014/integration-release --report-xunit-trx --report-xunit-trx-filename non-performance.trx",
+      "exit_code": 0,
+      "seconds": 71.04,
+      "log": "integration-release-final.log"
+    },
+    {
+      "name": "b7-gitlinks-final",
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-b7-live-admission.md",
+      "exit_code": 0,
+      "seconds": 0.05,
+      "log": "b7-gitlinks-final.log"
+    },
+    {
+      "name": "coverage-final",
+      "command": "python3 scripts/validate-coverage.py --coverage-root /tmp/tenants-b7-20261014/test-results --minimum-line-coverage 80 --required-branch-coverage 100 --line-scope src/Hexalith.Tenants.Contracts/ --line-scope src/Hexalith.Tenants.Client/ --line-scope src/Hexalith.Tenants.Server/ --line-scope src/Hexalith.Tenants.Testing/ --isolation-auth-target src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs --isolation-auth-target src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs --isolation-auth-target src/Hexalith.Tenants.Server/Validators/ChangeUserRoleValidator.cs --isolation-auth-target src/Hexalith.Tenants.Server/Projections/TenantAuditOwnership.cs --summary-file /tmp/tenants-b7-20261014/coverage-summary-final.md",
+      "exit_code": 0,
+      "seconds": 0.41,
+      "log": "coverage-final.log"
+    },
+    {
+      "name": "historical-b6-gitlinks-final",
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-b6-audit-stream-separation.md",
+      "exit_code": 1,
+      "seconds": 0.07,
+      "log": "historical-b6-gitlinks-final.log"
+    },
+    {
+      "name": "browser-release-final",
+      "command": "env TENANTS_BROWSER_BUILD_CONFIGURATION=Release tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+      "exit_code": 0,
+      "seconds": 23.8,
+      "log": "browser-release-final.log"
+    },
+    {
+      "name": "packages-pack-final",
+      "command": "python3 scripts/pack-release-packages.py /tmp/tenants-b7-20261014/packages 5.8.0-b7-validation",
+      "exit_code": 0,
+      "seconds": 4.22,
+      "log": "packages-pack-final.log"
+    },
+    {
+      "name": "packages-validate-final",
+      "command": "python3 scripts/validate-nuget-packages.py /tmp/tenants-b7-20261014/packages",
+      "exit_code": 0,
+      "seconds": 0.05,
+      "log": "packages-validate-final.log"
+    },
+    {
+      "name": "consumers-validate-final",
+      "command": "python3 scripts/validate-consumer-package-references.py /tmp/tenants-b7-20261014/packages --work-directory /tmp/tenants-b7-20261014/consumers",
+      "exit_code": 0,
+      "seconds": 6.73,
+      "log": "consumers-validate-final.log"
+    },
+    {
+      "name": "preservation-final",
+      "command": "python3 /tmp/tenants-b7-20261014/verify-preservation.py",
+      "exit_code": 1,
+      "seconds": 0.11,
+      "log": "preservation-final.log"
+    },
+    {
+      "name": "whitespace-final",
+      "command": "git -c core.safecrlf=false diff --check",
+      "exit_code": 2,
+      "seconds": 0.15,
+      "log": "whitespace-final.log"
+    },
+    {
+      "name": "whitespace-final-retry",
+      "command": "git -c core.safecrlf=false diff --check",
+      "exit_code": 0,
+      "seconds": 0.13,
+      "log": "whitespace-final-retry.log"
+    },
+    {
+      "name": "preservation-final-retry",
+      "command": "python3 /tmp/tenants-b7-20261014/verify-preservation.py",
+      "exit_code": 0,
+      "seconds": 0.28,
+      "log": "preservation-final-retry.log"
+    },
+    {
+      "name": "preservation-durable-final",
+      "command": "python3 /tmp/tenants-b7-20261014/verify-preservation.py",
+      "exit_code": 0,
+      "seconds": 0.15,
+      "log": "preservation-durable-final.log"
+    }
+  ],
+  "test_continuation": {
+    "commands": [
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build2.log",
+        "exit_code": 1,
+        "errors": 11,
+        "notes": "Initial fixture helper signature insertion missed its target; corrected in build3."
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build3.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build4.log",
+        "exit_code": 1,
+        "errors": 1,
+        "notes": "New test used Set instead of the existing Notify auth fixture method; corrected in build5."
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build5.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build6.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build7.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build8.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build9.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build10.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build11.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build12.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build13.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build14.log",
+        "exit_code": 1,
+        "errors": 3,
+        "notes": "Invalid viewport constant999 exceeded the byte enum range; used invalid255 in build15."
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-test-build15.log",
+        "exit_code": 0,
+        "errors": 0,
+        "notes": ""
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "log": "/tmp/b7-ui-initial.log",
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.LocalizerDoubleParityTests.Every_localizer_double_returns_the_exact_shipped_resource_value_for_every_stubbed_key",
+          "Hexalith.Tenants.UI.Tests.Components.EditTenantMetadataFlowTests.Reconciliation_fails_closed_when_authorization_is_revoked_after_acceptance",
+          "Hexalith.Tenants.UI.Tests.Components.EditTenantMetadataFlowTests.Permission_reflection_keeps_read_only_surface_with_inline_unavailable_reason",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Audit_return_restores_create_lifecycle_inside_expanded_accordion",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_flow_for_ambiguous_unknown_list",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Global_administrator_return_context_suppresses_the_active_workspace_cursor_after_paging",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_users_tab_opens_audit_for_an_authorized_current_row_with_the_user_hint",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_when_the_projection_lifecycle_is_ambiguous",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_when_command_surface_is_disconnected",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Current_workspace_row_hides_audit_column_only_for_proven_denial",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_faulted_authentication_event_clears_entry_without_harming_ordinary_workspace",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_flow_when_list_freshness_is_stale",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Synchronous_initial_caller_failure_requires_reacquisition_before_workspace_authority",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Create_audit_return_keeps_list_view_and_rearms_retention_after_the_marker_is_consumed",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_names_the_first_tenant_bootstrap_exception_when_create_stays_available",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_authentication_events_clear_pending_authority_restore_entry_and_ignore_late_disposed_completion",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_mine_scope_opens_audit_for_an_authorized_current_row",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_flow_for_non_empty_unknown_list",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_shows_one_authorized_contextual_global_administrator_entry_with_safe_return_context",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_allows_create_flow_only_for_authoritatively_empty_unknown_list",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_pending_optional_authorization_does_not_block_the_tenant_list",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Changing_routes_releases_the_previous_page_owned_lease_and_does_not_disable_the_new_tenant",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Detail_page_confirms_metadata_update_from_the_authoritative_proof_read",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.UnmountingMemberLandmarkRetainsItsExactAttemptUntilTerminalDelivery",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Confirmed_member_command_refreshes_parent_detail_and_member_projections",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.ConcurrentEarlierRemovalDoesNotHideExactAttemptProof",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Missing_audit_proof_capability_fail_closes_before_dispatch",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Ready_receipt_for_a_denied_caller_offers_no_audit_handoff_or_invalid_context_reason",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Matching_row_on_stale_audit_page_stays_delayed_without_receipt",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted(isRetry: True, expectedAuditState: AuditUnavailable)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted(isRetry: False, expectedAuditState: NotStarted)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.ExactRemovalProofAcceptsClockSkewWithOnlyOpaqueETagMetadataAndRedactsProvenance",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Programmatic_submit_while_unable_to_verify_recovers_status_without_dispatching",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Escape_while_submitting_does_not_close_or_dispatch_again",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Continue_read_only_does_not_reconstruct_the_preview_from_a_parameter_rerender_mid_dismissAsync",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Failed_audit_reads_after_confirmation_are_unavailable_while_unready_pages_stay_delayed(auditOutcome: \"unavailable\", expectedAuditState: AuditUnavailable)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Failed_audit_reads_after_confirmation_are_unavailable_while_unready_pages_stay_delayed(auditOutcome: \"error\", expectedAuditState: AuditUnavailable)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Failed_audit_reads_after_confirmation_are_unavailable_while_unready_pages_stay_delayed(auditOutcome: \"throws\", expectedAuditState: AuditUnavailable)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Failed_audit_reads_after_confirmation_are_unavailable_while_unready_pages_stay_delayed(auditOutcome: \"invalid-cursor\", expectedAuditState: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Failed_audit_reads_after_confirmation_are_unavailable_while_unready_pages_stay_delayed(auditOutcome: \"loading\", expectedAuditState: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Global_admin_friction_is_visible_when_reflected_without_dispatching_global_admin_command",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Resolved_non_global_admin_platform_standing_does_not_raise_elevated_ga_friction",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Unproven_audit_proof_capability_fails_closed_by_default",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Already_absent_target_before_submit_records_already_applied_without_gateway_submission",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Remove_flow_renders_complete_preview_with_stable_selectors_and_no_audit_receipt_claim",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Ready_receipt_rechecks_live_audit_connection_before_inspect",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Retry_whose_command_gateway_disappears_after_the_lease_reports_the_possibly_delivered_attempt_as_unverifiable",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Refresh_clicks_merged_into_a_running_lookup_wait_for_its_replay_and_never_exhaust_the_retry_limit",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Confirmation_submits_literal_user_id_and_confirms_only_after_absent_projection_evidence",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RefreshIsOfferedOnlyWhileTheAttemptCanBeRequeried(requeryable: True)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RefreshIsOfferedOnlyWhileTheAttemptCanBeRequeried(requeryable: False)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Initial_focus_targets_visible_cancel_instead_of_the_narrow_hidden_confirmation_form",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.In_flight_retry_with_tracking_reuses_status_lookup_and_does_not_dispatch_again",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Submission_time_user_not_in_tenant_rejection_reconciles_to_already_applied_after_absent_projection",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Matching_audit_row_without_current_projection_provenance_stays_delayed_without_receipt(rowLifecycle: Unknown, provenance: ProjectionBacked)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Matching_audit_row_without_current_projection_provenance_stays_delayed_without_receipt(rowLifecycle: Current, provenance: HandlerComputed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Last_owner_warning_is_visible_but_does_not_block_destructive_confirmation",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"other-correlation\", expected: AuditPending)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"other-sequence\", expected: AuditPending)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"missing-correlation\", expected: AuditPending)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"missing-sequence\", expected: AuditPending)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"wrong-page-scope\", expected: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"wrong-page-caller\", expected: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"missing-page-version\", expected: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"later-page-version-drift\", expected: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"later-page-source-switch\", expected: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"later-page-stale\", expected: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.RemovalReceiptRejectsConcurrentOrInconsistentAttemptEvidence(caseKind: \"duplicate-exact-row\", expected: AuditDelayed)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Confirmed_removal_does_not_raise_a_target_absent_unavailability",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Confirmation_text_must_match_target_before_gateway_submission",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.User_not_in_tenant_rejection_requires_absent_projection_before_already_applied",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Confirmed_removal_without_matching_audit_stays_pending_without_receipt",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Ambiguous_failure_reuses_message_id_only_for_the_exact_same_removal",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Ready_receipt_inspect_navigates_to_the_scoped_audit_route_with_the_detail_return",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Confirmed_removal_follows_opaque_audit_pages_before_promoting_ready_proof",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Audit_proof_walk_stops_at_page_cap_and_fails_closed",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.AuthoritativeRemovalConfirmationPreservesQualifiedReceiptAcrossLateStatusAndReleasesOnlyItsLease",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Audit_proof_walk_is_cancelled_when_flow_is_disposed_and_never_promotes_proof",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Ready_receipt_with_unconfirmed_audit_access_explains_access_instead_of_invalid_context",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Audit_refresh_that_resolves_to_not_started_moves_focus_to_the_lifecycle_section",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Incomplete_preview_blocks_confirm_and_dispatch",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Retry_failed_before_dispatch_keeps_the_reused_identity_unverifiable",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Ready_receipt_with_wrong_tenant_return_disables_inspect_with_reason",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Pending_audit_refresh_can_recover_later_ready_proof",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Duplicate_submit_while_remove_command_is_in_flight_is_blocked_before_gateway_submission",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Confirmed_removal_with_unauthorized_audit_keeps_confirmed_without_available",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Remove_member_true_authorization_failure_still_renders_permission_reason",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Remove_flow_fails_closed_without_partial_preview_when_context_is_unavailable(surfaceKind: Stale, freshness: Stale, expectedReason: \"Refresh current tenant detail\")",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Remove_flow_fails_closed_without_partial_preview_when_context_is_unavailable(surfaceKind: Ready, freshness: Unknown, expectedReason: \"Refresh current tenant detail\")",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Remove_flow_fails_closed_without_partial_preview_when_context_is_unavailable(surfaceKind: Degraded, freshness: Current, expectedReason: \"Refresh current tenant detail\")",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Remove_flow_fails_closed_without_partial_preview_when_context_is_unavailable(surfaceKind: Unavailable, freshness: Current, expectedReason: \"Refresh current tenant detail\")",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Remove_flow_fails_closed_without_partial_preview_when_context_is_unavailable(surfaceKind: Unknown, freshness: Current, expectedReason: \"Refresh current tenant detail\")",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Continue_read_only_releases_activity_and_closes_the_remove_flow",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.ReadyRemovalReceiptRemountPreservesProofButShowsOnlyCurrentAuthorizedCallerEvidence(caller: \"test-caller\", available: True, pending: False, denied: False, visible: True)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.ReadyRemovalReceiptRemountPreservesProofButShowsOnlyCurrentAuthorizedCallerEvidence(caller: \"other-caller\", available: True, pending: False, denied: False, visible: False)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.ReadyRemovalReceiptRemountPreservesProofButShowsOnlyCurrentAuthorizedCallerEvidence(caller: null, available: False, pending: True, denied: False, visible: False)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.ReadyRemovalReceiptRemountPreservesProofButShowsOnlyCurrentAuthorizedCallerEvidence(caller: \"test-caller\", available: False, pending: False, denied: True, visible: False)",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Confirmed_removal_with_matching_audit_row_renders_wp2a_receipt",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.Projection_refresh_coalesced_during_status_only_refresh_is_not_dropped",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.FaultedOldActivityAcquisitionCannotDetachTheNewRouteAttempt(kind: \"remove\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ContinueDuringHeldStatusCannotResurrectThePanelOrReleaseAForeignLease(kind: \"remove\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.AmbiguousDeliveryNudgePreservesOriginalIdRecovery(kind: \"remove\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CreateRechecksSuppliedEligibilityAfterAwaitedBaseline(deniedInput: \"authorization\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CreateRechecksSuppliedEligibilityAfterAwaitedBaseline(deniedInput: \"freshness\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CreateRechecksSuppliedEligibilityAfterAwaitedBaseline(deniedInput: \"command-surface\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.DisposedPreDispatchAcquisitionCannotMutateAReplacementSubmission(kind: \"remove\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.HeldStatusCompletesOwnerlessWithoutReleasingAReplacementLease(kind: \"remove\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.RemountedAmbiguousRemovalRequiresLiteralConfirmationAndCompletePreview(incompletePreview: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.RemountedAmbiguousRemovalRequiresLiteralConfirmationAndCompletePreview(incompletePreview: True)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.HeldAdmissionCannotDispatchAfterSuppliedEligibilityDenial(kind: \"remove\", changedRoute: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.HeldAdmissionCannotDispatchAfterSuppliedEligibilityDenial(kind: \"remove\", changedRoute: True)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.HeldDeliverySurvivesReplacementBeforeOrAfterCompletion(kind: \"remove\", adoptBeforeCompletion: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.HeldDeliverySurvivesReplacementBeforeOrAfterCompletion(kind: \"remove\", adoptBeforeCompletion: True)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CurrentAuthoritativeConfirmationSurvivesLateProcessingStatusAndProtectsForeignAdmission(kind: \"add\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CurrentAuthoritativeConfirmationSurvivesLateProcessingStatusAndProtectsForeignAdmission(kind: \"change\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CurrentAuthoritativeConfirmationSurvivesLateProcessingStatusAndProtectsForeignAdmission(kind: \"metadata\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CallerBoundLocalMetadataReadIsWithheldWhileCurrentCallerResolutionIsPending",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CallbackOnlyFaultAbandonsOnlyItsCapturedPreDispatchAttempt(kind: \"remove\", replace: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CallbackOnlyFaultAbandonsOnlyItsCapturedPreDispatchAttempt(kind: \"remove\", replace: True)",
+          "Hexalith.Tenants.UI.Tests.Components.ChangeTenantMemberRoleFlowTests.Change_role_true_authorization_failure_still_renders_permission_reason",
+          "Hexalith.Tenants.UI.Tests.Components.AddTenantMemberFlowTests.Add_member_true_authorization_failure_still_renders_permission_reason",
+          "Hexalith.Tenants.UI.Tests.Components.AddTenantMemberFlowTests.ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted(isRetry: True, expectedAuditState: AuditUnavailable)",
+          "Hexalith.Tenants.UI.Tests.Components.AddTenantMemberFlowTests.ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted(isRetry: False, expectedAuditState: NotStarted)"
+        ],
+        "total": 4785,
+        "errors": 0,
+        "failed": 123,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 143.707,
+        "exit_code": 1
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -class '*TenantRetainedCommandFlowTests' -class '*TenantsBffCompositionTests'",
+        "log": "/tmp/b7-focused1.log",
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.CallerBoundLocalMetadataReadIsWithheldWhileCurrentCallerResolutionIsPending"
+        ],
+        "total": 231,
+        "errors": 0,
+        "failed": 1,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 2.153,
+        "exit_code": 1
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -class '*TenantsWorkspaceTests' -class '*EditTenantMetadataFlowTests' -class '*RemoveTenantMemberFlowTests' -class '*AddTenantMemberFlowTests' -class '*ChangeTenantMemberRoleFlowTests'",
+        "log": "/tmp/b7-fixture-retry1.log",
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Audit_return_restores_create_lifecycle_inside_expanded_accordion",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_flow_for_ambiguous_unknown_list",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_when_the_projection_lifecycle_is_ambiguous",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_when_command_surface_is_disconnected",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_flow_when_list_freshness_is_stale",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_names_the_first_tenant_bootstrap_exception_when_create_stays_available",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_blocks_create_flow_for_non_empty_unknown_list",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.Workspace_allows_create_flow_only_for_authoritatively_empty_unknown_list",
+          "Hexalith.Tenants.UI.Tests.Components.AddTenantMemberFlowTests.ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted(isRetry: True, expectedAuditState: AuditUnavailable)",
+          "Hexalith.Tenants.UI.Tests.Components.AddTenantMemberFlowTests.ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted(isRetry: False, expectedAuditState: NotStarted)"
+        ],
+        "total": 260,
+        "errors": 0,
+        "failed": 10,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 5.501,
+        "exit_code": 1
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*Live*'",
+        "log": "/tmp/b7-live-focused.log",
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.LiveParentBindsScopedRoleAuthority(role: TenantOwner, global: False, metadata: True, membership: True)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.LiveParentBindsScopedRoleAuthority(role: TenantContributor, global: False, metadata: True, membership: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.LiveParentBindsScopedRoleAuthority(role: TenantReader, global: False, metadata: False, membership: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.LiveParentBindsScopedRoleAuthority(role: TenantReader, global: True, metadata: True, membership: True)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.LiveParentBindsScopedRoleAuthority(role: Unknown, global: False, metadata: False, membership: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.UnmountingMemberLandmarkRetainsItsExactAttemptUntilTerminalDelivery"
+        ],
+        "total": 213,
+        "errors": 0,
+        "failed": 6,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 5.229,
+        "exit_code": 1
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*Live*'",
+        "log": "/tmp/b7-live-focused2.log",
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.LiveRemovalExportsLocalizedMeasuredViewportFixtures(culture: \"en\")",
+          "Hexalith.Tenants.UI.Tests.Components.RemoveTenantMemberFlowTests.LiveRemovalExportsLocalizedMeasuredViewportFixtures(culture: \"fr\")"
+        ],
+        "total": 219,
+        "errors": 0,
+        "failed": 2,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 3.574,
+        "exit_code": 1
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*LiveParentFreshDenialSupersedesDelayedInitialReflection' -method '*LiveRemovalExportsLocalizedMeasuredViewportFixtures'",
+        "log": "/tmp/b7-race-export.log",
+        "failed_tests": [],
+        "total": 3,
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 0.748,
+        "exit_code": 0
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "log": "/tmp/b7-ui-complete2.log",
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Changing_routes_releases_the_previous_page_owned_lease_and_does_not_disable_the_new_tenant",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Detail_page_confirms_metadata_update_from_the_authoritative_proof_read",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.LiveParentFreshDenialSupersedesDelayedInitialReflection",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Confirmed_member_command_refreshes_parent_detail_and_member_projections"
+        ],
+        "total": 4872,
+        "errors": 0,
+        "failed": 4,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 59.289,
+        "exit_code": 1
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*Live*' -method '*Changing_routes_releases*' -method '*Detail_page_confirms_metadata_update_from_the_authoritative_proof_read' -method '*Confirmed_member_command_refreshes_parent_detail_and_member_projections'",
+        "log": "/tmp/b7-final-focused.log",
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.LiveParentAuthorizedSubmissionsUseRealScopedRoleReflection(role: TenantOwner, global: False, kind: \"add\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.LiveParentAuthorizedSubmissionsUseRealScopedRoleReflection(role: TenantReader, global: True, kind: \"add\")"
+        ],
+        "total": 226,
+        "errors": 0,
+        "failed": 2,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 4.46,
+        "exit_code": 1
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*Live*' -method '*Changing_routes_releases*' -method '*Detail_page_confirms_metadata_update_from_the_authoritative_proof_read' -method '*Confirmed_member_command_refreshes_parent_detail_and_member_projections'",
+        "log": "/tmp/b7-final-focused2.log",
+        "failed_tests": [],
+        "total": 231,
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 3.89,
+        "exit_code": 0
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*Live*' -method '*Changing_routes_releases*' -method '*Detail_page_confirms_metadata_update_from_the_authoritative_proof_read' -method '*Confirmed_member_command_refreshes_parent_detail_and_member_projections'",
+        "log": "/tmp/b7-final-focused3.log",
+        "failed_tests": [],
+        "total": 238,
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 5.603,
+        "exit_code": 0
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "log": "/tmp/b7-ui-final.log",
+        "failed_tests": [],
+        "total": 4887,
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 70.57,
+        "exit_code": 0
+      },
+      {
+        "command": "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "log": "/tmp/b7-browser-initial.log",
+        "exit_code": 1,
+        "reported_failure": [
+          "FAIL Phone confirmation form remained visible"
+        ],
+        "browser": []
+      },
+      {
+        "command": "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "log": "/tmp/b7-browser-final.log",
+        "exit_code": 1,
+        "reported_failure": [
+          "FAIL Measured viewport did not emit tier 0"
+        ],
+        "browser": []
+      },
+      {
+        "command": "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "log": "/tmp/b7-browser-final2.log",
+        "exit_code": 0,
+        "reported_failure": [],
+        "browser": [
+          "Google Chrome 154.0.8037.57 "
+        ]
+      },
+      {
+        "command": "bash -n tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "exit_code": 0
+      },
+      {
+        "command": "git diff --check -- tests/Hexalith.Tenants.UI.Tests",
+        "exit_code": 0
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-review-test-build1.log",
+        "exit_code": 1,
+        "errors": 1,
+        "warnings": 0,
+        "notes": "Nullable caller scope in new cancelled-read fixture; corrected in build2."
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-review-test-build2.log",
+        "exit_code": 0,
+        "errors": 0,
+        "warnings": 0,
+        "notes": ""
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*Review*'",
+        "log": "/tmp/b7-review-focused1.log",
+        "exit_code": 1,
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.ReviewCreateAuditReturnWaitsForResolvedAuthority(outcome: \"authorized\")",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.ReviewCreateAuditReturnWaitsForResolvedAuthority(outcome: \"denied\")",
+          "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.ReviewCreateAuditReturnWaitsForResolvedAuthority(outcome: \"caller-changed\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Member_access_review_surfaces_all_canonical_unavailable_reason_categories_without_mutation_affordances",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.ReviewParentChangedAdmissionEvidencePreservesEarlierProof(change: \"disabled\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.ReviewParentChangedAdmissionEvidencePreservesEarlierProof(change: \"projection\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.ReviewParentChangedAdmissionEvidencePreservesEarlierProof(change: \"metadata\")",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(kind: \"metadata\", terminal: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(kind: \"metadata\", terminal: True)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(kind: \"add\", terminal: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(kind: \"add\", terminal: True)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(kind: \"change\", terminal: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(kind: \"change\", terminal: True)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(kind: \"remove\", terminal: False)",
+          "Hexalith.Tenants.UI.Tests.Components.TenantRetainedCommandFlowTests.ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(kind: \"remove\", terminal: True)"
+        ],
+        "total": 347,
+        "errors": 0,
+        "failed": 15,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 26.447
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-review-test-build3.log",
+        "exit_code": 0,
+        "errors": 0,
+        "warnings": 0,
+        "notes": "After root outer submission evidence and pending audit return marker corrections."
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*Review*' -method '*Live*'",
+        "log": "/tmp/b7-review-focused2.log",
+        "exit_code": 0,
+        "failed_tests": [],
+        "total": 582,
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 29.503
+      },
+      {
+        "command": "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "log": "/tmp/b7-review-browser-final.log",
+        "exit_code": 1,
+        "reported_failure": [
+          "Focus validator inputs are missing."
+        ],
+        "notes": "Root confirmed transient missing CSS was from its final source-reference IntegrationTests Debug --no-incremental graph rebuild; inputs restored, no browser assertions ran. Retrying serially."
+      },
+      {
+        "command": "git diff --check -- tests/Hexalith.Tenants.UI.Tests",
+        "log": "/tmp/b7-review-diff-check.log",
+        "exit_code": 0
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "log": "/tmp/b7-review-ui-final.log",
+        "exit_code": 1,
+        "failed_tests": [
+          "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Detail_read_refresh_nudges_in_flight_membership_flow_without_confirming_from_notification"
+        ],
+        "total": 4939,
+        "errors": 0,
+        "failed": 1,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 89.001
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/b7-review-test-build4.log",
+        "exit_code": 0,
+        "errors": 0,
+        "warnings": 0,
+        "notes": "Preserved established membership refresh fixture initial evidence for three reads, matching initial render plus two fresh predispatch admissions; simulated nudge still changes evidence."
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests -method '*Detail_read_refresh_nudges_in_flight_membership_flow_without_confirming_from_notification'",
+        "log": "/tmp/b7-review-refresh-retry.log",
+        "exit_code": 0,
+        "failed_tests": [],
+        "total": 1,
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 0.845
+      },
+      {
+        "command": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests",
+        "log": "/tmp/b7-review-ui-final2.log",
+        "exit_code": 0,
+        "failed_tests": [],
+        "total": 4939,
+        "errors": 0,
+        "failed": 0,
+        "skipped": 0,
+        "not_run": 0,
+        "time_seconds": 84.623
+      },
+      {
+        "command": "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "log": "/tmp/b7-review-browser-final2.log",
+        "exit_code": 0,
+        "reported_failure": [],
+        "browser": [
+          "Google Chrome 154.0.8037.57 "
+        ],
+        "asset_provenance": {
+          "BuildConfiguration": "Debug",
+          "Manifest": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Debug/net10.0/staticwebassets.build.json",
+          "ManifestSha256": "82a8836ff476dc871f186d310ce7275bfb72ab0e5c50b48ef93f36dee6d43d4a",
+          "SourceId": "Hexalith.FrontComposer.Shell",
+          "SourceType": "Project",
+          "Identity": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js",
+          "RelativePath": "js/fc-layout-breakpoints#[.{fingerprint}]?.js",
+          "Integrity": "R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=",
+          "Sha256": "475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a"
+        },
+        "notes": "All original focus/CSS/localization/forced-colors assertions and mutation controls retained; shipped measured viewport callback into removal rendered fixture passed EN/FR at1024/767/768."
+      },
+      {
+        "command": "git diff --check -- tests/Hexalith.Tenants.UI.Tests",
+        "log": "/tmp/b7-review-final-diff-check.log",
+        "exit_code": 0
+      },
+      {
+        "command": "bash -n tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+        "exit_code": 0
+      }
+    ],
+    "browser_limit": "Actual bUnit-rendered EN/FR markup and shipped FrontComposer JS measurement module in Chromium; .NET command-dispatch behavior is verified by parent and direct bUnit tests, not by a live circuit browser session.",
+    "review_regression_count": 52,
+    "final_review_validation": {
+      "build_log": "/tmp/b7-review-test-build4.log",
+      "focused_log": "/tmp/b7-review-focused2.log",
+      "full_ui_log": "/tmp/b7-review-ui-final2.log",
+      "browser_log": "/tmp/b7-review-browser-final2.log",
+      "complete": true
+    }
+  },
+  "browser_release_asset": {
+    "BuildConfiguration": "Release",
+    "Manifest": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Release/net10.0/staticwebassets.build.json",
+    "ManifestSha256": "229995cb3d55a69dd30fc728dca52d4e7cab54b4bf4f7db292e4a6fe01fa844d",
+    "SourceId": "Hexalith.FrontComposer.Shell",
+    "SourceType": "Project",
+    "Identity": "/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js",
+    "RelativePath": "js/fc-layout-breakpoints#[.{fingerprint}]?.js",
+    "Integrity": "R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=",
+    "Sha256": "475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a"
+  },
+  "local_package_hashes": {
+    "Hexalith.Tenants.Aspire.5.8.0-b7-validation.nupkg": "4901bad5e9d99cf5aca43964973ee368b0b78cf75ef0dcda07c5daa3976f08ab",
+    "Hexalith.Tenants.Contracts.5.8.0-b7-validation.nupkg": "12b501566ba8c9f2b63b83e0c079ed7d2658b764a2d18190f0548623f6796016",
+    "Hexalith.Tenants.Server.5.8.0-b7-validation.nupkg": "ca443a50006d2f445c4a789fca96757e31c3425ab2e4e779fab1f91944b62e53",
+    "Hexalith.Tenants.Client.5.8.0-b7-validation.nupkg": "4d100ebefef6c52b24fdc2cae81b820ef0b3ce738194ece1efc2199a115fdd7e",
+    "Hexalith.Tenants.Testing.5.8.0-b7-validation.nupkg": "5a8af06bbe56cb8fc12b4180333f8bb3e120003fdeff42b6f15e228ecebd887e"
+  },
+  "coverage": {
+    "line_percent": 94.7,
+    "line_hits": 1233,
+    "line_total": 1302,
+    "required_branch_percent": 100,
+    "branch_hits": 150,
+    "branch_total": 150
+  },
+  "maintained_release_total": 6611,
+  "source_case_total": 4,
+  "limits": [
+    "Historical B6 gitlink guard remains exit1 for inherited4 pointer movements; B7 range guard passes.",
+    "Browser uses actual rendered fixtures plus shipped JS; effect/dispatch is covered through Fluxor/bUnit, not authenticated live circuit.",
+    "UI is outside maintained publishable-package line scopes; coverage gate configuration is unchanged.",
+    "No dedicated4-vCPU/8-GiB NFR10/performance or production qualification.",
+    "Five local package consumers validate SDK contracts; UI is not a published package and retains the configured FrontComposer source exception."
+  ],
+  "preservation_check_source": "from pathlib import Path\nimport hashlib,json,re,subprocess\nout=Path('/tmp/tenants-b7-20261014'); entry=json.loads(Path('_bmad-output/implementation-artifacts/b7-entry-state.json').read_text()); targets={195,206,235,264}\ndef records(text):return {int(m.group(1)):m.group(0) for m in re.finditer(r'^### DW-(\\d+):.*?(?=^### DW-|\\Z)',text,re.M|re.S)}\nold=records(subprocess.check_output(['git','show',entry['head']+':_bmad-output/implementation-artifacts/deferred-work.md'],text=True)); new=records(Path('_bmad-output/implementation-artifacts/deferred-work.md').read_text())\nassert old.keys()==new.keys() and len(new)==643\nchanged={k for k in old if old[k]!=new[k]};assert changed==targets,changed\nfor k in targets:\n for field in ['origin','location','source_spec','reason','legacy-detail','decision','priority','owner','dependencies','related']:\n  assert re.findall(r'^'+field+r':.*$',old[k],re.M)==re.findall(r'^'+field+r':.*$',new[k],re.M),(k,field)\n for field in ['verification','verification-date','next-action']:\n  before=re.findall(r'^'+field+r': (.*)$',old[k],re.M)\n  assert re.findall(r'^pre-b7-'+field+r': (.*)$',new[k],re.M)==before,(k,field)\n assert 'status: done 2026-10-14' in new[k] and 'disposition: done' in new[k]\nassert sum(bool(re.search(r'^status: done(?:\\s|$)', v, re.M)) for v in new.values())==316\nassert sum(bool(re.search(r'^status: open(?:\\s|$)', v, re.M)) for v in new.values())==327\nindex=Path('docs/maintenance-backlog.md').read_text();rows=re.findall(r'^\\| DW-.*$',index,re.M)\nassert len(rows)==291,len(rows)\nindexed={int(i) for r in rows for i in re.findall(r'DW-(\\d+)',r.split('|')[1])}\nopened={i for i,r in new.items() if re.search(r'^status: open(?:\\s|$)', r, re.M)}\nassert indexed==opened,(opened-indexed,indexed-opened)\nfor f,h in entry['protected_hashes'].items():\n assert hashlib.sha256(Path(f).read_bytes()).hexdigest()==h,f\noldready=subprocess.check_output(['git','show',entry['head']+':_bmad-output/implementation-artifacts/release-readiness.md'],text=True); ready=Path('_bmad-output/implementation-artifacts/release-readiness.md').read_text()\nfor b in range(1,7):\n match=re.search(rf'^## B{b} remediation evidence.*?(?=^## B[1-7] remediation evidence|\\Z)',oldready,re.M|re.S)\n assert match and match.group().rstrip() in ready, f'B{b} evidence'\nassert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()==entry['head'],'external HEAD moved: preserve and re-audit'\nassert subprocess.check_output(['git','submodule','status'],text=True)==entry['submodules'],'external pointers moved: preserve and re-audit'\nassert subprocess.check_output(['git','diff','--cached','--binary'],text=True)==entry['index'],'index changed'\nprint('PASS: exactly four B7 entries; 643 IDs,316 done/327 open,291 rows; history/decisions/B1\u2013B6/archive/sprint/protected hashes/pointers/HEAD/index preserved.')\n",
+  "preserved_seam_hashes": {
+    "src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationPrincipalResolver.cs": "7f9ab669e95f50cb7e99ed485537888c18ffef7a8c05a2b0699e0433534fb107",
+    "src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactViewportObservation.cs": "c49c047c3315c8dfdf03709f89d093174cea062f2b0596565d7f1a60b251a094",
+    "src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactViewportEffects.cs": "0930362d804df58063c83daf16f820877122b84bcd717252c995fb645cfe9893",
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs": "9a280de6e6b6b3b4f3a667dfb2d4c74c24bf99d5da631e21594050f96a9a4cdb",
+    "src/Hexalith.Tenants.Server/Aggregates/TenantAggregate.cs": "65a066ea4d073a80608b4a63858bf8c2b8696edf31d4bffd164fb7f6cd9ac12d",
+    "src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs": "847c0d2ed084e904cdce4640270129d1554320d7d1da4afd278616ded2dc06ff",
+    "src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs": "a84ba7bb8d420611d919db9ded04b3e59c504b5646f34cca76b16ce4aa4d780b",
+    "src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs": "2e16258eba18db999261fbc97c3563beefd7e3198453f049c1c89a42777936f5",
+    ".github/workflows/ci.yml": "b2a72a15be3a9f6da3c78a8dc4231c9ef66e71cd9396e85fb87251b9fcbc546a"
+  },
+  "final_working_tree": "1 .M N... 100644 100644 100644 0ab3bfd226f49cb6b2ba63a2339b19426c87994e 0ab3bfd226f49cb6b2ba63a2339b19426c87994e _bmad-output/implementation-artifacts/deferred-work.md\n1 .M N... 100644 100644 100644 7082e86c4d145f50b4db3c5357f993215aa2e63e 7082e86c4d145f50b4db3c5357f993215aa2e63e _bmad-output/implementation-artifacts/release-readiness.md\n1 .M N... 100644 100644 100644 ad67cccf1c1c9151190a0aef955457f36e6a6f28 ad67cccf1c1c9151190a0aef955457f36e6a6f28 docs/maintenance-backlog.md\n1 .M N... 100644 100644 100644 ce699a4962e0c4f9dd16a419587d218f7b947667 ce699a4962e0c4f9dd16a419587d218f7b947667 src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor\n1 .M N... 100644 100644 100644 7e3b0b26cbc8ab2dc9d4838ec07620ba2b676ab0 7e3b0b26cbc8ab2dc9d4838ec07620ba2b676ab0 src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor\n1 .M N... 100644 100644 100644 354528949f2598217cbdb1148ef0ca9926a11c63 354528949f2598217cbdb1148ef0ca9926a11c63 src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor\n1 .M N... 100644 100644 100644 6b2f172de7f37ce08f281757429193cbc992a593 6b2f172de7f37ce08f281757429193cbc992a593 src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor\n1 .M N... 100644 100644 100644 7741e13e26713e24f02a70e7e5a4fda433914b4a 7741e13e26713e24f02a70e7e5a4fda433914b4a src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor\n1 .M N... 100644 100644 100644 1e4e657b2760f22cc8ffdb767c4f99852d504612 1e4e657b2760f22cc8ffdb767c4f99852d504612 src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor\n1 .M N... 100644 100644 100644 9669c2fc6420c6c8eb177b51cae52a1770e4cca1 9669c2fc6420c6c8eb177b51cae52a1770e4cca1 src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor\n1 .M N... 100644 100644 100644 1716c9ca27be56c95faa470daf2e8e22f2708282 1716c9ca27be56c95faa470daf2e8e22f2708282 src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css\n1 .M N... 100644 100644 100644 36a9ccfa902edb9c66bb3eac14bf3b4442153fef 36a9ccfa902edb9c66bb3eac14bf3b4442153fef src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor\n1 .M N... 100644 100644 100644 99fa9618ff5f7d1a2e37a354779c84c55410cd43 99fa9618ff5f7d1a2e37a354779c84c55410cd43 src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx\n1 .M N... 100644 100644 100644 c921eddf92064458d71f973163e992f6fad66e7b c921eddf92064458d71f973163e992f6fad66e7b src/Hexalith.Tenants.UI/Resources/TenantsResources.resx\n1 .M N... 100644 100644 100644 ff39d82816c9f7bb50563fac7722c0d9e1f98e18 ff39d82816c9f7bb50563fac7722c0d9e1f98e18 src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs\n1 .M N... 100644 100644 100644 c1d907d73bf83e3fd8ef7388fce011cc0b8ef1f9 c1d907d73bf83e3fd8ef7388fce011cc0b8ef1f9 src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs\n1 .M N... 100755 100755 100755 5f5163290301a2ede82e172dbad4b87e77079079 5f5163290301a2ede82e172dbad4b87e77079079 tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh\n1 .M N... 100644 100644 100644 8b117532f62afda161ea546130e2a1e1842ebcfb 8b117532f62afda161ea546130e2a1e1842ebcfb tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs\n1 .M N... 100644 100644 100644 3f7e70847262722e058ba8fa2a0f0e3ba8f5bb41 3f7e70847262722e058ba8fa2a0f0e3ba8f5bb41 tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs\n1 .M N... 100644 100644 100644 8eb45e59f358d46d4f18b0b5bca19db7db78f994 8eb45e59f358d46d4f18b0b5bca19db7db78f994 tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs\n1 .M N... 100644 100644 100644 849ff11370e14c7674cef8456418cde65d7fb110 849ff11370e14c7674cef8456418cde65d7fb110 tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs\n1 .M N... 100644 100644 100644 f3699dd719bb74258d90a32ee5a71edda1fe8aa4 f3699dd719bb74258d90a32ee5a71edda1fe8aa4 tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs\n1 .M N... 100644 100644 100644 7bf49f0d0b3dcc6e4470a1a884eabf670f025b67 7bf49f0d0b3dcc6e4470a1a884eabf670f025b67 tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs\n1 .M N... 100644 100644 100644 4e9a395ceaeb648b8efa3ff7de673fc24f6a9255 4e9a395ceaeb648b8efa3ff7de673fc24f6a9255 tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs\n1 .M N... 100644 100644 100644 278d99414ab34193f9c617311a1c80b1365d100d 278d99414ab34193f9c617311a1c80b1365d100d tests/Hexalith.Tenants.UI.Tests/Components/TenantRetainedCommandFlowTests.cs\n1 .M N... 100644 100644 100644 75148d782f5fabe5754887a53d09873a4f0db7b9 75148d782f5fabe5754887a53d09873a4f0db7b9 tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs\n1 .M N... 100644 100644 100644 75dcaef707561e5919eaa68ade101ecccc4ea31e 75dcaef707561e5919eaa68ade101ecccc4ea31e tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs\n? _bmad-output/implementation-artifacts/b7-command-results.json\n? _bmad-output/implementation-artifacts/b7-entry-state.json\n? _bmad-output/implementation-artifacts/b7-validation-evidence.md\n? _bmad-output/implementation-artifacts/spec-b7-live-admission.md\n? src/Hexalith.Tenants.UI/State/TenantDetail/TenantMutationAuthorizationReflection.cs\n? tests/Hexalith.Tenants.UI.Tests/Browser/tenant-live-admission-browser-validation.html\n",
+  "final_index_diff": ""
+}

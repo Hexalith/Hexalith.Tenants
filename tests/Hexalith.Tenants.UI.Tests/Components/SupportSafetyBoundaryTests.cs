@@ -410,6 +410,9 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
     private IRenderedComponent<CreateTenantFlow> SubmitCreate()
     {
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(component => component.BaselineTenantAbsent, true));
         cut.InvokeAsync(() =>
         {
@@ -429,6 +432,9 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
             .Add(component => component.Name, "CurrentTenantCallerScope")
             .Add(component => component.Value, "test-caller")
             .AddChildContent<EditTenantMetadataFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
                 .Add(component => component.Detail, detail)
                 .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
                 .Add(component => component.Freshness, ReadModelFreshnessState.Current)

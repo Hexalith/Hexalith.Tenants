@@ -41,6 +41,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
 
         IRenderedComponent<CreateTenantFlow> returned = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.RestoreAuditReturn, true));
 
         returned.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
@@ -49,7 +52,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         returnState.Take().ShouldBeNull();
 
         returnState.Remember(snapshot, "tenant.alpha", "Alpha", null);
-        _ = Render<CreateTenantFlow>();
+        _ = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
         returnState.Take().ShouldBeNull();
     }
 
@@ -73,6 +79,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             .Add(p => p.Name, "AuditReadAvailable")
             .Add(p => p.Value, true)
             .AddChildContent<CreateTenantFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
                 .Add(p => p.BaselineTenantAbsent, true)
                 .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantListSnapshot?>(ListProof(null, null)))));
         IRenderedComponent<CreateTenantFlow> flow = wrapper.FindComponent<CreateTenantFlow>();
@@ -94,6 +103,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.IsCommandSurfaceAvailable, false));
 
         cut.Find("[data-testid='tenants-create-flow']");
@@ -112,7 +124,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
 
-        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
 
         cut.Find("#tenants-create-heading").TextContent.ShouldBe("Create tenant");
         cut.Find("[data-testid='tenants-create-flow']")
@@ -128,6 +143,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.ShowHeading, false));
 
         cut.FindAll("#tenants-create-heading").ShouldBeEmpty();
@@ -147,6 +165,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantListSnapshot?>(ListProof(null, null))));
 
@@ -172,6 +193,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true)
             .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantListSnapshot?>(ListProof(null, null))));
 
@@ -210,6 +234,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -242,6 +269,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             .Add(p => p.Name, "AuditReadDenied")
             .Add(p => p.Value, true)
             .AddChildContent<CreateTenantFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
                 .Add(p => p.BaselineTenantAbsent, true)
                 .Add(p => p.ProjectionEvidenceProvider, _ => Task.FromResult<TenantListSnapshot?>(ListProof(null, null)))));
         IRenderedComponent<CreateTenantFlow> cut = wrapper.FindComponent<CreateTenantFlow>();
@@ -272,6 +302,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(ListProof(new TenantSummary(tenantId, "Mixed Tenant", TenantStatus.Active), "projection-v2")))
             .Add(p => p.BaselineTenantAbsent, true));
 
@@ -317,6 +350,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             .Add(p => p.Name, "AuditReadAvailable")
             .Add(p => p.Value, true)
             .AddChildContent<CreateTenantFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
                 .Add(p => p.BaselineTenantAbsent, true)
                 .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(ListProof(new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v2")))));
         IRenderedComponent<CreateTenantFlow> cut = wrapper.FindComponent<CreateTenantFlow>();
@@ -361,6 +397,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             .Add(p => p.Name, "AuditReadDenied")
             .Add(p => p.Value, true)
             .AddChildContent<CreateTenantFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
                 .Add(p => p.BaselineTenantAbsent, true)
                 .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(ListProof(new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v2")))));
         IRenderedComponent<CreateTenantFlow> cut = wrapper.FindComponent<CreateTenantFlow>();
@@ -403,6 +442,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true)
             .Add(p => p.OnProjectionRefreshRequested, (Func<Task>)(async () =>
             {
@@ -466,6 +508,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         Services.AddSingleton(queryGateway);
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true)
             .Add(p => p.ProjectionEvidenceProvider, tenantId =>
             {
@@ -548,6 +593,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
         const string audit = "[data-testid='tenants-create-audit']";
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -589,6 +637,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
         cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
@@ -623,6 +674,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton(tracker);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
         cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
@@ -655,6 +709,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true)
             .Add(p => p.BaselineProjectionVersion, "projection-v1")
             .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(ListProof(new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v1"))));
@@ -683,6 +740,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true)
             .Add(p => p.BaselineProjectionVersion, "projection-v1")
             .Add(p => p.ProjectionEvidenceProvider, _ => throw new InvalidOperationException("raw projection failure")));
@@ -729,6 +789,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton(queryGateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineProjectionVersion, "projection-v1"));
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
         cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
@@ -750,6 +813,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -773,7 +839,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
-        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
 
         cut.Find("form").Submit();
 
@@ -795,7 +864,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
-        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
         cut.Find("[data-testid='tenants-create-tenant-id']").Change(tenantId);
         cut.Find("[data-testid='tenants-create-name']").Change(name);
         cut.Find("form").Submit();
@@ -816,6 +888,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true)
             .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(ListProof(new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v2"))));
 
@@ -843,6 +918,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -876,6 +954,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -900,6 +981,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -919,6 +1003,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.IsCommandSurfaceAvailable, false));
 
         cut.Find("[data-testid='tenants-create-lifecycle']").GetAttribute("tabindex").ShouldBe("-1");
@@ -931,7 +1018,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
-        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
 
         // Before any validation message there is no validation element, so nothing may point at it.
         cut.Find("[data-testid='tenants-create-name']").GetAttribute("aria-describedby").ShouldBeNull();
@@ -960,6 +1050,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -993,6 +1086,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true)
             .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(ListProof(new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v2"))));
 
@@ -1026,7 +1122,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         Services.AddSingleton(queryGateway);
 
-        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
         cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
@@ -1065,6 +1164,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton(queryGateway);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(ListProof(new TenantSummary(tenantId, "Alpha", TenantStatus.Active), "projection-v10"))));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -1098,6 +1200,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton(tracker);
 
         IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.BaselineTenantAbsent, true));
 
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
@@ -1125,7 +1230,10 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         Services.AddSingleton(tracker);
-        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters.Add(p => p.BaselineTenantAbsent, true));
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)).Add(p => p.BaselineTenantAbsent, true));
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
         cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
         cut.Find("form").Submit();

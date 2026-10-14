@@ -40,6 +40,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.Name, "AuditReadAvailable")
             .Add(p => p.Value, true)
             .AddChildContent<AddTenantMemberFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
                 .Add(p => p.Detail, Detail("tenant.alpha"))
                 .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
                 .Add(p => p.Freshness, ReadModelFreshnessState.Current)));
@@ -63,6 +66,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -96,6 +102,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         TenantDetail originalDetail = Detail("tenant.alpha");
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, originalDetail)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -126,6 +135,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
 
         string liveProjectionVersion = "v1";
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -180,6 +192,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
                 .Add(p => p.Name, "AuditReadAvailable")
                 .Add(p => p.Value, true)
                 .AddChildContent<AddTenantMemberFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
                     .Add(p => p.Detail, Detail("tenant.alpha"))
                     .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
                     .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -221,6 +236,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -260,6 +278,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -292,6 +313,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         List<bool> activity = [];
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -339,6 +363,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -367,6 +394,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -412,6 +442,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -437,6 +470,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -471,6 +507,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -499,6 +538,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -528,6 +570,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha") with { Status = tenantStatus })
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -555,6 +600,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -589,6 +637,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, surfaceKind)
             .Add(p => p.Freshness, freshness));
@@ -606,10 +657,12 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.IsAuthorized, false));
+            .Add(p => p.IsAuthorized, false)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.MissingPermission));
 
         cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-add-member-unavailable-reason']").TextContent
@@ -638,6 +691,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -700,6 +756,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -728,6 +787,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
         string liveProjectionVersion = "v1";
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -782,6 +844,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         RegisterServices(gateway);
         int acquisitions = 0;
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -841,6 +906,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         Services.AddTransient<ITenantCommandGateway>(_ => gatewayAvailable ? gateway : null!);
         int acquisitions = 0;
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -892,6 +960,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -931,6 +1002,9 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
@@ -1060,6 +1134,7 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
             ["Tenants.AddMember.Lifecycle.Title"] = "Add member command lifecycle",
             ["Tenants.AddMember.Validation.UserIdRequired"] = "User id is required.",
             ["Tenants.AddMember.Validation.RoleRequired"] = "Select TenantOwner, TenantContributor, or TenantReader before adding a member.",
+            ["Tenants.Mutation.Unavailable.AuthorityIndeterminate"] = "Current authority could not be verified. Refresh the tenant or sign in again before submitting.",
             ["Tenants.AddMember.Unavailable.Authorization"] = "You are not authorized to add members to this tenant.",
             ["Tenants.AddMember.Unavailable.Freshness"] = "Refresh current tenant detail before adding a member.",
             ["Tenants.AddMember.Unavailable.TenantLifecycle"] = "This tenant lifecycle state does not allow adding members.",

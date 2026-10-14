@@ -2371,7 +2371,7 @@
     <value>You are not authorized to remove members from this tenant.</value>
   </data>
   <data name="Tenants.RemoveMember.Unavailable.Narrow" xml:space="preserve">
-    <value>Member removal is unavailable on narrow layouts because the complete preview, risk context, and lifecycle must remain visible together. Widen the viewport or continue read-only.</value>
+    <value>Removal is read-only until the browser measures a safe tablet or desktop viewport.</value>
   </data>
   <data name="Tenants.RemoveMember.Unavailable.Freshness" xml:space="preserve">
     <value>Refresh current tenant detail before removing a member.</value>
@@ -4302,5 +4302,11 @@
   </data>
   <data name="Tenants.Commands.Failure.TimedOut" xml:space="preserve">
     <value>The command status timed out before the result could be verified.</value>
+  </data>
+  <data name="Tenants.Mutation.Unavailable.AuthorityIndeterminate" xml:space="preserve">
+    <value>Current authority could not be verified. Refresh the tenant or sign in again before submitting.</value>
+  </data>
+  <data name="Tenants.Members.UnavailableReason.AuthorityIndeterminate" xml:space="preserve">
+    <value>Current membership authority could not be verified. Refresh before changing access.</value>
   </data>
 </root>

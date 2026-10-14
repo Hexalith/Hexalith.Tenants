@@ -208,7 +208,20 @@
     public ProjectionLifecycleState Lifecycle { get; set; } = ProjectionLifecycleState.Unknown;
 
     [Parameter]
-    public bool IsAuthorized { get; set; } = true;
+    public bool IsAuthorized { get; set; }
+
+    /// <summary>Gets or sets the current live authority reflection.</summary>
+    [Parameter]
+    public TenantLifecycleAuthorizationReflectionState AuthorizationReflection { get; set; }
+        = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
+    /// <summary>Gets or sets the current authority and evidence revision.</summary>
+    [Parameter]
+    public long AuthorizationVersion { get; set; }
+
+    /// <summary>Gets or sets the fresh current-caller authority resolver used before dispatch and retry.</summary>
+    [Parameter]
+    public Func<CancellationToken, Task<TenantLifecycleAuthorizationReflectionState>>? AuthorizationReflectionProvider { get; set; }
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
@@ -248,6 +261,107 @@
 
     [Parameter]
     public Func<UpdateTenant, string?, DateTimeOffset?, Task<TenantAuditRow?>>? AuditEvidenceProvider { get; set; }
+
+
+    private long _admissionGeneration;
+    private bool _authorityResolutionInProgress;
+    private readonly Lock _authorityCancellationLock = new();
+    private CancellationTokenSource? _authorityCancellation;
+    private object? _admissionParameters;
+    private TenantLifecycleAuthorizationReflectionState? _submissionAuthority;
+
+    private string AuthorizationUnavailableReason
+        => Localizer[_submissionAuthority is TenantLifecycleAuthorizationReflectionState.MissingPermission
+            || AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.MissingPermission
+            || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+                ? "Tenants.EditMetadata.Unavailable.Authorization"
+                : "Tenants.Mutation.Unavailable.AuthorityIndeterminate"].Value;
+
+    private void ObserveAdmissionParameters()
+    {
+        object current = (Detail, CurrentCallerScope, IsAuthorized, AuthorizationReflection, AuthorizationVersion, SurfaceKind, Freshness, Lifecycle, ProjectionVersion, AuthorizationReflectionProvider);
+        if (!Equals(current, _admissionParameters))
+        {
+            _admissionParameters = current;
+            InvalidateAdmission();
+            _submissionAuthority = null;
+        }
+    }
+
+    private void InvalidateAdmission()
+    {
+        Interlocked.Increment(ref _admissionGeneration);
+        lock (_authorityCancellationLock)
+        {
+            _authorityCancellation?.Cancel();
+        }
+    }
+
+    private async Task<bool> ReauthorizeInitialAdmissionAsync(long generation)
+    {
+        _authorityResolutionInProgress = true;
+        try
+        {
+            return await ReauthorizeAdmissionAsync(generation).ConfigureAwait(false);
+        }
+        finally
+        {
+            _authorityResolutionInProgress = false;
+        }
+    }
+
+    private async Task<bool> ReauthorizeAdmissionAsync(long generation)
+    {
+        TenantLifecycleAuthorizationReflectionState authority = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        // Bound admission independently of provider cooperation; cancellation never cancels dispatched work.
+        using var source = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        lock (_authorityCancellationLock)
+        {
+            _authorityCancellation?.Cancel();
+            _authorityCancellation = source;
+        }
+        try
+        {
+            if (AuthorizationReflectionProvider is { } provider)
+            {
+                authority = await provider(source.Token).WaitAsync(source.Token).ConfigureAwait(false);
+                source.Token.ThrowIfCancellationRequested();
+            }
+        }
+        catch (Exception)
+        {
+            // Missing, cancelled or faulted current authority never permits a dispatch.
+            authority = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+        finally
+        {
+            lock (_authorityCancellationLock)
+            {
+                if (ReferenceEquals(_authorityCancellation, source))
+                {
+                    _authorityCancellation = null;
+                }
+            }
+        }
+
+        if (_disposed || generation != Volatile.Read(ref _admissionGeneration))
+        {
+            return false;
+        }
+        _submissionAuthority = authority;
+        return !_disposed && generation == _admissionGeneration && IsAuthorized
+            && AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+            && authority is TenantLifecycleAuthorizationReflectionState.Authorized;
+    }
+
+    private void RefuseAuthorityAdmission()
+        => SetSnapshot(_snapshot with
+        {
+            SafeMessage = EligibilityUnavailableReason ?? AuthorizationUnavailableReason,
+            SafeMessageKey = null,
+            FocusTarget = TenantCommandFocusTarget.Submit,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        });
 
     internal TenantUpdateMetadataCommandSnapshot Snapshot => _snapshot;
 
@@ -375,8 +489,10 @@
             : ConfirmedDescription!;
 
     private string? EligibilityUnavailableReason
-        => !IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
-            ? Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value
+        => !IsAuthorized || AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized
+            || _submissionAuthority is TenantLifecycleAuthorizationReflectionState.MissingPermission or TenantLifecycleAuthorizationReflectionState.Indeterminate
+            || SurfaceKind is TenantDetailSurfaceKind.Unauthorized
+            ? AuthorizationUnavailableReason
             // Decision D-F: strict lifecycle gate retained, evaluated after the surface and freshness
             // clause so a failed read reports why it failed. See SetTenantConfigurationFlow.
             : SurfaceKind is TenantDetailSurfaceKind.Stale
@@ -413,7 +529,7 @@
             || TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
 
     private bool IsSubmitDisabled
-        => (IsOwnedCommandInFlight && !CanRetryDelivery)
+        => _authorityResolutionInProgress || (IsOwnedCommandInFlight && !CanRetryDelivery)
         || !string.IsNullOrWhiteSpace(UnavailableReason);
 
     private bool CanRefresh
@@ -498,7 +614,7 @@
         {
             if (!IsAuthorized || SurfaceKind is TenantDetailSurfaceKind.Unauthorized)
             {
-                return Localizer["Tenants.EditMetadata.Unavailable.Authorization"].Value;
+                return AuthorizationUnavailableReason;
             }
 
             bool isStaleSurface = SurfaceKind is TenantDetailSurfaceKind.Stale
@@ -602,6 +718,7 @@
 
     protected override void OnParametersSet()
     {
+        ObserveAdmissionParameters();
         RestoreRetainedAttempt();
         if (_snapshot.State is TenantCommandLifecycleState.Idle)
         {
@@ -762,6 +879,7 @@
             return;
         }
         _attemptGeneration++;
+        InvalidateAdmission();
         _isOpen = false;
         _validationMessage = null;
         _focusOpenPending = true;
@@ -769,18 +887,45 @@
     }
 
     private void OnNameInput(string? value)
-        => _name = value;
+    {
+        InvalidateAdmission();
+        _name = value;
+    }
 
     private void OnDescriptionInput(string? value)
-        => _description = value;
+    {
+        InvalidateAdmission();
+        _description = value;
+    }
 
     private async Task SubmitAsync()
     {
         SynchronizeRetainedAttempt();
-        if (_disposed || _isSubmitting)
+        if (_disposed || _isSubmitting || _authorityResolutionInProgress)
         {
             return;
         }
+        TenantUpdateMetadataCommandSnapshot initialEvidence = _snapshot;
+        TenantRetainedCommandAttempt? initialAttempt = _retainedAttempt;
+        int initialAttemptGeneration = _attemptGeneration;
+        long admissionGeneration = _admissionGeneration;
+        if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(false))
+        {
+            if (!_disposed && admissionGeneration == Volatile.Read(ref _admissionGeneration)
+                && initialAttemptGeneration == _attemptGeneration && ReferenceEquals(initialAttempt, _retainedAttempt)
+                && TenantCommandAttemptTracker.HasSameEvidence(initialEvidence, _snapshot))
+            {
+                RefuseAuthorityAdmission();
+            }
+            return;
+        }
+        if (_disposed || initialAttemptGeneration != _attemptGeneration
+            || !ReferenceEquals(initialAttempt, _retainedAttempt)
+            || !TenantCommandAttemptTracker.HasSameEvidence(initialEvidence, _snapshot))
+        {
+            return;
+        }
+
         string? submittedNameDraft = _name;
         string? submittedDescriptionDraft = _description;
         _readOnlyDetached = false;
@@ -907,7 +1052,12 @@
         {
             return;
         }
-        string? eligibilityReason = EligibilityUnavailableReason;
+        bool authorityAdmitted = admitted && await ReauthorizeAdmissionAsync(admissionGeneration).ConfigureAwait(false);
+        if (_disposed || submitGeneration != _attemptGeneration)
+        {
+            return;
+        }
+        string? eligibilityReason = authorityAdmitted ? EligibilityUnavailableReason : AuthorizationUnavailableReason;
         if (admitted && (eligibilityReason is not null))
         {
             Attempts.Detach(_retainedAttempt, this);
@@ -1011,11 +1161,26 @@
     // deadlock.
     private async Task RetryDeliveryAsync()
     {
+        if (_disposed || _authorityResolutionInProgress)
+        {
+            return;
+        }
         TenantUpdateMetadataCommandSnapshot expected = _snapshot;
         TenantRetainedCommandAttempt? attempt = _retainedAttempt;
         int generation = _attemptGeneration;
+        long admissionGeneration = _admissionGeneration;
+        if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(false))
+        {
+            if (!_disposed && admissionGeneration == Volatile.Read(ref _admissionGeneration))
+            {
+                RefuseAuthorityAdmission();
+            }
+            return;
+        }
         ITenantCommandGateway? gateway = CommandGateway;
-        if (_disposed || _isSubmitting || expected.Intent is null || attempt is null || gateway is null
+        if (_disposed || generation != _attemptGeneration || !ReferenceEquals(attempt, _retainedAttempt)
+            || !TenantCommandAttemptTracker.HasSameEvidence(expected, _snapshot) || !CanRetryDelivery
+            || _isSubmitting || expected.Intent is null || attempt is null || gateway is null
             || !string.IsNullOrWhiteSpace(UnavailableReason)
             || !Attempts.TryStartDelivery(attempt, this))
         {
@@ -1274,6 +1439,7 @@
     public void Dispose()
     {
         _disposed = true;
+        InvalidateAdmission();
         TenantCommandAttemptTracker? attempts = Services.GetService<TenantAggregateCommandAdmissionGate>() is null ? null : Services.GetService<TenantCommandAttemptTracker>();
         if (attempts is not null)
         {

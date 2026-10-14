@@ -1,0 +1,24 @@
+{
+  "branch": "main",
+  "head": "7ad54431996f9f1f0d277005eb2a73b67b55fea6",
+  "status": "# branch.oid 7ad54431996f9f1f0d277005eb2a73b67b55fea6\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0\n",
+  "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Tenants.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Tenants.git (push)\n",
+  "history": "7ad54431996f9f1f0d277005eb2a73b67b55fea6 fix(audit): enhance tenant command gateway failure handling and audit identifier safety\na5de755d204f5adeda60f883834fe8bf0075f261 feat(tests): add integration and telemetry tests for tenant audit and error handling\na8c18a6e435280eb56b866cc4693683716e81ee4 feat(audit): implement tenant audit query payload and system audit reader\n57b881beebfbcdf0fe6d7bc4c23a0fc70903136d fix: close DW-315 and DW-441 by enhancing support-safe failure and audit identifier handling\nb185ae80de474bedc6c60af38bacc5550d4e8cd7 build: sync local changes via /pushall\n9d5d5cd1d389f5b79ac949901ea75e2e91dd311c feat(tenants): declare reference module and gateway readiness\n8216f9927700e39d67b2235ed83a4dbcef03d35a fix: update submodule reference for Hexalith.Builds\nb4329b7ccea960c4eb1ddfed4eb984f75169ae8b feat: enhance tenant command snapshots to retain fresh safe message keys\n",
+  "gitlinks": "160000 commit 3f194e17174994d308ec84af9ee2b5aa68674d0d\treferences/Hexalith.AI.Tools\n160000 commit 9b44fedd0017d42ee1b3e887730ab667046bda4d\treferences/Hexalith.Builds\n160000 commit b247ed116c6523f8c596ec0a933eff8973d11568\treferences/Hexalith.Commons\n160000 commit 21b34c01ec919769cfba9cfe0d47e50886b57ded\treferences/Hexalith.EventStore\n160000 commit c3174dc917b094f3736b098ac78a531f197dbe56\treferences/Hexalith.FrontComposer\n160000 commit 7e99305a621e1bdf7119b6e924348857e2b5a5a4\treferences/Hexalith.McpCli\n160000 commit 42b4dc4d58731d4e9ee777285ba1f65f26e4a0c0\treferences/Hexalith.Memories\n160000 commit 416878a74975b1023b3a00ab5d35aad4ce6365d9\treferences/Hexalith.Platform\n160000 commit 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375\treferences/Hexalith.PolymorphicSerializations\n",
+  "submodules": " 3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools (heads/main)\n 9b44fedd0017d42ee1b3e887730ab667046bda4d references/Hexalith.Builds (v4.31.2)\n b247ed116c6523f8c596ec0a933eff8973d11568 references/Hexalith.Commons (v2.30.1-17-gb247ed1)\n 21b34c01ec919769cfba9cfe0d47e50886b57ded references/Hexalith.EventStore (v3.120.0-80-g21b34c01)\n c3174dc917b094f3736b098ac78a531f197dbe56 references/Hexalith.FrontComposer (v4.6.0-25-gc3174dc9)\n 7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli (heads/main)\n 42b4dc4d58731d4e9ee777285ba1f65f26e4a0c0 references/Hexalith.Memories (v2.28.1-91-g42b4dc4d)\n 416878a74975b1023b3a00ab5d35aad4ce6365d9 references/Hexalith.Platform (heads/main)\n 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations (v1.19.4)\n",
+  "index": "",
+  "diff": "",
+  "protected_hashes": {
+    "_bmad-output/implementation-artifacts/sprint-status.yaml": "8c7dd8eab8027c0455c27decbfc6c08be8d472e8a2a276a74be8f1b5a9a93fc7",
+    "_bmad-output/implementation-artifacts/deferred-work-archive.md": "482f1e50042a119738b44f290a3bc621409da13f783b6ebd0f9167e8de047adb",
+    "_bmad-output/implementation-artifacts/b6-validation-evidence.md": "f035955aa57f41699055897bade4a5b5cdb4a0f59ca902c97aadc26b6656a93f",
+    "Directory.Packages.props": "c8351c554ea90792eae487eadd8d6a08faeb0719e62341a929d81f7f44fdcd08",
+    "Directory.Build.props": "d527484a6528bd36087a222951b7b8b3cdc46f1f886c6c7b38ae6be2f95750a0",
+    "Directory.Build.targets": "4eb7401f075bc7fa399ac0a971fb1852699b206e16b4225040e5d65ec1f51ad9",
+    "global.json": "25b36d45123efa1d03786506dadad7546069f8563cddd4b509849b5c3631e9f5",
+    ".editorconfig": "9b69e7ed76c4b3b66fa21a8c0705a72c5e2498563528fb235818d6ee7fec7651",
+    ".gitattributes": "f0878cf9ac6bd1feeb356da732d74523c242c8b3bdb6a1262788a72c50c3524a",
+    ".gitmodules": "372ae4525c40a32e202a3b2bb507bd13e191b3464838c9ee715349a7356a3a22"
+  },
+  "note": "Captured before B7 source edits. Empty index/diff and clean status distinguish inherited B1\u2013B6 and external dependency history from B7. No dependency or Git mutation is authorized."
+}

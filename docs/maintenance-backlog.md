@@ -14,20 +14,22 @@ Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependen
 
 **B6 update (2026-10-13):** DW-626/DW-628 are closed by verified audit storage/read separation over inherited B5 baseline `57b881beebfbcdf0fe6d7bc4c23a0fc70903136d`. Literal tenant `system` remains valid; guarded writes, immutable legacy compatibility, owner reads and ambiguous-reference refusal preserve evidence. Independent review, persisted regressions and maintained validation are recorded in [B6 evidence](../_bmad-output/implementation-artifacts/release-readiness.md#b6-remediation-evidence-2026-10-13). External workspace commit/dependency movement and the story-gitlink attribution blocker are explicitly recorded; no production replay/migration or agent Git mutation ran. B1–B5 evidence, unrelated rows, B7, decisions, archive and sprint remain preserved. Two closures remove two index rows and explain the updated counts.
 
+**B7 update (2026-10-14):** DW-195/DW-206/DW-235/DW-264 are closed over clean entry `7ad54431996f9f1f0d277005eb2a73b67b55fea6`. Current scoped BFF authority, measured removal viewport and submission/retry/stale-result guards pass parent/direct regressions and independent review. Maintained individual-project, browser, integration, package-consumer and unchanged coverage gates are recorded in [B7 evidence](../_bmad-output/implementation-artifacts/b7-validation-evidence.md). Only four ledger entries and four action rows close; historical findings, B1–B6 evidence, unrelated rows, archive, sprint, dependencies and decisions remain preserved. The inherited story-gitlink provenance blocker and release qualification holds remain.
+
 All 439 requested records were reconciled: 152 marked-open DW entries plus 287 previously unnumbered records, now DW-357–DW-643. Original findings and resolution history are retained, including lossless JSON `legacy-detail` for migrated records. Duplicate references share an index row; they remain separate ledger records.
 
 | Disposition | Records |
 | --- | ---: |
-| done | 108 |
-| actionable | 243 |
+| done | 112 |
+| actionable | 239 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 38 |
 
-**Remaining: 331 open records across 295 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 327 open records across 291 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
-**Highest priority:** live authority/viewport admission (DW-195/DW-206/DW-235/DW-264). Platform-owned publication/status repair and secret-scan coverage remain with EventStore (DW-499, DW-502, DW-517).
+**Next selected bundle:** EventStore command-recovery integrity (DW-499/DW-502), with its owning recovery/quarantine contracts. DW-517 remains a separate platform secret-scan qualification item; the remaining index retains its recorded priorities and decisions.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -56,8 +58,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-173 | P2 | Defect / actionable | unassigned | shared timeout policy implementation | Propagate replaceable page/circuit cancellation and implement the recorded finite resolver/subscription bound. |
 | DW-176 | P2 | Defect / actionable | unassigned | DW-173 | Wire replaceable cancellation and the shared finite bound into workspace authority resolution. |
 | DW-184 | P2 | Defect / actionable | unassigned | DW-173 | Apply the shared timeout/cancellation while keeping authority hidden on expiry. |
-| DW-195 | P2 | Defect / actionable | unassigned | shared viewport observation | Use the selected viewport observation gate and refuse unknown/narrow submissions. |
-| DW-206 | P2 | Defect / actionable | unassigned | role-aware BFF seam | Bind tenant-scoped contributor/global-administrator evidence and fail closed while authority is indeterminate. |
 | DW-215 | P2 | Defect / actionable | unassigned | none | Validate candidate tags with the same SemVer parser/range as semantic-release and test rejected numeric forms. |
 | DW-216 | P2 | Defect / actionable | unassigned | none | Validate normalized NuGet grammar before stable/prerelease classification and cover malformed suffixes. |
 | DW-217 | P2 | Defect / actionable | unassigned | release-lineage policy | Align recovery guidance with authentic-tag-only lineage and reviewed recovery. |
@@ -65,13 +65,11 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-225 | P2 | Defect / actionable | unassigned | DW-222 | Replace wall-clock qualification with exact command causation/sequence in coordination with DW-222. |
 | DW-227 | P2 | Defect / actionable | unassigned | shared modal/focus contract | Focus the native/Fluent interactive Cancel and launcher controls and assert browser keyboard behavior. |
 | DW-234 | P2 | Defect / actionable | unassigned | none | Convert shared failure/status results to whole-string EN/FR keys and preserve those keys in flows. |
-| DW-235 | P2 | Defect / actionable | unassigned | role-aware BFF reflection | Bind live tenant-scoped authority to every membership launcher and fail closed with specific reasons. |
 | DW-241 | P2 | Defect / actionable | unassigned | DW-194 focus contract | Restore to an existing launcher or stable member heading, containing stale-reference failures. |
 | DW-243, DW-262 | P2 | Defect / actionable | unassigned | none | Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard. |
 | DW-245, DW-265, DW-290 | P2 | Defect / actionable | unassigned | shared membership refresh coalescer | Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression. |
 | DW-247 | P2 | Defect / actionable | unassigned | configured membership budget | Apply the already-selected bounded retry/time transition to UnableToVerify with recovery. |
 | DW-251 | P2 | Defect / actionable | unassigned | none | Localize the remaining status/validation branches in the shared pass. |
-| DW-264 | P2 | Defect / actionable | unassigned | create authority reflection | Bind create availability to resolved authority while preserving the documented first-tenant freshness exception. |
 | DW-268 | P2 | Defect / actionable | unassigned | browser style evidence | Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width. |
 | DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
 | DW-285 | P2 | Defect / actionable | unassigned | none | Guard reentrant submission before any active snapshot mutation and test a held dispatch plus parameter change. |

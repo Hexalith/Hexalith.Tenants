@@ -216,6 +216,68 @@ for culture in en fr; do
 done
 cp -- "$script_dir/global-correction-browser-validation.html" "$validation_tmp/global-correction.html"
 
+# B7 uses actual localized removal markup plus the shipped FrontComposer measurement module.
+if ! TENANTS_LIVE_ADMISSION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -method '*RemoveTenantMemberFlowTests.LiveRemovalExportsLocalizedMeasuredViewportFixtures' \
+    >"$validation_tmp/live-admission-fixture-tests.log" 2>&1; then
+    echo "Live admission fixture export failed." >&2
+    cat "$validation_tmp/live-admission-fixture-tests.log" >&2
+    exit 1
+fi
+for culture in en fr; do
+    for state in unknown safe resized; do
+        if [[ ! -f "$validation_tmp/tenant-live-removal-${state}-${culture}.html" ]]; then
+            echo "Live admission fixture export is incomplete." >&2
+            exit 1
+        fi
+    done
+done
+cp -- "$script_dir/tenant-live-admission-browser-validation.html" "$validation_tmp/tenant-live-admission-browser-validation.html"
+cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Members/RemoveTenantMemberFlow.razor.rz.scp.css" "$validation_tmp/tenant-remove-member.css"
+# Resolve the asset actually selected by this UI build, in source or package mode.
+python3 - "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/staticwebassets.build.json" "$validation_tmp/fc-layout-breakpoints.js" "$validation_tmp/viewport-asset-provenance.json" "$build_configuration" <<'PY'
+from pathlib import Path
+import hashlib
+import json
+import sys
+manifest_path = Path(sys.argv[1])
+manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+assets = [asset for asset in manifest.get("Assets", [])
+          if asset.get("SourceId") == "Hexalith.FrontComposer.Shell"
+          and asset.get("AssetRole") == "Primary"
+          and str(asset.get("RelativePath", "")).startswith("js/fc-layout-breakpoints")]
+if len(assets) != 1:
+    raise SystemExit("The selected UI build must contain exactly one primary FrontComposer breakpoint asset.")
+asset = assets[0]
+identity = Path(asset["Identity"])
+if not identity.is_file():
+    raise SystemExit(f"The selected breakpoint asset is unavailable: {identity}")
+content = identity.read_bytes()
+Path(sys.argv[2]).write_bytes(content)
+provenance = {
+    "BuildConfiguration": sys.argv[4],
+    "Manifest": str(manifest_path),
+    "ManifestSha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+    "SourceId": asset["SourceId"],
+    "SourceType": asset.get("SourceType"),
+    "Identity": str(identity),
+    "RelativePath": asset.get("RelativePath"),
+    "Integrity": asset.get("Integrity"),
+    "Sha256": hashlib.sha256(content).hexdigest(),
+}
+Path(sys.argv[3]).write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
+print("Breakpoint asset provenance: " + json.dumps(provenance, separators=(",", ":")))
+PY
+python3 - "$validation_tmp/fc-layout-breakpoints.js" "$validation_tmp/fc-layout-breakpoints-stuck.js" <<'PY'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+callback = "dotnetRef.invokeMethodAsync('OnViewportTierChangedAsync', tier).catch(() => {});"
+if source.count(callback) != 1:
+    raise SystemExit("Could not isolate the shipped viewport change callback for mutation validation.")
+Path(sys.argv[2]).write_text(source.replace(callback, "// Mutation: suppress subsequent browser measurements."), encoding="utf-8")
+PY
+
 validation_port="$(python3 - <<'PY'
 import socket
 with socket.socket() as listener:
@@ -435,6 +497,31 @@ if ! grep -q 'data-validation-status="failed"' "$recovery_mutation_output" \
 fi
 printf '%s\n' "Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed."
 printf '%s\n' "Rendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed."
+
+for culture in en fr; do
+    live_output="$validation_tmp/live-admission-${culture}.html"
+    run_chromium "live admission ${culture}" "$live_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+        --run-all-compositor-stages-before-draw --window-size=1366,1000 --user-data-dir="$validation_tmp/profile-live-admission-${culture}" \
+        --virtual-time-budget=3000 --dump-dom \
+        "http://127.0.0.1:${validation_port}/tenant-live-admission-browser-validation.html?culture=${culture}"
+    if ! grep -q 'data-validation-status="passed"' "$live_output"; then
+        echo "Rendered live removal admission ${culture} failed:" >&2
+        grep -o '<output id="validation-report">[^<]*' "$live_output" >&2 || true
+        exit 1
+    fi
+done
+live_mutation_output="$validation_tmp/live-admission-stuck-measurement.html"
+run_chromium "live admission stuck measurement control" "$live_mutation_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+    --run-all-compositor-stages-before-draw --window-size=1366,1000 --user-data-dir="$validation_tmp/profile-live-admission-mutation" \
+    --virtual-time-budget=3000 --dump-dom \
+    "http://127.0.0.1:${validation_port}/tenant-live-admission-browser-validation.html?culture=en&mutation=true"
+if ! grep -q 'data-validation-status="failed"' "$live_mutation_output" \
+    || ! validation_report_contains "$live_mutation_output" 'Measured viewport did not emit tier 0'; then
+    echo "The stuck viewport measurement mutation was not rejected." >&2
+    grep -o '<output id="validation-report">[^<]*' "$live_mutation_output" >&2 || true
+    exit 1
+fi
+printf '%s\n' "Rendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected."
 
 run_chromium "browser version" "$validation_tmp/browser-version.txt" --version
 browser_version="$(head -n 1 "$validation_tmp/browser-version.txt")"

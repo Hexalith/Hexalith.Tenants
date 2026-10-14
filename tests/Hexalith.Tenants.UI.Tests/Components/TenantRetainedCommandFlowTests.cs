@@ -30,6 +30,13 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 /// <summary>Exercises held delivery and renderer replacement against the real shared circuit retention.</summary>
 public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
 {
+    public TenantRetainedCommandFlowTests()
+    {
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+        Services.AddSingleton(viewport);
+    }
+
     [Theory]
     [InlineData("create", false)]
     [InlineData("create", true)]
@@ -597,7 +604,10 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         TenantDetail currentDetail = privateDetail with { Name = "Current authorized name", Description = "Current authorized description" };
         IRenderedComponent<CascadingValue<string?>> wrapper = Render<CascadingValue<string?>>(p => p
             .Add(x => x.Name, "CurrentTenantCallerScope").Add(x => x.Value, currentCaller)
-            .AddChildContent<EditTenantMetadataFlow>(child => child.Add(x => x.Detail, currentDetail)
+            .AddChildContent<EditTenantMetadataFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)).Add(x => x.Detail, currentDetail)
                 .Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current)
                 .Add(x => x.Lifecycle, ProjectionLifecycleState.Current).Add(x => x.ProjectionVersion, "tenant-sequence:900")));
         IRenderedComponent<EditTenantMetadataFlow> cut = wrapper.FindComponent<EditTenantMetadataFlow>();
@@ -623,6 +633,9 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
             [new("owner", TenantRole.TenantOwner)], new Dictionary<string, string>(), DateTimeOffset.UtcNow);
         TenantDetail currentDetail = originalDetail with { Name = "Current authorized name", Description = "Current authorized description" };
         Action<ComponentParameterCollectionBuilder<EditTenantMetadataFlow>> originalParameters = child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(x => x.Detail, originalDetail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current)
             .Add(x => x.ProjectionVersion, "tenant-sequence:1");
@@ -635,6 +648,9 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         TenantUpdateMetadataCommandSnapshot original = cut.Instance.Snapshot;
         original.LastConfirmedCallerScope.ShouldBe("caller-a");
         wrapper.Render(p => p.Add(x => x.Value, (string?)null).AddChildContent<EditTenantMetadataFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(x => x.Detail, currentDetail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current)
             .Add(x => x.ProjectionVersion, "tenant-sequence:900")));
@@ -655,7 +671,9 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
         var baseline = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
         Services.GetRequiredService<ITenantQueryGateway>().GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>()).Returns(baseline.Task);
-        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>();
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(p => p.Add(x => x.IsAuthorized, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
         cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
         cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
         Task submission = cut.Find("form").SubmitAsync();
@@ -668,6 +686,484 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
         Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
     }
+
+    /// <summary>Changing only the current member invalidates a held role/removal admission.</summary>
+    [Theory]
+    [InlineData("change", false)]
+    [InlineData("change", true)]
+    [InlineData("remove", false)]
+    [InlineData("remove", true)]
+    public async Task ReviewAdmissionMemberReplacementAloneCancelsOlderAuthority(string kind, bool changedRole)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var answer = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observed = default;
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, authority: token => { observed = token; entered.TrySetResult(); return answer.Task; });
+        Submit(kind, cut, send: false);
+        Task submission = InvokeSubmissionAsync(cut, component);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        TenantMember member = (TenantMember)component.GetType().GetProperty("Member")!.GetValue(component)!;
+        TenantMember next = changedRole ? member with { Role = TenantRole.TenantOwner } : member with { UserId = "different-literal-member" };
+        await cut.InvokeAsync(() => ((IComponent)component).SetParametersAsync(ParameterView.FromDictionary(new Dictionary<string, object?> { ["Member"] = next })));
+        await submission.WaitAsync(TimeSpan.FromSeconds(2));
+        observed.CanBeCanceled.ShouldBeTrue();
+        observed.IsCancellationRequested.ShouldBeTrue();
+        answer.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        DispatchCount(gateway, kind).ShouldBe(0);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+    }
+
+    /// <summary>All command families cancel noncooperative authority on disposal or real parameter invalidation.</summary>
+    [Theory]
+    [MemberData(nameof(ReviewCancellationCases))]
+    public async Task ReviewAdmissionNonCompletingAuthorityIsCancelled(string kind, bool disposed)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var answer = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observed = default;
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, authority: token => { observed = token; entered.TrySetResult(); return answer.Task; });
+        Submit(kind, cut, send: false);
+        Task submission = InvokeSubmissionAsync(cut, component);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        if (disposed) ((IDisposable)component).Dispose();
+        else await InvalidateAdmissionAsync(cut, component, "tenant");
+        await submission.WaitAsync(TimeSpan.FromSeconds(2));
+        observed.CanBeCanceled.ShouldBeTrue();
+        observed.IsCancellationRequested.ShouldBeTrue();
+        DispatchCount(gateway, kind).ShouldBe(0);
+        answer.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        DispatchCount(gateway, kind).ShouldBe(0);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+    }
+
+    /// <summary>Provides disposal and parameter invalidation for each command family.</summary>
+    public static TheoryData<string, bool> ReviewCancellationCases
+    {
+        get
+        {
+            var cases = new TheoryData<string, bool>();
+            foreach (string kind in new[] { "create", "metadata", "add", "change", "remove" })
+            {
+                cases.Add(kind, true);
+                cases.Add(kind, false);
+            }
+            return cases;
+        }
+    }
+
+    /// <summary>Metadata cancel remains usable before dispatch while a provider never completes.</summary>
+    [Fact]
+    public async Task ReviewMetadataCancelCancelsHeldInitialAuthorityWithoutDispatch()
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var answer = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observed = default;
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow("metadata", authority: token => { observed = token; entered.TrySetResult(); return answer.Task; });
+        Submit("metadata", cut, send: false);
+        Task submission = InvokeSubmissionAsync(cut, component);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find("[data-testid='tenants-edit-metadata-cancel']").HasAttribute("disabled").ShouldBeFalse();
+        await cut.Find("[data-testid='tenants-edit-metadata-cancel']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await submission.WaitAsync(TimeSpan.FromSeconds(2));
+        observed.IsCancellationRequested.ShouldBeTrue();
+        cut.FindAll("[data-testid='tenants-edit-metadata-name']").ShouldBeEmpty();
+        answer.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        DispatchCount(gateway, "metadata").ShouldBe(0);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+    }
+
+    /// <summary>The real ten-second deadline bounds a never-completing initial or post-lease provider.</summary>
+    [Theory]
+    [InlineData("metadata", false)]
+    [InlineData("remove", true)]
+    public async Task ReviewAdmissionRealDeadlineRefusesNonCompletingProvider(string kind, bool postLease)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var never = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken observed = default;
+        int resolutions = 0;
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, authority: token =>
+        {
+            if (postLease && ++resolutions == 1) return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+            observed = token;
+            entered.TrySetResult();
+            return never.Task;
+        });
+        Submit(kind, cut, send: false);
+        Task submission = InvokeSubmissionAsync(cut, component);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        await submission.WaitAsync(TimeSpan.FromSeconds(13));
+        elapsed.Elapsed.ShouldBeGreaterThan(TimeSpan.FromSeconds(8));
+        observed.IsCancellationRequested.ShouldBeTrue();
+        DispatchCount(gateway, kind).ShouldBe(0);
+        Property<string>(Snapshot(component), "SafeMessage").ShouldNotBeNullOrWhiteSpace();
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    /// <summary>A held ambiguous retry cannot dispatch over newer authoritative tracking or terminal proof.</summary>
+    [Theory]
+    [MemberData(nameof(ReviewRetryEvidenceCases))]
+    public async Task ReviewAmbiguousRetryPreservesEvidenceArrivingDuringAuthority(string kind, bool terminal, bool formEntry)
+    {
+        bool hold = false;
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var answer = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Failed("Uncertain") with { MessageId = id, IsAmbiguousFailure = true }));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, authority: _ =>
+        {
+            if (!hold) return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+            entered.TrySetResult();
+            return answer.Task;
+        });
+        Submit(kind, cut);
+        object original = Snapshot(component);
+        DispatchCount(gateway, kind).ShouldBe(1);
+        hold = true;
+        Task retry = formEntry ? InvokeSubmissionAsync(cut, component) : cut.InvokeAsync(() => (Task)component.GetType()
+            .GetMethod("RetryDeliveryAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(component, null)!);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantRetainedCommandAttempt attempt = (TenantRetainedCommandAttempt)component.GetType().GetField("_retainedAttempt", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component)!;
+        object newer = original.GetType().GetMethod("Accepted")!.Invoke(original, [TenantCommandSubmissionResult.Accepted(Property<string>(original, "MessageId")!, "arrived-tracking")])!;
+        if (terminal)
+        {
+            newer = ApplyStatus(newer, new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
+            TenantDetail detail = new("tenant.alpha", kind is "metadata" ? "Renamed" : "Alpha", "Original", TenantStatus.Active,
+                kind is "remove" ? [new TenantMember("owner", TenantRole.TenantOwner)]
+                    : [new TenantMember("owner", TenantRole.TenantOwner), new TenantMember(kind is "add" ? "new-reader" : "reader", kind is "add" ? TenantRole.TenantReader : TenantRole.TenantContributor)],
+                new Dictionary<string, string>(), DateTimeOffset.UtcNow);
+            TenantDetailSnapshot proof = TenantCommandProofFixtures.Proof(detail, "tenant-sequence:2")!;
+            newer = kind switch
+            {
+                "metadata" => ((TenantUpdateMetadataCommandSnapshot)newer).ConfirmProjection(proof),
+                "add" => ((TenantAddMemberCommandSnapshot)newer).ConfirmProjection(proof),
+                "change" => ((TenantChangeRoleCommandSnapshot)newer).ConfirmProjection(proof),
+                _ => ((TenantRemoveMemberCommandSnapshot)newer).ConfirmProjection(proof),
+            };
+            Property<TenantCommandLifecycleState>(newer, "State").ShouldBe(TenantCommandLifecycleState.Confirmed);
+        }
+        await cut.InvokeAsync(() => tracker.TryUpdate(attempt, original, newer).ShouldBeTrue());
+        await WaitForAsync(() => ReferenceEquals(Snapshot(component), newer));
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantAggregateCommandLease? foreign = null;
+        object foreignOwner = new();
+        if (terminal) gate.TryAcquireLease(TenantCommandAggregateLock.ForTenant("tenant.alpha"), foreignOwner, out foreign).ShouldBeTrue();
+        answer.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await retry.WaitAsync(TimeSpan.FromSeconds(5));
+        DispatchCount(gateway, kind).ShouldBe(1);
+        Snapshot(component).ShouldBeSameAs(newer);
+        Property<string>(Snapshot(component), "MessageId").ShouldBe(Property<string>(original, "MessageId"));
+        Property<object>(Snapshot(component), "Intent").ShouldBe(Property<object>(original, "Intent"));
+        Property<string>(Snapshot(component), "CorrelationId").ShouldBe("arrived-tracking");
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBe(!terminal);
+        if (terminal) foreign!.TryAbandonBeforeDispatch(foreignOwner).ShouldBeTrue();
+    }
+
+    /// <summary>Covers both form and lifecycle retry entry with tracking and terminal evidence.</summary>
+    public static TheoryData<string, bool, bool> ReviewRetryEvidenceCases
+    {
+        get
+        {
+            var cases = new TheoryData<string, bool, bool>();
+            foreach (string kind in new[] { "metadata", "add", "change", "remove" })
+            {
+                cases.Add(kind, false, false);
+                cases.Add(kind, false, true);
+                cases.Add(kind, true, false);
+                cases.Add(kind, true, true);
+            }
+            return cases;
+        }
+    }
+
+    /// <summary>Omitting authority inputs never authorizes a standalone command renderer or direct submit.</summary>
+    [Theory]
+    [InlineData("create")]
+    [InlineData("metadata")]
+    [InlineData("add")]
+    [InlineData("change")]
+    [InlineData("remove")]
+    public async Task LiveAdmissionDefaultsAreFailClosedForRenderedAndDirectCommands(string kind)
+    {
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        TenantDetail detail = new("tenant.alpha", "Alpha", "Original", TenantStatus.Active,
+            [new TenantMember("owner", TenantRole.TenantOwner), new TenantMember("reader", TenantRole.TenantReader)],
+            new Dictionary<string, string>(), DateTimeOffset.UtcNow);
+        IRenderedComponent<IComponent> cut = kind switch
+        {
+            "create" => Render<CreateTenantFlow>(),
+            "metadata" => Render<EditTenantMetadataFlow>(p => p.Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current)),
+            "add" => Render<AddTenantMemberFlow>(p => p.Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current)),
+            "change" => Render<ChangeTenantMemberRoleFlow>(p => p.Add(x => x.Detail, detail).Add(x => x.Member, detail.Members[1]).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current)),
+            _ => Render<RemoveTenantMemberFlow>(p => p.Add(x => x.Detail, detail).Add(x => x.Member, detail.Members[1]).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.AuditProofCapabilityAvailable, true).Add(x => x.TargetPlatformStandingResolved, true)),
+        };
+        object component = cut.Instance;
+        component.GetType().GetProperty("IsAuthorized")!.GetValue(component).ShouldBe(false);
+        component.GetType().GetProperty("AuthorizationReflection")!.GetValue(component).ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        await InvokeSubmissionAsync(cut, component);
+        DispatchCount(gateway, kind).ShouldBe(0);
+        cut.Markup.ShouldContain("Current authority could not be verified");
+    }
+
+    /// <summary>Every command family fails closed on fresh denied or indeterminate admission.</summary>
+    [Theory]
+    [MemberData(nameof(AdmissionRefusals))]
+    public async Task LiveAdmissionRefusesFreshAuthorityBeforeDispatch(string kind, TenantLifecycleAuthorizationReflectionState denied)
+    {
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, authority: _ => Task.FromResult(denied));
+        Submit(kind, cut, send: false);
+        await InvokeSubmissionAsync(cut, component);
+        DispatchCount(gateway, kind).ShouldBe(0);
+        Property<string>(Snapshot(component), "SafeMessage").ShouldNotBeNullOrWhiteSpace();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    /// <summary>Provides all command families and both unavailable authority outcomes.</summary>
+    public static TheoryData<string, TenantLifecycleAuthorizationReflectionState> AdmissionRefusals
+    {
+        get
+        {
+            var rows = new TheoryData<string, TenantLifecycleAuthorizationReflectionState>();
+            foreach (string kind in new[] { "create", "metadata", "add", "change", "remove" })
+            {
+                rows.Add(kind, TenantLifecycleAuthorizationReflectionState.MissingPermission);
+                rows.Add(kind, TenantLifecycleAuthorizationReflectionState.Indeterminate);
+            }
+            return rows;
+        }
+    }
+
+    /// <summary>Late authority cannot admit an intent invalidated by caller, tenant, or live authority changes.</summary>
+    [Theory]
+    [MemberData(nameof(AdmissionTransitions))]
+    public async Task LiveAdmissionRejectsSupersededAuthorityAfterAwait(string kind, string transition)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var result = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, authority: _ => { entered.TrySetResult(); return result.Task; });
+        Submit(kind, cut, send: false);
+        Task submission = InvokeSubmissionAsync(cut, component);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await InvalidateAdmissionAsync(cut, component, transition);
+        result.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        DispatchCount(gateway, kind).ShouldBe(0);
+    }
+
+    /// <summary>Provides caller, literal tenant, and authority invalidations for every command family.</summary>
+    public static TheoryData<string, string> AdmissionTransitions
+    {
+        get
+        {
+            var rows = new TheoryData<string, string>();
+            foreach (string kind in new[] { "create", "metadata", "add", "change", "remove" })
+            foreach (string transition in new[] { "caller", "tenant", "authority" })
+            {
+                rows.Add(kind, transition);
+            }
+            return rows;
+        }
+    }
+
+    /// <summary>Admission rechecks authority after the parent grants the aggregate activity lease.</summary>
+    [Theory]
+    [InlineData("metadata")]
+    [InlineData("add")]
+    [InlineData("change")]
+    [InlineData("remove")]
+    public async Task LiveAdmissionRejectsRevocationWhileAwaitingParentLease(string kind)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lease = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        TenantLifecycleAuthorizationReflectionState live = TenantLifecycleAuthorizationReflectionState.Authorized;
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind,
+            lease: active => { if (!active) return Task.FromResult(true); entered.TrySetResult(); return lease.Task; },
+            authority: _ => Task.FromResult(live));
+        Submit(kind, cut, send: false);
+        Task submission = InvokeSubmissionAsync(cut, component);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        live = TenantLifecycleAuthorizationReflectionState.MissingPermission;
+        lease.SetResult(true);
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        DispatchCount(gateway, kind).ShouldBe(0);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    /// <summary>Ambiguous delivery retains the exact attempt while fresh authority refuses redelivery.</summary>
+    [Theory]
+    [MemberData(nameof(AdmissionRefusals))]
+    public async Task LiveAdmissionReauthorizesAmbiguousDeliveryRetry(string kind, TenantLifecycleAuthorizationReflectionState denied)
+    {
+        TenantLifecycleAuthorizationReflectionState live = TenantLifecycleAuthorizationReflectionState.Authorized;
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Failed("Uncertain") with { MessageId = id, IsAmbiguousFailure = true }));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, authority: _ => Task.FromResult(live));
+        Submit(kind, cut);
+        await WaitForAsync(() => DispatchCount(gateway, kind) == 1);
+        object original = Snapshot(component);
+        live = denied;
+        await InvokeSubmissionAsync(cut, component);
+        DispatchCount(gateway, kind).ShouldBe(1);
+        Property<string>(Snapshot(component), "MessageId").ShouldBe(Property<string>(original, "MessageId"));
+        Property<object>(Snapshot(component), "Intent").ShouldBe(Property<object>(original, "Intent"));
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
+    /// <summary>Removal cannot trust a seed, unknown measurement, unavailable observer, or phone viewport.</summary>
+    [Theory]
+    [InlineData("unavailable")]
+    [InlineData("unknown")]
+    [InlineData("seeded-safe")]
+    [InlineData("phone")]
+    [InlineData("measured-unknown")]
+    public async Task LiveRemovalRequiresAnActualSafeMeasurementForDirectSubmission(string viewportState)
+    {
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        TenantHighImpactViewportObservation? viewport = viewportState is "unavailable" ? null
+            : new TenantHighImpactViewportObservation(viewportState is "seeded-safe" ? TenantHighImpactViewportState.Safe : TenantHighImpactViewportState.Unknown);
+        if (viewportState is "phone") viewport!.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+        if (viewportState is "measured-unknown")
+        {
+            viewport!.Observe((Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier)255);
+            viewport.HasMeasurement.ShouldBeTrue();
+            viewport.State.ShouldBe(TenantHighImpactViewportState.Unknown);
+        }
+        Services.AddSingleton<TenantHighImpactViewportObservation>(_ => viewport!);
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow("remove");
+        await InvokeSubmissionAsync(cut, component);
+        DispatchCount(gateway, "remove").ShouldBe(0);
+        cut.Find("[data-testid='tenants-remove-member-unavailable-reason']").TextContent.ShouldContain("browser measures");
+    }
+
+    /// <summary>A measured tablet or desktop unlocks an initially unknown authorized removal preview.</summary>
+    [Theory]
+    [InlineData(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Tablet)]
+    [InlineData(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop)]
+    public async Task LiveRemovalUnknownToMeasuredSafeDispatchesWithExistingAttempt(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier tier)
+    {
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "original-correlation")));
+        var viewport = new TenantHighImpactViewportObservation();
+        Services.AddSingleton(viewport);
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow("remove");
+        DispatchCount(gateway, "remove").ShouldBe(0);
+        await cut.InvokeAsync(() => viewport.Observe(tier));
+        cut.WaitForElement("[data-testid='tenants-remove-member-confirmation']");
+        Submit("remove", cut);
+        await WaitForAsync(() => DispatchCount(gateway, "remove") == 1);
+        Property<string>(Snapshot(component), "MessageId").ShouldNotBeNullOrWhiteSpace();
+        Property<string>(Snapshot(component), "CorrelationId").ShouldBe("original-correlation");
+    }
+
+    /// <summary>Resizing during fresh authority or parent lease invalidates the pending removal.</summary>
+    [Theory]
+    [InlineData("before", false)]
+    [InlineData("before", true)]
+    [InlineData("authority", false)]
+    [InlineData("authority", true)]
+    [InlineData("lease", false)]
+    [InlineData("lease", true)]
+    public async Task LiveRemovalResizeRefusesDispatchAndPreservesReadOnlyEvidence(string phase, bool unknown)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var authority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lease = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+        Services.AddSingleton(viewport);
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow("remove",
+            lease: active => { if (!active || phase is not "lease") return Task.FromResult(true); entered.TrySetResult(); return lease.Task; },
+            authority: _ => { if (phase is not "authority") return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized); entered.TrySetResult(); return authority.Task; });
+        Submit("remove", cut, send: false);
+        Task? submission = phase is "before" ? null : InvokeSubmissionAsync(cut, component);
+        if (submission is not null) await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await cut.InvokeAsync(() => viewport.Observe(unknown ? (Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier)255 : Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone));
+        authority.TrySetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        lease.TrySetResult(true);
+        await (submission ?? InvokeSubmissionAsync(cut, component)).WaitAsync(TimeSpan.FromSeconds(5));
+        DispatchCount(gateway, "remove").ShouldBe(0);
+        cut.Find("[data-testid='tenants-remove-member-lifecycle']");
+        cut.Find("[data-testid='tenants-remove-member-audit']");
+    }
+
+    /// <summary>Disposal during the fresh post-lease lookup cannot dispatch an orphaned intent.</summary>
+    [Theory]
+    [InlineData("create")]
+    [InlineData("metadata")]
+    [InlineData("add")]
+    [InlineData("change")]
+    [InlineData("remove")]
+    public async Task LiveAdmissionDisposalDuringPostLeaseAuthorityNeverDispatches(string kind)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var authority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int reads = 0;
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, authority: _ =>
+        {
+            if (++reads == 1) return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+            entered.TrySetResult();
+            return authority.Task;
+        });
+        Submit(kind, cut, send: false);
+        Task submission = InvokeSubmissionAsync(cut, component);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        ((IDisposable)component).Dispose();
+        authority.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        DispatchCount(gateway, kind).ShouldBe(0);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    /// <summary>A freshly refused create after baseline capture releases only its undispatched admission.</summary>
+    [Theory]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.MissingPermission)]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.Indeterminate)]
+    public async Task LiveCreateRevocationAfterBaselineAbandonsUnsentOwnership(TenantLifecycleAuthorizationReflectionState denied)
+    {
+        int reads = 0;
+        ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "unused")));
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow("create", authority: _ => Task.FromResult(
+            ++reads == 1 ? TenantLifecycleAuthorizationReflectionState.Authorized : denied));
+        Submit("create", cut, send: false);
+        await InvokeSubmissionAsync(cut, component);
+        reads.ShouldBe(2);
+        DispatchCount(gateway, "create").ShouldBe(0);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    private static int DispatchCount(ITenantCommandGateway gateway, string kind)
+        => gateway.ReceivedCalls().Count(call => call.GetMethodInfo().Name == DispatchName(kind));
+
+    private static Task InvokeSubmissionAsync(IRenderedComponent<IComponent> cut, object component)
+        => cut.InvokeAsync(() => (Task)component.GetType().GetMethod("SubmitAsync", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(component, null)!);
+
+    private static Task InvalidateAdmissionAsync(IRenderedComponent<IComponent> cut, object component, string transition)
+        => cut.InvokeAsync(() =>
+        {
+            if (transition is "caller") component.GetType().GetProperty("CurrentCallerScope")!.SetValue(component, "caller-next");
+            var values = new Dictionary<string, object?>();
+            if (transition is "authority") values["AuthorizationReflection"] = TenantLifecycleAuthorizationReflectionState.MissingPermission;
+            if (transition is "tenant")
+            {
+                if (component is CreateTenantFlow) cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.next");
+                else values["Detail"] = ((TenantDetail)component.GetType().GetProperty("Detail")!.GetValue(component)!) with { TenantId = "tenant.next" };
+            }
+            return ((IComponent)component).SetParametersAsync(ParameterView.FromDictionary(values));
+        });
 
     private ITenantCommandGateway RegisterGateway(Func<object, string, Task<TenantCommandSubmissionResult>> submit)
     {
@@ -684,27 +1180,43 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         return gateway;
     }
 
-    private (IRenderedComponent<IComponent> Cut, object Component) RenderFlow(string kind, string baseline = "tenant-sequence:1", Func<bool, Task<bool>>? lease = null, EventCallback<bool> activity = default)
+    private (IRenderedComponent<IComponent> Cut, object Component) RenderFlow(string kind, string baseline = "tenant-sequence:1", Func<bool, Task<bool>>? lease = null, EventCallback<bool> activity = default, Func<CancellationToken, Task<TenantLifecycleAuthorizationReflectionState>>? authority = null)
     {
+        authority ??= _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
         TenantDetail detail = new("tenant.alpha", "Alpha", "Original", TenantStatus.Active,
             [new TenantMember("owner", TenantRole.TenantOwner), new TenantMember("reader", TenantRole.TenantReader)],
             new Dictionary<string, string>(), DateTimeOffset.UtcNow);
         switch (kind)
         {
             case "create":
-                IRenderedComponent<CreateTenantFlow> create = Render<CreateTenantFlow>(p => p.Add(x => x.BaselineTenantAbsent, true).Add(x => x.BaselineProjectionVersion, baseline));
+                IRenderedComponent<CreateTenantFlow> create = Render<CreateTenantFlow>(p => p
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, authority).Add(x => x.BaselineTenantAbsent, true).Add(x => x.BaselineProjectionVersion, baseline));
                 return (create, create.Instance);
             case "add":
-                IRenderedComponent<AddTenantMemberFlow> add = Render<AddTenantMemberFlow>(p => p.Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.ProjectionVersion, baseline).Add(x => x.CommandActivityLease, lease).Add(x => x.OnCommandActivityChanged, activity));
+                IRenderedComponent<AddTenantMemberFlow> add = Render<AddTenantMemberFlow>(p => p
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, authority).Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.ProjectionVersion, baseline).Add(x => x.CommandActivityLease, lease).Add(x => x.OnCommandActivityChanged, activity));
                 return (add, add.Instance);
             case "change":
-                IRenderedComponent<ChangeTenantMemberRoleFlow> change = Render<ChangeTenantMemberRoleFlow>(p => p.Add(x => x.Detail, detail).Add(x => x.Member, detail.Members[1]).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.ProjectionVersion, baseline).Add(x => x.CommandActivityLease, lease).Add(x => x.OnCommandActivityChanged, activity));
+                IRenderedComponent<ChangeTenantMemberRoleFlow> change = Render<ChangeTenantMemberRoleFlow>(p => p
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, authority).Add(x => x.Detail, detail).Add(x => x.Member, detail.Members[1]).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.ProjectionVersion, baseline).Add(x => x.CommandActivityLease, lease).Add(x => x.OnCommandActivityChanged, activity));
                 return (change, change.Instance);
             case "remove":
-                IRenderedComponent<RemoveTenantMemberFlow> remove = Render<RemoveTenantMemberFlow>(p => p.Add(x => x.Detail, detail).Add(x => x.Member, detail.Members[1]).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.ProjectionVersion, baseline).Add(x => x.AuditProofCapabilityAvailable, true).Add(x => x.TargetPlatformStandingResolved, true).Add(x => x.CommandActivityLease, lease).Add(x => x.OnCommandActivityChanged, activity));
+                IRenderedComponent<RemoveTenantMemberFlow> remove = Render<RemoveTenantMemberFlow>(p => p
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, authority).Add(x => x.Detail, detail).Add(x => x.Member, detail.Members[1]).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.ProjectionVersion, baseline).Add(x => x.AuditProofCapabilityAvailable, true).Add(x => x.TargetPlatformStandingResolved, true).Add(x => x.CommandActivityLease, lease).Add(x => x.OnCommandActivityChanged, activity));
                 return (remove, remove.Instance);
             default:
-                IRenderedComponent<EditTenantMetadataFlow> metadata = Render<EditTenantMetadataFlow>(p => p.Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current).Add(x => x.ProjectionVersion, baseline).Add(x => x.ProjectionEvidenceProvider, _ => Task.FromResult(TenantCommandProofFixtures.Proof(detail, baseline))).Add(x => x.CommandActivityLease, lease).Add(x => x.OnCommandActivityChanged, activity));
+                IRenderedComponent<EditTenantMetadataFlow> metadata = Render<EditTenantMetadataFlow>(p => p
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, authority).Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current).Add(x => x.ProjectionVersion, baseline).Add(x => x.ProjectionEvidenceProvider, _ => Task.FromResult(TenantCommandProofFixtures.Proof(detail, baseline))).Add(x => x.CommandActivityLease, lease).Add(x => x.OnCommandActivityChanged, activity));
                 return (metadata, metadata.Instance);
         }
     }

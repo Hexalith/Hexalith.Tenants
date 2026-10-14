@@ -203,6 +203,10 @@
                                      Expanded="true">
                     <EditTenantMetadataFlow @key="TenantId"
                                             Detail="@Detail"
+                                            IsAuthorized="@(MutationAuthorization.Metadata is TenantLifecycleAuthorizationReflectionState.Authorized)"
+                                            AuthorizationReflection="@MutationAuthorization.Metadata"
+                                            AuthorizationVersion="@_mutationAuthorizationGeneration"
+                                            AuthorizationReflectionProvider="@ReauthorizeMetadataAsync"
                                             SurfaceKind="@_snapshot.Kind"
                                             Freshness="@_snapshot.Freshness"
                                             Lifecycle="@_snapshot.Lifecycle"
@@ -253,6 +257,12 @@
                                             Lifecycle="@_snapshot.Lifecycle"
                                             ProjectionVersion="@_snapshot.ProjectionVersion"
                                             ProjectionVersionProvider="@(() => _snapshot.ProjectionVersion)"
+                                            IsAddMemberAuthorized="@(MutationAuthorization.Membership is TenantLifecycleAuthorizationReflectionState.Authorized)"
+                                            IsChangeRoleAuthorized="@(MutationAuthorization.Membership is TenantLifecycleAuthorizationReflectionState.Authorized)"
+                                            IsRemoveMemberAuthorized="@(MutationAuthorization.Membership is TenantLifecycleAuthorizationReflectionState.Authorized)"
+                                            AuthorizationReflection="@MutationAuthorization.Membership"
+                                            AuthorizationVersion="@_mutationAuthorizationGeneration"
+                                            AuthorizationReflectionProvider="@ReauthorizeMembershipAsync"
                                             Members="@_tenantUsersSnapshot"
                                             GlobalAdministrators="@_globalAdministratorsSnapshot"
                                             AuditProofCapabilityAvailable="@_auditProofCapabilityAvailable"
@@ -362,6 +372,16 @@
     private CancellationTokenSource? _globalAdministratorsCancellation;
     private CancellationTokenSource? _auditCapabilityCancellation;
     private AuthenticationStateProvider? _authenticationStateProvider;
+    private CancellationTokenSource? _mutationAuthorizationCancellation;
+    private long _mutationAuthorizationGeneration;
+    private TenantDetailSnapshot? _mutationAuthorizationRequest;
+    private TenantDetailSnapshot? _mutationAuthorizationResolved;
+    private TenantMutationAuthorizationReflection _mutationAuthorization = TenantMutationAuthorizationReflection.Indeterminate;
+
+    private TenantMutationAuthorizationReflection MutationAuthorization
+        => ReferenceEquals(_mutationAuthorizationResolved, _snapshot) && IsCurrentCallerScope(_snapshot.CallerScope)
+            ? _mutationAuthorization : TenantMutationAuthorizationReflection.Indeterminate;
+
     private CancellationTokenSource? _lifecycleAuthorizationCancellation;
     private long _lifecycleAuthorizationGeneration;
     private TenantLifecycleAuthorizationReflectionState _lifecycleAuthorizationReflection
@@ -1243,6 +1263,7 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        StartMutationAuthorizationResolution();
         if (_pendingAuditFocus is { } focus)
         {
             _pendingAuditFocus = null;
@@ -2788,6 +2809,229 @@
             : null;
     }
 
+    private void StartMutationAuthorizationResolution()
+    {
+        TenantDetailSnapshot snapshot = _snapshot;
+        if (snapshot.Detail is null || !IsCurrentCallerScope(snapshot.CallerScope)
+            || ReferenceEquals(_mutationAuthorizationRequest, snapshot))
+        {
+            return;
+        }
+        _mutationAuthorizationRequest = snapshot;
+        _mutationAuthorizationResolved = null;
+        _mutationAuthorization = TenantMutationAuthorizationReflection.Indeterminate;
+        long generation = Interlocked.Increment(ref _mutationAuthorizationGeneration);
+        var source = new CancellationTokenSource();
+        lock (_cancellationLock)
+        {
+            RetireCancellationCore(_mutationAuthorizationCancellation);
+            _mutationAuthorizationCancellation = source;
+        }
+        _ = ObserveLifecycleAuthorizationCallbackAsync(ResolveMutationAuthorizationAsync(snapshot, generation, source));
+    }
+
+    private async Task ResolveMutationAuthorizationAsync(
+        TenantDetailSnapshot snapshot, long generation, CancellationTokenSource source)
+    {
+        TenantMutationAuthorizationReflection reflection = TenantMutationAuthorizationReflection.Indeterminate;
+        try
+        {
+            reflection = await ReauthorizeMutationAsync(source.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (source.IsCancellationRequested)
+        {
+            return;
+        }
+        finally
+        {
+            lock (_cancellationLock)
+            {
+                if (ReferenceEquals(_mutationAuthorizationCancellation, source))
+                {
+                    _mutationAuthorizationCancellation = null;
+                }
+            }
+            source.Dispose();
+        }
+        await InvokeAsync(() =>
+        {
+            if (!_disposed && generation == Volatile.Read(ref _mutationAuthorizationGeneration)
+                && ReferenceEquals(snapshot, _snapshot) && IsCurrentCallerScope(snapshot.CallerScope))
+            {
+                _mutationAuthorization = reflection;
+                _mutationAuthorizationResolved = snapshot;
+                StateHasChanged();
+            }
+        }).ConfigureAwait(false);
+    }
+
+    private async Task<TenantMutationAuthorizationReflection> ReauthorizeMutationAsync(
+        CancellationToken cancellationToken, bool refreshDetail = false)
+    {
+        TenantDetailSnapshot snapshot = _snapshot;
+        string tenantId = TenantId;
+        long callerVersion = Volatile.Read(ref _auditCallerVersion);
+        if (_disposed || snapshot.Detail is null || !IsCurrentCallerScope(snapshot.CallerScope)
+            || !string.Equals(tenantId, snapshot.Detail.TenantId, StringComparison.Ordinal))
+        {
+            return TenantMutationAuthorizationReflection.Indeterminate;
+        }
+        try
+        {
+            TenantDetail authorityDetail = snapshot.Detail;
+            if (refreshDetail)
+            {
+                TenantDetailSnapshot current = await QueryGateway.GetTenantAsync(
+                    new TenantDetailRequest(tenantId), null, cancellationToken).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+                if (current.Kind is not TenantDetailSurfaceKind.Ready
+                    || current.Freshness is not ReadModelFreshnessState.Current
+                    || current.Lifecycle is not ProjectionLifecycleState.Current
+                    || current.Detail is null || !IsCurrentCallerScope(current.CallerScope)
+                    || !string.Equals(current.Detail.TenantId, tenantId, StringComparison.Ordinal))
+                {
+                    TenantMutationAuthorizationReflection unavailable = current.Kind is TenantDetailSurfaceKind.Unauthorized
+                        ? new(TenantLifecycleAuthorizationReflectionState.MissingPermission,
+                            TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                        : TenantMutationAuthorizationReflection.Indeterminate;
+                    if (current.Kind is TenantDetailSurfaceKind.Unauthorized)
+                    {
+                        await InvalidateChangedMutationEvidenceAsync(snapshot, current, tenantId, callerVersion, cancellationToken).ConfigureAwait(false);
+                        return unavailable;
+                    }
+                    return await ApplySubmissionMutationReflectionAsync(snapshot, tenantId, callerVersion, unavailable, cancellationToken)
+                        .ConfigureAwait(false);
+                }
+                if (!HasSameMutationAdmissionEvidence(snapshot, current))
+                {
+                    await InvalidateChangedMutationEvidenceAsync(snapshot, current, tenantId, callerVersion, cancellationToken).ConfigureAwait(false);
+                    return TenantMutationAuthorizationReflection.Indeterminate;
+                }
+                authorityDetail = current.Detail;
+            }
+            TenantMutationAuthorizationReflection reflection = await BffComposition.ResolveTenantMutationAuthorizationAsync(
+                tenantId, authorityDetail, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (refreshDetail)
+            {
+                return await ApplySubmissionMutationReflectionAsync(snapshot, tenantId, callerVersion, reflection, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            return IsCurrentMutationScope(snapshot, tenantId, callerVersion)
+                ? reflection : TenantMutationAuthorizationReflection.Indeterminate;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return refreshDetail
+                ? await ApplySubmissionMutationReflectionAsync(snapshot, tenantId, callerVersion,
+                    TenantMutationAuthorizationReflection.Indeterminate, cancellationToken).ConfigureAwait(false)
+                : TenantMutationAuthorizationReflection.Indeterminate;
+        }
+    }
+
+    private static bool HasSameMutationAdmissionEvidence(TenantDetailSnapshot rendered, TenantDetailSnapshot current)
+        => rendered.Detail is { } previous && current.Detail is { } next
+            && string.Equals(rendered.ProjectionVersion, current.ProjectionVersion, StringComparison.Ordinal)
+            && previous.Status == next.Status
+            && string.Equals(previous.Name, next.Name, StringComparison.Ordinal)
+            && string.Equals(previous.Description, next.Description, StringComparison.Ordinal)
+            && previous.Members.SequenceEqual(next.Members)
+            && previous.Configuration.Count == next.Configuration.Count
+            && previous.Configuration.All(pair => next.Configuration.TryGetValue(pair.Key, out string? value)
+                && string.Equals(pair.Value, value, StringComparison.Ordinal));
+
+    private async Task InvalidateChangedMutationEvidenceAsync(
+        TenantDetailSnapshot rendered, TenantDetailSnapshot current, string tenantId, long callerVersion,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        await InvokeAsync(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsCurrentMutationScope(rendered, tenantId, callerVersion))
+            {
+                return;
+            }
+            // A submission read is newer evidence. Older page reads and previews cannot overwrite it.
+            Interlocked.Increment(ref _loadGeneration);
+            CancelActiveCancellation();
+            CancelSupplementaryReads();
+            Interlocked.Increment(ref _mutationAuthorizationGeneration);
+            lock (_cancellationLock)
+            {
+                RetireCancellationCore(_mutationAuthorizationCancellation);
+                _mutationAuthorizationCancellation = null;
+            }
+            _snapshot = ForCurrentCaller(current);
+            _tenantUsersSnapshot = current.Kind is TenantDetailSurfaceKind.Unauthorized
+                ? TenantUsersSnapshot.Unauthorized(tenantId)
+                : TenantUsersSnapshot.Degraded(tenantId, _tenantUsersSnapshot, TenantUsersReason.ProjectionStale);
+            _memberPageLoadInFlight = false;
+            _mutationAuthorization = current.Kind is TenantDetailSurfaceKind.Unauthorized
+                ? new(TenantLifecycleAuthorizationReflectionState.MissingPermission,
+                    TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                : TenantMutationAuthorizationReflection.Indeterminate;
+            _mutationAuthorizationResolved = _snapshot;
+            StateHasChanged();
+        }).ConfigureAwait(false);
+    }
+
+    private bool IsCurrentMutationScope(TenantDetailSnapshot snapshot, string tenantId, long callerVersion)
+        => !_disposed && callerVersion == Volatile.Read(ref _auditCallerVersion)
+            && ReferenceEquals(snapshot, _snapshot) && string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+            && IsCurrentCallerScope(snapshot.CallerScope);
+
+    private async Task<TenantMutationAuthorizationReflection> ApplySubmissionMutationReflectionAsync(
+        TenantDetailSnapshot snapshot, string tenantId, long callerVersion, TenantMutationAuthorizationReflection reflection,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsCurrentMutationScope(snapshot, tenantId, callerVersion))
+        {
+            return TenantMutationAuthorizationReflection.Indeterminate;
+        }
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (IsCurrentMutationScope(snapshot, tenantId, callerVersion))
+                {
+                    if (_mutationAuthorization != reflection || _mutationAuthorizationResolved is null
+                        || _mutationAuthorizationCancellation is not null)
+                    {
+                        // A fresh admission result supersedes an older render probe on this same snapshot.
+                        Interlocked.Increment(ref _mutationAuthorizationGeneration);
+                        lock (_cancellationLock)
+                        {
+                            RetireCancellationCore(_mutationAuthorizationCancellation);
+                            _mutationAuthorizationCancellation = null;
+                        }
+                    }
+                    _mutationAuthorization = reflection;
+                    _mutationAuthorizationResolved = snapshot;
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            return TenantMutationAuthorizationReflection.Indeterminate;
+        }
+        return IsCurrentMutationScope(snapshot, tenantId, callerVersion)
+            ? reflection : TenantMutationAuthorizationReflection.Indeterminate;
+    }
+
+    private async Task<TenantLifecycleAuthorizationReflectionState> ReauthorizeMetadataAsync(CancellationToken cancellationToken)
+        => (await ReauthorizeMutationAsync(cancellationToken, refreshDetail: true).ConfigureAwait(false)).Metadata;
+
+    private async Task<TenantLifecycleAuthorizationReflectionState> ReauthorizeMembershipAsync(CancellationToken cancellationToken)
+        => (await ReauthorizeMutationAsync(cancellationToken, refreshDetail: true).ConfigureAwait(false)).Membership;
+
     private async Task<TenantLifecycleAuthorizationReflectionState> ReauthorizeLifecycleAsync(
         CancellationToken cancellationToken)
     {
@@ -3100,6 +3344,12 @@
         }
 
         CancelLifecycleAuthorizationCancellation();
+        lock (_cancellationLock)
+        {
+            RetireCancellationCore(_mutationAuthorizationCancellation);
+            _mutationAuthorizationCancellation = null;
+        }
+        Interlocked.Increment(ref _mutationAuthorizationGeneration);
         CancelActiveCancellation();
         CancelSupplementaryReads();
 

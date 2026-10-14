@@ -60,6 +60,9 @@
                          SurfaceKind="@EffectiveSurfaceKind"
                          Freshness="@EffectiveFreshness"
                          IsAuthorized="@IsAddMemberAuthorized"
+                         AuthorizationReflection="@AuthorizationReflection"
+                         AuthorizationVersion="@AuthorizationVersion"
+                         AuthorizationReflectionProvider="@AuthorizationReflectionProvider"
                          IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                          ProjectionVersion="@ProjectionVersion"
                          ProjectionVersionProvider="@ProjectionVersionProvider"
@@ -253,6 +256,9 @@
                                         SurfaceKind="@EffectiveSurfaceKind"
                                         Freshness="@EffectiveFreshness"
                                         IsAuthorized="@IsChangeRoleAuthorized"
+                                        AuthorizationReflection="@AuthorizationReflection"
+                                        AuthorizationVersion="@AuthorizationVersion"
+                                        AuthorizationReflectionProvider="@AuthorizationReflectionProvider"
                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                         ProjectionVersion="@ProjectionVersion"
                                         ProjectionVersionProvider="@ProjectionVersionProvider"
@@ -274,6 +280,9 @@
                                     SurfaceKind="@EffectiveSurfaceKind"
                                     Freshness="@EffectiveFreshness"
                                     IsAuthorized="@IsRemoveMemberAuthorized"
+                                    AuthorizationReflection="@AuthorizationReflection"
+                                    AuthorizationVersion="@AuthorizationVersion"
+                                    AuthorizationReflectionProvider="@AuthorizationReflectionProvider"
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
                                     ProjectionVersion="@ProjectionVersion"
                                     ProjectionVersionProvider="@ProjectionVersionProvider"
@@ -316,6 +325,7 @@
     private static readonly UnavailableReason[] AllReasons =
     [
         UnavailableReason.MissingPermission,
+        UnavailableReason.AuthorityIndeterminate,
         UnavailableReason.StaleData,
         UnavailableReason.MissingLifecycleSupport,
         UnavailableReason.MissingConsequencePreview,
@@ -396,13 +406,26 @@
     public EventCallback OnPreviousPageRequested { get; set; }
 
     [Parameter]
-    public bool IsAddMemberAuthorized { get; set; } = true;
+    public bool IsAddMemberAuthorized { get; set; }
+
+    /// <summary>Gets or sets live tenant-owner or global-administrator authority.</summary>
+    [Parameter]
+    public TenantLifecycleAuthorizationReflectionState AuthorizationReflection { get; set; }
+        = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
+    /// <summary>Gets or sets the authority and detail evidence revision.</summary>
+    [Parameter]
+    public long AuthorizationVersion { get; set; }
+
+    /// <summary>Gets or sets the fresh membership authority resolver.</summary>
+    [Parameter]
+    public Func<CancellationToken, Task<TenantLifecycleAuthorizationReflectionState>>? AuthorizationReflectionProvider { get; set; }
 
     [Parameter]
-    public bool IsChangeRoleAuthorized { get; set; } = true;
+    public bool IsChangeRoleAuthorized { get; set; }
 
     [Parameter]
-    public bool IsRemoveMemberAuthorized { get; set; } = true;
+    public bool IsRemoveMemberAuthorized { get; set; }
 
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
@@ -656,14 +679,17 @@
             ];
         }
 
-        IReadOnlyList<UnavailableReason> removeReasons = AuditProofCapabilityAvailable
-            ? []
-            : [UnavailableReason.MissingAuditProof];
+        UnavailableReason authorityReason = AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.MissingPermission
+            ? UnavailableReason.MissingPermission : UnavailableReason.AuthorityIndeterminate;
+        IReadOnlyList<UnavailableReason> removeReasons = (!IsRemoveMemberAuthorized || AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized)
+            ? [authorityReason]
+            : AuditProofCapabilityAvailable ? [] : [UnavailableReason.MissingAuditProof];
 
         return
         [
-            new(MemberAction.AddMember, [UnavailableReason.MissingPermission, UnavailableReason.HighImpactFlowNotReady]),
-            new(MemberAction.ChangeRole, []),
+            new(MemberAction.AddMember, IsAddMemberAuthorized && AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+                ? [UnavailableReason.HighImpactFlowNotReady] : [authorityReason, UnavailableReason.HighImpactFlowNotReady]),
+            new(MemberAction.ChangeRole, IsChangeRoleAuthorized && AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized ? [] : [authorityReason]),
             new(MemberAction.RemoveMember, removeReasons),
         ];
     }
@@ -942,7 +968,8 @@
 
     private void OpenChangeRole(TenantMember member)
     {
-        if (_childCommandLeaseOwner is not null)
+        if (_childCommandLeaseOwner is not null || !IsChangeRoleAuthorized
+            || BuildActionSlots(member.Role).Any(slot => slot.Action is MemberAction.ChangeRole && slot.Reasons.Count > 0))
         {
             return;
         }
@@ -955,7 +982,8 @@
 
     private void OpenRemoveMember(TenantMember member)
     {
-        if (_childCommandLeaseOwner is not null)
+        if (_childCommandLeaseOwner is not null || !IsRemoveMemberAuthorized
+            || BuildActionSlots(member.Role).Any(slot => slot.Action is MemberAction.RemoveMember && slot.Reasons.Count > 0))
         {
             return;
         }
@@ -1081,6 +1109,7 @@
     private enum UnavailableReason
     {
         MissingPermission,
+        AuthorityIndeterminate,
         StaleData,
         MissingLifecycleSupport,
         MissingConsequencePreview,

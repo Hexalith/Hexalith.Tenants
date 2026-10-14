@@ -177,7 +177,10 @@
                                                  ExpandedChanged="@((bool expanded) => _createAccordionExpanded = expanded)"
                                                  data-testid="tenants-create-accordion">
                                 <CascadingValue Value="@CreateAuditReturnUrl" Name="WorkspaceAuditReturnUrl">
-                                <CreateTenantFlow IsAuthorized="@(_snapshot.Kind is not (TenantListSurfaceKind.Error or TenantListSurfaceKind.Unauthorized))"
+                                <CreateTenantFlow IsAuthorized="@(CreateAuthorization is TenantLifecycleAuthorizationReflectionState.Authorized)"
+                                                  AuthorizationReflection="@CreateAuthorization"
+                                                  AuthorizationVersion="@_authorizationVersion"
+                                                  AuthorizationReflectionProvider="@ReauthorizeCreateAsync"
                                                   IsFresh="@IsCreateFresh"
                                                   IsCommandSurfaceAvailable="@IsCommandSurfaceConnected"
                                                   BaselineProjectionVersion="@_snapshot.ProjectionVersion"
@@ -398,6 +401,15 @@
     private bool _initialized;
     private bool _disposed;
     private bool _restoreSearchPagingContextPending = true;
+    private TenantLifecycleAuthorizationReflectionState _createAuthorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+    private string? _createAuthorityUserId;
+    private TenantLifecycleAuthorizationReflectionState CreateAuthorization
+        => _auditAuthorityResolved && Volatile.Read(ref _pendingAuditCallerVersion) == 0
+            && Volatile.Read(ref _resolvedAuditCallerVersion) == Volatile.Read(ref _auditCallerVersion)
+            && !string.IsNullOrWhiteSpace(_createAuthorityUserId)
+            && string.Equals(_createAuthorityUserId, AuthenticatedUserId, StringComparison.Ordinal)
+            ? _createAuthorization : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+
     private bool _canReviewGlobalAdministrators;
     private bool _auditAuthorityResolved;
     private bool _auditReadDenied;
@@ -727,6 +739,9 @@
 
     private async Task ResolveGlobalAdministratorsEntryAsync(long version)
     {
+        string? caller = AuthenticatedUserId;
+        _createAuthorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        _createAuthorityUserId = null;
         if (Services.GetService(typeof(ITenantsBffComposition)) is not ITenantsBffComposition bffComposition)
         {
             await InvokeAsync(() =>
@@ -761,16 +776,55 @@
 
         await InvokeAsync(() =>
         {
-            if (_disposed || version != Volatile.Read(ref _authorizationVersion))
+            if (_disposed || version != Volatile.Read(ref _authorizationVersion)
+                || string.IsNullOrWhiteSpace(caller)
+                || !string.Equals(caller, AuthenticatedUserId, StringComparison.Ordinal)
+                || Volatile.Read(ref _pendingAuditCallerVersion) != 0)
             {
                 return;
             }
 
+            _createAuthorization = reflection;
+            _createAuthorityUserId = caller;
             _canReviewGlobalAdministrators = reflection == TenantLifecycleAuthorizationReflectionState.Authorized;
             _auditReadDenied = reflection == TenantLifecycleAuthorizationReflectionState.MissingPermission;
             _auditAuthorityResolved = true;
             StateHasChanged();
         });
+    }
+
+    private async Task<TenantLifecycleAuthorizationReflectionState> ReauthorizeCreateAsync(CancellationToken cancellationToken)
+    {
+        long version = Volatile.Read(ref _authorizationVersion);
+        long callerVersion = Volatile.Read(ref _auditCallerVersion);
+        string? caller = AuthenticatedUserId;
+        TenantListSnapshot snapshot = _snapshot;
+        if (_disposed || string.IsNullOrWhiteSpace(caller)
+            || Volatile.Read(ref _pendingAuditCallerVersion) != 0
+            || Services.GetService<ITenantsBffComposition>() is not { } bffComposition)
+        {
+            return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+        try
+        {
+            TenantLifecycleAuthorizationReflectionState reflection = await bffComposition
+                .ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return !_disposed && version == Volatile.Read(ref _authorizationVersion)
+                && callerVersion == Volatile.Read(ref _auditCallerVersion)
+                && Volatile.Read(ref _pendingAuditCallerVersion) == 0
+                && string.Equals(caller, AuthenticatedUserId, StringComparison.Ordinal)
+                && ReferenceEquals(snapshot, _snapshot)
+                ? reflection : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
@@ -895,8 +949,11 @@
             _ = RestoreDetailFocusAsync(detailFocus);
         }
 
-        if (_pendingAuditFocus is { } focus)
+        if (_pendingAuditFocus is { } focus
+            && (!string.Equals(focus, "tenants-create-lifecycle", StringComparison.Ordinal)
+                || CreateAuthorization is not TenantLifecycleAuthorizationReflectionState.Indeterminate))
         {
+            // Let the child restore retained create evidence before consuming its one-shot return marker.
             _pendingAuditFocus = null;
             _ = RestoreAuditFocusAsync(focus);
         }

@@ -501,6 +501,51 @@ internal sealed class TenantsBffComposition(
         CancellationToken cancellationToken = default)
         => ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken);
 
+    public async ValueTask<TenantMutationAuthorizationReflection> ResolveTenantMutationAuthorizationAsync(
+        string tenantId,
+        TenantDetail detail,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(detail);
+        if (principalResolver is null || string.IsNullOrWhiteSpace(tenantId)
+            || !TenantAuditSupportSafety.IsSafe(tenantId, SupportSafeCopyValueKind.TenantId)
+            || !string.Equals(tenantId, detail.TenantId, StringComparison.Ordinal))
+        {
+            return TenantMutationAuthorizationReflection.Indeterminate;
+        }
+
+        // Resolve the current circuit principal before inspecting scoped membership evidence.
+        TenantConfigurationPrincipalEvidence principal = await principalResolver.ResolveAsync(cancellationToken)
+            .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (principal.State is TenantConfigurationPrincipalEvidenceState.Indeterminate
+            || string.IsNullOrWhiteSpace(principal.Subject))
+        {
+            return TenantMutationAuthorizationReflection.Indeterminate;
+        }
+
+        IReadOnlyList<TenantMember>? members = detail.Members;
+        if (members is null || members.Any(member => member is null
+                || string.IsNullOrWhiteSpace(member.UserId)
+                || !TenantAuditSupportSafety.IsSafe(member.UserId, SupportSafeCopyValueKind.UserId)
+                || member.Role is not (TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader))
+            || members.Select(member => member.UserId).Distinct(StringComparer.Ordinal).Count() != members.Count)
+        {
+            return TenantMutationAuthorizationReflection.Indeterminate;
+        }
+
+        bool global = principal.State is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator;
+        TenantRole? role = members.FirstOrDefault(member =>
+            string.Equals(member.UserId, principal.Subject, StringComparison.Ordinal))?.Role;
+        return new(
+            global || role is TenantRole.TenantOwner or TenantRole.TenantContributor
+                ? TenantLifecycleAuthorizationReflectionState.Authorized
+                : TenantLifecycleAuthorizationReflectionState.MissingPermission,
+            global || role is TenantRole.TenantOwner
+                ? TenantLifecycleAuthorizationReflectionState.Authorized
+                : TenantLifecycleAuthorizationReflectionState.MissingPermission);
+    }
+
     public async ValueTask<TenantCorrectionProjection> ComposeTenantCorrectionProjectionAsync(
         string tenantId,
         string targetUserId,

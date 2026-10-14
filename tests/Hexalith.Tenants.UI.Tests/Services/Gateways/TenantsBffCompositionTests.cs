@@ -1220,6 +1220,68 @@ public sealed class TenantsBffCompositionTests
         preview.CurrentState.ShouldBe(TenantRemoveConfigurationCurrentState.Unknown);
     }
 
+    /// <summary>Live scoped role reflection distinguishes metadata and membership permissions.</summary>
+    [Theory]
+    [InlineData(TenantRole.TenantOwner, false, true, true)]
+    [InlineData(TenantRole.TenantContributor, false, true, false)]
+    [InlineData(TenantRole.TenantReader, false, false, false)]
+    [InlineData(TenantRole.TenantReader, true, true, true)]
+    public async Task LiveMutationReflectionUsesLiteralCurrentTenantRole(
+        TenantRole role, bool globalAdministrator, bool metadata, bool membership)
+    {
+        TenantsBffComposition composition = Composition(GrantedPolicy,
+            globalAdministrator ? TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")
+                : TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+        TenantMutationAuthorizationReflection reflection = await composition.ResolveTenantMutationAuthorizationAsync(
+            "tenant.alpha", Detail([new TenantMember("operator.alpha", role)]));
+        reflection.Metadata.ShouldBe(metadata ? TenantLifecycleAuthorizationReflectionState.Authorized : TenantLifecycleAuthorizationReflectionState.MissingPermission);
+        reflection.Membership.ShouldBe(membership ? TenantLifecycleAuthorizationReflectionState.Authorized : TenantLifecycleAuthorizationReflectionState.MissingPermission);
+    }
+
+    /// <summary>Empty UI membership never substitutes for backend first-member history or current GA authority.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LiveMutationReflectionEmptyMembershipRequiresResolvedGlobalAdministrator(bool globalAdministrator)
+    {
+        TenantsBffComposition composition = Composition(GrantedPolicy,
+            globalAdministrator ? TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")
+                : TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+        TenantMutationAuthorizationReflection reflection = await composition.ResolveTenantMutationAuthorizationAsync("tenant.alpha", Detail([]));
+        TenantLifecycleAuthorizationReflectionState expected = globalAdministrator
+            ? TenantLifecycleAuthorizationReflectionState.Authorized : TenantLifecycleAuthorizationReflectionState.MissingPermission;
+        reflection.Metadata.ShouldBe(expected);
+        reflection.Membership.ShouldBe(expected);
+    }
+
+    /// <summary>Malformed, duplicate, wrong-tenant and indeterminate-principal evidence is unavailable, never denied or granted.</summary>
+    [Theory]
+    [InlineData("wrong-tenant")]
+    [InlineData("unknown-role")]
+    [InlineData("duplicate")]
+    [InlineData("unsafe-user")]
+    [InlineData("indeterminate")]
+    [InlineData("literal-caller")]
+    public async Task LiveMutationReflectionRejectsInvalidOrUnboundEvidence(string scenario)
+    {
+        TenantDetail detail = scenario switch
+        {
+            "wrong-tenant" => Detail() with { TenantId = "Tenant.Alpha" },
+            "unknown-role" => Detail([new TenantMember("operator.alpha", TenantRole.Unknown)]),
+            "duplicate" => Detail([new TenantMember("operator.alpha", TenantRole.TenantOwner), new TenantMember("operator.alpha", TenantRole.TenantReader)]),
+            "unsafe-user" => Detail([new TenantMember("<unsafe>", TenantRole.TenantOwner)]),
+            "literal-caller" => Detail([new TenantMember("Operator.Alpha", TenantRole.TenantOwner)]),
+            _ => Detail(),
+        };
+        TenantsBffComposition composition = Composition(GrantedPolicy, scenario is "indeterminate"
+            ? TenantConfigurationPrincipalEvidence.Indeterminate() : TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+        TenantMutationAuthorizationReflection reflection = await composition.ResolveTenantMutationAuthorizationAsync("tenant.alpha", detail);
+        TenantLifecycleAuthorizationReflectionState expected = scenario is "literal-caller"
+            ? TenantLifecycleAuthorizationReflectionState.MissingPermission : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        reflection.Metadata.ShouldBe(expected);
+        reflection.Membership.ShouldBe(expected);
+    }
+
     private static TenantsBffComposition Composition(
         string json,
         TenantConfigurationPrincipalEvidence? evidence = null)

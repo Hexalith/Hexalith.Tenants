@@ -66,7 +66,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         Services.AddScoped<TenantAggregateCommandAdmissionGate>();
         Services.AddScoped<TenantCreateAttemptTracker>();
         Services.AddScoped(provider => provider.GetRequiredService<TenantCreateAttemptTracker>().Attempts);
-        Services.AddSingleton(new TenantHighImpactViewportObservation(TenantHighImpactViewportState.Safe));
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(ViewportTier.Desktop);
+        Services.AddSingleton(viewport);
         Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider());
     }
 
@@ -2634,9 +2636,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             {
                 int call = Interlocked.Increment(ref detailReads);
                 return Task.FromResult(ReadyWithSafeConfiguration(
-                    call == 1 ? initialDetail : refreshedDetail,
+                    call <= 3 ? initialDetail : refreshedDetail,
                     ProjectionLifecycleState.Current,
-                    call == 1 ? "projection-v1" : "projection-v2"));
+                    call <= 3 ? "projection-v1" : "projection-v2"));
             });
         gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(_ =>
@@ -2667,7 +2669,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         cut.WaitForAssertion(() =>
         {
-            detailReads.ShouldBe(3);
+            // Three original reads plus fresh authority before admission and after the lease.
+            detailReads.ShouldBe(5);
             memberReads.ShouldBe(2);
             cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("new-member");
             cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State
@@ -2944,7 +2947,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         int detailReads = 0;
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(_ => Interlocked.Increment(ref detailReads) == 1
+            .Returns(_ => Interlocked.Increment(ref detailReads) <= 3
                 ? Task.FromResult(ReadyWithSafeConfiguration(
                     Detail("tenant.alpha"),
                     ProjectionLifecycleState.Current,
@@ -3000,14 +3003,14 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             {
                 int call = Interlocked.Increment(ref detailReads);
                 return Task.FromResult(ReadyWithSafeConfiguration(
-                    call == 1 ? Detail("tenant.alpha") : refreshedDetail,
+                    call <= 3 ? Detail("tenant.alpha") : refreshedDetail,
                     ProjectionLifecycleState.Current,
-                    call == 1 ? "projection-v1" : "projection-v2"));
+                    call <= 3 ? "projection-v1" : "projection-v2"));
             });
         gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(MemberSnapshot(detailReads <= 1 ? Detail("tenant.alpha") : refreshedDetail) with
+            .Returns(_ => Task.FromResult(MemberSnapshot(detailReads <= 3 ? Detail("tenant.alpha") : refreshedDetail) with
             {
-                ProjectionVersion = detailReads <= 1 ? "projection-v1" : "projection-v2",
+                ProjectionVersion = detailReads <= 3 ? "projection-v1" : "projection-v2",
             }));
         var commandGateway = new TrackingMembershipCommandGateway(
             Task.FromResult(TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-456")),
@@ -4090,6 +4093,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     {
         RegisterComponentServices();
         IRenderedComponent<EditTenantMetadataFlow> cut = Render<EditTenantMetadataFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Unavailable)
             .Add(p => p.Freshness, ReadModelFreshnessState.Unknown)
@@ -4136,7 +4142,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Returns(_ =>
             {
                 detailReads++;
-                return detailReads == 1
+                return detailReads <= 3
                     ? Task.FromResult(ReadyWithSafeConfiguration(original, ProjectionLifecycleState.Current, "projection-v1"))
                     : refreshRead.Task;
             });
@@ -4172,7 +4178,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         EditTenantMetadataFlow metadataFlow = cut.FindComponent<EditTenantMetadataFlow>().Instance;
         cut.WaitForAssertion(() =>
         {
-            detailReads.ShouldBe(2);
+            // Initial detail plus fresh pre-admission and post-lease authority reads precede the held refresh.
+            detailReads.ShouldBe(4);
             metadataFlow.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
             // The page has genuinely rerendered during the suspended refresh and lowered admission for
             // sibling commands. The metadata flow still owns that lease and must remain eligible to settle.
@@ -5143,6 +5150,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ]);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5184,6 +5196,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         int authorityRefreshes = 0;
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -5215,6 +5232,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         int ownerRefreshes = 0;
         int capabilityProbes = 0;
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(view => view.Freshness, ReadModelFreshnessState.Current)
@@ -5255,6 +5277,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             [new TenantMember("owner-user", TenantRole.TenantOwner)]);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5288,6 +5315,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ]);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5330,6 +5362,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5359,6 +5396,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, detail)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5393,6 +5435,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         var parentCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         int parentAcquisitions = 0;
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, detail)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5448,6 +5495,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantDetail detail = Detail("tenant.alpha");
         int acquisitionAttempt = 0;
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, detail)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5479,6 +5531,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, detail)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5507,6 +5564,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(p => p.Detail, detail)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5548,6 +5610,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5590,6 +5657,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5613,6 +5685,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5638,7 +5715,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         }
 
         cut.FindAll("[data-testid='tenants-member-action-slot']").Count.ShouldBeGreaterThanOrEqualTo(2);
-        cut.FindAll("[data-testid='tenants-member-unavailable-reason']").Count.ShouldBeGreaterThanOrEqualTo(4);
+        cut.FindAll("[data-testid='tenants-member-unavailable-reason']").Count.ShouldBe(2);
         cut.Find("[data-testid='tenants-add-member-flow']");
         cut.Find("[data-testid='tenants-add-member-submit']").GetAttribute("type").ShouldBe("submit");
         cut.FindAll("[data-testid='tenants-change-role-open']").Count.ShouldBe(2);
@@ -5667,6 +5744,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantUsersSnapshot members = MemberSnapshot(detail) with { HasMore = true, NextCursor = "page-2" };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5691,6 +5773,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantDetail alpha = Detail("tenant.alpha");
         TenantDetail beta = Detail("tenant.beta");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, alpha)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5718,6 +5805,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5762,6 +5854,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 status,
                 [new TenantMember("owner-user", TenantRole.TenantOwner)]);
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, surfaceKind)
@@ -5789,6 +5886,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Unauthorized)
@@ -5814,6 +5916,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 TenantStatus.Active,
                 [new TenantMember("literal-user", TenantRole.TenantOwner)]);
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5842,6 +5949,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 TenantStatus.Active,
                 []);
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5884,6 +5996,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantUsersSnapshot members = TerminalMemberSnapshot(kind, detail.TenantId);
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -5974,6 +6091,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         members.IsAuthorizationScopedEmpty.ShouldBeFalse();
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -6012,6 +6134,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -6039,6 +6166,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -6064,6 +6196,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantUsersSnapshot mismatched = MemberSnapshot(detail) with { ProjectionVersion = "members-v2" };
 
         IRenderedComponent<MemberAccessReview> mismatch = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -6077,6 +6214,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         withheld.ShouldNotContain("visible owner");
 
         IRenderedComponent<MemberAccessReview> agreeing = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -6097,6 +6239,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         TenantUsersSnapshot members = MemberSnapshot(detail) with { ProjectionVersion = "members-v2" };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -7003,6 +7150,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         tracker.TryCompleteDelivery(attempt!, original, original).ShouldBeTrue();
         tracker.Detach(attempt, owner);
         IRenderedComponent<MemberAccessReview> RenderLandmark() => Render<MemberAccessReview>(p => p
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current)
             .Add(x => x.ProjectionVersion, "tenant-sequence:900").Add(x => x.AuditProofCapabilityAvailable, true)
@@ -7051,6 +7203,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             : Interlocked.Increment(ref acquisitions) == 1 ? oldAdmission.Task : replacementAdmission.Task;
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> landmark = Render<MemberAccessReview>(p => p
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(x => x.Detail, detail).Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(x => x.Freshness, ReadModelFreshnessState.Current).Add(x => x.Lifecycle, ProjectionLifecycleState.Current)
             .Add(x => x.ProjectionVersion, "tenant-sequence:1").Add(x => x.Members, MemberSnapshot(detail))
@@ -7220,6 +7377,462 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             Arg.Is<TenantDetailSnapshot?>(previous => previous == null), Arg.Any<CancellationToken>());
     }
 
+    /// <summary>Fresh role evidence for the same principal withdraws stale owner/contributor admission.</summary>
+    [Theory]
+    [InlineData(TenantRole.TenantOwner, "add")]
+    [InlineData(TenantRole.TenantContributor, "metadata")]
+    public async Task ReviewParentFreshRoleChangeUsesRealBffAndRefusesStaleIntent(TenantRole initialRole, string kind)
+    {
+        TenantDetail initial = Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active,
+            [new TenantMember("operator.alpha", initialRole), new TenantMember("private-reader", TenantRole.TenantReader)]);
+        TenantDetail current = initial;
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        RegisterReviewRealRoleParent(commands, _ => Task.FromResult(ReadyWithSafeConfiguration(current, ProjectionLifecycleState.Current, "tenant-sequence:1")));
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.FindComponent<EditTenantMetadataFlow>().Instance.IsAuthorized.ShouldBeTrue());
+        if (kind is "metadata")
+        {
+            cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+            cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Stale contributor intent");
+        }
+        else
+        {
+            IRenderedComponent<AddTenantMemberFlow> add = cut.FindComponent<AddTenantMemberFlow>();
+            add.Find("[data-testid='tenants-add-member-user-id']").Change("new-member");
+            FluentSelectInterop.ChangeFluentSelect(add, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        }
+        current = initial with { Members = [new TenantMember("operator.alpha", TenantRole.TenantReader), new TenantMember("private-reader", TenantRole.TenantReader)] };
+        if (kind is "metadata") await cut.FindComponent<EditTenantMetadataFlow>().Find("form").SubmitAsync();
+        else await cut.FindComponent<AddTenantMemberFlow>().Find("form").SubmitAsync();
+        commands.ReceivedCalls().ShouldBeEmpty();
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindComponent<EditTenantMetadataFlow>().Instance.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
+            MemberAccessReview review = cut.FindComponent<MemberAccessReview>().Instance;
+            review.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
+            review.IsAddMemberAuthorized.ShouldBeFalse();
+            review.IsChangeRoleAuthorized.ShouldBeFalse();
+            review.IsRemoveMemberAuthorized.ShouldBeFalse();
+        });
+        cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
+    }
+
+    /// <summary>Fresh status/projection/preview changes invalidate admission without erasing older qualified proof.</summary>
+    [Theory]
+    [InlineData("disabled")]
+    [InlineData("projection")]
+    [InlineData("metadata")]
+    public async Task ReviewParentChangedAdmissionEvidencePreservesEarlierProof(string change)
+    {
+        TenantDetail initial = Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active,
+            [new TenantMember("operator.alpha", TenantRole.TenantOwner), new TenantMember("reader", TenantRole.TenantReader)]);
+        TenantDetail current = initial;
+        string version = "tenant-sequence:2";
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        RegisterReviewRealRoleParent(commands, _ => Task.FromResult(ReadyWithSafeConfiguration(current, ProjectionLifecycleState.Current, version)));
+        TenantDetail before = initial with { Name = "Before proven update" };
+        TenantDetailSnapshot proof = TenantCommandProofFixtures.Proof(initial, "tenant-sequence:2")!.WithCallerScope(TenantQueryGateway.AuditCallerScope("operator.alpha"));
+        TenantUpdateMetadataCommandSnapshot sent = TenantUpdateMetadataCommandSnapshot.Idle(before.Name, before.Description, before)
+            .RequestSent(new UpdateTenant(initial.TenantId, initial.Name, initial.Description), "tenant-sequence:1");
+        TenantUpdateMetadataCommandSnapshot previous = sent
+            .Accepted(TenantCommandSubmissionResult.Accepted("previous-message", "previous-correlation"))
+            .ApplyStatus(new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 })
+            .ConfirmProjection(proof);
+        previous.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        object priorOwner = new();
+        tracker.TryBegin(initial.TenantId, priorOwner, sent, out TenantRetainedCommandAttempt? priorAttempt).ShouldBeTrue();
+        tracker.TryStartDelivery(priorAttempt!, priorOwner).ShouldBeTrue();
+        tracker.TryCompleteDelivery(priorAttempt!, sent, previous).ShouldBeTrue();
+        tracker.Detach(priorAttempt, priorOwner);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-edit-metadata-open']").Click();
+        IRenderedComponent<EditTenantMetadataFlow> metadata = cut.FindComponent<EditTenantMetadataFlow>();
+        metadata.Instance.Snapshot.MessageId.ShouldBe(previous.MessageId);
+        metadata.Find("[data-testid='tenants-edit-metadata-name']").Change("Invalidated new intent");
+        if (change is "disabled") current = initial with { Status = TenantStatus.Disabled };
+        else if (change is "metadata") current = initial with { Name = "Changed after preview" };
+        else version = "tenant-sequence:3";
+        await metadata.Find("form").SubmitAsync();
+        commands.ReceivedCalls().ShouldBeEmpty();
+        tracker.HasPendingOwnership(initial.TenantId).ShouldBeFalse();
+        metadata.Instance.Snapshot.MessageId.ShouldBe(previous.MessageId);
+        metadata.Instance.Snapshot.CorrelationId.ShouldBe(previous.CorrelationId);
+        metadata.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        metadata.Instance.Snapshot.LastConfirmedDetailProjection.ShouldBeSameAs(previous.LastConfirmedDetailProjection);
+        ((TenantDetailSnapshot)DetailField(cut, "_snapshot")!).Detail.ShouldNotBeNull().Status.ShouldBe(current.Status);
+        ((TenantDetailSnapshot)DetailField(cut, "_snapshot")!).ProjectionVersion.ShouldBe(version);
+    }
+
+    /// <summary>A fresh unauthorized read removes protected detail and member data rather than only lowering flags.</summary>
+    [Fact]
+    public async Task ReviewParentFreshUnauthorizedRemovesProtectedSurfaces()
+    {
+        TenantDetail initial = Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active,
+            [new TenantMember("operator.alpha", TenantRole.TenantOwner), new TenantMember("private-member-canary", TenantRole.TenantReader)]) with { Name = "private-detail-canary" };
+        bool denied = false;
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        RegisterReviewRealRoleParent(commands, _ => Task.FromResult(denied
+            ? TenantDetailSnapshot.Unauthorized("tenant.alpha").WithCallerScope(TenantQueryGateway.AuditCallerScope("operator.alpha"))
+            : ReadyWithSafeConfiguration(initial, ProjectionLifecycleState.Current, "tenant-sequence:1")));
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.FindComponent<AddTenantMemberFlow>().Instance.IsAuthorized.ShouldBeTrue());
+        IRenderedComponent<AddTenantMemberFlow> add = cut.FindComponent<AddTenantMemberFlow>();
+        add.Find("[data-testid='tenants-add-member-user-id']").Change("next-member");
+        FluentSelectInterop.ChangeFluentSelect(add, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        denied = true;
+        await add.Find("form").SubmitAsync();
+        commands.ReceivedCalls().ShouldBeEmpty();
+        cut.WaitForElement("[data-testid='tenants-detail-unauthorized']");
+        cut.FindComponents<MemberAccessReview>().ShouldBeEmpty();
+        cut.FindComponents<EditTenantMetadataFlow>().ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-member-table']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("private-detail-canary");
+        cut.Markup.ShouldNotContain("private-member-canary");
+        ((TenantUsersSnapshot)DetailField(cut, "_tenantUsersSnapshot")!).Rows.ShouldBeEmpty();
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+    }
+
+    /// <summary>A same-valued indeterminate fresh result supersedes a genuinely outstanding initial probe.</summary>
+    [Fact]
+    public async Task ReviewParentFreshIndeterminateSupersedesOlderInitialAuthorizedProbe()
+    {
+        var pending = new TaskCompletionSource<TenantMutationAuthorizationReflection>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int calls = 0;
+        CancellationToken oldToken = default;
+        var composition = new StubTenantsBffComposition
+        {
+            MutationResolver = (_, _, token) =>
+            {
+                if (++calls != 1) return ValueTask.FromResult(TenantMutationAuthorizationReflection.Indeterminate);
+                oldToken = token;
+                return new(pending.Task);
+            },
+        };
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:1")), composition);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => calls.ShouldBe(1));
+        cut.FindComponent<MemberAccessReview>().Instance.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        long oldGeneration = (long)DetailField(cut, "_mutationAuthorizationGeneration")!;
+        TenantLifecycleAuthorizationReflectionState answer = await cut.InvokeAsync(() => cut.FindComponent<AddTenantMemberFlow>().Instance.AuthorizationReflectionProvider!(CancellationToken.None));
+        answer.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        oldToken.IsCancellationRequested.ShouldBeTrue();
+        ((long)DetailField(cut, "_mutationAuthorizationGeneration")!).ShouldBeGreaterThan(oldGeneration);
+        pending.SetResult(new(TenantLifecycleAuthorizationReflectionState.Authorized, TenantLifecycleAuthorizationReflectionState.Authorized));
+        await cut.InvokeAsync(async () => await Task.Yield());
+        cut.FindComponent<MemberAccessReview>().Instance.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        cut.FindComponent<EditTenantMetadataFlow>().Instance.IsAuthorized.ShouldBeFalse();
+    }
+
+    /// <summary>Cancelled noncooperative reads cannot replace a newer authorized result on the same page snapshot.</summary>
+    [Theory]
+    [InlineData(false, "unauthorized")]
+    [InlineData(true, "unauthorized")]
+    [InlineData(false, "changed")]
+    [InlineData(true, "changed")]
+    public async Task ReviewParentCancelledFreshReadCannotWithdrawNewerCurrentEvidence(bool timeout, string lateResult)
+    {
+        TenantDetail initial = Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active,
+            [new TenantMember("operator.alpha", TenantRole.TenantOwner), new TenantMember("reader", TenantRole.TenantReader)]);
+        var held = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int reads = 0;
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        RegisterReviewRealRoleParent(commands, _ => ++reads == 2 ? held.Task
+            : Task.FromResult(ReadyWithSafeConfiguration(initial, ProjectionLifecycleState.Current, "tenant-sequence:1")));
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.FindComponent<AddTenantMemberFlow>().Instance.IsAuthorized.ShouldBeTrue());
+        TenantDetailSnapshot snapshot = (TenantDetailSnapshot)DetailField(cut, "_snapshot")!;
+        using var cancel = timeout ? new CancellationTokenSource(TimeSpan.FromMilliseconds(100)) : new CancellationTokenSource();
+        Task<TenantLifecycleAuthorizationReflectionState> stale = cut.InvokeAsync(() => cut.FindComponent<AddTenantMemberFlow>().Instance.AuthorizationReflectionProvider!(cancel.Token));
+        cut.WaitForAssertion(() => reads.ShouldBe(2));
+        if (!timeout) cancel.Cancel();
+        else await Task.Delay(150);
+        cancel.IsCancellationRequested.ShouldBeTrue();
+        (await cut.InvokeAsync(() => cut.FindComponent<AddTenantMemberFlow>().Instance.AuthorizationReflectionProvider!(CancellationToken.None)))
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Authorized);
+        held.SetResult(lateResult is "unauthorized"
+            ? TenantDetailSnapshot.Unauthorized("tenant.alpha").WithCallerScope(snapshot.CallerScope!)
+            : ReadyWithSafeConfiguration(initial with { Status = TenantStatus.Disabled, Name = "stale-detail-canary" }, ProjectionLifecycleState.Current, "tenant-sequence:2"));
+        await Should.ThrowAsync<OperationCanceledException>(async () => await stale);
+        ((TenantDetailSnapshot)DetailField(cut, "_snapshot")!).ShouldBeSameAs(snapshot);
+        cut.FindComponent<AddTenantMemberFlow>().Instance.IsAuthorized.ShouldBeTrue();
+        cut.FindComponent<EditTenantMetadataFlow>().Instance.IsAuthorized.ShouldBeTrue();
+        cut.FindAll("[data-testid='tenants-detail-unauthorized']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("stale-detail-canary");
+    }
+
+    /// <summary>Row add reasons reflect current authority independently of unsupported row entry.</summary>
+    [Theory]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.Authorized, "")]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.MissingPermission, "missing permission")]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.Indeterminate, "could not be verified")]
+    public void ReviewMemberRowAddReasonDistinguishesLiveAuthority(TenantLifecycleAuthorizationReflectionState reflection, string expected)
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(p => p
+            .Add(x => x.Detail, detail).Add(x => x.Members, MemberSnapshot(detail))
+            .Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current)
+            .Add(x => x.Lifecycle, ProjectionLifecycleState.Current).Add(x => x.ProjectionVersion, "tenant-sequence:1")
+            .Add(x => x.IsAddMemberAuthorized, reflection is TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.IsChangeRoleAuthorized, true).Add(x => x.IsRemoveMemberAuthorized, true)
+            .Add(x => x.AuthorizationReflection, reflection).Add(x => x.AuditProofCapabilityAvailable, true));
+        AngleSharp.Dom.IElement slot = cut.FindAll("[data-testid='tenants-member-action-slot']")
+            .First(element => element.GetAttribute("aria-label")!.Contains("Add member", StringComparison.Ordinal));
+        string reason = slot.GetAttribute("aria-label")!;
+        reason.ShouldContain("high-impact flow not ready");
+        if (reflection is TenantLifecycleAuthorizationReflectionState.Authorized)
+        {
+            reason.ShouldNotContain("missing permission");
+            reason.ShouldNotContain("could not be verified");
+        }
+        else reason.ShouldContain(expected);
+    }
+
+    private void RegisterReviewRealRoleParent(ITenantCommandGateway commands, Func<NSubstitute.Core.CallInfo, Task<TenantDetailSnapshot>> detailFactory)
+    {
+        AuthenticationStateProvider authentication = Substitute.For<AuthenticationStateProvider>();
+        authentication.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(
+            new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "operator.alpha"), new Claim("global_admin", "false")], "test")))));
+        Services.AddSingleton(authentication);
+        IUserContextAccessor caller = Substitute.For<IUserContextAccessor>();
+        caller.UserId.Returns("operator.alpha");
+        var principal = new TenantConfigurationPrincipalResolver(new Hexalith.FrontComposer.Shell.Services.Auth.CircuitServicesAccessor(), caller, authentication);
+        RegisterServices(detailFactory, new TenantsBffComposition(commands, principalResolver: principal));
+        Services.AddSingleton(commands);
+    }
+
+    /// <summary>Parent pages bind the real scoped BFF result to metadata and every member action.</summary>
+    [Theory]
+    [InlineData(TenantRole.TenantOwner, false, true, true)]
+    [InlineData(TenantRole.TenantContributor, false, true, false)]
+    [InlineData(TenantRole.TenantReader, false, false, false)]
+    [InlineData(TenantRole.TenantReader, true, true, true)]
+    [InlineData(TenantRole.Unknown, false, false, false)]
+    public void LiveParentBindsScopedRoleAuthority(TenantRole role, bool global, bool metadata, bool membership)
+    {
+        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active,
+            role is TenantRole.Unknown ? [new TenantMember("other-owner", TenantRole.TenantOwner)]
+                : [new TenantMember("operator.alpha", role), new TenantMember("other-reader", TenantRole.TenantReader)]);
+        AuthenticationStateProvider authentication = Substitute.For<AuthenticationStateProvider>();
+        authentication.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(global
+            ? AdministratorPrincipal()
+            : new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "operator.alpha"), new Claim("global_admin", "false")], "test")))));
+        Services.AddSingleton(authentication);
+        IUserContextAccessor caller = Substitute.For<IUserContextAccessor>();
+        caller.UserId.Returns("operator.alpha");
+        var principal = new TenantConfigurationPrincipalResolver(
+            new Hexalith.FrontComposer.Shell.Services.Auth.CircuitServicesAccessor(), caller, authentication);
+        var command = new StubTenantCommandGateway();
+        var composition = new TenantsBffComposition(command, principalResolver: principal);
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(detail, ProjectionLifecycleState.Current, "tenant-sequence:41")), composition);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindComponent<EditTenantMetadataFlow>().Instance.AuthorizationReflection.ShouldBe(metadata
+                ? TenantLifecycleAuthorizationReflectionState.Authorized : TenantLifecycleAuthorizationReflectionState.MissingPermission);
+            MemberAccessReview access = cut.FindComponent<MemberAccessReview>().Instance;
+            access.IsAddMemberAuthorized.ShouldBe(membership);
+            access.IsChangeRoleAuthorized.ShouldBe(membership);
+            access.IsRemoveMemberAuthorized.ShouldBe(membership);
+            cut.FindComponent<AddTenantMemberFlow>().Instance.IsAuthorized.ShouldBe(membership);
+        });
+        cut.FindAll("[data-testid='tenants-edit-metadata-open']").Count.ShouldBe(metadata ? 1 : 0);
+        if (!membership)
+        {
+            cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
+        }
+    }
+
+    /// <summary>Contributor metadata and Owner/GA membership submissions succeed through the real scoped BFF.</summary>
+    [Theory]
+    [InlineData(TenantRole.TenantContributor, false, "metadata")]
+    [InlineData(TenantRole.TenantOwner, false, "add")]
+    [InlineData(TenantRole.TenantReader, true, "add")]
+    [InlineData(TenantRole.Unknown, true, "first-member")]
+    public async Task LiveParentAuthorizedSubmissionsUseRealScopedRoleReflection(TenantRole role, bool global, string kind)
+    {
+        TenantDetail detail = Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active,
+            kind is "first-member" ? [] : [new TenantMember("operator.alpha", role), new TenantMember("other-reader", TenantRole.TenantReader)]);
+        AuthenticationStateProvider authentication = Substitute.For<AuthenticationStateProvider>();
+        authentication.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(global
+            ? AdministratorPrincipal()
+            : new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "operator.alpha"), new Claim("global_admin", "false")], "test")))));
+        Services.AddSingleton(authentication);
+        IUserContextAccessor caller = Substitute.For<IUserContextAccessor>();
+        caller.UserId.Returns("operator.alpha");
+        var principal = new TenantConfigurationPrincipalResolver(new Hexalith.FrontComposer.Shell.Services.Auth.CircuitServicesAccessor(), caller, authentication);
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.UpdateTenantAsync(Arg.Any<UpdateTenant>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "metadata-tracking")));
+        commands.AddUserToTenantAsync(Arg.Any<AddUserToTenant>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "member-tracking")));
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true)));
+        var composition = new TenantsBffComposition(commands, principalResolver: principal);
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(detail, ProjectionLifecycleState.Current, "tenant-sequence:1")), composition);
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        if (kind is "metadata")
+        {
+            cut.WaitForElement("[data-testid='tenants-edit-metadata-open']").Click();
+            IRenderedComponent<EditTenantMetadataFlow> flow = cut.FindComponent<EditTenantMetadataFlow>();
+            flow.Find("[data-testid='tenants-edit-metadata-name']").Change("Contributor updated tenant");
+            await flow.Find("form").SubmitAsync();
+            _ = commands.Received(1).UpdateTenantAsync(Arg.Is<UpdateTenant>(request => request.TenantId == "tenant.alpha" && request.Name == "Contributor updated tenant"), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            flow.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+            flow.Instance.Snapshot.MessageId.ShouldNotBeNullOrWhiteSpace();
+        }
+        else
+        {
+            IRenderedComponent<AddTenantMemberFlow> flow = cut.FindComponent<AddTenantMemberFlow>();
+            cut.WaitForAssertion(() => flow.Instance.IsAuthorized.ShouldBeTrue());
+            flow.Find("[data-testid='tenants-add-member-user-id']").Change("new-literal-member");
+            FluentSelectInterop.ChangeFluentSelect(flow, "tenants-add-member-role", kind is "first-member" ? nameof(TenantRole.TenantOwner) : nameof(TenantRole.TenantReader));
+            await flow.Find("form").SubmitAsync();
+            flow.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted, flow.Instance.Snapshot.SafeMessage);
+            _ = commands.Received(1).AddUserToTenantAsync(Arg.Is<AddUserToTenant>(request => request.TenantId == "tenant.alpha" && request.UserId == "new-literal-member"), Arg.Any<string>(), Arg.Any<CancellationToken>());
+            flow.Instance.Snapshot.MessageId.ShouldNotBeNullOrWhiteSpace();
+        }
+    }
+
+    /// <summary>Fresh revocation and unauthorized authority reads disable sibling launchers without dispatch.</summary>
+    [Theory]
+    [InlineData("role-revoked")]
+    [InlineData("unauthorized")]
+    [InlineData("indeterminate")]
+    public async Task LiveParentPropagatesFreshAdmissionRefusalToAllMutationBindings(string refusal)
+    {
+        TenantDetail detail = Detail("tenant.alpha");
+        bool fresh = false;
+        var composition = new StubTenantsBffComposition();
+        RegisterServices(_ => Task.FromResult(fresh && refusal is "unauthorized"
+            ? TenantDetailSnapshot.Unauthorized("tenant.alpha").WithCallerScope(TenantQueryGateway.AuditCallerScope("operator.alpha"))
+            : ReadyWithSafeConfiguration(detail, ProjectionLifecycleState.Current, "tenant-sequence:41")), composition);
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.FindComponent<MemberAccessReview>().Instance.IsAddMemberAuthorized.ShouldBeTrue());
+        IRenderedComponent<AddTenantMemberFlow> add = cut.FindComponent<AddTenantMemberFlow>();
+        add.Find("[data-testid='tenants-add-member-user-id']").Change("literal-next-user");
+        FluentSelectInterop.ChangeFluentSelect(add, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        TenantLifecycleAuthorizationReflectionState denied = refusal is "indeterminate"
+            ? TenantLifecycleAuthorizationReflectionState.Indeterminate : TenantLifecycleAuthorizationReflectionState.MissingPermission;
+        composition.MutationReflection = new(denied, denied);
+        fresh = true;
+        await add.Find("form").SubmitAsync();
+        commands.ReceivedCalls().ShouldBeEmpty();
+        if (refusal is "unauthorized")
+        {
+            cut.WaitForElement("[data-testid='tenants-detail-unauthorized']");
+            cut.FindComponents<MemberAccessReview>().ShouldBeEmpty();
+            cut.FindComponents<EditTenantMetadataFlow>().ShouldBeEmpty();
+            return;
+        }
+        cut.WaitForAssertion(() =>
+        {
+            MemberAccessReview access = cut.FindComponent<MemberAccessReview>().Instance;
+            access.AuthorizationReflection.ShouldBe(denied);
+            access.IsAddMemberAuthorized.ShouldBeFalse();
+            access.IsChangeRoleAuthorized.ShouldBeFalse();
+            access.IsRemoveMemberAuthorized.ShouldBeFalse();
+            cut.FindComponent<EditTenantMetadataFlow>().Instance.AuthorizationReflection.ShouldBe(denied);
+        });
+        cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
+    }
+
+    /// <summary>A delayed scoped lookup cannot authorize newer tenant, caller, or projection evidence.</summary>
+    [Theory]
+    [InlineData("tenant")]
+    [InlineData("caller")]
+    [InlineData("detail")]
+    public async Task LiveParentRejectsSupersededMutationReflection(string transition)
+    {
+        var pending = new TaskCompletionSource<TenantMutationAuthorizationReflection>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int lookups = 0;
+        var composition = new StubTenantsBffComposition
+        {
+            MutationResolver = (_, _, _) => ++lookups == 1 ? new(pending.Task)
+                : ValueTask.FromResult(new TenantMutationAuthorizationReflection(TenantLifecycleAuthorizationReflectionState.MissingPermission, TenantLifecycleAuthorizationReflectionState.MissingPermission)),
+        };
+        var authentication = new MutableAuthenticationStateProvider();
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        RegisterServices(call => Task.FromResult(ReadyWithSafeConfiguration(Detail(call.Arg<TenantDetailRequest>().TenantId), ProjectionLifecycleState.Current, $"tenant-sequence:{lookups + 41}")), composition);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => lookups.ShouldBe(1));
+        cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
+        if (transition is "tenant") cut.Render(p => p.Add(x => x.TenantId, "tenant.beta"));
+        else if (transition is "caller") await cut.InvokeAsync(() => authentication.Notify(new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "operator.next")], "test"))));
+        else await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        pending.SetResult(new(TenantLifecycleAuthorizationReflectionState.Authorized, TenantLifecycleAuthorizationReflectionState.Authorized));
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty());
+        cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
+    }
+
+    /// <summary>Older render authority must not overwrite a fresh admission refusal on the same snapshot.</summary>
+    [Fact]
+    public async Task LiveParentFreshDenialSupersedesDelayedInitialReflection()
+    {
+        var pending = new TaskCompletionSource<TenantMutationAuthorizationReflection>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int lookups = 0;
+        var composition = new StubTenantsBffComposition();
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), ProjectionLifecycleState.Current, "tenant-sequence:41")), composition);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(x => x.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.FindComponent<MemberAccessReview>().Instance.IsAddMemberAuthorized.ShouldBeTrue());
+        composition.MutationResolver = (_, _, _) => ++lookups == 1 ? new(pending.Task)
+            : ValueTask.FromResult(new TenantMutationAuthorizationReflection(TenantLifecycleAuthorizationReflectionState.MissingPermission, TenantLifecycleAuthorizationReflectionState.MissingPermission));
+        TenantDetailSnapshot snapshot = (TenantDetailSnapshot)DetailField(cut, "_snapshot")!;
+        long generation = (long)DetailField(cut, "_mutationAuthorizationGeneration")!;
+        var source = new CancellationTokenSource();
+        Task olderRender = cut.InvokeAsync(() => (Task)typeof(TenantDetailPage)
+            .GetMethod("ResolveMutationAuthorizationAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, [snapshot, generation, source])!);
+        cut.WaitForAssertion(() => lookups.ShouldBe(1));
+        AddTenantMemberFlow add = cut.FindComponent<AddTenantMemberFlow>().Instance;
+        TenantLifecycleAuthorizationReflectionState fresh = await cut.InvokeAsync(() => add.AuthorizationReflectionProvider!(CancellationToken.None));
+        fresh.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
+        cut.WaitForAssertion(() => cut.FindComponent<MemberAccessReview>().Instance.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission));
+        pending.SetResult(new(TenantLifecycleAuthorizationReflectionState.Authorized, TenantLifecycleAuthorizationReflectionState.Authorized));
+        await olderRender.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.FindComponent<MemberAccessReview>().Instance.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
+        cut.FindComponent<EditTenantMetadataFlow>().Instance.IsAuthorized.ShouldBeFalse();
+        cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
+    }
+
+    /// <summary>Direct row launchers cannot bypass denied or indeterminate member flags.</summary>
+    [Theory]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.MissingPermission)]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.Indeterminate)]
+    public async Task LiveMemberReviewDirectLaunchersFailClosed(TenantLifecycleAuthorizationReflectionState authority)
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(p => p
+            .Add(x => x.Detail, detail).Add(x => x.Members, MemberSnapshot(detail))
+            .Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current)
+            .Add(x => x.AuthorizationReflection, authority)
+            .Add(x => x.IsAddMemberAuthorized, false).Add(x => x.IsChangeRoleAuthorized, false).Add(x => x.IsRemoveMemberAuthorized, false)
+            .Add(x => x.AuditProofCapabilityAvailable, true));
+        await cut.InvokeAsync(() =>
+        {
+            typeof(MemberAccessReview).GetMethod("OpenChangeRole", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(cut.Instance, [detail.Members[1]]);
+            typeof(MemberAccessReview).GetMethod("OpenRemoveMember", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(cut.Instance, [detail.Members[1]]);
+        });
+        cut.Render();
+        cut.FindComponents<ChangeTenantMemberRoleFlow>().ShouldBeEmpty();
+        cut.FindComponents<RemoveTenantMemberFlow>().ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-remove-member-open']").ShouldBeEmpty();
+    }
+
     private void RegisterServices(TenantListSnapshot snapshot)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -7258,12 +7871,12 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     {
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
-                Detail("tenant.alpha"),
+            .Returns(call => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail(call.Arg<TenantDetailRequest>().TenantId),
                 ProjectionLifecycleState.Current,
                 "projection-v1")));
         gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha")) with
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId)) with
             {
                 ProjectionVersion = "projection-v1",
             }));
@@ -7966,6 +8579,15 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             return answer;
         }
 
+        public TenantMutationAuthorizationReflection MutationReflection { get; set; } = new(
+            TenantLifecycleAuthorizationReflectionState.Authorized, TenantLifecycleAuthorizationReflectionState.Authorized);
+
+        public Func<string, TenantDetail, CancellationToken, ValueTask<TenantMutationAuthorizationReflection>>? MutationResolver { get; set; }
+
+        public ValueTask<TenantMutationAuthorizationReflection> ResolveTenantMutationAuthorizationAsync(
+            string tenantId, TenantDetail detail, CancellationToken cancellationToken = default)
+            => MutationResolver?.Invoke(tenantId, detail, cancellationToken) ?? ValueTask.FromResult(MutationReflection);
+
         public ValueTask<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync(
             string tenantId,
             TenantStatus tenantStatus,
@@ -8387,7 +9009,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ["Tenants.RemoveMember.Refresh"] = "Refresh status",
             ["Tenants.RemoveMember.Cancel"] = "Cancel",
             ["Tenants.RemoveMember.Lifecycle.Title"] = "Remove member command lifecycle",
-            ["Tenants.RemoveMember.Unavailable.Narrow"] = "Member removal is unavailable on narrow layouts because the complete preview, risk context, and lifecycle must remain visible together. Widen the viewport or continue read-only.",
+            ["Tenants.RemoveMember.Unavailable.Narrow"] = "Removal is read-only until the browser measures a safe tablet or desktop viewport.",
             ["Tenants.RemoveMember.Unavailable.Freshness"] = "Refresh current tenant detail before removing a member.",
             ["Tenants.RemoveMember.Role.TenantOwner"] = "Tenant owner",
             ["Tenants.RemoveMember.Role.TenantContributor"] = "Tenant contributor",
@@ -8754,6 +9376,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ReadModelFreshnessState.Current,
             ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha") };
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -8795,6 +9422,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -8837,6 +9469,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), IsRefreshing = true };
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -9318,6 +9955,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 CultureInfo.CurrentUICulture = culture;
                 CultureInfo.CurrentCulture = culture;
                 IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
                     .Add(p => p.AuditProofCapabilityAvailable, true)
                     .Add(view => view.Detail, detail)
                     .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -9383,6 +10025,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         degraded.IsAuthorizationScopedEmpty.ShouldBeFalse();
 
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -9423,6 +10070,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -9468,6 +10120,11 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantDetail detail = Detail("tenant.alpha");
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(p => p.IsAddMemberAuthorized, true)
+            .Add(p => p.IsChangeRoleAuthorized, true)
+            .Add(p => p.IsRemoveMemberAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.AuditProofCapabilityAvailable, true)
             .Add(view => view.Detail, detail)
             .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)

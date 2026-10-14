@@ -35,6 +35,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -64,11 +67,13 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.IsAuthorized, false));
+            .Add(p => p.IsAuthorized, false)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.MissingPermission));
 
         cut.Find("[data-testid='tenants-edit-metadata-unavailable-reason']").TextContent.ShouldContain("not authorized", Case.Insensitive);
         cut.FindAll("[data-testid='tenants-edit-metadata-open']").ShouldBeEmpty();
@@ -91,6 +96,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description") with { Status = status })
             .Add(p => p.SurfaceKind, surfaceKind)
@@ -118,6 +126,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(new StubTenantCommandGateway());
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
@@ -135,6 +146,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -154,6 +168,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -185,6 +202,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -225,6 +245,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -285,6 +308,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         // proves the clear-to-null. The confirmed display must reflect the confirmed (empty) value,
         // never the still-populated ambient Detail.Description.
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Original description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -322,6 +348,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Original description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -363,6 +392,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -405,6 +437,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -460,6 +495,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -502,6 +540,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -541,6 +582,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -579,6 +623,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -618,6 +665,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -653,6 +703,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -686,6 +739,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -710,6 +765,7 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
             .Add(p => p.IsAuthorized, false)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.MissingPermission)
             .Add(p => p.ProjectionVersion, "projection-v1")
             .Add(p => p.ProjectionVersionProvider, () => proofProjectionVersion)
             .Add(p => p.ProjectionEvidenceProvider, request =>
@@ -739,6 +795,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -793,6 +852,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -840,6 +902,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -872,6 +937,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -908,6 +976,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -947,6 +1018,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -986,6 +1060,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1016,6 +1093,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1050,6 +1130,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1101,6 +1184,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1155,6 +1241,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
 
         int projectionRefreshRequestedCount = 0;
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1193,6 +1282,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1227,6 +1319,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1257,6 +1352,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1280,6 +1378,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1328,6 +1429,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
 
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1440,6 +1544,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         RegisterServices(gateway);
         int acquisitions = 0;
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1484,6 +1591,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1587,6 +1697,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1639,6 +1752,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         Services.AddTransient<ITenantCommandGateway>(_ => gatewayAvailable ? gateway : null!);
         int acquisitions = 0;
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1761,6 +1877,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         };
         RegisterServices(gateway);
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -1810,6 +1929,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
 
     private IRenderedComponent<EditTenantMetadataFlow> RenderEditableFlow()
         => RenderMetadata(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)

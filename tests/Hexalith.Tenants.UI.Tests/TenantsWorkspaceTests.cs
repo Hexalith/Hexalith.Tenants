@@ -54,6 +54,10 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddScoped<TenantCreateAttemptTracker>();
         Services.AddScoped(provider => provider.GetRequiredService<TenantCreateAttemptTracker>().Attempts);
         Services.AddLocalization();
+        var caller = Substitute.For<Hexalith.FrontComposer.Contracts.Rendering.IUserContextAccessor>();
+        caller.UserId.Returns("operator.alpha");
+        Services.AddSingleton(caller);
+
 #if HFC_ROUTE_OPTIONS
         Services.AddScoped<NavigationFailureNotifier>();
 #endif
@@ -889,12 +893,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_hosts_create_flow_in_a_collapsed_accordion_without_a_duplicate_title()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -917,12 +922,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Audit_return_restores_create_lifecycle_inside_expanded_accordion()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1174,12 +1180,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_allows_create_flow_only_for_authoritatively_empty_unknown_list()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1196,12 +1203,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_blocks_create_flow_for_ambiguous_unknown_list()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: false, ReadModelFreshnessState.Unknown)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1216,6 +1224,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_blocks_create_flow_for_non_empty_unknown_list()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Ready(
@@ -1227,7 +1236,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
                 isDegraded: false)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1242,12 +1251,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_blocks_create_flow_when_list_freshness_is_stale()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Stale)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1263,12 +1273,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_blocks_create_when_command_surface_is_disconnected()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(commandSurfaceConnected: false));
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized, commandSurfaceConnected: false));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1283,6 +1294,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_hands_the_create_flow_its_list_projection_baseline_and_absence_proof()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         // Pins the composition seam that carries the whole provenance guarantee. Dropping the
         // BaselineProjectionVersion binding, or returning a null version from the evidence provider,
         // leaves every component-level create test green while confirmation silently loses its baseline.
@@ -1294,7 +1306,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             }));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1337,6 +1349,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_blocks_create_when_the_projection_lifecycle_is_ambiguous()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         // Unknown freshness is only the "no first write yet" case when the projection itself is not
         // rebuilding, degraded, or unavailable.
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -1347,7 +1360,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
             }));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1362,12 +1375,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
     [Fact]
     public void Workspace_names_the_first_tenant_bootstrap_exception_when_create_stays_available()
     {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Unknown)));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1427,7 +1441,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         Services.AddSingleton(gateway);
         Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
@@ -1441,6 +1455,169 @@ public sealed class TenantsWorkspaceTests : BunitContext
         proof.ShouldBeSameAs(failure);
         proof.ShouldNotBeNull().Kind.ShouldBe(TenantListSurfaceKind.Error);
         _ = gateway.Received(1).ListTenantsAsync(Arg.Is<TenantListRequest>(request => request.ETag == null), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>Pending audit-return authority retains drafts and exact tracking; denial or caller change clears it.</summary>
+    [Theory]
+    [InlineData("authorized")]
+    [InlineData("denied")]
+    [InlineData("caller-changed")]
+    public async Task ReviewCreateAuditReturnWaitsForResolvedAuthority(string outcome)
+    {
+        var authentication = new MutableAuthenticationStateProvider(AdministratorPrincipal());
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        var pending = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int resolutions = 0;
+        ITenantQueryGateway reads = Substitute.For<ITenantQueryGateway>();
+        reads.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(true, ReadModelFreshnessState.Unknown)));
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        Services.AddSingleton(reads);
+        Services.AddSingleton(commands);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(resolver: () => ++resolutions == 1
+            ? new(pending.Task) : ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        TenantCreateCommandSnapshot previous = TenantCreateCommandSnapshot.Idle()
+            .RequestSent(new CreateTenant("tenant.alpha", "Submitted original name", "Submitted original description"), "tenant-sequence:1", true)
+            .Accepted(TenantCommandSubmissionResult.Accepted("original-return-message", "original-return-correlation"));
+        TenantCreateAuditReturnState retained = Services.GetRequiredService<TenantCreateAuditReturnState>();
+        retained.Remember(previous, "tenant.next-draft", "Draft retained name", "Draft retained description");
+        Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?auditFocus=tenants-create-lifecycle");
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
+        IRenderedComponent<Router> cut = Render<Router>(p => p
+            .Add(x => x.AppAssembly, typeof(TenantsWorkspace).Assembly)
+            .Add(x => x.Found, routeData => builder =>
+            {
+                builder.OpenComponent<RouteView>(0);
+                builder.AddAttribute(1, "RouteData", routeData);
+                builder.CloseComponent();
+            }));
+        cut.WaitForAssertion(() => resolutions.ShouldBe(1));
+        CreateTenantFlow initial = cut.FindComponent<CreateTenantFlow>().Instance;
+        initial.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        initial.IsAuthorized.ShouldBeFalse();
+        object? held = typeof(TenantCreateAuditReturnState).GetField("_pending", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(retained);
+        held.ShouldNotBeNull();
+        held.GetType().GetField("Item1")!.GetValue(held).ShouldBeSameAs(previous);
+        held.GetType().GetField("Item2")!.GetValue(held).ShouldBe("tenant.next-draft");
+        held.GetType().GetField("Item3")!.GetValue(held).ShouldBe("Draft retained name");
+        held.GetType().GetField("Item4")!.GetValue(held).ShouldBe("Draft retained description");
+        if (outcome is "caller-changed")
+        {
+            Services.GetRequiredService<Hexalith.FrontComposer.Contracts.Rendering.IUserContextAccessor>().UserId.Returns("operator.next");
+            await cut.InvokeAsync(() => authentication.Set(new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "operator.next"), new Claim("global_admin", "true"), new Claim("eventstore:tenant", "system")], "test"))));
+            typeof(TenantCreateAuditReturnState).GetField("_pending", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(retained).ShouldBeNull();
+        }
+        pending.SetResult(outcome is "denied" ? TenantLifecycleAuthorizationReflectionState.MissingPermission : TenantLifecycleAuthorizationReflectionState.Authorized);
+        if (outcome is "authorized")
+        {
+            cut.WaitForAssertion(() => cut.FindComponent<CreateTenantFlow>().Instance.Snapshot.MessageId.ShouldBe(previous.MessageId));
+            CreateTenantFlow restored = cut.FindComponent<CreateTenantFlow>().Instance;
+            restored.Snapshot.CorrelationId.ShouldBe(previous.CorrelationId);
+            restored.Snapshot.Intent.ShouldBe(previous.Intent);
+            restored.Snapshot.State.ShouldBe(previous.State);
+            cut.Find("[data-testid='tenants-create-tenant-id']").GetAttribute("value").ShouldBe("tenant.next-draft");
+            cut.Find("[data-testid='tenants-create-name']").GetAttribute("value").ShouldBe("Draft retained name");
+            cut.FindComponents<FluentTextArea>().Single(area => area.Instance.Name == "tenant-description").Instance.Value.ShouldBe("Draft retained description");
+        }
+        else
+        {
+            cut.WaitForAssertion(() => typeof(TenantCreateAuditReturnState).GetField("_pending", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(retained).ShouldBeNull());
+            cut.FindComponent<CreateTenantFlow>().Instance.Snapshot.MessageId.ShouldBeNull();
+            cut.Find("[data-testid='tenants-create-name']").GetAttribute("value").ShouldNotBe("Draft retained name");
+        }
+        commands.ReceivedCalls().ShouldBeEmpty();
+    }
+
+    /// <summary>Authoritative empty Unknown freshness never substitutes for resolved GA authority.</summary>
+    [Theory]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.MissingPermission)]
+    [InlineData(TenantLifecycleAuthorizationReflectionState.Indeterminate)]
+    public async Task LiveWorkspaceCreateRefusesUnprovenAuthorityEvenForFirstTenant(TenantLifecycleAuthorizationReflectionState authority)
+    {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        ITenantQueryGateway reads = Substitute.For<ITenantQueryGateway>();
+        reads.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(true, ReadModelFreshnessState.Unknown)));
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        Services.AddSingleton(reads);
+        Services.AddSingleton(commands);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(authority));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        IRenderedComponent<CreateTenantFlow> create = cut.FindComponent<CreateTenantFlow>();
+        cut.WaitForAssertion(() => create.Instance.AuthorizationReflection.ShouldBe(authority));
+        create.Instance.IsFirstTenantBootstrap.ShouldBeTrue();
+        create.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+        create.Find("[data-testid='tenants-create-tenant-id']").Change("first-literal-tenant");
+        create.Find("[data-testid='tenants-create-name']").Change("First tenant");
+        await create.Find("form").SubmitAsync();
+        commands.ReceivedCalls().ShouldBeEmpty();
+        create.Find("[data-testid='tenants-create-unavailable-reason']").TextContent.ShouldContain(authority is TenantLifecycleAuthorizationReflectionState.MissingPermission
+            ? "not authorized" : "could not be verified");
+    }
+
+    /// <summary>The resolved GA first-tenant path dispatches once with unchanged exact-attempt semantics.</summary>
+    [Fact]
+    public async Task LiveWorkspaceResolvedGlobalAdministratorCreatesAuthoritativeFirstTenant()
+    {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        ITenantQueryGateway reads = Substitute.For<ITenantQueryGateway>();
+        reads.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(true, ReadModelFreshnessState.Unknown)));
+        reads.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantDetailSnapshot.NotFound("first-literal-tenant")));
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.CreateTenantAsync(Arg.Any<CreateTenant>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "first-tracking")));
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true)));
+        Services.AddSingleton(reads);
+        Services.AddSingleton(commands);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        IRenderedComponent<CreateTenantFlow> create = cut.FindComponent<CreateTenantFlow>();
+        cut.WaitForAssertion(() => create.Instance.IsAuthorized.ShouldBeTrue());
+        create.Instance.IsFirstTenantBootstrap.ShouldBeTrue();
+        create.Find("[data-testid='tenants-create-tenant-id']").Change("first-literal-tenant");
+        create.Find("[data-testid='tenants-create-name']").Change("First tenant");
+        await create.Find("form").SubmitAsync();
+        _ = commands.Received(1).CreateTenantAsync(Arg.Is<CreateTenant>(request => request.TenantId == "first-literal-tenant"), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        create.Instance.Snapshot.MessageId.ShouldNotBeNullOrWhiteSpace();
+        create.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        create.Instance.Snapshot.CorrelationId.ShouldBe("first-tracking");
+    }
+
+    /// <summary>A superseded caller lookup cannot turn create back on after a newer refusal.</summary>
+    [Fact]
+    public async Task LiveWorkspaceIgnoresSupersededCreateAuthority()
+    {
+        var authentication = new MutableAuthenticationStateProvider(AdministratorPrincipal());
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        var old = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int resolutions = 0;
+        ITenantQueryGateway reads = Substitute.For<ITenantQueryGateway>();
+        reads.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(true, ReadModelFreshnessState.Unknown)));
+        Services.AddSingleton(reads);
+        Services.AddSingleton<ITenantCommandGateway>(Substitute.For<ITenantCommandGateway>());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(resolver: () => ++resolutions == 1
+            ? new(old.Task) : ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.MissingPermission)));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForAssertion(() => resolutions.ShouldBe(1));
+        cut.FindComponent<CreateTenantFlow>().Instance.IsAuthorized.ShouldBeFalse();
+        await cut.InvokeAsync(() => authentication.Set(NonAdministratorPrincipal()));
+        cut.WaitForAssertion(() => cut.FindComponent<CreateTenantFlow>().Instance.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission));
+        old.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        cut.FindComponent<CreateTenantFlow>().Instance.IsAuthorized.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
     }
 
     private static UserTenantMembershipRow MembershipRow(string tenantId, string name, TenantRole role)

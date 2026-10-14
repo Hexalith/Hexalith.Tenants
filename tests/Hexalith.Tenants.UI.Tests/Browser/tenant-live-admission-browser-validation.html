@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Measured tenant removal admission</title>
+    <link rel="stylesheet" href="./fluent-ui.css">
+    <link rel="stylesheet" href="./tenant-remove-member.css">
+</head>
+<body>
+    <output id="validation-report">RUNNING</output>
+    <section id="surface"></section>
+    <script type="module">
+        const parameters = new URLSearchParams(location.search);
+        const culture = parameters.get('culture') || 'en';
+        document.documentElement.lang = culture;
+        const report = document.getElementById('validation-report');
+        const delay = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+        const fail = message => { throw new Error(message); };
+        try {
+            const fluent = await import('./fluent-ui.js');
+            fluent.beforeStart(document, 'web');
+            await customElements.whenDefined('fluent-button');
+            if (parameters.get('frame') === 'true') {
+                const module = parameters.get('mutation') === 'true' ? './fc-layout-breakpoints-stuck.js' : './fc-layout-breakpoints.js';
+                const breakpoints = await import(module);
+                const subscription = breakpoints.subscribe({
+                    invokeMethodAsync(name, tier) {
+                        if (name !== 'OnViewportTierChangedAsync') fail('Unexpected viewport callback');
+                        parent.postMessage({ kind: 'measured-tier', tier }, location.origin);
+                        return Promise.resolve();
+                    }
+                });
+                addEventListener('message', event => {
+                    if (event.origin === location.origin && event.data.kind === 'dispose-observer') breakpoints.unsubscribe(subscription);
+                });
+            } else {
+                const states = {};
+                for (const state of ['unknown', 'safe', 'resized']) {
+                    const response = await fetch(`./tenant-live-removal-${state}-${culture}.html`);
+                    if (!response.ok) fail('Actual localized removal fixture unavailable');
+                    states[state] = await response.text();
+                }
+                let lastTier;
+                let emissions = 0;
+                const frame = document.createElement('iframe');
+                frame.width = '1024';
+                frame.height = '800';
+                frame.title = 'Browser measured removal viewport';
+                addEventListener('message', event => {
+                    if (event.origin === location.origin && event.source === frame.contentWindow && event.data.kind === 'measured-tier') {
+                        lastTier = event.data.tier;
+                        emissions++;
+                    }
+                });
+                frame.src = `./tenant-live-admission-browser-validation.html?frame=true&culture=${culture}&mutation=${parameters.get('mutation') || 'false'}`;
+                document.body.append(frame);
+                const awaitTier = async tier => {
+                    for (let attempt = 0; attempt < 40; attempt++) {
+                        if (lastTier === tier) return;
+                        await delay(20);
+                    }
+                    fail(`Measured viewport did not emit tier ${tier}`);
+                };
+                await awaitTier(2);
+                const surface = frame.contentDocument.getElementById('surface');
+                const render = markup => {
+                    surface.innerHTML = markup;
+                    if (surface.textContent.includes('Tenants.RemoveMember.') || surface.textContent.includes('correlation-')) fail('Visible resource key or internal tracking leaked');
+                    if (!surface.querySelector('[data-testid="tenants-remove-member-lifecycle"]') || !surface.querySelector('[data-testid="tenants-remove-member-audit"]')) fail('Lifecycle or audit evidence collapsed');
+                };
+                const confirmation = () => surface.querySelector('[data-testid="tenants-remove-member-confirm"]');
+                render(states.unknown);
+                if (!confirmation()?.hasAttribute('disabled')) fail('Unmeasured Unknown admitted removal');
+                const reason = surface.querySelector('[data-testid="tenants-remove-member-unavailable-reason"]');
+                if (!reason?.textContent.trim() || reason.getAttribute('role') !== 'alert') fail('Unmeasured refusal lacks an accessible localized reason');
+                render(states.safe);
+                if (confirmation()?.hasAttribute('disabled') || !surface.querySelector('[data-testid="tenants-remove-member-preview"]')) fail('Measured safe complete preview unavailable');
+                frame.width = '767';
+                frame.getBoundingClientRect();
+                await new Promise(resolve => frame.contentWindow.requestAnimationFrame(resolve));
+                await awaitTier(0);
+                render(states.resized);
+                if (!confirmation()?.hasAttribute('disabled')) fail('Resized Phone admitted removal');
+                const form = surface.querySelector('form');
+                if (frame.contentWindow.getComputedStyle(form).display !== 'none') fail('Phone confirmation form remained visible');
+                const lifecycle = surface.querySelector('[data-testid="tenants-remove-member-lifecycle"]');
+                if (frame.contentWindow.getComputedStyle(lifecycle).display === 'none') fail('Phone hid retained lifecycle evidence');
+                frame.width = '768';
+                frame.getBoundingClientRect();
+                await new Promise(resolve => frame.contentWindow.requestAnimationFrame(resolve));
+                await awaitTier(1);
+                render(states.safe);
+                if (confirmation()?.hasAttribute('disabled') || frame.contentWindow.getComputedStyle(surface.querySelector('form')).display === 'none') fail('Measured Tablet boundary did not restore complete preview');
+                const cancel = surface.querySelector('[data-testid="tenants-remove-member-cancel"]');
+                cancel.focus();
+                if (frame.contentDocument.activeElement !== cancel) fail('Read-only escape is not focusable');
+                const count = emissions;
+                frame.contentWindow.postMessage({ kind: 'dispose-observer' }, location.origin);
+                await delay(30);
+                frame.width = '390';
+                await delay(80);
+                if (emissions !== count) fail('Disposed viewport observer emitted again');
+                document.documentElement.dataset.validationStatus = 'passed';
+                report.textContent = `actual-rendered-${culture}-unknown-safe-resized; shipped-matchMedia-1024-767-768; lifecycle-audit-retained; cancel-focus; observer-unsubscribed`;
+            }
+        } catch (error) {
+            document.documentElement.dataset.validationStatus = 'failed';
+            report.textContent = `FAIL ${error.message}`;
+        }
+    </script>
+</body>
+</html>
