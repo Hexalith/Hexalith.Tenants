@@ -1,0 +1,128 @@
+{
+  "utc": "2026-10-14T12:09:41.926994+00:00",
+  "repositories": {
+    "tenants": {
+      "head": "23aeb38f9784cd67b3c2fa66fe1c007799df6826",
+      "branch": "main",
+      "status": "# branch.oid 23aeb38f9784cd67b3c2fa66fe1c007799df6826\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +1 -0",
+      "index_diff": "",
+      "working_diff": "",
+      "remotes": "origin\thttps://github.com/Hexalith/Hexalith.Tenants.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.Tenants.git (push)",
+      "recent_history": "23aeb38f9784cd67b3c2fa66fe1c007799df6826 feat(recovery): close DW-499/DW-502 with bounded local evidence; update release readiness assessment\n5792099d432df44eb84aecee4b7b629b53f60957 fix: update Hexalith.EventStore submodule to dirty state\nd6c82d667d3448f2111c15c0c0e8a2bcba95e399 feat(eventstore): add command recovery integrity specification and entry state tracking\nb58da5f0846c0c78ccfc71c82052056fca0f44f5 fix: update submodule reference for Hexalith.Memories\n91faf19d8a3e9f254596363330a9130a970f4875 feat: add B7 validation evidence, entry state, and live admission spec\n7ad54431996f9f1f0d277005eb2a73b67b55fea6 fix(audit): enhance tenant command gateway failure handling and audit identifier safety\na5de755d204f5adeda60f883834fe8bf0075f261 feat(tests): add integration and telemetry tests for tenant audit and error handling\na8c18a6e435280eb56b866cc4693683716e81ee4 feat(audit): implement tenant audit query payload and system audit reader",
+      "dependencies": {
+        "references/Hexalith.AI.Tools": {
+          "recorded": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+          "checked_out": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+          "initialized": true
+        },
+        "references/Hexalith.Builds": {
+          "recorded": "9f0121c77e3f085c58f5c926057606db8e6511a7",
+          "checked_out": "9f0121c77e3f085c58f5c926057606db8e6511a7",
+          "initialized": true
+        },
+        "references/Hexalith.Commons": {
+          "recorded": "b247ed116c6523f8c596ec0a933eff8973d11568",
+          "checked_out": "b247ed116c6523f8c596ec0a933eff8973d11568",
+          "initialized": true
+        },
+        "references/Hexalith.EventStore": {
+          "recorded": "24d719292b06d8a9d09771d837f8dd4d8d9b8997",
+          "checked_out": "24d719292b06d8a9d09771d837f8dd4d8d9b8997",
+          "initialized": true
+        },
+        "references/Hexalith.FrontComposer": {
+          "recorded": "0e151a139d178c1f5d90df50ee3d066ce4d4f35a",
+          "checked_out": "0e151a139d178c1f5d90df50ee3d066ce4d4f35a",
+          "initialized": true
+        },
+        "references/Hexalith.McpCli": {
+          "recorded": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+          "checked_out": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+          "initialized": true
+        },
+        "references/Hexalith.Memories": {
+          "recorded": "e864054d518021ba4a7870f42c07e9101178dd2f",
+          "checked_out": "e864054d518021ba4a7870f42c07e9101178dd2f",
+          "initialized": true
+        },
+        "references/Hexalith.Platform": {
+          "recorded": "8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb",
+          "checked_out": "8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb",
+          "initialized": true
+        },
+        "references/Hexalith.PolymorphicSerializations": {
+          "recorded": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+          "checked_out": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+          "initialized": true
+        }
+      }
+    },
+    "eventstore": {
+      "head": "24d719292b06d8a9d09771d837f8dd4d8d9b8997",
+      "branch": "main",
+      "status": "# branch.oid 24d719292b06d8a9d09771d837f8dd4d8d9b8997\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +1 -1",
+      "index_diff": "",
+      "working_diff": "",
+      "remotes": "origin\thttps://github.com/Hexalith/Hexalith.EventStore.git (fetch)\norigin\thttps://github.com/Hexalith/Hexalith.EventStore.git (push)",
+      "recent_history": "24d719292b06d8a9d09771d837f8dd4d8d9b8997 feat(tests): enhance idempotency and recovery tests with improved diagnostics and state management\n34c97acf9812c30ff610398baf3e00c9c9ed6c19 feat: add terminal advisory intent and repair mechanisms\n173ad7f4e56a72f44621c7d3d7be86a5ec19dc03 build: merge fix/story-3-6-public-routes into main via /pushall\n21b34c01ec919769cfba9cfe0d47e50886b57ded fix(tests): stabilize P1R successor CI fixtures\n93982b4e1fe312169c57e2735c90be24b49460fb fix: update expected domain list in diagnostics registry test\n2a7b80a4ec639bdba7ff8acc74cacb4f8880b24c test: cover human receipt in Dapr invocation\n8b49ff9b3b9c59663afc66783bfd0ceca370dd09 fix: verify stream-read payload integrity and version\nfb6263de13511e3e2aa81cbae2427f1d9fed5c0f feat: enhance snapshot management and event processing",
+      "dependencies": {
+        "references/Hexalith.AI.Tools": {
+          "recorded": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+          "checked_out": null,
+          "initialized": false
+        },
+        "references/Hexalith.Builds": {
+          "recorded": "608c164c3637240fed2dd92dbfdaaf581ba9846d",
+          "checked_out": null,
+          "initialized": false
+        },
+        "references/Hexalith.Commons": {
+          "recorded": "b247ed116c6523f8c596ec0a933eff8973d11568",
+          "checked_out": null,
+          "initialized": false
+        },
+        "references/Hexalith.FrontComposer": {
+          "recorded": "99d31edac062e251cb3a90fe2de5f9a92a24a3ab",
+          "checked_out": null,
+          "initialized": false
+        },
+        "references/Hexalith.McpCli": {
+          "recorded": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+          "checked_out": null,
+          "initialized": false
+        },
+        "references/Hexalith.Memories": {
+          "recorded": "0281b30fb2618668efa9b8904afc75e18820eed8",
+          "checked_out": null,
+          "initialized": false
+        },
+        "references/Hexalith.Platform": {
+          "recorded": "977f2e01347226ac727b707aee4f140f5dc8b010",
+          "checked_out": null,
+          "initialized": false
+        },
+        "references/Hexalith.PolymorphicSerializations": {
+          "recorded": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+          "checked_out": null,
+          "initialized": false
+        },
+        "references/Hexalith.Tenants": {
+          "recorded": "bd81ec6e63acdc2301eb82562eed184813f3c808",
+          "checked_out": null,
+          "initialized": false
+        }
+      }
+    }
+  },
+  "protected_artifacts": {
+    "_bmad-output/implementation-artifacts/deferred-work-archive.md": "482f1e50042a119738b44f290a3bc621409da13f783b6ebd0f9167e8de047adb",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml": "8c7dd8eab8027c0455c27decbfc6c08be8d472e8a2a276a74be8f1b5a9a93fc7",
+    "_bmad-output/implementation-artifacts/b7-validation-evidence.md": "b6afd4629804e8bf0520b60329d1c8688d62508c95eb17e8f51fbeaa59a699be",
+    "_bmad-output/implementation-artifacts/b8-entry-state.json": "e41b7bcc8a748652289ee3a650c862c6f897594d289a8873008ed3a187f69b58",
+    "_bmad-output/implementation-artifacts/b7-command-results.json": "c54abe40038be5b46a1af08a37fa9ca054b2ef427c1cc74954cdf944169c53fd",
+    "_bmad-output/implementation-artifacts/b6-validation-evidence.md": "f035955aa57f41699055897bade4a5b5cdb4a0f59ca902c97aadc26b6656a93f",
+    "_bmad-output/implementation-artifacts/b8-validation-evidence.md": "491adbdf7a81eae16d53156f794fa46773824c01b73ca48e79f4a5b8849bcfe1",
+    "_bmad-output/implementation-artifacts/b8-command-results.json": "0e71e0ebd9b67e8e9ead82cff7582bcd0a91a782dd6f5e7899de5066f8e37e34",
+    "_bmad-output/implementation-artifacts/b7-entry-state.json": "ef2342db7340cac405c524f30b003c2f76ee8a115300dc11a8550827bc751dec"
+  }
+}
