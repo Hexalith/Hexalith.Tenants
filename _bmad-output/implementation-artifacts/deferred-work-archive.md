@@ -4251,3 +4251,101 @@ resolution: Release blocker B1 closed in the working tree over Tenants 2638d7f8e
 resolution-evidence: [B1 remediation evidence](release-readiness.md#b1-remediation-evidence-2026-10-12); Release build, 881 Server tests, 182 Testing tests, 187 non-performance integration tests and configured 100% isolation/auth coverage gate passed with no failures/skips.
 
 
+### DW-315: `TenantCommandGateway.BoundSafeFailureReason` returns most backend failure text verbatim
+origin: deferred from code review of spec-3-4-disable-or-enable-tenant-with-complete-preview, 2026-08-25
+location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:1034-1041
+source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
+reason: The existing sanitizer replaces values only when a short marker denylist matches; every other backend failure reason is returned verbatim, truncated to 160 characters. A backend detail or secret outside that marker list could therefore reach command UI. Replacing the denylist with an allow-listed support-safe mapping is shared gateway hardening beyond the focused lifecycle patch.
+status: done 2026-10-13
+archived: 2026-10-14
+pre-b5-status: open
+disposition: done
+pre-b5-disposition: actionable
+verification-date: 2026-10-13
+pre-b5-verification-date: 2026-10-12
+verification: Reverified current source at 8216f9927700e39d67b2235ed83a4dbcef03d35a: BoundSafeFailureReason is already replaced by exact case-sensitive ConcurrencyConflict/BackpressureExceeded/DomainRejected code-to-resource mapping and fixed unknown/status fallbacks. Completed B5 regressions prove arbitrary details, secrets, encoded text and code near misses cannot reach DOM, live regions, serialized evidence or clipboard in EN/FR; non-default commit/rejection evidence remains intact. Final maintained UI 4765/4765 and integration 189/189 pass; exact commands, initial failures, review and limits: release-readiness.md#b5-remediation-evidence-2026-10-13.
+pre-b5-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs BoundSafeFailureReason still returns the first 160 backend characters unless a short denylist marker matches; most arbitrary backend strings therefore reach SafeMessage.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
+evidence-kind: verified-defect
+priority: P1
+owner: unassigned
+dependencies: shared failure contract
+next-action: None; B5 closure proven. Preserve remaining localization, runtime/AT qualifications and unrelated support-policy work.
+pre-b5-next-action: Use a support-safe allowlisted code/key mapping and prove unknown backend text cannot render.
+closure-evidence: release-readiness.md#b5-remediation-evidence-2026-10-13
+related: DW-234
+
+### DW-441: Move typed audit identifiers from a deny-list to an allow-listed character set with a confusable-skeleton check.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-28)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Move typed audit identifiers from a deny-list to an allow-listed character set with a confusable-skeleton check.\n  evidence: Decision D5 (2026-09-28): stop adding characters one at a time; this was the seventh round. `TenantAuditSupportSafety.IsSafe` still admits phone numbers written with `.`, `/`, `tel:` or a leading space (`202.555.0100`); a fullwidth `％40` (NFKC turns it into `%40` only after the `%` check); and the dividers U+2503, U+275A, U+01C0, U+23D0, U+204F and U+061B. These values can reach the grid target, the receipt and the copied summary."
+status: done 2026-10-13
+archived: 2026-10-14
+pre-b5-status: open
+disposition: done
+pre-b5-disposition: actionable
+verification-date: 2026-10-13
+pre-b5-verification-date: 2026-10-12
+verification: Reverified current source at 8216f9927700e39d67b2235ed83a4dbcef03d35a: typed UserId character allowlist, compatibility normalization before repeated percent decoding, confusable skeleton, dotted/slashed/tel/leading-space phone detection and all six recorded dividers are already implemented. Completed B5 EN/FR regressions inspect raw/decoded/normalized representations through mapped/direct grids and receipts, real clipboard invocations and live regions; unsafe summaries refuse safely, while approved literal user/non-user contracts remain exact. Final boundary 227/227, audit safety 54/54 and maintained UI 4765/4765 pass; commands, review and limits: release-readiness.md#b5-remediation-evidence-2026-10-13.
+pre-b5-verification: State/TenantAudit/TenantAuditSupportSafety.cs::IsSafe still uses fragment/character deny-lists; its percent check occurs before FormKC normalization, ContainsFieldBoundary omits the listed confusable dividers, and LooksLikePhoneNumber permits only +/dash/parentheses/spaces for detection, so dotted/slashed/tel-prefixed numbers bypass it. These approved identifiers feed audit row/receipt display. The recorded 2026-09-28 D5 decision already approved allow-listed characters plus confusable skeleton handling.
+verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditSupportSafety.cs
+evidence-kind: verified-defect
+priority: P1
+owner: unassigned
+dependencies: Preserve approved D5 and literal identifier contract; no new policy request
+next-action: None; B5 closure proven. Preserve remaining localization, runtime/AT qualifications and unrelated support-policy work.
+pre-b5-next-action: Implement the approved shared identifier allowlist/confusable policy and add regressions for every listed dotted-phone, fullwidth-percent, and divider shape.
+closure-evidence: release-readiness.md#b5-remediation-evidence-2026-10-13
+related: DW-438
+
+
+### DW-626: Separate or safely merge the system tenant audit stream and global-administrator audit stream.
+
+origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 review pass 3 (2026-10-11)"), 2026-10-12
+location: n/a
+source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: Separate or safely merge the system tenant audit stream and global-administrator audit stream.\n  evidence: Both projection handlers write `audit:system`; the global handler saves a full rebuild while the tenant handler merges its own aggregate history. A tenant aggregate named `system` can lose audit rows when global history replays. This storage collision predates Story 5.7."
+status: done 2026-10-13
+archived: 2026-10-14
+disposition: done
+verification-date: 2026-10-13
+verification: Separated system-tenant and global audit writers use disjoint keys and guarded evidence-preserving merges. Immutable legacy compatibility validates exact ownership, provenance conflicts and ambiguous combined references; explicit owner reads preserve evidence. Persisted order/replay/duplicate/existing-record and read regressions, independent review and final maintained checks prove this source defect closed. Exact commands, initial failures, external Git movement and remaining limits: b6-validation-evidence.md and release-readiness.md B6 evidence.
+evidence-kind: verified-defect
+priority: P2
+owner: unassigned
+dependencies: Read-model key namespace migration/compatibility
+next-action: B6 source remediation is complete; follow documented rollout prerequisites before any separately authorized replay. B7 and unresolved decisions remain open.
+related: DW-628
+pre-b6-verification-date: 2026-10-12
+pre-b6-verification: GlobalAdministratorProjectionHandler.SaveAsync writes full audit:system; TenantProjectionHandler merges audit:+AggregateId. CreateTenant accepts envelope.AggregateId=system with no reserved-name guard, so a system tenant stream collides and global rebuild can overwrite its audit rows.
+pre-b6-next-action: Separate or safely merge tenant-system and global-administrator audit streams with replay regression coverage.
+
+
+### DW-628: unverified medium; the documented global-administrator projection replay is the trigger for the existing `audit:system` collision entry above ("Separate or safely merge the system tenant audit stream…"). Owner: Tenants global-administrator projection and rollout docs.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, review-fix range `362a957d..4f0abcae` (2026-10-11)"), 2026-10-12
+location: docs/event-contract-reference.md
+source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: unverified medium; the documented global-administrator projection replay is the trigger for the existing `audit:system` collision entry above (\"Separate or safely merge the system tenant audit stream…\"). Owner: Tenants global-administrator projection and rollout docs.\n  evidence: `docs/event-contract-reference.md:127` tells operators to rebuild the `system` / `global-administrators` singleton from history. One `ProjectAsync` run also saves `audit:system` as a full rebuild, which can drop rows written by the tenant handler if a tenant aggregate is named `system`. To settle: confirm whether a tenant aggregate can be named `system`. If it can, add a precondition warning to the rollout paragraph or separate the two streams."
+status: done 2026-10-13
+archived: 2026-10-14
+disposition: done
+verification-date: 2026-10-13
+verification: Reverified that the previous singleton replay instruction could overwrite a valid literal system tenant audit. Compatible separated storage/read behavior is implemented and verified; event-contract-reference.md and audit-stream-rollout.md require stopping old writers, immutable backups, complete owner histories, ambiguity resolution and replay serialization before separately authorized replay. No production replay or migration ran. Exact validation and external provenance limits: b6-validation-evidence.md.
+verification-files: docs/event-contract-reference.md
+evidence-kind: verified-defect
+priority: P2
+owner: Tenants global-administrator projection and rollout docs
+dependencies: DW-626 storage separation/rebuild plan
+next-action: B6 source remediation is complete; follow documented rollout prerequisites before any separately authorized replay. B7 and unresolved decisions remain open.
+related: DW-626
+pre-b6-verification-date: 2026-10-12
+pre-b6-verification: event-contract-reference.md:127 still prescribes global singleton replay; GlobalAdministratorProjectionHandler also overwrites audit:system. TenantAggregate.Handle(CreateTenant) allows system as supplied aggregate identity, establishing the collision precondition left unverified originally.
+pre-b6-next-action: Document the safe replay precondition and complete the audit-stream separation plan before applying it to affected installations.
+
+
