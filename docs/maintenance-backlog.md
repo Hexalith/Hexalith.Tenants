@@ -16,20 +16,22 @@ Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependen
 
 **B7 update (2026-10-14):** DW-195/DW-206/DW-235/DW-264 are closed over clean entry `7ad54431996f9f1f0d277005eb2a73b67b55fea6`. Current scoped BFF authority, measured removal viewport and submission/retry/stale-result guards pass parent/direct regressions and independent review. Maintained individual-project, browser, integration, package-consumer and unchanged coverage gates are recorded in [B7 evidence](../_bmad-output/implementation-artifacts/b7-validation-evidence.md). Only four ledger entries and four action rows close; historical findings, B1–B6 evidence, unrelated rows, archive, sprint, dependencies and decisions remain preserved. The inherited story-gitlink provenance blocker and release qualification holds remain.
 
+**B8 update (2026-10-14):** DW-499/DW-502 are closed in the owning EventStore source over entry `173ad7f4e56a72f44621c7d3d7be86a5ec19dc03`, preserving external EventStore `34c97acf9812c30ff610398baf3e00c9c9ed6c19` and Tenants commits/dependency movements. Durable exact terminal repair and pre-publication persisted evidence verification pass fault/end-state regressions and independent review. [Exact B8 validation and limits](../_bmad-output/implementation-artifacts/b8-validation-evidence.md) records individual projects, package consumers, unchanged coverage and focused source compatibility, including blocked nested-layout lanes and provenance failures. Only these two ledger entries and index rows close; B1–B7 history, unrelated records, archive, sprint and decisions are preserved. Release remains not ready.
+
 All 439 requested records were reconciled: 152 marked-open DW entries plus 287 previously unnumbered records, now DW-357–DW-643. Original findings and resolution history are retained, including lossless JSON `legacy-detail` for migrated records. Duplicate references share an index row; they remain separate ledger records.
 
 | Disposition | Records |
 | --- | ---: |
-| done | 112 |
-| actionable | 239 |
+| done | 114 |
+| actionable | 237 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 38 |
 
-**Remaining: 327 open records across 291 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 325 open records across 289 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
-**Next selected bundle:** EventStore command-recovery integrity (DW-499/DW-502), with its owning recovery/quarantine contracts. DW-517 remains a separate platform secret-scan qualification item; the remaining index retains its recorded priorities and decisions.
+**Next selected bundle:** DW-517, the separate EventStore secret-scan qualification item. DW-499/DW-502 are closed by bounded B8 recovery evidence; the remaining index retains its recorded priorities and decisions.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -43,8 +45,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | --- | --- | --- | --- | --- | --- |
 | DW-428 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Require an attached intended branch or retain/merge the exact detached commit before default-branch push; add a procedure fixture for dirty detached HEAD. |
 | DW-429 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Resolve the remote default first, validate its branch/ref, and handle missing or ambiguous remote-default evidence explicitly. |
-| DW-499 | P1 | Defect / actionable | Hexalith.EventStore | EventStore terminal-status recovery design | Design and test durable repair of terminal advisory status using the original command event range, including failed write/crash and exact-duplicate cases. |
-| DW-502 | P1 | Defect / actionable | Hexalith.EventStore | EventStore quarantine/recovery contract | Add a platform-owned rejection/quarantine path for unverifiable resume ranges and persisted-evidence-preserving tests before pub/sub invocation. |
 | DW-437, DW-451, DW-534 | P1 | Gap / actionable | unassigned | Story attribution must avoid including unrelated later pointer updates; DW-437 CI gate and story attribution; DW-198 historical story-range selection; DW-520 declaration format | Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling. |
 | DW-517 | P1 | Gap / actionable | Hexalith.EventStore | EventStore secret-guard evidence-retirement governance | Restore content scanning for these textual evidence paths or bind each approved retirement to verified content with injected-secret negative controls. |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |

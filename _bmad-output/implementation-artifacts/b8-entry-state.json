@@ -137,5 +137,143 @@
     "subject": "fix: update submodule reference for Hexalith.Memories",
     "observation": "Arrived after initial read-only inspection, before snapshot. Preserved as inherited external work; no agent Git mutation.",
     "diff": "commit b58da5f0846c0c78ccfc71c82052056fca0f44f5\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 11:14:00 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 11:14:00 2026 +0200\n\n    fix: update submodule reference for Hexalith.Memories\n\n references/Hexalith.Memories | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)\n"
-  }
+  },
+  "external_movements_during_validation": {
+    "observed_utc": "2026-10-14T10:32:42.674779+00:00",
+    "tenants_head": "5792099d432df44eb84aecee4b7b629b53f60957",
+    "eventstore_head": "34c97acf9812c30ff610398baf3e00c9c9ed6c19",
+    "tenants_history_since_snapshot": "commit 5792099d432df44eb84aecee4b7b629b53f60957\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 12:01:49 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 12:01:49 2026 +0200\n\n    fix: update Hexalith.EventStore submodule to dirty state\n\ncommit d6c82d667d3448f2111c15c0c0e8a2bcba95e399\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 12:00:45 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 12:00:45 2026 +0200\n\n    feat(eventstore): add command recovery integrity specification and entry state tracking\n    \n    - Introduced a new JSON file `b8-entry-state.json` to track the state of tenants and event store dependencies.\n    - Created a markdown specification `spec-b8-eventstore-command-recovery.md` detailing the intent, boundaries, and tasks for repairing command recovery integrity in the EventStore.\n    - Specified expected behaviors for various edge cases in command recovery.\n    - Outlined implementation notes and verification steps for the new features.",
+    "eventstore_history_since_snapshot": "commit 34c97acf9812c30ff610398baf3e00c9c9ed6c19\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 12:01:41 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 12:01:41 2026 +0200\n\n    feat: add terminal advisory intent and repair mechanisms\n    \n    - Introduced `TerminalAdvisoryIntent` record for managing retryable terminal advisories.\n    - Created `TerminalAdvisoryRepairEntry` for tracking reminder registration of terminal advisories.\n    - Implemented `TerminalAdvisoryRepairIndex` for fixed-key discovery of terminal advisories.\n    - Added tests for command recovery integrity, including various scenarios for terminal advisory handling.\n    - Introduced `CommandRecoveryEvent` and `CommandRecoveryRejectionEvent` for event payloads related to command recovery.",
+    "tenants_gitlink_diff": "diff --git a/references/Hexalith.Builds b/references/Hexalith.Builds\nindex 9b44fedd..9f0121c7 160000\n--- a/references/Hexalith.Builds\n+++ b/references/Hexalith.Builds\n@@ -1 +1 @@\n-Subproject commit 9b44fedd0017d42ee1b3e887730ab667046bda4d\n+Subproject commit 9f0121c77e3f085c58f5c926057606db8e6511a7\ndiff --git a/references/Hexalith.EventStore b/references/Hexalith.EventStore\nindex 173ad7f4..34c97acf 160000\n--- a/references/Hexalith.EventStore\n+++ b/references/Hexalith.EventStore\n@@ -1 +1 @@\n-Subproject commit 173ad7f4e56a72f44621c7d3d7be86a5ec19dc03\n+Subproject commit 34c97acf9812c30ff610398baf3e00c9c9ed6c19\ndiff --git a/references/Hexalith.FrontComposer b/references/Hexalith.FrontComposer\nindex c3174dc9..0e151a13 160000\n--- a/references/Hexalith.FrontComposer\n+++ b/references/Hexalith.FrontComposer\n@@ -1 +1 @@\n-Subproject commit c3174dc917b094f3736b098ac78a531f197dbe56\n+Subproject commit 0e151a139d178c1f5d90df50ee3d066ce4d4f35a\ndiff --git a/references/Hexalith.Memories b/references/Hexalith.Memories\nindex ed70998d..e864054d 160000\n--- a/references/Hexalith.Memories\n+++ b/references/Hexalith.Memories\n@@ -1 +1 @@\n-Subproject commit ed70998ddb0a26407b08724e347e490f10b67305\n+Subproject commit e864054d518021ba4a7870f42c07e9101178dd2f\ndiff --git a/references/Hexalith.Platform b/references/Hexalith.Platform\nindex 92a02924..40ea496c 160000\n--- a/references/Hexalith.Platform\n+++ b/references/Hexalith.Platform\n@@ -1 +1 @@\n-Subproject commit 92a02924894f6f2f219801a90e5bf25716abd028\n+Subproject commit 40ea496c76cf7355d48b42c4a6b0f3789a0e4945",
+    "note": "External commits during active validation; preserved. No assistant Git mutation. Initial implementation externally recorded, remaining review corrections are working-tree edits. Original entry snapshots retained unchanged."
+  },
+  "external_dependency_checkout_observations": [
+    {
+      "utc": "2026-10-14T10:46:11.845329+00:00",
+      "repositories": {
+        "tenants": {
+          "head": "5792099d432df44eb84aecee4b7b629b53f60957",
+          "branch": "main",
+          "status": "# branch.oid 5792099d432df44eb84aecee4b7b629b53f60957\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0\n1 .M N... 100644 100644 100644 d58e226269767e2dc8ed6f3a8ed6f18953023e90 d58e226269767e2dc8ed6f3a8ed6f18953023e90 _bmad-output/implementation-artifacts/b8-command-results.json\n1 .M N... 100644 100644 100644 18f19ca2b601d9d1341ea54744489b09caec8abe 18f19ca2b601d9d1341ea54744489b09caec8abe _bmad-output/implementation-artifacts/b8-entry-state.json\n1 .M N... 100644 100644 100644 a9ecd718df44d1065dcf1887cd0e017f4ab97144 a9ecd718df44d1065dcf1887cd0e017f4ab97144 _bmad-output/implementation-artifacts/spec-b8-eventstore-command-recovery.md\n1 .M S.MU 160000 160000 160000 34c97acf9812c30ff610398baf3e00c9c9ed6c19 34c97acf9812c30ff610398baf3e00c9c9ed6c19 references/Hexalith.EventStore",
+          "index_diff": "",
+          "dependencies": {
+            "references/Hexalith.AI.Tools": {
+              "recorded": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+              "checked_out": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+              "initialized": true
+            },
+            "references/Hexalith.Builds": {
+              "recorded": "9f0121c77e3f085c58f5c926057606db8e6511a7",
+              "checked_out": "9f0121c77e3f085c58f5c926057606db8e6511a7",
+              "initialized": true,
+              "branch": "main",
+              "status": "# branch.oid 9f0121c77e3f085c58f5c926057606db8e6511a7\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0",
+              "recent_history": "commit 9f0121c77e3f085c58f5c926057606db8e6511a7\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 09:43:01 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 09:43:01 2026 +0200\n\n    fix(module): harden platform declaration composition validation\n\ncommit 9b44fedd0017d42ee1b3e887730ab667046bda4d\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Tue Oct 13 21:31:00 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Tue Oct 13 21:31:00 2026 +0200\n\n    fix(release): upload packages before verification\n    \n    Upload both qualified tool packages before waiting for NuGet indexing.\n    Keep remote payload checks and extend the release polling window to\n    one hour without changing publisher-test defaults.\n    \n    Add a regression for an unavailable first package so a signing delay\n    cannot prevent the second upload.\n\ncommit e3be1d4e997f5f81c7d67c87d5857f8be3a8c69e\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Tue Oct 13 20:08:07 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Tue Oct 13 20:08:07 2026 +0200\n\n    fix(ci): scope extended nuget verification attempts to semantic release step\n    \n    - Remove job-level environment variable from release workflow so contract test assertions on default attempt counts are unaffected."
+            },
+            "references/Hexalith.Commons": {
+              "recorded": "b247ed116c6523f8c596ec0a933eff8973d11568",
+              "checked_out": "b247ed116c6523f8c596ec0a933eff8973d11568",
+              "initialized": true
+            },
+            "references/Hexalith.EventStore": {
+              "recorded": "34c97acf9812c30ff610398baf3e00c9c9ed6c19",
+              "checked_out": "34c97acf9812c30ff610398baf3e00c9c9ed6c19",
+              "initialized": true,
+              "branch": "main",
+              "status": "# branch.oid 34c97acf9812c30ff610398baf3e00c9c9ed6c19\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0\n1 .M N... 100644 100644 100644 dd31a5f155283d2290d83a96e5d4e2f56a74bfc1 dd31a5f155283d2290d83a96e5d4e2f56a74bfc1 docs/architecture/command-recovery-integrity.md\n1 .M N... 100644 100644 100644 2d79f0980cd24f430cccde923c866eb16f1d02ea 2d79f0980cd24f430cccde923c866eb16f1d02ea docs/concepts/command-lifecycle.md\n1 .M N... 100644 100644 100644 7cbcf560029f57cc6327bc5e5166e5115c3a69eb 7cbcf560029f57cc6327bc5e5166e5115c3a69eb docs/guides/disaster-recovery.md\n1 .M N... 100644 100644 100644 1dac0aee1d88f658ab44991cd0d279efc8308bf9 1dac0aee1d88f658ab44991cd0d279efc8308bf9 docs/reference/command-api.md\n1 .M N... 100644 100644 100644 84f88168dc7e923cfd3092e86fe0d06d3c053fae 84f88168dc7e923cfd3092e86fe0d06d3c053fae src/Hexalith.EventStore.Server/Actors/AggregateActor.CommandRecovery.cs\n1 .M N... 100644 100644 100644 29524fac7ab3f2dc3f1db66cee39ca2164610a65 29524fac7ab3f2dc3f1db66cee39ca2164610a65 src/Hexalith.EventStore.Server/Actors/AggregateActor.cs\n1 .M N... 100644 100644 100644 592980cd74065ac97a06939ba9263f9160f4c117 592980cd74065ac97a06939ba9263f9160f4c117 tests/Hexalith.EventStore.Server.Tests/Actors/CommandRecoveryIntegrityTests.cs\n1 .M N... 100644 100644 100644 6c68a95d399f362670cb2caa36aa2d11781b0aff 6c68a95d399f362670cb2caa36aa2d11781b0aff tests/Hexalith.EventStore.Server.Tests/Actors/PublicationRecoveryActivationTests.cs\n? src/Hexalith.EventStore.Server/Actors/AggregateActorRecoveryLog.cs\n? src/Hexalith.EventStore.Server/Actors/RecoveryScanProgress.cs\n? tests/Hexalith.EventStore.Server.Tests/TestUtilities/RegisteredReminderHarness.cs",
+              "recent_history": "commit 34c97acf9812c30ff610398baf3e00c9c9ed6c19\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 12:01:41 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 12:01:41 2026 +0200\n\n    feat: add terminal advisory intent and repair mechanisms\n    \n    - Introduced `TerminalAdvisoryIntent` record for managing retryable terminal advisories.\n    - Created `TerminalAdvisoryRepairEntry` for tracking reminder registration of terminal advisories.\n    - Implemented `TerminalAdvisoryRepairIndex` for fixed-key discovery of terminal advisories.\n    - Added tests for command recovery integrity, including various scenarios for terminal advisory handling.\n    - Introduced `CommandRecoveryEvent` and `CommandRecoveryRejectionEvent` for event payloads related to command recovery.\n\ncommit 173ad7f4e56a72f44621c7d3d7be86a5ec19dc03\nMerge: 21b34c01 bd976eff\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 09:18:11 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 09:18:11 2026 +0200\n\n    build: merge fix/story-3-6-public-routes into main via /pushall\n    \n    # Conflicts:\n    #       src/Hexalith.EventStore.DomainService/EventStoreDomainServiceEndpointInventory.cs\n    #       tests/Hexalith.EventStore.DomainService.Tests/EventStoreDomainServiceExtensionsTests.cs\n\ncommit 21b34c01ec919769cfba9cfe0d47e50886b57ded\nAuthor:     Jerome <jpiquot@itaneo.com>\nAuthorDate: Tue Oct 13 20:37:37 2026 +0200\nCommit:     Jerome <jpiquot@itaneo.com>\nCommitDate: Tue Oct 13 20:37:37 2026 +0200\n\n    fix(tests): stabilize P1R successor CI fixtures"
+            },
+            "references/Hexalith.FrontComposer": {
+              "recorded": "0e151a139d178c1f5d90df50ee3d066ce4d4f35a",
+              "checked_out": "0e151a139d178c1f5d90df50ee3d066ce4d4f35a",
+              "initialized": true,
+              "branch": "main",
+              "status": "# branch.oid 0e151a139d178c1f5d90df50ee3d066ce4d4f35a\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0",
+              "recent_history": "commit 0e151a139d178c1f5d90df50ee3d066ce4d4f35a\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 11:49:00 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 11:49:00 2026 +0200\n\n    fix(datagrid): clarify cancellation guarantees for built-in announcement coordinator\n\ncommit c3174dc917b094f3736b098ac78a531f197dbe56\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Tue Oct 13 14:36:22 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Tue Oct 13 14:36:22 2026 +0200\n\n    feat: enhance fresh-row announcement handling and improve test coverage for scope changes\n\ncommit b3aafdc5b89f2ccc637c8e0845687b2e3b692a9d\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Tue Oct 13 14:01:40 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Tue Oct 13 14:01:40 2026 +0200\n\n    feat: enhance fresh-row announcement handling and improve accessibility checks"
+            },
+            "references/Hexalith.McpCli": {
+              "recorded": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+              "checked_out": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+              "initialized": true
+            },
+            "references/Hexalith.Memories": {
+              "recorded": "e864054d518021ba4a7870f42c07e9101178dd2f",
+              "checked_out": "e864054d518021ba4a7870f42c07e9101178dd2f",
+              "initialized": true,
+              "branch": "main",
+              "status": "# branch.oid e864054d518021ba4a7870f42c07e9101178dd2f\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0",
+              "recent_history": "commit e864054d518021ba4a7870f42c07e9101178dd2f\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 11:34:45 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 11:34:45 2026 +0200\n\n    feat: update subproject references and add owner-compatible C1.15 local source corroboration specification\n\ncommit ed70998ddb0a26407b08724e347e490f10b67305\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 11:12:54 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 11:12:54 2026 +0200\n\n    feat: add OwnerC115Inspection for byte inspection without registration\n    \n    - Implemented OwnerC115Inspection to validate owner declarations against approved plans.\n    - Introduced budget checks for snapshots, sources, and streams to ensure compliance with byte limits.\n    - Added detailed error handling for various inspection failures.\n    - Created OwnerRegistrationInspection to encapsulate owner declaration materials.\n    - Enhanced the inspect_owner_c115 function to validate inputs against outside assertions.\n\ncommit 9b1e00f2596017d5d33865d55aecbf34b24264ef\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 08:44:01 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 08:44:01 2026 +0200\n\n    feat: add owner-bound C1.15 verification specification and related documentation"
+            },
+            "references/Hexalith.Platform": {
+              "recorded": "40ea496c76cf7355d48b42c4a6b0f3789a0e4945",
+              "checked_out": "40ea496c76cf7355d48b42c4a6b0f3789a0e4945",
+              "initialized": true,
+              "branch": "main",
+              "status": "# branch.oid 40ea496c76cf7355d48b42c4a6b0f3789a0e4945\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0",
+              "recent_history": "commit 40ea496c76cf7355d48b42c4a6b0f3789a0e4945\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 11:33:31 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 11:33:31 2026 +0200\n\n    chore: update subproject references for Hexalith.Conversations, Hexalith.EventStore, Hexalith.Folders, and Hexalith.Timesheets\n\ncommit 982c78c5d0ae7739a43ea2b8c497fe7b0cd70a92\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 11:33:02 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 11:33:02 2026 +0200\n\n    feat(tests): enhance cleanup in OwnerOptionBindingTests and improve error messages in PlatformFourthReviewTests\n\ncommit fecf84e81572c019ede75fcedd28eb723e30b97f\nAuthor:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nAuthorDate: Wed Oct 14 11:27:14 2026 +0200\nCommit:     J\u00e9r\u00f4me Piquot <jpiquot@itaneo.com>\nCommitDate: Wed Oct 14 11:30:45 2026 +0200\n\n    feat(platform): update status of Timesheets deployment preparation to in-progress"
+            },
+            "references/Hexalith.PolymorphicSerializations": {
+              "recorded": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+              "checked_out": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+              "initialized": true
+            }
+          }
+        },
+        "eventstore": {
+          "head": "34c97acf9812c30ff610398baf3e00c9c9ed6c19",
+          "branch": "main",
+          "status": "# branch.oid 34c97acf9812c30ff610398baf3e00c9c9ed6c19\n# branch.head main\n# branch.upstream origin/main\n# branch.ab +0 -0\n1 .M N... 100644 100644 100644 dd31a5f155283d2290d83a96e5d4e2f56a74bfc1 dd31a5f155283d2290d83a96e5d4e2f56a74bfc1 docs/architecture/command-recovery-integrity.md\n1 .M N... 100644 100644 100644 2d79f0980cd24f430cccde923c866eb16f1d02ea 2d79f0980cd24f430cccde923c866eb16f1d02ea docs/concepts/command-lifecycle.md\n1 .M N... 100644 100644 100644 7cbcf560029f57cc6327bc5e5166e5115c3a69eb 7cbcf560029f57cc6327bc5e5166e5115c3a69eb docs/guides/disaster-recovery.md\n1 .M N... 100644 100644 100644 1dac0aee1d88f658ab44991cd0d279efc8308bf9 1dac0aee1d88f658ab44991cd0d279efc8308bf9 docs/reference/command-api.md\n1 .M N... 100644 100644 100644 84f88168dc7e923cfd3092e86fe0d06d3c053fae 84f88168dc7e923cfd3092e86fe0d06d3c053fae src/Hexalith.EventStore.Server/Actors/AggregateActor.CommandRecovery.cs\n1 .M N... 100644 100644 100644 29524fac7ab3f2dc3f1db66cee39ca2164610a65 29524fac7ab3f2dc3f1db66cee39ca2164610a65 src/Hexalith.EventStore.Server/Actors/AggregateActor.cs\n1 .M N... 100644 100644 100644 592980cd74065ac97a06939ba9263f9160f4c117 592980cd74065ac97a06939ba9263f9160f4c117 tests/Hexalith.EventStore.Server.Tests/Actors/CommandRecoveryIntegrityTests.cs\n1 .M N... 100644 100644 100644 6c68a95d399f362670cb2caa36aa2d11781b0aff 6c68a95d399f362670cb2caa36aa2d11781b0aff tests/Hexalith.EventStore.Server.Tests/Actors/PublicationRecoveryActivationTests.cs\n? src/Hexalith.EventStore.Server/Actors/AggregateActorRecoveryLog.cs\n? src/Hexalith.EventStore.Server/Actors/RecoveryScanProgress.cs\n? tests/Hexalith.EventStore.Server.Tests/TestUtilities/RegisteredReminderHarness.cs",
+          "index_diff": "",
+          "dependencies": {
+            "references/Hexalith.AI.Tools": {
+              "recorded": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+              "checked_out": null,
+              "initialized": false
+            },
+            "references/Hexalith.Builds": {
+              "recorded": "608c164c3637240fed2dd92dbfdaaf581ba9846d",
+              "checked_out": null,
+              "initialized": false
+            },
+            "references/Hexalith.Commons": {
+              "recorded": "b247ed116c6523f8c596ec0a933eff8973d11568",
+              "checked_out": null,
+              "initialized": false
+            },
+            "references/Hexalith.FrontComposer": {
+              "recorded": "99d31edac062e251cb3a90fe2de5f9a92a24a3ab",
+              "checked_out": null,
+              "initialized": false
+            },
+            "references/Hexalith.McpCli": {
+              "recorded": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+              "checked_out": null,
+              "initialized": false
+            },
+            "references/Hexalith.Memories": {
+              "recorded": "0281b30fb2618668efa9b8904afc75e18820eed8",
+              "checked_out": null,
+              "initialized": false
+            },
+            "references/Hexalith.Platform": {
+              "recorded": "977f2e01347226ac727b707aee4f140f5dc8b010",
+              "checked_out": null,
+              "initialized": false
+            },
+            "references/Hexalith.PolymorphicSerializations": {
+              "recorded": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+              "checked_out": null,
+              "initialized": false
+            },
+            "references/Hexalith.Tenants": {
+              "recorded": "bd81ec6e63acdc2301eb82562eed184813f3c808",
+              "checked_out": null,
+              "initialized": false
+            }
+          }
+        }
+      },
+      "note": "Additional concurrent checkout movements detected by final B8 guard. Preserve all current external commits/checkouts; no assistant dependency or Git mutation. Validation identifies the observed source candidate, without attributing these movements to this bundle."
+    }
+  ]
 }

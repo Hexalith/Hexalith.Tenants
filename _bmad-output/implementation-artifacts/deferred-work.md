@@ -20,6 +20,8 @@ After validated B6 closure of DW-626/DW-628 (2026-10-13): 108 done, 243 actionab
 
 After validated B7 closure of DW-195/DW-206/DW-235/DW-264 (2026-10-14): 112 reconciled done, 239 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation and 38 uncertain; 327 open. All 643 IDs remain: 316 done / 327 open, indexed by 291 maintenance rows. The four original findings, August decisions and pre-B7 verification/actions remain in place; B1–B6 evidence, unrelated records, archive, sprint tracking, pointers and unresolved decisions are preserved. See [B7 readiness](release-readiness.md#b7-remediation-evidence-2026-10-14) and [exact commands, initial failures, review and limits](b7-validation-evidence.md). B7 closure does not establish full release readiness.
 
+After validated B8 closure of DW-499/DW-502 (2026-10-14): 114 reconciled done, 237 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation and 38 uncertain; 325 open. All 643 IDs remain: 318 done / 325 open, indexed by 289 maintenance rows. Original findings, legacy detail and pre-B8 verification/actions are retained; B1–B7 evidence, unrelated records, archive, sprint tracking and unresolved decisions are preserved. External commits/pointer movements and historical story-gitlink provenance blockers remain visible without assistant Git/dependency mutation. See [B8 evidence](b8-validation-evidence.md) and [exact commands/results/initial failures/limits](b8-command-results.json). Next selected bundle: DW-517; B8 closure does not establish release readiness.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -6029,8 +6031,8 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/A
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Make terminal EventStore advisory status publication recoverable after a failed write or crash.\n  evidence: At EventStore baseline b51978d and in the current tree, CompleteTerminalAsync saves terminal idempotency and removes the pipeline before WriteAdvisoryStatusAsync, which logs ordinary write failures; exact terminal duplicates return cached results without status writes. An outage can leave committed execution without an available terminal proof. Recovery must retain the command's exact range and never substitute the aggregate head."
-status: open
-disposition: actionable
+status: done 2026-10-14
+disposition: done
 verification-date: 2026-10-12
 verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:6599-6729 CompleteTerminalAsync saves terminal idempotency and cleans pipeline before advisory status publication; WriteAdvisoryStatusAsync catches ordinary failures at :6755 onward. Exact-terminal duplicates return cached results without rebuilding the missing status. The command-specific terminal proof can remain unavailable after a failed final write.
 verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
@@ -6040,6 +6042,12 @@ owner: Hexalith.EventStore
 dependencies: EventStore terminal-status recovery design
 next-action: Design and test durable repair of terminal advisory status using the original command event range, including failed write/crash and exact-duplicate cases.
 related: none
+closure-verification-date: 2026-10-14
+closure-source-baseline: EventStore 173ad7f4e56a72f44621c7d3d7be86a5ec19dc03; preserved external HEAD 34c97acf9812c30ff610398baf3e00c9c9ed6c19 plus validated working-tree corrections
+closure-verification: Immutable terminal advisory intent/index is committed with terminal cleanup; matching duplicates and registered reminders repair the original status/range after failed writes or crashes, preserving cached outcomes and unrelated ownership.
+closure-evidence: _bmad-output/implementation-artifacts/spec-b8-eventstore-command-recovery.md; _bmad-output/implementation-artifacts/b8-validation-evidence.md; _bmad-output/implementation-artifacts/b8-command-results.json
+closure-validation: Independent review and final semantic rechecks resolved; Server4664 passed/0failed/25 unchanged historical skips;75 recovery-integrity and268 affected regressions passed;14 packages/13 library+1 tool consumers; Tenants6297 maintained and312 source compatibility cases; unchanged80/100 coverage gates passed.
+closure-limits: Local bounded defect closure only. Story-gitlink provenance, nested-layout/topology checks, scheduler/provider/capacity and existing release qualification/decision holds remain; no production replay/migration or assistant Git/dependency mutation. Original finding, legacy detail and pre-fix verification/action history are retained above.
 
 
 ### DW-500: Preserve ambiguous delivery identity and aggregate admission in the ordinary add-member and change-role flows.
@@ -6065,8 +6073,8 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/A
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Validate or quarantine malformed persisted envelope ranges before EventStore command-resume publication.\n  evidence: Current-head blind finding BH9 traces ResumeFromEventsStoredAsync through HasVerifiedEventRange and PublishEventsAsync. Wrong envelope tenant/domain/aggregate/sequence/correlation omits correction proof but still publishes; the baseline b51978dd1d2a3721ad239db2623e1560377c7583 already publishes that loaded range unconditionally. Define platform publication rejection/quarantine and evidence-preservation behavior separately from the optional status-proof extension."
-status: open
-disposition: actionable
+status: done 2026-10-14
+disposition: done
 verification-date: 2026-10-12
 verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:4631-4644 computes rangeProofVerified with HasVerifiedEventRange but calls PublishEventsAsync regardless of that boolean. Malformed persisted envelope scope/sequence/correlation suppresses proof without preventing publication.
 verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
@@ -6076,6 +6084,12 @@ owner: Hexalith.EventStore
 dependencies: EventStore quarantine/recovery contract
 next-action: Add a platform-owned rejection/quarantine path for unverifiable resume ranges and persisted-evidence-preserving tests before pub/sub invocation.
 related: none
+closure-verification-date: 2026-10-14
+closure-source-baseline: EventStore 173ad7f4e56a72f44621c7d3d7be86a5ec19dc03; preserved external HEAD 34c97acf9812c30ff610398baf3e00c9c9ed6c19 plus validated working-tree corrections
+closure-verification: Checkpoint/envelope identity, scope, contiguous sequence/count and causation are verified before resume/handoff/activation/drain publication; malformed/missing evidence refuses with zero publication and stays retained for exact authorized restore; verified legacy rejection and ordinary ranges resume successfully.
+closure-evidence: _bmad-output/implementation-artifacts/spec-b8-eventstore-command-recovery.md; _bmad-output/implementation-artifacts/b8-validation-evidence.md; _bmad-output/implementation-artifacts/b8-command-results.json
+closure-validation: Independent review and final semantic rechecks resolved; Server4664 passed/0failed/25 unchanged historical skips;75 recovery-integrity and268 affected regressions passed;14 packages/13 library+1 tool consumers; Tenants6297 maintained and312 source compatibility cases; unchanged80/100 coverage gates passed.
+closure-limits: Local bounded defect closure only. Story-gitlink provenance, nested-layout/topology checks, scheduler/provider/capacity and existing release qualification/decision holds remain; no production replay/migration or assistant Git/dependency mutation. Original finding, legacy detail and pre-fix verification/action history are retained above.
 
 
 ### DW-503: Verify whether correction delivery/status continuations outside the renderer can corrupt visible state during remount or expiry (medium, unverified).
