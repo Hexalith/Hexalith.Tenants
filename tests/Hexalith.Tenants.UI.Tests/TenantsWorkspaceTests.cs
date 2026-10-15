@@ -38,7 +38,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests;
 
-public sealed class TenantsWorkspaceTests : BunitContext
+public sealed partial class TenantsWorkspaceTests : BunitContext
 {
     public TenantsWorkspaceTests()
     {
@@ -1736,7 +1736,8 @@ public sealed class TenantsWorkspaceTests : BunitContext
     private sealed class StubTenantsBffComposition(
         TenantLifecycleAuthorizationReflectionState globalAdministratorReflection = TenantLifecycleAuthorizationReflectionState.Indeterminate,
         Func<ValueTask<TenantLifecycleAuthorizationReflectionState>>? resolver = null,
-        bool commandSurfaceConnected = true) : ITenantsBffComposition
+        bool commandSurfaceConnected = true,
+        Func<CancellationToken, ValueTask<TenantLifecycleAuthorizationReflectionState>>? cancellableResolver = null) : ITenantsBffComposition
     {
         private TenantLifecycleAuthorizationReflectionState _reflection = globalAdministratorReflection;
 
@@ -1755,7 +1756,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         public ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveGlobalAdministratorsAuthorizationAsync(
             CancellationToken cancellationToken = default)
-            => resolver?.Invoke() ?? ValueTask.FromResult(Reflection);
+            => cancellableResolver?.Invoke(cancellationToken) ?? resolver?.Invoke() ?? ValueTask.FromResult(Reflection);
     }
 
     private sealed class MutableAuthenticationStateProvider(ClaimsPrincipal principal) : AuthenticationStateProvider

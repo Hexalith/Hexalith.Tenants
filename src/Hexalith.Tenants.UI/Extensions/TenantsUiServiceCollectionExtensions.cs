@@ -93,6 +93,9 @@ public static class TenantsUiServiceCollectionExtensions
         services.AddTenantConfigurationReadPolicy(configuration);
         services.TryAddSingleton<ITenantSearchCursorCodec, TenantSearchCursorCodec>();
         services.TryAddScoped<TenantSearchPagingState>();
+        services.TryAddSingleton(provider => new TenantUiOperationPolicy(
+            provider.GetService<IConfiguration>() ?? configuration,
+            provider.GetService<TimeProvider>()));
         services.TryAddScoped<TenantReadRefreshSubscription>();
         services.TryAddScoped<TenantAggregateCommandAdmissionGate>();
         services.TryAddScoped<TenantCommandAttemptTracker>();

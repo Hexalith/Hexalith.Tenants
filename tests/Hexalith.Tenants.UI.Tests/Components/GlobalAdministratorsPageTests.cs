@@ -47,7 +47,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class GlobalAdministratorsPageTests : FluentBunitContext
+public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
 {
     public GlobalAdministratorsPageTests()
     {
@@ -8490,6 +8490,12 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
 
         public int ResolutionCancellationObserved { get; private set; }
 
+        public bool IgnoreResolutionCancellation { get; set; }
+
+        public CancellationToken LastResolutionCancellation { get; private set; }
+
+        public TaskCompletionSource ResolutionCompleted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public TaskCompletionSource? GrantPreviewGate { get; set; }
 
         public TaskCompletionSource GrantPreviewEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -8531,14 +8537,26 @@ public sealed class GlobalAdministratorsPageTests : FluentBunitContext
                     // One-shot: only the resolve that is armed suspends, so a later transition can overtake it.
                     ResolutionGate = null;
                     _ = ResolutionEntered.TrySetResult();
+                    LastResolutionCancellation = cancellationToken;
                     try
                     {
-                        await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        if (IgnoreResolutionCancellation)
+                        {
+                            await gate.Task.ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+                        }
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
                         ResolutionCancellationObserved++;
                         throw;
+                    }
+                    finally
+                    {
+                        _ = ResolutionCompleted.TrySetResult();
                     }
                 }
 

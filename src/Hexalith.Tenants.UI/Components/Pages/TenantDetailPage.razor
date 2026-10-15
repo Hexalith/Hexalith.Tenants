@@ -446,6 +446,7 @@
     private object? _aggregateLeaseHolder;
     private int _readRefreshSubscriptionInFlight;
     private long _readRefreshRouteVersion;
+    private CancellationTokenSource? _readRefreshSetupCancellation;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -830,6 +831,7 @@
         if (tenantRouteChanged)
         {
             _ = Interlocked.Increment(ref _readRefreshRouteVersion);
+            CancelReadRefreshSetup();
         }
         using PendingOperation operation = BeginLoad();
         long generation = operation.Generation;
@@ -1037,6 +1039,7 @@
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
     {
         long callerVersion = Interlocked.Increment(ref _auditCallerVersion);
+        CancelReadRefreshSetup();
         Interlocked.Exchange(ref _pendingAuditCallerVersion, callerVersion);
         bool hadPageLoad = Volatile.Read(ref _loadGeneration) != 0;
         long invalidatedGeneration = Interlocked.Increment(ref _loadGeneration);
@@ -1378,9 +1381,17 @@
     /// Deliberately does NOT take the load cancellation token. Binding setup to a load meant any Refresh,
     /// command-driven re-query or member pager click during setup cancelled <c>SubscribeAsync</c>, the catch
     /// returned without recording <c>_subscriptionTenantId</c>, and nothing retried for the same tenant --
-    /// silently disabling projection auto-refresh for the rest of the circuit. Both sibling pages already
-    /// pass <see cref="CancellationToken.None"/> for this reason.
+    /// silently disabling projection auto-refresh for the rest of the circuit. Setup instead owns a
+    /// separate cancellation source, replaced only by route/caller invalidation or disposal.
     /// </remarks>
+    private void CancelReadRefreshSetup()
+    {
+        lock (_cancellationLock)
+        {
+            _readRefreshSetupCancellation?.Cancel();
+        }
+    }
+
     private Task EnsureReadRefreshLeaseAsync(string tenantId)
         => _disposed ? Task.CompletedTask : InvokeAsync(() => EnsureReadRefreshLeaseOnRendererAsync(tenantId));
 
@@ -1427,6 +1438,11 @@
             return;
         }
 
+        var source = new CancellationTokenSource();
+        lock (_cancellationLock)
+        {
+            _readRefreshSetupCancellation = source;
+        }
         TenantReadRefreshLease? lease = null;
         try
         {
@@ -1437,7 +1453,7 @@
                     IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion)
                         ? RefreshTenantReadsAsync(tenantId)
                         : Task.CompletedTask),
-                CancellationToken.None);
+                source.Token);
             if (!IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion)
                 || _readRefreshLease is not null)
             {
@@ -1487,6 +1503,14 @@
         }
         finally
         {
+            lock (_cancellationLock)
+            {
+                if (ReferenceEquals(_readRefreshSetupCancellation, source))
+                {
+                    _readRefreshSetupCancellation = null;
+                }
+            }
+            source.Dispose();
             Volatile.Write(ref _readRefreshSubscriptionInFlight, 0);
             if (!_disposed
                 && (routeVersion != Volatile.Read(ref _readRefreshRouteVersion)
@@ -3355,6 +3379,7 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        CancelReadRefreshSetup();
         if (AggregateAdmissionGate is { } admissionGate)
         {
             admissionGate.StateChanged -= OnAggregateAdmissionChanged;

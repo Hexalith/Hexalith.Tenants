@@ -431,6 +431,9 @@
     public bool QueryAuditReturnUnavailable { get; set; }
     private AuthenticationStateProvider? _authenticationStateProvider;
     private long _authorizationVersion;
+    private CancellationTokenSource? _entryAuthorizationCancellation;
+    private CancellationTokenSource? _authenticationStateCancellation;
+    private CancellationTokenSource? _createAuthorizationCancellation;
 
     // Blazor Server does not serialise async event handlers, and a pager button stays live until the
     // render batch that disables it is acknowledged. Without this guard a second click landed while
@@ -731,6 +734,7 @@
         }
 
         long version = Interlocked.Increment(ref _authorizationVersion);
+        CancelAuthorizationWait(ref _entryAuthorizationCancellation);
         _canReviewGlobalAdministrators = false;
         _auditReadDenied = false;
         _auditAuthorityResolved = false;
@@ -740,6 +744,10 @@
 
     private async Task ResolveGlobalAdministratorsEntryAsync(long version)
     {
+        if (_disposed || version != Volatile.Read(ref _authorizationVersion))
+        {
+            return;
+        }
         string? caller = AuthenticatedUserId;
         _createAuthorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
         _createAuthorityUserId = null;
@@ -758,9 +766,11 @@
         }
 
         TenantLifecycleAuthorizationReflectionState reflection;
+        CancellationTokenSource source = ReplaceAuthorizationWait(ref _entryAuthorizationCancellation);
         try
         {
-            reflection = await bffComposition.ResolveGlobalAdministratorsAuthorizationAsync();
+            reflection = await TenantUiOperationPolicy.FromServices(Services).RunAsync(
+                token => bffComposition.ResolveGlobalAdministratorsAuthorizationAsync(token).AsTask(), source.Token);
         }
         catch
         {
@@ -773,6 +783,10 @@
                 }
             });
             return;
+        }
+        finally
+        {
+            CompleteAuthorizationWait(ref _entryAuthorizationCancellation, source);
         }
 
         await InvokeAsync(() =>
@@ -806,10 +820,12 @@
         {
             return TenantLifecycleAuthorizationReflectionState.Indeterminate;
         }
+        CancellationTokenSource source = ReplaceAuthorizationWait(ref _createAuthorizationCancellation);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(source.Token, cancellationToken);
         try
         {
-            TenantLifecycleAuthorizationReflectionState reflection = await bffComposition
-                .ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken).ConfigureAwait(false);
+            TenantLifecycleAuthorizationReflectionState reflection = await TenantUiOperationPolicy.FromServices(Services).RunAsync(
+                token => bffComposition.ResolveGlobalAdministratorsAuthorizationAsync(token).AsTask(), linked.Token).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             return !_disposed && version == Volatile.Read(ref _authorizationVersion)
                 && callerVersion == Volatile.Read(ref _auditCallerVersion)
@@ -818,13 +834,17 @@
                 && ReferenceEquals(snapshot, _snapshot)
                 ? reflection : TenantLifecycleAuthorizationReflectionState.Indeterminate;
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
         catch (Exception)
         {
             return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+        finally
+        {
+            CompleteAuthorizationWait(ref _createAuthorizationCancellation, source);
         }
     }
 
@@ -833,6 +853,9 @@
         long callerVersion = Interlocked.Increment(ref _auditCallerVersion);
         Interlocked.Exchange(ref _pendingAuditCallerVersion, callerVersion);
         long version = Interlocked.Increment(ref _authorizationVersion);
+        CancelAuthorizationWait(ref _entryAuthorizationCancellation);
+        CancelAuthorizationWait(ref _authenticationStateCancellation);
+        CancelAuthorizationWait(ref _createAuthorizationCancellation);
         Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version, callerVersion));
         _ = ObserveAuthorizationCallbackAsync(callback);
     }
@@ -870,9 +893,10 @@
         _auditAuthorityResolved = false;
         StateHasChanged();
 
+        CancellationTokenSource source = ReplaceAuthorizationWait(ref _authenticationStateCancellation);
         try
         {
-            _ = await authenticationStateTask;
+            await TenantUiOperationPolicy.FromServices(Services).RunAsync(_ => authenticationStateTask, source.Token);
         }
         catch
         {
@@ -885,6 +909,10 @@
             _auditAuthorityResolved = true;
             StateHasChanged();
             return;
+        }
+        finally
+        {
+            CompleteAuthorizationWait(ref _authenticationStateCancellation, source);
         }
 
         if (_disposed || callerVersion != Volatile.Read(ref _auditCallerVersion))
@@ -1876,6 +1904,38 @@
         }
     }
 
+    private CancellationTokenSource ReplaceAuthorizationWait(ref CancellationTokenSource? active)
+    {
+        var source = new CancellationTokenSource();
+        lock (_loadCancellationLock)
+        {
+            active?.Cancel();
+            active = source;
+        }
+        return source;
+    }
+
+    private void CancelAuthorizationWait(ref CancellationTokenSource? active)
+    {
+        lock (_loadCancellationLock)
+        {
+            active?.Cancel();
+            active = null;
+        }
+    }
+
+    private void CompleteAuthorizationWait(ref CancellationTokenSource? active, CancellationTokenSource source)
+    {
+        lock (_loadCancellationLock)
+        {
+            if (ReferenceEquals(active, source))
+            {
+                active = null;
+            }
+        }
+        source.Dispose();
+    }
+
     public void Dispose()
     {
         // The pending recovery scope is deliberately NOT cleared here. It is owed copy explaining that
@@ -1885,6 +1945,9 @@
         // came back to a silently restarted search with no notice -- the invariant ExplainsSearchRestart
         // exists to prevent. A later load for a different scope discards it through EnsureScope.
         _disposed = true;
+        CancelAuthorizationWait(ref _entryAuthorizationCancellation);
+        CancelAuthorizationWait(ref _authenticationStateCancellation);
+        CancelAuthorizationWait(ref _createAuthorizationCancellation);
         Interlocked.Increment(ref _authorizationVersion);
         if (_authenticationStateProvider is not null)
         {

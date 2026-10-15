@@ -2345,6 +2345,12 @@
 
             _readRefreshLease = lease;
             lease = null;
+            if (_disposed)
+            {
+                IAsyncDisposable orphaned = _readRefreshLease;
+                _readRefreshLease = null;
+                await DisposeLeaseSupportSafelyAsync(orphaned);
+            }
         }
         catch
         {
@@ -2809,6 +2815,10 @@
 
         TenantLifecycleAuthorizationReflectionState reflection =
             await ResolveAuthorizationReflectionAsync().ConfigureAwait(false);
+        if (!CanApplyAuthorizationTransition(version))
+        {
+            return;
+        }
         if (reflection is not TenantLifecycleAuthorizationReflectionState.Authorized)
         {
             await CollapseAuthorizationAsync(reflection, invalidateTransition: false).ConfigureAwait(false);
