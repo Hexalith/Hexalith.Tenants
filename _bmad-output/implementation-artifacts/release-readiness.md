@@ -784,3 +784,358 @@ Only two records change disposition: all643 IDs remain (318 done/325 open), inde
 Remaining release holds include the existing seven decision records DW-540/DW-562/DW-584/DW-593/DW-599/DW-617/DW-625, provenance, DW-517 secret-scan qualification, applicable hosted TLS/browser/upstream, current-candidate dedicated NFR10/performance, production provider/authority/revocation, authenticated clipboard/denial/browser and human-AT evidence. In-memory tests do not prove multi-host/provider atomicity, cryptographic at-rest or second-writer guarantees, flat-index byte bounds, large-range capacity or recovery deadlines during scheduler outage. Missing legacy evidence can require exact trusted restore; automatic production rewriting/replay is not provided.
 
 **Next selected ledger bundle: DW-517**, the separate EventStore secret-scan qualification item. B8 closure is not release approval.
+
+
+## DW-517 repair and qualification evidence — 2026-10-14
+
+**DW-517 remains open; overall release is not ready.** The owning evidence
+reader's broad pre-content exclusions are removed over EventStore
+`24d719292b06d8a9d09771d837f8dd4d8d9b8997`. The exact sealed capture, SSH identity,
+binary/generated handling and existing approvals are preserved. [Owning contract](../../references/Hexalith.EventStore/docs/architecture/evidence-secret-scanning.md),
+[validation and policy alternatives](dw-517-validation-evidence.md),
+[exact commands/failures/results](dw-517-command-results.json),
+[entry/external observations](dw-517-entry-state.json),
+[independent review triage](spec-dw-517-evidence-content-scanning.md) and
+[negative controls](dw-517-mutation-evidence.json) record the bounded repair.
+
+Debug source and Release package builds pass with zero warnings/errors;
+290 real-ingestion cases pass in each. Independent review's five findings are
+patched and rechecked. Exact-source temporary control passes290/290; deliberately
+bypassing ingestion/scanning/retirement-content/approval/seal produces
+256/138/2/3/1 failures. Final focused security is491 passed/one failed/zero skipped
+(492 total). Full owning Server is4,953 passed/one failed/25 existing DW1 ATDD
+skips (4,979 total),exit2. Both fail only on the restored tracked-content guard's
+nine preserved historical findings in three files. No source-expression/synthetic
+recognition policy or retirement approval covers those files yet. No evidence
+rewrite, new registry exemption or re-pin was used to pass validation.
+
+Pinned Gitleaks8.21.2 reports1,561 findings in both entry/current tracked-tree
+exports with identical path/rule/redacted-match multisets; no new findings,
+but both raw checks remain red. Final changed-file check reports the unchanged
+curl scanner fixture. Historical config comments reference a secret-scan job,
+but current inspected EventStore/Builds workflow/composite YAML has no executing
+Gitleaks reference. Existing CI wiring is preserved; no hosted execution of this
+uncommitted source is claimed. Aspire startup times out without target resources.
+
+Original entry Tenants `23aeb38f9784cd67b3c2fa66fe1c007799df6826` and external
+`51f404513f2657e98f949f58f0df43b99b68a7d0` remain distinguished. All recorded and
+checked-out dependency pointers, B1–B8 work and1,371 historical artifact hashes
+are preserved. DW-517's own gitlink check passes without pointer movement;
+historical B6/B8 checks still fail on five inherited movements. No assistant
+Git/dependency mutation or production operation ran. B8 nested-layout/provider
+limits and the seven existing authority/recovery/release-governance decision
+holds remain, alongside applicable hosted, NFR10/performance, production and
+human/authenticated browser qualification requirements. Passing new regressions
+does not establish release readiness or govern historical-content exceptions.
+
+Only DW-517 evidence/action fields change; no record closes. Counts recompute
+unchanged:643 IDs,318 done/325 open,289 exact-covering maintenance rows;
+114 reconciled done,237 actionable,15 blocked,26 awaiting-decision,nine accepted
+limitations,38 uncertain. Historical B1–B8 evidence, findings, archive, sprint,
+unrelated records and decisions stay in place. **Next independent implementation
+bundle:DW-105/DW-108**, shared DOM-safe identity encoding, selected from the current
+ledger. DW-517 remains P1 pending its owning contract and passing qualification;
+that next selection is not a waiver. The user's request to compare contract
+options grants no approval to alter recognition or retire evidence.
+
+
+Final external movement: EventStore merge `241652627a52e47c189b2b052db407cec172f813`
+arrived after validation, preserving parent `24d719292b06d8a9d09771d837f8dd4d8d9b8997`.
+It changes owning sprint tracking and recorded Builds/FrontComposer/Memories/
+Platform/Tenants pointers; nested dependencies remain uninitialized. This is
+external work, not an assistant DW-517 mutation. Original entry and all full
+movement identifiers remain in `dw-517-entry-state.json`. Final security source
+hashes exactly match tested/mutated bytes; the external diff changes no owning
+`src/` or `tests/` files, and effective initialized build dependencies are
+unchanged. Prior full/focused results qualify that tested source, without
+qualifying external provenance. DW-517's gitlink check initially passed and now
+exits1 on the external EventStore checkout movement. No reset, new baseline,
+false ownership declaration or attribution bypass was used. Historical B6/B8
+failures remain. Tenants B1–B8 artifacts, archive/sprint and1,371 historical
+artifact hashes are preserved; the external owning sprint edit is retained.
+
+
+## Final DW-517 closure evidence — 2026-10-14
+
+**DW-517 is closed in the validated working tree. Release remains not ready.**
+The user's `apply recommended` resolved the owning decision: every textual
+evidence path is ingested, with compact semantic recognition of bounded runtime
+expressions and exact inert probes carrying rejection/redaction proof. Unknown
+proof annotations, broken boundaries, duplicates/decorators/shadows, changed
+markers, literal operands and credential-bearing URIs receive ordinary scanning.
+No new path exclusion, retirement, hash re-pin or historical rewrite was created.
+The original exact SSH identity, seal, binary/UI handling and both verified
+content-bound Story5.3 approvals remain intact.
+
+Final Debug source and Release package builds pass with zero warnings/errors.
+Real owning ingestion passes576/576 in each configuration, with zero skips.
+Final security is778/778 passed, zero failures/skips (`dw517-closure-security`).
+Final unfiltered owning Server is5240 passed/zero failed/25 unchanged DW1 ATDD
+skips,5265 total,exit0 (`dw517-closure-server`); all25 skip identities match the
+original full-project result. The two changed maintained Python unit methods pass
+with the same invalid-packet assertions and runtime-generated fixture values.
+[Exact argv, cwd, outputs and all intermediate failures](dw-517-command-results.json)
+and [full-project counters/skip identities](dw-517-full-server-summary.json) are
+durable. The final commands use the unchanged build/warnings/gates and existing
+package versions; no nested submodule was initialized.
+
+The final exact-source control passes576/576. Eleven deliberately weakened
+variants all compile and fail assertions: ingestion318, scanning337, retirement
+content2, approval3, seal1, interpolation boundary12, probe verification10,
+adjacent-tail boundary8, owning list closure1, here-document ownership4 and
+disabled recognition92 failures. Final source/variant digests, setup scripts,
+exact command indices and earlier mutation phases remain in
+[mutation evidence](dw-517-mutation-evidence.json). This also closes the
+independently demonstrated boundary mutation that previously survived all244
+semantic cases; its initial survival is retained rather than hidden.
+
+Independent Blind/Edge/VerificationGap review and subsequent correction rechecks
+resolve every29 individually triaged finding. Final narrow reviewer runs pass
+22/10/87 cases; exact reflection shows the quoted-semicolon override is detected
+and the unchanged clean probe still qualifies. No finding is deferred, no DW517
+policy decision remains open, and final source hashes match reviewed/built/mutated
+bytes. The [spec and complete triage](spec-dw-517-evidence-content-scanning.md)
+retain every report and correction.
+
+Initial/intermediate failures remain visible: randomized NuGet negative-fixture
+failures,290-case repair exposing nine historical findings, initial semantic
+53/8/1 failures, review-round11 context/fallback failures, and the intermediate
+full-project randomized `[8.14.0]` negative-fixture failure. That unchanged
+ten-case method passes its focused rerun; final security/full-project runs also
+pass. The random failing value was not retained, so no deterministic root-cause
+claim is made; fixture instability remains a qualification limitation. Initial
+closure-count validation also failed before any ledger write because older
+closed entries lack supplementary disposition fields; recomputation correctly
+uses their preserved done statuses and the204 earlier closed-record boundary.
+No unrelated record or test policy was changed to satisfy either validation.
+
+Final Gitleaks8.21.2 exits1 with1561 findings across17635 exported tracked files
+plus authored scanner/contract additions. Its path/rule/redacted-match multiset
+is exactly identical to entry: zero new findings or exemptions. The raw gate
+remains a release blocker. Current inspected EventStore/Builds CI YAML has no
+executing Gitleaks reference despite historical config comments; wiring stays
+unchanged. [Comparison](dw-517-secret-scan-comparison.json) and
+[eleven unchanged scan/CI/build configuration files](dw-517-configuration-preservation.json)
+record that boundary; no hosted execution of uncommitted source is claimed.
+
+Original entry Tenants `23aeb38f9784cd67b3c2fa66fe1c007799df6826` and EventStore
+`24d719292b06d8a9d09771d837f8dd4d8d9b8997` remain unchanged baselines. Preserved
+external heads are Tenants `51f404513f2657e98f949f58f0df43b99b68a7d0` and EventStore
+`241652627a52e47c189b2b052db407cec172f813`; complete branches, working/index
+state and recorded/checked-out pointers remain in the entry observations. All
+1371 historical artifact hashes, B1–B8 evidence, archive and Tenants sprint match
+entry; owning sprint exactly matches the external merge. DW517 gitlink validation
+still exits1 on that external checkout movement, while B6/B8 checks retain their
+five inherited failures. No pointer reset, baseline narrowing or false bundle
+ownership attribution was used. No assistant staging, commit, push, branch,
+dependency update, deployment, production replay or data migration ran.
+
+Only DW-517 closes:643 IDs remain,319 done/324 open,288 index rows covering every
+open ID exactly once. Reconciled counts are115 done/236 actionable/15 blocked/
+26 awaiting-decision/9 accepted-limitation/38 uncertain; older closed records
+without disposition fields stay intact. [Ledger/index verification](dw-517-ledger-validation.json)
+confirms every unrelated original-entry record is unchanged. Existing seven
+authority/recovery/governance decisions, provenance, raw secret-scan/CI, nested
+layout/startup/provider, current-candidate NFR10/performance, hosted TLS/browser,
+production authority/revocation and human/authenticated-browser holds remain.
+DW517 closure establishes its local controls, not full release readiness.
+
+**Next selected bundle: DW-105/DW-108, shared DOM-safe identity encoding.** Current
+source still constructs raw tenant IDs in both grids and navigation/focus anchors;
+that selection does not alter their open records or any settled decision.
+
+Final audit reverified unchanged source digests, both empty indexes, uninitialized
+nested dependencies, all1371 historical hashes, original B1–B8 readiness prefix
+and exact coverage of324 open IDs by288 rows. The audit's first comparison
+incorrectly trimmed the baseline file's trailing newline and was rejected before
+writing any snapshot; the corrected exact-content comparison passes. This
+checker failure and its correction are retained in command evidence; DW643 and
+every other unrelated record remain byte-identical to original entry.
+
+
+## DW-105/DW-108 remediation evidence — 2026-10-14
+
+**Current assessment after this bundle: not ready for release. Only DW-105/DW-108 close.** Shared deterministic DOM identity encoding, safe blank/unsupported rendering, exact logical identity and existing route/authorization/command/focus rules pass independent review and actual rendering/navigation/focus regressions. Final unfiltered Debug and maintained Release UI pass4971/4971 each with zero errors/failures/skips/not-run; independent focused recheck83/83 passes. Chromium verifies33 distinct exotic anchors and scoped whitespace/wrapping,12 exact audit-row returns, four actual standalone/workspace panel detail returns, the actual all-tenants heading and subject-change cancellation. Existing browser controls and gates remain enabled.
+
+[Complete contract, triage, initial failures, exact commands and limits](dw-105-108-validation-evidence.md), [command results](dw-105-108-command-results.json), [full UI counters](dw-105-108-full-ui-summary.json) and [entry/preservation evidence](dw-105-108-preservation.json) retain the bounded qualification. The broad Release solution command remains red on NU1903 for the pinned SignalR dependency; a strict package-only UI diagnostic remains blocked by seven existing projection-scope API gaps. Maintained UI success uses its unchanged FrontComposer source exception and retains audit warnings; it is not a package-only or all-release-gate pass.
+
+Historical B6/B8 story-gitlink checks retain five inherited failures; DW-517 and this bundle retain the external EventStore checkout movement failure. Original full baselines/pointers are untouched and no inherited work is attributed to this bundle. Existing raw secret-scan/CI wiring, seven authority/recovery/governance decisions, nested-layout, NFR10/performance, hosted TLS/browser, production authority/revocation/provider and authenticated browser/clipboard/human AT holds remain. Local isolated Aspire resources ran healthy and were stopped, without production mutation; static rendered browser fixtures establish DOM/navigation/focus behavior, not provider or authenticated topology acceptance.
+
+All643 IDs remain:321 done/322 open,287 index rows; reconciled117 done/234 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Every unrelated ledger record, original readiness text, B1–B8, DW-517, archive, sprint,1371 inherited historical artifact hashes, indexes, dependency revisions/configuration and gates remain preserved. No staging, commit, push, branch, dependency update, deployment, production replay or data migration ran.
+
+**Next selected bundle: DW-112**, align the authoritative-search status filter's scope-aware visible label and accessible name; current source still has the recorded mismatch. The selected item remains open. These two closures do not establish full release readiness.
+
+
+## DW-112 remediation evidence — 2026-10-15
+
+**Current assessment after this bundle: not ready for release. Only DW-112 closes.**
+The status selector's visible label and host name share the existing snapshot-driven
+EN/FR resource key. A limited label update keeps Fluent5's existing native combobox
+name current without replacing its focused button or changing selected status,
+filter/search/paging, authorization or commands. Independent review has no unresolved
+finding after seven individually triaged corrections. Actual Fluent tests cover
+ordinary, fallback, authoritative ready/partial/empty results, search/recovery/clear,
+delayed initial loading and a held status change. Final131 focused cases in each
+configuration, unfiltered per-project Microsoft.Testing.Platform UI4987/4987 in both
+Debug and maintained Release, and both maintained Chromium lanes pass with zero
+failures/skips. Chromium computes all30 EN/FR names, preserves native focus/identity
+and rejects stale-name controls; existing browser scenarios and bounds remain intact.
+
+[Contract, review, exact commands, initial failures and limits](dw-112-validation-evidence.md),
+[command outputs](dw-112-command-results.json), [UI counters/assets](dw-112-ui-summary.json),
+[entry state](dw-112-entry-state.json) and [preservation audit](dw-112-preservation.json)
+retain the bounded qualification. The initial fixture/Fluent-startup/initialization
+failures, failed one-expression native-name transition, interim keyed-control focus
+loss, nullable fixture build failures and first provenance metadata failure remain
+visible. Final stable-control results supersede those candidates without rewriting
+their evidence. Existing UI skips are zero; DW-517's25 Server skips remain historical.
+
+Broad Release solution build remains blocked by two NU1903 errors on the pinned
+SignalR dependency; strict package-only UI remains blocked by seven unchanged
+projection-scope API gaps. Maintained UI success keeps its existing FrontComposer
+source exception and advisory warnings. B6/B8 retain five inherited story-gitlink
+failures each; DW-517, DW-105/DW-108 and DW-112 retain the inherited external
+EventStore checkout movement. No baseline or pointer was reset or attributed to
+this bundle. Existing raw secret-scan/CI, seven authority/recovery/governance
+decisions, nested-layout/startup/provider, NFR10/performance, hosted TLS/browser,
+production authority/revocation and authenticated browser/clipboard/human AT holds
+remain. Isolated Aspire resources became healthy and were stopped; rendered browser
+fixtures do not establish authenticated topology, live Memories/provider or human AT
+acceptance. No nested dependency was initialized.
+
+All643 IDs remain:322 done/321 open,286 index rows; reconciled118 done/233 actionable/
+15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Only DW-112
+changes disposition; unrelated records/action rows, original readiness bytes,
+B1–B8, DW-517, DW-105/DW-108,1371 inherited historical hashes, inherited dirty source,
+external commits/pointers, archive/sprint, resources, gates and decisions are preserved.
+No staging, commit, push, branch, dependency update, umbrella gitlink change,
+deployment, production replay or migration ran.
+
+**Next selected Tenants-owned bundle: DW-150 alone**, the still-live cancellation of
+a combined member refresh by detail refresh. Current source reroutes only a flagged
+member-page load; the combined read lacks that flag. The ledger records it as
+open/actionable with no dependency or policy choice. DW-121 remains open for its
+owning Hexalith.Builds workflow. This closure is scoped UI evidence, not full release
+readiness.
+
+
+## DW-150 remediation evidence — 2026-10-15
+
+**Current assessment after this bundle: not ready for release. Only DW-150 closes.**
+A detail refresh now reroutes either held member navigation or a refreshing member
+snapshot through the existing combined read, reissuing the last-confirmed cursor
+and preserving independent detail/member evidence, cancellation, generation,
+caller/tenant binding, truthful failure and command/lifecycle behavior. Production
+changes are one guard and its comment; no focus/rendering or public API changed.
+
+Seventeen actual Fluent held-read cases cover repeated supersession, old completions
+before/after the owner, synchronous detail with held members, cursor/history and
+independent validators, failures/denial/wrong caller, cooperative cancellation,
+tenant/caller/pending-caller/sign-out/disposal and obsolete/owning cursor recovery.
+Independent review resolves five individually triaged test gaps; its final17-case
+recheck passes with no remaining finding. Final focused332 and full per-project
+MTP UI5004 pass in both Debug/maintained Release, zero failures/skips. Both unchanged
+Chromium lanes and existing controls pass. [Complete contract, triage, exact
+commands, initial failures and limits](dw-150-validation-evidence.md),
+[command outputs](dw-150-command-results.json), [UI counters](dw-150-ui-summary.json),
+[entry state](dw-150-entry-state.json), [preservation](dw-150-preservation.json) and
+[ledger verification](dw-150-ledger-validation.json) retain the bounded evidence.
+The initial14/14 missing-reissue failures, two configuration-state fixture failures
+and one non-rendering recovery-wait failure remain visible. Gates, exclusions,
+floors, timeouts, versions and nested dependency initialization remain unchanged.
+Existing UI skips are zero; historical DW-517 Server25 skips are not reclassified.
+
+Broad Release solution still exits1 on two pinned SignalR NU1903 errors; strict
+package-only UI exits1 on seven existing projection-scope API gaps. Maintained UI
+uses the existing FrontComposer source exception, retaining the advisory. B6/B8
+retain five inherited provenance failures each; DW-517, DW-105/DW-108, DW-112 and
+DW-150 retain the external EventStore checkout movement failure. No baseline or
+pointer reset, new ownership declaration or validator bypass ran. Raw secret-scan/
+CI wiring, seven authority/recovery/governance decisions, nested-layout/provider/
+startup, current-candidate NFR10/performance, hosted TLS/browser, production
+provider/authority/revocation and authenticated browser/clipboard/human AT holds
+remain. Local isolated Aspire resources ran healthy and exact-target stop passed;
+static Fluent browser fixtures establish their bounded DOM/focus contract, not
+authenticated topology or human AT acceptance.
+
+All643 IDs remain:323 done/320 open,285 index rows; reconciled119 done/232 actionable/
+15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Only DW-150
+changes disposition. Every unrelated record/action row, original readiness byte,
+prior findings/B1–B8/DW-517/DW-105/DW-108/DW-112, inherited/external work and pointers,
+archive/sprint and unresolved decision is preserved. No staging, commit, push,
+branch, dependency update, umbrella gitlink edit, deployment, production replay
+or data migration ran.
+
+**Next selected bundle: DW-164/DW-183, route-switch subscription handoff.** Both
+remain open/actionable/P2 with no dependency; DW-183 explicitly duplicates DW-164.
+Current old-tenant setup can finish and clear its in-flight flag without scheduling
+the incoming tenant's retry. Keep separate DW-166/DW-173 timeout work and existing
+retry budget unchanged. DW-121 remains Builds-owned. DW-150 closure does not
+establish full release readiness.
+
+The initial DW-150 ledger audit passed preservation/coverage but rejected an
+explicit-disposition-only done count. Correct recomputation retains the204 earlier
+closed-record boundary and counts119 reconciled done;312 closed entries without
+disposition fields remain untouched. Both audit results are preserved.
+
+
+## DW-164/DW-183 remediation evidence — 2026-10-15
+
+**Current assessment after this bundle: not ready for release. Only DW-164/DW-183 close.**
+These records duplicate the same missing handoff. Obsolete setup now clears its
+atomic gate and directly re-evaluates the latest authorized scope on the renderer,
+without requiring an unrelated render. Route/caller epochs reject obsolete setup
+and copied callbacks; caller invalidation detaches only the page's reference-counted
+lease. Current failure budget/recovery, setup CancellationToken.None/timeout policy,
+DW-150 combined reads, command/lifecycle, cursor/history and focus remain intact.
+
+Thirty-two actual Fluent held-setup cases cover obsolete success/Empty/throw,
+repeated/successive/returning routes, same-route paging/combined/detail refresh,
+current failure budget/recovery, pending/changed/returned callers, sign-out, invalid
+route and disposal, shared leases, copied callbacks and suspended unsubscribe.
+Assertions prove actual authoritative requests/ETags, retained Refreshing evidence,
+rendered row/configuration changes, final snapshots and exact ownership/cleanup.
+Independent review resolves six evidence gaps and one synchronization correction;
+final independent32/32, focused364/364 and full per-project MTP UI5036/5036 pass in
+both Debug/maintained Release, zero failures/skips. Both unchanged Chromium lanes
+and negative controls pass. [Complete contract, triage and validation limits](dw-164-validation-evidence.md),
+[exact commands/outputs](dw-164-command-results.json), [UI summary](dw-164-ui-summary.json),
+[entry](dw-164-entry-state.json), [preservation](dw-164-preservation.json) and
+[ledger/index audit](dw-164-ledger-validation.json) retain the evidence.
+
+Initial evidence remains visible: lifecycle-owned fixture could mask the wakeup;
+a second fixture exhausted its budget; one build used an incorrect component name.
+The corrected held-OnAfterRender baseline fails12/14. First fixed16 fails three
+cleanup assertions counting earlier fixture cleanup. The independent32-case and
+focused364-case rechecks each expose one all-gateway-count synchronization failure;
+final renderer-atomic relevant-read/snapshot assertions correct those test races.
+No gate, exclusion, floor, bound, package version or nested initialization changed.
+UI skips are zero; historical DW-517 Server25 skips remain unchanged/unrerun.
+
+Broad Release solution still exits1 on two pinned SignalR NU1903 errors; strict
+package-only UI exits1 on seven existing projection-scope API gaps. Maintained UI
+retains its FrontComposer source exception/advisory. B6/B8 retain five inherited
+provenance failures each; DW-517, DW-105/DW-108, DW-112, DW-150 and this bundle
+retain the external EventStore checkout movement failure. No baseline/pointer reset,
+false ownership declaration or validator bypass ran. Raw secret-scan/CI wiring,
+seven authority/recovery/governance decisions, nested-layout/startup/provider,
+current-candidate NFR10/performance, hosted TLS/browser, production authority/
+revocation/provider and authenticated browser/clipboard/human AT holds remain.
+Isolated Aspire startup reached Running/security Healthy and exact-target stop
+passed; initial Waiting/Unhealthy TLS observations are retained. These local/static
+checks do not establish authenticated topology or release acceptance.
+
+All643 IDs remain:325 done/318 open,284 index rows; reconciled121 done/230 actionable/
+15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Only the
+two duplicate dispositions and their grouped action row close. All unrelated
+records/rows, original readiness bytes, B1–B8, DW-517, DW-105/DW-108, DW-112, DW-150,
+inherited/external work and pointers, archive/sprint, gates and unresolved decisions
+are preserved. No staging, commit, push, branch, dependency update, umbrella gitlink
+edit, deployment, production replay or data migration ran.
+
+**Next separate bundle: DW-166/DW-173**, apply the existing shared configured finite
+resolver/subscription bound and replaceable cancellation decisions, preserving
+three-failure accounting. Current source retains the recorded unbounded/default-
+cancellation paths. DW-176/DW-184 remain separately tracked dependent consumers;
+DW-121 remains Builds-owned. This closure is scoped UI evidence, not full release
+readiness.

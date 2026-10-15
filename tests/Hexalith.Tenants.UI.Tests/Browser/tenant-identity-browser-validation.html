@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"><title>Rendered tenant identity and focus</title>
+    <link rel="stylesheet" href="./tenant-grid.css">
+    <link rel="stylesheet" href="./membership-grid.css">
+</head>
+<body>
+    <h1 id="identity-heading" tabindex="-1">Tenant identity</h1>
+    <section id="surface" data-testid="identity-origin" data-audit-focus-terminal="true" data-detail-focus-terminal="true"></section>
+    <output id="validation-report">RUNNING</output>
+    <script type="module">
+        const report = document.getElementById('validation-report');
+        const surface = document.getElementById('surface');
+        const fixtureRoot = new URL('./', location.href);
+        const require = (condition, message) => { if (!condition) throw new Error(message); };
+        const markup = async name => {
+            const response = await fetch(new URL(name + '.html', fixtureRoot));
+            require(response.ok, 'Rendered fixture missing: ' + name);
+            return await response.text();
+        };
+        try {
+            const fluent = await import('./fluent-ui.js');
+            fluent.beforeStart(document, 'web');
+            await customElements.whenDefined('fluent-anchor-button');
+            const focus = await import('./tenantsFocus.js');
+            const wrongRowControl = new URL(location.href).searchParams.get('mutation') === 'wrong-row';
+            let auditReturns = 0;
+            let detailReturns = 0;
+            let exactAnchors = 0;
+            for (const prefix of ['tenant', 'tenants-my', 'tenants-user']) {
+                const exotic = await markup(prefix + '-exotic');
+                surface.innerHTML = exotic;
+                const rowSelector = prefix === 'tenant' ? '[data-testid="tenants-list-tenant-id"]' : `[data-testid="${prefix}-row"]`;
+                const rows = Array.from(surface.querySelectorAll(rowSelector));
+                const ids = rows.map(row => row.id);
+                require(rows.length === 11 && new Set(ids).size === 11, 'Distinct identities collapsed');
+                for (const row of rows) {
+                    require(/^[A-Za-z][A-Za-z0-9_-]+$/.test(row.id), 'Unsafe DOM anchor');
+                    require(surface.querySelector('#' + row.id) === row, 'CSS selector did not target the exact row');
+                    const literal = row.querySelector('strong');
+                    const styles = getComputedStyle(literal);
+                    require(styles.whiteSpace === 'break-spaces' && styles.overflowWrap === 'anywhere', 'Literal identity lost significant whitespace or wrapping');
+                    exactAnchors++;
+                }
+                surface.innerHTML = exotic;
+                require(JSON.stringify(Array.from(surface.querySelectorAll(rowSelector), row => row.id)) === JSON.stringify(ids), 'Rerender changed anchors');
+
+                const rendered = await markup(prefix);
+                surface.innerHTML = rendered;
+                const links = Array.from(surface.querySelectorAll('fluent-anchor-button[data-testid="tenants-audit-entrypoint"]'));
+                require(links.length === 4, 'Actual audit navigation missing');
+                for (let index = 0; index < links.length; index++) {
+                    surface.innerHTML = rendered;
+                    const launcher = surface.querySelectorAll('fluent-anchor-button[data-testid="tenants-audit-entrypoint"]')[index];
+                    let clickedHref;
+                    launcher.addEventListener('click', event => { event.preventDefault(); clickedHref = launcher.getAttribute('href'); }, { once: true });
+                    launcher.click();
+                    require(clickedHref === launcher.getAttribute('href'), 'Rendered navigation was not activated');
+                    const audit = new URL(clickedHref, location.origin);
+                    const returnUrl = new URL(audit.searchParams.get('returnUrl'), location.origin);
+                    const expectedUserId = prefix === 'tenants-user' ? audit.searchParams.get('targetUserId') : null;
+                    if (prefix === 'tenants-user') {
+                        require(expectedUserId === 'operator-user' && returnUrl.searchParams.get('userId') === expectedUserId, 'Lookup subject guard missing');
+                        require(surface.querySelector('[data-testid="tenants-user-detail-link"]') === null, 'Lookup fixture gained unsupported detail navigation');
+                    }
+                    const anchor = audit.searchParams.get('returnFocus');
+                    const row = document.getElementById(anchor).closest('[role="row"]');
+                    require(row?.contains(launcher), 'Audit return does not identify the originating row');
+                    const expectedIdentity = row.querySelector('strong').textContent;
+                    require(decodeURIComponent(audit.pathname.split('/')[2]) === expectedIdentity, 'Route identity changed');
+                    history.replaceState(null, '', audit.pathname + audit.search);
+                    surface.replaceChildren();
+                    returnUrl.searchParams.set('auditFocus', anchor);
+                    history.replaceState(null, '', returnUrl.pathname + returnUrl.search);
+                    surface.innerHTML = rendered;
+                    const expected = document.getElementById(anchor).closest('[role="row"]').querySelector('[data-testid="tenants-audit-entrypoint"]');
+                    document.getElementById('identity-heading').focus();
+                    const requestedAnchor = wrongRowControl
+                        ? new URL(surface.querySelectorAll('[data-testid="tenants-audit-entrypoint"]')[(index + 1) % 4].getAttribute('href'), location.origin).searchParams.get('returnFocus')
+                        : anchor;
+                    const outcome = await focus.restoreAuditFocus(requestedAnchor, 'identity-origin', 'identity-heading', expectedUserId);
+                    require(outcome === 'found' && document.activeElement === expected, 'Focus did not return to the correct row launcher');
+                    if (expectedUserId !== null) {
+                        returnUrl.searchParams.set('userId', 'another-user');
+                        history.replaceState(null, '', returnUrl.pathname + returnUrl.search);
+                        document.getElementById('identity-heading').focus();
+                        require(await focus.restoreAuditFocus(anchor, 'identity-origin', 'identity-heading', expectedUserId) === 'cancelled'
+                            && document.activeElement === document.getElementById('identity-heading'), 'Changed lookup subject acquired row focus');
+                        returnUrl.searchParams.set('userId', expectedUserId);
+                        history.replaceState(null, '', returnUrl.pathname + returnUrl.search);
+                    }
+                    require(focus.consumeReturnMarkers(anchor, expectedUserId), 'Audit return marker was not consumed');
+                    auditReturns++;
+                }
+            }
+            for (const branch of ['standalone', 'workspace']) {
+                const rendered = await markup('my-detail-' + branch);
+                for (let index = 0; index < 2; index++) {
+                    surface.innerHTML = rendered;
+                    const detail = surface.querySelectorAll('[data-testid="tenants-my-detail-link"]')[index];
+                    const destination = new URL(detail.getAttribute('href'), location.origin);
+                    const back = new URL(destination.searchParams.get('returnUrl'), location.origin);
+                    require(back.searchParams.get('anchor') === detail.id && !back.searchParams.has('cursor'), 'Actual panel detail return anchor or cursor mismatch');
+                    history.replaceState(null, '', destination.pathname + destination.search);
+                    surface.replaceChildren();
+                    history.replaceState(null, '', back.pathname + back.search);
+                    surface.innerHTML = rendered;
+                    document.getElementById('identity-heading').focus();
+                    const expected = document.getElementById(detail.id);
+                    const outcome = await focus.restoreDetailFocus(detail.id, 'tenants-my-page', 'identity-heading');
+                    require(outcome === 'found' && document.activeElement === expected, 'Detail focus returned to the wrong row');
+                    require(focus.consumeReturnMarkers(detail.id, null, true), 'Detail marker was not consumed');
+                    detailReturns++;
+                }
+            }
+            const allReturn = await markup('tenant-detail-return');
+            surface.innerHTML = allReturn;
+            const back = new URL(surface.querySelector('[data-detail-return-url]').dataset.detailReturnUrl, location.origin);
+            require(back.searchParams.get('selected') === 'tenant-alpha' && !back.searchParams.has('cursor'), 'All-tenants detail return lost identity or retained a cursor');
+            history.replaceState(null, '', back.pathname + back.search);
+            require(focus.focusElementById('tenants-list-heading') && document.activeElement === surface.querySelector('#tenants-list-heading'), 'All-tenants detail return did not focus its actual heading');
+            report.textContent = `PASS ${exactAnchors} exotic anchors, ${auditReturns} audit returns, ${detailReturns} actual panel detail returns; all-tenants heading, lookup subject guard, exact DOM active element and rerender stability`;
+            document.body.dataset.validationStatus = 'passed';
+        } catch (error) {
+            report.textContent = 'FAIL ' + error.message;
+            document.body.dataset.validationStatus = 'failed';
+        }
+    </script>
+</body>
+</html>

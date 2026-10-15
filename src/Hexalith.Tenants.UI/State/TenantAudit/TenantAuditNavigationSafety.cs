@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 using System.Globalization;
 using System.Text.Json;
 
+using Hexalith.Tenants.UI.State.TenantList;
+
 namespace Hexalith.Tenants.UI.State.TenantAudit;
 
 /// <summary>Validates the limited tenant audit navigation contract.</summary>
@@ -54,7 +56,9 @@ public static partial class TenantAuditNavigationSafety
         => focus is not null
             && focus.Length <= 512
             && _focusPrefixes.FirstOrDefault(prefix => focus.StartsWith(prefix, StringComparison.Ordinal)) is { } prefix
-            && IsSafeIdentifier(focus[prefix.Length..]);
+            && (IsSafeIdentifier(focus[prefix.Length..])
+                || (prefix is "tenant-row-" or "tenants-my-row-" or "tenants-my-detail-" or "tenants-user-row-"
+                    && TenantDomIdentity.IsEncodedToken(focus[prefix.Length..])));
 
     /// <summary>Canonicalizes an approved return route, dropping a protected cursor and reporting partial restoration.</summary>
     public static string? SafeReturnUrl(string? value, out bool partial)

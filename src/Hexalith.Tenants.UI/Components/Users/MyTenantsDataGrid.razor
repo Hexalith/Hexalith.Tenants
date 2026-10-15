@@ -1,5 +1,6 @@
 @using Hexalith.Tenants.Contracts.Enums
 @using Hexalith.Tenants.UI.State.UserTenants
+@using Hexalith.Tenants.UI.State.TenantList
 @inject IStringLocalizer<TenantsResources> Localizer
 
 <div class="my-tenants-grid" data-testid="@($"{SelectorPrefix}-list")">
@@ -14,13 +15,13 @@
                         Width="260px"
                         Pin="DataGridColumnPin.Start">
             <div class="my-tenants-grid__identity"
-                 id="@($"{SelectorPrefix}-row-{context.TenantId}")"
+                 id="@TenantDomIdentity.ElementId($"{SelectorPrefix}-row-", context.TenantId)"
                  data-testid="@($"{SelectorPrefix}-row")">
                 <div class="my-tenants-grid__identity-line">
-                    @if (DetailHref is not null)
+                    @if (DetailHref is not null && TenantAuditNavigationSafety.IsSafeTenantId(context.TenantId))
                     {
                         <a class="my-tenants-grid__detail-link"
-                           id="@($"{SelectorPrefix}-detail-{context.TenantId}")"
+                           id="@TenantDomIdentity.ElementId($"{SelectorPrefix}-detail-", context.TenantId)"
                            href="@DetailHref(context)"
                            title="@context.TenantId"
                            data-testid="@($"{SelectorPrefix}-detail-link")"
@@ -92,7 +93,7 @@
                                      Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
                                      AccessibleName="@AuditAccessibleName(context)"
                                      ReturnUrl="@ReturnUrl"
-                                     ReturnFocus="@($"{SelectorPrefix}-row-{context.TenantId}")"
+                                     ReturnFocus="@TenantDomIdentity.ElementId($"{SelectorPrefix}-row-", context.TenantId)"
                                      IsAvailable="@(AuditReadAvailable && context.Freshness is ReadModelFreshnessState.Current && context.Lifecycle is ProjectionLifecycleState.Current)"
                                      AuthorityPending="@AuditReadPending"
                                      UnavailableReason="@AuditUnavailableReason"

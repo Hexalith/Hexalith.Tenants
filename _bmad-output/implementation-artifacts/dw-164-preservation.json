@@ -1,0 +1,209 @@
+{
+  "checks": {
+    "unrelated_owning_files_unchanged": true,
+    "all_repository_identity_index_dependencies_and_inherited_work_preserved": true,
+    "all_preexisting_test_bytes_preserved": true,
+    "all_inherited_page_bytes_preserved_outside_subscription_changes": true,
+    "readiness_exact_original_prefix": true
+  },
+  "unchanged_owning_files": 3453,
+  "unexpected_owning_changes": [],
+  "repositories": [
+    {
+      "path": ".",
+      "head": "51f404513f2657e98f949f58f0df43b99b68a7d0",
+      "branch": "main",
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true
+      }
+    },
+    {
+      "path": "references/Hexalith.EventStore",
+      "head": "241652627a52e47c189b2b052db407cec172f813",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 17636,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    },
+    {
+      "path": "references/Hexalith.Commons",
+      "head": "b247ed116c6523f8c596ec0a933eff8973d11568",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 216,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    },
+    {
+      "path": "references/Hexalith.AI.Tools",
+      "head": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 31,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    },
+    {
+      "path": "references/Hexalith.FrontComposer",
+      "head": "0e151a139d178c1f5d90df50ee3d066ce4d4f35a",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 6370,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    },
+    {
+      "path": "references/Hexalith.Builds",
+      "head": "9f0121c77e3f085c58f5c926057606db8e6511a7",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 1430,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    },
+    {
+      "path": "references/Hexalith.PolymorphicSerializations",
+      "head": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 60,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    },
+    {
+      "path": "references/Hexalith.Memories",
+      "head": "e864054d518021ba4a7870f42c07e9101178dd2f",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 6211,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    },
+    {
+      "path": "references/Hexalith.McpCli",
+      "head": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 3757,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    },
+    {
+      "path": "references/Hexalith.Platform",
+      "head": "8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb",
+      "branch": "main",
+      "changed_inherited_files": [],
+      "preserved_file_count": 4183,
+      "checks": {
+        "head": true,
+        "branch": true,
+        "remotes": true,
+        "history": true,
+        "index": true,
+        "submodules": true,
+        "recorded_gitlinks": true,
+        "index_gitlinks": true,
+        "working_diff": true,
+        "status": true,
+        "inherited_file_hashes": true
+      }
+    }
+  ],
+  "note": "Initial full identifiers and inherited dependency movements remain as captured; no pointer resets or ownership reassignment. All gates, exclusions, floors/timeouts, archive, sprint and unresolved decisions are covered by the unchanged owning-file hashes."
+}

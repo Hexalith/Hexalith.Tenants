@@ -22,6 +22,18 @@ After validated B7 closure of DW-195/DW-206/DW-235/DW-264 (2026-10-14): 112 reco
 
 After validated B8 closure of DW-499/DW-502 (2026-10-14): 114 reconciled done, 237 actionable, 15 blocked, 26 awaiting-decision, 9 accepted-limitation and 38 uncertain; 325 open. All 643 IDs remain: 318 done / 325 open, indexed by 289 maintenance rows. Original findings, legacy detail and pre-B8 verification/actions are retained; B1–B7 evidence, unrelated records, archive, sprint tracking and unresolved decisions are preserved. External commits/pointer movements and historical story-gitlink provenance blockers remain visible without assistant Git/dependency mutation. See [B8 evidence](b8-validation-evidence.md) and [exact commands/results/initial failures/limits](b8-command-results.json). Next selected bundle: DW-517; B8 closure does not establish release readiness.
 
+DW-517 repair/qualification update (2026-10-14): the content-blind exclusions are repaired in EventStore and independent review/new ingestion controls pass, but owning security qualification still reports nine preserved historical findings without a verified retirement/recognition disposition. DW-517 remains open/actionable; no closure or unrelated disposition change ran. Recomputed counts remain 114 reconciled done /237 actionable /15 blocked /26 awaiting-decision /9 accepted-limitation /38 uncertain; 643 unique IDs,318 done/325 open,289 index rows. [Exact DW-517 validation, policy alternatives and release limits](dw-517-validation-evidence.md) retain failures, B1–B8 history, external movements and historical provenance blockers.
+
+After validated DW-517 closure (2026-10-14):115 reconciled done,236 actionable,15 blocked,26 awaiting-decision,9 accepted-limitation and38 uncertain;324 open. All643 IDs remain:319 done/324 open, indexed by288 maintenance rows. Only DW-517 closes; original findings, all prior evidence, B1–B8, external movements, archive/sprint and unresolved decisions remain. See [final DW-517 evidence](dw-517-validation-evidence.md). Release remains not ready; next selected bundle is DW-105/DW-108, shared DOM-safe identity encoding.
+
+After validated DW-105/DW-108 closure (2026-10-14):117 reconciled done,234 actionable,15 blocked,26 awaiting-decision,nine accepted limitations and38 uncertain;322 open. All643 IDs remain:321 done/322 open, with287 exact-covering maintenance rows. Only these two records close; original findings/pre-bundle evidence, B1–B8, DW-517, external work, archive/sprint and decisions remain. See [DOM identity evidence](dw-105-108-validation-evidence.md). Release remains not ready; next selected bundle is DW-112.
+
+DW-112 closure update — 2026-10-15: only DW-112 closes after actual Fluent EN/FR labels, computed native names, held loading/status transitions and focus/selection preservation pass independent review and final Debug/maintained Release UI4987 each (zero failures/skips). All643 IDs remain:322 done/321 open,286 index rows; reconciled118 done/233 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Original findings, B1–B8, DW-517, DW-105/DW-108, external work/pointers, archive/sprint, decisions and historical blockers are preserved. See [complete evidence](dw-112-validation-evidence.md). Next Tenants-owned bundle is DW-150 alone; DW-121 remains Builds-owned. Release remains not ready.
+
+DW-150 closure update — 2026-10-15: only DW-150 closes after combined member-read/detail-refresh coordination passes independent review, seventeen actual Fluent held-read cases, final focused332 and full UI5004 in Debug/maintained Release (zero failures/skips), and both unchanged Chromium lanes. All643 IDs remain:323 done/320 open,285 index rows; reconciled119 done/232 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Original findings, all prior evidence/B1–B8/DW-517/DW-105/DW-108/DW-112, inherited/external work and pointers, archive/sprint, decisions and release/provenance blockers remain. See [complete evidence](dw-150-validation-evidence.md). Next selected bundle is DW-164/DW-183; DW-121 remains Builds-owned. Release remains not ready.
+
+DW-164/DW-183 closure update — 2026-10-15: only these duplicate records close after completion-driven latest-route setup, route/caller callback binding and lease cleanup pass independent review,32 actual Fluent cases, final focused364/full UI5036 in Debug/maintained Release (zero failures/skips), and both unchanged Chromium lanes. All643 IDs remain:325 done/318 open,284 index rows; reconciled121 done/230 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Original findings, B1–B8, DW-517, DW-105/DW-108, DW-112, DW-150, inherited/external work/pointers, archive/sprint, gates and unresolved decisions remain preserved. See [complete evidence](dw-164-validation-evidence.md). Next separate bundle: DW-166/DW-173; their timeout/cancellation policy was not changed here. Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -671,16 +683,22 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenan
 location: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs:36; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor:17
 reason: The legacy ledger defers this issue: Degenerate/exotic tenant ids on the shared detail-nav path. Original context is preserved in legacy-detail.
 legacy-detail: - **Degenerate/exotic tenant ids on the shared detail-nav path** — (a) `TenantListNavigationContext.ToDetailUrl(TenantListRow)` now delegates to the new `ToDetailUrl(string tenantId, string anchor)` overload whose `ArgumentException.ThrowIfNullOrWhiteSpace(tenantId)` throws on a blank tenant id, where the pre-change inline body silently produced a `/tenants/?returnUrl=…` link; a render-time throw inside the `FluentDataGrid` template would tear down the list surface. (b) The row `id="{SelectorPrefix}-row-{context.TenantId}"` and the `tenants-my-row-{TenantId}` / `tenant-row-{TenantId}` focus anchors are built from the raw tenant id, so an id containing whitespace or CSS-significant characters produces an invalid HTML `id` and a non-resolving return-focus anchor. Both require a blank/exotic tenant id — the tenant id is the validated non-blank aggregate identifier and is slug-like in practice — and both share the pre-existing scope=all `TenantDataGrid` `id="tenant-row-{TenantId}"` pattern. Fix as cross-surface id-safety hardening (guard `DetailHrefFor`/normalize the anchor value across both grids), not a My-Tenants-only divergence. (`src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs:36`; `src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor:17`)
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs ToDetailUrl still throws for blank identifiers and constructs tenant-row-{TenantId}; Components/Tenants/TenantDataGrid.razor and Components/Users/MyTenantsDataGrid.razor still interpolate literal identifiers into DOM ids and return-focus anchors. Whitespace identifiers can make those anchors invalid.
-verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor
-evidence-kind: verified-defect
+pre-bundle-verification-date: 2026-10-12
+pre-bundle-verification: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs ToDetailUrl still throws for blank identifiers and constructs tenant-row-{TenantId}; Components/Tenants/TenantDataGrid.razor and Components/Users/MyTenantsDataGrid.razor still interpolate literal identifiers into DOM ids and return-focus anchors. Whitespace identifiers can make those anchors invalid.
+pre-bundle-verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor
+pre-bundle-evidence-kind: verified-defect
+pre-bundle-next-action: Define a stable DOM-safe encoding shared by both grids and navigation; cover whitespace and selector characters.
+resolution: Shared deterministic DOM-safe identity encoding and safe blank/unsupported rendering; owning identity/focus contract and complete review/validation are recorded in spec-dw-105-108-dom-safe-tenant-identity.md and dw-105-108-validation-evidence.md.
+status: done 2026-10-14
+disposition: done
+verification-date: 2026-10-14
+verification: Shared strict UTF-8 Base64url tenant DOM encoding is used by both grids, navigation and return anchors. Final independent83-case recheck, full Debug/maintained Release UI4971 each with zero failures/skips, and Chromium actual-rendered anchor/row/detail/heading/subject regressions pass. Route/authorization/command and focus safety bounds remain unchanged; release blockers remain separate. See dw-105-108-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantDomIdentity.cs; src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs; tests/Hexalith.Tenants.UI.Tests/Browser/tenant-identity-browser-validation.html
+evidence-kind: executed-component-navigation-browser
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Define a stable DOM-safe encoding shared by both grids and navigation; cover whitespace and selector characters.
+next-action: None for DW-105/DW-108; bounded local closure. Existing release blockers remain recorded independently.
 related: DW-105, DW-108
 
 ### DW-106: Audit-grid unsafe references are omitted from copying but remain visible in the rendered reference label
@@ -707,16 +725,22 @@ location: TenantDataGrid.razor; MyTenantsDataGrid.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
 reason: The legacy ledger defers this issue: Caller-supplied tenant identifiers are reused as raw DOM ids and return-focus anchors. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md` summary: Caller-supplied tenant identifiers are reused as raw DOM ids and return-focus anchors. evidence: `TenantDataGrid.razor`, `MyTenantsDataGrid.razor`, and `TenantListNavigationContext.cs` embed literal identifiers in anchors, so whitespace or selector-significant characters can make focus restoration unreliable; this navigation pattern predates the copy change.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs ToDetailUrl still throws for blank identifiers and constructs tenant-row-{TenantId}; Components/Tenants/TenantDataGrid.razor and Components/Users/MyTenantsDataGrid.razor still interpolate literal identifiers into DOM ids and return-focus anchors. Whitespace identifiers can make those anchors invalid.
-verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor
-evidence-kind: verified-defect
+pre-bundle-verification-date: 2026-10-12
+pre-bundle-verification: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs ToDetailUrl still throws for blank identifiers and constructs tenant-row-{TenantId}; Components/Tenants/TenantDataGrid.razor and Components/Users/MyTenantsDataGrid.razor still interpolate literal identifiers into DOM ids and return-focus anchors. Whitespace identifiers can make those anchors invalid.
+pre-bundle-verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor
+pre-bundle-evidence-kind: verified-defect
+pre-bundle-next-action: Define a stable DOM-safe encoding shared by both grids and navigation; cover whitespace and selector characters.
+resolution: Shared deterministic DOM-safe identity encoding and safe blank/unsupported rendering; owning identity/focus contract and complete review/validation are recorded in spec-dw-105-108-dom-safe-tenant-identity.md and dw-105-108-validation-evidence.md.
+status: done 2026-10-14
+disposition: done
+verification-date: 2026-10-14
+verification: Shared strict UTF-8 Base64url tenant DOM encoding is used by both grids, navigation and return anchors. Final independent83-case recheck, full Debug/maintained Release UI4971 each with zero failures/skips, and Chromium actual-rendered anchor/row/detail/heading/subject regressions pass. Route/authorization/command and focus safety bounds remain unchanged; release blockers remain separate. See dw-105-108-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantDomIdentity.cs; src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs; tests/Hexalith.Tenants.UI.Tests/Browser/tenant-identity-browser-validation.html
+evidence-kind: executed-component-navigation-browser
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Define a stable DOM-safe encoding shared by both grids and navigation; cover whitespace and selector characters.
+next-action: None for DW-105/DW-108; bounded local closure. Existing release blockers remain recorded independently.
 related: DW-105, DW-108
 duplicate-of: DW-105
 
@@ -749,17 +773,24 @@ location: TenantsWorkspace.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: The authoritative-search status filter's visible label and accessible name can describe different scopes. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The authoritative-search status filter's visible label and accessible name can describe different scopes. evidence: `TenantsWorkspace.razor` selects `StatusFilterLabelKey` for the visible label but retains the page-local `Tenants.List.StatusFilterLabel` for `aria-label`; this mismatch predates the current Story 1.9 review-repair diff.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor status selector uses StatusFilterLabelKey for Label but Tenants.List.StatusFilterLabel for aria-label; authoritative and page-local scopes can still disagree.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: verified-defect
+status: done 2026-10-15
+disposition: done
+pre-bundle-verification-date: 2026-10-12
+pre-bundle-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor status selector uses StatusFilterLabelKey for Label but Tenants.List.StatusFilterLabel for aria-label; authoritative and page-local scopes can still disagree.
+pre-bundle-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+pre-bundle-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Use the same scope-aware resource key for both labels and assert authoritative-search accessible naming.
+pre-bundle-next-action: Use the same scope-aware resource key for both labels and assert authoritative-search accessible naming.
 related: none
+verification-date: 2026-10-15
+verification: Same scope-aware resource names the visible label and host; stable Fluent native button is synchronized when the localized label changes. Actual EN/FR rendering, held loading/status transitions, selected state/request preservation, Chromium-computed names/focus and independent review pass; final Debug/maintained Release UI each4987 passed with zero failures/skips.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js; tests/Hexalith.Tenants.UI.Tests/Components/StatusFilterLabelRenderingTests.cs; tests/Hexalith.Tenants.UI.Tests/Browser/validate-status-filter-label-browser.mjs; _bmad-output/implementation-artifacts/dw-112-validation-evidence.md
+evidence-kind: executed-tests-and-browser
+next-action: none for DW-112; preserve inherited release/provenance holds and select DW-150 as the next Tenants-owned bundle.
+resolution: Only DW-112 closes after scope-aware labeling, stable-control name synchronization and independent review. Existing resources and filter/search/paging/authorization/command contracts remain unchanged. Exact commands, initial failures and bounded browser/provenance limits are recorded in dw-112-validation-evidence.md. Release remains not ready.
+
 
 ### DW-113: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
@@ -1165,17 +1196,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-onl
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:470-482
 reason: The legacy ledger defers this issue: An in-flight `RefreshTenantReadsAsync` is aborted silently by a concurrent detail refresh. Original context is preserved in legacy-detail.
 legacy-detail: - **An in-flight `RefreshTenantReadsAsync` is aborted silently by a concurrent detail refresh** — the documented guard at `:478-482` reroutes only when `_memberPageLoadInFlight` is set, and the read-refresh path never sets it. A projection notification starts `RefreshTenantReadsAsync` (member snapshot → `Refreshing`); the operator then triggers a detail refresh; `BeginLoad()` cancels the shared token and clears `IsRefreshing`. The member read is dropped, the refresh indicator vanishes, the pager re-enables and the table sits on stale rows with no error and no retry — the same failure the comment above the guard says it closed, reached through the other entry point. No test triggers a refresh while a member read is outstanding. Reason for deferral: the member-paging surface is owned outside Story 1.6, and the correct fix (widening the reroute condition to any in-flight member read) changes behaviour the member story's tests pin. Revisit if: the member table is reported showing stale rows after a refresh, or the member-paging story is reopened. [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:470-482]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor RefreshTenantDetailAsync reroutes only _memberPageLoadInFlight; RefreshTenantReadsAsync marks members Refreshing without that flag. A detail refresh can still cancel the combined member read without reissuing it.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-defect
+status: done 2026-10-15
+disposition: done
+pre-bundle-verification-date: 2026-10-12
+pre-bundle-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor RefreshTenantDetailAsync reroutes only _memberPageLoadInFlight; RefreshTenantReadsAsync marks members Refreshing without that flag. A detail refresh can still cancel the combined member read without reissuing it.
+pre-bundle-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
+pre-bundle-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Drive a held member read plus detail refresh, then widen rerouting/coalescing to preserve that refresh.
+pre-bundle-next-action: Drive a held member read plus detail refresh, then widen rerouting/coalescing to preserve that refresh.
 related: none
+verification-date: 2026-10-15
+verification: Detail refresh reroutes held navigation or any refreshing member snapshot through the existing combined read. Actual Fluent held-read regressions prove current cursor/independent evidence, repeated supersession, truthful failure/denial, cancellation, tenant/caller invalidation, late completion rejection and owning-only cursor recovery. Independent review resolves all five findings; final focused332 and full UI5004 pass in Debug/maintained Release with zero failures/skips; both maintained Chromium lanes pass.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-150-validation-evidence.md
+evidence-kind: executed-tests-and-browser
+next-action: none for DW-150; preserve release/provenance holds and select DW-164/DW-183 route-switch subscription handoff next.
+resolution: Only DW-150 closes after the minimal member-refresh reroute, seventeen meaningful held-read regressions and independent correction recheck. Existing cursor, caller/tenant, cancellation, authorization, command/lifecycle and focus contracts remain. Exact commands, initial failures and bounded validation are in dw-150-validation-evidence.md. Release remains not ready.
+
 
 ### DW-151: Undeclared `references/Hexalith.EventStore` gitlink bump in the working tree
 
@@ -1326,17 +1364,23 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447
 reason: The legacy ledger defers this issue: A route change while the prior tenant's refresh subscription is pending can leave the new tenant without projection auto-refresh. Original context is preserved in legacy-detail.
 legacy-detail: - A route change while the prior tenant's refresh subscription is pending can leave the new tenant without projection auto-refresh. `EnsureReadRefreshLeaseAsync` rejects the new tenant while the old subscription owns `_readRefreshSubscriptionInFlight`; when the old attempt later disposes its lease and clears the flag, it does not schedule a render or retry for the current tenant. Reason for deferral: the race is in shared tenant-detail notification work that is outside Story 1.11's attributed implementation; this chunk included the file only to review the transferred lifecycle authorization consumer. Revisit if: the tenant-detail notification lifecycle is reviewed or the shared subscription retry logic is changed. [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor EnsureReadRefreshLeaseAsync refuses setup while the old tenant subscribe is in flight; its finally clears the flag without scheduling a render/retry for the new tenant. OnAfterRenderAsync retries only when another render occurs.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-defect
+status: done 2026-10-15
+disposition: done
+pre-bundle-verification-date: 2026-10-12
+pre-bundle-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor EnsureReadRefreshLeaseAsync refuses setup while the old tenant subscribe is in flight; its finally clears the flag without scheduling a render/retry for the new tenant. OnAfterRenderAsync retries only when another render occurs.
+pre-bundle-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
+pre-bundle-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Add a held old-tenant subscribe/route-switch regression and trigger current-tenant retry after completion.
+pre-bundle-next-action: Add a held old-tenant subscribe/route-switch regression and trigger current-tenant retry after completion.
 related: DW-164, DW-183
+verification-date: 2026-10-15
+verification: Completion of obsolete setup releases its atomic gate and directly re-evaluates the latest authorized route on the renderer. Route epoch/caller version reject obsolete setup and copied callbacks; caller invalidation releases only this page's lease. Thirty-two actual Fluent held-setup cases cover success/Empty/throw, repeated and successive/returning routes, same-route reads/paging, current budget/recovery, caller/pending/sign-out/invalid/disposal, shared leases and suspended cleanup. Independent final32, focused364 and full UI5036 pass in Debug/maintained Release, zero failures/skips; both unchanged Chromium lanes pass.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-164-validation-evidence.md
+evidence-kind: executed-tests-and-browser
+next-action: none for DW-164; preserve release/provenance holds and select separate DW-166/DW-173 finite-bound bundle next.
+resolution: Only duplicate records DW-164/DW-183 close after completion-driven renderer handoff, exact route/caller callback binding and proven lease cleanup. Existing retry budget, setup cancellation/timeout policy and DW-150 combined-refresh coordination remain intact. Exact commands, initial failures, independent triage and limits are retained in dw-164-validation-evidence.md. Release remains not ready.
 
 ### DW-165: `TenantAuditPage` is the last production consumer of the synchronous `HttpContext`-only
 
@@ -1537,18 +1581,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447
 reason: The legacy ledger defers this issue: Route change during in-flight prior-tenant subscribe can briefly miss auto-refresh — deferred, previously deferred; OnAfterRender retry partially mitigates. Original context is preserved in legacy-detail.
 legacy-detail: - Route change during in-flight prior-tenant subscribe can briefly miss auto-refresh — deferred, previously deferred; OnAfterRender retry partially mitigates [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor EnsureReadRefreshLeaseAsync refuses setup while the old tenant subscribe is in flight; its finally clears the flag without scheduling a render/retry for the new tenant. OnAfterRenderAsync retries only when another render occurs.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: verified-defect
+status: done 2026-10-15
+disposition: done
+pre-bundle-verification-date: 2026-10-12
+pre-bundle-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor EnsureReadRefreshLeaseAsync refuses setup while the old tenant subscribe is in flight; its finally clears the flag without scheduling a render/retry for the new tenant. OnAfterRenderAsync retries only when another render occurs.
+pre-bundle-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
+pre-bundle-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Add a held old-tenant subscribe/route-switch regression and trigger current-tenant retry after completion.
+pre-bundle-next-action: Add a held old-tenant subscribe/route-switch regression and trigger current-tenant retry after completion.
 related: DW-164, DW-183
 duplicate-of: DW-164
+verification-date: 2026-10-15
+verification: Completion of obsolete setup releases its atomic gate and directly re-evaluates the latest authorized route on the renderer. Route epoch/caller version reject obsolete setup and copied callbacks; caller invalidation releases only this page's lease. Thirty-two actual Fluent held-setup cases cover success/Empty/throw, repeated and successive/returning routes, same-route reads/paging, current budget/recovery, caller/pending/sign-out/invalid/disposal, shared leases and suspended cleanup. Independent final32, focused364 and full UI5036 pass in Debug/maintained Release, zero failures/skips; both unchanged Chromium lanes pass.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-164-validation-evidence.md
+evidence-kind: executed-tests-and-browser
+next-action: none for DW-183; preserve release/provenance holds and select separate DW-166/DW-173 finite-bound bundle next.
+resolution: Only duplicate records DW-164/DW-183 close after completion-driven renderer handoff, exact route/caller callback binding and proven lease cleanup. Existing retry budget, setup cancellation/timeout policy and DW-150 combined-refresh coordination remain intact. Exact commands, initial failures, independent triage and limits are retained in dw-164-validation-evidence.md. Release remains not ready.
 
 ### DW-184: ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
@@ -6380,17 +6430,30 @@ location: references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Restore content scanning or governed, content-bound retirement for EventStore evidence paths currently skipped by the secret guard (high).\n  evidence: Pass-12 BH1: upstream EventStore 38efbefd5da65d538723f9f85eca6a186dfc0a2f added ExplicitEvidenceArtifactPathPattern; ReadTrackedText returns null for every matching evidence CTRF JSON, the named verification directory and previous-candidate.md before examining content. Bind any allowed retirement to verified artifacts and add injected-content controls; this is independent of the exact password-free GitHub SSH-identity exception."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs:1621-1632 still returns null for IsExplicitGeneratedPath before scanning content; :1753-1755 and regex :3645 include all evidence CTRF JSON, named verification paths and previous-candidate.md. Only a separate sealed capture is content-verified. The cited broad content-blind exclusions remain.
-verification-files: references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs
+status: done 2026-10-14
+disposition: done
+verification-date: 2026-10-14
+pre-dw-517-verification-date: 2026-10-12
+pre-dw-517-verification: references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs:1621-1632 still returns null for IsExplicitGeneratedPath before scanning content; :1753-1755 and regex :3645 include all evidence CTRF JSON, named verification paths and previous-candidate.md. Only a separate sealed capture is content-verified. The cited broad content-blind exclusions remain.
+pre-closure-verification: Owning repair removes broad pre-read evidence exclusions and retains exact sealed/binary/UI handling. 290 actual ingestion cases pass in Debug/Release; five bypass controls fail as required; independent review and recheck complete. Final focused security is 491 passed/1 failed (nine preserved historical findings). Full Server result and exact failures/limits are recorded in dw-517-validation-evidence.md and dw-517-command-results.json. No verified retirement approval covers those three files; no new exemption or evidence rewrite was created. DW-517 remains open pending owning content/disposition qualification.
+verification: Broad evidence pre-read exclusions are removed; all textual paths are scanned with the approved bounded semantic contract. Existing retirement approval and exact preserved content must verify before exclusion; seal/SSH/binary/UI handling remains intact. Final576 ingestion cases per configuration,778 security cases and full Server5240 passed/zero failed/25 unchanged skips; eleven bypasses fail; all29 review findings independently rechecked. No new exemption, re-pin or historical rewrite. See closure evidence and remaining release blockers below.
+verification-files: references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.EvidenceIngestion.cs; references/Hexalith.EventStore/docs/architecture/evidence-secret-scanning.md; _bmad-output/implementation-artifacts/dw-517-validation-evidence.md
 evidence-kind: verified-gap
 priority: P1
 owner: Hexalith.EventStore
 dependencies: EventStore secret-guard evidence-retirement governance
-next-action: Restore content scanning for these textual evidence paths or bind each approved retirement to verified content with injected-secret negative controls.
+pre-dw-517-next-action: Restore content scanning for these textual evidence paths or bind each approved retirement to verified content with injected-secret negative controls.
+pre-closure-next-action: Resolve the owning contract for the nine restored historical findings: retain strict blocker, authorize a separate narrow semantic repair with injected-secret controls, or review exact governed retirement while active evidence stays scanned; then pass the owning gates before closure.
+next-action: None for DW-517; validated local closure. Next selected bundle is DW-105/DW-108. Existing release blockers remain separately recorded.
 related: none
+closure-verification-date: 2026-10-14
+closure-source-baseline: EventStore 24d719292b06d8a9d09771d837f8dd4d8d9b8997; preserved external HEAD 241652627a52e47c189b2b052db407cec172f813 plus validated unstaged working-tree repair; original Tenants baseline 23aeb38f9784cd67b3c2fa66fe1c007799df6826 retained.
+closure-policy-resolution: User explicitly approved recommended bounded semantic recognition. Every evidence path remains ingested; exact runtime expressions and proven negative/redaction probes qualify conservatively. No new retirement, exemption, hash re-pin or historical rewrite.
+closure-verification: Broad pre-read exclusions removed; existing approved retirement paths/hashes anchored to verified immutable Story5.3 authorization, with exact preserved bytes and fail-closed registry/integrity handling. Exact GitHub SSH identity, sealed capture and binary/UI handling preserved. Twenty-nine individual review findings patched and independently rechecked; unknown proof annotations revoke recognition.
+closure-evidence: _bmad-output/implementation-artifacts/spec-dw-517-evidence-content-scanning.md; _bmad-output/implementation-artifacts/dw-517-validation-evidence.md; _bmad-output/implementation-artifacts/dw-517-command-results.json; _bmad-output/implementation-artifacts/dw-517-mutation-evidence.json; _bmad-output/implementation-artifacts/dw-517-entry-state.json; references/Hexalith.EventStore/docs/architecture/evidence-secret-scanning.md
+closure-validation: Debug source/Release package builds zero warnings/errors;576 actual ingestion cases per configuration,778 focused security cases and full owning Server5240 passed/zero failed/25 unchanged DW1 ATDD skips (5265 total). Two affected maintained Python methods pass. Eleven deliberately bypassed controls fail assertions; unchanged exact-source control576/576 passes. Exact initial/intermediate failures and randomized NuGet-fixture instability preserved.
+closure-limits: Bounded local DW517 closure only; raw Gitleaks1561 inherited findings and CI wiring gap, unchanged randomized negative-fixture instability, external/historical story-gitlink provenance, existing nested-layout/topology/provider/authority/performance/browser/human-AT and seven decision holds remain release blockers. All1371 historical hashes and B1–B8/archive/sprint evidence preserved; no assistant Git/dependency mutation or production operation.
+
 
 
 ### DW-518: Correct EventStore command-status documentation to include positive event counts on eventful rejections.

@@ -66,8 +66,8 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-list-reset']").NodeName.ShouldBe("FLUENT-BUTTON");
         cut.Find("[data-testid='tenants-list-sort-tenant']").Closest("fluent-button").ShouldNotBeNull();
         cut.Find("[data-testid='tenants-list-sort-status']").Closest("fluent-button").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-list-detail-link']").GetAttribute("href").ShouldNotBeNull();
-        cut.Find("[data-testid='tenants-list-detail-link'] strong").TextContent.ShouldBe(tenantId);
+        cut.FindAll("[data-testid='tenants-list-detail-link']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-list-tenant-id'] strong").TextContent.ShouldBe(tenantId);
         cut.Find("[data-testid='tenants-list-copy-reference']").GetAttribute("data-copy-kind").ShouldBe("TenantId");
         cut.Find("[data-testid='tenants-list-copy-reference']").TextContent.ShouldContain("Copy");
         cut.Find("[data-testid='tenants-copy-reference']").NodeName.ShouldBe("FLUENT-BUTTON");
@@ -1174,7 +1174,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         first.Dispose();
 
         navigation.NavigateTo(
-            "/tenants?search=needle&selected=tenant.page-two&anchor=tenant-row-tenant.page-two");
+            "/tenants?search=needle&selected=tenant.page-two&anchor=tenant-row-id-dGVuYW50LnBhZ2UtdHdv");
         IRenderedComponent<TenantsWorkspace> returned = Render<TenantsWorkspace>();
         returned.WaitForElement("[data-testid='tenants-list-grid']");
 
@@ -1230,7 +1230,7 @@ public sealed class TenantListSurfaceTests : BunitContext
 
         // The operator opened tenant detail and came back; meanwhile Memories was lost.
         authoritative = false;
-        navigation.NavigateTo("/tenants?search=needle&selected=tenant.page-two&anchor=tenant-row-tenant.page-two");
+        navigation.NavigateTo("/tenants?search=needle&selected=tenant.page-two&anchor=tenant-row-id-dGVuYW50LnBhZ2UtdHdv");
         IRenderedComponent<TenantsWorkspace> returned = Render<TenantsWorkspace>();
         returned.WaitForElement("[data-testid='tenants-list-search-unavailable-notice']");
 
@@ -1392,7 +1392,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         paging.EnsureScope("retained-scope");
         paging.MoveNext(authoritative: true, "protected-page-two");
         Services.GetRequiredService<NavigationManager>().NavigateTo(
-            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-id-dGVuYW50LnByZXZpb3VzLXBhZ2U");
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
@@ -1416,7 +1416,7 @@ public sealed class TenantListSurfaceTests : BunitContext
                 [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
         });
         Services.GetRequiredService<NavigationManager>().NavigateTo(
-            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-id-dGVuYW50LnByZXZpb3VzLXBhZ2U");
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
 
@@ -1445,7 +1445,7 @@ public sealed class TenantListSurfaceTests : BunitContext
                 [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
         });
         Services.GetRequiredService<NavigationManager>().NavigateTo(
-            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-id-dGVuYW50LnByZXZpb3VzLXBhZ2U");
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForAssertion(() => callCount.ShouldBe(1));
 
@@ -1480,7 +1480,7 @@ public sealed class TenantListSurfaceTests : BunitContext
                 [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
         });
         Services.GetRequiredService<NavigationManager>().NavigateTo(
-            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-id-dGVuYW50LnByZXZpb3VzLXBhZ2U");
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForAssertion(() => callCount.ShouldBe(1));
 
@@ -1592,7 +1592,7 @@ public sealed class TenantListSurfaceTests : BunitContext
                     [Row("tenant.page-one", "One", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
         });
         Services.GetRequiredService<NavigationManager>().NavigateTo(
-            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-id-dGVuYW50LnByZXZpb3VzLXBhZ2U");
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-error']");
         cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
@@ -1619,7 +1619,7 @@ public sealed class TenantListSurfaceTests : BunitContext
                     [Row($"tenant.{request.Search}", "Later", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
         });
         Services.GetRequiredService<NavigationManager>().NavigateTo(
-            "/tenants?search=before&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+            "/tenants?search=before&selected=tenant.previous-page&anchor=tenant-row-id-dGVuYW50LnByZXZpb3VzLXBhZ2U");
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-error']");
         cut.FindAll("[data-testid='tenants-list-search-refreshed-notice']").ShouldBeEmpty();
@@ -2125,7 +2125,7 @@ public sealed class TenantListSurfaceTests : BunitContext
             returnUrl.ShouldContain("sort=name");
             returnUrl.ShouldContain("desc=True");
             returnUrl.ShouldContain("selected=tenant.alpha");
-            returnUrl.ShouldContain("anchor=tenant-row-tenant.alpha");
+            returnUrl.ShouldContain("anchor=tenant-row-id-dGVuYW50LmFscGhh");
             returnUrl.ShouldNotContain("cursor=", Case.Insensitive);
             returnUrl.ShouldNotContain(cursorSentinel, Case.Insensitive);
             returnUrl.ShouldNotContain(eTagSentinel, Case.Insensitive);
@@ -2726,7 +2726,7 @@ public sealed class TenantListSurfaceTests : BunitContext
                     [Row("tenant.alpha", "Alpha", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.Unknown)]));
         });
         Services.GetRequiredService<NavigationManager>().NavigateTo(
-            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-tenant.previous-page");
+            "/tenants?search=needle&selected=tenant.previous-page&anchor=tenant-row-id-dGVuYW50LnByZXZpb3VzLXBhZ2U");
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-error']");

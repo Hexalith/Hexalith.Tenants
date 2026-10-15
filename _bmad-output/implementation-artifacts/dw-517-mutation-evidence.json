@@ -1,0 +1,780 @@
+{
+  "scope": "Temporary harness compiles exact owning scanner and ingestion tests with only RepoRoot rebound to the owning checkout. Original files never mutated. Harness package versions are existing resolved xunit4.0.2/Shouldly4.3.0; existing effective NoWarn is mirrored. It does not replace owning-project gates.",
+  "source_sha256": {
+    "tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs": "1e87a076f4550216f71a76ff5d5098e39247dbb2d24153e82a294ed944012e64",
+    "tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.EvidenceIngestion.cs": "a980eedf4f955a42e96087760c650dd0d19c9149ebd7ab384140c50afeaa4a32"
+  },
+  "scripts": {
+    "prepare-mutations.py": "from pathlib import Path\nimport json,re,hashlib\nroot=Path('/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore');base=Path('/tmp/hexalith-dw517-20261014/mutations');base.mkdir(exist_ok=True)\nsource=(root/'tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs').read_text();source=source.replace('private static readonly string RepoRoot = Path.GetFullPath(\\n        Path.Combine(AppContext.BaseDirectory, \"..\", \"..\", \"..\", \"..\", \"..\"));','private static readonly string RepoRoot = \"'+str(root)+'\";');assert 'Path.Combine(AppContext.BaseDirectory' not in source\nvariants={'control':source,\n'ingestion-bypass':source.replace('if (IsRetiredEvidenceCapture(path, root) || IsExplicitGeneratedPath(path))','if (RestoredEvidencePaths.Contains(path, StringComparer.Ordinal) || IsRetiredEvidenceCapture(path, root) || IsExplicitGeneratedPath(path))'),\n'scanning-bypass':source.replace('? FindViolations(path, content)\\n            : [];','? []\\n            : [];'),\n'retirement-content-bypass':source.replace('actualHash.ShouldBe(expectedHash, \"Retired evidence must remain byte-preserved.\");','_ = actualHash;'),\n'retirement-approval-bypass':re.sub(r'            ApprovedRetirementHashes.TryGetValue\\(path, out string\\? approvedHash\\).ShouldBeTrue\\([\\s\\S]+?expectedHash.ShouldBe\\(approvedHash, \"A registry edit cannot re-pin approved retired content.\"\\);','',source),\n'seal-bypass':source.replace('VerifySealedP1RRemediationSourceCapture(File.ReadAllBytes(Path.Combine(root, path)));','_ = root;')}\nfor name,s in variants.items():\n p=base/name;p.mkdir(exist_ok=True);(p/'SecretsProtectionTests.cs').write_text(s);(p/'SecretsProtectionTests.EvidenceIngestion.cs').write_bytes((root/'tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.EvidenceIngestion.cs').read_bytes());(p/'Mutation.csproj').write_text('''<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><EnableNETAnalyzers>false</EnableNETAnalyzers><LangVersion>14.0</LangVersion><NoWarn>IDE0028;CA2007;xUnit1051;CS0618;CS8602;CS8604;CS8600</NoWarn></PropertyGroup><ItemGroup><PackageReference Include=\"xunit.v3\" Version=\"4.0.2\"/><PackageReference Include=\"Shouldly\" Version=\"4.3.0\"/><Using Include=\"Xunit\"/></ItemGroup></Project>''');print(name,hashlib.sha256(s.encode()).hexdigest())\n",
+    "run-mutations.py": "import subprocess,concurrent.futures,json\nfrom pathlib import Path\nbase=Path('/tmp/hexalith-dw517-20261014/mutations')\ndef run(name):\n cwd=str(base/name);commands=[['dotnet','build','Mutation.csproj','--configuration','Release','-warnaserror','-m:1','-nr:false'],['dotnet','bin/Release/net10.0/Mutation.dll','-method','Hexalith.EventStore.Server.Tests.Security.SecretsProtectionTests.EvidenceFileIngestion_*','-noLogo']]\n codes=[]\n for phase,cmd in zip(['build','tests'],commands):\n  p=subprocess.run(['python3','/tmp/dw517-run.py','mutation-'+name+'-'+phase,cwd,*cmd],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True);codes.append(p.returncode)\n  if phase=='build' and p.returncode!=0:print(p.stdout);break\n print(name,codes,flush=True);return name,codes\nwith concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:\n results=dict(ex.map(run,['control','ingestion-bypass','scanning-bypass','retirement-content-bypass','retirement-approval-bypass','seal-bypass']))\nassert results['control']==[0,0]\nassert all(v[0]==0 and v[1]!=0 for k,v in results.items() if k!='control')\nprint('Every deliberate bypass killed; matched control passes. All production files remain untouched.')\n"
+  },
+  "variants": {
+    "ingestion-bypass": {
+      "SecretsProtectionTests.cs": "af078cd9b2599355b8c256afa25c2c19e547f3f5a9c041c7c636eca1f0f4c810",
+      "SecretsProtectionTests.EvidenceIngestion.cs": "a980eedf4f955a42e96087760c650dd0d19c9149ebd7ab384140c50afeaa4a32"
+    },
+    "seal-bypass": {
+      "SecretsProtectionTests.cs": "d325b534aae35ef9a0096a7632814cec7e70dd9b885422c58ce116fccd646ad4",
+      "SecretsProtectionTests.EvidenceIngestion.cs": "a980eedf4f955a42e96087760c650dd0d19c9149ebd7ab384140c50afeaa4a32"
+    },
+    "control": {
+      "SecretsProtectionTests.cs": "f58faa852d4c8dc650015dcd2b29078d4119ac5fc8bafa823be7e11ec0fd2b87",
+      "SecretsProtectionTests.EvidenceIngestion.cs": "a980eedf4f955a42e96087760c650dd0d19c9149ebd7ab384140c50afeaa4a32"
+    },
+    "retirement-approval-bypass": {
+      "SecretsProtectionTests.cs": "a78a149216adfc350194c7262ab95a32f67114c8e1b818d10c3ddbc6a1ca197a",
+      "SecretsProtectionTests.EvidenceIngestion.cs": "a980eedf4f955a42e96087760c650dd0d19c9149ebd7ab384140c50afeaa4a32"
+    },
+    "scanning-bypass": {
+      "SecretsProtectionTests.cs": "425a098b1fe46881665652042ffe7cf19134fff56357ed87a4b17f18b1c070f7",
+      "SecretsProtectionTests.EvidenceIngestion.cs": "a980eedf4f955a42e96087760c650dd0d19c9149ebd7ab384140c50afeaa4a32"
+    },
+    "retirement-content-bypass": {
+      "SecretsProtectionTests.cs": "e6ee697d594d84870eb0164428b97fbe34c838e66f4cf63fe8fc35d33063abf6",
+      "SecretsProtectionTests.EvidenceIngestion.cs": "a980eedf4f955a42e96087760c650dd0d19c9149ebd7ab384140c50afeaa4a32"
+    }
+  },
+  "semantic_phases": [
+    {
+      "source_and_variant_sha256": {
+        "source_sha256": {
+          "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+          "SecretsProtectionTests.EvidenceRecognition.cs": "e969b98bf2bd1a312f6b73d5cc7405ec2df26967898088a954b9cafcebacf434",
+          "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+          "SecretsProtectionTests.cs": "edecabfe7a9faa92ae28d34859ae3163a72b6ade39cfe95173b145365bd8f0ff"
+        },
+        "variants": {
+          "control": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "e969b98bf2bd1a312f6b73d5cc7405ec2df26967898088a954b9cafcebacf434",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "ingestion-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "e969b98bf2bd1a312f6b73d5cc7405ec2df26967898088a954b9cafcebacf434",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "7239a2ec03ee2ee22fa14fec8c4169ed1b9d744c9053277d6551fc3fa2dd7fe3"
+          },
+          "scanning-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "e969b98bf2bd1a312f6b73d5cc7405ec2df26967898088a954b9cafcebacf434",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "1843eb935ddad8083ac92770f7843862240ca4220690c81114269224ce7400fd"
+          },
+          "retirement-content-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "e969b98bf2bd1a312f6b73d5cc7405ec2df26967898088a954b9cafcebacf434",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "d057fbc28512537680d859b1e582f176605c0dd957ec6de5aeb4b8a53545b968"
+          },
+          "retirement-approval-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "e969b98bf2bd1a312f6b73d5cc7405ec2df26967898088a954b9cafcebacf434",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "697cd9556235d0ff691e27b9543953c94133cf00d922c67b4edfc22c5da88715"
+          },
+          "seal-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "e969b98bf2bd1a312f6b73d5cc7405ec2df26967898088a954b9cafcebacf434",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "3fe5df5f7e383d6c03b1d9798181b4edb674f4bfabc06798431aa6cb7353e86f"
+          },
+          "interpolation-boundary-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "86efa9bb9ebc5bef799cac5ed19c73fdac1c50616b2dc99dc5aea71455760014",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "probe-verification-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "556c3352783092e6a8e6902c4e9f36638908a7de5a59eca6cfaa49c433defb98",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "here-document-ownership-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "ac85a1b1011d37e8c604716934c9e9f678540de9a0c857ab9ac663e0a8deaa4b",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "recognition-disabled": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "e969b98bf2bd1a312f6b73d5cc7405ec2df26967898088a954b9cafcebacf434",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "f9df509a8909cf3cc317d093ad40e6dca844d8194bf807b98e450c620f3bb775",
+            "SecretsProtectionTests.cs": "523c310cca436586d2ca4745d8611e6f8f47169b92b36f8d4281b731de999287"
+          }
+        }
+      },
+      "results": {
+        "control": [
+          0,
+          0
+        ],
+        "ingestion-bypass": [
+          0,
+          1
+        ],
+        "scanning-bypass": [
+          0,
+          1
+        ],
+        "retirement-content-bypass": [
+          0,
+          1
+        ],
+        "retirement-approval-bypass": [
+          0,
+          1
+        ],
+        "seal-bypass": [
+          0,
+          1
+        ],
+        "interpolation-boundary-bypass": [
+          0,
+          1
+        ],
+        "probe-verification-bypass": [
+          0,
+          1
+        ],
+        "here-document-ownership-bypass": [
+          0,
+          1
+        ],
+        "recognition-disabled": [
+          0,
+          1
+        ]
+      },
+      "test_counts": {
+        "control": {
+          "total": 576,
+          "errors": 0,
+          "failed": 0,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "ingestion-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 318,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "scanning-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 337,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "retirement-content-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 2,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "retirement-approval-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 3,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "seal-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 1,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "interpolation-boundary-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 12,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "probe-verification-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 10,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "here-document-ownership-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 4,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "recognition-disabled": {
+          "total": 576,
+          "errors": 0,
+          "failed": 92,
+          "skipped": 0,
+          "not_run": 0
+        }
+      },
+      "scripts": {
+        "prepare-semantic-mutations.py": "from pathlib import Path\nimport hashlib,json,re\nroot=Path('/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore')\nbase=Path('/tmp/hexalith-dw517-20261014/semantic-mutations');base.mkdir(exist_ok=True)\nfolder=root/'tests/Hexalith.EventStore.Server.Tests/Security'\noriginal={p.name:p.read_text() for p in sorted(folder.glob('SecretsProtectionTests*.cs'))}\nassert len(original)==4\nmain='SecretsProtectionTests.cs';recognition='SecretsProtectionTests.EvidenceRecognition.cs'\nsources=dict(original)\nsources[main]=sources[main].replace('private static readonly string RepoRoot = Path.GetFullPath(\\n        Path.Combine(AppContext.BaseDirectory, \"..\", \"..\", \"..\", \"..\", \"..\"));','private static readonly string RepoRoot = \"'+str(root)+'\";')\nassert 'Path.Combine(AppContext.BaseDirectory' not in sources[main]\nvariants={'control':dict(sources)}\ndef changed(name,file,old,new):\n assert sources[file].count(old)==1,(name,old,sources[file].count(old))\n variant=dict(sources);variant[file]=variant[file].replace(old,new);variants[name]=variant\nchanged('ingestion-bypass',main,'if (IsRetiredEvidenceCapture(path, root) || IsExplicitGeneratedPath(path))','if (RestoredEvidencePaths.Contains(path, StringComparer.Ordinal) || IsRetiredEvidenceCapture(path, root) || IsExplicitGeneratedPath(path))')\nchanged('scanning-bypass',main,'? FindViolations(path, content)\\n            : [];','? []\\n            : [];')\nchanged('retirement-content-bypass',main,'actualHash.ShouldBe(expectedHash, \"Retired evidence must remain byte-preserved.\");','_ = actualHash;')\napproval=re.search(r'            ApprovedRetirementHashes.TryGetValue\\(path, out string\\? approvedHash\\).ShouldBeTrue\\([\\s\\S]+?expectedHash.ShouldBe\\(approvedHash, \"A registry edit cannot re-pin approved retired content.\"\\);',sources[main]);assert approval\nchanged('retirement-approval-bypass',main,approval[0],'')\nchanged('seal-bypass',main,'VerifySealedP1RRemediationSourceCapture(File.ReadAllBytes(Path.Combine(root, path)));','_ = root;')\nchanged('interpolation-boundary-bypass',recognition,\"return afterField == body.Length || body.Value[afterField] is ' ' or '\\\\t' or ';';\",'return true;')\nchanged('probe-verification-bypass',recognition,'IsInPythonUnitTestClass(content, position, rejection)','true')\nchanged('here-document-ownership-bypass',recognition,'if (!opening.Success) { return []; }','if (!opening.Success) { cursor = end + 1; continue; }')\nvariant=dict(sources)\nassert variant[main].count('content = MaskBoundedPythonSecurityProbes(relativePath, content);')==1\nassert variant[main].count('!IsBoundedPythonSourceAssignment(effectivePath, content, match)')==1\nvariant[main]=variant[main].replace('content = MaskBoundedPythonSecurityProbes(relativePath, content);','_ = relativePath;').replace('!IsBoundedPythonSourceAssignment(effectivePath, content, match)','true')\nvariants['recognition-disabled']=variant\nproject='''<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><EnableNETAnalyzers>false</EnableNETAnalyzers><LangVersion>14.0</LangVersion><NoWarn>IDE0028;CA2007;xUnit1051;CS0618;CS8602;CS8604;CS8600</NoWarn></PropertyGroup><ItemGroup><PackageReference Include=\"xunit.v3\" Version=\"4.0.2\"/><PackageReference Include=\"Shouldly\" Version=\"4.3.0\"/><Using Include=\"Xunit\"/></ItemGroup></Project>'''\nmanifest={'source_sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in original},'variants':{}}\nfor name,variant in variants.items():\n directory=base/name;directory.mkdir(exist_ok=True)\n for file,text in variant.items():(directory/file).write_text(text)\n (directory/'Mutation.csproj').write_text(project)\n manifest['variants'][name]={file:hashlib.sha256(text.encode()).hexdigest() for file,text in variant.items()}\n(base/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\\n')\nprint('Prepared control plus',len(variants)-1,'single-purpose exact-source mutations.')\n",
+        "run-semantic-mutations.py": "import subprocess,concurrent.futures,json\nfrom pathlib import Path\nbase=Path('/tmp/hexalith-dw517-20261014/semantic-mutations')\ndef run(name):\n cwd=str(base/name)\n commands=[['dotnet','build','Mutation.csproj','--configuration','Release','-warnaserror','-m:1','-nr:false'],['dotnet','bin/Release/net10.0/Mutation.dll','-method','*EvidenceFileIngestion_*','-method','*EvidenceSemanticIngestion_*','-noLogo']]\n codes=[]\n for phase,cmd in zip(['build','tests'],commands):\n  p=subprocess.run(['python3','/tmp/dw517-run.py','semantic-mutation-'+name+'-'+phase,cwd,*cmd],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)\n  codes.append(p.returncode)\n  if phase=='build' and p.returncode!=0:print(p.stdout);break\n print(name,codes,flush=True);return name,codes\nnames=list(json.loads((base/'manifest.json').read_text())['variants'])\nwith concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:results=dict(ex.map(run,names))\n(base/'results.json').write_text(json.dumps(results,indent=2)+'\\n')\nassert results['control']==[0,0],results['control']\nassert all(v[0]==0 and v[1]!=0 for k,v in results.items() if k!='control'),results\nprint('Every deliberate bypass failed test assertions; unchanged control passed. Owning source untouched.')\n"
+      },
+      "status": "Intermediate semantic review revision; all bypass assertions fail, control passes; final residual corrections require a fresh phase."
+    },
+    {
+      "source_and_variant_sha256": {
+        "source_sha256": {
+          "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+          "SecretsProtectionTests.EvidenceRecognition.cs": "b1db697df8fd772b6acb9a8d575f42ea53baced385a1adfd13cc22ef1e2ecf5b",
+          "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+          "SecretsProtectionTests.cs": "edecabfe7a9faa92ae28d34859ae3163a72b6ade39cfe95173b145365bd8f0ff"
+        },
+        "variants": {
+          "control": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "b1db697df8fd772b6acb9a8d575f42ea53baced385a1adfd13cc22ef1e2ecf5b",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "ingestion-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "b1db697df8fd772b6acb9a8d575f42ea53baced385a1adfd13cc22ef1e2ecf5b",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "7239a2ec03ee2ee22fa14fec8c4169ed1b9d744c9053277d6551fc3fa2dd7fe3"
+          },
+          "scanning-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "b1db697df8fd772b6acb9a8d575f42ea53baced385a1adfd13cc22ef1e2ecf5b",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "1843eb935ddad8083ac92770f7843862240ca4220690c81114269224ce7400fd"
+          },
+          "retirement-content-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "b1db697df8fd772b6acb9a8d575f42ea53baced385a1adfd13cc22ef1e2ecf5b",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "d057fbc28512537680d859b1e582f176605c0dd957ec6de5aeb4b8a53545b968"
+          },
+          "retirement-approval-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "b1db697df8fd772b6acb9a8d575f42ea53baced385a1adfd13cc22ef1e2ecf5b",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "697cd9556235d0ff691e27b9543953c94133cf00d922c67b4edfc22c5da88715"
+          },
+          "seal-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "b1db697df8fd772b6acb9a8d575f42ea53baced385a1adfd13cc22ef1e2ecf5b",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "3fe5df5f7e383d6c03b1d9798181b4edb674f4bfabc06798431aa6cb7353e86f"
+          },
+          "interpolation-boundary-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "d78c178c29c7ce6ad666ef9d7f2f44c1809663ed1b6ac22fbd562e40e7cd3d36",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "probe-verification-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "f113b417ad449a0774d302d41e372358c0149274b964d5a9245560a2edc69403",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "adjacent-content-boundary-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "a9147f631f4e22ec858f3565dec64e6c88ac2e8f30a9688057a87ff5b8334a63",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "mutation-list-closure-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "a729bc811940ff108443c523c8d07036a6e4770b1fbfce10cedb79e43558c4e4",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "here-document-ownership-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "7b6679b31df2272440dc42fdc38d3126c68f20e5d37ed0eb8f0009276153acd0",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "recognition-disabled": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "b1db697df8fd772b6acb9a8d575f42ea53baced385a1adfd13cc22ef1e2ecf5b",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "c5f929cbaec77f9112cea71d09899d9d60553280bc5847b4a3cf18823276a4e3",
+            "SecretsProtectionTests.cs": "523c310cca436586d2ca4745d8611e6f8f47169b92b36f8d4281b731de999287"
+          }
+        }
+      },
+      "results": {
+        "control": [
+          0,
+          0
+        ],
+        "ingestion-bypass": [
+          0,
+          1
+        ],
+        "scanning-bypass": [
+          0,
+          1
+        ],
+        "retirement-content-bypass": [
+          0,
+          1
+        ],
+        "retirement-approval-bypass": [
+          0,
+          1
+        ],
+        "seal-bypass": [
+          0,
+          1
+        ],
+        "interpolation-boundary-bypass": [
+          0,
+          1
+        ],
+        "probe-verification-bypass": [
+          0,
+          1
+        ],
+        "adjacent-content-boundary-bypass": [
+          0,
+          1
+        ],
+        "mutation-list-closure-bypass": [
+          0,
+          1
+        ],
+        "here-document-ownership-bypass": [
+          0,
+          1
+        ],
+        "recognition-disabled": [
+          0,
+          1
+        ]
+      },
+      "test_counts": {
+        "control": {
+          "total": 576,
+          "errors": 0,
+          "failed": 0,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "ingestion-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 318,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "scanning-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 337,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "retirement-content-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 2,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "retirement-approval-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 3,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "seal-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 1,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "interpolation-boundary-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 12,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "probe-verification-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 10,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "adjacent-content-boundary-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 8,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "mutation-list-closure-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 1,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "here-document-ownership-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 4,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "recognition-disabled": {
+          "total": 576,
+          "errors": 0,
+          "failed": 92,
+          "skipped": 0,
+          "not_run": 0
+        }
+      },
+      "command_result_indices_zero_based": {
+        "control": {
+          "build": 114,
+          "tests": 119
+        },
+        "ingestion-bypass": {
+          "build": 113,
+          "tests": 118
+        },
+        "scanning-bypass": {
+          "build": 115,
+          "tests": 117
+        },
+        "retirement-content-bypass": {
+          "build": 120,
+          "tests": 123
+        },
+        "retirement-approval-bypass": {
+          "build": 121,
+          "tests": 124
+        },
+        "seal-bypass": {
+          "build": 122,
+          "tests": 125
+        },
+        "interpolation-boundary-bypass": {
+          "build": 126,
+          "tests": 129
+        },
+        "probe-verification-bypass": {
+          "build": 127,
+          "tests": 130
+        },
+        "adjacent-content-boundary-bypass": {
+          "build": 128,
+          "tests": 131
+        },
+        "mutation-list-closure-bypass": {
+          "build": 134,
+          "tests": 137
+        },
+        "here-document-ownership-bypass": {
+          "build": 133,
+          "tests": 136
+        },
+        "recognition-disabled": {
+          "build": 132,
+          "tests": 135
+        }
+      },
+      "scripts": {
+        "prepare-semantic-mutations.py": "from pathlib import Path\nimport hashlib,json,re\nroot=Path('/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore')\nbase=Path('/tmp/hexalith-dw517-20261014/semantic-mutations');base.mkdir(exist_ok=True)\nfolder=root/'tests/Hexalith.EventStore.Server.Tests/Security'\noriginal={p.name:p.read_text() for p in sorted(folder.glob('SecretsProtectionTests*.cs'))}\nassert len(original)==4\nmain='SecretsProtectionTests.cs';recognition='SecretsProtectionTests.EvidenceRecognition.cs'\nsources=dict(original)\nsources[main]=sources[main].replace('private static readonly string RepoRoot = Path.GetFullPath(\\n        Path.Combine(AppContext.BaseDirectory, \"..\", \"..\", \"..\", \"..\", \"..\"));','private static readonly string RepoRoot = \"'+str(root)+'\";')\nassert 'Path.Combine(AppContext.BaseDirectory' not in sources[main]\nvariants={'control':dict(sources)}\ndef changed(name,file,old,new):\n assert sources[file].count(old)==1,(name,old,sources[file].count(old))\n variant=dict(sources);variant[file]=variant[file].replace(old,new);variants[name]=variant\nchanged('ingestion-bypass',main,'if (IsRetiredEvidenceCapture(path, root) || IsExplicitGeneratedPath(path))','if (RestoredEvidencePaths.Contains(path, StringComparer.Ordinal) || IsRetiredEvidenceCapture(path, root) || IsExplicitGeneratedPath(path))')\nchanged('scanning-bypass',main,'? FindViolations(path, content)\\n            : [];','? []\\n            : [];')\nchanged('retirement-content-bypass',main,'actualHash.ShouldBe(expectedHash, \"Retired evidence must remain byte-preserved.\");','_ = actualHash;')\napproval=re.search(r'            ApprovedRetirementHashes.TryGetValue\\(path, out string\\? approvedHash\\).ShouldBeTrue\\([\\s\\S]+?expectedHash.ShouldBe\\(approvedHash, \"A registry edit cannot re-pin approved retired content.\"\\);',sources[main]);assert approval\nchanged('retirement-approval-bypass',main,approval[0],'')\nchanged('seal-bypass',main,'VerifySealedP1RRemediationSourceCapture(File.ReadAllBytes(Path.Combine(root, path)));','_ = root;')\n# The statement includes a semicolon character literal, so match its line directly.\nboundary=next(line.strip() for line in sources[recognition].splitlines() if line.strip().startswith('return afterField'))\nchanged('interpolation-boundary-bypass',recognition,boundary,'return true;')\nchanged('probe-verification-bypass',recognition,'IsInPythonUnitTestClass(content, position, rejection)','true')\nadjacent=re.search(r'        if \\(hasAdjacentContent[^\\n]+\\n        \\{\\n            return false;\\n        \\}',sources[recognition]);assert adjacent\nchanged('adjacent-content-boundary-bypass',recognition,adjacent[0],'')\nstart=sources[recognition].index('        foreach (Match closure in PythonFaultListClosingPattern()')\nend=sources[recognition].index('    private static bool IsInsidePythonSourceLiteral',start)\nchanged('mutation-list-closure-bypass',recognition,sources[recognition][start:end],'        return true;\\n    }\\n\\n')\n\nchanged('here-document-ownership-bypass',recognition,'if (!opening.Success) { return []; }','if (!opening.Success) { cursor = end + 1; continue; }')\nvariant=dict(sources)\nassert variant[main].count('content = MaskBoundedPythonSecurityProbes(relativePath, content);')==1\nassert variant[main].count('!IsBoundedPythonSourceAssignment(effectivePath, content, match)')==1\nvariant[main]=variant[main].replace('content = MaskBoundedPythonSecurityProbes(relativePath, content);','_ = relativePath;').replace('!IsBoundedPythonSourceAssignment(effectivePath, content, match)','true')\nvariants['recognition-disabled']=variant\nproject='''<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><EnableNETAnalyzers>false</EnableNETAnalyzers><LangVersion>14.0</LangVersion><NoWarn>IDE0028;CA2007;xUnit1051;CS0618;CS8602;CS8604;CS8600</NoWarn></PropertyGroup><ItemGroup><PackageReference Include=\"xunit.v3\" Version=\"4.0.2\"/><PackageReference Include=\"Shouldly\" Version=\"4.3.0\"/><Using Include=\"Xunit\"/></ItemGroup></Project>'''\nmanifest={'source_sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in original},'variants':{}}\nfor name,variant in variants.items():\n directory=base/name;directory.mkdir(exist_ok=True)\n for file,text in variant.items():(directory/file).write_text(text)\n (directory/'Mutation.csproj').write_text(project)\n manifest['variants'][name]={file:hashlib.sha256(text.encode()).hexdigest() for file,text in variant.items()}\n(base/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\\n')\nprint('Prepared control plus',len(variants)-1,'single-purpose exact-source mutations.')\n",
+        "run-semantic-mutations.py": "import subprocess,concurrent.futures,json\nfrom pathlib import Path\nbase=Path('/tmp/hexalith-dw517-20261014/semantic-mutations')\ndef run(name):\n cwd=str(base/name)\n commands=[['dotnet','build','Mutation.csproj','--configuration','Release','-warnaserror','-m:1','-nr:false'],['dotnet','bin/Release/net10.0/Mutation.dll','-method','*EvidenceFileIngestion_*','-method','*EvidenceSemanticIngestion_*','-noLogo']]\n codes=[]\n for phase,cmd in zip(['build','tests'],commands):\n  p=subprocess.run(['python3','/tmp/dw517-run.py','semantic-mutation-'+name+'-'+phase,cwd,*cmd],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)\n  codes.append(p.returncode)\n  if phase=='build' and p.returncode!=0:print(p.stdout);break\n print(name,codes,flush=True);return name,codes\nnames=list(json.loads((base/'manifest.json').read_text())['variants'])\nwith concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:results=dict(ex.map(run,names))\n(base/'results.json').write_text(json.dumps(results,indent=2)+'\\n')\nassert results['control']==[0,0],results['control']\nassert all(v[0]==0 and v[1]!=0 for k,v in results.items() if k!='control'),results\nprint('Every deliberate bypass failed test assertions; unchanged control passed. Owning source untouched.')\n"
+      },
+      "status": "Current frozen residual-correction source, control576/576 passes; all eleven bypasses fail assertions."
+    },
+    {
+      "source_and_variant_sha256": {
+        "source_sha256": {
+          "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+          "SecretsProtectionTests.EvidenceRecognition.cs": "53a9c5f7b3421f7c4fff7308dff9627495fbdb5e57898db354450cd29827821c",
+          "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+          "SecretsProtectionTests.cs": "edecabfe7a9faa92ae28d34859ae3163a72b6ade39cfe95173b145365bd8f0ff"
+        },
+        "variants": {
+          "control": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "53a9c5f7b3421f7c4fff7308dff9627495fbdb5e57898db354450cd29827821c",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "ingestion-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "53a9c5f7b3421f7c4fff7308dff9627495fbdb5e57898db354450cd29827821c",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "7239a2ec03ee2ee22fa14fec8c4169ed1b9d744c9053277d6551fc3fa2dd7fe3"
+          },
+          "scanning-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "53a9c5f7b3421f7c4fff7308dff9627495fbdb5e57898db354450cd29827821c",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "1843eb935ddad8083ac92770f7843862240ca4220690c81114269224ce7400fd"
+          },
+          "retirement-content-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "53a9c5f7b3421f7c4fff7308dff9627495fbdb5e57898db354450cd29827821c",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "d057fbc28512537680d859b1e582f176605c0dd957ec6de5aeb4b8a53545b968"
+          },
+          "retirement-approval-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "53a9c5f7b3421f7c4fff7308dff9627495fbdb5e57898db354450cd29827821c",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "697cd9556235d0ff691e27b9543953c94133cf00d922c67b4edfc22c5da88715"
+          },
+          "seal-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "53a9c5f7b3421f7c4fff7308dff9627495fbdb5e57898db354450cd29827821c",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "3fe5df5f7e383d6c03b1d9798181b4edb674f4bfabc06798431aa6cb7353e86f"
+          },
+          "interpolation-boundary-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "2b69ecadfe76b8ee7e73fb04f613635f2d89fb1b983663bafbb9cd13cd787da1",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "probe-verification-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "fa97449b87019383cda218170cc081ea880fc1549b911321f6566849ec8858e9",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "adjacent-content-boundary-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "a6c3bebcf516a901a71a1e1d82fff5e59f8b27ce4928944258ff671bd288097a",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "mutation-list-closure-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "d37fa383a96db41fdb27dfd3c94780602538620b4a7f345601fe67071b4e3f60",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "here-document-ownership-bypass": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "67b906e6dd55d29dd20b6a1575fea465889fe1edd4926a131e2f4572e973dee8",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "4abf435fd85f8807ccadd77ff039abfb5a126a59d39398707f9aded7cd3f0d3b"
+          },
+          "recognition-disabled": {
+            "SecretsProtectionTests.EvidenceIngestion.cs": "2640304b4e511a7ff9ee78e078b2f1c19c4bc7bdd0918026af03512d7c679b6d",
+            "SecretsProtectionTests.EvidenceRecognition.cs": "53a9c5f7b3421f7c4fff7308dff9627495fbdb5e57898db354450cd29827821c",
+            "SecretsProtectionTests.EvidenceSemanticIngestion.cs": "539c92a8246bbf22277dbb3d18bfc11942ef3a2d37ad87ecd1fec88ba666336e",
+            "SecretsProtectionTests.cs": "523c310cca436586d2ca4745d8611e6f8f47169b92b36f8d4281b731de999287"
+          }
+        }
+      },
+      "results": {
+        "control": [
+          0,
+          0
+        ],
+        "ingestion-bypass": [
+          0,
+          1
+        ],
+        "scanning-bypass": [
+          0,
+          1
+        ],
+        "retirement-content-bypass": [
+          0,
+          1
+        ],
+        "retirement-approval-bypass": [
+          0,
+          1
+        ],
+        "seal-bypass": [
+          0,
+          1
+        ],
+        "interpolation-boundary-bypass": [
+          0,
+          1
+        ],
+        "probe-verification-bypass": [
+          0,
+          1
+        ],
+        "adjacent-content-boundary-bypass": [
+          0,
+          1
+        ],
+        "mutation-list-closure-bypass": [
+          0,
+          1
+        ],
+        "here-document-ownership-bypass": [
+          0,
+          1
+        ],
+        "recognition-disabled": [
+          0,
+          1
+        ]
+      },
+      "test_counts": {
+        "control": {
+          "total": 576,
+          "errors": 0,
+          "failed": 0,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "ingestion-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 318,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "scanning-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 337,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "retirement-content-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 2,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "retirement-approval-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 3,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "seal-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 1,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "interpolation-boundary-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 12,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "probe-verification-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 10,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "adjacent-content-boundary-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 8,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "mutation-list-closure-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 1,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "here-document-ownership-bypass": {
+          "total": 576,
+          "errors": 0,
+          "failed": 4,
+          "skipped": 0,
+          "not_run": 0
+        },
+        "recognition-disabled": {
+          "total": 576,
+          "errors": 0,
+          "failed": 92,
+          "skipped": 0,
+          "not_run": 0
+        }
+      },
+      "command_result_indices_zero_based": {
+        "control": {
+          "build": 149,
+          "tests": 151
+        },
+        "ingestion-bypass": {
+          "build": 148,
+          "tests": 152
+        },
+        "scanning-bypass": {
+          "build": 147,
+          "tests": 150
+        },
+        "retirement-content-bypass": {
+          "build": 153,
+          "tests": 156
+        },
+        "retirement-approval-bypass": {
+          "build": 155,
+          "tests": 157
+        },
+        "seal-bypass": {
+          "build": 154,
+          "tests": 158
+        },
+        "interpolation-boundary-bypass": {
+          "build": 160,
+          "tests": 163
+        },
+        "probe-verification-bypass": {
+          "build": 159,
+          "tests": 162
+        },
+        "adjacent-content-boundary-bypass": {
+          "build": 161,
+          "tests": 164
+        },
+        "mutation-list-closure-bypass": {
+          "build": 166,
+          "tests": 173
+        },
+        "here-document-ownership-bypass": {
+          "build": 168,
+          "tests": 171
+        },
+        "recognition-disabled": {
+          "build": 169,
+          "tests": 172
+        }
+      },
+      "scripts": {
+        "prepare-semantic-mutations.py": "from pathlib import Path\nimport hashlib,json,re\nroot=Path('/home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore')\nbase=Path('/tmp/hexalith-dw517-20261014/semantic-mutations');base.mkdir(exist_ok=True)\nfolder=root/'tests/Hexalith.EventStore.Server.Tests/Security'\noriginal={p.name:p.read_text() for p in sorted(folder.glob('SecretsProtectionTests*.cs'))}\nassert len(original)==4\nmain='SecretsProtectionTests.cs';recognition='SecretsProtectionTests.EvidenceRecognition.cs'\nsources=dict(original)\nsources[main]=sources[main].replace('private static readonly string RepoRoot = Path.GetFullPath(\\n        Path.Combine(AppContext.BaseDirectory, \"..\", \"..\", \"..\", \"..\", \"..\"));','private static readonly string RepoRoot = \"'+str(root)+'\";')\nassert 'Path.Combine(AppContext.BaseDirectory' not in sources[main]\nvariants={'control':dict(sources)}\ndef changed(name,file,old,new):\n assert sources[file].count(old)==1,(name,old,sources[file].count(old))\n variant=dict(sources);variant[file]=variant[file].replace(old,new);variants[name]=variant\nchanged('ingestion-bypass',main,'if (IsRetiredEvidenceCapture(path, root) || IsExplicitGeneratedPath(path))','if (RestoredEvidencePaths.Contains(path, StringComparer.Ordinal) || IsRetiredEvidenceCapture(path, root) || IsExplicitGeneratedPath(path))')\nchanged('scanning-bypass',main,'? FindViolations(path, content)\\n            : [];','? []\\n            : [];')\nchanged('retirement-content-bypass',main,'actualHash.ShouldBe(expectedHash, \"Retired evidence must remain byte-preserved.\");','_ = actualHash;')\napproval=re.search(r'            ApprovedRetirementHashes.TryGetValue\\(path, out string\\? approvedHash\\).ShouldBeTrue\\([\\s\\S]+?expectedHash.ShouldBe\\(approvedHash, \"A registry edit cannot re-pin approved retired content.\"\\);',sources[main]);assert approval\nchanged('retirement-approval-bypass',main,approval[0],'')\nchanged('seal-bypass',main,'VerifySealedP1RRemediationSourceCapture(File.ReadAllBytes(Path.Combine(root, path)));','_ = root;')\n# The statement includes a semicolon character literal, so match its line directly.\nboundary=next(line.strip() for line in sources[recognition].splitlines() if line.strip().startswith('return afterField'))\nchanged('interpolation-boundary-bypass',recognition,boundary,'return true;')\nchanged('probe-verification-bypass',recognition,'IsInPythonUnitTestClass(content, position, rejection)','true')\nadjacent=re.search(r'        if \\(hasAdjacentContent[^\\n]+\\n        \\{\\n            return false;\\n        \\}',sources[recognition]);assert adjacent\nchanged('adjacent-content-boundary-bypass',recognition,adjacent[0],'')\nstart=sources[recognition].index('        foreach (Match closure in PythonFaultListClosingPattern()')\nend=sources[recognition].index('    private static bool IsInsidePythonSourceLiteral',start)\nchanged('mutation-list-closure-bypass',recognition,sources[recognition][start:end],'        return true;\\n    }\\n\\n')\n\nchanged('here-document-ownership-bypass',recognition,'if (!opening.Success) { return []; }','if (!opening.Success) { cursor = end + 1; continue; }')\nvariant=dict(sources)\nassert variant[main].count('content = MaskBoundedPythonSecurityProbes(relativePath, content);')==1\nassert variant[main].count('!IsBoundedPythonSourceAssignment(effectivePath, content, match)')==1\nvariant[main]=variant[main].replace('content = MaskBoundedPythonSecurityProbes(relativePath, content);','_ = relativePath;').replace('!IsBoundedPythonSourceAssignment(effectivePath, content, match)','true')\nvariants['recognition-disabled']=variant\nproject='''<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework><OutputType>Exe</OutputType><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><EnableNETAnalyzers>false</EnableNETAnalyzers><LangVersion>14.0</LangVersion><NoWarn>IDE0028;CA2007;xUnit1051;CS0618;CS8602;CS8604;CS8600</NoWarn></PropertyGroup><ItemGroup><PackageReference Include=\"xunit.v3\" Version=\"4.0.2\"/><PackageReference Include=\"Shouldly\" Version=\"4.3.0\"/><Using Include=\"Xunit\"/></ItemGroup></Project>'''\nmanifest={'source_sha256':{name:hashlib.sha256((folder/name).read_bytes()).hexdigest() for name in original},'variants':{}}\nfor name,variant in variants.items():\n directory=base/name;directory.mkdir(exist_ok=True)\n for file,text in variant.items():(directory/file).write_text(text)\n (directory/'Mutation.csproj').write_text(project)\n manifest['variants'][name]={file:hashlib.sha256(text.encode()).hexdigest() for file,text in variant.items()}\n(base/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\\n')\nprint('Prepared control plus',len(variants)-1,'single-purpose exact-source mutations.')\n",
+        "run-semantic-mutations.py": "import subprocess,concurrent.futures,json\nfrom pathlib import Path\nbase=Path('/tmp/hexalith-dw517-20261014/semantic-mutations')\ndef run(name):\n cwd=str(base/name)\n commands=[['dotnet','build','Mutation.csproj','--configuration','Release','-warnaserror','-m:1','-nr:false'],['dotnet','bin/Release/net10.0/Mutation.dll','-method','*EvidenceFileIngestion_*','-method','*EvidenceSemanticIngestion_*','-noLogo']]\n codes=[]\n for phase,cmd in zip(['build','tests'],commands):\n  p=subprocess.run(['python3','/tmp/dw517-run.py','semantic-mutation-'+name+'-'+phase,cwd,*cmd],stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True)\n  codes.append(p.returncode)\n  if phase=='build' and p.returncode!=0:print(p.stdout);break\n print(name,codes,flush=True);return name,codes\nnames=list(json.loads((base/'manifest.json').read_text())['variants'])\nwith concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:results=dict(ex.map(run,names))\n(base/'results.json').write_text(json.dumps(results,indent=2)+'\\n')\nassert results['control']==[0,0],results['control']\nassert all(v[0]==0 and v[1]!=0 for k,v in results.items() if k!='control'),results\nprint('Every deliberate bypass failed test assertions; unchanged control passed. Owning source untouched.')\n"
+      },
+      "status": "Final independently rechecked source after RE3 simplification. Control576/576 passes; all eleven bypasses fail assertions. No compiler failures."
+    }
+  ]
+}

@@ -445,6 +445,7 @@
     private readonly Dictionary<object, (string TenantId, Func<bool, Task<bool>> Lease)> _commandActivityLeases = [];
     private object? _aggregateLeaseHolder;
     private int _readRefreshSubscriptionInFlight;
+    private long _readRefreshRouteVersion;
 
     [Parameter]
     public string TenantId { get; set; } = string.Empty;
@@ -826,6 +827,10 @@
 
         string tenantId = TenantId;
         bool tenantRouteChanged = !string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal);
+        if (tenantRouteChanged)
+        {
+            _ = Interlocked.Increment(ref _readRefreshRouteVersion);
+        }
         using PendingOperation operation = BeginLoad();
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
@@ -1056,6 +1061,14 @@
 
     private void InvalidateCallerState()
     {
+        IAsyncDisposable? lease = _readRefreshLease;
+        _readRefreshLease = null;
+        _subscriptionTenantId = null;
+        if (lease is not null)
+        {
+            _ = DisposeLeaseSupportSafelyAsync(lease);
+        }
+
         CancelActiveCancellation();
         CancelSupplementaryReads();
         ResetMetadataProofScope(tenantId: null);
@@ -1368,8 +1381,27 @@
     /// silently disabling projection auto-refresh for the rest of the circuit. Both sibling pages already
     /// pass <see cref="CancellationToken.None"/> for this reason.
     /// </remarks>
-    private async Task EnsureReadRefreshLeaseAsync(string tenantId)
+    private Task EnsureReadRefreshLeaseAsync(string tenantId)
+        => _disposed ? Task.CompletedTask : InvokeAsync(() => EnsureReadRefreshLeaseOnRendererAsync(tenantId));
+
+    private bool IsReadRefreshScopeCurrent(string tenantId, long routeVersion, long callerVersion)
+        => !_disposed
+            && routeVersion == Volatile.Read(ref _readRefreshRouteVersion)
+            && callerVersion == Volatile.Read(ref _auditCallerVersion)
+            && string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+            && IsCurrentCallerScope(_callerScope);
+
+    private async Task EnsureReadRefreshLeaseOnRendererAsync(string tenantId)
     {
+        // Own setup/adoption/handoff on the renderer, including continuations after backend awaits.
+        // Read generations change on refresh/paging; this epoch changes only with the route.
+        long routeVersion = Volatile.Read(ref _readRefreshRouteVersion);
+        long callerVersion = Volatile.Read(ref _auditCallerVersion);
+        if (!IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion))
+        {
+            return;
+        }
+
         if (!string.Equals(_readRefreshAttemptTenantId, tenantId, StringComparison.Ordinal))
         {
             _readRefreshAttemptTenantId = tenantId;
@@ -1401,13 +1433,15 @@
             lease = await refreshSubscription.SubscribeAsync(
                 GetTenantQuery.ProjectionType,
                 tenantId,
-                () => InvokeAsync(() => RefreshTenantReadsAsync(tenantId)),
-                CancellationToken.None).ConfigureAwait(false);
-            if (_disposed
-                || !string.Equals(TenantId, tenantId, StringComparison.Ordinal)
+                () => _disposed ? Task.CompletedTask : InvokeAsync(() =>
+                    IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion)
+                        ? RefreshTenantReadsAsync(tenantId)
+                        : Task.CompletedTask),
+                CancellationToken.None);
+            if (!IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion)
                 || _readRefreshLease is not null)
             {
-                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+                await DisposeLeaseSupportSafelyAsync(lease);
                 return;
             }
 
@@ -1416,7 +1450,7 @@
                 // Setup registered no callback. Recording it would satisfy the guards above forever and
                 // permanently disable auto-refresh; leaving both fields unset lets the next render retry.
                 _readRefreshAttempts++;
-                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+                await DisposeLeaseSupportSafelyAsync(lease);
                 lease = null;
                 return;
             }
@@ -1434,23 +1468,34 @@
                 IAsyncDisposable orphaned = _readRefreshLease;
                 _readRefreshLease = null;
                 _subscriptionTenantId = null;
-                await DisposeLeaseSupportSafelyAsync(orphaned).ConfigureAwait(false);
+                await DisposeLeaseSupportSafelyAsync(orphaned);
             }
         }
         catch
         {
             // Optional refresh only; a transport fault must not escape the render lifecycle. The next
             // render retries. The budget is charged here, not before the attempt.
-            _readRefreshAttempts++;
+            if (IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion))
+            {
+                _readRefreshAttempts++;
+            }
             LogNotificationSetupFailure();
             if (lease is not null)
             {
-                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+                await DisposeLeaseSupportSafelyAsync(lease);
             }
         }
         finally
         {
             Volatile.Write(ref _readRefreshSubscriptionInFlight, 0);
+            if (!_disposed
+                && (routeVersion != Volatile.Read(ref _readRefreshRouteVersion)
+                    || callerVersion != Volatile.Read(ref _auditCallerVersion)))
+            {
+                // OnAfterRender has no completion render. Release the obsolete owner's gate before
+                // re-evaluating the latest authorized scope; current failures retain their render budget.
+                await EnsureReadRefreshLeaseOnRendererAsync(TenantId);
+            }
         }
     }
 
@@ -1462,14 +1507,11 @@
         _readRefreshAttempts = 0;
         string tenantId = TenantId;
 
-        // BeginLoad cancels the shared load token and clears _memberPageLoadInFlight / IsRefreshing, so a
-        // member page navigation that was in flight is aborted here. This method never re-reads members, so
-        // the abort was silent: the refresh indicator vanished, the pager re-enabled (its Disabled binding
-        // reads Members.IsRefreshing, not _memberPageLoadInFlight) and the table sat on the old page with no
-        // error and no retry, while the superseded load's finally could restore nothing because its
-        // generation no longer matched. Route those cases through the read refresh, which restores
-        // Refreshing and re-issues the member read for the current cursor.
-        if (_memberPageLoadInFlight)
+        // BeginLoad cancels the shared token and clears member refresh intent. Reissue any outstanding
+        // member read through the combined refresh so a detail-only refresh cannot silently discard it.
+        // Navigation has not committed its requested cursor yet; both navigation and combined refresh
+        // therefore re-read the current, last-confirmed cursor while retaining its rows and paging history.
+        if (_memberPageLoadInFlight || _tenantUsersSnapshot.IsRefreshing)
         {
             await RefreshTenantReadsAsync(tenantId).ConfigureAwait(false);
             return;

@@ -113,7 +113,7 @@
                                           ValueChanged="OnStatusFilterChanged"
                                           Label="@Localizer[StatusFilterLabelKey]"
                                           data-testid="tenants-list-status-filter"
-                                          aria-label="@Localizer["Tenants.List.StatusFilterLabel"]">
+                                          aria-label="@Localizer[StatusFilterLabelKey]">
                                 <FluentOption TValue="string" Value="@string.Empty">@Localizer["Tenants.List.StatusFilter.All"]</FluentOption>
                                 <FluentOption TValue="string" Value="@TenantStatus.Active.ToString()">@Localizer["Tenants.List.StatusFilter.Active"]</FluentOption>
                                 <FluentOption TValue="string" Value="@TenantStatus.Disabled.ToString()">@Localizer["Tenants.List.StatusFilter.Disabled"]</FluentOption>
@@ -339,6 +339,7 @@
 @code {
     private static readonly int[] _pageSizes = [20, 50, 100];
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
+    private string? _renderedStatusFilterLabel;
     private long _auditRefreshVersion;
     private TenantListSnapshot? _lastConfirmedSnapshot;
     private TenantWorkspaceState _workspaceState = TenantWorkspaceState.FromQuery(
@@ -562,7 +563,7 @@
         => !string.IsNullOrWhiteSpace(_selectedTenantId)
             && string.Equals(QuerySelectedTenantId, _selectedTenantId, StringComparison.Ordinal)
             && string.Equals(QueryAnchor, _returnAnchor, StringComparison.Ordinal)
-            && string.Equals(_returnAnchor, $"tenant-row-{_selectedTenantId}", StringComparison.Ordinal);
+            && string.Equals(_returnAnchor, TenantDomIdentity.ElementId("tenant-row-", _selectedTenantId), StringComparison.Ordinal);
 
     private bool HasPreviousPage
         => HasActiveSearch
@@ -943,6 +944,30 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (IsRetainedTenantListView)
+        {
+            string label = Localizer[StatusFilterLabelKey];
+            if (!string.Equals(_renderedStatusFilterLabel, label, StringComparison.Ordinal))
+            {
+                try
+                {
+                    await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsStatusFilter.js");
+                    if (await module.InvokeAsync<bool>("syncStatusFilterLabel"))
+                    {
+                        _renderedStatusFilterLabel = label;
+                    }
+                }
+                catch (Exception exception) when (exception is JSDisconnectedException or TaskCanceledException)
+                {
+                    // The interactive circuit ended before its native label could be synchronized.
+                }
+            }
+        }
+        else
+        {
+            _renderedStatusFilterLabel = null;
+        }
+
         if (_pendingDetailFocus is { } detailFocus)
         {
             _pendingDetailFocus = null;

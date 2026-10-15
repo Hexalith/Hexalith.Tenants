@@ -1,0 +1,78 @@
+{
+  "unchanged_gate_and_build_files": {
+    ".gitleaks.toml": {
+      "entry_sha256": "d05cb745731bc735276d409f90958080e18b4d9e3fcab4f8a5b9fbbe6b6eefea",
+      "current_sha256": "d05cb745731bc735276d409f90958080e18b4d9e3fcab4f8a5b9fbbe6b6eefea",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    ".github/workflows/ci.yml": {
+      "entry_sha256": "1388d7b2f4cf96d01da3f078c09c975768c89ac79e14ef649635b7c2f79a0ae7",
+      "current_sha256": "1388d7b2f4cf96d01da3f078c09c975768c89ac79e14ef649635b7c2f79a0ae7",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    ".github/workflows/integration.yml": {
+      "entry_sha256": "e50df54fb058ca5c52e0282836ebf6f04cb6fce915a1a1178bf19fad4411da21",
+      "current_sha256": "e50df54fb058ca5c52e0282836ebf6f04cb6fce915a1a1178bf19fad4411da21",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    ".github/workflows/release.yml": {
+      "entry_sha256": "91f7b28d0ae1e805492af3a937849bafee0f071809f4757024bf380cc6bac31b",
+      "current_sha256": "91f7b28d0ae1e805492af3a937849bafee0f071809f4757024bf380cc6bac31b",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    ".github/workflows/p1r-qualification.yml": {
+      "entry_sha256": "d88063ae47f84b68d362ac8c985d0ed00809a48c387de28c5801418875a59885",
+      "current_sha256": "d88063ae47f84b68d362ac8c985d0ed00809a48c387de28c5801418875a59885",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    ".editorconfig": {
+      "entry_sha256": "d0188d02b2600d6311f50144b669176b869fb311d4dcfa98eddc2431fe1b3435",
+      "current_sha256": "d0188d02b2600d6311f50144b669176b869fb311d4dcfa98eddc2431fe1b3435",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    ".gitattributes": {
+      "entry_sha256": "ef23c24c156ca5a37ba7ebdccd1026835b22c31c25d236c1675be3df733a166f",
+      "current_sha256": "ef23c24c156ca5a37ba7ebdccd1026835b22c31c25d236c1675be3df733a166f",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    "global.json": {
+      "entry_sha256": "25b36d45123efa1d03786506dadad7546069f8563cddd4b509849b5c3631e9f5",
+      "current_sha256": "25b36d45123efa1d03786506dadad7546069f8563cddd4b509849b5c3631e9f5",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    "Directory.Build.props": {
+      "entry_sha256": "66b2d5f9b4b60ef17fff045881badc565fcca6e4dfb51919aee760feebb6f477",
+      "current_sha256": "66b2d5f9b4b60ef17fff045881badc565fcca6e4dfb51919aee760feebb6f477",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    "Directory.Packages.props": {
+      "entry_sha256": "4fe25096ceefd11e8ffffe1ab6a1854e18ac36c853a6805fa72285433b03b638",
+      "current_sha256": "4fe25096ceefd11e8ffffe1ab6a1854e18ac36c853a6805fa72285433b03b638",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    "tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj": {
+      "entry_sha256": "4cce250b9d2d616350664549de19bc3a92ad468c9f017e02e89c2cfbe630b214",
+      "current_sha256": "4cce250b9d2d616350664549de19bc3a92ad468c9f017e02e89c2cfbe630b214",
+      "matches_entry": true,
+      "matches_current_head": true
+    },
+    "_bmad-output/implementation-artifacts/sprint-status.yaml": {
+      "entry_sha256": "9283bbb6c7e772ca374fc61c4bb56a0ec599aa291b59600c6d7ded6b8ba97785",
+      "current_sha256": "77a8783874c197f1613f62cfae7b833106a6a68e53782b1c27bb6fdb8449ad81",
+      "matches_entry": false,
+      "matches_current_head": true
+    }
+  },
+  "all_B1_B8_readiness_history_preserved_as_prefix": true,
+  "note": "Only owning sprint differs from original entry, exactly matching preserved external merge HEAD. No assistant edit."
+}

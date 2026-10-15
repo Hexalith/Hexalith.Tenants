@@ -830,7 +830,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         // Simulate returning from the shared tenant-detail route: scope=mine plus the restored selection and
         // return-focus anchor (AC5).
         Services.GetRequiredService<NavigationManager>()
-            .NavigateTo("/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
+            .NavigateTo("/tenants?tab=tenants&scope=mine&selected=tenant.alpha&anchor=tenants-my-row-id-dGVuYW50LmFscGhh");
 
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-my-list']");
@@ -842,7 +842,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
 
         // The canonical URL preserves the selection/anchor so a redirect does not strip the restored context.
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
-            "http://localhost/tenants/tenants?scope=mine&selected=tenant.alpha&anchor=tenants-my-row-tenant.alpha");
+            "http://localhost/tenants/tenants?scope=mine&selected=tenant.alpha&anchor=tenants-my-row-id-dGVuYW50LmFscGhh");
     }
 
     [Fact]
@@ -1050,7 +1050,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         href.ShouldStartWith("/tenants/tenant.alpha/audit?");
         href.ShouldContain("source=my-tenants");
         href.ShouldContain("returnUrl=" + Uri.EscapeDataString("/tenants/tenants?scope=mine"));
-        href.ShouldContain("returnFocus=tenants-my-row-tenant.alpha");
+        href.ShouldContain("returnFocus=tenants-my-row-id-dGVuYW50LmFscGhh");
     }
 
     [Fact]
@@ -1083,7 +1083,7 @@ public sealed class TenantsWorkspaceTests : BunitContext
         href.ShouldContain("targetUserId=user.target-01");
         href.ShouldContain("source=user-lookup");
         href.ShouldContain("returnUrl=" + Uri.EscapeDataString("/tenants/workspace-users?userId=user.target-01"));
-        href.ShouldContain("returnFocus=tenants-user-row-tenant.beta");
+        href.ShouldContain("returnFocus=tenants-user-row-id-dGVuYW50LmJldGE");
     }
 
     [Fact]
@@ -1112,13 +1112,13 @@ public sealed class TenantsWorkspaceTests : BunitContext
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         string detailHref = cut.WaitForElement("[data-testid='tenants-my-detail-link']").GetAttribute("href").ShouldNotBeNull();
         string listReturn = Uri.UnescapeDataString(detailHref.Split("returnUrl=", StringSplitOptions.None)[1]);
-        listReturn.ShouldContain("anchor=tenants-my-detail-tenant.alpha");
+        listReturn.ShouldContain("anchor=tenants-my-detail-id-dGVuYW50LmFscGhh");
 
         Services.GetRequiredService<NavigationManager>().NavigateTo(listReturn);
 
         cut.WaitForAssertion(() => detailFocus.Invocations.Count.ShouldBe(1));
         detailFocus.Invocations.Single().Arguments.ShouldBe(
-            ["tenants-my-detail-tenant.alpha", "tenants-my-page", "tenants-list-heading"]);
+            ["tenants-my-detail-id-dGVuYW50LmFscGhh", "tenants-my-page", "tenants-list-heading"]);
         string headingReference = HeadingReferenceId(cut);
         HeadingFocusRequests(headingReference).ShouldBe(0);
         cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty();

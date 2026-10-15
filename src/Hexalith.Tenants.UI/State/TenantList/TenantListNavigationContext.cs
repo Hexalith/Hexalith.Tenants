@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using Hexalith.Tenants.UI.State.TenantAudit;
+
 namespace Hexalith.Tenants.UI.State.TenantList;
 
 /// <summary>
@@ -21,7 +23,7 @@ public sealed record TenantListNavigationContext(TenantWorkspaceState WorkspaceS
     {
         ArgumentNullException.ThrowIfNull(row);
 
-        return ToDetailUrl(row.TenantId, $"tenant-row-{row.TenantId}");
+        return ToDetailUrl(row.TenantId, TenantDomIdentity.ElementId("tenant-row-", row.TenantId));
     }
 
     /// <summary>
@@ -31,10 +33,13 @@ public sealed record TenantListNavigationContext(TenantWorkspaceState WorkspaceS
     /// </summary>
     /// <param name="tenantId">The literal, caller-supplied tenant identifier.</param>
     /// <param name="anchor">The return-focus anchor matching the originating row element id.</param>
-    public string ToDetailUrl(string tenantId, string anchor)
+    public string ToDetailUrl(string? tenantId, string? anchor)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(anchor);
+        if (!TenantAuditNavigationSafety.IsSafeTenantId(tenantId)
+            || !TenantAuditNavigationSafety.IsSafeFocus(anchor))
+        {
+            return string.Empty;
+        }
 
         TenantWorkspaceState selected = WorkspaceState with
         {
@@ -42,7 +47,7 @@ public sealed record TenantListNavigationContext(TenantWorkspaceState WorkspaceS
             SelectedTenantId = tenantId,
             Anchor = anchor,
         };
-        string encodedTenantId = Uri.EscapeDataString(tenantId);
+        string encodedTenantId = Uri.EscapeDataString(tenantId!);
         string returnUrl = Uri.EscapeDataString(selected.ToCanonicalUrl());
         return string.Create(CultureInfo.InvariantCulture, $"/tenants/{encodedTenantId}?returnUrl={returnUrl}");
     }
@@ -54,15 +59,20 @@ public sealed record TenantListNavigationContext(TenantWorkspaceState WorkspaceS
     {
         ArgumentNullException.ThrowIfNull(row);
 
+        if (!TenantAuditNavigationSafety.IsSafeTenantId(row.TenantId))
+        {
+            return string.Empty;
+        }
+
         TenantWorkspaceState selected = WorkspaceState with
         {
             Cursor = null,
             SelectedTenantId = row.TenantId,
-            Anchor = $"tenant-row-{row.TenantId}",
+            Anchor = TenantDomIdentity.ElementId("tenant-row-", row.TenantId),
         };
         string tenantId = Uri.EscapeDataString(row.TenantId);
         string returnUrl = Uri.EscapeDataString(selected.ToCanonicalUrl());
         string partial = WorkspaceState.Cursor is null ? string.Empty : "&auditPartialReturn=true";
-        return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}/audit?source=tenant-list&returnUrl={returnUrl}&returnFocus={Uri.EscapeDataString(selected.Anchor)}{partial}");
+        return string.Create(CultureInfo.InvariantCulture, $"/tenants/{tenantId}/audit?source=tenant-list&returnUrl={returnUrl}&returnFocus={Uri.EscapeDataString(selected.Anchor!)}{partial}");
     }
 }

@@ -1,0 +1,30 @@
+{
+  "total_ids": 643,
+  "all_done": 319,
+  "all_open": 324,
+  "reconciled_dispositions": {
+    "blocked": 15,
+    "actionable": 236,
+    "accepted-limitation": 9,
+    "uncertain": 38,
+    "awaiting-decision": 26,
+    "done": 115
+  },
+  "explicit_supplementary_dispositions": {
+    "blocked": 15,
+    "actionable": 236,
+    "accepted-limitation": 9,
+    "uncertain": 38,
+    "awaiting-decision": 26,
+    "done": 7
+  },
+  "index_rows": 288,
+  "index_exact_open_id_coverage": true,
+  "only_changed_record": "DW-517",
+  "all_other_original_entry_records_unchanged": true,
+  "archive_and_protected_hashes_preserved": true,
+  "next_bundle": [
+    "DW-105",
+    "DW-108"
+  ]
+}

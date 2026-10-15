@@ -1,0 +1,526 @@
+{
+  "xml_runs": [
+    {
+      "file": "/tmp/hexalith-dw164/first-fixed.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "dc1bf527-fa10-4845-87da-1db045259933",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:14:33",
+          "start-rtf": "2026-10-15T14:14:33.7944641+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "3",
+          "finish-rtf": "2026-10-15T14:14:37.0218019+00:00",
+          "not-run": "0",
+          "passed": "13",
+          "skipped": "0",
+          "time": "3.227",
+          "time-rtf": "00:00:03.2270000",
+          "total": "16"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"return\\\")",
+          "message": "NSubstitute.Exceptions.ReceivedCallsException : Expected to receive exactly 2 calls matching:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", any CancellationToken)\nActually received 5 matching calls:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"return\\\")",
+          "message": "NSubstitute.Exceptions.ReceivedCallsException : Expected to receive exactly 2 calls matching:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", any CancellationToken)\nActually received 5 matching calls:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"return\\\")",
+          "message": "NSubstitute.Exceptions.ReceivedCallsException : Expected to receive exactly 2 calls matching:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", any CancellationToken)\nActually received 5 matching calls:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", System.Threading.CancellationToken)\n"
+        }
+      ],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/fixed.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "c1e71047-2c79-499b-8185-f60b3064ade4",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:15:02",
+          "start-rtf": "2026-10-15T14:15:02.9592951+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T14:15:06.6549487+00:00",
+          "not-run": "0",
+          "passed": "16",
+          "skipped": "0",
+          "time": "3.696",
+          "time-rtf": "00:00:03.6960000",
+          "total": "16"
+        }
+      ],
+      "failures": [],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/focused-debug-complete.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "90982996-2ad7-43f9-bb89-c3b71856dab6",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:19:52",
+          "start-rtf": "2026-10-15T14:19:52.9940633+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T14:20:12.5987698+00:00",
+          "not-run": "0",
+          "passed": "364",
+          "skipped": "0",
+          "time": "19.607",
+          "time-rtf": "00:00:19.6070000",
+          "total": "364"
+        }
+      ],
+      "failures": [],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/focused-debug-final.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "9f315884-6608-4e53-b354-1d903c6f9a66",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:18:42",
+          "start-rtf": "2026-10-15T14:18:42.5361676+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "1",
+          "finish-rtf": "2026-10-15T14:19:02.2272007+00:00",
+          "not-run": "0",
+          "passed": "363",
+          "skipped": "0",
+          "time": "19.692",
+          "time-rtf": "00:00:19.6920000",
+          "total": "364"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_caller_cleanup_cannot_retain_private_rows_or_detach_the_replacement_lease",
+          "message": "Shouldly.ShouldAssertException : gateway.ReceivedCalls().Count()\n    should be\n16\n    but was\n18"
+        }
+      ],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/focused-debug.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "02136829-0481-4bf2-96f0-840689b798f3",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:15:16",
+          "start-rtf": "2026-10-15T14:15:16.2863708+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T14:15:34.3756906+00:00",
+          "not-run": "0",
+          "passed": "348",
+          "skipped": "0",
+          "time": "18.091",
+          "time-rtf": "00:00:18.0910000",
+          "total": "348"
+        }
+      ],
+      "failures": [],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/focused-release-complete.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "4a2504b6-d329-4824-a86b-30cc3ecff9c2",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:20:19",
+          "start-rtf": "2026-10-15T14:20:19.1416467+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T14:20:41.4305163+00:00",
+          "not-run": "0",
+          "passed": "364",
+          "skipped": "0",
+          "time": "22.291",
+          "time-rtf": "00:00:22.2910000",
+          "total": "364"
+        }
+      ],
+      "failures": [],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/independent-caller-repeat.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "fcad309a-6ca4-41ed-8d12-4bb939438456",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:19:03",
+          "start-rtf": "2026-10-15T14:19:03.3606959+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T14:19:06.4620433+00:00",
+          "not-run": "0",
+          "passed": "18",
+          "skipped": "0",
+          "time": "3.102",
+          "time-rtf": "00:00:03.1020000",
+          "total": "18"
+        }
+      ],
+      "failures": [],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/independent-corrected-final.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "3205c51b-ab7a-42bf-8fd6-7bad0f2479db",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:19:51",
+          "start-rtf": "2026-10-15T14:19:51.9486056+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T14:19:58.6170445+00:00",
+          "not-run": "0",
+          "passed": "32",
+          "skipped": "0",
+          "time": "6.670",
+          "time-rtf": "00:00:06.6700000",
+          "total": "32"
+        }
+      ],
+      "failures": [],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/independent-final.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "fb611b6b-e397-4e97-bd43-62cf40a4a466",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:18:44",
+          "start-rtf": "2026-10-15T14:18:44.5472972+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "1",
+          "finish-rtf": "2026-10-15T14:18:51.5922012+00:00",
+          "not-run": "0",
+          "passed": "31",
+          "skipped": "0",
+          "time": "7.045",
+          "time-rtf": "00:00:07.0450000",
+          "total": "32"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(transition: \\\"pending\\\", completion: \\\"empty\\\")",
+          "message": "Shouldly.ShouldAssertException : gateway.ReceivedCalls().Count()\n    should be\n36\n    but was\n38"
+        }
+      ],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/pre-fix-after-render.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "ebac3689-7c2d-4eca-b3d9-908195848ec6",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:12:46",
+          "start-rtf": "2026-10-15T14:12:46.6470506+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "9",
+          "finish-rtf": "2026-10-15T14:12:47.7518150+00:00",
+          "not-run": "0",
+          "passed": "0",
+          "skipped": "0",
+          "time": "1.105",
+          "time-rtf": "00:00:01.1050000",
+          "total": "9"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"once\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"once\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"once\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"repeated\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"repeated\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"repeated\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n1\n    but was\n0"
+        }
+      ],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/pre-fix-real.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "c02fb609-0c23-4655-8933-78edfa530cac",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:13:52",
+          "start-rtf": "2026-10-15T14:13:52.3384372+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "12",
+          "finish-rtf": "2026-10-15T14:14:00.3925643+00:00",
+          "not-run": "0",
+          "passed": "2",
+          "skipped": "0",
+          "time": "8.056",
+          "time-rtf": "00:00:08.0559999",
+          "total": "14"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(transition: \\\"pending\\\")",
+          "message": "Shouldly.ShouldAssertException : await cut.InvokeAsync(notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(\\\"tenants\\\", \\\"tenant.alpha\\\"));\n        gateway.ReceivedCalls().Count().ShouldBe(reads, \\\"the original callback is invalid immediately on transition\\\");\n        setup.SetResult();\n        // Await the actual lifecycle task's completion flag; no manufactured render is used to wake setup.\n        await WaitForHandoffIdleAsync(cut);\n        if (transition == \\\"pending\\\")\n        {\n            attempts.ShouldBe(1);\n            HandoffField<IAsyncDisposable?>(cut, \\\"_readRefreshLease\\\")\n    should be null but was\nHexalith.Tenants.UI.Services.TenantReadRefreshLease (54636159)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(transition: \\\"changed\\\")",
+          "message": "Shouldly.ShouldAssertException : await cut.InvokeAsync(authentication.Notify(AdministratorPrincipal(caller)));\n            cut.WaitForAssertion(HandoffField<TenantDetailSnapshot>(cut, \\\"_snapshot\\\").CallerScope\n    should be\n38\n    but was\n54\n\nAdditional Info:\n    the original callback is invalid immediately on transition"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(transition: \\\"signed-out\\\")",
+          "message": "Shouldly.ShouldAssertException : await cut.InvokeAsync(notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(\\\"tenants\\\", \\\"tenant.alpha\\\"));\n            cut.WaitForAssertion(gateway.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync)).ShouldBe(reads + 1));\n            HandoffField<TenantUsersSnapshot>(cut, \\\"_tenantUsersSnapshot\\\").ProjectionVersion.ShouldBe(\\\"members-operator.beta\\\");\n            await cut.InvokeAsync(async await cut.Instance.DisposeAsync());\n        }\n        else\n        {\n            attempts.ShouldBe(1);\n            HandoffField<IAsyncDisposable?>(cut, \\\"_readRefreshLease\\\")\n    should be null but was\nHexalith.Tenants.UI.Services.TenantReadRefreshLease (65531238)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"once\\\")",
+          "message": "System.TimeoutException : The operation has timed out."
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"once\\\")",
+          "message": "System.TimeoutException : The operation has timed out."
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"once\\\")",
+          "message": "System.TimeoutException : The operation has timed out."
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"repeated\\\")",
+          "message": "System.TimeoutException : The operation has timed out."
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"repeated\\\")",
+          "message": "System.TimeoutException : The operation has timed out."
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"repeated\\\")",
+          "message": "System.TimeoutException : The operation has timed out."
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : cut.WaitForAssertion(HandoffField<TenantDetailSnapshot>(cut, \\\"_snapshot\\\").Detail!.TenantId\n    should be\n42\n    but was\n58\n\nAdditional Info:\n    obsolete callbacks must not issue even one read"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : cut.WaitForAssertion(HandoffField<TenantDetailSnapshot>(cut, \\\"_snapshot\\\").Detail!.TenantId\n    should be\n42\n    but was\n58\n\nAdditional Info:\n    obsolete callbacks must not issue even one read"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : cut.WaitForAssertion(HandoffField<TenantDetailSnapshot>(cut, \\\"_snapshot\\\").Detail!.TenantId\n    should be\n42\n    but was\n58\n\nAdditional Info:\n    obsolete callbacks must not issue even one read"
+        }
+      ],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/pre-fix.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "fb06e913-10a2-456d-bcfd-ec9b881fc32c",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:11:50",
+          "start-rtf": "2026-10-15T14:11:50.9343208+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "3",
+          "finish-rtf": "2026-10-15T14:11:53.9234090+00:00",
+          "not-run": "0",
+          "passed": "6",
+          "skipped": "0",
+          "time": "2.990",
+          "time-rtf": "00:00:02.9900000",
+          "total": "9"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"return\\\")",
+          "message": "System.TimeoutException : The operation has timed out."
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : HandoffField<int>(cut, \\\"_readRefreshAttempts\\\")\n    should be\n0\n    but was\n1\n\nAdditional Info:\n    obsolete failure must not charge the current tenant"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : HandoffField<int>(cut, \\\"_readRefreshAttempts\\\")\n    should be\n0\n    but was\n1\n\nAdditional Info:\n    obsolete failure must not charge the current tenant"
+        }
+      ],
+      "skip_names": []
+    },
+    {
+      "file": "/tmp/hexalith-dw164/review-corrections.xml",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "d6f75f4b-3b3f-4879-a9e6-8a1ed8afc7ff",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "14:18:15",
+          "start-rtf": "2026-10-15T14:18:15.6257954+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T14:18:20.9814638+00:00",
+          "not-run": "0",
+          "passed": "32",
+          "skipped": "0",
+          "time": "5.356",
+          "time-rtf": "00:00:05.3560000",
+          "total": "32"
+        }
+      ],
+      "failures": [],
+      "skip_names": []
+    }
+  ],
+  "full_project_runs": [
+    {
+      "command_index": 29,
+      "configuration": "Debug",
+      "exit_code": 0,
+      "total": 5020,
+      "failed": 0,
+      "succeeded": 5020,
+      "skipped": 0
+    },
+    {
+      "command_index": 40,
+      "configuration": "Debug",
+      "exit_code": 0,
+      "total": 5036,
+      "failed": 0,
+      "succeeded": 5036,
+      "skipped": 0
+    },
+    {
+      "command_index": 46,
+      "configuration": "Debug",
+      "exit_code": 0,
+      "total": 5036,
+      "failed": 0,
+      "succeeded": 5036,
+      "skipped": 0
+    },
+    {
+      "command_index": 47,
+      "configuration": "Release",
+      "exit_code": 0,
+      "total": 5036,
+      "failed": 0,
+      "succeeded": 5036,
+      "skipped": 0
+    }
+  ],
+  "browser_runs": [
+    {
+      "command_index": 26,
+      "exit_code": 0,
+      "configuration": "Debug",
+      "bounds_unchanged": true,
+      "output": "Breakpoint asset provenance: {\"BuildConfiguration\":\"Debug\",\"Manifest\":\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Debug/net10.0/staticwebassets.build.json\",\"ManifestSha256\":\"b544f0c55eba9bb529ee75ae814823ae6c79a4ca4991eff8a81feb1467420ba8\",\"SourceId\":\"Hexalith.FrontComposer.Shell\",\"SourceType\":\"Project\",\"Identity\":\"/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js\",\"RelativePath\":\"js/fc-layout-breakpoints#[.{fingerprint}]?.js\",\"Integrity\":\"R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=\",\"Sha256\":\"475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a\"}\n<output id=\"validation-report\">PASS 33 exotic anchors, 12 audit returns, 4 actual panel detail returns; all-tenants heading, lookup subject guard, exact DOM active element and rerender stability\nRendered tenant identity wrong-row focus control: correctly rejected.\nRendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed.\nRendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed.\nRendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected.\nBrowser: Google Chrome 154.0.8037.57 \nShipped module: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nShipped desktop: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-desktop-row;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-desktop-row;availability-state-line-programmatic-focus:availability-state;desktop-correction-retry-visible;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nShipped forced colors: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;availability-forced-colors-active-visible-text-icon-focus-outline;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nReturn-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)\nRemoval-dialog in-flow and hidden CSS mutations: correctly rejected\nUnstacked availability recoveries at 390px: correctly rejected\n{\"browser\":{\"protocolVersion\":\"1.3\",\"product\":\"Chrome/154.0.8037.57\",\"revision\":\"@73c14f6228d7cd537c855007e8f88678969cc0eb\",\"userAgent\":\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36\",\"jsVersion\":\"15.4.80.11\"},\"modulePath\":\"/home/administrator/.nuget/packages/microsoft.fluentui.aspnetcore.components/5.0.0/staticwebassets/Microsoft.FluentUI.AspNetCore.Components.lib.module.js\",\"results\":[{\"culture\":\"en\",\"mode\":\"ordinary\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"fallback\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"authoritative\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"partial\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"empty\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-0\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"transition-1\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-2\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"transition-3\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-4\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"delayed-0\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"delayed-1\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"status-0\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"status-1\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"status-2\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"fr\",\"mode\":\"ordinary\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"fallback\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"authoritative\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"partial\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"empty\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-0\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"transition-1\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-2\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"transition-3\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-4\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"delayed-0\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"delayed-1\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"status-0\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"status-1\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"status-2\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"}],\"staleNameControl\":\"rejected\",\"scope\":\"rendered Fluent fixtures; no authenticated topology or human AT claim\"}\n"
+    },
+    {
+      "command_index": 45,
+      "exit_code": 0,
+      "configuration": "Release",
+      "bounds_unchanged": true,
+      "output": "Breakpoint asset provenance: {\"BuildConfiguration\":\"Release\",\"Manifest\":\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Release/net10.0/staticwebassets.build.json\",\"ManifestSha256\":\"a832d5ef1a45290e930e2731c9ad6bbb091dd9fd195520b4e1b5f7e492a61766\",\"SourceId\":\"Hexalith.FrontComposer.Shell\",\"SourceType\":\"Project\",\"Identity\":\"/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js\",\"RelativePath\":\"js/fc-layout-breakpoints#[.{fingerprint}]?.js\",\"Integrity\":\"R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=\",\"Sha256\":\"475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a\"}\n<output id=\"validation-report\">PASS 33 exotic anchors, 12 audit returns, 4 actual panel detail returns; all-tenants heading, lookup subject guard, exact DOM active element and rerender stability\nRendered tenant identity wrong-row focus control: correctly rejected.\nRendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed.\nRendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed.\nRendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected.\nBrowser: Google Chrome 154.0.8037.57 \nShipped module: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nShipped desktop: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-desktop-row;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-desktop-row;availability-state-line-programmatic-focus:availability-state;desktop-correction-retry-visible;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nShipped forced colors: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;availability-forced-colors-active-visible-text-icon-focus-outline;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nReturn-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)\nRemoval-dialog in-flow and hidden CSS mutations: correctly rejected\nUnstacked availability recoveries at 390px: correctly rejected\n{\"browser\":{\"protocolVersion\":\"1.3\",\"product\":\"Chrome/154.0.8037.57\",\"revision\":\"@73c14f6228d7cd537c855007e8f88678969cc0eb\",\"userAgent\":\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36\",\"jsVersion\":\"15.4.80.11\"},\"modulePath\":\"/home/administrator/.nuget/packages/microsoft.fluentui.aspnetcore.components/5.0.0/staticwebassets/Microsoft.FluentUI.AspNetCore.Components.lib.module.js\",\"results\":[{\"culture\":\"en\",\"mode\":\"ordinary\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"fallback\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"authoritative\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"partial\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"empty\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-0\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"transition-1\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-2\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"transition-3\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-4\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"delayed-0\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"delayed-1\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"status-0\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"status-1\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"status-2\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"fr\",\"mode\":\"ordinary\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"fallback\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"authoritative\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"partial\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"empty\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-0\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"transition-1\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-2\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"transition-3\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-4\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"delayed-0\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"delayed-1\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"status-0\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"status-1\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"status-2\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"}],\"staleNameControl\":\"rejected\",\"scope\":\"rendered Fluent fixtures; no authenticated topology or human AT claim\"}\n"
+    }
+  ],
+  "source_sha256": {
+    "src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor": "a9aad5d47457c3f5e5199e0556412a4f2a70e66590d47212bab7822d2081a8a5",
+    "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs": "4b1ebe2b1a95f95e26e511cd5bc5c26f4f997a9490bd315a7466d8dc0e39b871",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh": "212978b9da7d83092809f7782a510d1f43b17294843b81668f3579e1bbac7a25"
+  },
+  "existing_UI_skips": [],
+  "historical_server_skips": "DW-517 Server25 DW1 ATDD skips unchanged, not rerun by this UI-only bundle",
+  "scope": "Maintained UI uses existing FrontComposer source exception; strict package-only and broad solution diagnostics recorded separately. Static rendered Chromium fixtures do not establish authenticated topology or human AT acceptance."
+}

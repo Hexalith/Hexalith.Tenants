@@ -1,0 +1,94 @@
+{
+  "full-ui-debug-reviewed": {
+    "counters": {
+      "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+      "id": "711e4966-960b-4eb6-a05f-c237955e26c4",
+      "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+      "run-date": "2026-10-14",
+      "run-time": "19:40:17",
+      "start-rtf": "2026-10-14T19:40:17.0426328+00:00",
+      "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+      "target-framework": ".NETCoreApp,Version=v10.0",
+      "errors": "0",
+      "failed": "0",
+      "finish-rtf": "2026-10-14T19:41:28.7293624+00:00",
+      "not-run": "0",
+      "passed": "4971",
+      "skipped": "0",
+      "time": "71.690",
+      "time-rtf": "00:01:11.6900000",
+      "total": "4971"
+    },
+    "skips": [],
+    "xml_sha256": "e5333a832b3661dd81c97e1041dc0991a197f8e707b93aedc6116ba7645df361"
+  },
+  "full-ui-release-reviewed": {
+    "counters": {
+      "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+      "id": "74f5c785-1406-470a-aaa0-fca3ddea693d",
+      "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+      "run-date": "2026-10-14",
+      "run-time": "19:41:51",
+      "start-rtf": "2026-10-14T19:41:51.8232831+00:00",
+      "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+      "target-framework": ".NETCoreApp,Version=v10.0",
+      "errors": "0",
+      "failed": "0",
+      "finish-rtf": "2026-10-14T19:43:03.2251932+00:00",
+      "not-run": "0",
+      "passed": "4971",
+      "skipped": "0",
+      "time": "71.406",
+      "time-rtf": "00:01:11.4060000",
+      "total": "4971"
+    },
+    "skips": [],
+    "xml_sha256": "cce9d5323648b1ba186370baf3690d1424008ae9bfb52c08d77835092447aa81"
+  },
+  "full-ui-debug-final-gate": {
+    "counters": {
+      "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+      "id": "aaf20691-0b4f-40d4-a9d7-cf2964ad7d75",
+      "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+      "run-date": "2026-10-14",
+      "run-time": "19:48:09",
+      "start-rtf": "2026-10-14T19:48:09.6339946+00:00",
+      "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+      "target-framework": ".NETCoreApp,Version=v10.0",
+      "errors": "0",
+      "failed": "0",
+      "finish-rtf": "2026-10-14T19:49:25.0986295+00:00",
+      "not-run": "0",
+      "passed": "4971",
+      "skipped": "0",
+      "time": "75.469",
+      "time-rtf": "00:01:15.4690000",
+      "total": "4971"
+    },
+    "skips": [],
+    "xml_sha256": "e7d26ca356bd6e503fdac10e9a8655660a52d02bf7098c8d123dd81fb206535e"
+  },
+  "full-ui-release-final-gate": {
+    "counters": {
+      "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+      "id": "94f660d3-ee10-48b5-ae2f-2584791c57a1",
+      "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+      "run-date": "2026-10-14",
+      "run-time": "19:49:04",
+      "start-rtf": "2026-10-14T19:49:04.7772512+00:00",
+      "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+      "target-framework": ".NETCoreApp,Version=v10.0",
+      "errors": "0",
+      "failed": "0",
+      "finish-rtf": "2026-10-14T19:50:17.9168392+00:00",
+      "not-run": "0",
+      "passed": "4971",
+      "skipped": "0",
+      "time": "73.142",
+      "time-rtf": "00:01:13.1420000",
+      "total": "4971"
+    },
+    "skips": [],
+    "xml_sha256": "65e2058c65949b525316a71c69a0c72f866a395e751657ea3222eaccfaeff189"
+  }
+}

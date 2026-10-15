@@ -242,15 +242,21 @@
     // reserved for an actual audit handoff.
     private string DetailHrefFor(UserTenantMembershipRow row)
     {
+        if (!TenantAuditNavigationSafety.IsSafeTenantId(row.TenantId))
+        {
+            return string.Empty;
+        }
+
+        string anchor = TenantDomIdentity.ElementId("tenants-my-detail-", row.TenantId)!;
         if (UseWorkspaceRoute)
         {
             return new TenantListNavigationContext(MyTenantsWorkspaceState())
-                .ToDetailUrl(row.TenantId, $"tenants-my-detail-{row.TenantId}");
+                .ToDetailUrl(row.TenantId, anchor);
         }
 
         // A protected paging cursor must not enter the detail URL, even inside a nested returnUrl.
         // Keep the row focus and mark the lost page position for the return notice.
-        string returnUrl = "/tenants/my?anchor=" + Uri.EscapeDataString($"tenants-my-detail-{row.TenantId}")
+        string returnUrl = "/tenants/my?anchor=" + Uri.EscapeDataString(anchor)
             + (_currentCursor is null ? string.Empty : "&auditPartialReturn=true");
         return $"/tenants/{Uri.EscapeDataString(row.TenantId)}?returnUrl={Uri.EscapeDataString(returnUrl)}";
     }

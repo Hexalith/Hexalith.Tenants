@@ -29,6 +29,12 @@
     overflow-wrap: anywhere;
 }
 
+.tenant-data-grid__identity strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: break-spaces;
+}
+
 /* Preserve the exact caller-supplied identifier, including significant whitespace, while
    allowing long content to wrap without overrunning the copy affordance. */
 .tenant-data-grid__detail-link {

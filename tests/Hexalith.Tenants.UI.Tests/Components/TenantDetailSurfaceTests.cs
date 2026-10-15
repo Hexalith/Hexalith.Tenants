@@ -6685,7 +6685,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         decoded.ShouldContain("desc=True");
         decoded.ShouldNotContain("cursor=cursor-1");
         decoded.ShouldContain("selected=tenant.alpha");
-        decoded.ShouldContain("anchor=tenant-row-tenant.alpha");
+        decoded.ShouldContain("anchor=tenant-row-id-dGVuYW50LmFscGhh");
     }
 
     [Fact]
@@ -6709,7 +6709,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         });
 
         Services.GetRequiredService<NavigationManager>()
-            .NavigateTo("/tenants?search=beta&status=Disabled&sort=name&desc=True&cursor=cursor-1&selected=tenant.beta&anchor=tenant-row-tenant.beta");
+            .NavigateTo("/tenants?search=beta&status=Disabled&sort=name&desc=True&cursor=cursor-1&selected=tenant.beta&anchor=tenant-row-id-dGVuYW50LmJldGE");
 
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForElement("[data-testid='tenants-list-return-context']");
@@ -6724,9 +6724,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Markup.ShouldContain("tenant.beta");
         cut.Markup.ShouldNotContain("tenant.alpha");
 
-        // The generated return anchor (anchor=tenant-row-tenant.beta) must resolve to a real DOM
+        // The generated return anchor (anchor=tenant-row-id-dGVuYW50LmJldGE) must resolve to a real DOM
         // target so focus/scroll restoration has something to land on.
-        cut.Find("[id='tenant-row-tenant.beta']").ShouldNotBeNull();
+        cut.Find("[id='tenant-row-id-dGVuYW50LmJldGE']").ShouldNotBeNull();
         cut.Find("[id='tenants-list-heading']").GetAttribute("tabindex").ShouldBe("-1");
     }
 
@@ -9536,6 +9536,474 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         previousRequests.ShouldBe(1);
     }
 
+    [Fact]
+    public async Task Completed_detail_read_keeps_the_replacement_member_read_refreshing()
+    {
+        IRenderedComponent<TenantDetailPage> cut = await RenderDw150PageTwoAsync();
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+        var held = HoldDw150Reads(gateway);
+        Task obsolete = cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(1));
+        // A completed Task makes the detail await synchronous; no dispatcher-drain assumption is needed.
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(Dw150Detail("replacement")));
+        Task replacement = cut.InvokeAsync(() => cut.FindComponent<EditTenantMetadataFlow>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(2));
+        held.Details[0].Completion.SetResult(Dw150Detail("obsolete"));
+        held.Members[0].Completion.SetResult(Dw150Members("obsolete", "page-2"));
+        await obsolete;
+        AssertDw150Refreshing(cut);
+        DetailField(cut, "_detailRefreshInFlight").ShouldBe(true);
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("baseline");
+        held.Members[1].Completion.SetResult(Dw150Members("replacement", "page-2"));
+        await replacement;
+        AssertDw150Result(cut, "replacement", "replacement");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Only_the_owning_combined_cursor_recovery_can_reset_member_history(bool recoverReplacement)
+    {
+        IRenderedComponent<TenantDetailPage> cut = await RenderDw150PageTwoAsync();
+        var oldRecoveryStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var currentRecoveryStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int recoveryReads = 0;
+        var held = HoldDw150Reads(Services.GetRequiredService<ITenantQueryGateway>(), onMemberRead: request =>
+        {
+            if (request.Cursor is null)
+            {
+                (Interlocked.Increment(ref recoveryReads) == 1 ? oldRecoveryStarted : currentRecoveryStarted).TrySetResult();
+            }
+        });
+        Task obsolete = cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(1));
+        held.Details[0].Completion.SetResult(Dw150Detail("obsolete"));
+        held.Members[0].Completion.SetResult(TenantUsersSnapshot.Invalid("tenant.alpha", TenantUsersReason.InvalidCursor));
+        await oldRecoveryStarted.Task.WaitAsync(DefaultWaitTimeout);
+        held.Members.Count.ShouldBe(2);
+        held.Members[1].Request.Cursor.ShouldBeNull();
+        Task replacement = cut.InvokeAsync(() => cut.FindComponent<EditTenantMetadataFlow>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(3));
+        held.Members[1].Token.IsCancellationRequested.ShouldBeTrue();
+        held.Members[2].Request.Cursor.ShouldBe("page-2");
+        held.Details[1].Completion.SetResult(Dw150Detail("replacement"));
+        held.Members[2].Completion.SetResult(recoverReplacement
+            ? TenantUsersSnapshot.Invalid("tenant.alpha", TenantUsersReason.InvalidCursor)
+            : Dw150Members("replacement", "page-2"));
+        if (recoverReplacement)
+        {
+            await currentRecoveryStarted.Task.WaitAsync(DefaultWaitTimeout);
+            held.Members.Count.ShouldBe(4);
+            held.Members[3].Request.TenantId.ShouldBe("tenant.alpha");
+            held.Members[3].Request.Cursor.ShouldBeNull();
+            held.Members[3].Request.ETag.ShouldBeNull();
+            held.Members[3].Previous.ShouldNotBeNull().CallerScope
+                .ShouldBe(TenantQueryGateway.AuditCallerScope("operator.alpha"));
+        }
+        else
+        {
+            await replacement;
+        }
+        held.Members[1].Completion.SetResult(Dw150Members("obsolete-recovery", null));
+        await obsolete;
+        DetailField(cut, "_memberCursor").ShouldBe("page-2");
+        cut.FindAll("[data-testid='tenants-member-page-recovered']").ShouldBeEmpty();
+        if (recoverReplacement)
+        {
+            AssertDw150Refreshing(cut);
+            held.Members[3].Completion.SetResult(Dw150Members("recovered", null));
+            await replacement;
+            AssertDw150Result(cut, "replacement", "recovered");
+            DetailField(cut, "_memberCursor").ShouldBeNull();
+            cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeTrue();
+            cut.FindComponent<MemberAccessReview>().Instance.Members.PagingRecovered.ShouldBeTrue();
+            cut.Find("[data-testid='tenants-member-page-recovered']");
+        }
+        else
+        {
+            AssertDw150Result(cut, "replacement", "replacement");
+            cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeFalse();
+        }
+    }
+
+    [Theory]
+    [InlineData(1, true)]
+    [InlineData(1, false)]
+    [InlineData(3, true)]
+    [InlineData(3, false)]
+    public async Task Combined_refresh_survives_detail_supersession_at_the_current_member_cursor(
+        int replacements, bool obsoleteCompletesFirst)
+    {
+        IRenderedComponent<TenantDetailPage> cut = await RenderDw150PageTwoAsync();
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+        var held = HoldDw150Reads(gateway);
+        List<Task> operations = [cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync())];
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(1));
+        // This is the missing entry point: combined refresh is held, not Next/Previous navigation.
+        DetailField(cut, "_memberPageLoadInFlight").ShouldBe(false);
+        for (int index = 1; index <= replacements; index++)
+        {
+            operations.Add(cut.InvokeAsync(() => cut.FindComponent<EditTenantMetadataFlow>().Instance
+                .OnProjectionRefreshRequested.InvokeAsync()));
+            cut.WaitForAssertion(() => held.Members.Count.ShouldBe(index + 1));
+            held.Members[index - 1].Token.IsCancellationRequested.ShouldBeTrue();
+            held.Details[index - 1].Token.IsCancellationRequested.ShouldBeTrue();
+            AssertDw150Refreshing(cut);
+        }
+
+        foreach (var read in held.Members)
+        {
+            read.Request.TenantId.ShouldBe("tenant.alpha");
+            read.Request.Cursor.ShouldBe("page-2");
+            read.Request.ETag.ShouldBe("members-page-two");
+            read.Previous.ShouldNotBeNull().RequestCursor.ShouldBe("page-2");
+            read.Previous.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("operator.alpha"));
+        }
+        foreach (var read in held.Details)
+        {
+            read.Request.TenantId.ShouldBe("tenant.alpha");
+            read.Request.ETag.ShouldBe("\"detail-baseline\"");
+            read.Previous.ShouldNotBeNull().CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("operator.alpha"));
+        }
+        held.Members[^1].Token.IsCancellationRequested.ShouldBeFalse();
+        void CompleteObsolete()
+        {
+            for (int index = 0; index < replacements; index++)
+            {
+                held.Details[index].Completion.SetResult(Dw150Detail("obsolete"));
+                held.Members[index].Completion.SetResult(Dw150Members("obsolete", "page-2"));
+            }
+        }
+        if (obsoleteCompletesFirst)
+        {
+            CompleteObsolete();
+            await Task.WhenAll(operations.Take(replacements));
+            AssertDw150Refreshing(cut);
+            DetailField(cut, "_detailRefreshInFlight").ShouldBe(true);
+        }
+
+        held.Details[^1].Completion.SetResult(Dw150Detail("replacement"));
+        held.Members[^1].Completion.SetResult(Dw150Members("replacement", "page-2"));
+        await operations[^1];
+        if (!obsoleteCompletesFirst)
+        {
+            CompleteObsolete();
+            await Task.WhenAll(operations.Take(replacements));
+        }
+        AssertDw150Result(cut, "replacement", "replacement");
+        DetailField(cut, "_memberCursor").ShouldBe("page-2");
+        DetailField(cut, "_detailRefreshInFlight").ShouldBe(false);
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeFalse();
+
+        TenantDetailSnapshot appliedDetail = (TenantDetailSnapshot)DetailField(cut, "_snapshot")!;
+        appliedDetail.ETag.ShouldBe("\"detail-replacement\"");
+        appliedDetail.ProjectionVersion.ShouldBe("projection-replacement");
+        TenantUsersSnapshot appliedMembers = cut.FindComponent<MemberAccessReview>().Instance.Members;
+        appliedMembers.ETag.ShouldBe("members-replacement");
+        appliedMembers.ProjectionVersion.ShouldBe("projection-replacement");
+        Task followup = cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(replacements + 2));
+        held.Details[^1].Request.ETag.ShouldBe("\"detail-replacement\"");
+        held.Members[^1].Request.ETag.ShouldBe("members-replacement");
+        held.Members[^1].Request.Cursor.ShouldBe("page-2");
+        held.Details[^1].Previous.ShouldNotBeNull().ProjectionVersion.ShouldBe("projection-replacement");
+        held.Members[^1].Previous.ShouldNotBeNull().ProjectionVersion.ShouldBe("projection-replacement");
+        held.Details[^1].Completion.SetResult(Dw150Detail("replacement"));
+        held.Members[^1].Completion.SetResult(Dw150Members("replacement", "page-2"));
+        await followup;
+
+        // Exercise the retained history through Previous, not only reflection or request counts.
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(Dw150Members("returned-first", call.Arg<TenantUsersRequest>().Cursor)));
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.RequestPreviousPageAsync());
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("returned-first");
+        DetailField(cut, "_memberCursor").ShouldBeNull();
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("members-fault")]
+    [InlineData("detail-fault")]
+    [InlineData("both-fault")]
+    [InlineData("members-denied")]
+    [InlineData("wrong-caller")]
+    public async Task Superseding_combined_refresh_applies_truthful_independent_failure_states(string outcome)
+    {
+        IRenderedComponent<TenantDetailPage> cut = await RenderDw150PageTwoAsync();
+        var held = HoldDw150Reads(Services.GetRequiredService<ITenantQueryGateway>(), cooperateWithCancellation: true);
+        Task obsolete = cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(1));
+        Task current = cut.InvokeAsync(() => cut.FindComponent<EditTenantMetadataFlow>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(2));
+        await obsolete;
+        AssertDw150Refreshing(cut);
+        DetailField(cut, "_detailRefreshInFlight").ShouldBe(true);
+        if (outcome is "detail-fault" or "both-fault")
+        {
+            held.Details[1].Completion.SetException(new InvalidOperationException("Private backend diagnostic"));
+        }
+        else
+        {
+            held.Details[1].Completion.SetResult(Dw150Detail("replacement"));
+        }
+        if (outcome is "members-fault" or "both-fault")
+        {
+            held.Members[1].Completion.SetException(new InvalidOperationException("Private backend diagnostic"));
+        }
+        else
+        {
+            held.Members[1].Completion.SetResult(outcome switch
+            {
+                "members-denied" => TenantUsersSnapshot.Unauthorized("tenant.alpha"),
+                "wrong-caller" => Dw150Members("other-caller-private", "page-2") with
+                {
+                    CallerScope = TenantQueryGateway.AuditCallerScope("operator.beta"),
+                },
+                _ => Dw150Members("replacement", "page-2"),
+            });
+        }
+        await current;
+        // Cancellation callbacks completed the obsolete tasks during replacement setup.
+        held.Details[0].Token.IsCancellationRequested.ShouldBeTrue();
+        held.Members[0].Token.IsCancellationRequested.ShouldBeTrue();
+
+        TenantUsersSnapshot members = cut.FindComponent<MemberAccessReview>().Instance.Members;
+        members.IsRefreshing.ShouldBeFalse();
+        cut.FindAll("[data-testid='tenants-member-refreshing']").ShouldBeEmpty();
+        DetailField(cut, "_memberCursor").ShouldBe("page-2");
+        if (outcome is "members-denied")
+        {
+            members.Kind.ShouldBe(TenantUsersSurfaceKind.Unauthorized);
+            members.Rows.ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-member-row']").ShouldBeEmpty();
+        }
+        else
+        {
+            members.Rows.ShouldHaveSingleItem().UserId.ShouldBe(outcome is "detail-fault" ? "replacement" : "page-two");
+            members.Kind.ShouldBe(outcome is "detail-fault" ? TenantUsersSurfaceKind.Ready : TenantUsersSurfaceKind.Degraded);
+            if (members.Kind is TenantUsersSurfaceKind.Degraded)
+            {
+                members.Freshness.ShouldNotBe(ReadModelFreshnessState.Current);
+                members.ETag.ShouldBe("members-page-two");
+            }
+            cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain(members.Rows[0].UserId);
+        }
+        TenantDetailSnapshot detail = (TenantDetailSnapshot)DetailField(cut, "_snapshot")!;
+        detail.Kind.ShouldBe(outcome is "detail-fault" or "both-fault" ? TenantDetailSurfaceKind.Degraded : TenantDetailSurfaceKind.Ready);
+        if (outcome is "detail-fault" or "both-fault")
+        {
+            detail.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
+            detail.ETag.ShouldBe("\"detail-baseline\"");
+            detail.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+            detail.Configuration.IsAvailable.ShouldBeFalse();
+            cut.Find("[data-testid='tenants-detail-degraded']");
+            cut.FindAll("[data-testid='tenants-config-read-table']").ShouldBeEmpty();
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("replacement");
+        }
+        cut.Markup.ShouldNotContain("Private backend diagnostic");
+        cut.Markup.ShouldNotContain("other-caller-private");
+    }
+
+    [Theory]
+    [InlineData("tenant")]
+    [InlineData("caller")]
+    [InlineData("pending-caller")]
+    [InlineData("signed-out")]
+    [InlineData("dispose")]
+    public async Task Scope_changes_cancel_combined_replacements_and_reject_late_obsolete_evidence(string transition)
+    {
+        IRenderedComponent<TenantDetailPage> cut = await RenderDw150PageTwoAsync();
+        var held = HoldDw150Reads(Services.GetRequiredService<ITenantQueryGateway>());
+        Task obsolete = cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(1));
+        Task replacement = cut.InvokeAsync(() => cut.FindComponent<EditTenantMetadataFlow>().Instance
+            .OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => held.Members.Count.ShouldBe(2));
+        var authentication = (MutableAuthenticationStateProvider)Services.GetRequiredService<AuthenticationStateProvider>();
+        TaskCompletionSource<AuthenticationState>? pendingCaller = null;
+        switch (transition)
+        {
+            case "tenant":
+                cut.Render(parameters => parameters.Add(page => page.TenantId, "tenant.beta"));
+                break;
+            case "caller":
+                await cut.InvokeAsync(() => authentication.Notify(AdministratorPrincipal("operator.beta")));
+                break;
+            case "pending-caller":
+                await cut.InvokeAsync(() => pendingCaller = authentication.NotifyPending());
+                break;
+            case "signed-out":
+                await cut.InvokeAsync(() => authentication.Notify(new ClaimsPrincipal(new ClaimsIdentity())));
+                break;
+            default:
+                await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+                break;
+        }
+        held.Members[1].Token.IsCancellationRequested.ShouldBeTrue();
+        held.Details[1].Token.IsCancellationRequested.ShouldBeTrue();
+        if (transition is not "dispose")
+        {
+            cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-member-row']").ShouldBeEmpty());
+            DetailField(cut, "_memberCursor").ShouldBeNull();
+        }
+        if (pendingCaller is not null)
+        {
+            for (int index = 0; index < 2; index++)
+            {
+                held.Details[index].Completion.SetResult(Dw150Detail("obsolete-private"));
+                held.Members[index].Completion.SetResult(Dw150Members("obsolete-private", "page-2"));
+            }
+            await Task.WhenAll(obsolete, replacement);
+            cut.FindAll("[data-testid='tenants-member-row']").ShouldBeEmpty();
+            cut.Markup.ShouldNotContain("obsolete-private");
+            DetailField(cut, "_memberCursor").ShouldBeNull();
+            ((ICollection)DetailField(cut, "_memberCursorHistory")!).Count.ShouldBe(0);
+            held.Members.Count.ShouldBe(2);
+            pendingCaller.SetResult(new AuthenticationState(AdministratorPrincipal("operator.beta")));
+        }
+        if (transition is "tenant" or "caller" or "pending-caller")
+        {
+            cut.WaitForAssertion(() => held.Members.Count.ShouldBe(3));
+            string tenantId = transition == "tenant" ? "tenant.beta" : "tenant.alpha";
+            string subject = transition == "tenant" ? "operator.alpha" : "operator.beta";
+            held.Members[2].Request.TenantId.ShouldBe(tenantId);
+            held.Members[2].Request.Cursor.ShouldBeNull();
+            held.Members[2].Request.ETag.ShouldBeNull();
+            held.Members[2].Previous?.Rows.ShouldBeEmpty();
+            held.Details[2].Request.TenantId.ShouldBe(tenantId);
+            held.Details[2].Request.ETag.ShouldBeNull();
+            held.Details[2].Completion.SetResult(Dw150Detail("new-scope", tenantId, subject));
+            held.Members[2].Completion.SetResult(Dw150Members("new-scope", null, tenantId, subject));
+            cut.WaitForAssertion(() => AssertDw150Result(cut, "new-scope", "new-scope"));
+            cut.FindComponent<MemberAccessReview>().Instance.Members.CallerScope
+                .ShouldBe(TenantQueryGateway.AuditCallerScope(subject));
+        }
+        // Ignore cancellation deliberately: both older generations finish after new scope results.
+        for (int index = 0; index < 2; index++)
+        {
+            held.Details[index].Completion.TrySetResult(Dw150Detail("obsolete-private"));
+            held.Members[index].Completion.TrySetResult(Dw150Members("obsolete-private", "page-2"));
+        }
+        await Task.WhenAll(obsolete, replacement);
+        if (transition is "tenant" or "caller" or "pending-caller")
+        {
+            AssertDw150Result(cut, "new-scope", "new-scope");
+            DetailField(cut, "_memberCursor").ShouldBeNull();
+            cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeTrue();
+        }
+        else if (transition == "signed-out")
+        {
+            cut.FindAll("[data-testid='tenants-member-row']").ShouldBeEmpty();
+            cut.Markup.ShouldNotContain("obsolete-private");
+            ((TenantDetailSnapshot)DetailField(cut, "_snapshot")!).Kind.ShouldBe(TenantDetailSurfaceKind.Unauthorized);
+        }
+        else
+        {
+            ((TenantUsersSnapshot)DetailField(cut, "_tenantUsersSnapshot")!).Rows
+                .ShouldNotContain(member => member.UserId == "obsolete-private");
+        }
+    }
+
+    private async Task<IRenderedComponent<TenantDetailPage>> RenderDw150PageTwoAsync()
+    {
+        RegisterServices(_ => Task.FromResult(Dw150Detail("baseline")));
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(Dw150Members(call.Arg<TenantUsersRequest>().Cursor is null ? "page-one" : "page-two",
+                call.Arg<TenantUsersRequest>().Cursor)));
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-row']");
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.RequestNextPageAsync());
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("page-two");
+        return cut;
+    }
+
+    private static (
+        List<(TenantDetailRequest Request, TenantDetailSnapshot? Previous, CancellationToken Token, TaskCompletionSource<TenantDetailSnapshot> Completion)> Details,
+        List<(TenantUsersRequest Request, TenantUsersSnapshot? Previous, CancellationToken Token, TaskCompletionSource<TenantUsersSnapshot> Completion)> Members)
+        HoldDw150Reads(ITenantQueryGateway gateway, bool cooperateWithCancellation = false, Action<TenantUsersRequest>? onMemberRead = null)
+    {
+        List<(TenantDetailRequest, TenantDetailSnapshot?, CancellationToken, TaskCompletionSource<TenantDetailSnapshot>)> details = [];
+        List<(TenantUsersRequest, TenantUsersSnapshot?, CancellationToken, TaskCompletionSource<TenantUsersSnapshot>)> members = [];
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var completion = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+                details.Add((call.Arg<TenantDetailRequest>(), call.Arg<TenantDetailSnapshot?>(), call.Arg<CancellationToken>(), completion));
+                if (cooperateWithCancellation)
+                {
+                    CancellationToken token = call.Arg<CancellationToken>();
+                    token.Register(() => completion.TrySetCanceled(token));
+                }
+                return completion.Task;
+            });
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                var completion = new TaskCompletionSource<TenantUsersSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+                members.Add((call.Arg<TenantUsersRequest>(), call.Arg<TenantUsersSnapshot?>(), call.Arg<CancellationToken>(), completion));
+                onMemberRead?.Invoke(call.Arg<TenantUsersRequest>());
+                if (cooperateWithCancellation)
+                {
+                    CancellationToken token = call.Arg<CancellationToken>();
+                    token.Register(() => completion.TrySetCanceled(token));
+                }
+                return completion.Task;
+            });
+        return (details, members);
+    }
+
+    private static TenantDetailSnapshot Dw150Detail(string marker, string tenantId = "tenant.alpha", string subject = "operator.alpha")
+    {
+        TenantDetailSnapshot ready = ReadyWithSafeConfiguration(
+            Detail(tenantId, new Dictionary<string, string> { ["billing.mode"] = marker }));
+        return TenantDetailSnapshot.Ready(
+            new TenantConfigurationComposition(ready.Detail!, ready.Configuration, ready.ConfigurationManagement),
+            $"\"detail-{marker}\"", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, $"projection-{marker}")
+            .WithCallerScope(TenantQueryGateway.AuditCallerScope(subject));
+    }
+
+    private static TenantUsersSnapshot Dw150Members(string userId, string? cursor, string tenantId = "tenant.alpha", string subject = "operator.alpha")
+        => TenantUsersSnapshot.Ready(tenantId, [new TenantMember(userId, TenantRole.TenantOwner)],
+            cursor is null ? "page-2" : "page-3", true, $"members-{userId}",
+            $"projection-{userId}", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current) with
+        {
+            RequestCursor = cursor,
+            CallerScope = TenantQueryGateway.AuditCallerScope(subject),
+        };
+
+    private static void AssertDw150Refreshing(IRenderedComponent<TenantDetailPage> cut)
+    {
+        cut.FindComponent<MemberAccessReview>().Instance.Members.IsRefreshing.ShouldBeTrue();
+        cut.Find("[data-testid='tenants-member-refreshing']");
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("page-two");
+        cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
+    private static void AssertDw150Result(IRenderedComponent<TenantDetailPage> cut, string detailMarker, string memberId)
+    {
+        cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain(detailMarker);
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain(memberId);
+        cut.FindComponent<MemberAccessReview>().Instance.Members.Rows.ShouldHaveSingleItem().UserId.ShouldBe(memberId);
+        cut.FindComponent<MemberAccessReview>().Instance.Members.IsRefreshing.ShouldBeFalse();
+        cut.FindAll("[data-testid='tenants-member-refreshing']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("obsolete");
+    }
+
     /// <summary>
     /// A refresh arriving during a member page load must be routed through the read refresh, not silently
     /// abort it.
@@ -9683,6 +10151,536 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("newer");
         cut.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldNotContain("superseded");
     }
+
+    [Theory]
+    [InlineData("success", "once")]
+    [InlineData("empty", "once")]
+    [InlineData("throw", "once")]
+    [InlineData("success", "repeated")]
+    [InlineData("empty", "repeated")]
+    [InlineData("throw", "repeated")]
+    [InlineData("success", "return")]
+    [InlineData("empty", "return")]
+    [InlineData("throw", "return")]
+    public async Task Obsolete_subscription_completion_hands_off_to_latest_route_without_render(string completion, string route)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var setup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var replacementEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var refreshEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var refreshedDetail = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var refreshedMembers = new TaskCompletionSource<TenantUsersSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        int attempts = 0;
+        bool hold = false;
+        bool refreshing = false;
+        string latest = route == "return" ? "tenant.alpha" : route == "repeated" ? "tenant.gamma" : "tenant.beta";
+        backend.SubscribeAsync("tenants", Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            call.ArgAt<CancellationToken>(2).ShouldBe(CancellationToken.None);
+            if (!hold) return Task.FromException(new InvalidOperationException("initial optional setup unavailable"));
+            if (Interlocked.Increment(ref attempts) == 1)
+            {
+                return setup.Task;
+            }
+            call.ArgAt<string>(1).ShouldBe(latest);
+            replacementEntered.TrySetResult();
+            return Task.CompletedTask;
+        });
+        if (completion == "throw")
+        {
+            // A backend failure ordinarily becomes Empty. A failing optional logger exercises the
+            // page's outer catch too, without substituting the real reference-counted coordinator.
+            RegisterThrowingNotificationLogger();
+        }
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => refreshing ? refreshedDetail.Task : Task.FromResult(ReadyWithSafeConfiguration(
+                Detail(call.Arg<TenantDetailRequest>().TenantId), ProjectionLifecycleState.Current, "detail-before")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                if (refreshing)
+                {
+                    refreshEntered.TrySetResult();
+                    return refreshedMembers.Task;
+                }
+                return Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId)));
+            });
+        RegisterHandoffServices(gateway, backend, notifier);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        hold = true;
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        // The held owner is OnAfterRender, whose completion has no automatic render.
+        attempts.ShouldBe(1);
+        backend.ClearReceivedCalls(); // Exclude cleanup from the initial unavailable-service phase.
+        var callbacks = (IDictionary)typeof(TenantReadRefreshSubscription).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(Services.GetRequiredService<TenantReadRefreshSubscription>())!;
+        Func<Task> obsoleteCallback = ((IDictionary)callbacks.Values.Cast<object>().Single()).Values.Cast<Func<Task>>().Single();
+        cut.Render(p => p.Add(page => page.TenantId, "tenant.beta"));
+        if (route != "once")
+        {
+            cut.Render(p => p.Add(page => page.TenantId, latest));
+        }
+        cut.WaitForAssertion(() => HandoffField<TenantDetailSnapshot>(cut, "_snapshot").Detail!.TenantId.ShouldBe(latest));
+        int before = HandoffReadCount(gateway);
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha"));
+        HandoffReadCount(gateway).ShouldBe(before, "obsolete callbacks must not issue even one read");
+        if (completion == "success") setup.SetResult();
+        else setup.SetException(new InvalidOperationException("private transport diagnostics"));
+        // No render/parameter update after releasing setup: its own completion must wake the latest route.
+        await replacementEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        HandoffField<string>(cut, "_subscriptionTenantId").ShouldBe(latest);
+        HandoffField<IAsyncDisposable>(cut, "_readRefreshLease").ShouldNotBeNull();
+        attempts.ShouldBe(2);
+        callbacks.Count.ShouldBe(1);
+        ((IDictionary)callbacks.Values.Cast<object>().Single()).Count.ShouldBe(1);
+        await AssertObsoleteHandoffCallbackAsync(cut, gateway, obsoleteCallback);
+        HandoffField<int>(cut, "_readRefreshAttempts").ShouldBe(0, "obsolete failure must not charge the current tenant");
+        cut.Markup.ShouldNotContain("private transport diagnostics");
+        before = HandoffReadCount(gateway);
+        await cut.InvokeAsync(() =>
+        {
+            notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("other-projection", latest);
+            notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.obsolete");
+        });
+        HandoffReadCount(gateway).ShouldBe(before);
+        refreshing = true;
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", latest));
+        await refreshEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+        TenantUsersSnapshot retained = HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot");
+        retained.IsRefreshing.ShouldBeTrue();
+        retained.ProjectionVersion.ShouldBe("tenant-sequence:1");
+        HandoffField<TenantDetailSnapshot>(cut, "_snapshot").ProjectionVersion.ShouldBe("detail-before");
+        TenantDetailRequest request = gateway.ReceivedCalls().Where(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync))
+            .Last().GetArguments()[0].ShouldBeOfType<TenantDetailRequest>();
+        request.TenantId.ShouldBe(latest);
+        request.ETag.ShouldBe("\"etag\"");
+        TenantUsersRequest memberRequest = gateway.ReceivedCalls().Where(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantUsersAsync))
+            .Last().GetArguments()[0].ShouldBeOfType<TenantUsersRequest>();
+        memberRequest.TenantId.ShouldBe(latest);
+        memberRequest.ETag.ShouldBe("members-etag");
+        refreshedDetail.SetResult(ReadyWithSafeConfiguration(Detail(latest, new Dictionary<string, string> { ["billing.mode"] = "current-value" }), ProjectionLifecycleState.Current, "detail-after"));
+        refreshedMembers.SetResult(MemberSnapshot(Detail(latest, new Dictionary<string, string>(), TenantStatus.Active, [new TenantMember("current-user", TenantRole.TenantReader)])) with { ProjectionVersion = "members-after" });
+        cut.WaitForAssertion(() =>
+        {
+            HandoffField<TenantDetailSnapshot>(cut, "_snapshot").ProjectionVersion.ShouldBe("detail-after");
+            HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot").ProjectionVersion.ShouldBe("members-after");
+            HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot").IsRefreshing.ShouldBeFalse();
+            cut.Markup.ShouldContain("current-user");
+            cut.Markup.ShouldContain("current-value");
+        });
+        for (int i = 0; i < 3; i++) cut.Render();
+        attempts.ShouldBe(2, "ordinary renders must retain one established subscription");
+        await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+        int expectedReleases = latest == "tenant.alpha" ? 2 : 1;
+        await backend.Received(expectedReleases).UnsubscribeAsync("tenants", latest, Arg.Any<CancellationToken>());
+        before = HandoffReadCount(gateway);
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", latest));
+        HandoffReadCount(gateway).ShouldBe(before);
+    }
+
+    [Theory]
+    [InlineData("pending", "success")]
+    [InlineData("pending", "empty")]
+    [InlineData("pending", "throw")]
+    [InlineData("changed", "success")]
+    [InlineData("changed", "empty")]
+    [InlineData("changed", "throw")]
+    [InlineData("returned", "success")]
+    [InlineData("returned", "empty")]
+    [InlineData("returned", "throw")]
+    [InlineData("signed-out", "success")]
+    [InlineData("signed-out", "empty")]
+    [InlineData("signed-out", "throw")]
+    [InlineData("invalid-route", "success")]
+    [InlineData("invalid-route", "empty")]
+    [InlineData("invalid-route", "throw")]
+    [InlineData("disposed", "success")]
+    [InlineData("disposed", "empty")]
+    [InlineData("disposed", "throw")]
+    public async Task Held_subscription_completion_respects_current_caller_route_and_disposal(string transition, string completion)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var authentication = new MutableAuthenticationStateProvider();
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        var setup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var replacementEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        bool hold = false;
+        int attempts = 0;
+        string caller = "operator.alpha";
+        backend.SubscribeAsync("tenants", Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (!hold) return Task.FromException(new InvalidOperationException("initial setup unavailable"));
+            if (Interlocked.Increment(ref attempts) == 1) return setup.Task;
+            replacementEntered.TrySetResult();
+            return Task.CompletedTask;
+        });
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(ReadyWithSafeConfiguration(Detail(call.Arg<TenantDetailRequest>().TenantId),
+                ProjectionLifecycleState.Current, "detail-" + caller).WithCallerScope(TenantQueryGateway.AuditCallerScope(caller))));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId)) with
+                { CallerScope = TenantQueryGateway.AuditCallerScope(caller), ProjectionVersion = "members-" + caller }));
+        if (completion == "throw") RegisterThrowingNotificationLogger();
+        RegisterHandoffServices(gateway, backend, notifier);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        hold = true;
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        attempts.ShouldBe(1);
+        backend.ClearReceivedCalls();
+        var callbacks = (IDictionary)typeof(TenantReadRefreshSubscription).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(Services.GetRequiredService<TenantReadRefreshSubscription>())!;
+        Func<Task> obsoleteCallback = ((IDictionary)callbacks.Values.Cast<object>().Single()).Values.Cast<Func<Task>>().Single();
+        TaskCompletionSource<AuthenticationState>? pending = null;
+        if (transition == "pending") await cut.InvokeAsync(() => pending = authentication.NotifyPending());
+        else if (transition is "changed" or "returned")
+        {
+            caller = "operator.beta";
+            await cut.InvokeAsync(() => authentication.Notify(AdministratorPrincipal(caller)));
+            cut.WaitForAssertion(() => HandoffField<TenantDetailSnapshot>(cut, "_snapshot").CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope(caller)));
+        }
+        if (transition == "returned")
+        {
+            caller = "operator.alpha";
+            await cut.InvokeAsync(() => authentication.Notify(AdministratorPrincipal(caller)));
+            cut.WaitForAssertion(() => HandoffField<TenantDetailSnapshot>(cut, "_snapshot").CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope(caller)));
+        }
+        else if (transition == "signed-out") await cut.InvokeAsync(() => authentication.Notify(new ClaimsPrincipal(new ClaimsIdentity())));
+        else if (transition == "invalid-route") cut.Render(p => p.Add(page => page.TenantId, " "));
+        else if (transition == "disposed") await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+        int reads = HandoffReadCount(gateway);
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha"));
+        HandoffReadCount(gateway).ShouldBe(reads, "the original callback is invalid immediately on transition");
+        if (completion == "success") setup.SetResult();
+        else setup.SetException(new InvalidOperationException("private transport diagnostics"));
+        // Await the actual lifecycle task's completion flag; no manufactured render is used to wake setup.
+        await WaitForHandoffIdleAsync(cut);
+        if (transition == "pending")
+        {
+            attempts.ShouldBe(1);
+            HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldBeNull();
+            caller = "operator.beta";
+            pending!.SetResult(new AuthenticationState(AdministratorPrincipal(caller)));
+            await replacementEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+        }
+        if (transition is "changed" or "pending" or "returned")
+        {
+            await replacementEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+            await cut.InvokeAsync(() => Task.CompletedTask);
+            HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldNotBeNull();
+            HandoffField<TenantDetailSnapshot>(cut, "_snapshot").CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope(caller));
+            HandoffField<int>(cut, "_readRefreshAttempts").ShouldBe(0);
+            await AssertObsoleteHandoffCallbackAsync(cut, gateway, obsoleteCallback);
+            reads = gateway.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync));
+            await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha"));
+            cut.WaitForAssertion(() => gateway.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync)).ShouldBe(reads + 1));
+            HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot").ProjectionVersion.ShouldBe("members-" + caller);
+            await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+        }
+        else
+        {
+            attempts.ShouldBe(1);
+            HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldBeNull();
+            await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha"));
+            HandoffReadCount(gateway).ShouldBe(reads);
+        }
+        int releases = transition is "changed" or "pending" or "returned" ? 2 : 1;
+        await backend.Received(releases).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        callbacks.Count.ShouldBe(0, "neither terminal completion nor page disposal may leave a registered callback");
+    }
+
+    private static async Task WaitForHandoffIdleAsync(IRenderedComponent<TenantDetailPage> cut)
+    {
+        using var bound = new CancellationTokenSource(BunitContext.DefaultWaitTimeout);
+        while (HandoffField<int>(cut, "_readRefreshSubscriptionInFlight") != 0)
+        {
+            await Task.Delay(1, bound.Token);
+        }
+        await cut.InvokeAsync(() => Task.CompletedTask);
+    }
+
+    [Fact]
+    public async Task Handoff_preserves_current_failure_budget_and_explicit_recovery()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var replacement = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        bool hold = false;
+        int alpha = 0;
+        int beta = 0;
+        backend.SubscribeAsync("tenants", Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            if (call.ArgAt<string>(1) == "tenant.beta")
+            {
+                replacement.TrySetResult();
+                return Interlocked.Increment(ref beta) <= 3
+                    ? Task.FromException(new InvalidOperationException("current subscription unavailable")) : Task.CompletedTask;
+            }
+            if (!hold) return Task.FromException(new InvalidOperationException("initial setup unavailable"));
+            Interlocked.Increment(ref alpha);
+            return held.Task;
+        });
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(ReadyWithSafeConfiguration(Detail(call.Arg<TenantDetailRequest>().TenantId),
+                ProjectionLifecycleState.Current, "detail-v1")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId))));
+        RegisterHandoffServices(gateway, backend, notifier);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        hold = true;
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        alpha.ShouldBe(1);
+        cut.Render(p => p.Add(page => page.TenantId, "tenant.beta"));
+        held.SetException(new InvalidOperationException("obsolete subscription unavailable"));
+        await replacement.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+        await WaitForHandoffIdleAsync(cut);
+        beta.ShouldBe(1, "handoff wakes exactly one current attempt, not an eager retry loop");
+        for (int i = 0; i < 12; i++) cut.Render();
+        beta.ShouldBe(3);
+        HandoffField<int>(cut, "_readRefreshAttempts").ShouldBe(3);
+        HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldBeNull();
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldNotBeNull();
+        beta.ShouldBe(4);
+        int reads = gateway.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync));
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.beta"));
+        gateway.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync)).ShouldBe(reads + 1);
+        HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot").IsRefreshing.ShouldBeFalse();
+        HandoffField<TenantDetailSnapshot>(cut, "_snapshot").Detail!.TenantId.ShouldBe("tenant.beta");
+    }
+
+    [Fact]
+    public async Task Caller_invalidation_releases_only_the_pages_shared_refresh_lease()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var authentication = new MutableAuthenticationStateProvider();
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(MemberSnapshot(Detail("tenant.alpha"))));
+        RegisterHandoffServices(gateway, backend, notifier);
+        int independentReads = 0;
+        TenantReadRefreshSubscription coordinator = Services.GetRequiredService<TenantReadRefreshSubscription>();
+        await using TenantReadRefreshLease other = await coordinator.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            Interlocked.Increment(ref independentReads);
+            return Task.CompletedTask;
+        });
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldNotBeNull();
+        await cut.InvokeAsync(() => authentication.Notify(new ClaimsPrincipal(new ClaimsIdentity())));
+        HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldBeNull();
+        int reads = HandoffReadCount(gateway);
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha"));
+        independentReads.ShouldBe(1);
+        HandoffReadCount(gateway).ShouldBe(reads);
+        var callbacks = (IDictionary)typeof(TenantReadRefreshSubscription).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!;
+        ((IDictionary)callbacks.Values.Cast<object>().Single()).Count.ShouldBe(1);
+        await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+        await backend.DidNotReceive().UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        await other.DisposeAsync();
+        await backend.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        callbacks.Count.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Held_setup_survives_same_route_reads_or_hands_off_through_two_obsolete_owners(bool successiveRoutes)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var first = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var second = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var secondEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var finalEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        bool hold = false;
+        int attempts = 0;
+        backend.SubscribeAsync("tenants", Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (!hold) return Task.FromException(new InvalidOperationException("initial setup unavailable"));
+            int attempt = Interlocked.Increment(ref attempts);
+            if (attempt == 1) return first.Task;
+            if (attempt == 2) { secondEntered.TrySetResult(); return second.Task; }
+            finalEntered.TrySetResult();
+            return Task.CompletedTask;
+        });
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(ReadyWithSafeConfiguration(Detail(call.Arg<TenantDetailRequest>().TenantId),
+                ProjectionLifecycleState.Current, "detail-confirmed")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId,
+                new Dictionary<string, string>(), TenantStatus.Active, [new TenantMember("confirmed-user", TenantRole.TenantReader)])) with
+                { NextCursor = "page-2", HasMore = true, RequestCursor = call.Arg<TenantUsersRequest>().Cursor }));
+        RegisterHandoffServices(gateway, backend, notifier);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        hold = true;
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        backend.ClearReceivedCalls();
+        string latest = successiveRoutes ? "tenant.gamma" : "tenant.alpha";
+        if (successiveRoutes)
+        {
+            cut.Render(p => p.Add(page => page.TenantId, "tenant.beta"));
+            first.SetResult();
+            await secondEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+            cut.Render(p => p.Add(page => page.TenantId, latest));
+            attempts.ShouldBe(2);
+            second.SetResult();
+            await finalEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+        }
+        else
+        {
+            long epoch = HandoffField<long>(cut, "_readRefreshRouteVersion");
+            await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.RequestNextPageAsync());
+            HandoffField<string>(cut, "_memberCursor").ShouldBe("page-2");
+            await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+            await cut.InvokeAsync(() => cut.FindComponent<EditTenantMetadataFlow>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+            HandoffField<long>(cut, "_readRefreshRouteVersion").ShouldBe(epoch);
+            attempts.ShouldBe(1);
+            first.SetResult();
+        }
+        await WaitForHandoffIdleAsync(cut);
+        HandoffField<string>(cut, "_subscriptionTenantId").ShouldBe(latest);
+        HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldNotBeNull();
+        int reads = gateway.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync));
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", latest));
+        gateway.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync)).ShouldBe(reads + 1);
+        HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot").TenantId.ShouldBe(latest);
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("confirmed-user");
+        HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot").IsRefreshing.ShouldBeFalse();
+        attempts.ShouldBe(successiveRoutes ? 3 : 1);
+        await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+        foreach (string tenant in successiveRoutes ? new[] { "tenant.alpha", "tenant.beta", "tenant.gamma" } : new[] { "tenant.alpha" })
+        {
+            await backend.Received(1).UnsubscribeAsync("tenants", tenant, Arg.Any<CancellationToken>());
+        }
+    }
+
+    [Fact]
+    public async Task Held_caller_cleanup_cannot_retain_private_rows_or_detach_the_replacement_lease()
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var authentication = new MutableAuthenticationStateProvider();
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        var cleanup = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var cleanupEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var replacementEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var currentDetail = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        string caller = "operator.alpha";
+        int attempts = 0;
+        backend.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (Interlocked.Increment(ref attempts) == 2) replacementEntered.TrySetResult();
+            return Task.CompletedTask;
+        });
+        int releases = 0;
+        backend.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (Interlocked.Increment(ref releases) != 1) return Task.CompletedTask;
+            cleanupEntered.TrySetResult();
+            return cleanup.Task;
+        });
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => caller == "operator.beta" ? currentDetail.Task : Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"))));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha", new Dictionary<string, string>(), TenantStatus.Active,
+                [new TenantMember(caller == "operator.alpha" ? "private-old-user" : "new-caller-user", TenantRole.TenantReader)])) with
+                { CallerScope = TenantQueryGateway.AuditCallerScope(caller) }));
+        RegisterHandoffServices(gateway, backend, notifier);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-member-table']");
+        var callbacks = (IDictionary)typeof(TenantReadRefreshSubscription).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(Services.GetRequiredService<TenantReadRefreshSubscription>())!;
+        Func<Task> obsoleteCallback = ((IDictionary)callbacks.Values.Cast<object>().Single()).Values.Cast<Func<Task>>().Single();
+        caller = "operator.beta";
+        await cut.InvokeAsync(() => authentication.Notify(AdministratorPrincipal(caller)));
+        await cleanupEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+        cut.Markup.ShouldNotContain("private-old-user");
+        HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldBeNull();
+        gateway.ReceivedCalls().Count(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync)).ShouldBe(2,
+            "current reads must proceed while unsubscribe is held");
+        await AssertObsoleteHandoffCallbackAsync(cut, gateway, obsoleteCallback);
+        currentDetail.SetResult(ReadyWithSafeConfiguration(Detail("tenant.alpha")).WithCallerScope(TenantQueryGateway.AuditCallerScope(caller)));
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("new-caller-user"));
+        cleanup.SetResult();
+        await replacementEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+        await WaitForHandoffIdleAsync(cut);
+        IAsyncDisposable replacementLease = HandoffField<IAsyncDisposable>(cut, "_readRefreshLease");
+        await AssertObsoleteHandoffCallbackAsync(cut, gateway, obsoleteCallback);
+        int reads = HandoffReadCount(gateway);
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha"));
+        HandoffReadCount(gateway).ShouldBeGreaterThan(reads);
+        HandoffField<IAsyncDisposable>(cut, "_readRefreshLease").ShouldBeSameAs(replacementLease);
+        ((IDictionary)callbacks.Values.Cast<object>().Single()).Count.ShouldBe(1);
+        await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+        releases.ShouldBe(2);
+        callbacks.Count.ShouldBe(0);
+    }
+
+    private void RegisterThrowingNotificationLogger()
+    {
+        var logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<TenantReadRefreshSubscription>>();
+        logger.WhenForAnyArgs(log => log.IsEnabled(default))
+            .Do(_ => throw new InvalidOperationException("private transport diagnostics"));
+        Services.AddSingleton(logger);
+    }
+
+    private void RegisterHandoffServices(ITenantQueryGateway gateway, IProjectionSubscription backend, IProjectionChangeNotifierWithTenant notifier)
+    {
+        Services.AddSingleton(gateway);
+        Services.AddSingleton(backend);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddFluentUIComponents();
+    }
+
+    private static T HandoffField<T>(IRenderedComponent<TenantDetailPage> cut, string name)
+        => (T)typeof(TenantDetailPage).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(cut.Instance)!;
+
+    private static int HandoffReadCount(ITenantQueryGateway gateway)
+        => gateway.ReceivedCalls().Count(call => call.GetMethodInfo().Name is
+            nameof(ITenantQueryGateway.GetTenantAsync) or nameof(ITenantQueryGateway.GetTenantUsersAsync));
+
+    private static Task AssertObsoleteHandoffCallbackAsync(
+        IRenderedComponent<TenantDetailPage> cut, ITenantQueryGateway gateway, Func<Task> callback)
+        => cut.InvokeAsync(async () =>
+        {
+            int reads = HandoffReadCount(gateway);
+            TenantDetailSnapshot detail = HandoffField<TenantDetailSnapshot>(cut, "_snapshot");
+            TenantUsersSnapshot members = HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot");
+            await callback();
+            HandoffReadCount(gateway).ShouldBe(reads, "a copied obsolete callback must issue no detail/member reads");
+            HandoffField<TenantDetailSnapshot>(cut, "_snapshot").ShouldBeSameAs(detail);
+            HandoffField<TenantUsersSnapshot>(cut, "_tenantUsersSnapshot").ShouldBeSameAs(members);
+        });
 
     /// <summary>
     /// Optional notification setup must stop retrying a backend that keeps failing.

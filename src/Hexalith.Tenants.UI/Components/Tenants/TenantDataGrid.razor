@@ -24,16 +24,23 @@
             </HeaderCellTitleTemplate>
             <ChildContent>
                 <div class="tenant-data-grid__identity"
-                     id="@($"tenant-row-{context.TenantId}")"
+                     id="@TenantDomIdentity.ElementId("tenant-row-", context.TenantId)"
                      data-testid="tenants-list-tenant-id">
                     <div class="tenant-data-grid__identity-line">
-                        <a class="tenant-data-grid__detail-link"
-                           href="@DetailHref(context)"
-                           title="@context.TenantId"
-                           data-testid="tenants-list-detail-link"
-                           aria-label="@Localizer["Tenants.List.DetailLinkLabel", context.TenantId]">
+                        @if (TenantAuditNavigationSafety.IsSafeTenantId(context.TenantId))
+                        {
+                            <a class="tenant-data-grid__detail-link"
+                               href="@DetailHref(context)"
+                               title="@context.TenantId"
+                               data-testid="tenants-list-detail-link"
+                               aria-label="@Localizer["Tenants.List.DetailLinkLabel", context.TenantId]">
+                                <strong>@context.TenantId</strong>
+                            </a>
+                        }
+                        else
+                        {
                             <strong>@context.TenantId</strong>
-                        </a>
+                        }
                         <SupportSafeCopyButton Value="@context.TenantId"
                                                ValueKind="SupportSafeCopyValueKind.TenantId"
                                                IsApproved="true"
@@ -107,8 +114,8 @@
                                      Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
                                      AccessibleName="@Localizer["Tenants.List.AuditAccessibleLabel", context.TenantId]"
                                      ReturnUrl="@ListReturnUrl(context)"
-                                     ReturnFocus="@($"tenant-row-{context.TenantId}")"
-                                     PartialReturn="@AuditHref(context).Contains("auditPartialReturn=true", StringComparison.Ordinal)"
+                                     ReturnFocus="@TenantDomIdentity.ElementId("tenant-row-", context.TenantId)"
+                                     PartialReturn="@(TenantAuditNavigationSafety.IsSafeTenantId(context.TenantId) && AuditHref(context).Contains("auditPartialReturn=true", StringComparison.Ordinal))"
                                      IsAvailable="@(AuditReadAvailable && context.Freshness is ReadModelFreshnessState.Current && context.Lifecycle is ProjectionLifecycleState.Current)"
                                      AuthorityPending="@AuditReadPending"
                                      UnavailableReason="@AuditUnavailableReason"
@@ -184,6 +191,11 @@
 
     private string? ListReturnUrl(TenantListRow row)
     {
+        if (!TenantAuditNavigationSafety.IsSafeTenantId(row.TenantId))
+        {
+            return null;
+        }
+
         string href = AuditHref(row);
         int returnUrlIndex = href.IndexOf("returnUrl=", StringComparison.Ordinal);
         if (returnUrlIndex < 0)

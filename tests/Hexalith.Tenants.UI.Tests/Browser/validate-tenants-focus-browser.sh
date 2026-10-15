@@ -154,6 +154,30 @@ PY
 # Export the real EN/FR component markup from the test executable built for $build_configuration
 # (Debug/source-reference locally; Story Guards sets TENANTS_BROWSER_BUILD_CONFIGURATION=Release).
 start_test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
+if ! TENANTS_IDENTITY_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -class 'Hexalith.Tenants.UI.Tests.Components.TenantDomIdentityRenderingTests' \
+    >"$validation_tmp/identity-fixture-tests.log" 2>&1; then
+    echo "Tenant identity fixture export failed." >&2
+    cat "$validation_tmp/identity-fixture-tests.log" >&2
+    exit 1
+fi
+for identity_surface in tenant tenants-my tenants-user; do
+    for identity_suffix in '' '-exotic'; do
+        if [[ ! -f "$validation_tmp/${identity_surface}${identity_suffix}.html" ]]; then
+            echo "Tenant identity fixture export is incomplete." >&2
+            exit 1
+        fi
+    done
+done
+for identity_fixture in my-detail-standalone my-detail-workspace tenant-detail-return; do
+    if [[ ! -f "$validation_tmp/${identity_fixture}.html" ]]; then
+        echo "Actual identity navigation fixture export is incomplete." >&2
+        exit 1
+    fi
+done
+cp -- "$script_dir/tenant-identity-browser-validation.html" "$validation_tmp/identity.html"
+cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/TenantDataGrid.razor.rz.scp.css" "$validation_tmp/tenant-grid.css"
+cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Users/MyTenantsDataGrid.razor.rz.scp.css" "$validation_tmp/membership-grid.css"
 start_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/TenantCorrectionStartPanel.razor.rz.scp.css"
 preview_css_path="$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Audit/CorrectionStartPanel.razor.rz.scp.css"
 if ! TENANTS_CORRECTION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
@@ -390,6 +414,27 @@ if ! grep -q 'data-validation-status="passed"' "$positive_output"; then
     exit 1
 fi
 
+identity_output="$validation_tmp/identity.html.output"
+run_chromium "rendered tenant identity" "$identity_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+    --window-size=1024,800 --user-data-dir="$validation_tmp/profile-identity" \
+    --virtual-time-budget=3000 --dump-dom "http://127.0.0.1:${validation_port}/identity.html"
+if ! grep -q 'data-validation-status="passed"' "$identity_output"; then
+    echo "Rendered tenant identity navigation/focus failed:" >&2
+    grep -o '<output id="validation-report">[^<]*' "$identity_output" >&2 || true
+    exit 1
+fi
+grep -o '<output id="validation-report">[^<]*' "$identity_output"
+identity_mutation_output="$validation_tmp/identity-wrong-row.html"
+run_chromium "tenant identity wrong row control" "$identity_mutation_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+    --window-size=1024,800 --user-data-dir="$validation_tmp/profile-identity-wrong-row" \
+    --virtual-time-budget=3000 --dump-dom "http://127.0.0.1:${validation_port}/identity.html?mutation=wrong-row"
+if ! grep -q 'data-validation-status="failed"' "$identity_mutation_output" \
+    || ! validation_report_contains "$identity_mutation_output" 'Focus did not return to the correct row launcher'; then
+    echo "Tenant identity validator did not reject focus on another row." >&2
+    exit 1
+fi
+printf '%s\n' "Rendered tenant identity wrong-row focus control: correctly rejected."
+
 desktop_output="$validation_tmp/shipped-desktop.html"
 run_browser "tenantsFocus.js" "profile-shipped-desktop" "$desktop_output" "global-admins.css" 1024 desktop
 if ! grep -q 'data-validation-status="passed"' "$desktop_output"; then
@@ -536,3 +581,6 @@ printf '%s\n' "Shipped forced colors: $forced_colors_report"
 printf '%s\n' "Return-true mutation: correctly rejected ($mutation_report)"
 printf '%s\n' "Removal-dialog in-flow and hidden CSS mutations: correctly rejected"
 printf '%s\n' "Unstacked availability recoveries at 390px: correctly rejected"
+
+# Check the real Fluent status selector names using Chromium's accessibility tree.
+node "$script_dir/validate-status-filter-label-browser.mjs" "$build_configuration" "$browser_path" "$browser_timeout_seconds"

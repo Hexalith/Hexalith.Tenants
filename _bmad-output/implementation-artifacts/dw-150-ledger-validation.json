@@ -1,0 +1,34 @@
+{
+  "checks": {
+    "all_643_ids_preserved": true,
+    "unrelated_records_byte_exact": true,
+    "all_open_ids_indexed_exactly_once": true,
+    "only_DW150_action_row_removed": true,
+    "expected_counts": true,
+    "original_DW150_finding_preserved": true
+  },
+  "status_counts": {
+    "done": 323,
+    "open": 320
+  },
+  "reconciled_dispositions": {
+    "blocked": 15,
+    "done": 119,
+    "actionable": 232,
+    "accepted-limitation": 9,
+    "uncertain": 38,
+    "awaiting-decision": 26
+  },
+  "earlier_closed_record_boundary": 204,
+  "explicit_done_dispositions": 11,
+  "closed_records_without_disposition_fields": 312,
+  "index_rows": 285,
+  "open_ids": 320,
+  "changed_ids": [
+    150
+  ],
+  "next_selected_bundle": [
+    "DW-164",
+    "DW-183"
+  ]
+}

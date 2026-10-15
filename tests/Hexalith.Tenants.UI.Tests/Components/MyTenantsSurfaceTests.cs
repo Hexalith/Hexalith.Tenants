@@ -208,7 +208,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         JSRuntimeInvocationHandler<string> focus = module.Setup<string>("restoreAuditFocus", _ => true);
         focus.SetResult("missing");
         NavigationManager navigation = Services.GetRequiredService<NavigationManager>();
-        navigation.NavigateTo("/tenants/my?auditFocus=tenants-my-row-tenant.alpha&auditPartialReturn=true");
+        navigation.NavigateTo("/tenants/my?auditFocus=tenants-my-row-id-dGVuYW50LmFscGhh&auditPartialReturn=true");
         IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
         cut.WaitForElement("[data-testid='tenants-audit-return-notice']");
         cut.Find("[data-testid='tenants-audit-partial-return']");
@@ -217,7 +217,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty());
         cut.FindAll("[data-testid='tenants-audit-partial-return']").ShouldBeEmpty();
 
-        navigation.NavigateTo("/tenants/my?auditFocus=tenants-my-row-tenant.alpha");
+        navigation.NavigateTo("/tenants/my?auditFocus=tenants-my-row-id-dGVuYW50LmFscGhh");
         cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(2));
     }
 
@@ -230,7 +230,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         module.Setup<string>("restoreAuditFocus", _ => true)
             .SetException(new Microsoft.JSInterop.JSException("Focus helper unavailable."));
         Services.GetRequiredService<NavigationManager>()
-            .NavigateTo("/tenants/my?auditFocus=tenants-my-row-tenant.alpha");
+            .NavigateTo("/tenants/my?auditFocus=tenants-my-row-id-dGVuYW50LmFscGhh");
 
         IRenderedComponent<MyTenantsPage> cut = Render<MyTenantsPage>();
 
@@ -444,7 +444,7 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         string detailHref = cut.Find("[data-testid='tenants-my-detail-link']").GetAttribute("href").ShouldNotBeNull();
         detailHref.ShouldNotContain("opaque-next-cursor");
         Uri.UnescapeDataString(detailHref["/tenants/tenant.beta?returnUrl=".Length..])
-            .ShouldBe("/tenants/my?anchor=tenants-my-detail-tenant.beta&auditPartialReturn=true");
+            .ShouldBe("/tenants/my?anchor=tenants-my-detail-id-dGVuYW50LmJldGE&auditPartialReturn=true");
         cut.Find("[data-testid='tenants-my-truth-state']").TextContent.ShouldContain("Stale");
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe(
             "http://localhost/tenants/my?cursor=opaque-next-cursor");
@@ -498,11 +498,11 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         href.ShouldNotBeNull();
         href.ShouldStartWith("/tenants/tenant.alpha?returnUrl=");
         string decodedReturnUrl = Uri.UnescapeDataString(href!["/tenants/tenant.alpha?returnUrl=".Length..]);
-        decodedReturnUrl.ShouldBe("/tenants/my?anchor=tenants-my-detail-tenant.alpha");
+        decodedReturnUrl.ShouldBe("/tenants/my?anchor=tenants-my-detail-id-dGVuYW50LmFscGhh");
 
         // AC7: the identity element carries the id the ReturnFocus anchor points at, so focus-on-return
         // resolves (previously the id was missing and focus was a no-op).
-        cut.Find("[data-testid='tenants-my-row']").Id.ShouldBe("tenants-my-row-tenant.alpha");
+        cut.Find("[data-testid='tenants-my-row']").Id.ShouldBe("tenants-my-row-id-dGVuYW50LmFscGhh");
 
         // The self-audit Role column is preserved alongside the new drill-in.
         cut.Find("[data-testid='tenants-my-role']").TextContent.ShouldContain("Tenant owner");
@@ -523,9 +523,9 @@ public sealed class MyTenantsSurfaceTests : BunitContext
         string detailHref = source.Find("[data-testid='tenants-my-detail-link']").GetAttribute("href").ShouldNotBeNull();
         string listReturn = Uri.UnescapeDataString(detailHref.Split("returnUrl=", StringSplitOptions.None)[1]);
         Services.GetRequiredService<NavigationManager>().NavigateTo(listReturn);
-        source.WaitForElement("[id='tenants-my-detail-tenant.alpha']");
+        source.WaitForElement("[id='tenants-my-detail-id-dGVuYW50LmFscGhh']");
         source.WaitForAssertion(() => detailFocus.Invocations.Count.ShouldBe(1));
-        detailFocus.Invocations.Single().Arguments[0].ShouldBe("tenants-my-detail-tenant.alpha");
+        detailFocus.Invocations.Single().Arguments[0].ShouldBe("tenants-my-detail-id-dGVuYW50LmFscGhh");
         source.FindAll("[data-testid='tenants-audit-return-notice']").ShouldBeEmpty();
     }
 

@@ -1,0 +1,410 @@
+{
+  "full-debug-final-mtp": {
+    "argv": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "--configuration",
+      "Debug",
+      "--no-build",
+      "--no-ansi",
+      "--no-progress",
+      "--results-directory",
+      "/tmp/hexalith-dw112/mtp-debug-final"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "counts": {
+      "total": 4987,
+      "failed": 0,
+      "succeeded": 4987,
+      "skipped": 0
+    },
+    "skip_identities": []
+  },
+  "full-release-final-mtp": {
+    "argv": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "--configuration",
+      "Release",
+      "--no-build",
+      "--no-ansi",
+      "--no-progress",
+      "--results-directory",
+      "/tmp/hexalith-dw112/mtp-release-final"
+    ],
+    "cwd": "/home/administrator/projects/hexalith/tenants",
+    "exit_code": 0,
+    "counts": {
+      "total": 4987,
+      "failed": 0,
+      "succeeded": 4987,
+      "skipped": 0
+    },
+    "skip_identities": []
+  },
+  "pre-fix": {
+    "assemblies": [
+      {
+        "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+        "id": "05e91aa2-cbdd-49ba-be4b-15749d82d268",
+        "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "run-date": "2026-10-15",
+        "run-time": "08:59:03",
+        "start-rtf": "2026-10-15T08:59:03.7051024+00:00",
+        "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+        "target-framework": ".NETCoreApp,Version=v10.0",
+        "errors": "0",
+        "failed": "12",
+        "finish-rtf": "2026-10-15T08:59:16.6576724+00:00",
+        "not-run": "0",
+        "passed": "0",
+        "skipped": "0",
+        "time": "12.952",
+        "time-rtf": "00:00:12.9520000",
+        "total": "12"
+      }
+    ],
+    "failures": [
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.BothNamesFollowSearchFallbackRecoveryAndClear(culture: \\\"en\\\")",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.BothNamesFollowSearchFallbackRecoveryAndClear(culture: \\\"fr\\\")",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"ordinary\\\", authoritative: False)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"ordinary\\\", authoritative: False)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"fallback\\\", authoritative: False)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"fallback\\\", authoritative: False)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"authoritative\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"authoritative\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"partial\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"partial\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"empty\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"empty\\\", authoritative: True)",
+        "result": "Fail"
+      }
+    ],
+    "skips": []
+  },
+  "pre-fix-names": {
+    "assemblies": [
+      {
+        "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+        "id": "498ae943-35f5-4f30-baa2-20da9ee4cfb1",
+        "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "run-date": "2026-10-15",
+        "run-time": "08:59:45",
+        "start-rtf": "2026-10-15T08:59:45.1452804+00:00",
+        "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+        "target-framework": ".NETCoreApp,Version=v10.0",
+        "errors": "0",
+        "failed": "12",
+        "finish-rtf": "2026-10-15T08:59:57.9198898+00:00",
+        "not-run": "0",
+        "passed": "0",
+        "skipped": "0",
+        "time": "12.776",
+        "time-rtf": "00:00:12.7760000",
+        "total": "12"
+      }
+    ],
+    "failures": [
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.BothNamesFollowSearchFallbackRecoveryAndClear(culture: \\\"en\\\")",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.BothNamesFollowSearchFallbackRecoveryAndClear(culture: \\\"fr\\\")",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"ordinary\\\", authoritative: False)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"ordinary\\\", authoritative: False)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"fallback\\\", authoritative: False)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"fallback\\\", authoritative: False)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"authoritative\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"authoritative\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"partial\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"partial\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"empty\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"empty\\\", authoritative: True)",
+        "result": "Fail"
+      }
+    ],
+    "skips": []
+  },
+  "pre-fix-confirmed": {
+    "assemblies": [
+      {
+        "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+        "id": "5e2651fe-68fd-41b0-a5f9-e9e20eb5eea1",
+        "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "run-date": "2026-10-15",
+        "run-time": "09:01:19",
+        "start-rtf": "2026-10-15T09:01:19.6236225+00:00",
+        "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+        "target-framework": ".NETCoreApp,Version=v10.0",
+        "errors": "0",
+        "failed": "8",
+        "finish-rtf": "2026-10-15T09:01:28.4729156+00:00",
+        "not-run": "0",
+        "passed": "4",
+        "skipped": "0",
+        "time": "8.851",
+        "time-rtf": "00:00:08.8510000",
+        "total": "12"
+      }
+    ],
+    "failures": [
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.BothNamesFollowSearchFallbackRecoveryAndClear(culture: \\\"en\\\")",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.BothNamesFollowSearchFallbackRecoveryAndClear(culture: \\\"fr\\\")",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"authoritative\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"authoritative\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"partial\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"partial\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"en\\\", mode: \\\"empty\\\", authoritative: True)",
+        "result": "Fail"
+      },
+      {
+        "name": "Hexalith.Tenants.UI.Tests.Components.StatusFilterLabelRenderingTests.LabelAndAccessibleNameDescribeTheResolvedScope(culture: \\\"fr\\\", mode: \\\"empty\\\", authoritative: True)",
+        "result": "Fail"
+      }
+    ],
+    "skips": []
+  },
+  "focused-final": {
+    "assemblies": [
+      {
+        "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+        "id": "81feddde-9661-4341-9b9f-e00d51b02627",
+        "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "run-date": "2026-10-15",
+        "run-time": "09:15:34",
+        "start-rtf": "2026-10-15T09:15:34.9528599+00:00",
+        "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+        "target-framework": ".NETCoreApp,Version=v10.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-10-15T09:15:38.2776453+00:00",
+        "not-run": "0",
+        "passed": "131",
+        "skipped": "0",
+        "time": "3.325",
+        "time-rtf": "00:00:03.3250000",
+        "total": "131"
+      }
+    ],
+    "failures": [],
+    "skips": []
+  },
+  "focused-release-final": {
+    "assemblies": [
+      {
+        "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+        "id": "2031a008-d70b-49c4-aade-bcb04584798b",
+        "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "run-date": "2026-10-15",
+        "run-time": "09:18:14",
+        "start-rtf": "2026-10-15T09:18:14.0844367+00:00",
+        "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+        "target-framework": ".NETCoreApp,Version=v10.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-10-15T09:18:17.6571590+00:00",
+        "not-run": "0",
+        "passed": "131",
+        "skipped": "0",
+        "time": "3.573",
+        "time-rtf": "00:00:03.5730000",
+        "total": "131"
+      }
+    ],
+    "failures": [],
+    "skips": []
+  },
+  "shipped_asset_manifests": {
+    "Debug": {
+      "manifest_sha256": "b544f0c55eba9bb529ee75ae814823ae6c79a4ca4991eff8a81feb1467420ba8",
+      "assets": [
+        {
+          "Identity": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Debug/net10.0/compressed/ouovxfrvrr-{0}-kw0ft032n3-kw0ft032n3.gz",
+          "SourceId": "Hexalith.Tenants.UI",
+          "SourceType": "Discovered",
+          "ContentRoot": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Debug/net10.0/compressed/",
+          "BasePath": "/",
+          "RelativePath": "js/tenantsStatusFilter#[.{fingerprint=kw0ft032n3}]?.js.gz",
+          "AssetKind": "All",
+          "AssetMode": "All",
+          "AssetRole": "Alternative",
+          "AssetMergeBehavior": "",
+          "AssetMergeSource": "",
+          "RelatedAsset": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js",
+          "AssetTraitName": "Content-Encoding",
+          "AssetTraitValue": "gzip",
+          "Fingerprint": "jery80l2la",
+          "Integrity": "xWhUfjaaoE7SA6dYFtBm5b00KtvWj+x4nnltUScV+Bk=",
+          "CopyToOutputDirectory": "Never",
+          "CopyToPublishDirectory": "PreserveNewest",
+          "OriginalItemSpec": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js",
+          "FileLength": 327,
+          "LastWriteTime": "2026-10-15T09:13:09+00:00"
+        },
+        {
+          "Identity": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js",
+          "SourceId": "Hexalith.Tenants.UI",
+          "SourceType": "Discovered",
+          "ContentRoot": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/wwwroot/",
+          "BasePath": "/",
+          "RelativePath": "js/tenantsStatusFilter#[.{fingerprint}]?.js",
+          "AssetKind": "All",
+          "AssetMode": "All",
+          "AssetRole": "Primary",
+          "AssetMergeBehavior": "",
+          "AssetMergeSource": "",
+          "RelatedAsset": "",
+          "AssetTraitName": "",
+          "AssetTraitValue": "",
+          "Fingerprint": "kw0ft032n3",
+          "Integrity": "VJ+eh8CG0PQ+UwXxGDIra5gGv4CnisB/Gz8WCojj0yw=",
+          "CopyToOutputDirectory": "Never",
+          "CopyToPublishDirectory": "PreserveNewest",
+          "OriginalItemSpec": "wwwroot/js/tenantsStatusFilter.js",
+          "FileLength": 532,
+          "LastWriteTime": "2026-10-15T09:12:07+00:00"
+        }
+      ]
+    },
+    "Release": {
+      "manifest_sha256": "a832d5ef1a45290e930e2731c9ad6bbb091dd9fd195520b4e1b5f7e492a61766",
+      "assets": [
+        {
+          "Identity": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Release/net10.0/compressed/ouovxfrvrr-{0}-kw0ft032n3-kw0ft032n3.gz",
+          "SourceId": "Hexalith.Tenants.UI",
+          "SourceType": "Discovered",
+          "ContentRoot": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Release/net10.0/compressed/",
+          "BasePath": "/",
+          "RelativePath": "js/tenantsStatusFilter#[.{fingerprint=kw0ft032n3}]?.js.gz",
+          "AssetKind": "All",
+          "AssetMode": "All",
+          "AssetRole": "Alternative",
+          "AssetMergeBehavior": "",
+          "AssetMergeSource": "",
+          "RelatedAsset": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js",
+          "AssetTraitName": "Content-Encoding",
+          "AssetTraitValue": "gzip",
+          "Fingerprint": "jery80l2la",
+          "Integrity": "xWhUfjaaoE7SA6dYFtBm5b00KtvWj+x4nnltUScV+Bk=",
+          "CopyToOutputDirectory": "Never",
+          "CopyToPublishDirectory": "PreserveNewest",
+          "OriginalItemSpec": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js",
+          "FileLength": 327,
+          "LastWriteTime": "2026-10-15T09:17:30+00:00"
+        },
+        {
+          "Identity": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js",
+          "SourceId": "Hexalith.Tenants.UI",
+          "SourceType": "Discovered",
+          "ContentRoot": "/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/wwwroot/",
+          "BasePath": "/",
+          "RelativePath": "js/tenantsStatusFilter#[.{fingerprint}]?.js",
+          "AssetKind": "All",
+          "AssetMode": "All",
+          "AssetRole": "Primary",
+          "AssetMergeBehavior": "",
+          "AssetMergeSource": "",
+          "RelatedAsset": "",
+          "AssetTraitName": "",
+          "AssetTraitValue": "",
+          "Fingerprint": "kw0ft032n3",
+          "Integrity": "VJ+eh8CG0PQ+UwXxGDIra5gGv4CnisB/Gz8WCojj0yw=",
+          "CopyToOutputDirectory": "Never",
+          "CopyToPublishDirectory": "PreserveNewest",
+          "OriginalItemSpec": "wwwroot/js/tenantsStatusFilter.js",
+          "FileLength": 532,
+          "LastWriteTime": "2026-10-15T09:12:07+00:00"
+        }
+      ]
+    }
+  }
+}

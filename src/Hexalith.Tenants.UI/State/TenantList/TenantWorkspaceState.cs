@@ -129,7 +129,7 @@ public sealed record TenantWorkspaceState(
                     anchor)
                         ? NormalizeOpaque(cursor)
                         : null,
-                NormalizeContextValue(selectedTenantId),
+                NormalizeContextValue(selectedTenantId, preserveWhitespace: true),
                 NormalizeContextValue(anchor));
         }
 
@@ -160,7 +160,7 @@ public sealed record TenantWorkspaceState(
                 normalizedSortDescending)
                     ? NormalizeOpaque(cursor)
                     : null,
-            NormalizeContextValue(selectedTenantId),
+            NormalizeContextValue(selectedTenantId, preserveWhitespace: true),
             NormalizeContextValue(anchor));
     }
 
@@ -388,17 +388,17 @@ public sealed record TenantWorkspaceState(
     private static bool ParseBoolean(string? value)
         => bool.TryParse(value, out bool parsed) && parsed;
 
-    private static string? NormalizeContextValue(string? value)
+    private static string? NormalizeContextValue(string? value, bool preserveWhitespace = false)
     {
-        // Keep the value literal (the return-context selection id and its focus anchor) but trim
-        // surrounding whitespace, reject control characters, and bound the length so a crafted URL cannot
+        // Preserve selection identity exactly; trim only the focus anchor. Reject controls and bound
+        // both values so a crafted URL cannot
         // push an unbounded string into the row element id, the return-context banner, or the canonical URL.
         if (string.IsNullOrWhiteSpace(value) || value.Any(char.IsControl))
         {
             return null;
         }
 
-        string trimmed = value.Trim();
+        string trimmed = preserveWhitespace ? value : value.Trim();
         return trimmed.Length > MaximumContextValueLength ? null : trimmed;
     }
 
