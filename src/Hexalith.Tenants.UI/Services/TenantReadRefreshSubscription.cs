@@ -10,7 +10,7 @@ namespace Hexalith.Tenants.UI.Services;
 /// </summary>
 public sealed partial class TenantReadRefreshSubscription(
     IServiceProvider services,
-    ILogger<TenantReadRefreshSubscription>? logger = null)
+    ILogger<TenantReadRefreshSubscription>? logger = null) : IAsyncDisposable
 {
     /// <summary>Reason code emitted when notification setup fails.</summary>
     internal const string SetupFailureReasonCode = "notification-setup-failed";
@@ -24,10 +24,13 @@ public sealed partial class TenantReadRefreshSubscription(
     private readonly Dictionary<(string ProjectionType, string TenantId), Dictionary<Guid, Func<Task>>> _callbacks = [];
     private readonly HashSet<(string ProjectionType, string TenantId)> _pending = [];
     private readonly HashSet<(string ProjectionType, string TenantId)> _running = [];
-    private readonly SemaphoreSlim _subscriptionGate = new(1, 1);
+    private readonly Dictionary<(string ProjectionType, string TenantId), TaskCompletionSource> _unsettled = [];
+    private readonly CancellationTokenSource _lifetimeCancellation = new();
+    private readonly TenantUiOperationPolicy _policy = TenantUiOperationPolicy.FromServices(services);
     private readonly object _sync = new();
     private IProjectionSubscription? _subscription;
     private IProjectionChangeNotifierWithTenant? _notifier;
+    private bool _disposed;
 
     /// <summary>
     /// Subscribes to one canonical projection and tenant scope when notification services are available.
@@ -51,6 +54,11 @@ public sealed partial class TenantReadRefreshSubscription(
         ArgumentException.ThrowIfNullOrWhiteSpace(projectionType);
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentNullException.ThrowIfNull(refresh);
+        cancellationToken.ThrowIfCancellationRequested();
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+        }
 
         IProjectionSubscription? subscription = services.GetService<IProjectionSubscription>();
         IProjectionChangeNotifierWithTenant? notifier = services.GetService<IProjectionChangeNotifierWithTenant>();
@@ -59,107 +67,218 @@ public sealed partial class TenantReadRefreshSubscription(
             return TenantReadRefreshLease.Empty;
         }
 
-        (string ProjectionType, string TenantId) key = (projectionType, tenantId);
-        Guid callbackId = Guid.NewGuid();
-        await _subscriptionGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // A single deadline includes waiting for an older owner of the same scope AND new setup.
+        // Other scopes never wait on this key's backend operation. The core observes cancellation
+        // itself so its local callback has been detached before the public bounded wait returns.
+        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeCancellation.Token);
+        Task<TenantReadRefreshLease>? pending = null;
         try
         {
-            bool needsBackendSubscription;
-            lock (_sync)
-            {
-                needsBackendSubscription = !_callbacks.TryGetValue(
-                    key,
-                    out Dictionary<Guid, Func<Task>>? callbacks);
-                if (needsBackendSubscription)
-                {
-                    callbacks = [];
-                    _callbacks.Add(key, callbacks);
-                }
-
-                if (_callbacks.Count == 1 && callbacks!.Count == 0)
-                {
-                    notifier.ProjectionChangedForTenant += OnProjectionChanged;
-                }
-
-                callbacks!.Add(callbackId, refresh);
-                _subscription = subscription;
-                _notifier = notifier;
-            }
-
-            if (needsBackendSubscription)
+            return await _policy.RunAsync(token => pending = SubscribeCoreAsync(
+                (projectionType, tenantId), refresh, subscription, notifier, token), lifetime.Token).ConfigureAwait(false);
+        }
+        catch
+        {
+            if (pending is not null)
             {
                 try
                 {
-                    await subscription
-                        .SubscribeAsync(projectionType, tenantId, cancellationToken)
-                        .ConfigureAwait(false);
-                    if (cancellationToken.IsCancellationRequested)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                    }
-                }
-                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-                {
-                    RollBackRegistration(key, callbackId, notifier);
-                    await UnsubscribeAfterFailedSetupAsync(subscription, key).ConfigureAwait(false);
-                    throw;
+                    _ = await pending.ConfigureAwait(false);
                 }
                 catch
                 {
-                    RollBackRegistration(key, callbackId, notifier);
-                    await UnsubscribeAfterFailedSetupAsync(subscription, key).ConfigureAwait(false);
-                    LogReason(SetupFailureReasonCode);
-                    return TenantReadRefreshLease.Empty;
+                    // The core has released callback ownership. Its backend work remains quarantined.
                 }
             }
 
-            return new TenantReadRefreshLease(() => ReleaseAsync(key, callbackId));
-        }
-        finally
-        {
-            _subscriptionGate.Release();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_lifetimeCancellation.IsCancellationRequested)
+            {
+                throw new OperationCanceledException(_lifetimeCancellation.Token);
+            }
+
+            LogReason(SetupFailureReasonCode);
+            return TenantReadRefreshLease.Empty;
         }
     }
 
-    private void RollBackRegistration(
+    private async Task<TenantReadRefreshLease> SubscribeCoreAsync(
+        (string ProjectionType, string TenantId) key,
+        Func<Task> refresh,
+        IProjectionSubscription subscription,
+        IProjectionChangeNotifierWithTenant notifier,
+        CancellationToken cancellationToken)
+    {
+        Guid callbackId = Guid.NewGuid();
+        TaskCompletionSource owner;
+        while (true)
+        {
+            Task? previous = null;
+            lock (_sync)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                if (_unsettled.TryGetValue(key, out TaskCompletionSource? unsettled))
+                {
+                    previous = unsettled.Task;
+                    owner = unsettled;
+                }
+                else if (_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? established))
+                {
+                    established.Add(callbackId, refresh);
+                    return new TenantReadRefreshLease(() => ReleaseAsync(key, callbackId, subscription, notifier));
+                }
+                else
+                {
+                    owner = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _unsettled.Add(key, owner);
+                    if (_callbacks.Count == 0)
+                    {
+                        notifier.ProjectionChangedForTenant += OnProjectionChanged;
+                    }
+
+                    _callbacks.Add(key, new() { [callbackId] = refresh });
+                    _subscription = subscription;
+                    _notifier = notifier;
+                }
+            }
+
+            if (previous is null)
+            {
+                break;
+            }
+
+            await previous.WaitAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        Task? setup = null;
+        try
+        {
+            setup = subscription.SubscribeAsync(key.ProjectionType, key.TenantId, cancellationToken);
+            await setup.WaitAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            lock (_sync)
+            {
+                ObjectDisposedException.ThrowIf(_disposed, this);
+                CompleteUnsettled(key, owner);
+            }
+
+            return new TenantReadRefreshLease(() => ReleaseAsync(key, callbackId, subscription, notifier));
+        }
+        catch
+        {
+            lock (_sync)
+            {
+                RemoveCallback(key, callbackId, notifier);
+            }
+
+            // Unsubscribe is keyed by scope, not registration identity. Keep this key quarantined
+            // until the actual old setup AND cleanup finish, including cancellation-ignoring tasks.
+            _ = CleanupFailedSetupAsync(setup, key, owner, subscription);
+            throw;
+        }
+    }
+
+    private void RemoveCallback(
         (string ProjectionType, string TenantId) key,
         Guid callbackId,
         IProjectionChangeNotifierWithTenant notifier)
     {
-        lock (_sync)
+        if (_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? callbacks))
         {
-            if (_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? callbacks))
+            _ = callbacks.Remove(callbackId);
+            if (callbacks.Count == 0)
             {
-                _ = callbacks.Remove(callbackId);
-                if (callbacks.Count == 0)
-                {
-                    _callbacks.Remove(key);
-                    _pending.Remove(key);
-                }
+                _callbacks.Remove(key);
+                _pending.Remove(key);
             }
+        }
 
-            if (_callbacks.Count == 0)
-            {
-                notifier.ProjectionChangedForTenant -= OnProjectionChanged;
-                _subscription = null;
-                _notifier = null;
-            }
+        if (_callbacks.Count == 0)
+        {
+            notifier.ProjectionChangedForTenant -= OnProjectionChanged;
+            _subscription = null;
+            _notifier = null;
         }
     }
 
-    private async Task UnsubscribeAfterFailedSetupAsync(
-        IProjectionSubscription subscription,
-        (string ProjectionType, string TenantId) key)
+    private async Task CleanupFailedSetupAsync(
+        Task? setup,
+        (string ProjectionType, string TenantId) key,
+        TaskCompletionSource owner,
+        IProjectionSubscription subscription)
     {
+        if (setup is not null)
+        {
+            try
+            {
+                await setup.ConfigureAwait(false);
+            }
+            catch
+            {
+                // A late setup fault has no callback, authority or diagnostic payload to apply.
+            }
+        }
+
+        await CleanupWithinDeadlineAsync(subscription, key, owner).ConfigureAwait(false);
+    }
+
+    private async Task CleanupWithinDeadlineAsync(
+        IProjectionSubscription subscription,
+        (string ProjectionType, string TenantId) key,
+        TaskCompletionSource owner)
+    {
+        Task? cleanup = null;
         try
         {
-            await subscription
-                .UnsubscribeAsync(key.ProjectionType, key.TenantId, CancellationToken.None)
-                .ConfigureAwait(false);
+            await _policy.RunAsync(token => cleanup = subscription
+                .UnsubscribeAsync(key.ProjectionType, key.TenantId, token)).ConfigureAwait(false);
         }
         catch
         {
             LogReason(CleanupFailureReasonCode);
+        }
+        finally
+        {
+            if (cleanup is null || cleanup.IsCompleted)
+            {
+                CompleteUnsettled(key, owner);
+            }
+            else
+            {
+                _ = CompleteLateCleanupAsync(cleanup, key, owner);
+            }
+        }
+    }
+
+    private async Task CompleteLateCleanupAsync(
+        Task cleanup,
+        (string ProjectionType, string TenantId) key,
+        TaskCompletionSource owner)
+    {
+        try
+        {
+            await cleanup.ConfigureAwait(false);
+        }
+        catch
+        {
+            // The bounded cleanup already recorded only the fixed failure reason.
+        }
+        finally
+        {
+            CompleteUnsettled(key, owner);
+        }
+    }
+
+    private void CompleteUnsettled((string ProjectionType, string TenantId) key, TaskCompletionSource owner)
+    {
+        lock (_sync)
+        {
+            if (_unsettled.TryGetValue(key, out TaskCompletionSource? current) && ReferenceEquals(current, owner))
+            {
+                _unsettled.Remove(key);
+                owner.TrySetResult();
+            }
         }
     }
 
@@ -169,7 +288,7 @@ public sealed partial class TenantReadRefreshSubscription(
         bool start;
         lock (_sync)
         {
-            if (!_callbacks.ContainsKey(key))
+            if (_disposed || !_callbacks.ContainsKey(key))
             {
                 return;
             }
@@ -186,56 +305,73 @@ public sealed partial class TenantReadRefreshSubscription(
 
     private async ValueTask ReleaseAsync(
         (string ProjectionType, string TenantId) key,
-        Guid callbackId)
+        Guid callbackId,
+        IProjectionSubscription subscription,
+        IProjectionChangeNotifierWithTenant notifier)
     {
-        await _subscriptionGate.WaitAsync(CancellationToken.None).ConfigureAwait(false);
-        try
+        TaskCompletionSource? owner = null;
+        lock (_sync)
         {
-            bool unsubscribe = false;
-            IProjectionSubscription? subscription;
-            IProjectionChangeNotifierWithTenant? notifier;
-            lock (_sync)
+            if (!_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? callbacks)
+                || !callbacks.ContainsKey(callbackId))
             {
-                if (!_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? callbacks)
-                    || !callbacks.Remove(callbackId))
-                {
-                    return;
-                }
-
-                if (callbacks.Count == 0)
-                {
-                    _callbacks.Remove(key);
-                    _pending.Remove(key);
-                    unsubscribe = true;
-                }
-
-                subscription = _subscription;
-                notifier = _notifier;
-                if (_callbacks.Count == 0 && notifier is not null)
-                {
-                    notifier.ProjectionChangedForTenant -= OnProjectionChanged;
-                    _subscription = null;
-                    _notifier = null;
-                }
+                return;
             }
 
-            if (unsubscribe && subscription is not null)
+            RemoveCallback(key, callbackId, notifier);
+            if (!_callbacks.ContainsKey(key))
             {
-                try
-                {
-                    await subscription
-                        .UnsubscribeAsync(key.ProjectionType, key.TenantId, CancellationToken.None)
-                        .ConfigureAwait(false);
-                }
-                catch
-                {
-                    LogReason(CleanupFailureReasonCode);
-                }
+                owner = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                _unsettled.Add(key, owner);
             }
         }
-        finally
+
+        if (owner is not null)
         {
-            _subscriptionGate.Release();
+            await CleanupWithinDeadlineAsync(subscription, key, owner).ConfigureAwait(false);
+        }
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        List<((string ProjectionType, string TenantId) Key, TaskCompletionSource Owner)> cleanup = [];
+        IProjectionSubscription? subscription;
+        lock (_sync)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            subscription = _subscription;
+            if (_notifier is not null)
+            {
+                _notifier.ProjectionChangedForTenant -= OnProjectionChanged;
+            }
+
+            foreach ((string ProjectionType, string TenantId) key in _callbacks.Keys)
+            {
+                if (!_unsettled.ContainsKey(key))
+                {
+                    var owner = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _unsettled.Add(key, owner);
+                    cleanup.Add((key, owner));
+                }
+            }
+
+            _callbacks.Clear();
+            _pending.Clear();
+            _subscription = null;
+            _notifier = null;
+        }
+
+        _lifetimeCancellation.Cancel();
+        if (subscription is not null)
+        {
+            await Task.WhenAll(cleanup.Select(item => CleanupWithinDeadlineAsync(subscription, item.Key, item.Owner)))
+                .ConfigureAwait(false);
         }
     }
 
@@ -263,7 +399,7 @@ public sealed partial class TenantReadRefreshSubscription(
         {
             while (true)
             {
-                Func<Task>[] callbacks;
+                KeyValuePair<Guid, Func<Task>>[] callbacks;
                 lock (_sync)
                 {
                     if (!_pending.Remove(key)
@@ -274,14 +410,29 @@ public sealed partial class TenantReadRefreshSubscription(
                         return;
                     }
 
-                    callbacks = [.. registered.Values];
+                    callbacks = [.. registered];
                 }
 
-                foreach (Func<Task> callback in callbacks)
+                foreach (KeyValuePair<Guid, Func<Task>> callback in callbacks)
                 {
                     try
                     {
-                        await callback().ConfigureAwait(false);
+                        Task refresh;
+                        lock (_sync)
+                        {
+                            if (_disposed
+                                || !_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? current)
+                                || !current.ContainsKey(callback.Key))
+                            {
+                                continue;
+                            }
+
+                            // Invocation and removal share the lock; a captured callback cannot start
+                            // after its lease or circuit has detached it. Awaiting never holds this lock.
+                            refresh = callback.Value();
+                        }
+
+                        await refresh.ConfigureAwait(false);
                     }
                     catch
                     {
