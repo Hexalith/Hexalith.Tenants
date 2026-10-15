@@ -10179,7 +10179,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         string latest = route == "return" ? "tenant.alpha" : route == "repeated" ? "tenant.gamma" : "tenant.beta";
         backend.SubscribeAsync("tenants", Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(call =>
         {
-            call.ArgAt<CancellationToken>(2).ShouldBe(CancellationToken.None);
+            call.ArgAt<CancellationToken>(2).CanBeCanceled.ShouldBeTrue();
             if (!hold) return Task.FromException(new InvalidOperationException("initial optional setup unavailable"));
             if (Interlocked.Increment(ref attempts) == 1)
             {
@@ -10640,6 +10640,86 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
         releases.ShouldBe(2);
         callbacks.Count.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData("cooperative")]
+    [InlineData("late-success")]
+    [InlineData("late-failure")]
+    public async Task Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(string outcome)
+    {
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var clock = new ManualTimeProvider();
+        Services.AddSingleton<TimeProvider>(clock);
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var pending = new List<TaskCompletionSource>();
+        var tokens = new List<CancellationToken>();
+        bool hold = false;
+        bool recover = false;
+        backend.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            if (recover) return Task.CompletedTask;
+            if (!hold) return Task.FromException(new InvalidOperationException("initial setup unavailable"));
+            var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            pending.Add(completion);
+            CancellationToken token = call.ArgAt<CancellationToken>(2);
+            tokens.Add(token);
+            return outcome == "cooperative" ? completion.Task.WaitAsync(token) : completion.Task;
+        });
+        gateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(ReadyWithSafeConfiguration(Detail(call.Arg<TenantDetailRequest>().TenantId),
+                ProjectionLifecycleState.Current, "detail-confirmed")));
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(MemberSnapshot(Detail(call.Arg<TenantUsersRequest>().TenantId))));
+        RegisterHandoffServices(gateway, backend, notifier);
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(p => p.Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        await WaitForHandoffIdleAsync(cut);
+        hold = true;
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        cut.WaitForAssertion(() => pending.Count.ShouldBe(1));
+        var callbacks = (IDictionary)typeof(TenantReadRefreshSubscription).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(Services.GetRequiredService<TenantReadRefreshSubscription>())!;
+        Func<Task> obsoleteCallback = ((IDictionary)callbacks.Values.Cast<object>().Single()).Values.Cast<Func<Task>>().Single();
+        for (int attempt = 1; attempt <= 3; attempt++)
+        {
+            cut.WaitForAssertion(() => HandoffField<int>(cut, "_readRefreshSubscriptionInFlight").ShouldBe(1));
+            await cut.InvokeAsync(() => clock.Advance(TenantUiOperationPolicy.DefaultTimeout));
+            await WaitForHandoffIdleAsync(cut);
+            HandoffField<int>(cut, "_readRefreshAttempts").ShouldBe(attempt);
+            HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldBeNull();
+            HandoffField<TenantDetailSnapshot>(cut, "_snapshot").ProjectionVersion.ShouldBe("detail-confirmed");
+            callbacks.Count.ShouldBe(0);
+            if (attempt < 3) cut.Render();
+        }
+        tokens.ShouldAllBe(token => token.IsCancellationRequested);
+        int exhaustedCalls = pending.Count;
+        cut.Render();
+        pending.Count.ShouldBe(exhaustedCalls);
+        await AssertObsoleteHandoffCallbackAsync(cut, gateway, obsoleteCallback);
+        foreach (TaskCompletionSource completion in pending)
+        {
+            if (outcome == "late-failure") completion.TrySetException(new InvalidOperationException("private late provider failure"));
+            else completion.TrySetResult();
+        }
+        recover = true;
+        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
+        await WaitForHandoffIdleAsync(cut);
+        HandoffField<string>(cut, "_subscriptionTenantId").ShouldBe("tenant.alpha");
+        ((IDictionary)callbacks.Values.Cast<object>().Single()).Count.ShouldBe(1);
+        int reads = HandoffReadCount(gateway);
+        await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha"));
+        cut.WaitForAssertion(() => HandoffReadCount(gateway).ShouldBeGreaterThan(reads));
+        TenantDetailRequest request = gateway.ReceivedCalls().Where(c => c.GetMethodInfo().Name == nameof(ITenantQueryGateway.GetTenantAsync))
+            .Last().GetArguments()[0].ShouldBeOfType<TenantDetailRequest>();
+        request.TenantId.ShouldBe("tenant.alpha");
+        request.ETag.ShouldBe("\"etag\"");
+        await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
+        callbacks.Count.ShouldBe(0);
+        await AssertObsoleteHandoffCallbackAsync(cut, gateway, obsoleteCallback);
+        cut.Markup.ShouldNotContain("private late provider failure");
     }
 
     private void RegisterThrowingNotificationLogger()
