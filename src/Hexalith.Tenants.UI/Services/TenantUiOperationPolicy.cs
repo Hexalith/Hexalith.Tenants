@@ -53,54 +53,77 @@ internal sealed class TenantUiOperationPolicy
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="operation">The operation, receiving a cancellable token.</param>
     /// <param name="cancellationToken">Replaceable caller or circuit cancellation.</param>
+    /// <param name="observeCompletion">Receives the complete provider lifetime, including cancellation callbacks.</param>
     /// <returns>The current operation result.</returns>
     internal async Task<T> RunAsync<T>(
         Func<CancellationToken, Task<T>> operation,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        Action<Task>? observeCompletion = null)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var deadline = new CancellationTokenSource(Timeout, TimeProvider);
-        var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
-        CancellationToken token = source.Token;
-        Task<T> pending;
-        try
+        var source = new CancellationTokenSource();
+        var sync = new object();
+        Task? cancellation = null;
+        Task RequestCancellationAsync()
         {
-            pending = operation(token);
-        }
-        catch
-        {
-            source.Dispose();
-            deadline.Dispose();
-            throw;
+            lock (sync)
+            {
+                return cancellation ??= source.CancelAsync();
+            }
         }
 
-        // The provider can register against its token even after our bounded wait has finished. Its
-        // completion owns disposal; observing it also contains faults arriving after timeout/cancellation.
-        _ = ObserveCompletionAsync(pending, source, deadline);
+        // A provider's cancellation callback can itself stall. It must never run inline on the caller's
+        // cancellation path or own the deadline waiter. CancelAsync sets the token immediately and runs
+        // those callbacks independently; the waiter uses its own timer and the original caller token.
+        CancellationTokenRegistration registration = cancellationToken.Register(() => _ = RequestCancellationAsync());
+        Task<T>? pending = null;
         try
         {
-            T result = await pending.WaitAsync(token).ConfigureAwait(false);
-            token.ThrowIfCancellationRequested();
+            pending = operation(source.Token);
+            T result = await pending.WaitAsync(Timeout, TimeProvider, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             return result;
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && deadline.IsCancellationRequested)
+        catch (Exception exception) when (exception is TimeoutException || cancellationToken.IsCancellationRequested)
         {
-            throw new TimeoutException("The optional tenant UI operation exceeded its configured deadline.");
+            _ = RequestCancellationAsync();
+            throw;
+        }
+        finally
+        {
+            // Late token registration remains valid until BOTH the raw operation and its asynchronous
+            // cancellation callbacks settle. Neither a late exception nor callback failure is detached.
+            Task completion = ObserveCompletionAsync(pending ?? Task.CompletedTask, source, registration, () =>
+            {
+                lock (sync)
+                {
+                    return cancellation;
+                }
+            });
+            observeCompletion?.Invoke(completion);
         }
     }
 
     /// <summary>Runs a resultless operation within the same deadline.</summary>
     /// <param name="operation">The operation, receiving a cancellable token.</param>
     /// <param name="cancellationToken">Replaceable caller or circuit cancellation.</param>
+    /// <param name="observeCompletion">Receives the complete provider lifetime, including cancellation callbacks.</param>
     /// <returns>A task completing when the bounded operation finishes.</returns>
-    internal Task RunAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken = default)
+    internal Task RunAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken = default,
+        Action<Task>? observeCompletion = null)
         => RunAsync(async token =>
         {
             await operation(token).ConfigureAwait(false);
             return true;
-        }, cancellationToken);
+        }, cancellationToken, observeCompletion);
 
-    private static async Task ObserveCompletionAsync(Task pending, CancellationTokenSource source, CancellationTokenSource deadline)
+    private static async Task ObserveCompletionAsync(
+        Task pending,
+        CancellationTokenSource source,
+        CancellationTokenRegistration registration,
+        Func<Task?> cancellation)
     {
         try
         {
@@ -112,8 +135,20 @@ internal sealed class TenantUiOperationPolicy
         }
         finally
         {
+            await registration.DisposeAsync().ConfigureAwait(false);
+            if (cancellation() is Task callbacks)
+            {
+                try
+                {
+                    await callbacks.ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Provider cancellation callbacks have no authority or diagnostic payload to apply.
+                }
+            }
+
             source.Dispose();
-            deadline.Dispose();
         }
     }
 }

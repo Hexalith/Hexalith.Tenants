@@ -2323,6 +2323,9 @@
         }
 
         CancellationTokenSource source = ReplaceActiveCancellation(ref _readRefreshSetupCancellation);
+        if (!IsReadRefreshScopeCurrent(version)) source.Cancel();
+        bool acceptsNotifications = true;
+        bool adopted = false;
         TenantReadRefreshLease? lease = null;
         try
         {
@@ -2330,7 +2333,7 @@
                 GetGlobalAdministratorsQuery.ProjectionType,
                 "system",
                 () => _disposed ? Task.CompletedTask : InvokeAsync(() =>
-                    IsReadRefreshScopeCurrent(version) ? RefreshFromNotificationAsync() : Task.CompletedTask),
+                    acceptsNotifications && IsReadRefreshScopeCurrent(version) ? RefreshFromNotificationAsync() : Task.CompletedTask),
                 source.Token);
             if (!IsReadRefreshScopeCurrent(version) || _readRefreshLease is not null)
             {
@@ -2340,10 +2343,12 @@
             if (!lease.IsSubscribed)
             {
                 Interlocked.Increment(ref _readRefreshAttempts);
+                LogNotificationSetupFailure();
                 return;
             }
 
             _readRefreshLease = lease;
+            adopted = true;
             lease = null;
             if (_disposed)
             {
@@ -2362,6 +2367,7 @@
         }
         finally
         {
+            if (!adopted) acceptsNotifications = false;
             if (lease is not null)
             {
                 await DisposeLeaseSupportSafelyAsync(lease);
@@ -2378,7 +2384,7 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
-        CancelActiveCancellation(ref _authorizationCancellation);
+        CancelAuthorizationResolution();
         CancelActiveCancellation(ref _authenticationStateCancellation);
         CancelActiveCancellation(ref _readRefreshSetupCancellation);
         if (_aggregateAdmissionGate is not null)
@@ -2396,7 +2402,7 @@
             _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
             _authenticationStateProvider = null;
         }
-        CancelActiveCancellation(ref _authorizationCancellation);
+        CancelAuthorizationResolution();
         CancelActiveCancellation(ref _readRefreshSetupCancellation);
         Interlocked.Increment(ref _loadGeneration);
         CancelActiveCancellation(ref _loadCancellation);
@@ -2762,7 +2768,7 @@
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
     {
         long version = Interlocked.Increment(ref _authorizationTransitionVersion);
-        CancelActiveCancellation(ref _authorizationCancellation);
+        CancelAuthorizationResolution();
         CancelActiveCancellation(ref _authenticationStateCancellation);
         CancelActiveCancellation(ref _readRefreshSetupCancellation);
         Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version));
@@ -2821,7 +2827,8 @@
         }
         if (reflection is not TenantLifecycleAuthorizationReflectionState.Authorized)
         {
-            await CollapseAuthorizationAsync(reflection, invalidateTransition: false).ConfigureAwait(false);
+            await CollapseAuthorizationIfCurrentAsync(reflection,
+                () => CanApplyAuthorizationTransition(version), invalidateTransition: false).ConfigureAwait(false);
             return;
         }
 
@@ -2902,11 +2909,6 @@
         }
         if (reflection is TenantLifecycleAuthorizationReflectionState.Authorized)
         {
-            if (!CanApplyAuthorizationTransition(version))
-            {
-                return false;
-            }
-
             _ = await InvokeRendererSafelyAsync(() =>
             {
                 if (CanApplyAuthorizationTransition(version))
@@ -2918,20 +2920,35 @@
             return CanApplyAuthorizationTransition(version);
         }
 
-        await CollapseAuthorizationAsync(reflection).ConfigureAwait(false);
+        await CollapseAuthorizationIfCurrentAsync(reflection,
+            () => CanApplyAuthorizationTransition(version)).ConfigureAwait(false);
         return false;
     }
 
     private async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveAuthorizationReflectionAsync(
         CancellationToken cancellationToken = default)
     {
-        CancellationTokenSource source = ReplaceActiveCancellation(ref _authorizationCancellation);
-        using var linked = CancellationTokenSource.CreateLinkedTokenSource(source.Token, cancellationToken);
+        if (_disposed)
+        {
+            return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+        CancellationTokenSource source;
+        lock (_cancellationLock)
+        {
+            if (_disposed)
+            {
+                return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+            }
+            _authorizationCancellation ??= new CancellationTokenSource();
+            // Concurrent actions share caller lifetime; one action must not cancel another action's
+            // authority check. Caller transitions replace this scope and invalidate all its results.
+            source = CancellationTokenSource.CreateLinkedTokenSource(_authorizationCancellation.Token, cancellationToken);
+        }
         try
         {
             return await TenantUiOperationPolicy.FromServices(Services).RunAsync(
                 token => BffComposition.ResolveGlobalAdministratorsAuthorizationAsync(token).AsTask(),
-                linked.Token).ConfigureAwait(false);
+                source.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -2943,7 +2960,17 @@
         }
         finally
         {
-            CompleteCancellation(ref _authorizationCancellation, source);
+            source.Dispose();
+        }
+    }
+
+    private void CancelAuthorizationResolution()
+    {
+        lock (_cancellationLock)
+        {
+            _authorizationCancellation?.Cancel();
+            _authorizationCancellation?.Dispose();
+            _authorizationCancellation = null;
         }
     }
 
@@ -2964,7 +2991,8 @@
 
     private async Task CollapseAuthorizationIfCurrentAsync(
         TenantLifecycleAuthorizationReflectionState reflection,
-        Func<bool> canCollapse)
+        Func<bool> canCollapse,
+        bool invalidateTransition = true)
     {
         IAsyncDisposable? lease = null;
         if (!await InvokeRendererSafelyAsync(() =>
@@ -2974,7 +3002,7 @@
             // between authorization validation and collapse.
             if (canCollapse())
             {
-                lease = CollapseAuthorizationState(reflection, invalidateTransition: true);
+                lease = CollapseAuthorizationState(reflection, invalidateTransition);
             }
         }).ConfigureAwait(false))
         {
@@ -2993,7 +3021,7 @@
             Interlocked.Increment(ref _authorizationTransitionVersion);
         }
 
-        CancelActiveCancellation(ref _authorizationCancellation);
+        CancelAuthorizationResolution();
         CancelActiveCancellation(ref _readRefreshSetupCancellation);
         Interlocked.Increment(ref _loadGeneration);
         CancelActiveCancellation(ref _loadCancellation);

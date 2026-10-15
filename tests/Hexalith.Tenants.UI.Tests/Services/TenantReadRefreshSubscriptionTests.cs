@@ -1,6 +1,7 @@
 using Hexalith.FrontComposer.Contracts.Communication;
 using Hexalith.Tenants.UI.Services;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -12,6 +13,466 @@ namespace Hexalith.Tenants.UI.Tests.Services;
 
 public sealed class TenantReadRefreshSubscriptionTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Timed_out_setup_keeps_only_its_scope_quarantined_until_late_setup_and_cleanup_finish(bool lateFailure)
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource cleanup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource cleanupEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken oldToken = default;
+        int setups = 0;
+        int cleanups = 0;
+        subscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            if (Interlocked.Increment(ref setups) == 1)
+            {
+                oldToken = call.Arg<CancellationToken>();
+                return setup.Task;
+            }
+
+            return Task.CompletedTask;
+        });
+        subscription.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (Interlocked.Increment(ref cleanups) == 1)
+            {
+                cleanupEntered.SetResult();
+                return cleanup.Task;
+            }
+
+            return Task.CompletedTask;
+        });
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services);
+        int obsoleteCallbacks = 0;
+        int betaCallbacks = 0;
+        TaskCompletionSource betaCalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using TenantReadRefreshLease beta = await sut.SubscribeAsync("tenants", "tenant.beta", () =>
+        {
+            betaCallbacks++;
+            betaCalled.TrySetResult();
+            return Task.CompletedTask;
+        });
+        Task<TenantReadRefreshLease> pending = sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            obsoleteCallbacks++;
+            return Task.CompletedTask;
+        });
+        setups.ShouldBe(1);
+
+        clock.Advance(TimeSpan.FromSeconds(1));
+        (await pending.WaitAsync(TimeSpan.FromSeconds(2))).IsSubscribed.ShouldBeFalse();
+        oldToken.IsCancellationRequested.ShouldBeTrue();
+        using CancellationTokenRegistration lateRegistration = oldToken.Register(() => { });
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.beta");
+        await betaCalled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        betaCallbacks.ShouldBe(1);
+        obsoleteCallbacks.ShouldBe(0);
+
+        TaskCompletionSource replacementCalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<TenantReadRefreshLease> replacement = sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            replacementCalled.TrySetResult();
+            return Task.CompletedTask;
+        });
+        setups.ShouldBe(1);
+        replacement.IsCompleted.ShouldBeFalse();
+        if (lateFailure)
+        {
+            setup.SetException(new InvalidOperationException("unsafe obsolete setup"));
+        }
+        else
+        {
+            setup.SetResult();
+        }
+
+        await cleanupEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        setups.ShouldBe(1);
+        replacement.IsCompleted.ShouldBeFalse();
+        cleanup.SetResult();
+        TenantReadRefreshLease current = await replacement.WaitAsync(TimeSpan.FromSeconds(2));
+        current.IsSubscribed.ShouldBeTrue();
+        setups.ShouldBe(2);
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await replacementCalled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        obsoleteCallbacks.ShouldBe(0);
+        cleanups.ShouldBe(1);
+        await current.DisposeAsync();
+        cleanups.ShouldBe(2);
+        await subscription.DidNotReceive().UnsubscribeAsync("tenants", "tenant.beta", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Same_scope_wait_uses_the_original_deadline_and_cannot_duplicate_a_stalled_setup()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        subscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(setup.Task);
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services);
+        Task<TenantReadRefreshLease> first = sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        clock.Advance(TimeSpan.FromMilliseconds(500));
+        Task<TenantReadRefreshLease> second = sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+
+        clock.Advance(TimeSpan.FromMilliseconds(500));
+        (await first.WaitAsync(TimeSpan.FromSeconds(2))).IsSubscribed.ShouldBeFalse();
+        second.IsCompleted.ShouldBeFalse();
+        clock.Advance(TimeSpan.FromMilliseconds(500));
+        (await second.WaitAsync(TimeSpan.FromSeconds(2))).IsSubscribed.ShouldBeFalse();
+        await subscription.Received(1).SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        setup.SetResult();
+    }
+
+    [Fact]
+    public async Task Concurrent_same_scope_consumers_join_one_completed_setup_and_keep_independent_leases()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        subscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(setup.Task);
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services);
+        TaskCompletionSource secondCalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int firstCalls = 0;
+        Task<TenantReadRefreshLease> first = sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            firstCalls++;
+            return Task.CompletedTask;
+        });
+        Task<TenantReadRefreshLease> second = sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            secondCalled.TrySetResult();
+            return Task.CompletedTask;
+        });
+        setup.SetResult();
+        TenantReadRefreshLease[] leases = await Task.WhenAll(first, second).WaitAsync(TimeSpan.FromSeconds(2));
+        leases.ShouldAllBe(lease => lease.IsSubscribed);
+        await subscription.Received(1).SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        await leases[0].DisposeAsync();
+        await subscription.DidNotReceive().UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await secondCalled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        firstCalls.ShouldBe(0);
+        await leases[1].DisposeAsync();
+        await subscription.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Stalled_last_reference_cleanup_is_bounded_and_cannot_detach_a_later_replacement(bool lateFailure)
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource cleanup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int cleanups = 0;
+        subscription.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(_ =>
+            Interlocked.Increment(ref cleanups) == 1 ? cleanup.Task : Task.CompletedTask);
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services);
+        TenantReadRefreshLease first = await sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        Task release = first.DisposeAsync().AsTask();
+        Task<TenantReadRefreshLease> blocked = sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        await using TenantReadRefreshLease other = await sut.SubscribeAsync("tenants", "tenant.beta", () => Task.CompletedTask);
+        other.IsSubscribed.ShouldBeTrue();
+
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await release.WaitAsync(TimeSpan.FromSeconds(2));
+        (await blocked.WaitAsync(TimeSpan.FromSeconds(2))).IsSubscribed.ShouldBeFalse();
+        await subscription.Received(1).SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        Task<TenantReadRefreshLease> replacement = sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        if (lateFailure)
+        {
+            cleanup.SetException(new InvalidOperationException("late obsolete cleanup"));
+        }
+        else
+        {
+            cleanup.SetResult();
+        }
+        TenantReadRefreshLease current = await replacement.WaitAsync(TimeSpan.FromSeconds(2));
+        current.IsSubscribed.ShouldBeTrue();
+        cleanups.ShouldBe(1);
+        await current.DisposeAsync();
+        cleanups.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Circuit_disposal_cancels_held_setup_detaches_all_callbacks_and_cleans_late_success_once()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource lateCleanup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        subscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(setup.Task);
+        subscription.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            lateCleanup.TrySetResult();
+            return Task.CompletedTask;
+        });
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        TenantReadRefreshSubscription sut = new(services);
+        int callbacks = 0;
+        Task Callback()
+        {
+            callbacks++;
+            return Task.CompletedTask;
+        }
+
+        TenantReadRefreshLease beta = await sut.SubscribeAsync("tenants", "tenant.beta", Callback);
+        TenantReadRefreshLease betaSecond = await sut.SubscribeAsync("tenants", "tenant.beta", Callback);
+        Task<TenantReadRefreshLease> pending = sut.SubscribeAsync("tenants", "tenant.alpha", Callback);
+        await sut.DisposeAsync();
+        _ = await Should.ThrowAsync<OperationCanceledException>(pending.WaitAsync(TimeSpan.FromSeconds(2)));
+        _ = await Should.ThrowAsync<ObjectDisposedException>(() => sut.SubscribeAsync("tenants", "tenant.gamma", Callback));
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.beta");
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        callbacks.ShouldBe(0);
+        await beta.DisposeAsync();
+        await betaSecond.DisposeAsync();
+        await subscription.Received(1).UnsubscribeAsync("tenants", "tenant.beta", Arg.Any<CancellationToken>());
+
+        setup.SetResult();
+        await lateCleanup.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        await subscription.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        await subscription.DidNotReceive().SubscribeAsync("tenants", "tenant.gamma", Arg.Any<CancellationToken>());
+        callbacks.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Cooperative_setup_cancellation_releases_ownership_before_retry()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int attempts = 0;
+        subscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            if (++attempts == 1)
+            {
+                CancellationToken token = call.Arg<CancellationToken>();
+                _ = token.Register(() => setup.TrySetCanceled(token));
+                return setup.Task;
+            }
+
+            return Task.CompletedTask;
+        });
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services);
+        using var caller = new CancellationTokenSource();
+        Task<TenantReadRefreshLease> pending = sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask, caller.Token);
+
+        caller.Cancel();
+        _ = await Should.ThrowAsync<OperationCanceledException>(pending.WaitAsync(TimeSpan.FromSeconds(2)));
+        await using TenantReadRefreshLease recovered = await sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        recovered.IsSubscribed.ShouldBeTrue();
+        attempts.ShouldBe(2);
+        await subscription.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Failed_optional_notifier_registration_does_not_leave_a_scope_owner()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        int registrations = 0;
+        notifier.When(value => value.ProjectionChangedForTenant += Arg.Any<Action<string, string>>())
+            .Do(_ =>
+            {
+                if (++registrations == 1)
+                {
+                    throw new InvalidOperationException("optional notifier unavailable");
+                }
+            });
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services);
+
+        (await sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask)).IsSubscribed.ShouldBeFalse();
+        await using TenantReadRefreshLease recovered = await sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        recovered.IsSubscribed.ShouldBeTrue();
+        registrations.ShouldBe(2);
+        await subscription.Received(1).SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Retired_cleanup_contains_a_disposed_logger_and_releases_its_scope_after_actual_completion()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource cleanup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int cleanups = 0;
+        subscription.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(_ =>
+            ++cleanups == 1 ? cleanup.Task : Task.CompletedTask);
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services, new ThrowingLogger());
+        TenantReadRefreshLease first = await sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        Task release = first.DisposeAsync().AsTask();
+
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await release.WaitAsync(TimeSpan.FromSeconds(2));
+        Task<TenantReadRefreshLease> pending = sut.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        pending.IsCompleted.ShouldBeFalse();
+        cleanup.SetResult();
+        await using TenantReadRefreshLease recovered = await pending.WaitAsync(TimeSpan.FromSeconds(2));
+        recovered.IsSubscribed.ShouldBeTrue();
+        cleanups.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Blocked_backend_cancellation_callbacks_cannot_hold_setup_or_detach_a_replacement()
+    {
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        using var releaseCallback = new ManualResetEventSlim();
+        TaskCompletionSource setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource callbackEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource cleanupEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource replacementCalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int setups = 0;
+        int obsoleteCallbacks = 0;
+        backend.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            if (++setups == 1)
+            {
+                _ = call.Arg<CancellationToken>().Register(() =>
+                {
+                    callbackEntered.TrySetResult();
+                    releaseCallback.Wait();
+                });
+                return setup.Task;
+            }
+
+            return Task.CompletedTask;
+        });
+        backend.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            cleanupEntered.TrySetResult();
+            return Task.CompletedTask;
+        });
+        await using ServiceProvider services = BoundedServices(backend, notifier, clock);
+        await using TenantReadRefreshSubscription coordinator = new(services);
+        Task<TenantReadRefreshLease> first = coordinator.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            obsoleteCallbacks++;
+            return Task.CompletedTask;
+        });
+        Task advance = Task.Run(() => clock.Advance(TimeSpan.FromSeconds(1)));
+        try
+        {
+            await callbackEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            (await first.WaitAsync(TimeSpan.FromSeconds(2))).IsSubscribed.ShouldBeFalse();
+            await using TenantReadRefreshLease beta = await coordinator.SubscribeAsync("tenants", "tenant.beta", () => Task.CompletedTask);
+            beta.IsSubscribed.ShouldBeTrue();
+            setup.SetResult();
+            Task<TenantReadRefreshLease> pending = coordinator.SubscribeAsync("tenants", "tenant.alpha", () =>
+            {
+                replacementCalled.TrySetResult();
+                return Task.CompletedTask;
+            });
+            setups.ShouldBe(1);
+            pending.IsCompleted.ShouldBeFalse();
+            releaseCallback.Set();
+            await cleanupEntered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            await using TenantReadRefreshLease current = await pending.WaitAsync(TimeSpan.FromSeconds(2));
+            current.IsSubscribed.ShouldBeTrue();
+            setups.ShouldBe(2);
+            notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+            await replacementCalled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            obsoleteCallbacks.ShouldBe(0);
+        }
+        finally
+        {
+            releaseCallback.Set();
+            setup.TrySetResult();
+            await advance.WaitAsync(TimeSpan.FromSeconds(2));
+        }
+    }
+
+    [Fact]
+    public async Task A_canceled_same_scope_waiter_cannot_replace_or_cancel_the_held_owner()
+    {
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken ownerToken = default;
+        backend.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            ownerToken = call.Arg<CancellationToken>();
+            return setup.Task;
+        });
+        await using ServiceProvider services = BoundedServices(backend, notifier, clock);
+        await using TenantReadRefreshSubscription coordinator = new(services);
+        Task<TenantReadRefreshLease> owner = coordinator.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask);
+        using var caller = new CancellationTokenSource();
+        Task<TenantReadRefreshLease> waiter = coordinator.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask, caller.Token);
+        caller.Cancel();
+
+        _ = await Should.ThrowAsync<OperationCanceledException>(waiter.WaitAsync(TimeSpan.FromSeconds(2)));
+        owner.IsCompleted.ShouldBeFalse();
+        ownerToken.IsCancellationRequested.ShouldBeFalse();
+        await backend.Received(1).SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        setup.SetResult();
+        await using TenantReadRefreshLease current = await owner.WaitAsync(TimeSpan.FromSeconds(2));
+        current.IsSubscribed.ShouldBeTrue();
+        await backend.DidNotReceive().UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Coordinator_disposal_detaches_callbacks_before_its_cleanup_deadline_even_when_cleanup_ignores_cancellation()
+    {
+        IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource cleanup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        backend.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(cleanup.Task);
+        await using ServiceProvider services = BoundedServices(backend, notifier, clock);
+        TenantReadRefreshSubscription coordinator = new(services);
+        int callbacks = 0;
+        TenantReadRefreshLease lease = await coordinator.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            callbacks++;
+            return Task.CompletedTask;
+        });
+        Task disposing = coordinator.DisposeAsync().AsTask();
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        callbacks.ShouldBe(0);
+        disposing.IsCompleted.ShouldBeFalse();
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await disposing.WaitAsync(TimeSpan.FromSeconds(2));
+        _ = await Should.ThrowAsync<ObjectDisposedException>(() => coordinator.SubscribeAsync("tenants", "tenant.alpha", () => Task.CompletedTask));
+        await lease.DisposeAsync();
+        cleanup.SetResult();
+        await backend.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        callbacks.ShouldBe(0);
+    }
+
+    private static ServiceProvider BoundedServices(
+        IProjectionSubscription subscription,
+        IProjectionChangeNotifierWithTenant notifier,
+        TimeProvider clock)
+        => new ServiceCollection()
+            .AddSingleton(subscription)
+            .AddSingleton(notifier)
+            .AddSingleton<TimeProvider>(clock)
+            .AddSingleton<IConfiguration>(new ConfigurationBuilder().AddInMemoryCollection(
+                new Dictionary<string, string?> { [TenantUiOperationPolicy.ConfigurationKey] = "00:00:01" }).Build())
+            .BuildServiceProvider();
+
     [Fact]
     public async Task Matching_nudges_are_coalesced_and_cleanup_unsubscribes()
     {

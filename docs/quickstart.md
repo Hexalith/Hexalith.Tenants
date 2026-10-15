@@ -113,6 +113,22 @@ Before sending a command, confirm the dashboard shows these local resources as r
 
 If `eventstore` or `tenants` is missing or unhealthy, do not submit the first command yet. Check the AppHost resource details first; common causes are Docker not running, DAPR not initialized, port conflicts from old sidecars, or uninitialized submodules.
 
+### UI authorization and notification deadline
+
+The UI uses `Tenants:Ui:AuthorizationAndSubscriptionTimeout` for authorization
+resolution and optional projection subscription setup/cleanup. It defaults to
+`00:00:10`; override it in host configuration or with
+`Tenants__Ui__AuthorizationAndSubscriptionTimeout`. Supply a positive finite
+TimeSpan within .NET timer limits. Invalid values are rejected.
+
+Authorization expiry leaves authority indeterminate and recovery available.
+Subscription expiry consumes one of three failed setup attempts; an explicit
+refresh reopens that budget. Reads continue independently. If a provider ignores
+cancellation, the coordinator retains that exact scope until late setup and cleanup
+finish, preventing old cleanup from removing a replacement subscription. Other
+scopes remain usable. Route/caller cancellation is separate from ordinary load
+cancellation, so paging and refresh preserve established subscriptions.
+
 ## Get an Access Token
 
 The EventStore command gateway requires a JWT token. The default AppHost starts the local Keycloak realm and configures OIDC validation with `RS256`. Its service administrator username and password are generated for each run and passed directly to the realm and service resources. They are not the `admin-user` / `admin-pass` pair, and the AppHost does not publish them for an interactive API session.

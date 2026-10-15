@@ -10185,8 +10185,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             {
                 return setup.Task;
             }
-            call.ArgAt<string>(1).ShouldBe(latest);
-            replacementEntered.TrySetResult();
+            // Replaceable cancellation may establish the intermediate route before its next change.
+            call.ArgAt<string>(1).ShouldBeOneOf("tenant.beta", latest);
+            if (call.ArgAt<string>(1) == latest) replacementEntered.TrySetResult();
             return Task.CompletedTask;
         });
         if (completion == "throw")
@@ -10233,10 +10234,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         else setup.SetException(new InvalidOperationException("private transport diagnostics"));
         // No render/parameter update after releasing setup: its own completion must wake the latest route.
         await replacementEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
-        await cut.InvokeAsync(() => Task.CompletedTask);
+        await WaitForHandoffIdleAsync(cut);
         HandoffField<string>(cut, "_subscriptionTenantId").ShouldBe(latest);
         HandoffField<IAsyncDisposable>(cut, "_readRefreshLease").ShouldNotBeNull();
-        attempts.ShouldBe(2);
+        attempts.ShouldBe(route == "once" ? 2 : 3);
         callbacks.Count.ShouldBe(1);
         ((IDictionary)callbacks.Values.Cast<object>().Single()).Count.ShouldBe(1);
         await AssertObsoleteHandoffCallbackAsync(cut, gateway, obsoleteCallback);
@@ -10275,7 +10276,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             cut.Markup.ShouldContain("current-value");
         });
         for (int i = 0; i < 3; i++) cut.Render();
-        attempts.ShouldBe(2, "ordinary renders must retain one established subscription");
+        attempts.ShouldBe(route == "once" ? 2 : 3, "ordinary renders must retain one established subscription");
         await cut.InvokeAsync(async () => await cut.Instance.DisposeAsync());
         int expectedReleases = latest == "tenant.alpha" ? 2 : 1;
         await backend.Received(expectedReleases).UnsubscribeAsync("tenants", latest, Arg.Any<CancellationToken>());
@@ -10338,6 +10339,14 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
         attempts.ShouldBe(1);
         backend.ClearReceivedCalls();
+        int releases = transition is "changed" or "pending" or "returned" ? 2 : 1;
+        int releaseCount = 0;
+        var cleanupCompleted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        backend.UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()).Returns(_ =>
+        {
+            if (Interlocked.Increment(ref releaseCount) == releases) cleanupCompleted.TrySetResult();
+            return Task.CompletedTask;
+        });
         var callbacks = (IDictionary)typeof(TenantReadRefreshSubscription).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(Services.GetRequiredService<TenantReadRefreshSubscription>())!;
         Func<Task> obsoleteCallback = ((IDictionary)callbacks.Values.Cast<object>().Single()).Values.Cast<Func<Task>>().Single();
@@ -10376,7 +10385,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         if (transition is "changed" or "pending" or "returned")
         {
             await replacementEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
-            await cut.InvokeAsync(() => Task.CompletedTask);
+            await WaitForHandoffIdleAsync(cut);
             HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldNotBeNull();
             HandoffField<TenantDetailSnapshot>(cut, "_snapshot").CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope(caller));
             HandoffField<int>(cut, "_readRefreshAttempts").ShouldBe(0);
@@ -10394,7 +10403,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             await cut.InvokeAsync(() => notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha"));
             HandoffReadCount(gateway).ShouldBe(reads);
         }
-        int releases = transition is "changed" or "pending" or "returned" ? 2 : 1;
+        // Setup cancellation releases the page gate before an ignoring provider finishes cleanup.
+        await cleanupCompleted.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
         await backend.Received(releases).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
         callbacks.Count.ShouldBe(0, "neither terminal completion nor page disposal may leave a registered callback");
     }
@@ -10651,6 +10661,10 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         var clock = new ManualTimeProvider();
         Services.AddSingleton<TimeProvider>(clock);
+        var configuration = new Microsoft.Extensions.Configuration.ConfigurationManager();
+        TimeSpan configuredBound = TimeSpan.FromMilliseconds(250);
+        configuration[TenantUiOperationPolicy.ConfigurationKey] = configuredBound.ToString();
+        Services.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(configuration);
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         IProjectionSubscription backend = Substitute.For<IProjectionSubscription>();
         IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
@@ -10662,6 +10676,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         {
             if (recover) return Task.CompletedTask;
             if (!hold) return Task.FromException(new InvalidOperationException("initial setup unavailable"));
+            if (outcome == "cooperative" && tokens.Count > 0)
+                return Task.FromException(new InvalidOperationException("later optional setup unavailable"));
             var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             pending.Add(completion);
             CancellationToken token = call.ArgAt<CancellationToken>(2);
@@ -10683,21 +10699,43 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         var callbacks = (IDictionary)typeof(TenantReadRefreshSubscription).GetField("_callbacks", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(Services.GetRequiredService<TenantReadRefreshSubscription>())!;
         Func<Task> obsoleteCallback = ((IDictionary)callbacks.Values.Cast<object>().Single()).Values.Cast<Func<Task>>().Single();
-        for (int attempt = 1; attempt <= 3; attempt++)
+        // Completion can render and start the next bounded attempt before the old gate's idle
+        // moment is observed. Drive virtual deadlines until the exact three-failure budget is
+        // exhausted, supplying a render only when no setup already owns the page gate.
+        CancellationTokenSource? lastAdvanced = null;
+        int deadlinesAdvanced = 0;
+        using (var bound = new CancellationTokenSource(BunitContext.DefaultWaitTimeout))
         {
-            cut.WaitForAssertion(() => HandoffField<int>(cut, "_readRefreshSubscriptionInFlight").ShouldBe(1));
-            await cut.InvokeAsync(() => clock.Advance(TenantUiOperationPolicy.DefaultTimeout));
-            await WaitForHandoffIdleAsync(cut);
-            HandoffField<int>(cut, "_readRefreshAttempts").ShouldBe(attempt);
-            HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldBeNull();
-            HandoffField<TenantDetailSnapshot>(cut, "_snapshot").ProjectionVersion.ShouldBe("detail-confirmed");
-            callbacks.Count.ShouldBe(0);
-            if (attempt < 3) cut.Render();
+            while (HandoffField<int>(cut, "_readRefreshAttempts") < 3
+                || HandoffField<int>(cut, "_readRefreshSubscriptionInFlight") != 0)
+            {
+                await cut.InvokeAsync(() =>
+                {
+                    if (HandoffField<int>(cut, "_readRefreshSubscriptionInFlight") == 0
+                        && HandoffField<int>(cut, "_readRefreshAttempts") < 3) cut.Render();
+                    CancellationTokenSource? current = HandoffField<CancellationTokenSource?>(cut, "_readRefreshSetupCancellation");
+                    if (current is not null && !ReferenceEquals(current, lastAdvanced) && clock.PendingTimerCount > 0)
+                    {
+                        // Exactly one configured period per owner; no extra virtual time can hide
+                        // an attempt that missed its deadline while its continuation settles.
+                        lastAdvanced = current;
+                        deadlinesAdvanced++;
+                        clock.Advance(configuredBound);
+                    }
+                });
+                await Task.Delay(1, bound.Token);
+            }
         }
+        HandoffField<int>(cut, "_readRefreshAttempts").ShouldBe(3);
+        deadlinesAdvanced.ShouldBe(outcome == "cooperative" ? 1 : 3);
+        clock.GetUtcNow().ShouldBe(DateTimeOffset.UnixEpoch.AddTicks(configuredBound.Ticks * deadlinesAdvanced));
+        HandoffField<IAsyncDisposable?>(cut, "_readRefreshLease").ShouldBeNull();
+        HandoffField<TenantDetailSnapshot>(cut, "_snapshot").ProjectionVersion.ShouldBe("detail-confirmed");
+        callbacks.Count.ShouldBe(0);
         tokens.ShouldAllBe(token => token.IsCancellationRequested);
-        int exhaustedCalls = pending.Count;
+        int exhaustedCalls = backend.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.SubscribeAsync));
         cut.Render();
-        pending.Count.ShouldBe(exhaustedCalls);
+        backend.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.SubscribeAsync)).ShouldBe(exhaustedCalls);
         await AssertObsoleteHandoffCallbackAsync(cut, gateway, obsoleteCallback);
         foreach (TaskCompletionSource completion in pending)
         {

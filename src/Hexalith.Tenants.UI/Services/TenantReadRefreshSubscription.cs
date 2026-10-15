@@ -55,10 +55,8 @@ public sealed partial class TenantReadRefreshSubscription(
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentNullException.ThrowIfNull(refresh);
         cancellationToken.ThrowIfCancellationRequested();
-        lock (_sync)
-        {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-        }
+        using CancellationTokenSource lifetime = BeginOperationLifetime(cancellationToken);
+        CancellationToken lifetimeToken = lifetime.Token;
 
         IProjectionSubscription? subscription = services.GetService<IProjectionSubscription>();
         IProjectionChangeNotifierWithTenant? notifier = services.GetService<IProjectionChangeNotifierWithTenant>();
@@ -70,7 +68,6 @@ public sealed partial class TenantReadRefreshSubscription(
         // A single deadline includes waiting for an older owner of the same scope AND new setup.
         // Other scopes never wait on this key's backend operation. The core observes cancellation
         // itself so its local callback has been detached before the public bounded wait returns.
-        using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeCancellation.Token);
         Task<TenantReadRefreshLease>? pending = null;
         try
         {
@@ -83,7 +80,8 @@ public sealed partial class TenantReadRefreshSubscription(
             {
                 try
                 {
-                    _ = await pending.ConfigureAwait(false);
+                    TenantReadRefreshLease rejected = await pending.ConfigureAwait(false);
+                    _ = rejected.DisposeAsync();
                 }
                 catch
                 {
@@ -92,13 +90,22 @@ public sealed partial class TenantReadRefreshSubscription(
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            if (_lifetimeCancellation.IsCancellationRequested)
+            if (lifetimeToken.IsCancellationRequested)
             {
-                throw new OperationCanceledException(_lifetimeCancellation.Token);
+                throw new OperationCanceledException(lifetimeToken);
             }
 
             LogReason(SetupFailureReasonCode);
             return TenantReadRefreshLease.Empty;
+        }
+    }
+
+    private CancellationTokenSource BeginOperationLifetime(CancellationToken cancellationToken)
+    {
+        lock (_sync)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            return CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _lifetimeCancellation.Token);
         }
     }
 
@@ -131,12 +138,28 @@ public sealed partial class TenantReadRefreshSubscription(
                 else
                 {
                     owner = new(TaskCreationOptions.RunContinuationsAsynchronously);
-                    _unsettled.Add(key, owner);
                     if (_callbacks.Count == 0)
                     {
-                        notifier.ProjectionChangedForTenant += OnProjectionChanged;
+                        try
+                        {
+                            notifier.ProjectionChangedForTenant += OnProjectionChanged;
+                        }
+                        catch
+                        {
+                            try
+                            {
+                                notifier.ProjectionChangedForTenant -= OnProjectionChanged;
+                            }
+                            catch
+                            {
+                                // A failed optional event registration must leave no scoped gate owner.
+                            }
+
+                            throw;
+                        }
                     }
 
+                    _unsettled.Add(key, owner);
                     _callbacks.Add(key, new() { [callbackId] = refresh });
                     _subscription = subscription;
                     _notifier = notifier;
@@ -152,10 +175,13 @@ public sealed partial class TenantReadRefreshSubscription(
         }
 
         Task? setup = null;
+        Task? setupLifetime = null;
         try
         {
-            setup = subscription.SubscribeAsync(key.ProjectionType, key.TenantId, cancellationToken);
-            await setup.WaitAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            await _policy.RunAsync(token => setup = subscription.SubscribeAsync(
+                key.ProjectionType, key.TenantId, token), cancellationToken, completion => setupLifetime = completion)
+                .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             lock (_sync)
             {
@@ -174,7 +200,7 @@ public sealed partial class TenantReadRefreshSubscription(
 
             // Unsubscribe is keyed by scope, not registration identity. Keep this key quarantined
             // until the actual old setup AND cleanup finish, including cancellation-ignoring tasks.
-            _ = CleanupFailedSetupAsync(setup, key, owner, subscription);
+            _ = CleanupFailedSetupAsync(setupLifetime ?? setup, key, owner, subscription);
             throw;
         }
     }
@@ -196,7 +222,7 @@ public sealed partial class TenantReadRefreshSubscription(
 
         if (_callbacks.Count == 0)
         {
-            notifier.ProjectionChangedForTenant -= OnProjectionChanged;
+            DetachNotifierSafely(notifier);
             _subscription = null;
             _notifier = null;
         }
@@ -229,24 +255,27 @@ public sealed partial class TenantReadRefreshSubscription(
         TaskCompletionSource owner)
     {
         Task? cleanup = null;
+        Task? cleanupLifetime = null;
         try
         {
             await _policy.RunAsync(token => cleanup = subscription
-                .UnsubscribeAsync(key.ProjectionType, key.TenantId, token)).ConfigureAwait(false);
+                .UnsubscribeAsync(key.ProjectionType, key.TenantId, token),
+                observeCompletion: completion => cleanupLifetime = completion).ConfigureAwait(false);
         }
         catch
         {
-            LogReason(CleanupFailureReasonCode);
+            LogCleanupFailureSafely();
         }
         finally
         {
-            if (cleanup is null || cleanup.IsCompleted)
+            Task? retired = cleanupLifetime ?? cleanup;
+            if (retired is null || retired.IsCompleted)
             {
                 CompleteUnsettled(key, owner);
             }
             else
             {
-                _ = CompleteLateCleanupAsync(cleanup, key, owner);
+                _ = CompleteLateCleanupAsync(retired, key, owner);
             }
         }
     }
@@ -348,7 +377,7 @@ public sealed partial class TenantReadRefreshSubscription(
             subscription = _subscription;
             if (_notifier is not null)
             {
-                _notifier.ProjectionChangedForTenant -= OnProjectionChanged;
+                DetachNotifierSafely(_notifier);
             }
 
             foreach ((string ProjectionType, string TenantId) key in _callbacks.Keys)
@@ -368,6 +397,7 @@ public sealed partial class TenantReadRefreshSubscription(
         }
 
         _lifetimeCancellation.Cancel();
+        _lifetimeCancellation.Dispose();
         if (subscription is not null)
         {
             await Task.WhenAll(cleanup.Select(item => CleanupWithinDeadlineAsync(subscription, item.Key, item.Owner)))
@@ -467,6 +497,30 @@ public sealed partial class TenantReadRefreshSubscription(
         if (logger is not null)
         {
             NotificationOperationFailed(logger, reasonCode);
+        }
+    }
+
+    private void DetachNotifierSafely(IProjectionChangeNotifierWithTenant notifier)
+    {
+        try
+        {
+            notifier.ProjectionChangedForTenant -= OnProjectionChanged;
+        }
+        catch
+        {
+            LogCleanupFailureSafely();
+        }
+    }
+
+    private void LogCleanupFailureSafely()
+    {
+        try
+        {
+            LogReason(CleanupFailureReasonCode);
+        }
+        catch
+        {
+            // Retired cleanup can outlive its circuit logger. Diagnostics cannot retain ownership.
         }
     }
 

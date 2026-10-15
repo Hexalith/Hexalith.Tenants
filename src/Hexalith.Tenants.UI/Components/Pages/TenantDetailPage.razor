@@ -1376,14 +1376,6 @@
         }
     }
 
-    /// <summary>Subscribes this tenant's reads to projection notifications, at most once per tenant.</summary>
-    /// <remarks>
-    /// Deliberately does NOT take the load cancellation token. Binding setup to a load meant any Refresh,
-    /// command-driven re-query or member pager click during setup cancelled <c>SubscribeAsync</c>, the catch
-    /// returned without recording <c>_subscriptionTenantId</c>, and nothing retried for the same tenant --
-    /// silently disabling projection auto-refresh for the rest of the circuit. Setup instead owns a
-    /// separate cancellation source, replaced only by route/caller invalidation or disposal.
-    /// </remarks>
     private void CancelReadRefreshSetup()
     {
         lock (_cancellationLock)
@@ -1392,6 +1384,14 @@
         }
     }
 
+    /// <summary>Subscribes this tenant's reads to projection notifications, at most once per tenant.</summary>
+    /// <remarks>
+    /// Deliberately does NOT take the load cancellation token. Binding setup to a load meant any Refresh,
+    /// command-driven re-query or member pager click during setup cancelled <c>SubscribeAsync</c>, the catch
+    /// returned without recording <c>_subscriptionTenantId</c>, and nothing retried for the same tenant --
+    /// silently disabling projection auto-refresh for the rest of the circuit. Setup instead owns a
+    /// separate cancellation source, replaced only by route/caller invalidation or disposal.
+    /// </remarks>
     private Task EnsureReadRefreshLeaseAsync(string tenantId)
         => _disposed ? Task.CompletedTask : InvokeAsync(() => EnsureReadRefreshLeaseOnRendererAsync(tenantId));
 
@@ -1443,6 +1443,9 @@
         {
             _readRefreshSetupCancellation = source;
         }
+        if (!IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion)) source.Cancel();
+        bool acceptsNotifications = true;
+        bool adopted = false;
         TenantReadRefreshLease? lease = null;
         try
         {
@@ -1450,7 +1453,7 @@
                 GetTenantQuery.ProjectionType,
                 tenantId,
                 () => _disposed ? Task.CompletedTask : InvokeAsync(() =>
-                    IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion)
+                    acceptsNotifications && IsReadRefreshScopeCurrent(tenantId, routeVersion, callerVersion)
                         ? RefreshTenantReadsAsync(tenantId)
                         : Task.CompletedTask),
                 source.Token);
@@ -1472,6 +1475,7 @@
             }
 
             _readRefreshLease = lease;
+            adopted = true;
             _subscriptionTenantId = tenantId;
             lease = null;
 
@@ -1503,6 +1507,7 @@
         }
         finally
         {
+            if (!adopted) acceptsNotifications = false;
             lock (_cancellationLock)
             {
                 if (ReferenceEquals(_readRefreshSetupCancellation, source))

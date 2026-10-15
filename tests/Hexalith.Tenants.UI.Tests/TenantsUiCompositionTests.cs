@@ -297,7 +297,7 @@ public sealed class TenantsUiCompositionTests
     /// and the cycle was invisible.
     /// </remarks>
     [Fact]
-    public void Composed_read_graph_resolves_without_a_dependency_cycle()
+    public async Task Composed_read_graph_resolves_without_a_dependency_cycle()
     {
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -312,8 +312,8 @@ public sealed class TenantsUiCompositionTests
         services.AddSingleton(configuration);
         services.AddHexalithTenantsUiModule(configuration, enableGatewayAuthorization: false);
 
-        using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
-        using IServiceScope scope = provider.CreateScope();
+        await using ServiceProvider provider = services.BuildServiceProvider(validateScopes: true);
+        await using AsyncServiceScope scope = provider.CreateAsyncScope();
 
         ITenantsBffComposition composition = scope.ServiceProvider.GetRequiredService<ITenantsBffComposition>();
         ITenantQueryGateway gateway = scope.ServiceProvider.GetRequiredService<ITenantQueryGateway>();

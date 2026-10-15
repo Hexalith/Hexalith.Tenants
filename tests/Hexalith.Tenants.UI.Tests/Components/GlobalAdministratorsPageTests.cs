@@ -9111,6 +9111,13 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             NotifyAuthenticationStateChanged(Task.FromResult(_state));
         }
 
+        public TaskCompletionSource<AuthenticationState> NotifyPending()
+        {
+            var pending = new TaskCompletionSource<AuthenticationState>(TaskCreationOptions.RunContinuationsAsynchronously);
+            NotifyAuthenticationStateChanged(pending.Task);
+            return pending;
+        }
+
     }
 
     private sealed class StubTenantsLocalizer : IStringLocalizer<TenantsResources>

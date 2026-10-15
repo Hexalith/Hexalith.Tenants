@@ -84,3 +84,72 @@ DW-105/DW-108, DW-112, DW-150, DW-164/DW-183, external commits/movements, archiv
 sprint, gates, floors, exclusions and unresolved decisions. No nested initialization,
 version/gitlink update, stage/commit/push/deploy/replay/migration. Closure is local
 bundle evidence, never full release readiness.
+
+Implementation/review notes (append-only):
+
+- Optional policy is registered through production composition with container
+  configuration preference and System clock fallback. Per-scope coordinator
+  ownership replaces the global semaphore; same-scope joiners share one deadline
+  across waiting/setup and retain independent reference-counted leases. Unfinished
+  setup/cleanup remains quarantined until actual provider/cancellation completion.
+- Page setup cancellation is independent of loads. Renderer-owned GA setup captures
+  caller epoch, rejects obsolete adoption/callbacks, and hands off after gate release.
+  Both pages disable callbacks owned by failed/timed-out setup even when caller/route
+  remain current. Detail retains the original route/caller handoff and combined reads.
+- Independent review caught same-caller overlapping refresh cancellation: authority
+  resolves now share caller lifetime with separate local linked sources, so sibling
+  read/notification checks do not cancel each other. Non-authorized collapse checks
+  captured caller version inside the renderer, just like authorized application.
+- Provider cancellation callbacks can stall, so the bounded waiter owns an independent
+  clock/caller token. CancelAsync signals provider cancellation without running its
+  callback inline; token disposal and coordinator retirement await actual provider
+  and callback completion. No provider invocation is moved to a background thread.
+- Initial focused663 failed10: six historical handoff cases assumed a held obsolete
+  setup blocked intermediate routes; assertions now require exact intermediate/final
+  registrations under prompt cancellation. One cooperative fixture observed the next
+  automatic attempt rather than exhausted state. Two copied callbacks from timed-out
+  setup remained active; production now invalidates failed-attempt callbacks. One
+  Empty path lost its page-safe diagnostic; the fixed code is restored there.
+- New rendered partials initially had three compile errors: an absent lifecycle enum
+  member and two missing freshness imports. Corrected to the actual Idle state and
+  owning namespace. The next focused704 failed3 because old assertions treated page
+  gate release as completion of a cancellation-ignoring provider's cleanup. The fixture
+  now awaits actual cleanup signals using the unchanged default wait, preserving exact
+  unsubscribe assertions. No existing timeout or product gate was increased.
+
+## Review Triage Log
+
+Independent Blind Hunter review inspected entry-relative content (current HEAD was
+moving externally);105147 bytes/1024=102.68KiB, finding floor min(floor(sqrt(102.68)+1),10)=10.
+No other review layer is configured for this route. Every finding is retained:
+
+| Finding | Verdict and disposition | Evidence/fix |
+| --- | --- | --- |
+| Same-caller GA refresh/notification checks cancel one another | high, patch | Concrete page-refresh plus established notifier path bypasses page gate. Share caller cancellation; held overlap regression checks both tokens, exact reads and lease identity. |
+| Stale failed check can collapse newer caller between check and dispatch | high, patch | Use existing CollapseAuthorizationIfCurrentAsync with captured version predicate inside renderer for reauthorization and authentication results; late caller/recovery tests retain current authority. |
+| Provider cancellation callbacks can strand token-based wait | high, patch | Independent TimeProvider deadline/caller waiter plus CancelAsync propagation; real policy/coordinator blocking-callback regressions and lifetime retirement. |
+| GA authentication-event bound lacks rendered proof | medium, patch | Hold actual event task through expiry/recovery and active disposal; late success/fault remain inert. |
+| GA held setup caller-transition ownership lacks proof | medium, patch | Actual Fluent caller invalidation with held real coordinator, no replacement-budget charge, completion handoff and independent lease. |
+| Workspace active replacement/disposal cancellation unproven | medium, patch | Hold entry/event/create before deadline; assert token cancellation and inert obsolete completion with actual rendered actions. |
+| Same-scope joining waiter cancellation unproven | medium, patch | Cancel only joiner; original provider token/callback stay live, one backend registration and independent final cleanup. |
+| Circuit disposal with stalled cleanup unproven | medium, patch | Hold multiple established-scope cleanup operations; one deadline releases disposal, callbacks detached, no duplicate cleanup/replacement. |
+| Late cleanup faults unproven | medium, patch | Success/fault variants retain quarantine until actual completion, contain logger teardown and preserve replacement notifications. |
+| Production configuration/clock sharing unproven | medium, patch | Production module registration with nondefault bound covers auth/setup/cleanup and invalid settings; actual detail coordinator uses250ms configuration. |
+
+Final verification refinements:
+
+- The expanded focused724 run initially passed723; the cooperative detail fixture
+  waited through an automatic replacement attempt. Its next run passed722 because
+  ignoring-provider variants could also enter replacement before idle observation.
+  The fixture now identifies each setup source and advances exactly one configured
+  250ms period per owner, allowing renderer-driven retries while asserting exact
+  three-failure exhaustion, one/three advances, total virtual elapsed time and no
+  backend call after exhaustion. The default real wait is unchanged.
+- A subsequent724 run passed723: old throw/return handoff fixture signalled backend
+  entry before nested policy continuation adopted the page lease. It now awaits
+  the existing page-gate completion helper before exact lease assertions; no render
+  is manufactured to wake handoff. The independent reviewer approved this ordering
+  and required the one-advance-per-owner assertion above. All failed XML identities
+  and command outputs remain retained alongside interim successful runs.
+- Final independent source recheck reports no unresolved concrete finding; it
+  inspected all ten fixes and added cases without claiming to execute tests.
