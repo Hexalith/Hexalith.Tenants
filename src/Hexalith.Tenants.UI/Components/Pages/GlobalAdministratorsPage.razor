@@ -720,6 +720,9 @@
     private long _removeMutationGeneration;
     private long _authorizationTransitionVersion;
     private CancellationTokenSource? _loadCancellation;
+    private CancellationTokenSource? _authorizationCancellation;
+    private CancellationTokenSource? _authenticationStateCancellation;
+    private CancellationTokenSource? _readRefreshSetupCancellation;
     private CancellationTokenSource? _grantMutationCancellation;
     private CancellationTokenSource? _removeMutationCancellation;
 
@@ -2301,93 +2304,77 @@
         }
     }
 
-    private async Task EnsureReadRefreshLeaseAsync()
+    private Task EnsureReadRefreshLeaseAsync()
+        => _disposed ? Task.CompletedTask : InvokeAsync(EnsureReadRefreshLeaseOnRendererAsync);
+
+    private bool IsReadRefreshScopeCurrent(long version)
+        => CanApplyAuthorizationTransition(version) && IsAuthorized && BffComposition.IsReadSurfaceConnected;
+
+    private async Task EnsureReadRefreshLeaseOnRendererAsync()
     {
-        if (_disposed
-            || !IsAuthorized
-            || !BffComposition.IsReadSurfaceConnected
+        long version = Volatile.Read(ref _authorizationTransitionVersion);
+        if (!IsReadRefreshScopeCurrent(version)
             || _readRefreshLease is not null
             || Volatile.Read(ref _readRefreshAttempts) >= MaximumReadRefreshAttempts
-            || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription)
+            || Services.GetService(typeof(TenantReadRefreshSubscription)) is not TenantReadRefreshSubscription refreshSubscription
+            || Interlocked.CompareExchange(ref _readRefreshSubscriptionInFlight, 1, 0) != 0)
         {
             return;
         }
 
-        // Atomic test-and-set, like the sibling page-load gate. This method is entered from OnAfterRenderAsync
-        // (dispatcher) and from ApplyAuthenticationStateChangedAsync, which resumes on the thread pool after a
-        // ConfigureAwait(false). A plain bool let both pass the guard, both subscribe, and the loser's finally
-        // clear the flag while the winner was still in flight -- so the mutual exclusion this flag exists to
-        // provide was absent on exactly the two paths that race. Acquired after the cheap guards so a bail-out
-        // never has to release it.
-        if (Interlocked.CompareExchange(ref _readRefreshSubscriptionInFlight, 1, 0) != 0)
-        {
-            return;
-        }
-
+        CancellationTokenSource source = ReplaceActiveCancellation(ref _readRefreshSetupCancellation);
         TenantReadRefreshLease? lease = null;
         try
         {
             lease = await refreshSubscription.SubscribeAsync(
                 GetGlobalAdministratorsQuery.ProjectionType,
                 "system",
-                () => InvokeAsync(RefreshFromNotificationAsync),
-                CancellationToken.None).ConfigureAwait(false);
-            if (_disposed || !IsAuthorized || !BffComposition.IsReadSurfaceConnected || _readRefreshLease is not null)
+                () => _disposed ? Task.CompletedTask : InvokeAsync(() =>
+                    IsReadRefreshScopeCurrent(version) ? RefreshFromNotificationAsync() : Task.CompletedTask),
+                source.Token);
+            if (!IsReadRefreshScopeCurrent(version) || _readRefreshLease is not null)
             {
-                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
                 return;
             }
 
             if (!lease.IsSubscribed)
             {
-                // Setup registered no callback. Storing it would satisfy the "_readRefreshLease is not null"
-                // guard above forever, permanently disabling auto-refresh for this circuit. This is a failed
-                // attempt, so it is what the bounded budget is for.
                 Interlocked.Increment(ref _readRefreshAttempts);
-                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
-                lease = null;
                 return;
             }
 
             _readRefreshLease = lease;
             lease = null;
-
-            // Re-checked after the assignment, not only before it. DisposeAsync sets _disposed and then reads a
-            // still-null _readRefreshLease, so a continuation that passed the guard above and was preempted
-            // could assign the lease afterwards -- leaving the callback registered for the life of the circuit
-            // and invoking InvokeAsync on a disposed component. TenantDetailPage guards the same race.
-            if (_disposed)
-            {
-                IAsyncDisposable orphaned = _readRefreshLease;
-                _readRefreshLease = null;
-                await DisposeLeaseSupportSafelyAsync(orphaned).ConfigureAwait(false);
-            }
         }
         catch
         {
-            // The budget is charged here, not before the attempt. Counting every attempt charged the
-            // successful ones too, so three ordinary authorization transitions -- a JWT renewal, a
-            // sign-out/sign-in -- exhausted it even though every subscribe had worked, and auto-refresh went
-            // silently off for the rest of the circuit. It also defeated the !lease.IsSubscribed path below,
-            // which exists precisely so a later render can retry.
-            Interlocked.Increment(ref _readRefreshAttempts);
-            // Optional nudge only; never surface transport detail. The reason code is recorded so a
-            // permanently non-refreshing surface is diagnosable instead of silent.
-            LogNotificationSetupFailure();
-            if (lease is not null)
+            if (IsReadRefreshScopeCurrent(version))
             {
-                await DisposeLeaseSupportSafelyAsync(lease).ConfigureAwait(false);
+                Interlocked.Increment(ref _readRefreshAttempts);
             }
+            LogNotificationSetupFailure();
         }
         finally
         {
+            if (lease is not null)
+            {
+                await DisposeLeaseSupportSafelyAsync(lease);
+            }
+            CompleteCancellation(ref _readRefreshSetupCancellation, source);
             Volatile.Write(ref _readRefreshSubscriptionInFlight, 0);
+            if (!_disposed && version != Volatile.Read(ref _authorizationTransitionVersion))
+            {
+                await EnsureReadRefreshLeaseOnRendererAsync();
+            }
         }
     }
 
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        CancelActiveCancellation(ref _authorizationCancellation);
+        CancelActiveCancellation(ref _authenticationStateCancellation);
+        CancelActiveCancellation(ref _readRefreshSetupCancellation);
         if (_aggregateAdmissionGate is not null)
         {
             _aggregateAdmissionGate.StateChanged -= OnFixedAggregateAdmissionChanged;
@@ -2403,6 +2390,8 @@
             _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
             _authenticationStateProvider = null;
         }
+        CancelActiveCancellation(ref _authorizationCancellation);
+        CancelActiveCancellation(ref _readRefreshSetupCancellation);
         Interlocked.Increment(ref _loadGeneration);
         CancelActiveCancellation(ref _loadCancellation);
         InvalidateAllMutations();
@@ -2767,6 +2756,9 @@
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
     {
         long version = Interlocked.Increment(ref _authorizationTransitionVersion);
+        CancelActiveCancellation(ref _authorizationCancellation);
+        CancelActiveCancellation(ref _authenticationStateCancellation);
+        CancelActiveCancellation(ref _readRefreshSetupCancellation);
         Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version));
         _ = ObserveAuthenticationCallbackAsync(callback);
     }
@@ -2794,7 +2786,16 @@
             // deliberately NOT used as evidence: Evaluate() runs without the IUserContextAccessor corroboration
             // that governs every other path, so trusting it here made the authentication-transition path the
             // weakest gate on the surface it re-enables.
-            _ = await authenticationStateTask.ConfigureAwait(false);
+            CancellationTokenSource source = ReplaceActiveCancellation(ref _authenticationStateCancellation);
+            try
+            {
+                await TenantUiOperationPolicy.FromServices(Services).RunAsync(
+                    _ => authenticationStateTask, source.Token).ConfigureAwait(false);
+            }
+            finally
+            {
+                CompleteCancellation(ref _authenticationStateCancellation, source);
+            }
         }
         catch
         {
@@ -2885,6 +2886,10 @@
         long version = Volatile.Read(ref _authorizationTransitionVersion);
         TenantLifecycleAuthorizationReflectionState reflection = await ResolveAuthorizationReflectionAsync(cancellationToken)
             .ConfigureAwait(false);
+        if (!CanApplyAuthorizationTransition(version))
+        {
+            return false;
+        }
         if (reflection is TenantLifecycleAuthorizationReflectionState.Authorized)
         {
             if (!CanApplyAuthorizationTransition(version))
@@ -2910,9 +2915,13 @@
     private async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveAuthorizationReflectionAsync(
         CancellationToken cancellationToken = default)
     {
+        CancellationTokenSource source = ReplaceActiveCancellation(ref _authorizationCancellation);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(source.Token, cancellationToken);
         try
         {
-            return await BffComposition.ResolveGlobalAdministratorsAuthorizationAsync(cancellationToken).ConfigureAwait(false);
+            return await TenantUiOperationPolicy.FromServices(Services).RunAsync(
+                token => BffComposition.ResolveGlobalAdministratorsAuthorizationAsync(token).AsTask(),
+                linked.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -2921,6 +2930,10 @@
         catch
         {
             return TenantLifecycleAuthorizationReflectionState.Indeterminate;
+        }
+        finally
+        {
+            CompleteCancellation(ref _authorizationCancellation, source);
         }
     }
 
@@ -2970,6 +2983,8 @@
             Interlocked.Increment(ref _authorizationTransitionVersion);
         }
 
+        CancelActiveCancellation(ref _authorizationCancellation);
+        CancelActiveCancellation(ref _readRefreshSetupCancellation);
         Interlocked.Increment(ref _loadGeneration);
         CancelActiveCancellation(ref _loadCancellation);
         InvalidateAllMutations();
