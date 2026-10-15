@@ -77,8 +77,14 @@ builder.Services.AddTransient<InboundBearerForwardingHandler>();
 builder.Services.AddEventStoreGatewayClient(options => options.BaseAddress = new Uri(daprHttpEndpoint))
     .AddHttpMessageHandler<InboundBearerForwardingHandler>()
     .AddEventStoreDaprServiceInvocation("eventstore", daprApiToken);
-builder.Services.AddHttpClient(EventStoreGatewayReadinessHealthCheck.ClientName, client => client.BaseAddress = new Uri(daprHttpEndpoint))
-    .AddEventStoreDaprServiceInvocation("eventstore", daprApiToken);
+string? gatewayReadinessEndpoint = builder.Configuration["EventStore:GatewayReadiness:BaseAddress"];
+IHttpClientBuilder gatewayReadinessClient = builder.Services.AddHttpClient(
+    EventStoreGatewayReadinessHealthCheck.ClientName,
+    client => client.BaseAddress = new Uri(string.IsNullOrWhiteSpace(gatewayReadinessEndpoint) ? daprHttpEndpoint : gatewayReadinessEndpoint));
+if (string.IsNullOrWhiteSpace(gatewayReadinessEndpoint))
+{
+    _ = gatewayReadinessClient.AddEventStoreDaprServiceInvocation("eventstore", daprApiToken);
+}
 builder.Services.AddHealthChecks().AddCheck<EventStoreGatewayReadinessHealthCheck>(
     "eventstore-gateway",
     failureStatus: HealthStatus.Unhealthy,

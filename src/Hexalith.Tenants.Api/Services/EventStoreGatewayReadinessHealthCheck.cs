@@ -2,7 +2,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Hexalith.Tenants.Api.Services;
 
-/// <summary>Checks the EventStore gateway readiness through this API's Dapr sidecar.</summary>
+/// <summary>Checks the EventStore gateway readiness through the configured health endpoint or this API's Dapr sidecar.</summary>
 public sealed class EventStoreGatewayReadinessHealthCheck(IHttpClientFactory clients) : IHealthCheck
 {
     /// <summary>The named Dapr invocation client used for the readiness request.</summary>

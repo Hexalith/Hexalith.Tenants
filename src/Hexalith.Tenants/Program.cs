@@ -178,7 +178,10 @@ app.MapPost("/project", async (
 // the host AdminOperationalIndexMetadata copy.
 app.UseEventStoreDomainService();
 // Subscription discovery is sidecar-originated: it presents the Dapr app-channel token only.
-app.MapSubscribeHandler().RequireEventStoreSidecarChannel();
+if (!app.Configuration.GetValue<bool>("Dapr:DeclarativeSubscriptions"))
+{
+    app.MapSubscribeHandler().RequireEventStoreSidecarChannel();
+}
 
 await app.RunAsync().ConfigureAwait(false);
 

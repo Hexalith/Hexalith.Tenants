@@ -73,6 +73,37 @@ public sealed class TenantsApiReadinessTests
         result.Exception.ShouldBeOfType<InvalidOperationException>();
     }
 
+    [Theory]
+    [InlineData(HttpStatusCode.OK, HttpStatusCode.OK)]
+    [InlineData(HttpStatusCode.ServiceUnavailable, HttpStatusCode.ServiceUnavailable)]
+    public async Task Ready_WithExplicitGatewayHealthEndpoint_FollowsGatewayWithoutInvocationHeaders(
+        HttpStatusCode gatewayStatus,
+        HttpStatusCode expectedReady)
+    {
+        var handler = new CaptureHandler(gatewayStatus);
+        using WebApplicationFactory<TenantsApi::Program> factory = new WebApplicationFactory<TenantsApi::Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                _ = builder.UseSetting("EventStore:Authentication:SigningKey", "readiness-test-signing-key-at-least-32-bytes");
+                _ = builder.UseSetting("DAPR_HTTP_ENDPOINT", "http://localhost:4367");
+                _ = builder.UseSetting("DAPR_API_TOKEN", "readiness-sidecar-token");
+                _ = builder.UseSetting("EventStore:GatewayReadiness:BaseAddress", "http://localhost:4368");
+                builder.ConfigureServices(services =>
+                    services.AddHttpClient(TenantsApi::Hexalith.Tenants.Api.Services.EventStoreGatewayReadinessHealthCheck.ClientName)
+                        .ConfigurePrimaryHttpMessageHandler(() => handler));
+            });
+        using HttpClient client = factory.CreateClient();
+
+        using HttpResponseMessage ready = await client.GetAsync("/ready", TestContext.Current.CancellationToken);
+        using HttpResponseMessage alive = await client.GetAsync("/alive", TestContext.Current.CancellationToken);
+
+        ready.StatusCode.ShouldBe(expectedReady);
+        alive.StatusCode.ShouldBe(HttpStatusCode.OK);
+        handler.RequestUri.ShouldBe(new Uri("http://localhost:4368/ready"));
+        handler.DaprAppId.ShouldBeNull();
+        handler.DaprApiToken.ShouldBeNull();
+    }
+
     private sealed class CaptureHandler(HttpStatusCode status, bool throwOnSend = false) : HttpMessageHandler
     {
         public Uri? RequestUri { get; private set; }
