@@ -33,6 +33,85 @@ public sealed class GlobalAdministratorActionAvailabilityTests
     }
 
     [Fact]
+    public void ContradictoryCompleteAuthorizationScopeBlocksOnlyRemoval()
+    {
+        GlobalAdministratorActionEvidence evidence = ReadyEvidence() with
+        {
+            CompleteIsAuthorizationScopedEmpty = true,
+        };
+
+        GlobalAdministratorActionAvailability removal =
+            GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-a");
+
+        removal.Action.ShouldBe(GlobalAdministratorActionKind.Remove);
+        removal.IsAvailable.ShouldBeFalse();
+        removal.UnavailableReason.ShouldBe(GlobalAdministratorActionUnavailableReason.IncompletePopulation);
+        removal.ReasonKey.ShouldBe("Tenants.GlobalAdministrators.Availability.Remove.Unavailable.IncompletePopulation");
+        removal.RecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Availability.Recovery.IncompletePopulation");
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(evidence).IsAvailable.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("permission", GlobalAdministratorActionUnavailableReason.MissingPermission)]
+    [InlineData("visible-freshness", GlobalAdministratorActionUnavailableReason.StaleData)]
+    [InlineData("viewport", GlobalAdministratorActionUnavailableReason.UnsafeViewport)]
+    [InlineData("lifecycle-support", GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport)]
+    [InlineData("admission", GlobalAdministratorActionUnavailableReason.AggregateBusy)]
+    public void CommonSafetyGatesPrecedeContradictoryCompleteScope(
+        string prerequisite,
+        GlobalAdministratorActionUnavailableReason expectedReason)
+    {
+        GlobalAdministratorActionEvidence evidence = ReadyEvidence() with
+        {
+            CompleteIsAuthorizationScopedEmpty = true,
+        };
+        evidence = prerequisite switch
+        {
+            "permission" => evidence with { IsAuthorized = false },
+            "visible-freshness" => evidence with { VisibleFreshness = ReadModelFreshnessState.Stale },
+            "viewport" => evidence with { HasViewportMeasurement = false },
+            "lifecycle-support" => evidence with { SupportsStatus = false },
+            "admission" => evidence with { IsAdmissionAvailable = false },
+            _ => throw new InvalidOperationException($"Unknown prerequisite '{prerequisite}'."),
+        };
+
+        GlobalAdministratorActionAvailability removal =
+            GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, "admin-a");
+
+        removal.IsAvailable.ShouldBeFalse();
+        removal.UnavailableReason.ShouldBe(expectedReason);
+        GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(evidence).UnavailableReason
+            .ShouldBe(expectedReason);
+    }
+
+    [Theory]
+    [InlineData("missing", false)]
+    [InlineData("admin-a", true)]
+    public void ContradictoryCompleteScopePrecedesTargetAndLastAdministratorChecks(
+        string targetUserId,
+        bool singleAdministrator)
+    {
+        GlobalAdministratorActionEvidence evidence = ReadyEvidence() with
+        {
+            CompleteIsAuthorizationScopedEmpty = true,
+        };
+        if (singleAdministrator)
+        {
+            evidence = evidence with
+            {
+                VisibleRows = [Row("admin-a")],
+                CompleteRows = [Row("admin-a")],
+            };
+        }
+
+        GlobalAdministratorActionAvailability removal =
+            GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, targetUserId);
+
+        removal.IsAvailable.ShouldBeFalse();
+        removal.UnavailableReason.ShouldBe(GlobalAdministratorActionUnavailableReason.IncompletePopulation);
+    }
+
+    [Fact]
     public void CompleteSingleAdministratorBlocksRemovalBeforePreviewSubmission()
     {
         GlobalAdministratorActionEvidence evidence = ReadyEvidence() with
@@ -264,6 +343,7 @@ public sealed class GlobalAdministratorActionAvailabilityTests
     [InlineData("lone-surrogate-row")]
     [InlineData("duplicate-row")]
     [InlineData("surface-kind")]
+    [InlineData("authorization-scoped-empty")]
     [InlineData("freshness")]
     [InlineData("lifecycle")]
     [InlineData("blank-version")]
@@ -277,6 +357,7 @@ public sealed class GlobalAdministratorActionAvailabilityTests
             "lone-surrogate-row" => evidence with { CompleteRows = [Row("admin-a"), Row("admin\uD800")] },
             "duplicate-row" => evidence with { CompleteRows = [Row("admin-a"), Row("admin-a")] },
             "surface-kind" => evidence with { CompleteKind = GlobalAdministratorsSurfaceKind.Empty },
+            "authorization-scoped-empty" => evidence with { CompleteIsAuthorizationScopedEmpty = true },
             "freshness" => evidence with { CompleteFreshness = ReadModelFreshnessState.Stale },
             "lifecycle" => evidence with { CompleteLifecycle = ProjectionLifecycleState.Unknown },
             "blank-version" => evidence with { CompleteProjectionVersion = " " },

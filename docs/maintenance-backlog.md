@@ -50,16 +50,18 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 135 |
-| actionable | 216 |
+| done | 136 |
+| actionable | 215 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 38 |
 
-**Remaining: 304 open records across 272 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 303 open records across 271 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
-**Current acceptance reconciliation completed:** DW-470; prior DW-285 closure is preserved. No further implementation bundle is selected here. DW-323 remains separately scoped and DW-121 remains Builds-owned. This closure does not establish full release readiness.
+**DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
+
+**Current implementation completed:** DW-331; prior DW-470 and DW-285 closures are preserved. No further implementation bundle is selected here. DW-323 remains separately scoped and DW-121 remains Builds-owned. This closure does not establish full release readiness.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -90,7 +92,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-308, DW-314 | P2 | Defect / actionable | unassigned | none | Require explicit authority at construction and reconcile unused status parameters with compatibility tests. |
 | DW-317 | P2 | Defect / actionable | unassigned | browser layout fixture | Repair the remaining form/label scope stamping and verify computed layout at supported widths. |
 | DW-325, DW-587 | P2 | Defect / actionable | unassigned | retained remove activity ownership; Removal tracker expiry notification | Represent flow-owned activity separately from retained-attempt activity and pin expiry plus visible confirmation. |
-| DW-331 | P2 | Defect / actionable | unassigned | none | Fail closed on contradictory complete-scope flags and add a pure evaluator regression. |
 | DW-341 | P2 | Defect / actionable | unassigned | release recovery inventory contract | Use one validated manifest consistently through recovery validation, packing and publication. |
 | DW-349 | P2 | Defect / actionable | unassigned | none | Marshal request validation state onto the renderer and prove notification-triggered invalid fields repaint. |
 | DW-371 | P2 | Defect / actionable | unassigned | BFF readiness reason contract | Expose the localization-specific unavailable reason and recovery on removal and correction consumers, with missing-EN/FR regressions. |

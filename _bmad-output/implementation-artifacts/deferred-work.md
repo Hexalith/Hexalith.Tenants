@@ -50,6 +50,8 @@ After verified DW-285 acceptance reconciliation (2026-10-16): 134 reconciled don
 
 After verified DW-470 acceptance reconciliation (2026-10-16): 135 reconciled done, 216 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 304 open. All 643 IDs remain: 339 done/304 open across 272 exact-covering maintenance rows. Existing runtime key propagation is qualified by 12 new actual Fluent EN/FR keyed-only failure cases, independent review/recheck and final Debug focused207/full UI5979, zero failures/skips. Only DW-470 closes; original findings and pre-closure verification/actions, all earlier evidence/decisions, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-470-validation-evidence.md). Release remains not ready.
 
+After validated DW-331 closure (2026-10-16): 136 reconciled done, 215 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 303 open. All 643 IDs remain: 340 done/303 open across 271 exact-covering maintenance rows. The pure removal evaluator rejects contradictory complete-population scope with the existing IncompletePopulation outcome; nine new behavioral cases preserve grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. One intermittent unchanged correction-test failure and its passing isolated/full rechecks are preserved in [complete evidence](dw-331-validation-evidence.md). Only DW-331 closes; original findings/pre-closure verification/actions, prior evidence/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -3333,16 +3335,25 @@ location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministrator
 source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
 severity: medium
 reason: GlobalAdministratorActionAvailabilityEvaluator accepts CompleteKind Ready with non-empty complete rows without checking CompleteIsAuthorizationScopedEmpty. The bounded page loader rejects that shape and both installed production callers currently supply internally consistent snapshots, so the defect predates and is not caused by this re-drive's action-specific readiness change; a direct public evaluator caller could still construct the contradictory evidence and receive an available removal result.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionAvailabilityEvaluator.cs EvaluateRemove checks complete rows/kind/freshness/lifecycle/version but not CompleteIsAuthorizationScopedEmpty. Its public contradictory-evidence case remains admitted; bounded production loaders reject it.
+status: done 2026-10-16
+disposition: done
+verification-date: 2026-10-16
+verification: EvaluateRemove now rejects CompleteIsAuthorizationScopedEmpty through IncompletePopulation before target/count/preview decisions, preserving common-gate precedence and grant independence. Nine new behavioral cases independently reviewed/rechecked; final Debug focused33/full UI5988 pass with zero failures/skips. An initial intermittent unchanged correction-test failure and passing isolated/full rechecks remain in dw-331-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionAvailabilityEvaluator.cs
-evidence-kind: verified-defect
+evidence-kind: executed-tests-and-reviewed-source
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Fail closed on contradictory complete-scope flags and add a pure evaluator regression.
+next-action: none; DW-331 scope contradiction rejected and acceptance verified.
+pre-dw-331-status: open
+pre-dw-331-disposition: actionable
+pre-dw-331-verification-date: 2026-10-12
+pre-dw-331-verification: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionAvailabilityEvaluator.cs EvaluateRemove checks complete rows/kind/freshness/lifecycle/version but not CompleteIsAuthorizationScopedEmpty. Its public contradictory-evidence case remains admitted; bounded production loaders reject it.
+pre-dw-331-evidence-kind: verified-defect
+pre-dw-331-next-action: Fail closed on contradictory complete-scope flags and add a pure evaluator regression.
+resolution: Added the missing pure population-scope guard and nine behavioral acceptance cases; only DW-331 closes, preserving history, archive, sprint and release holds.
+closure-spec: `_bmad-output/implementation-artifacts/spec-dw-331-complete-population-scope.md`
+closure-evidence: `_bmad-output/implementation-artifacts/dw-331-validation-evidence.md`
 related: none
 
 ### DW-332: Repeated availability evaluation during one Razor render could theoretically produce mismatched reason and recovery associations.

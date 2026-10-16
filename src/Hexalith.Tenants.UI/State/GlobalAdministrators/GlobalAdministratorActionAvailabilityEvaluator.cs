@@ -61,6 +61,7 @@ public static class GlobalAdministratorActionAvailabilityEvaluator
         if (!HasValidUniqueRows(evidence.CompleteRows)
             || !evidence.HasCompletePopulation
             || evidence.CompleteKind is not GlobalAdministratorsSurfaceKind.Ready
+            || evidence.CompleteIsAuthorizationScopedEmpty
             || evidence.CompleteFreshness is not ReadModelFreshnessState.Current
             || evidence.CompleteLifecycle is not ProjectionLifecycleState.Current
             || string.IsNullOrWhiteSpace(evidence.CompleteProjectionVersion)
