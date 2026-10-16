@@ -1,4 +1,6 @@
+using System.Globalization;
 using System.Net;
+using System.Resources;
 using System.Text.Json;
 
 using Hexalith.EventStore.Client.Gateway;
@@ -9,6 +11,7 @@ using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.FrontComposer.Contracts.Lifecycle;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -27,18 +30,27 @@ public sealed class TenantCommandGatewayTests
     [InlineData("create", 503)]
     [InlineData("create", 0)]
     [InlineData("create", -1)]
+    [InlineData("create", -2)]
+    [InlineData("create", -3)]
+    [InlineData("create", -4)]
     [InlineData("add", 408)]
     [InlineData("add", 429)]
     [InlineData("add", 500)]
     [InlineData("add", 503)]
     [InlineData("add", 0)]
     [InlineData("add", -1)]
+    [InlineData("add", -2)]
+    [InlineData("add", -3)]
+    [InlineData("add", -4)]
     [InlineData("change", 408)]
     [InlineData("change", 429)]
     [InlineData("change", 500)]
     [InlineData("change", 503)]
     [InlineData("change", 0)]
     [InlineData("change", -1)]
+    [InlineData("change", -2)]
+    [InlineData("change", -3)]
+    [InlineData("change", -4)]
     public async Task AmbiguousTenantDeliveryKeepsTheOriginalUlidAndPayload(string kind, int statusCode)
     {
         const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
@@ -46,6 +58,9 @@ public sealed class TenantCommandGatewayTests
         {
             0 => new HttpRequestException("unsafe transport payload"),
             -1 => new TimeoutException("unsafe transport payload"),
+            -2 => new JsonException("unsafe transport payload"),
+            -3 => new OperationCanceledException("unsafe transport payload"),
+            -4 => new TaskCanceledException("unsafe transport payload"),
             _ => new EventStoreGatewayException(statusCode, "unsafe transport payload"),
         };
         CapturingGatewayClient client = new(failure);
@@ -60,6 +75,19 @@ public sealed class TenantCommandGatewayTests
         result.MessageId.ShouldBe(messageId);
         result.CorrelationId.ShouldBeNull();
         result.SafeMessage.ShouldNotBeNull().ShouldNotContain("unsafe transport payload");
+        string expectedKey = (kind, statusCode == 503) switch
+        {
+            ("create", true) => "Tenants.Create.Submission.Unavailable",
+            ("create", false) => "Tenants.Create.Submission.Failed",
+            ("add", true) => "Tenants.AddMember.Submission.Unavailable",
+            ("add", false) => "Tenants.AddMember.Submission.Failed",
+            ("change", true) => "Tenants.ChangeRole.Submission.Unavailable",
+            _ => "Tenants.ChangeRole.Submission.Failed",
+        };
+        result.SafeMessageKey.ShouldBe(expectedKey);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        ResourceManager resources = new("Hexalith.Tenants.UI.Resources.TenantsResources", typeof(TenantsResources).Assembly);
+        resources.GetString(expectedKey, CultureInfo.GetCultureInfo("en")).ShouldBe(result.SafeMessage);
         SubmitCommandRequest dispatched = client.SubmittedCommands.ShouldHaveSingleItem();
         dispatched.MessageId.ShouldBe(messageId);
         dispatched.AggregateId.ShouldBe("tenant.alpha");
@@ -460,6 +488,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -533,6 +562,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         result.SafeMessage.ShouldBeNull();
         result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Submission.Rejected");
     }
@@ -605,6 +635,7 @@ public sealed class TenantCommandGatewayTests
 
         result.Status.ShouldBe(CommandStatus.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("success", Case.Insensitive);
@@ -672,6 +703,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -884,6 +916,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -1005,6 +1038,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -1202,6 +1236,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -1317,6 +1352,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -1415,6 +1451,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -1457,6 +1494,7 @@ public sealed class TenantCommandGatewayTests
 
         result.Status.ShouldBe(CommandStatus.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -1730,6 +1768,7 @@ public sealed class TenantCommandGatewayTests
 
         result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -1992,6 +2031,7 @@ public sealed class TenantCommandGatewayTests
 
         result.Status.ShouldBe(CommandStatus.Rejected);
         result.RejectionCode.ShouldBe(expectedCode);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         string safeMessage = result.SafeMessage.ShouldNotBeNull();
         safeMessage.ShouldContain(expectedText, Case.Insensitive);
         safeMessage.ShouldNotContain("raw payload", Case.Insensitive);
@@ -2764,7 +2804,7 @@ public sealed class TenantCommandGatewayTests
             ? "The command status included an unavailable support detail."
             : "You are not authorized to submit this command.");
         result.SafeMessageKey.ShouldBe(status is CommandStatus.Completed
-            ? "Tenants.Commands.Failure.UnavailableSupportDetail" : null);
+            ? "Tenants.Commands.Failure.UnavailableSupportDetail" : "Tenants.Commands.Rejection.InsufficientPermissions");
         JsonSerializer.Serialize(result).ShouldNotContain(failureReason);
         (result with { SafeMessage = baseline.SafeMessage, SafeMessageKey = baseline.SafeMessageKey }).ShouldBe(baseline);
     }
@@ -2878,77 +2918,295 @@ public sealed class TenantCommandGatewayTests
         disable.SafeMessage.ShouldBeNull();
     }
 
-    private sealed class LegacyLifecycleGateway : ITenantCommandGateway
+
+
+
+    /// <summary>Every validation path keeps dispatch closed and carries localized operation copy.</summary>
+    [Theory]
+    [InlineData("create", "Tenants.Create.Validation.RequiredFields")]
+    [InlineData("add", "Tenants.AddMember.Validation.RequiredFields")]
+    [InlineData("change", "Tenants.ChangeRole.Validation.RequiredFields")]
+    [InlineData("remove", "Tenants.RemoveMember.Validation.RequiredFields")]
+    [InlineData("metadata", "Tenants.EditMetadata.Validation.RequiredFields")]
+    [InlineData("set", "Tenants.Configuration.Set.Validation.RequiredFields")]
+    [InlineData("remove-configuration", "Tenants.Configuration.Remove.Validation.RequiredFields")]
+    [InlineData("enable", "Tenants.Lifecycle.Validation.RequiredFields")]
+    [InlineData("disable", "Tenants.Lifecycle.Validation.RequiredFields")]
+    public async Task ValidationFailuresCarryOperationKeysWithoutDispatch(string operation, string expectedKey)
     {
-        public int EnableCalls { get; private set; }
+        CapturingGatewayClient client = new(new SubmitCommandResponse("unused"));
+        TenantCommandSubmissionResult result = await SubmitOperation(CreateGateway(client), operation, invalid: true);
+        result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        result.SafeMessageKey.ShouldBe(expectedKey);
+        result.MessageId.ShouldBeNull();
+        result.CorrelationId.ShouldBeNull();
+        result.RejectionCode.ShouldBeNull();
+        result.IsAmbiguousFailure.ShouldBeFalse();
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
 
-        public int DisableCalls { get; private set; }
-
-        public TenantLifecycleCommandRequest? LastEnableRequest { get; private set; }
-
-        public CancellationToken LastEnableCancellation { get; private set; }
-
-        public Task<TenantCommandSubmissionResult> CreateTenantAsync(
-            CreateTenant request,
-            string? messageId = null,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
-
-        public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
-            AddUserToTenant request,
-            string? messageId = null,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
-
-        public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
-            ChangeUserRole request,
-            string? messageId = null,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
-
-        public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
-            RemoveUserFromTenant request,
-            string? messageId = null,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
-
-        public Task<TenantCommandSubmissionResult> UpdateTenantAsync(
-            UpdateTenant request,
-            string? messageId = null,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
-
-        public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
-            SetTenantConfiguration request,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandSubmissionResult.Failed("Not used."));
-
-        public Task<TenantCommandSubmissionResult> EnableTenantAsync(
-            TenantLifecycleCommandRequest request,
-            CancellationToken cancellationToken = default)
+    /// <summary>Operation-specific submission classifications and identities survive localization.</summary>
+    public static TheoryData<string, int, string> LocalizedSubmissionCases
+    {
+        get
         {
-            EnableCalls++;
-            LastEnableRequest = request;
-            LastEnableCancellation = cancellationToken;
-            return Task.FromResult(TenantCommandSubmissionResult.Accepted(
-                "legacy-enable-message",
-                "legacy-enable-correlation"));
+            TheoryData<string, int, string> cases = [];
+            foreach ((string operation, string invalid, string forbidden, string unavailable, string failed) in new[]
+            {
+                ("create", "Tenants.Create.Submission.Invalid", "Tenants.Create.Unavailable.Authorization", "Tenants.Create.Submission.Unavailable", "Tenants.Create.Submission.Failed"),
+                ("add", "Tenants.AddMember.Submission.Invalid", "Tenants.AddMember.Unavailable.Authorization", "Tenants.AddMember.Submission.Unavailable", "Tenants.AddMember.Submission.Failed"),
+                ("change", "Tenants.ChangeRole.Submission.Invalid", "Tenants.ChangeRole.Unavailable.Authorization", "Tenants.ChangeRole.Submission.Unavailable", "Tenants.ChangeRole.Submission.Failed"),
+                ("remove", "Tenants.RemoveMember.Submission.Invalid", "Tenants.RemoveMember.Unavailable.Authorization", "Tenants.RemoveMember.Submission.Unavailable", "Tenants.RemoveMember.Submission.Failed"),
+                ("metadata", "Tenants.EditMetadata.Submission.Invalid", "Tenants.EditMetadata.Unavailable.Authorization", "Tenants.EditMetadata.Submission.Unavailable", "Tenants.EditMetadata.Submission.Failed"),
+                ("set", "Tenants.Configuration.Set.Submission.Invalid", "Tenants.Configuration.Set.Unavailable.Authorization", "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous", "Tenants.Configuration.Set.Submission.VerificationFailed"),
+                ("remove-configuration", "Tenants.Configuration.Remove.Submission.Invalid", "Tenants.Configuration.Remove.Unavailable.Authorization", "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous", "Tenants.Configuration.Remove.Submission.VerificationFailed"),
+                ("enable", "Tenants.Lifecycle.Submission.Invalid", "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions", "Tenants.Lifecycle.SubmissionEvidence.Ambiguous", "Tenants.Lifecycle.Submission.Failed"),
+                ("disable", "Tenants.Lifecycle.Submission.Invalid", "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions", "Tenants.Lifecycle.SubmissionEvidence.Ambiguous", "Tenants.Lifecycle.Submission.Failed"),
+                ("grant", "Tenants.GlobalAdministrators.Grant.Submission.Invalid", "Tenants.GlobalAdministrators.Grant.Submission.Rejected", "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous", "Tenants.GlobalAdministrators.Grant.Submission.Failed"),
+                ("remove-global", "Tenants.GlobalAdministrators.Remove.Submission.Invalid", "Tenants.GlobalAdministrators.Remove.Submission.Unauthorized", "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous", "Tenants.GlobalAdministrators.Remove.Submission.Failed"),
+            })
+            {
+                cases.Add(operation, 400, invalid);
+                cases.Add(operation, 403, forbidden);
+                cases.Add(operation, 503, unavailable);
+                cases.Add(operation, 418, failed);
+            }
+
+            return cases;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(LocalizedSubmissionCases))]
+    public async Task SubmissionFailuresRemainClassifiedAndLocalized(string operation, int statusCode, string expectedKey)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        CapturingGatewayClient client = new(new EventStoreGatewayException(statusCode, "backend-secret-Canary"));
+        TenantCommandSubmissionResult result = await SubmitOperation(CreateGateway(client), operation);
+        bool trackedAmbiguity = statusCode == 503 && operation is "set" or "remove-configuration" or "enable" or "disable" or "grant" or "remove-global";
+        bool legacyAmbiguity = statusCode == 503 && operation is "create" or "add" or "change";
+        result.State.ShouldBe(trackedAmbiguity ? TenantCommandLifecycleState.RequestSent
+            : statusCode == 403 ? TenantCommandLifecycleState.Rejected : TenantCommandLifecycleState.Failed);
+        result.IsAmbiguousFailure.ShouldBe(trackedAmbiguity || legacyAmbiguity);
+        result.MessageId.ShouldBe(messageId);
+        result.CorrelationId.ShouldBeNull();
+        result.RejectionCode.ShouldBe(statusCode == 403 ? "InsufficientPermissions" : null);
+        result.SafeMessageKey.ShouldBe(expectedKey);
+        if (statusCode == 418 && operation is "set" or "remove-configuration")
+        {
+            ResourceManager resources = new("Hexalith.Tenants.UI.Resources.TenantsResources", typeof(TenantsResources).Assembly);
+            resources.GetString(expectedKey, CultureInfo.GetCultureInfo("en"))
+                .ShouldBe("Tenant command submission failed before it could be verified.");
+        }
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        JsonSerializer.Serialize(result).ShouldNotContain("backend-secret-Canary");
+        client.SubmittedCommands.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
+    }
+
+    [Theory]
+    [InlineData("TenantAlreadyExists")]
+    [InlineData("UserAlreadyInTenant")]
+    [InlineData("UserNotInTenant")]
+    [InlineData("RoleEscalation")]
+    [InlineData("InsufficientPermissions")]
+    [InlineData("TenantDisabled")]
+    [InlineData("TenantNotFound")]
+    [InlineData("ConfigurationLimitExceeded")]
+    [InlineData("ConfigurationKeyNotFound")]
+    [InlineData("TenantLifecycleStateAlreadySet")]
+    [InlineData("GlobalAdministratorAlreadyExists")]
+    [InlineData("LastGlobalAdministrator")]
+    [InlineData("GlobalAdministratorNotFound")]
+    public async Task RecognizedSharedStatusRejectionsCarryNeutralResourceKeys(string code)
+    {
+        string body = StatusJson("Rejected", (int)CommandStatus.Rejected, rejection: code);
+        TenantCommandStatusResult result = await StatusGateway(new StatusHandler(body)).GetStatusAsync(
+            new("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-original", "tenant.alpha"));
+        result.Status.ShouldBe(CommandStatus.Rejected);
+        result.RejectionCode.ShouldBe(code);
+        result.SafeMessageKey.ShouldBe("Tenants.Commands.Rejection." + code);
+        result.IsPending.ShouldBeFalse();
+        result.IsRetryableFailure.ShouldBeFalse();
+        result.HasVerifiedCommandIdentity.ShouldBeTrue();
+        result.EventCount.ShouldBe(0);
+        result.CommittedEventSequence.ShouldBeNull();
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+    }
+
+    [Theory]
+    [InlineData("pending", "Tenants.Commands.Status.Pending", true, false)]
+    [InlineData("http-transient", "Tenants.Commands.Status.RetryableFailure", false, true)]
+    [InlineData("http-rejected", "Tenants.Commands.Status.RequestRejected", false, false)]
+    [InlineData("malformed", "Tenants.Commands.Status.ResponseUnavailable", false, true)]
+    [InlineData("null", "Tenants.Commands.Status.ResponseUnavailable", false, true)]
+    [InlineData("unknown-name", "Tenants.Commands.Status.ResponseUnavailable", false, true)]
+    [InlineData("unknown-enum", "Tenants.Commands.Status.ResponseUnavailable", false, false)]
+    [InlineData("correlation-mismatch", "Tenants.Commands.Status.TrackingMismatch", false, false)]
+    [InlineData("scope-mismatch", "Tenants.Commands.Status.TrackingMismatch", false, false)]
+    [InlineData("identity-mismatch", "Tenants.Commands.Status.TrackingMismatch", false, false)]
+    [InlineData("transport", "Tenants.Commands.Status.RetryableFailure", false, true)]
+    [InlineData("timeout", "Tenants.Commands.Status.RetryableFailure", false, true)]
+    public async Task StatusLookupMatrixCarriesLocalizedKeysWithoutInventingProof(string scenario, string expectedKey, bool pending, bool retryable)
+    {
+        HttpMessageHandler handler = scenario switch
+        {
+            "pending" => new StatusHandler("backend-secret-Canary", HttpStatusCode.NotFound),
+            "http-transient" => new StatusHandler("backend-secret-Canary", HttpStatusCode.ServiceUnavailable),
+            "http-rejected" => new StatusHandler("backend-secret-Canary", HttpStatusCode.Forbidden),
+            "malformed" => new StatusHandler("{backend-secret-Canary"),
+            "null" => new StatusHandler("null"),
+            "unknown-name" => new StatusHandler(StatusJson("backend-secret-Canary", 999)),
+            "unknown-enum" => new StatusHandler(StatusJson("999", 999)),
+            "correlation-mismatch" => new StatusHandler(StatusJson("Completed", (int)CommandStatus.Completed, correlation: "backend-secret-Canary")),
+            "scope-mismatch" => new StatusHandler(StatusJson("Completed", (int)CommandStatus.Completed, domain: "backend-secret-Canary")),
+            "identity-mismatch" => new StatusHandler(StatusJson("Completed", (int)CommandStatus.Completed, messageId: "backend-secret-Canary")),
+            "transport" => new ThrowingStatusHandler(new HttpRequestException("backend-secret-Canary")),
+            _ => new ThrowingStatusHandler(new TaskCanceledException("backend-secret-Canary")),
+        };
+        TenantCommandStatusResult result = await StatusGateway(handler).GetStatusAsync(
+            new("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-original", "tenant.alpha"));
+        result.SafeMessageKey.ShouldBe(expectedKey);
+        result.Status.ShouldBe(scenario == "identity-mismatch" ? CommandStatus.Completed : null);
+        result.IsPending.ShouldBe(pending);
+        result.IsRetryableFailure.ShouldBe(retryable);
+        result.HasVerifiedCommandIdentity.ShouldBeFalse();
+        result.RejectionCode.ShouldBeNull();
+        result.CommittedEventSequence.ShouldBeNull();
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        JsonSerializer.Serialize(result).ShouldNotContain("backend-secret-Canary");
+    }
+
+    [Fact]
+    public async Task EveryConcreteUnavailableEntryCarriesLocalizedCopyAndNoIdentity()
+    {
+        ITenantCommandGateway gateway = new UnavailableTenantCommandGateway();
+        foreach ((string operation, string expectedKey) in new[]
+        {
+            ("create", "Tenants.Create.Unavailable.GatewayConfiguration"),
+            ("add", "Tenants.AddMember.Unavailable.GatewayConfiguration"),
+            ("change", "Tenants.ChangeRole.Unavailable.GatewayConfiguration"),
+            ("remove", "Tenants.RemoveMember.Unavailable.GatewayConfiguration"),
+            ("metadata", "Tenants.EditMetadata.Unavailable.GatewayConfiguration"),
+            ("set", "Tenants.Configuration.Set.Unavailable.GatewayConfiguration"),
+            ("set-tracked", "Tenants.Configuration.Set.Unavailable.TrackedDispatch"),
+            ("remove-configuration", "Tenants.Configuration.Remove.Unavailable.GatewayConfiguration"),
+            ("remove-configuration-tracked", "Tenants.Configuration.Remove.Unavailable.TrackedDispatch"),
+            ("grant", "Tenants.GlobalAdministrators.Grant.Unavailable.GatewayConfiguration"),
+            ("grant-tracked", "Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch"),
+            ("remove-global", "Tenants.GlobalAdministrators.Remove.Unavailable.GatewayConfiguration"),
+            ("remove-global-tracked", "Tenants.GlobalAdministrators.Remove.Unavailable.TrackedDispatch"),
+            ("enable", "Tenants.Lifecycle.Unavailable.GatewayConfiguration"),
+            ("enable-tracked", "Tenants.Lifecycle.Unavailable.CommandSurface"),
+            ("disable", "Tenants.Lifecycle.Unavailable.GatewayConfiguration"),
+            ("disable-tracked", "Tenants.Lifecycle.Unavailable.CommandSurface"),
+        })
+        {
+            TenantCommandSubmissionResult result = await SubmitOperation(gateway, operation);
+            result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+            result.MessageId.ShouldBeNull();
+            result.CorrelationId.ShouldBeNull();
+            result.RejectionCode.ShouldBeNull();
+            result.IsAmbiguousFailure.ShouldBeFalse();
+            result.SafeMessageKey.ShouldBe(expectedKey);
+            AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         }
 
-        public Task<TenantCommandSubmissionResult> DisableTenantAsync(
-            TenantLifecycleCommandRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            DisableCalls++;
-            return Task.FromResult(TenantCommandSubmissionResult.Accepted(
-                "legacy-disable-message",
-                "legacy-disable-correlation"));
-        }
+        TenantCommandStatusResult status = await gateway.GetStatusAsync(new("original-message", "original-correlation"));
+        status.SafeMessage.ShouldBe("Tenant command status lookup is unavailable.");
+        status.SafeMessageKey.ShouldBe("Tenants.Commands.Status.Unavailable");
+        AssertShippedWholeMessage(status.SafeMessageKey, status.SafeMessage);
+        status.Status.ShouldBeNull();
+        status.HasVerifiedCommandIdentity.ShouldBeFalse();
+        status.IsPending.ShouldBeFalse();
+        status.IsRetryableFailure.ShouldBeFalse();
+        status.EventCount.ShouldBeNull();
+        status.CommittedEventSequence.ShouldBeNull();
+    }
 
-        public Task<TenantCommandStatusResult> GetStatusAsync(
-            TenantCommandTrackingHandle handle,
-            CancellationToken cancellationToken = default)
-            => Task.FromResult(TenantCommandStatusResult.Unknown("Not used."));
+    [Fact]
+    public async Task EveryInterfaceDefaultCarriesLocalizedCopyWithoutDispatch()
+    {
+        ITenantCommandGateway gateway = new DefaultTenantCommandGateway();
+        foreach ((string operation, string expectedKey) in new[]
+        {
+            ("set-tracked", "Tenants.Configuration.Set.Unavailable.TrackedDispatch"),
+            ("remove-configuration", "Tenants.Configuration.Remove.Unavailable.Gateway"),
+            ("remove-configuration-tracked", "Tenants.Configuration.Remove.Unavailable.TrackedDispatch"),
+            ("grant", "Tenants.GlobalAdministrators.Grant.Unavailable.Gateway"),
+            ("grant-tracked", "Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch"),
+            ("remove-global", "Tenants.GlobalAdministrators.Remove.Unavailable.Gateway"),
+            ("remove-global-tracked", "Tenants.GlobalAdministrators.Remove.Unavailable.TrackedDispatch"),
+            ("enable", "Tenants.Lifecycle.Unavailable.Gateway"),
+            ("enable-tracked", "Tenants.Lifecycle.Unavailable.CommandSurface"),
+            ("disable", "Tenants.Lifecycle.Unavailable.Gateway"),
+            ("disable-tracked", "Tenants.Lifecycle.Unavailable.CommandSurface"),
+        })
+        {
+            TenantCommandSubmissionResult result = await SubmitOperation(gateway, operation);
+            result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+            result.MessageId.ShouldBeNull();
+            result.CorrelationId.ShouldBeNull();
+            result.RejectionCode.ShouldBeNull();
+            result.IsAmbiguousFailure.ShouldBeFalse();
+            result.SafeMessageKey.ShouldBe(expectedKey);
+            AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        }
+    }
+
+    private static TenantCommandGateway StatusGateway(HttpMessageHandler handler)
+        => new(new CapturingGatewayClient(new SubmitCommandResponse("correlation-original")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+
+    private static string StatusJson(string status, int statusCode, string? rejection = null,
+        string correlation = "correlation-original", string domain = "tenants", string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV")
+        => JsonSerializer.Serialize(new
+        {
+            messageId, correlationId = correlation, status, statusCode, domain,
+            tenantId = "system", aggregateId = "tenant.alpha", eventCount = 0,
+            rejectionEventType = rejection, failureReason = "backend-secret-Canary",
+        });
+
+    private static Task<TenantCommandSubmissionResult> SubmitOperation(ITenantCommandGateway gateway, string operation, bool invalid = false)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        string tenant = invalid ? "" : "tenant.alpha";
+        return operation switch
+        {
+            "create" => gateway.CreateTenantAsync(new(tenant, "Alpha", null), messageId),
+            "add" => gateway.AddUserToTenantAsync(new(tenant, "literal-user", TenantRole.TenantReader), messageId),
+            "change" => gateway.ChangeUserRoleAsync(new(tenant, "literal-user", TenantRole.TenantContributor), messageId),
+            "remove" => gateway.RemoveUserFromTenantAsync(new(tenant, "literal-user"), messageId),
+            "metadata" => gateway.UpdateTenantAsync(new(tenant, "Alpha updated", null), messageId),
+            "set" => gateway.SetTenantConfigurationAsync(new(tenant, "key", "value")),
+            "set-tracked" => gateway.SetTenantConfigurationTrackedAsync(new(tenant, "key", "value"), messageId),
+            "remove-configuration" => gateway.RemoveTenantConfigurationAsync(new(tenant, "key")),
+            "remove-configuration-tracked" => gateway.RemoveTenantConfigurationTrackedAsync(new(tenant, "key"), messageId),
+            "grant" => gateway.SetGlobalAdministratorAsync(new("literal-admin")),
+            "grant-tracked" => gateway.SetGlobalAdministratorTrackedAsync(new("literal-admin"), messageId),
+            "remove-global" => gateway.RemoveGlobalAdministratorAsync(new("literal-admin")),
+            "remove-global-tracked" => gateway.RemoveGlobalAdministratorTrackedAsync(new("literal-admin"), messageId),
+            "enable" => gateway.EnableTenantAsync(new(tenant, TenantLifecycleOperation.EnableTenant)),
+            "enable-tracked" => gateway.EnableTenantTrackedAsync(new(tenant, TenantLifecycleOperation.EnableTenant), messageId),
+            "disable" => gateway.DisableTenantAsync(new(tenant, TenantLifecycleOperation.DisableTenant)),
+            "disable-tracked" => gateway.DisableTenantTrackedAsync(new(tenant, TenantLifecycleOperation.DisableTenant), messageId),
+            _ => throw new ArgumentOutOfRangeException(nameof(operation)),
+        };
+    }
+
+    private static void AssertShippedWholeMessage(string? key, string? fallback)
+    {
+        key.ShouldNotBeNullOrWhiteSpace();
+        ResourceManager resources = new("Hexalith.Tenants.UI.Resources.TenantsResources", typeof(TenantsResources).Assembly);
+        string english = resources.GetString(key, CultureInfo.GetCultureInfo("en")).ShouldNotBeNull();
+        string french = resources.GetString(key, CultureInfo.GetCultureInfo("fr")).ShouldNotBeNull();
+        french.ShouldNotBe(english);
+        french.ShouldNotBe(key);
+        if (fallback is not null)
+        {
+            fallback.ShouldNotContain("backend-secret-Canary");
+        }
     }
 
     private static TenantCommandGateway CreateLifecycleGateway(object response)
@@ -2969,61 +3227,11 @@ public sealed class TenantCommandGatewayTests
                 BaseAddress = new Uri("https://eventstore.example/"),
             });
 
-    private sealed class CapturingGatewayClient(object response) : IEventStoreGatewayClient
-    {
-        public List<SubmitCommandRequest> SubmittedCommands { get; } = [];
 
-        public Task<SubmitCommandResponse> SubmitCommandAsync(SubmitCommandRequest request, CancellationToken cancellationToken = default)
-        {
-            SubmittedCommands.Add(request);
-            if (response is Exception exception)
-            {
-                throw exception;
-            }
 
-            return Task.FromResult((SubmitCommandResponse)response);
-        }
 
-        public Task<EventStoreQueryResult> SubmitQueryAsync(SubmitQueryRequest request, string? ifNoneMatch = null, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
 
-        public Task<EventStoreQueryResult<T>> SubmitQueryAsync<T>(SubmitQueryRequest request, string? ifNoneMatch = null, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
 
-        public Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-    }
 
-    private sealed class StubUlidFactory(string id) : IUlidFactory
-    {
-        public int CallCount { get; private set; }
 
-        public string NewUlid()
-        {
-            CallCount++;
-            return id;
-        }
-    }
-
-    private sealed class StatusHandler(string body, HttpStatusCode statusCode = HttpStatusCode.OK, Func<HttpRequestMessage, string>? bodyForRequest = null) : HttpMessageHandler
-    {
-        public Uri? RequestUri { get; private set; }
-
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            RequestUri = request.RequestUri;
-            return Task.FromResult(new HttpResponseMessage(statusCode)
-            {
-                Content = new StringContent(bodyForRequest?.Invoke(request) ?? body),
-            });
-        }
-    }
-
-    private sealed class ThrowingStatusHandler(Exception exception) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken)
-            => Task.FromException<HttpResponseMessage>(exception);
-    }
 }

@@ -61,7 +61,7 @@ public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
         RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant configuration removal gateway is unavailable."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant configuration removal gateway is unavailable.") with { SafeMessageKey = "Tenants.Configuration.Remove.Unavailable.Gateway" });
 
     Task<TenantCommandSubmissionResult> RemoveTenantConfigurationTrackedAsync(
         RemoveTenantConfiguration request,
@@ -73,7 +73,7 @@ public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministrator request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable.") with { SafeMessageKey = "Tenants.GlobalAdministrators.Grant.Unavailable.Gateway" });
 
     /// <summary>Dispatches a grant with the exact caller-owned ULID retained by the preview lifecycle.</summary>
     /// <param name="request">Literal grant intent.</param>
@@ -90,7 +90,7 @@ public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministrator request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway is unavailable.") with { SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Unavailable.Gateway" });
 
     /// <summary>Dispatches a removal with the exact caller-owned ULID retained by the preview lifecycle.</summary>
     /// <param name="request">Literal removal intent.</param>
@@ -107,7 +107,7 @@ public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable.") with { SafeMessageKey = "Tenants.Lifecycle.Unavailable.Gateway" });
 
     Task<TenantCommandSubmissionResult> EnableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
@@ -119,7 +119,7 @@ public interface ITenantCommandGateway {
     Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant lifecycle command gateway is unavailable.") with { SafeMessageKey = "Tenants.Lifecycle.Unavailable.Gateway" });
 
     Task<TenantCommandSubmissionResult> DisableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,

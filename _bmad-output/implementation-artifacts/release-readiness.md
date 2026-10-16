@@ -1394,3 +1394,51 @@ version/gitlink update,nested initialization,deploy,production replay or migrati
 was performed during completion. The committed implementation was inherited at
 canonical entry6de661e129ff6f6f0c19795fcb1d032abee25d1d, not authored as a new commit
 by this run. This bounded closure does not establish full release readiness.
+
+## DW-234/DW-251/DW-316 command failure and status localization — 2026-10-16
+
+**Only DW-234/DW-251/DW-316 close. Release remains not ready.**
+[Complete evidence](dw-234-251-316-validation-evidence.md), [owning spec and review](spec-dw-234-251-316-command-localization.md), [exact commands/results](dw-234-251-316-command-results.json), [test summary](dw-234-251-316-ui-summary.json) and [final inputs](dw-234-251-316-validation-inputs.json) qualify this localization change.
+
+Eighty paired whole-message EN/FR resources cover configured validation,
+submission, recognized rejection and status paths, every concrete unavailable
+entry and all interface defaults. Fourteen command model types are in separate
+same-directory type-named files without public signature changes. Additive keyed
+status factories and six localized snapshot arms preserve fresh-key precedence,
+progress clearing, stronger membership-expiry guidance and intentional consumer
+copy. Existing fixed safe English compatibility strings remain; backend details
+never supply visible copy or resource keys. Classification, dispatch/retry policy,
+identity, flags, admission, proof, audit and projection timeouts are unchanged.
+
+164 added cases include every unavailable/default entry, operation-specific
+submission classification/identity, recognized neutral status rejections,
+transport/malformed/mismatch/unknown status, current snapshot keys and real-resource
+EN/FR DOM/live-region checks. Final focused 1,825 and full per-project MTP UI 5,532
+pass in both Debug source and maintained Release, zero failures/skips; both
+unchanged Chromium lanes and original negative controls pass. Initial compile,
+filter and missing-resource failures remain in exact command records. Independent
+workflow review and any corrections are recorded in the owning spec.
+
+Aspire pre-edit inspection reached healthy tenants-ui in 17.7s and 22 resources
+Running/Healthy; memories-dapr-cli finished after a Dapr watcher reported no space
+left on device. The owned isolated instance was stopped by exact target. This
+qualified baseline and maintained browser fixtures do not establish authenticated
+provider/deployment/human-AT acceptance. No orchestration change ran.
+
+The original broad Release SignalR 10.0.12 NU1903 errors and strict package-only
+projection-scope API blockers remain preserved in [DW-247 evidence](dw-247-validation-evidence.md);
+those broad commands were not rerun for this bounded localization pass. Maintained
+Release retains the existing FrontComposer source exception and advisory policy.
+No dependency/gitlink, gate, timeout, exclusion or coverage threshold changed.
+Raw secret-scan/CI, historical provenance, authority/recovery/governance decisions,
+upstream/provider, hosted TLS/performance/authenticated-browser/clipboard/denial/
+human-AT holds remain. Maintained passes clear none of those holds.
+
+All 643 ledger IDs remain: 336 done/307 open across 275 exact-covering maintenance
+rows; reconciled 132 done/219 actionable/15 blocked/26 awaiting-decision/nine accepted
+limitations/38 uncertain. The current readiness partition is seven decision holds,
+112 follow-up and 188 qualification/triage records. Only the three selected ledger
+blocks change. Archive, sprint, prior evidence and unrelated records including DW-323
+remain unchanged. No branch, stage, commit, push, dependency update, nested initialization,
+deploy, production replay or migration was performed. This scoped closure does not
+establish release readiness.

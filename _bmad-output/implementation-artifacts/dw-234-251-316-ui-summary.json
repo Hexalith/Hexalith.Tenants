@@ -1,0 +1,233 @@
+{
+  "resourceAndModelValidation": {
+    "addedPairedWholeMessages": 80,
+    "addedKeys": [
+      "Tenants.AddMember.Rejection.TenantDisabled",
+      "Tenants.AddMember.Submission.Failed",
+      "Tenants.AddMember.Submission.Invalid",
+      "Tenants.AddMember.Submission.Unavailable",
+      "Tenants.AddMember.Unavailable.GatewayConfiguration",
+      "Tenants.AddMember.Validation.RequiredFields",
+      "Tenants.ChangeRole.Rejection.TenantDisabled",
+      "Tenants.ChangeRole.Status.AlreadyApplied",
+      "Tenants.ChangeRole.Submission.Failed",
+      "Tenants.ChangeRole.Submission.Invalid",
+      "Tenants.ChangeRole.Submission.Unavailable",
+      "Tenants.ChangeRole.Unavailable.GatewayConfiguration",
+      "Tenants.ChangeRole.Validation.RequiredFields",
+      "Tenants.Commands.Rejection.ConfigurationKeyNotFound",
+      "Tenants.Commands.Rejection.ConfigurationLimitExceeded",
+      "Tenants.Commands.Rejection.GlobalAdministratorAlreadyExists",
+      "Tenants.Commands.Rejection.GlobalAdministratorNotFound",
+      "Tenants.Commands.Rejection.InsufficientPermissions",
+      "Tenants.Commands.Rejection.LastGlobalAdministrator",
+      "Tenants.Commands.Rejection.RoleEscalation",
+      "Tenants.Commands.Rejection.TenantAlreadyExists",
+      "Tenants.Commands.Rejection.TenantDisabled",
+      "Tenants.Commands.Rejection.TenantLifecycleStateAlreadySet",
+      "Tenants.Commands.Rejection.TenantNotFound",
+      "Tenants.Commands.Rejection.UserAlreadyInTenant",
+      "Tenants.Commands.Rejection.UserNotInTenant",
+      "Tenants.Commands.Status.Pending",
+      "Tenants.Commands.Status.RequestRejected",
+      "Tenants.Commands.Status.ResponseUnavailable",
+      "Tenants.Commands.Status.RetryableFailure",
+      "Tenants.Commands.Status.TrackingMismatch",
+      "Tenants.Commands.Status.Unavailable",
+      "Tenants.Commands.Status.Unverified",
+      "Tenants.Configuration.Remove.Rejection.TenantDisabled",
+      "Tenants.Configuration.Remove.Submission.Invalid",
+      "Tenants.Configuration.Remove.Submission.Unavailable",
+      "Tenants.Configuration.Remove.Submission.VerificationFailed",
+      "Tenants.Configuration.Remove.Unavailable.Gateway",
+      "Tenants.Configuration.Remove.Unavailable.GatewayConfiguration",
+      "Tenants.Configuration.Remove.Validation.RequiredFields",
+      "Tenants.Configuration.Set.Rejection.ConfigurationLimitExceeded",
+      "Tenants.Configuration.Set.Rejection.TenantDisabled",
+      "Tenants.Configuration.Set.Submission.Invalid",
+      "Tenants.Configuration.Set.Submission.Unavailable",
+      "Tenants.Configuration.Set.Submission.VerificationFailed",
+      "Tenants.Configuration.Set.Unavailable.GatewayConfiguration",
+      "Tenants.Configuration.Set.Validation.RequiredFields",
+      "Tenants.Create.Submission.Failed",
+      "Tenants.Create.Submission.Invalid",
+      "Tenants.Create.Submission.Unavailable",
+      "Tenants.Create.Unavailable.GatewayConfiguration",
+      "Tenants.Create.Validation.RequiredFields",
+      "Tenants.EditMetadata.Rejection.TenantDisabled",
+      "Tenants.EditMetadata.Submission.Failed",
+      "Tenants.EditMetadata.Submission.Invalid",
+      "Tenants.EditMetadata.Submission.Unavailable",
+      "Tenants.EditMetadata.Unavailable.GatewayConfiguration",
+      "Tenants.EditMetadata.Validation.RequiredFields",
+      "Tenants.GlobalAdministrators.Grant.Unavailable.Gateway",
+      "Tenants.GlobalAdministrators.Grant.Unavailable.GatewayConfiguration",
+      "Tenants.GlobalAdministrators.Remove.Submission.Failed",
+      "Tenants.GlobalAdministrators.Remove.Submission.Invalid",
+      "Tenants.GlobalAdministrators.Remove.Submission.Unauthorized",
+      "Tenants.GlobalAdministrators.Remove.Submission.Unavailable",
+      "Tenants.GlobalAdministrators.Remove.Unavailable.Gateway",
+      "Tenants.GlobalAdministrators.Remove.Unavailable.GatewayConfiguration",
+      "Tenants.GlobalAdministrators.Remove.Unavailable.TrackedDispatch",
+      "Tenants.Lifecycle.Rejection.TenantDisabled",
+      "Tenants.Lifecycle.Submission.Failed",
+      "Tenants.Lifecycle.Submission.Invalid",
+      "Tenants.Lifecycle.Unavailable.Gateway",
+      "Tenants.Lifecycle.Unavailable.GatewayConfiguration",
+      "Tenants.Lifecycle.Validation.RequiredFields",
+      "Tenants.RemoveMember.Rejection.TenantDisabled",
+      "Tenants.RemoveMember.Rejection.UserNotInTenant",
+      "Tenants.RemoveMember.Submission.Failed",
+      "Tenants.RemoveMember.Submission.Invalid",
+      "Tenants.RemoveMember.Submission.Unavailable",
+      "Tenants.RemoveMember.Unavailable.GatewayConfiguration",
+      "Tenants.RemoveMember.Validation.RequiredFields"
+    ],
+    "allGatewayKeysAvailableInBothCultures": true,
+    "singleTypeModelSplit": [
+      {
+        "type": "TenantLifecycleCommandRequest",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantCommandTrackingHandle",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantCommandLifecycleState",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantCommandAuditState",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantCommandFocusTarget",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantCommandLiveRegionPoliteness",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantCommandSubmissionResult",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantCommandStatusResult",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantCreateCommandSnapshot",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantAddMemberCommandSnapshot",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantChangeRoleCommandSnapshot",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantRemoveMemberCommandSnapshot",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantUpdateMetadataCommandSnapshot",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      },
+      {
+        "type": "TenantLifecycleCommandSnapshot",
+        "unchangedExceptSpecifiedLocalizationAndFactories": true
+      }
+    ]
+  },
+  "addedCases": 164,
+  "finalFocusedCasesPerConfiguration": 1825,
+  "finalFullUiCasesPerConfiguration": 5532,
+  "initialFocused": {
+    "total": 1280,
+    "passed": 1278,
+    "failed": 2,
+    "failures": [
+      "EveryConcreteUnavailableEntryCarriesLocalizedCopyAndNoIdentity",
+      "EveryInterfaceDefaultCarriesLocalizedCopyWithoutDispatch"
+    ],
+    "xmlSha256": "f94411f723246e18ae552383522ee3bb78087b5637aa8c2cd9b3a254feceb988"
+  },
+  "preReviewQualification": {
+    "addedCases": 143,
+    "finalFocusedCasesPerConfiguration": 1804,
+    "finalFullUiCasesPerConfiguration": 5511,
+    "initialFocused": {
+      "total": 1280,
+      "passed": 1278,
+      "failed": 2,
+      "failures": [
+        "EveryConcreteUnavailableEntryCarriesLocalizedCopyAndNoIdentity",
+        "EveryInterfaceDefaultCarriesLocalizedCopyWithoutDispatch"
+      ],
+      "xmlSha256": "f94411f723246e18ae552383522ee3bb78087b5637aa8c2cd9b3a254feceb988"
+    },
+    "finalResults": {
+      "focused-debug-final": {
+        "xmlSha256": "af708612a04b0d1103573422165bd744fb3d7edd5131beae26c3f3895a0916e6",
+        "summary": "Total: 1804, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 36.191s"
+      },
+      "focused-release-final": {
+        "xmlSha256": "64ae1938ae9a3f77f9e4734527f680d2209cd1c5f61e423cb7803e54095c4e60",
+        "summary": "Total: 1804, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 31.761s"
+      },
+      "mtp-debug-final": {
+        "exitCode": 0,
+        "outputSha256": "0e57d8df3c6b86c88d719d8833d2dfc3ca55a5350b1068451b6f6d43c6517f6e"
+      },
+      "mtp-release-final": {
+        "exitCode": 0,
+        "outputSha256": "1577b340174d84975315a90849de478fdeb887ab50420ae19db4ceae5e281a4f"
+      },
+      "browser-debug-final": {
+        "exitCode": 0,
+        "outputSha256": "b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0"
+      },
+      "browser-release-final": {
+        "exitCode": 0,
+        "outputSha256": "ece037edde022a41e0f61e0e96f470e353aa893c3d354b973a35d9079f99a4b2"
+      }
+    }
+  },
+  "finalResults": {
+    "review-focused-debug": {
+      "xmlSha256": "c2c9254aa9c3cf5d6a6255f22aaa61cd43e2477619079ae9f81213e6fac50657",
+      "summary": "Total: 1825, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0"
+    },
+    "review-mtp-debug": {
+      "exitCode": 0,
+      "outputSha256": "ef4b0fa43d1d7e4bfeec56bd8bc91c841bc8173983b516e8cfb69a146a3d6613"
+    },
+    "review-browser-debug-recheck": {
+      "exitCode": 0,
+      "outputSha256": "b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0"
+    },
+    "review-focused-release": {
+      "xmlSha256": "5ebb95fb92642da47ce5ed6125ec6ebf1ad95b1409545dda0424b1f6b2d5d75f",
+      "summary": "Total: 1825, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0"
+    },
+    "review-mtp-release": {
+      "exitCode": 0,
+      "outputSha256": "622154320fc158c5f0d304910171d0f31a4bebc06cb262c65af1799b3db0df69"
+    },
+    "review-browser-release": {
+      "exitCode": 0,
+      "outputSha256": "ece037edde022a41e0f61e0e96f470e353aa893c3d354b973a35d9079f99a4b2"
+    }
+  },
+  "correctionTargeted": {
+    "total": 654,
+    "passed": 654,
+    "failed": 0,
+    "skipped": 0,
+    "xmlSha256": "63d4a19dc1fad348debadef9d9dbe03bce67b8ce0640083618c75b6e79850fd9"
+  }
+}

@@ -4312,4 +4312,244 @@
   <data name="Tenants.Membership.ProjectionWait.Expired" xml:space="preserve">
     <value>Projection confirmation could not be verified within the waiting period. Retry status lookup, continue read-only, or contact support. This does not mean the command failed.</value>
   </data>
+  <data name="Tenants.AddMember.Rejection.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so members cannot be added.</value>
+  </data>
+  <data name="Tenants.AddMember.Submission.Failed" xml:space="preserve">
+    <value>Tenant command submission failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.AddMember.Submission.Invalid" xml:space="preserve">
+    <value>The add member request was not accepted. Check the form fields and try again.</value>
+  </data>
+  <data name="Tenants.AddMember.Submission.Unavailable" xml:space="preserve">
+    <value>Tenant command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Tenant command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.AddMember.Validation.RequiredFields" xml:space="preserve">
+    <value>Tenant id, user id, and role are required before the command can be submitted.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Rejection.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so member roles cannot be changed.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Status.AlreadyApplied" xml:space="preserve">
+    <value>The requested role was already applied.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Submission.Failed" xml:space="preserve">
+    <value>Tenant command submission failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Submission.Invalid" xml:space="preserve">
+    <value>The change role request was not accepted. Check the form fields and try again.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Submission.Unavailable" xml:space="preserve">
+    <value>Tenant command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Tenant command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Validation.RequiredFields" xml:space="preserve">
+    <value>Tenant id, user id, and new role are required before the command can be submitted.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.ConfigurationKeyNotFound" xml:space="preserve">
+    <value>The configuration key was not found in the current tenant projection. Refresh tenant detail before treating removal as complete.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.ConfigurationLimitExceeded" xml:space="preserve">
+    <value>The configuration change exceeded tenant configuration limits.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.GlobalAdministratorAlreadyExists" xml:space="preserve">
+    <value>This user is already a global administrator. Refresh the platform authority projection before trying another action.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.GlobalAdministratorNotFound" xml:space="preserve">
+    <value>The target user is not a global administrator in the last-confirmed projection. Refresh platform authority before trying another action.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.InsufficientPermissions" xml:space="preserve">
+    <value>You are not authorized to submit this command.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.LastGlobalAdministrator" xml:space="preserve">
+    <value>The last global administrator cannot be removed. Keep the current projection visible and add another global administrator before trying again.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.RoleEscalation" xml:space="preserve">
+    <value>The requested tenant role cannot be assigned by this command.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.TenantAlreadyExists" xml:space="preserve">
+    <value>A tenant with this id already exists. Refresh the list or open the existing tenant if it is visible.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so the command cannot be completed.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.TenantLifecycleStateAlreadySet" xml:space="preserve">
+    <value>The tenant lifecycle already matches the requested state. Refresh tenant detail before trying another lifecycle action.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.TenantNotFound" xml:space="preserve">
+    <value>The tenant was not found. Refresh the tenant detail before trying again.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.UserAlreadyInTenant" xml:space="preserve">
+    <value>This user is already a member of the tenant. Refresh the member table before trying another action.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.UserNotInTenant" xml:space="preserve">
+    <value>The target user is not a visible member of this tenant. Refresh the member table before trying again.</value>
+  </data>
+  <data name="Tenants.Commands.Status.Pending" xml:space="preserve">
+    <value>Command status is not available yet.</value>
+  </data>
+  <data name="Tenants.Commands.Status.RequestRejected" xml:space="preserve">
+    <value>Command status request was rejected.</value>
+  </data>
+  <data name="Tenants.Commands.Status.ResponseUnavailable" xml:space="preserve">
+    <value>Command status response was unavailable.</value>
+  </data>
+  <data name="Tenants.Commands.Status.RetryableFailure" xml:space="preserve">
+    <value>Command status could not be verified yet.</value>
+  </data>
+  <data name="Tenants.Commands.Status.TrackingMismatch" xml:space="preserve">
+    <value>Command status response did not match the tracked command.</value>
+  </data>
+  <data name="Tenants.Commands.Status.Unavailable" xml:space="preserve">
+    <value>Tenant command status lookup is unavailable.</value>
+  </data>
+  <data name="Tenants.Commands.Status.Unverified" xml:space="preserve">
+    <value>Command status could not be verified.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Rejection.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so configuration cannot be removed.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Submission.Invalid" xml:space="preserve">
+    <value>The configuration removal request was not accepted. Check the visible key evidence and try again.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Submission.Unavailable" xml:space="preserve">
+    <value>Tenant command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.Gateway" xml:space="preserve">
+    <value>Tenant configuration removal gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Tenant command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Validation.RequiredFields" xml:space="preserve">
+    <value>Tenant id and configuration key are required before the command can be submitted.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Rejection.ConfigurationLimitExceeded" xml:space="preserve">
+    <value>The configuration value exceeds the tenant configuration limits.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Rejection.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so configuration cannot be changed.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Submission.Invalid" xml:space="preserve">
+    <value>The configuration change request was not accepted. Check the form fields and try again.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Submission.Unavailable" xml:space="preserve">
+    <value>Tenant command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Tenant command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.RequiredFields" xml:space="preserve">
+    <value>Tenant id, configuration key, and value are required before the command can be submitted.</value>
+  </data>
+  <data name="Tenants.Create.Submission.Failed" xml:space="preserve">
+    <value>Tenant command submission failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.Create.Submission.Invalid" xml:space="preserve">
+    <value>The create tenant request was not accepted. Check the form fields and try again.</value>
+  </data>
+  <data name="Tenants.Create.Submission.Unavailable" xml:space="preserve">
+    <value>Tenant command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Tenant command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.Create.Validation.RequiredFields" xml:space="preserve">
+    <value>Tenant id and name are required before the command can be submitted.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Rejection.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so metadata cannot be edited.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Submission.Failed" xml:space="preserve">
+    <value>Tenant command submission failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Submission.Invalid" xml:space="preserve">
+    <value>The metadata update request was not accepted. Check the form fields and try again.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Submission.Unavailable" xml:space="preserve">
+    <value>Tenant command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Tenant command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Validation.RequiredFields" xml:space="preserve">
+    <value>Tenant id and name are required before the command can be submitted.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Gateway" xml:space="preserve">
+    <value>Global administrator command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submission.Failed" xml:space="preserve">
+    <value>Global administrator command submission failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submission.Invalid" xml:space="preserve">
+    <value>The global administrator removal request was not accepted. Check the visible user id and try again.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submission.Unauthorized" xml:space="preserve">
+    <value>You are not authorized to change platform governance.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submission.Unavailable" xml:space="preserve">
+    <value>Global administrator command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Gateway" xml:space="preserve">
+    <value>Global administrator command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Global administrator command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Rejection.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so the requested tenant command cannot be completed.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Submission.Failed" xml:space="preserve">
+    <value>The lifecycle command submission was rejected before dispatch could be verified.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Submission.Invalid" xml:space="preserve">
+    <value>The lifecycle request was not accepted. Check the visible tenant evidence and try again.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.Gateway" xml:space="preserve">
+    <value>Tenant lifecycle command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Tenant command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Validation.RequiredFields" xml:space="preserve">
+    <value>Tenant id and lifecycle operation are required before the command can be submitted.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Rejection.TenantDisabled" xml:space="preserve">
+    <value>This tenant is disabled, so members cannot be removed.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Rejection.UserNotInTenant" xml:space="preserve">
+    <value>The target user is not a visible member of this tenant. Refresh the member table before treating removal as already applied.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Submission.Failed" xml:space="preserve">
+    <value>Tenant command submission failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Submission.Invalid" xml:space="preserve">
+    <value>The remove member request was not accepted. Check the visible member evidence and try again.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Submission.Unavailable" xml:space="preserve">
+    <value>Tenant command gateway is unavailable.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Tenant command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Validation.RequiredFields" xml:space="preserve">
+    <value>Tenant id and user id are required before the command can be submitted.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>Global administrator command gateway configuration is missing.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.TrackedDispatch" xml:space="preserve">
+    <value>Tracked global administrator removal dispatch is unavailable.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Submission.VerificationFailed" xml:space="preserve">
+    <value>Tenant command submission failed before it could be verified.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Submission.VerificationFailed" xml:space="preserve">
+    <value>Tenant command submission failed before it could be verified.</value>
+  </data>
 </root>

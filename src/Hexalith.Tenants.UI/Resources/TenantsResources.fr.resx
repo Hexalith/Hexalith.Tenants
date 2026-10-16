@@ -4312,4 +4312,244 @@
   <data name="Tenants.Membership.ProjectionWait.Expired" xml:space="preserve">
     <value>La confirmation par projection n’a pas pu être vérifiée dans le délai d’attente. Réessayez la recherche du statut, continuez en lecture seule ou contactez le support. Cela ne signifie pas que la commande a échoué.</value>
   </data>
+  <data name="Tenants.AddMember.Rejection.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; aucun membre ne peut donc être ajouté.</value>
+  </data>
+  <data name="Tenants.AddMember.Submission.Failed" xml:space="preserve">
+    <value>La soumission de la commande de locataire a échoué avant de pouvoir être vérifiée.</value>
+  </data>
+  <data name="Tenants.AddMember.Submission.Invalid" xml:space="preserve">
+    <value>La demande d’ajout de membre n’a pas été acceptée. Vérifiez les champs du formulaire et réessayez.</value>
+  </data>
+  <data name="Tenants.AddMember.Submission.Unavailable" xml:space="preserve">
+    <value>La passerelle de commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.AddMember.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes de locataire est manquante.</value>
+  </data>
+  <data name="Tenants.AddMember.Validation.RequiredFields" xml:space="preserve">
+    <value>L’identifiant du locataire, l’identifiant de l’utilisateur et le rôle sont requis pour soumettre la commande.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Rejection.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; les rôles de ses membres ne peuvent donc pas être modifiés.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Status.AlreadyApplied" xml:space="preserve">
+    <value>Le rôle demandé était déjà appliqué.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Submission.Failed" xml:space="preserve">
+    <value>La soumission de la commande de locataire a échoué avant de pouvoir être vérifiée.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Submission.Invalid" xml:space="preserve">
+    <value>La demande de changement de rôle n’a pas été acceptée. Vérifiez les champs du formulaire et réessayez.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Submission.Unavailable" xml:space="preserve">
+    <value>La passerelle de commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes de locataire est manquante.</value>
+  </data>
+  <data name="Tenants.ChangeRole.Validation.RequiredFields" xml:space="preserve">
+    <value>L’identifiant du locataire, l’identifiant de l’utilisateur et le nouveau rôle sont requis pour soumettre la commande.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.ConfigurationKeyNotFound" xml:space="preserve">
+    <value>La clé de configuration est introuvable dans la projection actuelle du locataire. Actualisez les détails du locataire avant de considérer la suppression comme terminée.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.ConfigurationLimitExceeded" xml:space="preserve">
+    <value>La modification de configuration a dépassé les limites de configuration du locataire.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.GlobalAdministratorAlreadyExists" xml:space="preserve">
+    <value>Cet utilisateur est déjà administrateur global. Actualisez la projection des autorisations de la plateforme avant d’effectuer une autre action.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.GlobalAdministratorNotFound" xml:space="preserve">
+    <value>L’utilisateur cible n’est pas administrateur global dans la dernière projection confirmée. Actualisez les autorisations de la plateforme avant d’effectuer une autre action.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.InsufficientPermissions" xml:space="preserve">
+    <value>Vous n’êtes pas autorisé à soumettre cette commande.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.LastGlobalAdministrator" xml:space="preserve">
+    <value>Le dernier administrateur global ne peut pas être retiré. Conservez la projection actuelle visible et ajoutez un autre administrateur global avant de réessayer.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.RoleEscalation" xml:space="preserve">
+    <value>Le rôle demandé pour le locataire ne peut pas être attribué par cette commande.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.TenantAlreadyExists" xml:space="preserve">
+    <value>Un locataire portant cet identifiant existe déjà. Actualisez la liste ou ouvrez le locataire existant s’il est visible.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; la commande ne peut donc pas être effectuée.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.TenantLifecycleStateAlreadySet" xml:space="preserve">
+    <value>Le cycle de vie du locataire correspond déjà à l’état demandé. Actualisez les détails du locataire avant d’effectuer une autre action de cycle de vie.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.TenantNotFound" xml:space="preserve">
+    <value>Le locataire est introuvable. Actualisez ses détails avant de réessayer.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.UserAlreadyInTenant" xml:space="preserve">
+    <value>Cet utilisateur est déjà membre du locataire. Actualisez le tableau des membres avant d’effectuer une autre action.</value>
+  </data>
+  <data name="Tenants.Commands.Rejection.UserNotInTenant" xml:space="preserve">
+    <value>L’utilisateur cible n’est pas un membre visible de ce locataire. Actualisez le tableau des membres avant de réessayer.</value>
+  </data>
+  <data name="Tenants.Commands.Status.Pending" xml:space="preserve">
+    <value>L’état de la commande n’est pas encore disponible.</value>
+  </data>
+  <data name="Tenants.Commands.Status.RequestRejected" xml:space="preserve">
+    <value>La demande de consultation de l’état de la commande a été rejetée.</value>
+  </data>
+  <data name="Tenants.Commands.Status.ResponseUnavailable" xml:space="preserve">
+    <value>La réponse sur l’état de la commande est indisponible.</value>
+  </data>
+  <data name="Tenants.Commands.Status.RetryableFailure" xml:space="preserve">
+    <value>L’état de la commande n’a pas encore pu être vérifié.</value>
+  </data>
+  <data name="Tenants.Commands.Status.TrackingMismatch" xml:space="preserve">
+    <value>La réponse sur l’état de la commande ne correspond pas à la commande suivie.</value>
+  </data>
+  <data name="Tenants.Commands.Status.Unavailable" xml:space="preserve">
+    <value>La consultation de l’état des commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Commands.Status.Unverified" xml:space="preserve">
+    <value>L’état de la commande n’a pas pu être vérifié.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Rejection.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; sa configuration ne peut donc pas être supprimée.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Submission.Invalid" xml:space="preserve">
+    <value>La demande de suppression de configuration n’a pas été acceptée. Vérifiez les éléments visibles concernant la clé et réessayez.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Submission.Unavailable" xml:space="preserve">
+    <value>La passerelle de commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.Gateway" xml:space="preserve">
+    <value>La passerelle de suppression de configuration du locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes de locataire est manquante.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Validation.RequiredFields" xml:space="preserve">
+    <value>L’identifiant du locataire et la clé de configuration sont requis pour soumettre la commande.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Rejection.ConfigurationLimitExceeded" xml:space="preserve">
+    <value>La valeur de configuration dépasse les limites de configuration du locataire.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Rejection.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; sa configuration ne peut donc pas être modifiée.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Submission.Invalid" xml:space="preserve">
+    <value>La demande de modification de configuration n’a pas été acceptée. Vérifiez les champs du formulaire et réessayez.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Submission.Unavailable" xml:space="preserve">
+    <value>La passerelle de commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes de locataire est manquante.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Validation.RequiredFields" xml:space="preserve">
+    <value>L’identifiant du locataire, la clé de configuration et la valeur sont requis pour soumettre la commande.</value>
+  </data>
+  <data name="Tenants.Create.Submission.Failed" xml:space="preserve">
+    <value>La soumission de la commande de locataire a échoué avant de pouvoir être vérifiée.</value>
+  </data>
+  <data name="Tenants.Create.Submission.Invalid" xml:space="preserve">
+    <value>La demande de création du locataire n’a pas été acceptée. Vérifiez les champs du formulaire et réessayez.</value>
+  </data>
+  <data name="Tenants.Create.Submission.Unavailable" xml:space="preserve">
+    <value>La passerelle de commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Create.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes de locataire est manquante.</value>
+  </data>
+  <data name="Tenants.Create.Validation.RequiredFields" xml:space="preserve">
+    <value>L’identifiant et le nom du locataire sont requis pour soumettre la commande.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Rejection.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; ses métadonnées ne peuvent donc pas être modifiées.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Submission.Failed" xml:space="preserve">
+    <value>La soumission de la commande de locataire a échoué avant de pouvoir être vérifiée.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Submission.Invalid" xml:space="preserve">
+    <value>La demande de modification des métadonnées n’a pas été acceptée. Vérifiez les champs du formulaire et réessayez.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Submission.Unavailable" xml:space="preserve">
+    <value>La passerelle de commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes de locataire est manquante.</value>
+  </data>
+  <data name="Tenants.EditMetadata.Validation.RequiredFields" xml:space="preserve">
+    <value>L’identifiant et le nom du locataire sont requis pour soumettre la commande.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.Gateway" xml:space="preserve">
+    <value>La passerelle de commandes d’administrateur global est indisponible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submission.Failed" xml:space="preserve">
+    <value>La soumission de la commande d’administrateur global a échoué avant de pouvoir être vérifiée.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submission.Invalid" xml:space="preserve">
+    <value>La demande de retrait de l’administrateur global n’a pas été acceptée. Vérifiez l’identifiant utilisateur visible et réessayez.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submission.Unauthorized" xml:space="preserve">
+    <value>Vous n’êtes pas autorisé à modifier la gouvernance de la plateforme.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Submission.Unavailable" xml:space="preserve">
+    <value>La passerelle de commandes d’administrateur global est indisponible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.Gateway" xml:space="preserve">
+    <value>La passerelle de commandes d’administrateur global est indisponible.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes d’administrateur global est manquante.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Rejection.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; la commande demandée pour ce locataire ne peut donc pas être effectuée.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Submission.Failed" xml:space="preserve">
+    <value>La soumission de la commande de cycle de vie a été rejetée avant que son envoi puisse être vérifié.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Submission.Invalid" xml:space="preserve">
+    <value>La demande de cycle de vie n’a pas été acceptée. Vérifiez les éléments visibles concernant le locataire et réessayez.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.Gateway" xml:space="preserve">
+    <value>La passerelle de commandes de cycle de vie du locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes de locataire est manquante.</value>
+  </data>
+  <data name="Tenants.Lifecycle.Validation.RequiredFields" xml:space="preserve">
+    <value>L’identifiant du locataire et l’opération de cycle de vie sont requis pour soumettre la commande.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Rejection.TenantDisabled" xml:space="preserve">
+    <value>Ce locataire est désactivé ; aucun membre ne peut donc être retiré.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Rejection.UserNotInTenant" xml:space="preserve">
+    <value>L’utilisateur cible n’est pas un membre visible de ce locataire. Actualisez le tableau des membres avant de considérer le retrait comme déjà effectué.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Submission.Failed" xml:space="preserve">
+    <value>La soumission de la commande de locataire a échoué avant de pouvoir être vérifiée.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Submission.Invalid" xml:space="preserve">
+    <value>La demande de retrait du membre n’a pas été acceptée. Vérifiez les éléments visibles concernant le membre et réessayez.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Submission.Unavailable" xml:space="preserve">
+    <value>La passerelle de commandes de locataire est indisponible.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes de locataire est manquante.</value>
+  </data>
+  <data name="Tenants.RemoveMember.Validation.RequiredFields" xml:space="preserve">
+    <value>L’identifiant du locataire et l’identifiant de l’utilisateur sont requis pour soumettre la commande.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Grant.Unavailable.GatewayConfiguration" xml:space="preserve">
+    <value>La configuration de la passerelle de commandes d’administrateur global est manquante.</value>
+  </data>
+  <data name="Tenants.GlobalAdministrators.Remove.Unavailable.TrackedDispatch" xml:space="preserve">
+    <value>L’envoi suivi de la commande de retrait d’un administrateur global est indisponible.</value>
+  </data>
+  <data name="Tenants.Configuration.Set.Submission.VerificationFailed" xml:space="preserve">
+    <value>La soumission de la commande de locataire a échoué avant de pouvoir être vérifiée.</value>
+  </data>
+  <data name="Tenants.Configuration.Remove.Submission.VerificationFailed" xml:space="preserve">
+    <value>La soumission de la commande de locataire a échoué avant de pouvoir être vérifiée.</value>
+  </data>
 </root>

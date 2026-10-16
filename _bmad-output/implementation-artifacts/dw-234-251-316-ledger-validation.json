@@ -1,0 +1,23 @@
+{
+  "totalIds": 643,
+  "done": 336,
+  "open": 307,
+  "maintenanceRows": 275,
+  "changedIds": [
+    234,
+    251,
+    316
+  ],
+  "unrelatedBlocksUnchanged": true,
+  "everyOpenIdCoveredExactlyOnce": true,
+  "frozenIntentPreserved": true,
+  "697SourceConfigBrowserInputsUnchanged": true,
+  "compiledOutputsUnchanged": true,
+  "archiveSprintAndBrowserRunnerPreserved": true,
+  "readinessHistoricalPrefixPreserved": true,
+  "allTenRepositoryHeadsBranchesPreserved": true,
+  "allNineDependencyWorktreesPreserved": true,
+  "untrackedWhitespaceChecks": 26,
+  "verifiedAtUtc": "2026-10-16T11:43:43.798814+00:00",
+  "postReviewCorrectedQualification": true
+}

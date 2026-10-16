@@ -42,6 +42,8 @@ DW-245/DW-265/DW-290 closure update — 2026-10-16: only these three duplicate q
 
 After validated DW-247 closure (2026-10-16): 129 reconciled done,222 actionable,15 blocked,26 awaiting-decision,nine accepted limitations and38 uncertain;310 open. All 643 IDs remain:333 done/310 open across278 exact-covering maintenance rows. One configured retained membership projection deadline and exact late reconciliation pass independent review/recheck,172 dedicated cases, focused 657/full UI 5368 in Debug/maintained Release and both unchanged Chromium lanes. Initial failures and broad release/provenance blockers remain in [evidence](dw-247-validation-evidence.md). Only DW-247 changes; prior history,decisions,B1–B8/all earlier bundles,DW-248/DW-266/DW-267/DW-323,archive and sprint are preserved. Next selected bundle:DW-234/DW-251/DW-316 shared failure/status localization. Release remains not ready.
 
+After verified DW-234/DW-251/DW-316 command-localization closure (2026-10-16): 132 reconciled done, 219 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and38 uncertain; 307 open. All 643 IDs remain: 336 done/307 open across 275 exact-covering maintenance rows. Whole-string gateway/default/unavailable/status and snapshot EN/FR copy passes final focused 1,825/full UI 5,532 in both configurations and unchanged Chromium lanes. Original findings and prior evidence, archive/sprint, dependencies, decisions, historical blockers and separately scoped DW-323 remain preserved. See [complete evidence](dw-234-251-316-validation-evidence.md). Independent workflow review is recorded in the owning spec; release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -2126,17 +2128,24 @@ location: TenantCommandGateway
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Gateway and snapshot safe-message strings are still hard-coded English. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Gateway and snapshot safe-message strings are still hard-coded English. evidence: `TenantCommandGateway` returns raw `SafeMessage` text and `TenantCreateCommandModels` hard-codes strings with `SafeMessageKey = null`; `DisplaySafeMessage` renders them verbatim, so French users see English on exactly the paths the `SafeMessageKey` mechanism was introduced to fix.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs validation/failure mappings and State/TenantCommands/TenantCreateCommandModels.cs still emit English SafeMessage strings without keys; flows render them verbatim when SafeMessageKey is null.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-evidence-kind: verified-defect
+status: done 2026-10-16
+disposition: done
+historical-verification-date-before-command-localization: 2026-10-12
+historical-verification-before-command-localization: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs validation/failure mappings and State/TenantCommands/TenantCreateCommandModels.cs still emit English SafeMessage strings without keys; flows render them verbatim when SafeMessageKey is null.
+historical-verification-files-before-command-localization: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
+historical-evidence-kind-before-command-localization: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Convert shared failure/status results to whole-string EN/FR keys and preserve those keys in flows.
+historical-next-action-before-command-localization: Convert shared failure/status results to whole-string EN/FR keys and preserve those keys in flows.
 related: DW-251, DW-316
+verification-date: 2026-10-16
+verification: Configured validation/submission/rejection/status results, all concrete unavailable entries and all interface defaults carry whole-string EN/FR resources. The five unknown-status snapshot arms retain current keys or localized fallback; zero-event role completion is localized. Final focused 1,825/full UI 5,532 pass in Debug source and maintained Release, zero failures/skips; both unchanged Chromium lanes pass. Exact commands and initial failures are retained in dw-234-251-316-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantAddMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantChangeRoleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
+evidence-kind: executed-regression
+next-action: None for DW-234/DW-251/DW-316; DW-323 and all unrelated decisions and qualification holds remain separately scoped.
+resolution: Only this localization bundle closes. Whole-message keys survive typed state and resolve at existing rendering/announcement boundaries, preserving classification, retry/pending/ambiguity flags, identity, admission, proof, audit and membership expiry guidance. Original findings, legacy detail and pre-closure verification/actions remain above. Independent workflow review follows the implementation handoff and is tracked in the owning spec; this closure does not establish release readiness.
+
 
 ### DW-235: Fail membership action availability closed against live authorization reflection
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -2374,17 +2383,24 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Hard-coded English strings remain on paths this story made localizable. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Hard-coded English strings remain on paths this story made localizable. evidence: TenantCreateCommandModels.cs:1165 default ApplyStatus arm ("Command status could not be verified.") and TenantCommandGateway.cs validation literal. Both verified as pre-existing context lines in the diff, not introduced by this story.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs default status failures and Services/Gateways/TenantCommandGateway.cs validation literals remain English without resource keys.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
-evidence-kind: verified-defect
+status: done 2026-10-16
+disposition: done
+historical-verification-date-before-command-localization: 2026-10-12
+historical-verification-before-command-localization: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs default status failures and Services/Gateways/TenantCommandGateway.cs validation literals remain English without resource keys.
+historical-verification-files-before-command-localization: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
+historical-evidence-kind-before-command-localization: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Localize the remaining status/validation branches in the shared pass.
+historical-next-action-before-command-localization: Localize the remaining status/validation branches in the shared pass.
 related: DW-234, DW-316
+verification-date: 2026-10-16
+verification: Configured validation/submission/rejection/status results, all concrete unavailable entries and all interface defaults carry whole-string EN/FR resources. The five unknown-status snapshot arms retain current keys or localized fallback; zero-event role completion is localized. Final focused 1,825/full UI 5,532 pass in Debug source and maintained Release, zero failures/skips; both unchanged Chromium lanes pass. Exact commands and initial failures are retained in dw-234-251-316-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantAddMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantChangeRoleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
+evidence-kind: executed-regression
+next-action: None for DW-234/DW-251/DW-316; DW-323 and all unrelated decisions and qualification holds remain separately scoped.
+resolution: Only this localization bundle closes. Whole-message keys survive typed state and resolve at existing rendering/announcement boundaries, preserving classification, retry/pending/ambiguity flags, identity, admission, proof, audit and membership expiry guidance. Original findings, legacy detail and pre-closure verification/actions remain above. Independent workflow review follows the implementation handoff and is tracked in the owning spec; this closure does not establish release readiness.
+
 
 ### DW-252: EditTenantMetadataFlow.ApplyProjectionEvidence and ApplySignalRNudge have no callers; the story threaded a projection version into a dead entry point
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-21)"), 2026-08-25
@@ -3214,17 +3230,24 @@ archived: 2026-10-14
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview.md (2026-08-25)"), 2026-08-26
 location: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs
 reason: All 13 members return the raw English text "Tenant command gateway configuration is missing." instead of the localized `FailedWithKey("Tenants.Lifecycle.Unavailable.CommandSurface")` default, so a French operator sees untranslated failures. Change the class in one pass to avoid split behavior.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs tracked methods now return keys, but create/member/update and legacy untracked methods/status still emit English configuration-missing text. The original all-13 claim is narrowed, not fully resolved.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs
-evidence-kind: verified-defect
+status: done 2026-10-16
+disposition: done
+historical-verification-date-before-command-localization: 2026-10-12
+historical-verification-before-command-localization: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs tracked methods now return keys, but create/member/update and legacy untracked methods/status still emit English configuration-missing text. The original all-13 claim is narrowed, not fully resolved.
+historical-verification-files-before-command-localization: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs
+historical-evidence-kind-before-command-localization: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Localize every remaining unavailable result in one pass and retain keyed results throughout UI mapping.
+historical-next-action-before-command-localization: Localize every remaining unavailable result in one pass and retain keyed results throughout UI mapping.
 related: DW-234, DW-251
+verification-date: 2026-10-16
+verification: Configured validation/submission/rejection/status results, all concrete unavailable entries and all interface defaults carry whole-string EN/FR resources. The five unknown-status snapshot arms retain current keys or localized fallback; zero-event role completion is localized. Final focused 1,825/full UI 5,532 pass in Debug source and maintained Release, zero failures/skips; both unchanged Chromium lanes pass. Exact commands and initial failures are retained in dw-234-251-316-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantAddMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantChangeRoleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
+evidence-kind: executed-regression
+next-action: None for DW-234/DW-251/DW-316; DW-323 and all unrelated decisions and qualification holds remain separately scoped.
+resolution: Only this localization bundle closes. Whole-message keys survive typed state and resolve at existing rendering/announcement boundaries, preserving classification, retry/pending/ambiguity flags, identity, admission, proof, audit and membership expiry guidance. Original findings, legacy detail and pre-closure verification/actions remain above. Independent workflow review follows the implementation handoff and is tracked in the owning spec; this closure does not establish release readiness.
+
 
 ### DW-317: Repair inert `__form` scoped CSS selectors on configuration and lifecycle flows
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26

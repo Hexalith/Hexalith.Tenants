@@ -23,36 +23,36 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         CreateTenant request,
         string? messageId = null,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.Create.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
         AddUserToTenant request,
         string? messageId = null,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.AddMember.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> ChangeUserRoleAsync(
         ChangeUserRole request,
         string? messageId = null,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.ChangeRole.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> RemoveUserFromTenantAsync(
         RemoveUserFromTenant request,
         string? messageId = null,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.RemoveMember.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> UpdateTenantAsync(
         UpdateTenant request,
         string? messageId = null,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.EditMetadata.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
         SetTenantConfiguration request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.Configuration.Set.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> SetTenantConfigurationTrackedAsync(
         SetTenantConfiguration request,
@@ -64,7 +64,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
     public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
         RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.Configuration.Remove.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationTrackedAsync(
         RemoveTenantConfiguration request,
@@ -76,7 +76,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
     public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministrator request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway configuration is missing.") with { SafeMessageKey = "Tenants.GlobalAdministrators.Grant.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> SetGlobalAdministratorTrackedAsync(
         SetGlobalAdministrator request,
@@ -88,7 +88,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
     public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministrator request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Global administrator command gateway configuration is missing.") with { SafeMessageKey = "Tenants.GlobalAdministrators.Remove.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorTrackedAsync(
         RemoveGlobalAdministrator request,
@@ -100,7 +100,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
     public Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.Lifecycle.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> EnableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
@@ -112,7 +112,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
     public Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing."));
+        => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.Lifecycle.Unavailable.GatewayConfiguration" });
 
     public Task<TenantCommandSubmissionResult> DisableTenantTrackedAsync(
         TenantLifecycleCommandRequest request,
@@ -124,5 +124,8 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
     public Task<TenantCommandStatusResult> GetStatusAsync(
         TenantCommandTrackingHandle handle,
         CancellationToken cancellationToken = default)
-        => Task.FromResult(TenantCommandStatusResult.Unknown("Tenant command status lookup is unavailable."));
+        => Task.FromResult(TenantCommandStatusResult.Unknown("Tenant command status lookup is unavailable.") with
+        {
+            SafeMessageKey = "Tenants.Commands.Status.Unavailable",
+        });
 }

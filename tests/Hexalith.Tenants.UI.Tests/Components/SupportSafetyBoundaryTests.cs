@@ -16,6 +16,7 @@ using Hexalith.Tenants.UI.Components.Shared;
 using Hexalith.Tenants.UI.Components.Tenants;
 using Hexalith.Tenants.UI.Components.Tenants.Audit;
 using Hexalith.Tenants.UI.Components.Tenants.Metadata;
+using Hexalith.Tenants.UI.Components.Tenants.Members;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.Services.SupportSafety;
@@ -399,7 +400,334 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
         TenantAuditSupportSafety.SafeApprovedReference(value).ShouldBeNull();
     }
 
-    private void ConfigureCreate(TenantCommandGateway gateway)
+
+    /// <summary>Whole-message command keys are resolved from shipped resources on both observer surfaces.</summary>
+    public static TheoryData<string, string, string> LocalizedCommandMessages
+    {
+        get
+        {
+            TheoryData<string, string, string> cases = [];
+            foreach (string culture in new[] { "en", "fr" })
+            {
+                foreach (string code in new[] { "TenantAlreadyExists", "UserAlreadyInTenant", "UserNotInTenant", "RoleEscalation", "InsufficientPermissions", "TenantDisabled", "TenantNotFound", "ConfigurationLimitExceeded", "ConfigurationKeyNotFound", "TenantLifecycleStateAlreadySet", "GlobalAdministratorAlreadyExists", "LastGlobalAdministrator", "GlobalAdministratorNotFound" })
+                {
+                    cases.Add(culture, code, "Tenants.Commands.Rejection." + code);
+                }
+
+                cases.Add(culture, "pending", "Tenants.Commands.Status.Pending");
+                cases.Add(culture, "transient", "Tenants.Commands.Status.RetryableFailure");
+                cases.Add(culture, "request-rejected", "Tenants.Commands.Status.RequestRejected");
+                cases.Add(culture, "malformed", "Tenants.Commands.Status.ResponseUnavailable");
+                cases.Add(culture, "unknown", "Tenants.Commands.Status.ResponseUnavailable");
+                cases.Add(culture, "mismatch", "Tenants.Commands.Status.TrackingMismatch");
+                cases.Add(culture, "submission-invalid", "Tenants.Create.Submission.Invalid");
+                cases.Add(culture, "submission-unavailable", "Tenants.Create.Submission.Unavailable");
+                cases.Add(culture, "submission-failed", "Tenants.Create.Submission.Failed");
+                cases.Add(culture, "unavailable", "Tenants.Create.Unavailable.GatewayConfiguration");
+            }
+
+            return cases;
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(LocalizedCommandMessages))]
+    public void SharedCommandMessagesReachDomAndLiveRegionsInTheSelectedCulture(string culture, string scenario, string expectedKey)
+    {
+        ArgumentNullException.ThrowIfNull(scenario);
+        UseCulture(culture);
+        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        if (scenario.StartsWith("submission-", StringComparison.Ordinal))
+        {
+            int code = scenario switch { "submission-invalid" => 400, "submission-unavailable" => 503, _ => 418 };
+            client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>())
+                .Returns<SubmitCommandResponse>(_ => throw new EventStoreGatewayException(code, "backend-private-Canary"));
+        }
+        else
+        {
+            client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>())
+                .Returns(new SubmitCommandResponse(CorrelationId));
+        }
+
+        IUlidFactory ulids = Substitute.For<IUlidFactory>();
+        ulids.NewUlid().Returns(MessageId);
+        string body = JsonSerializer.Serialize(new
+        {
+            messageId = scenario == "mismatch" ? "backend-private-Canary" : MessageId,
+            correlationId = CorrelationId, status = scenario == "unknown" ? "999" : nameof(CommandStatus.Rejected),
+            statusCode = scenario == "unknown" ? 999 : (int)CommandStatus.Rejected,
+            tenantId = "system", domain = "tenants", aggregateId = "tenant.alpha", eventCount = 0,
+            rejectionEventType = scenario, failureReason = "backend-private-Canary",
+        });
+        if (scenario == "malformed")
+        {
+            body = "{ backend-private-Canary";
+        }
+
+        HttpStatusCode httpStatus = scenario switch
+        {
+            "pending" => HttpStatusCode.NotFound,
+            "transient" => HttpStatusCode.ServiceUnavailable,
+            "request-rejected" => HttpStatusCode.Forbidden,
+            _ => HttpStatusCode.OK,
+        };
+        ITenantCommandGateway gateway = scenario == "unavailable" ? new UnavailableTenantCommandGateway()
+            : new TenantCommandGateway(client, ulids, new HttpClient(new SupportSafetyCommandStatusHandler(body, httpStatus))
+            { BaseAddress = new Uri("https://eventstore.example/") });
+        ConfigureCreate(gateway);
+        IRenderedComponent<CreateTenantFlow> cut = SubmitCreate();
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        string expected = localizer[expectedKey].Value;
+        localizer[expectedKey].ResourceNotFound.ShouldBeFalse();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldBe(expected));
+        Live(cut).ShouldContain(expected);
+        Dom(cut).ShouldNotContain(expectedKey);
+        Live(cut).ShouldNotContain(expectedKey);
+        Dom(cut).ShouldNotContain("backend-private-Canary");
+        Live(cut).ShouldNotContain("backend-private-Canary");
+        cut.Instance.Snapshot.HasCommandEventEvidence.ShouldBeFalse();
+        cut.Instance.Snapshot.AuditState.ShouldNotBe(TenantCommandAuditState.AuditAvailable);
+        if (culture == "fr")
+        {
+            CultureBoundTenantsLocalizer english = new(Services.GetRequiredService<IStringLocalizerFactory>()
+                .Create(typeof(TenantsResources)), CultureInfo.GetCultureInfo("en"));
+            expected.ShouldNotBe(english[expectedKey].Value);
+            Dom(cut).ShouldNotContain(english[expectedKey].Value);
+            Live(cut).ShouldNotContain(english[expectedKey].Value);
+        }
+    }
+
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public void FreshStatusReplacesTheOldRenderedKeyAndProgressClearsIt(string culture)
+    {
+        UseCulture(culture);
+        ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
+        gateway.SupportsCommandStatusLookup.Returns(true);
+        gateway.CreateTenantAsync(Arg.Any<Hexalith.Tenants.Contracts.Commands.CreateTenant>(),
+            Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(TenantCommandSubmissionResult.Accepted(MessageId, CorrelationId));
+        gateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>()).Returns(
+            TenantCommandStatusResult.RetryableFailureWithKey("Tenants.Commands.Status.RetryableFailure"),
+            new TenantCommandStatusResult(CommandStatus.PublishFailed, SafeMessage: "Fixed safe English compatibility fallback",
+                SafeMessageKey: "Tenants.Commands.Failure.PublishFailed", HasVerifiedCommandIdentity: true),
+            new TenantCommandStatusResult(CommandStatus.Processing, HasVerifiedCommandIdentity: true));
+        ConfigureCreate(gateway);
+        IRenderedComponent<CreateTenantFlow> cut = SubmitCreate();
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        string previous = localizer["Tenants.Commands.Status.RetryableFailure"].Value;
+        string current = localizer["Tenants.Commands.Failure.PublishFailed"].Value;
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldBe(previous));
+        cut.Find("[data-testid='tenants-create-refresh']").Click();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldBe(current));
+        Live(cut).ShouldContain(current);
+        Dom(cut).ShouldNotContain(previous);
+        Dom(cut).ShouldNotContain("Fixed safe English compatibility fallback");
+        cut.Find("[data-testid='tenants-create-refresh']").Click();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-create-safe-message']").ShouldBeEmpty());
+        Live(cut).ShouldNotContain(current);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBeNull();
+        cut.Instance.Snapshot.SafeMessage.ShouldBeNull();
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        cut.Instance.Snapshot.HasCommandEventEvidence.ShouldBeFalse();
+        cut.Instance.Snapshot.MessageId.ShouldBe(MessageId);
+        cut.Instance.Snapshot.CorrelationId.ShouldBe(CorrelationId);
+    }
+
+
+    [Theory]
+    [InlineData("en", false)]
+    [InlineData("fr", false)]
+    [InlineData("en", true)]
+    [InlineData("fr", true)]
+    public void UnknownSnapshotStatusRendersItsFreshKeyOrLocalizedFallback(string culture, bool hasFreshKey)
+    {
+        UseCulture(culture);
+        ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
+        gateway.SupportsCommandStatusLookup.Returns(true);
+        gateway.CreateTenantAsync(Arg.Any<Hexalith.Tenants.Contracts.Commands.CreateTenant>(),
+            Arg.Any<string?>(), Arg.Any<CancellationToken>()).Returns(TenantCommandSubmissionResult.Accepted(MessageId, CorrelationId));
+        gateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>()).Returns(
+            new TenantCommandStatusResult((CommandStatus)999, SafeMessage: "backend-private-Canary", HasVerifiedCommandIdentity: true,
+                SafeMessageKey: hasFreshKey ? "Tenants.Commands.Status.ResponseUnavailable" : null));
+        ConfigureCreate(gateway);
+        IRenderedComponent<CreateTenantFlow> cut = SubmitCreate();
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        string key = hasFreshKey ? "Tenants.Commands.Status.ResponseUnavailable" : "Tenants.Commands.Status.Unverified";
+        string expected = localizer[key].Value;
+        localizer[key].ResourceNotFound.ShouldBeFalse();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldBe(expected));
+        Live(cut).ShouldContain(expected);
+        Dom(cut).ShouldNotContain(key);
+        Dom(cut).ShouldNotContain("backend-private-Canary");
+        Live(cut).ShouldNotContain("backend-private-Canary");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.HasCommandEventEvidence.ShouldBeFalse();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+    }
+
+    [Theory]
+    [InlineData("en", "The requested role was already applied.")]
+    [InlineData("fr", "Le rôle demandé était déjà appliqué.")]
+    public void ZeroEventRoleCompletionShowsLocalizedExplanationAndAnnouncesExactStateLabel(string culture, string expectedExplanation)
+    {
+        UseCulture(culture);
+        ConfigureCreate(Gateway("", CommandStatus.Completed));
+        Hexalith.Tenants.Contracts.Queries.TenantDetail detail = new("tenant.alpha", "Alpha", "Description",
+            TenantStatus.Active, [new TenantMember("owner-user", TenantRole.TenantOwner), new TenantMember("reader-user", TenantRole.TenantReader)],
+            new Dictionary<string, string>(), new DateTimeOffset(2026, 10, 13, 10, 0, 0, TimeSpan.Zero));
+        IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.Detail, detail)
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.ProjectionVersion, "tenant-sequence:1"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-change-role-safe-message']").TextContent.ShouldBe(expectedExplanation));
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        localizer["Tenants.ChangeRole.State.AlreadyApplied"].ResourceNotFound.ShouldBeFalse();
+        string announcement = cut.Find("[data-testid='tenants-change-role-live-region']").TextContent.Trim();
+        announcement.ShouldBe(localizer["Tenants.ChangeRole.State.AlreadyApplied"].Value);
+        announcement.ShouldNotBe(expectedExplanation);
+        Dom(cut).ShouldNotContain("Tenants.ChangeRole.Status.AlreadyApplied");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.AlreadyApplied);
+        cut.Instance.Snapshot.HasCommandEventEvidence.ShouldBeFalse();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        cut.Instance.Snapshot.MessageId.ShouldBe(MessageId);
+        cut.Instance.Snapshot.CorrelationId.ShouldBe(CorrelationId);
+    }
+
+
+    /// <summary>Exercises operation-specific submissions and neutral status rejection copy in every member flow.</summary>
+    [Theory]
+    [InlineData("en", "add", true, "Tenants.AddMember.Rejection.TenantDisabled")]
+    [InlineData("fr", "add", true, "Tenants.AddMember.Rejection.TenantDisabled")]
+    [InlineData("en", "change", true, "Tenants.ChangeRole.Rejection.TenantDisabled")]
+    [InlineData("fr", "change", true, "Tenants.ChangeRole.Rejection.TenantDisabled")]
+    [InlineData("en", "remove", true, "Tenants.RemoveMember.Rejection.TenantDisabled")]
+    [InlineData("fr", "remove", true, "Tenants.RemoveMember.Rejection.TenantDisabled")]
+    [InlineData("en", "add", false, "Tenants.Commands.Rejection.TenantDisabled")]
+    [InlineData("fr", "add", false, "Tenants.Commands.Rejection.TenantDisabled")]
+    [InlineData("en", "change", false, "Tenants.Commands.Rejection.TenantDisabled")]
+    [InlineData("fr", "change", false, "Tenants.Commands.Rejection.TenantDisabled")]
+    [InlineData("en", "remove", false, "Tenants.Commands.Rejection.TenantDisabled")]
+    [InlineData("fr", "remove", false, "Tenants.Commands.Rejection.TenantDisabled")]
+    public void MemberFlowsRenderRealGatewayRejectionsAndAnnounceLocalizedState(
+        string culture, string operation, bool submissionRejection, string expectedKey)
+    {
+        UseCulture(culture);
+        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        if (submissionRejection)
+        {
+            client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>())
+                .Returns<SubmitCommandResponse>(_ => throw new EventStoreGatewayException(
+                    (int)HttpStatusCode.Conflict, "TenantDisabled", detail: "backend-private-Canary"));
+        }
+        else
+        {
+            client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>())
+                .Returns(new SubmitCommandResponse(CorrelationId));
+        }
+
+        IUlidFactory ulids = Substitute.For<IUlidFactory>();
+        ulids.NewUlid().Returns(MessageId);
+        string body = JsonSerializer.Serialize(new
+        {
+            messageId = MessageId, correlationId = CorrelationId,
+            status = nameof(CommandStatus.Rejected), statusCode = (int)CommandStatus.Rejected,
+            tenantId = "system", domain = "tenants", aggregateId = "tenant.alpha", eventCount = 0,
+            rejectionEventType = "TenantDisabled", failureReason = "backend-private-Canary",
+        });
+        ConfigureCreate(new TenantCommandGateway(client, ulids,
+            new HttpClient(new SupportSafetyCommandStatusHandler(body)) { BaseAddress = new Uri("https://eventstore.example/") }));
+        Hexalith.Tenants.Contracts.Queries.TenantDetail detail = new("tenant.alpha", "Alpha", "Description",
+            TenantStatus.Active, [new TenantMember("owner-user", TenantRole.TenantOwner), new TenantMember("reader-user", TenantRole.TenantReader)],
+            new Dictionary<string, string>(), new DateTimeOffset(2026, 10, 13, 10, 0, 0, TimeSpan.Zero));
+        if (operation == "add")
+        {
+            IRenderedComponent<AddTenantMemberFlow> cut = Render<AddTenantMemberFlow>(parameters => parameters
+                .Add(p => p.IsAuthorized, true)
+                .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+                .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+                .Add(p => p.Detail, detail)
+                .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+                .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+                .Add(p => p.ProjectionVersion, "tenant-sequence:1"));
+            cut.Find("[data-testid='tenants-add-member-user-id']").Change("new-user");
+            FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantContributor));
+            cut.Find("form").Submit();
+            AssertLocalizedMemberRejection(cut, "add-member", "Tenants.AddMember.State.Rejected", culture, expectedKey);
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+            cut.Instance.Snapshot.HasCommandEventEvidence.ShouldBeFalse();
+        }
+        else if (operation == "change")
+        {
+            IRenderedComponent<ChangeTenantMemberRoleFlow> cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+                .Add(p => p.IsAuthorized, true)
+                .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+                .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+                .Add(p => p.Detail, detail)
+                .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+                .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+                .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+                .Add(p => p.ProjectionVersion, "tenant-sequence:1"));
+            FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+            cut.Find("form").Submit();
+            AssertLocalizedMemberRejection(cut, "change-role", "Tenants.ChangeRole.State.Rejected", culture, expectedKey);
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+            cut.Instance.Snapshot.HasCommandEventEvidence.ShouldBeFalse();
+        }
+        else
+        {
+            var viewport = new TenantHighImpactViewportObservation();
+            viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+            Services.AddSingleton(viewport);
+            Services.AddSingleton(Substitute.For<ITenantQueryGateway>());
+            IRenderedComponent<RemoveTenantMemberFlow> cut = Render<RemoveTenantMemberFlow>(parameters => parameters
+                .Add(p => p.IsAuthorized, true)
+                .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+                .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+                .Add(p => p.AuditProofCapabilityAvailable, true)
+                .Add(p => p.Detail, detail)
+                .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+                .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+                .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+                .Add(p => p.ProjectionVersion, "tenant-sequence:1"));
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+            cut.Find("form").Submit();
+            AssertLocalizedMemberRejection(cut, "remove-member", "Tenants.RemoveMember.State.Rejected", culture, expectedKey);
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+            cut.Instance.Snapshot.HasCommandEventEvidence.ShouldBeFalse();
+        }
+    }
+
+    private void AssertLocalizedMemberRejection<T>(IRenderedComponent<T> cut, string prefix,
+        string stateKey, string culture, string expectedKey) where T : IComponent
+    {
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        localizer[expectedKey].ResourceNotFound.ShouldBeFalse();
+        localizer[stateKey].ResourceNotFound.ShouldBeFalse();
+        string expected = localizer[expectedKey].Value;
+        cut.WaitForAssertion(() => cut.Find($"[data-testid='tenants-{prefix}-safe-message']").TextContent.ShouldBe(expected));
+        cut.Find($"[data-testid='tenants-{prefix}-live-region']").TextContent.Trim().ShouldBe(localizer[stateKey].Value);
+        Dom(cut).ShouldNotContain(expectedKey);
+        Dom(cut).ShouldNotContain("backend-private-Canary");
+        Live(cut).ShouldNotContain("backend-private-Canary");
+        if (culture == "fr")
+        {
+            CultureBoundTenantsLocalizer english = new(Services.GetRequiredService<IStringLocalizerFactory>()
+                .Create(typeof(TenantsResources)), CultureInfo.GetCultureInfo("en"));
+            expected.ShouldNotBe(english[expectedKey].Value);
+            Dom(cut).ShouldNotContain(english[expectedKey].Value);
+            Live(cut).ShouldNotContain(english[stateKey].Value);
+        }
+    }
+
+    private void ConfigureCreate(ITenantCommandGateway gateway)
     {
         IUlidFactory ulids = Substitute.For<IUlidFactory>();
         ulids.NewUlid().Returns(MessageId);

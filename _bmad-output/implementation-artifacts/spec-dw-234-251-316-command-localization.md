@@ -2,7 +2,7 @@
 title: 'DW-234/DW-251/DW-316 command failure and status localization'
 type: 'bugfix'
 created: '2026-10-16'
-status: 'ready-for-dev'
+status: 'done'
 route: 'dispatch'
 baseline_commit: '6da0ed99ed87dd0c6811e9685e432f29afa151c5'
 review_loop_iteration: 0
@@ -49,12 +49,12 @@ No intent gaps or irreversible actions. Shared producers/models/resources/tests 
 
 **Execution:**
 
-- [ ] `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs` — move its fourteen types to same-directory type-named files without API changes; add keyed status factories and localize six snapshot arms.
-- [ ] `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx`, `TenantsResources.fr.resx` — pair whole messages; reused keys must match meaning/arguments.
-- [ ] `src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs`, `UnavailableTenantCommandGateway.cs`, `ITenantCommandGateway.cs` — key all affected validation/submission/rejection/status/unavailable results without changing classification or evidence checks.
-- [ ] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs` — cover the matrix and all unavailable/default entries, retaining flags, identity, code and safety assertions.
-- [ ] `tests/Hexalith.Tenants.UI.Tests/State/TenantCommandSafeMessageTests.cs` and `Components/SupportSafetyBoundaryTests.cs` — cover matrix edges and real-resource EN/FR visible/announced messages; reuse `CultureBoundTenantsLocalizer`, include stale-key replacement, progress clearing, defaults and membership expiry.
-- [ ] `_bmad-output/implementation-artifacts/deferred-work.md`, `release-readiness.md`, `docs/maintenance-backlog.md` — close these IDs after verification; reconcile counts, append evidence, preserve history.
+- [x] `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs` — move its fourteen types to same-directory type-named files without API changes; add keyed status factories and localize six snapshot arms.
+- [x] `src/Hexalith.Tenants.UI/Resources/TenantsResources.resx`, `TenantsResources.fr.resx` — pair whole messages; reused keys must match meaning/arguments.
+- [x] `src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs`, `UnavailableTenantCommandGateway.cs`, `ITenantCommandGateway.cs` — key all affected validation/submission/rejection/status/unavailable results without changing classification or evidence checks.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs` — cover the matrix and all unavailable/default entries, retaining flags, identity, code and safety assertions.
+- [x] `tests/Hexalith.Tenants.UI.Tests/State/TenantCommandSafeMessageTests.cs` and `Components/SupportSafetyBoundaryTests.cs` — cover matrix edges and real-resource EN/FR visible/announced messages; reuse `CultureBoundTenantsLocalizer`, include stale-key replacement, progress clearing, defaults and membership expiry.
+- [x] `_bmad-output/implementation-artifacts/deferred-work.md`, `release-readiness.md`, `docs/maintenance-backlog.md` — close these IDs after verification; reconcile counts, append evidence, preserve history.
 
 **Acceptance Criteria:**
 
@@ -64,9 +64,33 @@ No intent gaps or irreversible actions. Shared producers/models/resources/tests 
 
 ## Implementation Notes
 
+- All fourteen former `TenantCreateCommandModels.cs` types now have same-directory type-named files; public declarations are preserved. The gateway status DTO and existing gateway-test helper types are likewise in their own files.
+- Added 80 paired EN/FR whole-message resources, including the previously missing tracked global-administrator removal resource. Producers preserve existing fixed safe English fallbacks and flags while carrying current keys.
+- Added 164 cases across gateway, state and real-resource component coverage. Final focused 1,825/full UI 5,532 pass in both configurations; both unchanged Chromium lanes pass. See [exact evidence and remaining blockers](dw-234-251-316-validation-evidence.md).
+- Parent acceptance audit verified all task changes and the five matrix rows against the complete unified diff (including untracked files), per-type semantic comparisons, executed Debug/Release test XML and saved output hashes. All 697 validation inputs and six compiled outputs remain unchanged. Independent review findings and disposition are recorded below.
+
 ## Spec Change Log
 
 ## Review Triage Log
+
+Independent review used three context-free agents against the complete 713,160-byte unified diff, including every untracked file. Blind Hunter floor: `min(floor(sqrt(713.16) + 1), 10) = 10`; Edge Case Hunter returned no findings. Every Blind Hunter and Verification Gap finding is triaged individually below before grouping.
+
+| ID | Verdict | Route | Evidence and disposition |
+| --- | --- | --- | --- |
+| BH-1 | medium | patch | Unavailable status lookup changed from a fixed `SafeMessage` to keyed-only output, unlike its prior contract. Restore the exact safe fallback alongside the key and pin both. |
+| BH-2 | medium | patch | Configuration set/remove generic gateway failures select existing resources saying submission was unsafe, while the retained sentence says verification failed. Add operation-specific whole messages matching the original meaning; preserve the existing consumer resources. |
+| BH-3 | medium | patch | Five unknown-enum arms newly retain incoming `status.SafeMessage`; these arms previously guaranteed a fixed safe sentence. Keep the fresh key while restoring that fixed compatibility fallback, with unsafe-input state assertions. |
+| BH-4 | low | reject | Blank keys require a fabricated invalid caller result: every configured producer uses fixed nonblank keys that were checked in both resource sets. Null keys already select the tested localized fallback. No ordinary changed caller emits empty/whitespace keys; adding new validation/normalization guards is disproportionate to this negligible invalid-input case. |
+| BH-5 | medium | patch | The new 44-case submission matrix accepts any translated key, so swapping operation keys would pass. Assert the intended operation/status key in each case. |
+| BH-6 | medium | patch | The all-entry unavailable/default checks accept any translated key. Bind each concrete/default entry to its intended operation/tracked-dispatch key. |
+| BH-7 | medium | patch | Existing transport/timeout submission cases check ambiguity and identity but not the newly assigned keys. Pin operation keys and shipped resources, extending the same test to JSON/cancellation catches. Same missing transport-localization assertion root cause as VG-1. |
+| BH-8 | low | patch | Metadata already has real-gateway EN/FR coverage in `MetadataConsumerPrefersTheFreshLocalizedFailureKey` and the unsafe-detail corpus; the new rejection matrix still exercises membership meanings only through create. Add representative actual member-flow EN/FR gateway rendering coverage without duplicating the metadata coverage. |
+| BH-9 | low | patch | Change-role live markup intentionally announces `StateText`, while the new explanation is visible separately. Preserve that consumer policy and make the test name/assertion distinguish the localized visible explanation from the existing whole-state announcement. |
+| BH-10 | low | patch | The extracted internal status DTO has only a summary. Add constructor-property XML documentation, including optional identity/commit-proof semantics, as the baseline requires. |
+| VG-1 | medium | patch | Pre-verified regression gap: deleting a plain transport catch key leaves both new HTTP-exception localization matrices and the old identity-only transport checks green. Extend the existing ambiguous-delivery test with exact operation-key and shipped-resource assertions; group with BH-7 only after this individual verdict. |
+
+All accepted findings are direct code, documentation, or test corrections with no new public surface or lifecycle behavior. No intent gap, bad-spec loopback, or deferred-work entry was identified. All accepted patches are complete. The independent Blind Hunter rechecked every accepted correction and found no remaining concrete defect; the existing announcement policy is preserved. The correction-only Debug build and affected suites passed 654/654; parent Debug/maintained Release builds, focused 1,825/full UI 5,532, both unchanged Chromium runners and gitlink/whitespace checks pass after correction. The original 143-case qualification remains in the evidence JSON; final qualification contains 164 added cases and 80 resource pairs.
+
 
 ## Verification
 
