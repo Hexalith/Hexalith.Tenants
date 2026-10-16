@@ -46,6 +46,8 @@ After verified DW-234/DW-251/DW-316 command-localization closure (2026-10-16): 1
 
 After accepted DW-337 tracked-dispatch closure (2026-10-16): 133 reconciled done, 218 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 306 open. All 643 IDs remain: 337 done/306 open across 274 exact-covering maintenance rows. Six tracked operations share the existing global transport classifier, with exact same-ID retries, caller cancellation, permanent mapping and shipped EN/FR copy verified by 768 focused/5954 full UI tests in both configurations and both unchanged Chromium lanes. Only DW-337 changes; original findings/decisions, all earlier closures, archive/sprint, dependencies, unrelated records and release holds remain preserved. See [complete evidence](dw-337-validation-evidence.md) and [workflow review](spec-dw-337-tracked-dispatch-ambiguity.md). Release remains not ready.
 
+After verified DW-285 acceptance reconciliation (2026-10-16): 134 reconciled done, 217 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 305 open. All 643 IDs remain: 338 done/305 open across 273 exact-covering maintenance rows. The existing runtime reentry fix is qualified by 12 new held-dispatch cases, independent review/recheck and final Debug focused195/full UI5967, zero failures/skips. Only DW-285 closes; original findings, earlier evidence/decisions, DW-470, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-285-validation-evidence.md). Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -2852,17 +2854,25 @@ location: CreateTenantFlow
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Guard create and membership submit flows against re-entrant snapshot replacement while a dispatch is awaiting completion. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Guard create and membership submit flows against re-entrant snapshot replacement while a dispatch is awaiting completion. evidence: `CreateTenantFlow`, `AddTenantMemberFlow`, and `ChangeTenantMemberRoleFlow` can enter their unavailable branches while `_isSubmitting`, replacing the active request snapshot before the original gateway continuation applies its result.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor SubmitAsync handles UnavailableReason before guarding _isSubmitting; Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor similarly allow unavailable snapshot replacement during dispatch. Metadata gained a leading guard, but the original three remain.
+status: done 2026-10-16
+historical-status-before-dw285: open
+disposition: done
+historical-disposition-before-dw285: actionable
+historical-verification-date-before-dw285: 2026-10-12
+historical-verification-before-dw285: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor SubmitAsync handles UnavailableReason before guarding _isSubmitting; Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor similarly allow unavailable snapshot replacement during dispatch. Metadata gained a leading guard, but the original three remain.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-evidence-kind: verified-defect
+historical-evidence-kind-before-dw285: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Guard reentrant submission before any active snapshot mutation and test a held dispatch plus parameter change.
+historical-next-action-before-dw285: Guard reentrant submission before any active snapshot mutation and test a held dispatch plus parameter change.
 related: none
+verification-date: 2026-10-16
+verification: Current create/add/change SubmitAsync guards already precede authority/unavailable mutation. Twelve new actual Fluent held-dispatch cases prove freshness/support loss plus reentry preserves the exact snapshot, dispatched ID/intent, original attempt/lease/owner and full baseline through accepted/failed completion. Independent review/recheck, final Debug retained-flow 195 and full UI 5967 pass with zero failures/skips; see dw-285-validation-evidence.md.
+evidence-kind: executed-regression
+next-action: None for DW-285. DW-470 remains separately scoped.
+resolution: Acceptance reconciliation of the existing runtime fix; only regression coverage and DW-285 disposition change. Original finding and pre-closure verification/actions are preserved above.
+
 
 ### DW-286: Require current authoritative projection state for create and membership command confirmation evidence
 

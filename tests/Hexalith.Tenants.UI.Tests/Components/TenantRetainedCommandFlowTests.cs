@@ -102,6 +102,132 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         gateway.ReceivedCalls().Count(call => call.GetMethodInfo().Name == DispatchName(kind is "create" ? "add" : "create")).ShouldBe(0);
     }
 
+    /// <summary>Unavailable parameters and reentry cannot replace a request whose delivery is pending.</summary>
+    [Theory]
+    [InlineData("create", "freshness", true)]
+    [InlineData("create", "freshness", false)]
+    [InlineData("create", "command-surface", true)]
+    [InlineData("create", "command-surface", false)]
+    [InlineData("add", "freshness", true)]
+    [InlineData("add", "freshness", false)]
+    [InlineData("add", "command-surface", true)]
+    [InlineData("add", "command-surface", false)]
+    [InlineData("change", "freshness", true)]
+    [InlineData("change", "freshness", false)]
+    [InlineData("change", "command-surface", true)]
+    [InlineData("change", "command-surface", false)]
+    public async Task HeldSubmissionPreservesOriginalEvidenceWhenAvailabilityChanges(string kind, string deniedGate, bool accepted)
+    {
+        var delivery = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        object? dispatchedIntent = null;
+        string? dispatchedMessageId = null;
+        ITenantCommandGateway gateway = RegisterGateway((intent, id) =>
+        {
+            dispatchedIntent = intent;
+            dispatchedMessageId = id;
+            return delivery.Task;
+        });
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind);
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        Submit(kind, cut, send: false);
+        Task submission = InvokeSubmissionAsync(cut, component);
+        try
+        {
+            await WaitForAsync(() => DispatchCount(gateway, kind) == 1);
+            object initial = Snapshot(component);
+            string messageId = Property<string>(initial, "MessageId").ShouldNotBeNull();
+            messageId.ShouldNotBeNullOrWhiteSpace();
+            dispatchedMessageId.ShouldBe(messageId);
+            dispatchedIntent.ShouldBe(Property<object>(initial, "Intent"));
+            FieldInfo attemptField = component.GetType().GetField("_retainedAttempt", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            TenantRetainedCommandAttempt originalAttempt = ((TenantRetainedCommandAttempt?)attemptField.GetValue(component)).ShouldNotBeNull();
+            TenantAggregateCommandLease originalLease = originalAttempt.Lease;
+            object originalOwner = originalAttempt.LeaseOwner;
+            Property<TenantCommandLifecycleState>(initial, "State").ShouldBe(TenantCommandLifecycleState.RequestSent);
+            Property<string>(initial, "BaselineProjectionVersion").ShouldBe("tenant-sequence:1");
+            ReadRetained(tracker, kind).ShouldBeSameAs(initial);
+
+            var parameters = new Dictionary<string, object?>();
+            if (deniedGate is "command-surface")
+            {
+                parameters["IsCommandSurfaceAvailable"] = false;
+            }
+            else if (kind is "create")
+            {
+                parameters["IsFresh"] = false;
+            }
+            else
+            {
+                parameters["Freshness"] = ReadModelFreshnessState.Stale;
+            }
+            await cut.InvokeAsync(() => ((IComponent)component).SetParametersAsync(ParameterView.FromDictionary(parameters)));
+            Snapshot(component).ShouldBeSameAs(initial);
+            await InvokeSubmissionAsync(cut, component).WaitAsync(TimeSpan.FromSeconds(5));
+            Snapshot(component).ShouldBeSameAs(initial);
+            ReadRetained(tracker, kind).ShouldBeSameAs(initial);
+            tracker.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+            attemptField.GetValue(component).ShouldBeSameAs(originalAttempt);
+            tracker.IsAttached(originalAttempt, component).ShouldBeTrue();
+            originalAttempt.Lease.ShouldBeSameAs(originalLease);
+            originalLease.CurrentOwner.ShouldBeSameAs(originalOwner);
+            originalLease.IsDispatchMarked.ShouldBeTrue();
+            originalLease.IsReleased.ShouldBeFalse();
+            gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+            gate.TryAcquire(TenantCommandAggregateLock.ForTenant("tenant.alpha"), new object()).ShouldBeFalse();
+            DispatchCount(gateway, kind).ShouldBe(1);
+
+            delivery.SetResult(accepted
+                ? TenantCommandSubmissionResult.Accepted(messageId, "correlation-original")
+                : TenantCommandSubmissionResult.Failed("Command submission failed safely."));
+            await submission.WaitAsync(TimeSpan.FromSeconds(5));
+            object latest = Snapshot(component);
+            Property<string>(latest, "MessageId").ShouldBe(messageId);
+            Property<object>(latest, "Intent").ShouldBe(Property<object>(initial, "Intent"));
+            Property<string>(latest, "BaselineProjectionVersion").ShouldBe(Property<string>(initial, "BaselineProjectionVersion"));
+            Property<string>(latest, "CorrelationId").ShouldBe(accepted ? "correlation-original" : null);
+            Property<TenantCommandLifecycleState>(latest, "State").ShouldBe(accepted
+                ? TenantCommandLifecycleState.Accepted : TenantCommandLifecycleState.Failed);
+            Property<string>(latest, "SafeMessage").ShouldBe(accepted ? null : "Command submission failed safely.");
+            Property<string>(latest, "SafeMessageKey").ShouldBeNull();
+            if (initial is TenantCreateCommandSnapshot originalCreate)
+            {
+                TenantCreateCommandSnapshot latestCreate = latest.ShouldBeOfType<TenantCreateCommandSnapshot>();
+                latestCreate.BaselineTenantAbsent.ShouldBe(originalCreate.BaselineTenantAbsent);
+                latestCreate.BaselineDetailProjectionVersion.ShouldBe(originalCreate.BaselineDetailProjectionVersion);
+                latestCreate.AttemptStartedAtUtc.ShouldBe(originalCreate.AttemptStartedAtUtc);
+            }
+            else
+            {
+                Property<bool>(latest, "BaselinePostconditionMet").ShouldBe(Property<bool>(initial, "BaselinePostconditionMet"));
+                Property<object>(latest, "LastConfirmedMemberProjection").ShouldBe(Property<object>(initial, "LastConfirmedMemberProjection"));
+                if (kind is "change")
+                {
+                    Property<TenantRole>(latest, "CurrentConfirmedRole").ShouldBe(Property<TenantRole>(initial, "CurrentConfirmedRole"));
+                    Property<int>(latest, "OwnerCount").ShouldBe(Property<int>(initial, "OwnerCount"));
+                }
+            }
+            ReadRetained(tracker, kind).ShouldBeSameAs(latest);
+            attemptField.GetValue(component).ShouldBeSameAs(originalAttempt);
+            tracker.IsAttached(originalAttempt, component).ShouldBeTrue();
+            originalAttempt.Lease.ShouldBeSameAs(originalLease);
+            originalLease.IsReleased.ShouldBe(!accepted);
+            if (accepted)
+            {
+                originalLease.CurrentOwner.ShouldBeSameAs(originalOwner);
+                originalLease.IsDispatchMarked.ShouldBeTrue();
+            }
+            tracker.HasPendingOwnership("tenant.alpha").ShouldBe(accepted);
+            gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBe(accepted);
+            DispatchCount(gateway, kind).ShouldBe(1);
+        }
+        finally
+        {
+            delivery.TrySetResult(TenantCommandSubmissionResult.Failed("Test cleanup."));
+            await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+    }
+
     [Theory]
     [InlineData("create")]
     [InlineData("add")]
