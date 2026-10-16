@@ -1384,27 +1384,11 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 archived: 2026-10-12
 
 ### DW-176: Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565
-reason: The legacy ledger defers this issue: Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply. Original context is preserved in legacy-detail.
-legacy-detail: - Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565]
-status: done 2026-10-15
-decision: 2026-08-26 Replaceable bounded CTS — Use a replaceable cancellation source plus the shared configured authorization bound.
-decision: 2026-08-25 Bounded workspace policy — Use a replaceable cancellation source plus the shared configured authorization bound.
-disposition: done
-verification-date: 2026-10-15
-historical-verification-before-consumer-acceptance: Necessary workspace entry/create replaceable cancellation and shared bound wiring is present in DW-173. This related consumer record deliberately remains open for a separately scoped reconciliation of its full workspace caller/navigation/recovery acceptance; shared-provider closure is not blanket consumer closure. See dw-166-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: executed-regression
-priority: P2
-owner: unassigned
-dependencies: DW-173
-historical-next-action-before-consumer-acceptance: Reconcile and separately qualify the remaining consumer acceptance against current shared-bound wiring; do not infer closure from DW-173.
-related: DW-173
 
-verification: Current source reuses DW-173 shared configured policy and replaceable entry/create cancellation. Rendered current-caller entry/audit binding, active view/actual alias-route invalidation, first/final create admission lease release, late success/fault after replacement, explicit recovery and disposal are proven; dispatched ownership remains intact. Independent review/rechecks, focused849 and full UI5134 in Debug/maintained Release, both unchanged Chromium lanes and2150 stable input hashes pass. See dw-176-validation-evidence.md.
-next-action: None for this record; scoped consumer acceptance is closed. Release/provenance holds remain in release-readiness.md.
-resolution: Closed only by DW-176/DW-184 consumer acceptance reconciliation; historical finding, settled decisions and pre-bundle verification/actions remain above.
+status: done 2026-10-15
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
+priority: P2
+archived: 2026-10-16
 
 ### DW-177: Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
@@ -1495,27 +1479,11 @@ priority: P2
 archived: 2026-10-15
 
 ### DW-184: ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603
-reason: The legacy ledger defers this issue: ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes. Original context is preserved in legacy-detail.
-legacy-detail: - ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603]
-status: done 2026-10-15
-decision: 2026-08-26 Bound authentication wait — Apply the shared authorization timeout and cancellation policy and leave the entry hidden on timeout.
-decision: 2026-08-25 Bound authentication wait — Apply the shared authorization timeout and cancellation policy and leave the entry hidden on timeout.
-disposition: done
-verification-date: 2026-10-15
-historical-verification-before-consumer-acceptance: Necessary workspace authentication-event wait now uses the shared configured deadline and replaceable cancellation, clears current pending state on expiry and retains hidden authority. This related consumer record deliberately remains open for separately scoped authentication-event/provider acceptance reconciliation. See dw-166-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: executed-regression
-priority: P2
-owner: unassigned
-dependencies: DW-173
-historical-next-action-before-consumer-acceptance: Reconcile and separately qualify the remaining consumer acceptance against current shared-bound wiring; do not infer closure from DW-173.
-related: DW-173
 
-verification: Current source reuses DW-173 bounded authentication-event wait. Held initial/event evidence expires closed to Indeterminate; actual recovery reacquires pending/expired/current provider evidence, synchronous faults retire prior waits, and obsolete success/fault cannot restore authority, collapse the newer caller, dispatch or start post-disposal work. Independent review/rechecks, focused849 and full UI5134 in Debug/maintained Release, both unchanged Chromium lanes and2150 stable input hashes pass. See dw-176-validation-evidence.md.
-next-action: None for this record; scoped consumer acceptance is closed. Release/provenance holds remain in release-readiness.md.
-resolution: Closed only by DW-176/DW-184 consumer acceptance reconciliation; historical finding, settled decisions and pre-bundle verification/actions remain above.
+status: done 2026-10-15
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
+priority: P2
+archived: 2026-10-16
 
 ### DW-185: Member Next stays enabled when HasMore has blank NextCursor — deferred, MemberAccessReview not in this story File List; page already no-ops; pre-existing pager honesty gap
 
@@ -2127,29 +2095,12 @@ source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection
 archived: 2026-10-12
 
 ### DW-234: Gateway and snapshot safe-message strings are still hard-coded English
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation (2026-08-20)"), 2026-08-25
-location: TenantCommandGateway
-source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
-reason: The legacy ledger defers this issue: Gateway and snapshot safe-message strings are still hard-coded English. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Gateway and snapshot safe-message strings are still hard-coded English. evidence: `TenantCommandGateway` returns raw `SafeMessage` text and `TenantCreateCommandModels` hard-codes strings with `SafeMessageKey = null`; `DisplaySafeMessage` renders them verbatim, so French users see English on exactly the paths the `SafeMessageKey` mechanism was introduced to fix.
-status: done 2026-10-16
-disposition: done
-historical-verification-date-before-command-localization: 2026-10-12
-historical-verification-before-command-localization: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs validation/failure mappings and State/TenantCommands/TenantCreateCommandModels.cs still emit English SafeMessage strings without keys; flows render them verbatim when SafeMessageKey is null.
-historical-verification-files-before-command-localization: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-historical-evidence-kind-before-command-localization: verified-defect
-priority: P2
-owner: unassigned
-dependencies: none
-historical-next-action-before-command-localization: Convert shared failure/status results to whole-string EN/FR keys and preserve those keys in flows.
-related: DW-251, DW-316
-verification-date: 2026-10-16
-verification: Configured validation/submission/rejection/status results, all concrete unavailable entries and all interface defaults carry whole-string EN/FR resources. The five unknown-status snapshot arms retain current keys or localized fallback; zero-event role completion is localized. Final focused 1,825/full UI 5,532 pass in Debug source and maintained Release, zero failures/skips; both unchanged Chromium lanes pass. Exact commands and initial failures are retained in dw-234-251-316-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantAddMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantChangeRoleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
-evidence-kind: executed-regression
-next-action: None for DW-234/DW-251/DW-316; DW-323 and all unrelated decisions and qualification holds remain separately scoped.
-resolution: Only this localization bundle closes. Whole-message keys survive typed state and resolve at existing rendering/announcement boundaries, preserving classification, retry/pending/ambiguity flags, identity, admission, proof, audit and membership expiry guidance. Original findings, legacy detail and pre-closure verification/actions remain above. Independent workflow review follows the implementation handoff and is tracked in the owning spec; this closure does not establish release readiness.
 
+status: done 2026-10-16
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-1-reverify-projection-confirmed-membership-command-foundation (2026-08-20)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+priority: P2
+archived: 2026-10-16
 
 ### DW-235: Fail membership action availability closed against live authorization reflection
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -2283,27 +2234,12 @@ next-action: Align rejected recovery copy with rendered actions or provide the e
 related: none
 
 ### DW-245: Preserve queued projection-refresh intent in add-member and change-role flows
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
-reason: The legacy ledger defers this issue: Preserve queued projection-refresh intent in add-member and change-role flows. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Preserve queued projection-refresh intent in add-member and change-role flows. evidence: Both sibling flows collapse a projection refresh requested during an in-flight status-only refresh into a follow-up call with `requestProjectionRefresh: false`, so authoritative projection confirmation can remain pending.
+
 status: done 2026-10-16
-disposition: done
-historical-verification-date-before-queued-intent: 2026-10-12
-verification-date: 2026-10-16
-historical-verification-before-queued-intent: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-historical-evidence-kind-before-queued-intent: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 priority: P2
-owner: unassigned
-dependencies: shared membership refresh coalescer
-historical-next-action-before-queued-intent: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
-related: DW-245, DW-265, DW-290, DW-248
-verification: Both membership flows now OR and consume queued status/projection intent per generation-tagged batch under a local atomic enqueue/idle handoff. Held actual Fluent regressions prove every coalesced replay, arrivals during status/reload/evidence, initial/replay failures, exact request counts, terminal/disposed retirement, late retained evidence and current-generation replacement without redispatch or overlap. Independent review/recheck, 62 new cases, focused462/full UI5196 in Debug/maintained Release, unchanged Chromium lanes and2151 stable validation inputs pass. See dw-245-validation-evidence.md.
-next-action: None for this duplicate bundle; only DW-245/DW-265/DW-290 close. DW-248/DW-266/DW-267 and release/provenance holds remain separately tracked.
-resolution: Queued projection-refresh intent is proven under the owning Story2.1/2.4 acceptance. Historical finding, source references and pre-bundle verification/actions remain above; no generic shared-plumbing closure is claimed.
+archived: 2026-10-16
 
 ### DW-246: Reconcile story gitlink validation with the seven post-baseline dependency pointer changes
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -2324,30 +2260,12 @@ next-action: Record exact story end/provenance, retaining later dependency chang
 related: DW-198
 
 ### DW-247: No-advancement ProjectionPending has no in-place terminal escape
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
-reason: The legacy ledger defers this issue: No-advancement ProjectionPending has no in-place terminal escape. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: No-advancement ProjectionPending has no in-place terminal escape. evidence: When the postcondition matches and the command produced events but ordered provenance cannot bind the observed version to the attempt, all three membership snapshots stay ProjectionPending; TenantCommandFlowGuard.RetainsCommandActivity holds the lease and CanContinueReadOnly excludes that state, so no continue-read-only affordance renders. A fix mapping this to UnableToVerify was drafted and reverted during review: the I/O matrix permits "stay pending or unable to verify", and six tests deliberately pin ProjectionPending, making this a product decision. Recoverable today via route change or page disposal, both of which release the lease.
-status: done 2026-10-16
-decision: 2026-08-26 Bound to UnableToVerify — After a configured retry or time bound, transition to UnableToVerify with status recovery and support-safe guidance.
-decision: 2026-08-25 Bound to UnableToVerify — After a configured retry or time bound, transition the retained attempt to UnableToVerify with status-recovery and support-safe guidance.
-disposition: done
-historical-verification-date-before-membership-bound: 2026-10-12
-historical-verification-before-membership-bound: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs membership confirmers retain ProjectionPending without qualifying advancement; TenantCommandFlowGuard.RetainsCommandActivity keeps it locked and CanContinueReadOnly excludes it. No membership time/poll budget implements the recorded 2026-08-25/26 UnableToVerify decision.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-historical-evidence-kind-before-membership-bound: verified-defect
-priority: P2
-owner: unassigned
-dependencies: configured membership budget
-historical-next-action-before-membership-bound: Apply the already-selected bounded retry/time transition to UnableToVerify with recovery.
-related: DW-323
-verification-date: 2026-10-16
-verification: Retained add/change/remove membership attempts use one configured monotonic deadline from their first ProjectionPending transition. Expiry presents localized UnableToVerify without I/O, cancellation, fabricated terminal outcome or admission release; exact qualified late evidence still reconciles. 172 deterministic state/actual Fluent cases, focused 657/full UI 5368 in Debug and maintained Release, unchanged Chromium lanes and independent review/recheck pass. Initial Release Chromium-hang guard timeout is retained with passing focused/full rechecks; no timeout or gate changed. See dw-247-validation-evidence.md.
-evidence-kind: executed-regression
-next-action: None for DW-247; related lifecycle poll-budget DW-323 and shared-plumbing DW-248/DW-266/DW-267 remain open and separately scoped.
-resolution: The settled August25/26 bounded UnableToVerify decision is implemented and qualified. Original finding, legacy detail, both decisions and pre-closure verification/actions remain above. Recovery, Continue read-only, replacement/remount and disposal retain exact unresolved command ownership. Only DW-247 closes; full release readiness is not established.
 
+status: done 2026-10-16
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
+priority: P2
+archived: 2026-10-16
 
 ### DW-248: Refresh-coalescing re-enters recursively instead of iterating
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -2382,29 +2300,12 @@ source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadat
 archived: 2026-10-12
 
 ### DW-251: Hard-coded English strings remain on paths this story made localizable
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-21)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
-reason: The legacy ledger defers this issue: Hard-coded English strings remain on paths this story made localizable. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Hard-coded English strings remain on paths this story made localizable. evidence: TenantCreateCommandModels.cs:1165 default ApplyStatus arm ("Command status could not be verified.") and TenantCommandGateway.cs validation literal. Both verified as pre-existing context lines in the diff, not introduced by this story.
-status: done 2026-10-16
-disposition: done
-historical-verification-date-before-command-localization: 2026-10-12
-historical-verification-before-command-localization: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs default status failures and Services/Gateways/TenantCommandGateway.cs validation literals remain English without resource keys.
-historical-verification-files-before-command-localization: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
-historical-evidence-kind-before-command-localization: verified-defect
-priority: P2
-owner: unassigned
-dependencies: none
-historical-next-action-before-command-localization: Localize the remaining status/validation branches in the shared pass.
-related: DW-234, DW-316
-verification-date: 2026-10-16
-verification: Configured validation/submission/rejection/status results, all concrete unavailable entries and all interface defaults carry whole-string EN/FR resources. The five unknown-status snapshot arms retain current keys or localized fallback; zero-event role completion is localized. Final focused 1,825/full UI 5,532 pass in Debug source and maintained Release, zero failures/skips; both unchanged Chromium lanes pass. Exact commands and initial failures are retained in dw-234-251-316-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantAddMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantChangeRoleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
-evidence-kind: executed-regression
-next-action: None for DW-234/DW-251/DW-316; DW-323 and all unrelated decisions and qualification holds remain separately scoped.
-resolution: Only this localization bundle closes. Whole-message keys survive typed state and resolve at existing rendering/announcement boundaries, preserving classification, retry/pending/ambiguity flags, identity, admission, proof, audit and membership expiry guidance. Original findings, legacy detail and pre-closure verification/actions remain above. Independent workflow review follows the implementation handoff and is tracked in the owning spec; this closure does not establish release readiness.
 
+status: done 2026-10-16
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+priority: P2
+archived: 2026-10-16
 
 ### DW-252: EditTenantMetadataFlow.ApplyProjectionEvidence and ApplySignalRNudge have no callers; the story threaded a projection version into a dead entry point
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-21)"), 2026-08-25
@@ -2612,27 +2513,11 @@ closure-evidence: `_bmad-output/implementation-artifacts/b7-validation-evidence.
 related: DW-206, DW-235
 
 ### DW-265: Refresh coalescing downgrades a user-initiated projection refresh to a status-only refresh and re-enters recursively
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: AddTenantMemberFlow.razor:513-541; ChangeTenantMemberRoleFlow.razor:572-600
-reason: The legacy ledger defers this issue: Refresh coalescing downgrades a user-initiated projection refresh to a status-only refresh and re-enters recursively. Original context is preserved in legacy-detail.
-legacy-detail: - summary: Refresh coalescing downgrades a user-initiated projection refresh to a status-only refresh and re-enters recursively. evidence: `AddTenantMemberFlow.razor:513-541` and the verbatim duplicate at `ChangeTenantMemberRoleFlow.razor:572-600` hard-code `requestProjectionRefresh: false` on every replay, so a Refresh pressed during an in-flight nudge never re-reads the projection. The post-`finally` tail re-enters the same method rather than looping. Already recorded from the story 2.1 review; a shared helper should be extracted rather than fixing three copies.
+
 status: done 2026-10-16
-disposition: done
-historical-verification-date-before-queued-intent: 2026-10-12
-verification-date: 2026-10-16
-historical-verification-before-queued-intent: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-historical-evidence-kind-before-queued-intent: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
 priority: P2
-owner: unassigned
-dependencies: shared membership refresh coalescer
-historical-next-action-before-queued-intent: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
-related: DW-245, DW-265, DW-290, DW-248
-duplicate-of: DW-245
-verification: Both membership flows now OR and consume queued status/projection intent per generation-tagged batch under a local atomic enqueue/idle handoff. Held actual Fluent regressions prove every coalesced replay, arrivals during status/reload/evidence, initial/replay failures, exact request counts, terminal/disposed retirement, late retained evidence and current-generation replacement without redispatch or overlap. Independent review/recheck, 62 new cases, focused462/full UI5196 in Debug/maintained Release, unchanged Chromium lanes and2151 stable validation inputs pass. See dw-245-validation-evidence.md.
-next-action: None for this duplicate bundle; only DW-245/DW-265/DW-290 close. DW-248/DW-266/DW-267 and release/provenance holds remain separately tracked.
-resolution: Queued projection-refresh intent is proven under the owning Story2.1/2.4 acceptance. Historical finding, source references and pre-bundle verification/actions remain above; no generic shared-plumbing closure is claimed.
+archived: 2026-10-16
 
 ### DW-266: `AsyncLocal<bool>` is the wrong primitive for dispatcher-bound re-entrancy state
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2849,30 +2734,12 @@ next-action: Dispatch through the first component, remount using real scoped ser
 related: none
 
 ### DW-285: Guard create and membership submit flows against re-entrant snapshot replacement while a dispatch is awaiting completion
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: CreateTenantFlow
-source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
-reason: The legacy ledger defers this issue: Guard create and membership submit flows against re-entrant snapshot replacement while a dispatch is awaiting completion. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Guard create and membership submit flows against re-entrant snapshot replacement while a dispatch is awaiting completion. evidence: `CreateTenantFlow`, `AddTenantMemberFlow`, and `ChangeTenantMemberRoleFlow` can enter their unavailable branches while `_isSubmitting`, replacing the active request snapshot before the original gateway continuation applies its result.
-status: done 2026-10-16
-historical-status-before-dw285: open
-disposition: done
-historical-disposition-before-dw285: actionable
-historical-verification-date-before-dw285: 2026-10-12
-historical-verification-before-dw285: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor SubmitAsync handles UnavailableReason before guarding _isSubmitting; Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor similarly allow unavailable snapshot replacement during dispatch. Metadata gained a leading guard, but the original three remain.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-historical-evidence-kind-before-dw285: verified-defect
-priority: P2
-owner: unassigned
-dependencies: none
-historical-next-action-before-dw285: Guard reentrant submission before any active snapshot mutation and test a held dispatch plus parameter change.
-related: none
-verification-date: 2026-10-16
-verification: Current create/add/change SubmitAsync guards already precede authority/unavailable mutation. Twelve new actual Fluent held-dispatch cases prove freshness/support loss plus reentry preserves the exact snapshot, dispatched ID/intent, original attempt/lease/owner and full baseline through accepted/failed completion. Independent review/recheck, final Debug retained-flow 195 and full UI 5967 pass with zero failures/skips; see dw-285-validation-evidence.md.
-evidence-kind: executed-regression
-next-action: None for DW-285. DW-470 remains separately scoped.
-resolution: Acceptance reconciliation of the existing runtime fix; only regression coverage and DW-285 disposition change. Original finding and pre-closure verification/actions are preserved above.
 
+status: done 2026-10-16
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
+priority: P2
+archived: 2026-10-16
 
 ### DW-286: Require current authoritative projection state for create and membership command confirmation evidence
 
@@ -2906,28 +2773,12 @@ source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadat
 archived: 2026-10-12
 
 ### DW-290: Preserve a queued manual projection refresh when add-member or change-role reconciliation is already processing a status-only nudge
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
-reason: The legacy ledger defers this issue: Preserve a queued manual projection refresh when add-member or change-role reconciliation is already processing a status-only nudge. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Preserve a queued manual projection refresh when add-member or change-role reconciliation is already processing a status-only nudge. evidence: Both membership flows return from an in-flight refresh without recording that the later caller requested projection reload, so the user-requested refresh can be dropped and confirmation delayed indefinitely.
+
 status: done 2026-10-16
-disposition: done
-historical-verification-date-before-queued-intent: 2026-10-12
-verification-date: 2026-10-16
-historical-verification-before-queued-intent: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-historical-evidence-kind-before-queued-intent: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 priority: P2
-owner: unassigned
-dependencies: shared membership refresh coalescer
-historical-next-action-before-queued-intent: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
-related: DW-245, DW-265, DW-290, DW-248
-duplicate-of: DW-245
-verification: Both membership flows now OR and consume queued status/projection intent per generation-tagged batch under a local atomic enqueue/idle handoff. Held actual Fluent regressions prove every coalesced replay, arrivals during status/reload/evidence, initial/replay failures, exact request counts, terminal/disposed retirement, late retained evidence and current-generation replacement without redispatch or overlap. Independent review/recheck, 62 new cases, focused462/full UI5196 in Debug/maintained Release, unchanged Chromium lanes and2151 stable validation inputs pass. See dw-245-validation-evidence.md.
-next-action: None for this duplicate bundle; only DW-245/DW-265/DW-290 close. DW-248/DW-266/DW-267 and release/provenance holds remain separately tracked.
-resolution: Queued projection-refresh intent is proven under the owning Story2.1/2.4 acceptance. Historical finding, source references and pre-bundle verification/actions remain above; no generic shared-plumbing closure is claimed.
+archived: 2026-10-16
 
 ### DW-291: Reconcile Epic 3 tracker state so an epic and retrospective are not marked done while Story 3.2 is in review and Stories 3.3 through 3.6 remain backlog
 
@@ -3239,27 +3090,11 @@ priority: P1
 archived: 2026-10-14
 
 ### DW-316: Localize all `UnavailableTenantCommandGateway` failure results
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview.md (2026-08-25)"), 2026-08-26
-location: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs
-reason: All 13 members return the raw English text "Tenant command gateway configuration is missing." instead of the localized `FailedWithKey("Tenants.Lifecycle.Unavailable.CommandSurface")` default, so a French operator sees untranslated failures. Change the class in one pass to avoid split behavior.
-status: done 2026-10-16
-disposition: done
-historical-verification-date-before-command-localization: 2026-10-12
-historical-verification-before-command-localization: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs tracked methods now return keys, but create/member/update and legacy untracked methods/status still emit English configuration-missing text. The original all-13 claim is narrowed, not fully resolved.
-historical-verification-files-before-command-localization: src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs
-historical-evidence-kind-before-command-localization: verified-defect
-priority: P2
-owner: unassigned
-dependencies: none
-historical-next-action-before-command-localization: Localize every remaining unavailable result in one pass and retain keyed results throughout UI mapping.
-related: DW-234, DW-251
-verification-date: 2026-10-16
-verification: Configured validation/submission/rejection/status results, all concrete unavailable entries and all interface defaults carry whole-string EN/FR resources. The five unknown-status snapshot arms retain current keys or localized fallback; zero-event role completion is localized. Final focused 1,825/full UI 5,532 pass in Debug source and maintained Release, zero failures/skips; both unchanged Chromium lanes pass. Exact commands and initial failures are retained in dw-234-251-316-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantAddMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantChangeRoleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandStatusResult.cs; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
-evidence-kind: executed-regression
-next-action: None for DW-234/DW-251/DW-316; DW-323 and all unrelated decisions and qualification holds remain separately scoped.
-resolution: Only this localization bundle closes. Whole-message keys survive typed state and resolve at existing rendering/announcement boundaries, preserving classification, retry/pending/ambiguity flags, identity, admission, proof, audit and membership expiry guidance. Original findings, legacy detail and pre-closure verification/actions remain above. Independent workflow review follows the implementation handoff and is tracked in the owning spec; this closure does not establish release readiness.
 
+status: done 2026-10-16
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview.md (2026-08-25)"), 2026-08-26
+priority: P2
+archived: 2026-10-16
 
 ### DW-317: Repair inert `__form` scoped CSS selectors on configuration and lifecycle flows
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
@@ -3599,29 +3434,13 @@ next-action: Run the real grant-preview keyboard/focus/viewport sequence and pre
 related: DW-345, DW-357, DW-359
 
 ### DW-337: Identical transport conditions are classified two different ways depending on which tracked command was dispatched.
+
+status: done 2026-10-16
 origin: spec-deferred 61e82d34cb29
-location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:258
 source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 severity: low
-reason: `SetGlobalAdministratorTrackedAsync` now treats a retryable EventStoreGatewayException and a plain OperationCanceledException as same-identity ambiguity, while `SetTenantConfigurationTrackedAsync`, `RemoveTenantConfigurationTrackedAsync`, `EnableTenantTrackedAsync`, and `DisableTenantTrackedAsync` still key off status codes and `TaskCanceledException` alone. Those four are unchanged pre-existing behaviour outside this story's fixed-scope intent; a decision on whether the grant rule supersedes them would settle it.
-status: done 2026-10-16
-decision: 2026-09-06 Unify ambiguity semantics — Extract one shared retryable-transport classifier and apply the global-administrator same-identity ambiguity rule to configuration and lifecycle tracked dispatch, with parity tests.
-decision: 2026-09-06 Unify ambiguity semantics — Extract one shared retryable-transport classifier and apply the global-administrator same-identity ambiguity rule to configuration and lifecycle tracked dispatch, with parity tests.
-disposition: done
-historical-verification-date-before-dw337: 2026-10-12
-historical-verification-before-dw337: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs global tracked dispatch contains plain OperationCanceledException and IsRetryable ambiguity, while configuration/lifecycle paths still catch TaskCanceledException and status-specific conditions. Existing 2026-09-06 unified classifier decision is pending.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
-historical-evidence-kind-before-dw337: verified-defect
 priority: P2
-owner: unassigned
-dependencies: none
-historical-next-action-before-dw337: Extract the settled retryable-transport classifier and assert parity for identical failures across commands.
-related: none
-verification-date: 2026-10-16
-verification: One shared private classifier applies the existing global transport rule before permanent mappers in all six tracked operations. Independent parent diff and final TRX audit passes all eight frozen matrix rows: 768 focused and 5954 full UI cases in Debug/maintained Release, zero failures/skips, both unchanged Chromium lanes. Exact retries retain ID/scope/payload and one send per invocation; caller cancellation, terminal/domain mappings and shipped EN/FR resources are pinned. See dw-337-validation-evidence.md and the owning spec review record.
-evidence-kind: executed-regression
-next-action: None for DW-337. DW-285/DW-470 acceptance reconciliation, DW-469 audit identity, DW-625 recovery and all separate release holds remain open.
-resolution: Implements the settled 2026-09-06 unified ambiguity decision; only DW-337 closes. Original finding, duplicated settled decisions and pre-fix verification/action values remain above.
+archived: 2026-10-16
 
 ### DW-338: Nothing in this repository pins EventStore's command-status contract, which the grant lifecycle reasons over directly.
 
