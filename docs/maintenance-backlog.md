@@ -50,18 +50,20 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 136 |
+| done | 137 |
 | actionable | 215 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
-| uncertain | 38 |
+| uncertain | 37 |
 
-**Remaining: 303 open records across 271 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 302 open records across 270 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
-**Current implementation completed:** DW-331; prior DW-470 and DW-285 closures are preserved. No further implementation bundle is selected here. DW-323 remains separately scoped and DW-121 remains Builds-owned. This closure does not establish full release readiness.
+**DW-468 closure (2026-10-16):** The formatter uses the supported Allman value and CONTRIBUTING.md matches the existing baseline. Separate owning-project formatter checks and pinned-SDK positive/negative/autofix controls pass after independent review corrections. [Exact reproduction, complete probe runner, historical formatting failures and workspace limitations](../_bmad-output/implementation-artifacts/dw-468-validation-evidence.md) preserve the remaining limits. Only DW-468 and its row close: 341 done/302 open across 643 IDs, 270 rows; 137 reconciled done/215 actionable/37 uncertain. Original fields/legacy detail, application/test sources, prior closures/evidence, archive/sprint, dependencies and release holds remain preserved.
+
+**Current implementation completed:** DW-468; prior DW-331, DW-470 and DW-285 closures are preserved. No further implementation bundle is selected here. DW-606 formatting work and DW-323 remain separately scoped; DW-121 remains Builds-owned. This closure does not establish full release readiness.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -309,7 +311,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-630 | P2 | Recommendation / uncertain | unassigned | Module manifest v2 inventory contract | Confirm required inventory completeness, then map every required decorated operation. |
 | DW-276 | P3 | Unverified / uncertain | unassigned | none | Hold an existing lease and exercise each refusal path to establish the intended flag/owner behavior. |
 | DW-332 | P3 | Unverified / uncertain | unassigned | none | Drive a controlled evidence transition during a render and capture the resulting associations before choosing a fix. |
-| DW-468 | P3 | Unverified / uncertain | unassigned | Focused current formatter reproduction | Rerun the exact read-only whitespace command recorded in the 2026-10-01 addendum and inspect effective formatting configuration if the conflict persists. |
 | DW-160 | P3 | Recommendation / actionable | unassigned | none | Replace adapter-backed cases with ITenantsRestQueryClient substitutes when the gateway fixture is next maintained. |
 | DW-178 | P3 | Recommendation / actionable | unassigned | none | Short-circuit unchanged authority scope or document why each parameter update requires a fresh resolve. |
 | DW-246 | P3 | Recommendation / actionable | unassigned | DW-198 | Record exact story end/provenance, retaining later dependency changes outside the old story. |

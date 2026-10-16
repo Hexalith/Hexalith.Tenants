@@ -172,7 +172,7 @@ Code style is enforced via [`.editorconfig`](.editorconfig) (inherited from Even
 **Key conventions:**
 
 - File-scoped namespaces (`namespace X.Y.Z;`)
-- K&R braces (opening brace on the same line)
+- Allman braces (opening brace on a new line)
 - `_camelCase` private fields
 - 4-space indentation
 - Warnings as errors

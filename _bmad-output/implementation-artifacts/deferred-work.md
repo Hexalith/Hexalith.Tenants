@@ -52,6 +52,8 @@ After verified DW-470 acceptance reconciliation (2026-10-16): 135 reconciled don
 
 After validated DW-331 closure (2026-10-16): 136 reconciled done, 215 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 303 open. All 643 IDs remain: 340 done/303 open across 271 exact-covering maintenance rows. The pure removal evaluator rejects contradictory complete-population scope with the existing IncompletePopulation outcome; nine new behavioral cases preserve grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. One intermittent unchanged correction-test failure and its passing isolated/full rechecks are preserved in [complete evidence](dw-331-validation-evidence.md). Only DW-331 closes; original findings/pre-closure verification/actions, prior evidence/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
+After validated DW-468 closure (2026-10-16): 137 reconciled done, 215 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 37 uncertain; 302 open. All 643 IDs remain: 341 done/302 open across 270 exact-covering maintenance rows. The formatter now uses the supported Allman value, and contributor guidance agrees. Independent review corrections, separate owning-project checks and pinned-SDK positive/negative/autofix controls qualify the policy repair; the historical three-file formatting failures and workspace limitations remain in [complete evidence](dw-468-validation-evidence.md). Only DW-468 closes; original fields/legacy detail, all earlier evidence, source files, archive/sprint, dependency pointers and release holds are preserved. Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -5434,16 +5436,26 @@ location: _bmad-output/implementation-artifacts/story-5-4-re-review-verification
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-4.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-4.md`\n  summary: Reconcile dotnet formatter same-line-brace expectations with the Hexalith baseline requirement for Allman braces.\n  evidence: The supplementary read-only dotnet format whitespace check on the three changed UI test files exited 2 with 299 WHITESPACE diagnostics before review amendments; it requested same-line braces for existing Allman blocks and four new blocks matching that required style. The exact command and result are in the 2026-10-01 addendum to story-5-4-re-review-verification-2026-09-30.md. A policy correction belongs in separate repository maintenance; no formatting configuration or build/test gate was weakened here."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: .editorconfig:52 still sets csharp_new_line_before_open_brace = all:warning; the required Hexalith baseline and _bmad-output/project-context.md require Allman. story-5-4-re-review-verification-2026-09-30.md:78 preserves the 299-diagnostic formatter result, but no current formatter reproduction proves the current effective configuration still requests same-line braces. Allman policy itself is already settled.
-verification-files: _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
-evidence-kind: unverified-risk
+status: done 2026-10-16
+disposition: done
+verification-date: 2026-10-16
+verification: Corrected the unsupported Allman formatting value to all and aligned CONTRIBUTING.md. Separate owning-project production/test formatter checks pass with zero formatting diagnostics; pinned-SDK old/current, same-line, indentation, exact-byte autofix and idempotence controls pass independent review corrections. Historical three-file formatting still fails on preserved non-policy whitespace/line endings; workspace warnings and prior advisory observation remain in dw-468-validation-evidence.md.
+verification-files: .editorconfig; CONTRIBUTING.md; _bmad-output/implementation-artifacts/dw-468-validation-evidence.md
+evidence-kind: executed-formatter-and-reviewed-configuration
 priority: P3
 owner: unassigned
 dependencies: Focused current formatter reproduction
-next-action: Rerun the exact read-only whitespace command recorded in the 2026-10-01 addendum and inspect effective formatting configuration if the conflict persists.
+next-action: none; Allman policy conflict repaired and focused formatting behavior verified.
+pre-dw-468-status: open
+pre-dw-468-disposition: uncertain
+pre-dw-468-verification-date: 2026-10-12
+pre-dw-468-verification: .editorconfig:52 still sets csharp_new_line_before_open_brace = all:warning; the required Hexalith baseline and _bmad-output/project-context.md require Allman. story-5-4-re-review-verification-2026-09-30.md:78 preserves the 299-diagnostic formatter result, but no current formatter reproduction proves the current effective configuration still requests same-line braces. Allman policy itself is already settled.
+pre-dw-468-verification-files: _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
+pre-dw-468-evidence-kind: unverified-risk
+pre-dw-468-next-action: Rerun the exact read-only whitespace command recorded in the 2026-10-01 addendum and inspect effective formatting configuration if the conflict persists.
+resolution: Corrected the formatter value and contributor sentence without changing application/test source, analyzer severities or historical evidence; only DW-468 closes.
+closure-spec: `_bmad-output/implementation-artifacts/spec-dw-468-allman-formatting.md`
+closure-evidence: `_bmad-output/implementation-artifacts/dw-468-validation-evidence.md`
 related: none
 
 
