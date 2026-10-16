@@ -46,18 +46,20 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-285 acceptance reconciliation (2026-10-16):** Current create/add/change runtime guards already repair the historical defect. Twelve added held-dispatch regressions prove parameter-change/reentry preserves actual ID/intent, full baseline, exact attempt/lease/owner and completion messages. Independent review/recheck and final Debug focused195/full UI5967 pass with zero failures/skips. [Exact commands, initial failure and limits](../_bmad-output/implementation-artifacts/dw-285-validation-evidence.md). Only DW-285 and its row close:338 done/305 open across643 IDs,273 rows;134 reconciled done/217 actionable. Historical findings, all earlier closures/decisions, DW-470, archive/sprint, dependencies and release holds remain. Release remains not ready.
 
+**DW-470 acceptance reconciliation (2026-10-16):** Existing AddMember/ChangeRole initial and retry key propagation now has 12 actual Fluent EN/FR keyed-only failure regressions, including failed resubmission and ambiguous same-ID delivery retry. Independent review/recheck, final Debug focused207/full UI5979 pass with zero failures/skips. [Exact commands, initial compilation failure and limits](../_bmad-output/implementation-artifacts/dw-470-validation-evidence.md). Only DW-470 and its row close:339 done/304 open across643 IDs,272 rows;135 reconciled done/216 actionable. Original findings and pre-closure verification/actions, all earlier closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
+
 | Disposition | Records |
 | --- | ---: |
-| done | 134 |
-| actionable | 217 |
+| done | 135 |
+| actionable | 216 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 38 |
 
-**Remaining: 305 open records across 273 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 304 open records across 272 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
-**Current acceptance reconciliation completed:** DW-285. DW-470 remains separately scoped. No further implementation bundle is selected here. DW-323 remains separately scoped and DW-121 remains Builds-owned. This closure does not establish full release readiness.
+**Current acceptance reconciliation completed:** DW-470; prior DW-285 closure is preserved. No further implementation bundle is selected here. DW-323 remains separately scoped and DW-121 remains Builds-owned. This closure does not establish full release readiness.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -108,7 +110,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-449 | P2 | Defect / actionable | unassigned | Preserve Story 5.4 option-b command/audit separation | Handle IsPending in the five command lifecycle snapshots without assertive unverifiable feedback, preserving their already-correct independent audit state. |
 | DW-464, DW-496, DW-555 | P2 | Defect / actionable | unassigned | Hosted runner Chromium launch diagnosis | Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios. |
 | DW-469 | P2 | Defect / actionable | unassigned | Configuration tracker resumed-identity result | Pass retry identity to lifecycle audit mapping and expose whether configuration BeginDispatch resumed a retained identity; test pre-dispatch failure on retry. |
-| DW-470 | P2 | Defect / actionable | unassigned | none | Preserve SafeMessageKey in both nonaccepted result paths and cover a keyed-only failure. |
 | DW-480 | P2 | Defect / actionable | unassigned | Member command pre-dispatch state contract | Keep the pre-dispatch lease refusal resubmittable and prove a second submit dispatches once after the lease becomes available. |
 | DW-505 | P2 | Defect / actionable | unassigned | DW-464 hosted Chromium repair | Repair and rerun the pinned hosted Chromium launch and subsequent correction preview/negative controls; no further package-boundary repair is needed for this record. |
 | DW-506 | P2 | Defect / actionable | unassigned | Global correction recovery-label contract | Use the actual retry-eligibility predicate for retry-specific text and cover ambiguous-but-ineligible and blank-correlation states. |

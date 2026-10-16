@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Reflection;
 
 using Bunit;
@@ -35,6 +36,111 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         var viewport = new TenantHighImpactViewportObservation();
         viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
         Services.AddSingleton(viewport);
+    }
+
+    /// <summary>Keyed-only failures keep their localized explanation through initial and reused delivery paths.</summary>
+    [Theory]
+    [InlineData("add", "en", "initial")]
+    [InlineData("add", "fr", "initial")]
+    [InlineData("change", "en", "initial")]
+    [InlineData("change", "fr", "initial")]
+    [InlineData("add", "en", "failed-resubmit")]
+    [InlineData("add", "fr", "failed-resubmit")]
+    [InlineData("change", "en", "failed-resubmit")]
+    [InlineData("change", "fr", "failed-resubmit")]
+    [InlineData("add", "en", "ambiguous-retry")]
+    [InlineData("add", "fr", "ambiguous-retry")]
+    [InlineData("change", "en", "ambiguous-retry")]
+    [InlineData("change", "fr", "ambiguous-retry")]
+    public async Task KeyedMemberFailurePreservesLocalizedExplanationAndRetryEvidence(string kind, string culture, string path)
+    {
+        const string key = "Tenants.Commands.Unavailable.InvalidTrackingReference";
+        const string baseline = "tenant-sequence:1";
+        const string previousMessage = "Earlier delivery could not be verified.";
+        string expectedExplanation = culture is "fr"
+            ? "Cette commande n'a pas pu être envoyée car son identifiant de suivi n'était pas valide. Actualisez le locataire et relancez l'action."
+            : "This command could not be submitted because its tracking identifier was not valid. Refresh the tenant and start the action again.";
+        List<(object Intent, string MessageId)> deliveries = [];
+        ITenantCommandGateway gateway = RegisterGateway((intent, id) =>
+        {
+            deliveries.Add((intent, id));
+            return Task.FromResult(path is not "initial" && deliveries.Count == 1
+                ? TenantCommandSubmissionResult.Failed(previousMessage) with
+                {
+                    MessageId = id,
+                    IsAmbiguousFailure = path is "ambiguous-retry",
+                }
+                : TenantCommandSubmissionResult.FailedWithKey(key));
+        });
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(culture)));
+        string expectedAnnouncement = (kind, culture) switch
+        {
+            ("add", "fr") => "Échec de la soumission de la commande d'ajout de membre.",
+            ("change", "fr") => "Échec de la soumission de la commande de changement de rôle.",
+            ("add", _) => "Add-member command submission failed.",
+            _ => "Change-role command submission failed.",
+        };
+        (IRenderedComponent<IComponent> cut, object component) = RenderFlow(kind, baseline);
+        Submit(kind, cut, send: false);
+        await InvokeSubmissionAsync(cut, component);
+        object original = Snapshot(component);
+        Property<string>(original, "BaselineProjectionVersion").ShouldBe(baseline);
+        if (path is not "initial")
+        {
+            Property<TenantCommandLifecycleState>(original, "State").ShouldBe(path is "ambiguous-retry"
+                ? TenantCommandLifecycleState.RequestSent : TenantCommandLifecycleState.Failed);
+            Property<string>(original, "SafeMessage").ShouldBe(previousMessage);
+            await InvokeSubmissionAsync(cut, component);
+        }
+
+        string prefix = kind is "add" ? "add-member" : "change-role";
+        string stateKey = kind is "add" ? "Tenants.AddMember.State.Failed" : "Tenants.ChangeRole.State.Failed";
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        localizer[key].ResourceNotFound.ShouldBeFalse();
+        localizer[key].Value.ShouldBe(expectedExplanation);
+        localizer[stateKey].ResourceNotFound.ShouldBeFalse();
+        localizer[stateKey].Value.ShouldBe(expectedAnnouncement);
+        cut.WaitForAssertion(() =>
+        {
+            object failed = Snapshot(component);
+            Property<TenantCommandLifecycleState>(failed, "State").ShouldBe(TenantCommandLifecycleState.Failed);
+            Property<string>(failed, "SafeMessage").ShouldBeNull();
+            Property<string>(failed, "SafeMessageKey").ShouldBe(key);
+            Property<string>(failed, "MessageId").ShouldBe(deliveries[0].MessageId);
+            Property<string>(failed, "CorrelationId").ShouldBeNull();
+            Property<object>(failed, "Intent").ShouldBe(deliveries[0].Intent);
+            Property<string>(failed, "BaselineProjectionVersion").ShouldBe(baseline);
+            Property<TenantCommandAuditState>(failed, "AuditState").ShouldBe(path is "initial"
+                ? TenantCommandAuditState.NotStarted : TenantCommandAuditState.AuditUnavailable);
+            cut.Find($"[data-testid='tenants-{prefix}-safe-message']").TextContent.ShouldBe(expectedExplanation);
+            var announcement = cut.Find($"[data-testid='tenants-{prefix}-live-region']");
+            announcement.TextContent.Trim().ShouldBe(expectedAnnouncement);
+            announcement.GetAttribute("aria-live").ShouldBe("assertive");
+            string auditSelector = $"[data-testid='tenants-{prefix}-audit'] [data-testid='tenants-audit-availability']";
+            if (path is "initial")
+            {
+                cut.FindAll(auditSelector).ShouldBeEmpty();
+            }
+            else
+            {
+                cut.Find(auditSelector).GetAttribute("data-state").ShouldBe("unavailable");
+            }
+        });
+        int expectedDeliveries = path is "initial" ? 1 : 2;
+        DispatchCount(gateway, kind).ShouldBe(expectedDeliveries);
+        deliveries.Count.ShouldBe(expectedDeliveries);
+        deliveries[0].MessageId.ShouldNotBeNullOrWhiteSpace();
+        foreach (var delivery in deliveries)
+        {
+            delivery.ShouldBe(deliveries[0]);
+        }
+        gateway.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(ITenantCommandGateway.GetStatusAsync)).ShouldBe(0);
+        cut.Markup.ShouldNotContain(key);
+        cut.Markup.ShouldNotContain(previousMessage);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
     }
 
     [Theory]

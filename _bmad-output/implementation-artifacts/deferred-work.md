@@ -48,6 +48,8 @@ After accepted DW-337 tracked-dispatch closure (2026-10-16): 133 reconciled done
 
 After verified DW-285 acceptance reconciliation (2026-10-16): 134 reconciled done, 217 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 305 open. All 643 IDs remain: 338 done/305 open across 273 exact-covering maintenance rows. The existing runtime reentry fix is qualified by 12 new held-dispatch cases, independent review/recheck and final Debug focused195/full UI5967, zero failures/skips. Only DW-285 closes; original findings, earlier evidence/decisions, DW-470, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-285-validation-evidence.md). Release remains not ready.
 
+After verified DW-470 acceptance reconciliation (2026-10-16): 135 reconciled done, 216 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 304 open. All 643 IDs remain: 339 done/304 open across 272 exact-covering maintenance rows. Existing runtime key propagation is qualified by 12 new actual Fluent EN/FR keyed-only failure cases, independent review/recheck and final Debug focused207/full UI5979, zero failures/skips. Only DW-470 closes; original findings and pre-closure verification/actions, all earlier evidence/decisions, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-470-validation-evidence.md). Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -5465,16 +5467,25 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Keep the localized reason of a keyed failed submission in AddMember and ChangeRole.\n  evidence: Pre-existing. The failure arm sets `SafeMessage = result.SafeMessage, SafeMessageKey = null` (`AddTenantMemberFlow.razor:558`, `ChangeTenantMemberRoleFlow.razor:617`), so `FailedWithKey(\"Tenants.Commands.Unavailable.InvalidTrackingReference\")` renders no explanation. It is reachable only when the reused message id fails `TryResolveMessageId`. The fix is to pass `result.SafeMessageKey` through, as RemoveMember and Metadata already do."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:552-561 and ChangeTenantMemberRoleFlow.razor:611-620 still replace result.SafeMessageKey with null. TenantCommandGateway.TryResolveMessageId failures return keyed-only InvalidTrackingReference, so these flows suppress the localized explanation.
+status: done 2026-10-16
+disposition: done
+verification-date: 2026-10-16
+verification: Existing initial/retry key propagation independently reviewed and qualified by 12 actual Fluent EN/FR keyed-only failure cases covering initial, failed-resubmit and ambiguous-retry paths. Reviewed Debug focused207/full UI5979 pass with zero failures/skips; exact explanation/announcement, baseline, identity/intent, rendered audit semantics and terminal admission are asserted. See dw-470-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-evidence-kind: verified-defect
+evidence-kind: executed-tests-and-reviewed-source
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Preserve SafeMessageKey in both nonaccepted result paths and cover a keyed-only failure.
+next-action: none; DW-470 acceptance reconciled without runtime changes.
+pre-dw-470-status: open
+pre-dw-470-disposition: actionable
+pre-dw-470-verification-date: 2026-10-12
+pre-dw-470-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:552-561 and ChangeTenantMemberRoleFlow.razor:611-620 still replace result.SafeMessageKey with null. TenantCommandGateway.TryResolveMessageId failures return keyed-only InvalidTrackingReference, so these flows suppress the localized explanation.
+pre-dw-470-evidence-kind: verified-defect
+pre-dw-470-next-action: Preserve SafeMessageKey in both nonaccepted result paths and cover a keyed-only failure.
+resolution: Runtime fix already present; missing keyed-only failure acceptance coverage added and independently reviewed. Only DW-470 closes; historical findings, archive, sprint and release holds preserved.
+closure-spec: `_bmad-output/implementation-artifacts/spec-dw-470-keyed-member-failures.md`
+closure-evidence: `_bmad-output/implementation-artifacts/dw-470-validation-evidence.md`
 related: DW-500
 
 
