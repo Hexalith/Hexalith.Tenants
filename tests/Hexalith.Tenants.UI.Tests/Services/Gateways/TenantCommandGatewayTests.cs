@@ -17,6 +17,8 @@ using Hexalith.Tenants.UI.State.GlobalAdministrators;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
+using NSubstitute;
+
 using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
@@ -185,15 +187,323 @@ public sealed class TenantCommandGatewayTests
 
     public static IEnumerable<object[]> AmbiguousGrantExceptions()
     {
-        yield return [new EventStoreGatewayException((int)HttpStatusCode.RequestTimeout, "timeout")];
-        yield return [new EventStoreGatewayException((int)HttpStatusCode.TooManyRequests, "throttled")];
-        yield return [new EventStoreGatewayException((int)HttpStatusCode.ServiceUnavailable, "unavailable")];
-        yield return [new EventStoreGatewayException((int)HttpStatusCode.BadRequest, "retryable", retryable: true)];
-        yield return [new OperationCanceledException("transport cancellation")];
-        yield return [new TaskCanceledException("transport timeout")];
-        yield return [new HttpRequestException("connection failed")];
-        yield return [new TimeoutException("plain timeout")];
+        foreach (int statusCode in new[] { 408, 429, 500, 503, 599 })
+        {
+            foreach (bool? retryable in new bool?[] { null, false, true })
+            {
+                yield return [new EventStoreGatewayException(statusCode, "InsufficientPermissionsRejection",
+                    detail: $"backend-secret-Canary status={statusCode} retryable={retryable?.ToString() ?? "null"}", retryable: retryable)];
+            }
+        }
+
+        yield return [new EventStoreGatewayException(400, "InsufficientPermissionsRejection",
+            detail: "backend-secret-Canary status=400 retryable=True", retryable: true)];
+        yield return [new EventStoreGatewayException(409, "InsufficientPermissionsRejection",
+            detail: "backend-secret-Canary status=409 retryable=True", retryable: true)];
+        yield return [new OperationCanceledException("backend-secret-Canary")];
+        yield return [new TaskCanceledException("backend-secret-Canary")];
+        yield return [new HttpRequestException("backend-secret-Canary")];
+        yield return [new TimeoutException("backend-secret-Canary")];
     }
+
+    private static readonly string[] _trackedOperations =
+        ["set-tracked", "remove-configuration-tracked", "enable-tracked", "disable-tracked", "grant-tracked", "remove-global-tracked"];
+
+    public static IEnumerable<object[]> TrackedAmbiguousCases()
+    {
+        foreach (string operation in _trackedOperations)
+        {
+            foreach (object[] input in AmbiguousGrantExceptions())
+            {
+                foreach (bool faultedTask in new[] { false, true })
+                {
+                    yield return [operation, input[0], faultedTask];
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(TrackedAmbiguousCases))]
+    public async Task TrackedAmbiguityRetainsExactEnvelopeForExplicitRetry(
+        string operation, Exception exception, bool faultedTask)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FB0";
+        List<SubmitCommandRequest> dispatched = [];
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = CreateTrackedFailureGateway(exception, faultedTask, dispatched, ulids, acceptRetry: true);
+
+        TenantCommandSubmissionResult result = await SubmitOperation(gateway, operation, messageId: messageId);
+
+        result.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe(messageId);
+        result.CorrelationId.ShouldBeNull();
+        result.RejectionCode.ShouldBeNull();
+        result.SafeMessage.ShouldBeNull();
+        (string key, string english, string french) = TrackedAmbiguityMessage(operation);
+        result.SafeMessageKey.ShouldBe(key);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        ResourceManager resources = new("Hexalith.Tenants.UI.Resources.TenantsResources", typeof(TenantsResources).Assembly);
+        resources.GetString(key, CultureInfo.GetCultureInfo("en")).ShouldBe(english);
+        resources.GetString(key, CultureInfo.GetCultureInfo("fr")).ShouldBe(french);
+        JsonSerializer.Serialize(result).ShouldNotContain("backend-secret-Canary");
+        SubmitCommandRequest original = dispatched.ShouldHaveSingleItem();
+        original.MessageId.ShouldBe(messageId);
+        original.Tenant.ShouldBe("system");
+        original.Domain.ShouldBe(operation is "grant-tracked" or "remove-global-tracked" ? "global-administrators" : "tenants");
+        original.AggregateId.ShouldBe(operation is "grant-tracked" or "remove-global-tracked" ? "global-administrators" : "tenant.alpha");
+
+        TenantCommandSubmissionResult accepted = await SubmitOperation(gateway, operation, messageId: result.MessageId!);
+
+        accepted.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        accepted.MessageId.ShouldBe(messageId);
+        accepted.CorrelationId.ShouldBe("correlation-retry");
+        accepted.IsAmbiguousFailure.ShouldBeFalse();
+        dispatched.Count.ShouldBe(2);
+        SubmitCommandRequest replay = dispatched[1];
+        replay.MessageId.ShouldBe(original.MessageId);
+        replay.Tenant.ShouldBe(original.Tenant);
+        replay.Domain.ShouldBe(original.Domain);
+        replay.AggregateId.ShouldBe(original.AggregateId);
+        replay.CommandType.ShouldBe(original.CommandType);
+        replay.Payload.GetRawText().ShouldBe(original.Payload.GetRawText());
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    public static IEnumerable<object[]> TrackedCancellationAndPropagationCases()
+    {
+        foreach (string operation in _trackedOperations)
+        {
+            foreach (Exception exception in new Exception[]
+            {
+                new OperationCanceledException("backend-secret-Canary"),
+                new TaskCanceledException("backend-secret-Canary"),
+                new JsonException("backend-secret-Canary"),
+                new InvalidOperationException("backend-secret-Canary"),
+            })
+            {
+                foreach (bool faultedTask in new[] { false, true })
+                {
+                    yield return [operation, exception, faultedTask, true];
+                    if (exception is not OperationCanceledException)
+                    {
+                        yield return [operation, exception, faultedTask, false];
+                    }
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(TrackedCancellationAndPropagationCases))]
+    public async Task TrackedDispatchPreservesCallerCancellationAndUnrelatedExceptions(
+        string operation, Exception exception, bool faultedTask, bool callerCanceled)
+    {
+        List<SubmitCommandRequest> dispatched = [];
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = CreateTrackedFailureGateway(exception, faultedTask, dispatched, ulids);
+        using var cancellation = new CancellationTokenSource();
+        if (callerCanceled)
+        {
+            cancellation.Cancel();
+        }
+
+        Exception? actual = await Record.ExceptionAsync(() => SubmitOperation(
+            gateway, operation, cancellationToken: cancellation.Token));
+
+        actual.ShouldBeSameAs(exception);
+        dispatched.ShouldHaveSingleItem();
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    /// <summary>Caller cancellation during an awaited transport task preserves the forwarded token and single dispatch.</summary>
+    [Fact]
+    public async Task TrackedDispatchPropagatesCallerCancellationWhileAwaitingTransport()
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        List<SubmitCommandRequest> dispatched = [];
+        var transport = new TaskCompletionSource<SubmitCommandResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = new CancellationTokenSource();
+        CancellationToken forwardedToken = default;
+        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            dispatched.Add(call.Arg<SubmitCommandRequest>());
+            forwardedToken = call.Arg<CancellationToken>();
+            return transport.Task;
+        });
+        StubUlidFactory ulids = new(messageId);
+        using HttpClient statusClient = new(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") };
+        TenantCommandGateway gateway = new(client, ulids, statusClient);
+
+        Task<TenantCommandSubmissionResult> submission = gateway.SetTenantConfigurationTrackedAsync(
+            new SetTenantConfiguration("tenant.alpha", "key", "value"), messageId, cancellation.Token);
+
+        dispatched.ShouldHaveSingleItem().MessageId.ShouldBe(messageId);
+        forwardedToken.ShouldBe(cancellation.Token);
+        submission.IsCompleted.ShouldBeFalse();
+
+        cancellation.Cancel();
+        transport.SetCanceled(cancellation.Token);
+        Exception? actual = await Record.ExceptionAsync(() => submission);
+
+        actual.ShouldBeOfType<TaskCanceledException>().CancellationToken.ShouldBe(cancellation.Token);
+        dispatched.ShouldHaveSingleItem();
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    public static IEnumerable<object[]> TrackedTerminalCases()
+    {
+        foreach (string operation in _trackedOperations)
+        {
+            foreach (int statusCode in new[] { 400, 401, 403, 409, 418 })
+            {
+                foreach (bool faultedTask in new[] { false, true })
+                {
+                    yield return [operation, statusCode, faultedTask];
+                }
+            }
+        }
+    }
+
+    [Theory]
+    [MemberData(nameof(TrackedTerminalCases))]
+    public async Task TrackedNonretryableHttpFailuresKeepPermanentOperationMappings(
+        string operation, int statusCode, bool faultedTask)
+    {
+        List<SubmitCommandRequest> dispatched = [];
+        StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        TenantCommandGateway gateway = CreateTrackedFailureGateway(new EventStoreGatewayException(
+            statusCode, "backend-secret-Canary", retryable: false), faultedTask, dispatched, ulids);
+
+        TenantCommandSubmissionResult result = await SubmitOperation(gateway, operation);
+
+        bool unauthorized = statusCode is 401 or 403;
+        result.State.ShouldBe(unauthorized ? TenantCommandLifecycleState.Rejected : TenantCommandLifecycleState.Failed);
+        result.IsAmbiguousFailure.ShouldBeFalse();
+        result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        result.CorrelationId.ShouldBeNull();
+        result.RejectionCode.ShouldBe(unauthorized ? "InsufficientPermissions" : null);
+        string key = operation switch
+        {
+            "set-tracked" => "Tenants.Configuration.Set." + (unauthorized ? "Unavailable.Authorization" : statusCode == 400 ? "Submission.Invalid" : "Submission.VerificationFailed"),
+            "remove-configuration-tracked" => "Tenants.Configuration.Remove." + (unauthorized ? "Unavailable.Authorization" : statusCode == 400 ? "Submission.Invalid" : "Submission.VerificationFailed"),
+            "grant-tracked" => "Tenants.GlobalAdministrators.Grant.Submission." + (unauthorized ? "Rejected" : statusCode == 400 ? "Invalid" : "Failed"),
+            "remove-global-tracked" => "Tenants.GlobalAdministrators.Remove.Submission." + (unauthorized ? "Unauthorized" : statusCode == 400 ? "Invalid" : "Failed"),
+            _ => "Tenants.Lifecycle." + (unauthorized ? "Message.Rejected.InsufficientPermissions" : statusCode == 400 ? "Submission.Invalid" : "Submission.Failed"),
+        };
+        result.SafeMessageKey.ShouldBe(key);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        JsonSerializer.Serialize(result).ShouldNotContain("backend-secret-Canary");
+        dispatched.ShouldHaveSingleItem();
+        ulids.CallCount.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData("set-tracked", "ConfigurationLimitExceeded", "Tenants.Configuration.Set.Rejection.ConfigurationLimitExceeded")]
+    [InlineData("remove-configuration-tracked", "ConfigurationKeyNotFound", "Tenants.Commands.Rejection.ConfigurationKeyNotFound")]
+    [InlineData("enable-tracked", "TenantLifecycleStateAlreadySet", "Tenants.Commands.Rejection.TenantLifecycleStateAlreadySet")]
+    [InlineData("disable-tracked", "TenantDisabled", "Tenants.Lifecycle.Rejection.TenantDisabled")]
+    [InlineData("grant-tracked", "GlobalAdministratorAlreadyExists", "Tenants.GlobalAdministrators.Grant.Submission.Rejected")]
+    [InlineData("remove-global-tracked", "LastGlobalAdministrator", "Tenants.Commands.Rejection.LastGlobalAdministrator")]
+    public async Task TrackedDomainRejectionsStayTerminalAndKeepOperationCodes(string operation, string code, string key)
+    {
+        foreach (bool faultedTask in new[] { false, true })
+        {
+            foreach (bool? retryable in new bool?[] { null, false })
+            {
+                List<SubmitCommandRequest> dispatched = [];
+                StubUlidFactory ulids = new("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+                TenantCommandGateway gateway = CreateTrackedFailureGateway(new EventStoreGatewayException(
+                    409, code + "Rejection", detail: "backend-secret-Canary", retryable: retryable), faultedTask, dispatched, ulids);
+
+                TenantCommandSubmissionResult result = await SubmitOperation(gateway, operation);
+
+                result.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+                result.IsAmbiguousFailure.ShouldBeFalse();
+                result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+                result.CorrelationId.ShouldBeNull();
+                result.RejectionCode.ShouldBe(code);
+                result.SafeMessageKey.ShouldBe(key);
+                AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+                JsonSerializer.Serialize(result).ShouldNotContain("backend-secret-Canary");
+                dispatched.ShouldHaveSingleItem();
+                ulids.CallCount.ShouldBe(0);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData("set-tracked", "Tenants.Configuration.Set.Validation.RequiredFields")]
+    [InlineData("remove-configuration-tracked", "Tenants.Configuration.Remove.Validation.RequiredFields")]
+    [InlineData("enable-tracked", "Tenants.Lifecycle.Validation.RequiredFields")]
+    [InlineData("disable-tracked", "Tenants.Lifecycle.Validation.RequiredFields")]
+    [InlineData("grant-tracked", "Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid")]
+    [InlineData("remove-global-tracked", "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target")]
+    public async Task TrackedValidationAndMalformedIdentityNeverDispatch(string operation, string validationKey)
+    {
+        CapturingGatewayClient client = new(new SubmitCommandResponse("unused"));
+        TenantCommandGateway gateway = CreateGateway(client);
+        TenantCommandSubmissionResult invalid = await SubmitOperation(gateway, operation, invalid: true);
+        TenantCommandSubmissionResult malformed = await SubmitOperation(gateway, operation, messageId: "not-a-ulid");
+
+        foreach ((TenantCommandSubmissionResult result, string key) in new[]
+        {
+            (invalid, validationKey),
+            (malformed, "Tenants.Commands.Unavailable.InvalidTrackingReference"),
+        })
+        {
+            result.State.ShouldBe(TenantCommandLifecycleState.Failed);
+            result.IsAmbiguousFailure.ShouldBeFalse();
+            result.MessageId.ShouldBeNull();
+            result.CorrelationId.ShouldBeNull();
+            result.RejectionCode.ShouldBeNull();
+            result.SafeMessageKey.ShouldBe(key);
+            AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        }
+        client.SubmittedCommands.ShouldBeEmpty();
+    }
+
+    private static TenantCommandGateway CreateTrackedFailureGateway(
+        Exception exception, bool faultedTask, List<SubmitCommandRequest> dispatched, StubUlidFactory ulids, bool acceptRetry = false)
+    {
+        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>()).Returns(call =>
+        {
+            dispatched.Add(call.Arg<SubmitCommandRequest>());
+            if (acceptRetry && dispatched.Count > 1)
+            {
+                return Task.FromResult(new SubmitCommandResponse("correlation-retry"));
+            }
+            if (faultedTask)
+            {
+                return Task.FromException<SubmitCommandResponse>(exception);
+            }
+            throw exception;
+        });
+        return new(client, ulids, new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+    }
+
+    private static (string Key, string English, string French) TrackedAmbiguityMessage(string operation)
+        => operation switch
+        {
+            "set-tracked" => ("Tenants.Configuration.Set.SubmissionEvidence.Ambiguous",
+                "Submission delivery is uncertain. Do not submit again; refresh status or stop local reconciliation.",
+                "La remise de la commande est incertaine. Ne la soumettez pas à nouveau ; actualisez l’état ou arrêtez la réconciliation locale."),
+            "remove-configuration-tracked" => ("Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous",
+                "Submission delivery is uncertain. Do not submit again; refresh status or stop local reconciliation.",
+                "La livraison de la commande est incertaine. Ne la renvoyez pas ; actualisez l'état ou arrêtez le rapprochement local."),
+            "grant-tracked" => ("Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
+                "Grant delivery is ambiguous. Refresh or retry with the same retained command identity.",
+                "La livraison de l'attribution est ambiguë. Actualisez ou réessayez avec la même identité de commande conservée."),
+            "remove-global-tracked" => ("Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous",
+                "Delivery is uncertain; retry only with this attempt’s retained identifier.",
+                "La livraison est incertaine ; réessayez uniquement avec l’identifiant conservé de cette tentative."),
+            _ => ("Tenants.Lifecycle.SubmissionEvidence.Ambiguous",
+                "The lifecycle command may have been delivered, but no acceptance response was received. Keep this attempt open and refresh to retry safely with the same command identity.",
+                "La commande de cycle de vie a peut-être été remise, mais aucune réponse d'acceptation n'a été reçue. Gardez cette tentative ouverte et actualisez pour réessayer en toute sécurité avec la même identité de commande."),
+        };
 
     [Theory]
     [MemberData(nameof(AmbiguousGrantExceptions))]
@@ -3168,9 +3478,9 @@ public sealed class TenantCommandGatewayTests
             rejectionEventType = rejection, failureReason = "backend-secret-Canary",
         });
 
-    private static Task<TenantCommandSubmissionResult> SubmitOperation(ITenantCommandGateway gateway, string operation, bool invalid = false)
+    private static Task<TenantCommandSubmissionResult> SubmitOperation(ITenantCommandGateway gateway, string operation, bool invalid = false,
+        string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV", CancellationToken cancellationToken = default)
     {
-        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
         string tenant = invalid ? "" : "tenant.alpha";
         return operation switch
         {
@@ -3180,17 +3490,17 @@ public sealed class TenantCommandGatewayTests
             "remove" => gateway.RemoveUserFromTenantAsync(new(tenant, "literal-user"), messageId),
             "metadata" => gateway.UpdateTenantAsync(new(tenant, "Alpha updated", null), messageId),
             "set" => gateway.SetTenantConfigurationAsync(new(tenant, "key", "value")),
-            "set-tracked" => gateway.SetTenantConfigurationTrackedAsync(new(tenant, "key", "value"), messageId),
+            "set-tracked" => gateway.SetTenantConfigurationTrackedAsync(new(tenant, "key", "value"), messageId, cancellationToken),
             "remove-configuration" => gateway.RemoveTenantConfigurationAsync(new(tenant, "key")),
-            "remove-configuration-tracked" => gateway.RemoveTenantConfigurationTrackedAsync(new(tenant, "key"), messageId),
+            "remove-configuration-tracked" => gateway.RemoveTenantConfigurationTrackedAsync(new(tenant, "key"), messageId, cancellationToken),
             "grant" => gateway.SetGlobalAdministratorAsync(new("literal-admin")),
-            "grant-tracked" => gateway.SetGlobalAdministratorTrackedAsync(new("literal-admin"), messageId),
+            "grant-tracked" => gateway.SetGlobalAdministratorTrackedAsync(new(invalid ? "" : "literal-admin"), messageId, cancellationToken),
             "remove-global" => gateway.RemoveGlobalAdministratorAsync(new("literal-admin")),
-            "remove-global-tracked" => gateway.RemoveGlobalAdministratorTrackedAsync(new("literal-admin"), messageId),
+            "remove-global-tracked" => gateway.RemoveGlobalAdministratorTrackedAsync(new(invalid ? "" : "literal-admin"), messageId, cancellationToken),
             "enable" => gateway.EnableTenantAsync(new(tenant, TenantLifecycleOperation.EnableTenant)),
-            "enable-tracked" => gateway.EnableTenantTrackedAsync(new(tenant, TenantLifecycleOperation.EnableTenant), messageId),
+            "enable-tracked" => gateway.EnableTenantTrackedAsync(new(tenant, TenantLifecycleOperation.EnableTenant), messageId, cancellationToken),
             "disable" => gateway.DisableTenantAsync(new(tenant, TenantLifecycleOperation.DisableTenant)),
-            "disable-tracked" => gateway.DisableTenantTrackedAsync(new(tenant, TenantLifecycleOperation.DisableTenant), messageId),
+            "disable-tracked" => gateway.DisableTenantTrackedAsync(new(tenant, TenantLifecycleOperation.DisableTenant), messageId, cancellationToken),
             _ => throw new ArgumentOutOfRangeException(nameof(operation)),
         };
     }

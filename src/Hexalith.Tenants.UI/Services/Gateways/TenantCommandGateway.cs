@@ -253,25 +253,13 @@ internal sealed class TenantCommandGateway(
 
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
+        catch (Exception exception) when (IsAmbiguousTrackedSubmission(exception, cancellationToken)) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
+        }
         catch (EventStoreGatewayException ex) {
-            if (ex.StatusCode is (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
-                || ex.StatusCode >= 500) {
-                return TenantCommandSubmissionResult.Ambiguous(
-                    resolvedMessageId,
-                    "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
-            }
-
             return MapSetTenantConfigurationGatewayException(ex) with { MessageId = resolvedMessageId };
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                resolvedMessageId,
-                "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
-        }
-        catch (HttpRequestException) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                resolvedMessageId,
-                "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
         }
     }
 
@@ -309,25 +297,13 @@ internal sealed class TenantCommandGateway(
 
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
+        catch (Exception exception) when (IsAmbiguousTrackedSubmission(exception, cancellationToken)) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous");
+        }
         catch (EventStoreGatewayException ex) {
-            if (ex.StatusCode is (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
-                || ex.StatusCode >= 500) {
-                return TenantCommandSubmissionResult.Ambiguous(
-                    resolvedMessageId,
-                    "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous");
-            }
-
             return MapRemoveTenantConfigurationGatewayException(ex) with { MessageId = resolvedMessageId };
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                resolvedMessageId,
-                "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous");
-        }
-        catch (HttpRequestException) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                resolvedMessageId,
-                "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous");
         }
     }
 
@@ -366,31 +342,13 @@ internal sealed class TenantCommandGateway(
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
+        catch (Exception exception) when (IsAmbiguousTrackedSubmission(exception, cancellationToken)) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                messageId,
+                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
+        }
         catch (EventStoreGatewayException ex) {
-            if (ex.Retryable == true
-                || ex.StatusCode is (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
-                || ex.StatusCode >= 500) {
-                return TenantCommandSubmissionResult.Ambiguous(
-                    messageId,
-                    "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-            }
-
             return MapSetGlobalAdministratorGatewayException(ex) with { MessageId = messageId };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-        }
-        catch (HttpRequestException) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
-        }
-        catch (TimeoutException) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
         }
     }
 
@@ -429,31 +387,13 @@ internal sealed class TenantCommandGateway(
 
             return TenantCommandSubmissionResult.Accepted(messageId, response.CorrelationId);
         }
+        catch (Exception exception) when (IsAmbiguousTrackedSubmission(exception, cancellationToken)) {
+            return TenantCommandSubmissionResult.Ambiguous(
+                messageId,
+                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
+        }
         catch (EventStoreGatewayException ex) {
-            if (ex.Retryable == true
-                || ex.StatusCode is (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
-                || ex.StatusCode >= 500) {
-                return TenantCommandSubmissionResult.Ambiguous(
-                    messageId,
-                    "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
-            }
-
             return MapRemoveGlobalAdministratorGatewayException(ex) with { MessageId = messageId };
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
-        }
-        catch (HttpRequestException) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
-        }
-        catch (TimeoutException) {
-            return TenantCommandSubmissionResult.Ambiguous(
-                messageId,
-                "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous");
         }
     }
 
@@ -497,21 +437,15 @@ internal sealed class TenantCommandGateway(
 
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
+        catch (Exception exception) when (IsAmbiguousTrackedSubmission(exception, cancellationToken))
+        {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        }
         catch (EventStoreGatewayException ex)
         {
             return MapLifecycleGatewayException(ex) with { MessageId = resolvedMessageId };
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return TenantCommandSubmissionResult.Ambiguous(
-                resolvedMessageId,
-                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
-        }
-        catch (HttpRequestException)
-        {
-            return TenantCommandSubmissionResult.Ambiguous(
-                resolvedMessageId,
-                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
         }
     }
 
@@ -555,21 +489,15 @@ internal sealed class TenantCommandGateway(
 
             return TenantCommandSubmissionResult.Accepted(resolvedMessageId, response.CorrelationId);
         }
+        catch (Exception exception) when (IsAmbiguousTrackedSubmission(exception, cancellationToken))
+        {
+            return TenantCommandSubmissionResult.Ambiguous(
+                resolvedMessageId,
+                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
+        }
         catch (EventStoreGatewayException ex)
         {
             return MapLifecycleGatewayException(ex) with { MessageId = resolvedMessageId };
-        }
-        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            return TenantCommandSubmissionResult.Ambiguous(
-                resolvedMessageId,
-                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
-        }
-        catch (HttpRequestException)
-        {
-            return TenantCommandSubmissionResult.Ambiguous(
-                resolvedMessageId,
-                "Tenants.Lifecycle.SubmissionEvidence.Ambiguous");
         }
     }
 
@@ -1300,6 +1228,17 @@ internal sealed class TenantCommandGateway(
 
         return null;
     }
+
+    private static bool IsAmbiguousTrackedSubmission(Exception exception, CancellationToken cancellationToken)
+        => exception switch
+        {
+            EventStoreGatewayException gatewayException => gatewayException.Retryable == true
+                || gatewayException.StatusCode is (int)HttpStatusCode.RequestTimeout or (int)HttpStatusCode.TooManyRequests
+                || gatewayException.StatusCode >= 500,
+            OperationCanceledException => !cancellationToken.IsCancellationRequested,
+            HttpRequestException or TimeoutException => true,
+            _ => false,
+        };
 
     private static bool IsAssignableTenantRole(TenantRole role)
         => role is TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader;

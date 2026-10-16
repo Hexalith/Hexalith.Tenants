@@ -1442,3 +1442,15 @@ blocks change. Archive, sprint, prior evidence and unrelated records including D
 remain unchanged. No branch, stage, commit, push, dependency update, nested initialization,
 deploy, production replay or migration was performed. This scoped closure does not
 establish release readiness.
+
+## DW-337 tracked dispatch ambiguity — 2026-10-16
+
+**Only DW-337 closes. Release remains not ready.** [Complete validation evidence](dw-337-validation-evidence.md) and [owning spec/review](spec-dw-337-tracked-dispatch-ambiguity.md) record source, commands, initial failures, final binary hashes and acceptance.
+
+One private classifier shares the established global-administrator transport rule across the six tracked administrator/configuration/lifecycle operations, before existing permanent mappings. The four lifecycle/configuration methods now preserve uncertainty for retryable errors, plain cancellation and timeouts. Identifiers, scope/payload, one send per invocation, caller cancellation, permanent/domain rejection codes, untracked delegation and existing whole-message EN/FR keys remain verified. Create/member/metadata, status, audit, admission, proof, deadlines, resources, dependencies and gates retain their implementations.
+
+The authoritative red run reproduced 92 expected production failures. Final focused gateway 768/768 and full individual-project UI 5,954/5,954 pass in Debug source and maintained Release, zero failures/skips; both unchanged Chromium lanes and negative controls pass. Parent diff/TRX acceptance audits every frozen matrix row; independent workflow review is recorded in the owning spec. No assertions, exclusions, timeouts or gates changed.
+
+Fresh broad Release solution validation still fails with two pinned SignalR.Common 10.0.12 NU1903 errors. Strict FrontComposer package UI validation still fails with seven projection-scope API errors. Maintained lanes were restored and final binaries rechecked; the available FrontComposer source exception remains. Aspire reached healthy UI/backend resources and the owned AppHost was stopped; retained Memories sidecar/replay-safety telemetry qualifies that baseline. These observations and local browser fixtures do not close historical provenance, raw-secret-scan/CI, authority/recovery/governance, upstream/provider/startup, current-candidate NFR10/performance, hosted TLS/browser, production authority/revocation, authenticated browser/clipboard/denial or human assistive-technology holds.
+
+All 643 ledger IDs remain: 337 done/306 open across 274 exact-covering maintenance rows; reconciled 133 done/218 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. The readiness partition is seven decision holds, 111 follow-up and 188 qualification/triage records. Only DW-337 changes; original findings/decisions, every prior closure/evidence prefix, unrelated records including DW-285/DW-470/DW-469/DW-625, archive and sprint remain preserved. All nine dependency revisions and worktrees remain unchanged. No stage/commit/push, branch/dependency/gitlink mutation, nested initialization, deployment or data replay ran.

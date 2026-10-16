@@ -44,6 +44,8 @@ After validated DW-247 closure (2026-10-16): 129 reconciled done,222 actionable,
 
 After verified DW-234/DW-251/DW-316 command-localization closure (2026-10-16): 132 reconciled done, 219 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and38 uncertain; 307 open. All 643 IDs remain: 336 done/307 open across 275 exact-covering maintenance rows. Whole-string gateway/default/unavailable/status and snapshot EN/FR copy passes final focused 1,825/full UI 5,532 in both configurations and unchanged Chromium lanes. Original findings and prior evidence, archive/sprint, dependencies, decisions, historical blockers and separately scoped DW-323 remain preserved. See [complete evidence](dw-234-251-316-validation-evidence.md). Independent workflow review is recorded in the owning spec; release remains not ready.
 
+After accepted DW-337 tracked-dispatch closure (2026-10-16): 133 reconciled done, 218 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 38 uncertain; 306 open. All 643 IDs remain: 337 done/306 open across 274 exact-covering maintenance rows. Six tracked operations share the existing global transport classifier, with exact same-ID retries, caller cancellation, permanent mapping and shipped EN/FR copy verified by 768 focused/5954 full UI tests in both configurations and both unchanged Chromium lanes. Only DW-337 changes; original findings/decisions, all earlier closures, archive/sprint, dependencies, unrelated records and release holds remain preserved. See [complete evidence](dw-337-validation-evidence.md) and [workflow review](spec-dw-337-tracked-dispatch-ambiguity.md). Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -3592,19 +3594,24 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:258
 source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 severity: low
 reason: `SetGlobalAdministratorTrackedAsync` now treats a retryable EventStoreGatewayException and a plain OperationCanceledException as same-identity ambiguity, while `SetTenantConfigurationTrackedAsync`, `RemoveTenantConfigurationTrackedAsync`, `EnableTenantTrackedAsync`, and `DisableTenantTrackedAsync` still key off status codes and `TaskCanceledException` alone. Those four are unchanged pre-existing behaviour outside this story's fixed-scope intent; a decision on whether the grant rule supersedes them would settle it.
-status: open
+status: done 2026-10-16
 decision: 2026-09-06 Unify ambiguity semantics — Extract one shared retryable-transport classifier and apply the global-administrator same-identity ambiguity rule to configuration and lifecycle tracked dispatch, with parity tests.
 decision: 2026-09-06 Unify ambiguity semantics — Extract one shared retryable-transport classifier and apply the global-administrator same-identity ambiguity rule to configuration and lifecycle tracked dispatch, with parity tests.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs global tracked dispatch contains plain OperationCanceledException and IsRetryable ambiguity, while configuration/lifecycle paths still catch TaskCanceledException and status-specific conditions. Existing 2026-09-06 unified classifier decision is pending.
+disposition: done
+historical-verification-date-before-dw337: 2026-10-12
+historical-verification-before-dw337: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs global tracked dispatch contains plain OperationCanceledException and IsRetryable ambiguity, while configuration/lifecycle paths still catch TaskCanceledException and status-specific conditions. Existing 2026-09-06 unified classifier decision is pending.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
-evidence-kind: verified-defect
+historical-evidence-kind-before-dw337: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Extract the settled retryable-transport classifier and assert parity for identical failures across commands.
+historical-next-action-before-dw337: Extract the settled retryable-transport classifier and assert parity for identical failures across commands.
 related: none
+verification-date: 2026-10-16
+verification: One shared private classifier applies the existing global transport rule before permanent mappers in all six tracked operations. Independent parent diff and final TRX audit passes all eight frozen matrix rows: 768 focused and 5954 full UI cases in Debug/maintained Release, zero failures/skips, both unchanged Chromium lanes. Exact retries retain ID/scope/payload and one send per invocation; caller cancellation, terminal/domain mappings and shipped EN/FR resources are pinned. See dw-337-validation-evidence.md and the owning spec review record.
+evidence-kind: executed-regression
+next-action: None for DW-337. DW-285/DW-470 acceptance reconciliation, DW-469 audit identity, DW-625 recovery and all separate release holds remain open.
+resolution: Implements the settled 2026-09-06 unified ambiguity decision; only DW-337 closes. Original finding, duplicated settled decisions and pre-fix verification/action values remain above.
 
 ### DW-338: Nothing in this repository pins EventStore's command-status contract, which the grant lifecycle reasons over directly.
 

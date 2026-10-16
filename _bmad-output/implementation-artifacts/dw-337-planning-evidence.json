@@ -1,0 +1,307 @@
+{
+  "assessment_date": "2026-10-16",
+  "approval": "pending; planning only",
+  "tenants_head": "5f41f089157ef077c5145f34a260004cafa5349c",
+  "branch": "main",
+  "root_declared_submodule_heads": {
+    "references/Hexalith.AI.Tools": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+    "references/Hexalith.Builds": "f9f115528e43060d5f0af7dfbd8b22addc3c9a89",
+    "references/Hexalith.Commons": "9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798",
+    "references/Hexalith.EventStore": "746b843a24f18b17a7572be25b76b735fa8e4ca6",
+    "references/Hexalith.FrontComposer": "b06f86d554363ea5b8192cbc149a75c820dab2b8",
+    "references/Hexalith.McpCli": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+    "references/Hexalith.Memories": "99431f0fed102ea6ddbae33d28b9da4fc7f215a0",
+    "references/Hexalith.Platform": "3a29fe039320ab13d95ff7d9801761dad72bfed9",
+    "references/Hexalith.PolymorphicSerializations": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375"
+  },
+  "preserved_input_sha256": {
+    "docs/maintenance-backlog.md": "acfca8b1f358eaeec57cfa96905fee72c77711ae7e224bfeaa1aa6e3d2ef974d",
+    "_bmad-output/implementation-artifacts/deferred-work.md": "e57f8107fa479f570d595a1f4d941836b5482511bf0c0835912e05c662df8e54",
+    "_bmad-output/implementation-artifacts/release-readiness.md": "e3658a3bdac6553e07d75454d391f68bd464079cb3276a56d98e9b0aebe875b6",
+    "_bmad-output/implementation-artifacts/deferred-work-archive.md": "93fdfb3471642159b47686ea92e248d2d1dcbb5cf701210e99481624a56409cb",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml": "8c7dd8eab8027c0455c27decbfc6c08be8d472e8a2a276a74be8f1b5a9a93fc7",
+    "_bmad-output/implementation-artifacts/spec-dw-234-251-316-command-localization.md": "832685e0e5e5a18cfebc19387f0863ee3f931a41edcd6117a0b8744b67d685ec",
+    "_bmad-output/implementation-artifacts/dw-234-251-316-validation-evidence.md": "f5acca7a18238051634659511ec64ae245cc08b96afb50a6dcf09f1c62c39afb",
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs": "8431faa2447ccf3256066ff114ee84d24bc032c79c286b06d0ddb3c43ccb871e",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs": "2d9d2832c0ba157a0682d81496d155932a7e60f6ff06abf57fc14f4bf197760a",
+    "src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor": "205b2c383802678d8785c0e10e7456bebadfc2b90a3ef272a66c323bb9d014f0",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor": "9ae2974c57993fd240550bf15d5ec92402e12bf5605292a2e23460b7a2c03ec4",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor": "e9ff9b2105bddc5d97019f8352804e895aa48d8e9cc3ccf9c97770d9bf9b0a94",
+    ".gitmodules": "372ae4525c40a32e202a3b2bb507bd13e191b3464838c9ee715349a7356a3a22",
+    "Directory.Build.props": "d527484a6528bd36087a222951b7b8b3cdc46f1f886c6c7b38ae6be2f95750a0",
+    "Directory.Packages.props": "c8351c554ea90792eae487eadd8d6a08faeb0719e62341a929d81f7f44fdcd08",
+    "references/Hexalith.Builds/Props/Directory.Packages.props": "47f38330465a4c19a2aaae3c2eed9a21b6cd671eb31b80ef0c189c34ab286b50",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/CapturingGatewayClient.cs": "0b92e32b2cb7552b01b282753e83eca1224bded82d922ef6659eb08de1c3fa2a",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/StubUlidFactory.cs": "7e346ee6e9d3eda392046d83e8ed7001eeaaf5cdc4418a9ad6c01a0cfb9cb720",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/StatusHandler.cs": "13be25a684daab0ee1d432b5934eda234d9724870afe9516f51a0e87e6f58a38"
+  },
+  "preservation_note": "Initial raw Git-blob/checkout-byte comparison flagged expected source CRLF checkout; clean-filtered Git blob equality passes for every owned recorded input. Raw checkout hashes are preserved here.",
+  "ledger_counts": {
+    "total": 643,
+    "done": 336,
+    "open": 307
+  },
+  "maintenance_rows": 275,
+  "baseline_build": {
+    "exit_code": 0,
+    "duration_seconds": 12.96,
+    "warnings": 2,
+    "errors": 0,
+    "retained_warning": "NU1903 Microsoft.AspNetCore.SignalR.Common 10.0.12",
+    "log": "  Determining projects to restore...\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (in 217 ms).\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj (in 217 ms).\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj (in 218 ms).\n  Restored /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj (in 232 ms).\n  10 of 14 projects are up-to-date for restore.\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n  Hexalith.FrontComposer.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Debug/netstandard2.0/Hexalith.FrontComposer.Contracts.dll\n  Hexalith.FrontComposer.SourceTools -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/bin/Debug/netstandard2.0/Hexalith.FrontComposer.SourceTools.dll\n  Hexalith.Commons.UniqueIds -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.3.121.0.nupkg'.\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.3.121.0.snupkg'.\n  Hexalith.EventStore.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll\n  Hexalith.Commons.UniqueIds -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.1.0.0.nupkg'.\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.1.0.0.snupkg'.\n  Hexalith.Tenants.Contracts -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/bin/Debug/net10.0/Hexalith.Tenants.Contracts.dll\n  Hexalith.EventStore.Client -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Debug/net10.0/Hexalith.EventStore.Client.dll\n  Hexalith.EventStore.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll\n  Hexalith.Tenants.Client -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/bin/Debug/net10.0/Hexalith.Tenants.Client.dll\n  Hexalith.FrontComposer.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Debug/net10.0/Hexalith.FrontComposer.Contracts.dll\n  Hexalith.FrontComposer.Contracts.UI -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts.UI/bin/Debug/net10.0/Hexalith.FrontComposer.Contracts.UI.dll\n  Hexalith.FrontComposer.Shell -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll\n  Hexalith.Memories.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/bin/Debug/net10.0/Hexalith.Memories.Contracts.dll\n  Hexalith.Memories.Client.Rest -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Client.Rest/bin/Debug/net10.0/Hexalith.Memories.Client.Rest.dll\n  Hexalith.EventStore.Client -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Debug/net10.0/Hexalith.EventStore.Client.dll\n  Hexalith.Tenants.UI -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/bin/Debug/net10.0/Hexalith.Tenants.UI.dll\n  Hexalith.FrontComposer.Testing -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/bin/Debug/net10.0/Hexalith.FrontComposer.Testing.dll\n  Hexalith.Tenants.UI.Tests -> /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll\n\nBuild succeeded.\n\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n    2 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:12.96\n"
+  },
+  "baseline_tests": {
+    "exit_code": 0,
+    "duration_seconds": 31.41,
+    "counters": {
+      "total": "935",
+      "executed": "935",
+      "passed": "935",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "log": "Running tests from /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) passed (31s 227ms)\n\n  In process file artifacts produced:\n    - /tmp/tenants-next-bundle-baseline/baseline.trx\n\nTest run summary: Passed!\n  total: 935\n  failed: 0\n  succeeded: 935\n  skipped: 0\n  duration: 31s 410ms\n",
+    "trx_sha256": "d338ab3f37ad6ef4a9c57fded75cf8029f61f0479803614a1722be1c058efe95"
+  },
+  "compiled_ui_test_assembly_sha256": "0c328f896fea7f70705649604eebf0eb9d7ebc81c68a6d04b584d605ab25da67",
+  "diagnostic": {
+    "kind": "reflection console invoking current concrete gateway through existing test fixtures; not maintained acceptance",
+    "harness_project": "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n    <OutputType>Exe</OutputType>\n    <TargetFramework>net10.0</TargetFramework>\n    <ImplicitUsings>enable</ImplicitUsings>\n    <Nullable>enable</Nullable>\n  </PropertyGroup>\n  <ItemGroup><FrameworkReference Include=\"Microsoft.AspNetCore.App\" /></ItemGroup>\n</Project>\n",
+    "harness_source": "using System.Collections;\nusing System.Reflection;\nusing System.Runtime.Loader;\nusing System.Text.Json;\n\nstring assemblyPath = args[0];\nAssemblyDependencyResolver resolver = new(assemblyPath);\nAssemblyLoadContext.Default.Resolving += (_, name) =>\n{\n    string? path = resolver.ResolveAssemblyToPath(name);\n    path ??= Path.Combine(Path.GetDirectoryName(assemblyPath)!, name.Name + \".dll\");\n    return File.Exists(path) ? AssemblyLoadContext.Default.LoadFromAssemblyPath(path) : null;\n};\nAssembly tests = AssemblyLoadContext.Default.LoadFromAssemblyPath(assemblyPath);\nType type = tests.GetType(\"Hexalith.Tenants.UI.Tests.Services.Gateways.TenantCommandGatewayTests\", true)!;\nobject instance = Activator.CreateInstance(type)!;\nIEnumerable cases = (IEnumerable)type.GetMethod(\"AmbiguousGrantExceptions\")!.Invoke(null, null)!;\nList<Exception> failures = [];\nforeach (object[] row in cases)\n{\n    Exception exception = (Exception)row[0];\n    if (exception is TimeoutException || exception.GetType() == typeof(OperationCanceledException)\n        || exception.GetType().GetProperty(\"Retryable\")?.GetValue(exception) is true)\n    {\n        failures.Add(exception);\n    }\n}\nstring[] operations = [\"grant-tracked\", \"remove-global-tracked\", \"set-tracked\", \"remove-configuration-tracked\", \"enable-tracked\", \"disable-tracked\"];\nMethodInfo create = type.GetMethod(\"CreateLifecycleGateway\", BindingFlags.Static | BindingFlags.NonPublic)!;\nMethodInfo submit = type.GetMethod(\"SubmitOperation\", BindingFlags.Static | BindingFlags.NonPublic)!;\nList<object> results = [];\nforeach (string operation in operations)\n{\n    foreach (Exception exception in failures)\n    {\n        object gateway = create.Invoke(null, [exception])!;\n        string? state = null, messageId = null, key = null, thrown = null;\n        bool? ambiguous = null;\n        try\n        {\n            Task task = (Task)submit.Invoke(null, [gateway, operation, false])!;\n            await task;\n            object result = task.GetType().GetProperty(\"Result\")!.GetValue(task)!;\n            Type resultType = result.GetType();\n            state = resultType.GetProperty(\"State\")!.GetValue(result)?.ToString();\n            messageId = resultType.GetProperty(\"MessageId\")!.GetValue(result)?.ToString();\n            key = resultType.GetProperty(\"SafeMessageKey\")!.GetValue(result)?.ToString();\n            ambiguous = (bool)resultType.GetProperty(\"IsAmbiguousFailure\")!.GetValue(result)!;\n        }\n        catch (Exception ex)\n        {\n            Exception cause = ex is TargetInvocationException invocation ? invocation.InnerException! : ex;\n            thrown = cause.GetType().Name;\n        }\n        results.Add(new { operation, input = exception.GetType().Name,\n            statusCode = exception.GetType().GetProperty(\"StatusCode\")?.GetValue(exception),\n            retryable = exception.GetType().GetProperty(\"Retryable\")?.GetValue(exception),\n            state, ambiguous, messageId, key, thrown });\n    }\n}\nConsole.WriteLine(JsonSerializer.Serialize(results, new JsonSerializerOptions { WriteIndented = true }));\n",
+    "exit_code": 0,
+    "observations": [
+      {
+        "operation": "grant-tracked",
+        "input": "EventStoreGatewayException",
+        "statusCode": 400,
+        "retryable": true,
+        "state": "RequestSent",
+        "ambiguous": true,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
+        "thrown": null
+      },
+      {
+        "operation": "grant-tracked",
+        "input": "OperationCanceledException",
+        "statusCode": null,
+        "retryable": null,
+        "state": "RequestSent",
+        "ambiguous": true,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
+        "thrown": null
+      },
+      {
+        "operation": "grant-tracked",
+        "input": "TimeoutException",
+        "statusCode": null,
+        "retryable": null,
+        "state": "RequestSent",
+        "ambiguous": true,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
+        "thrown": null
+      },
+      {
+        "operation": "remove-global-tracked",
+        "input": "EventStoreGatewayException",
+        "statusCode": 400,
+        "retryable": true,
+        "state": "RequestSent",
+        "ambiguous": true,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous",
+        "thrown": null
+      },
+      {
+        "operation": "remove-global-tracked",
+        "input": "OperationCanceledException",
+        "statusCode": null,
+        "retryable": null,
+        "state": "RequestSent",
+        "ambiguous": true,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous",
+        "thrown": null
+      },
+      {
+        "operation": "remove-global-tracked",
+        "input": "TimeoutException",
+        "statusCode": null,
+        "retryable": null,
+        "state": "RequestSent",
+        "ambiguous": true,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous",
+        "thrown": null
+      },
+      {
+        "operation": "set-tracked",
+        "input": "EventStoreGatewayException",
+        "statusCode": 400,
+        "retryable": true,
+        "state": "Failed",
+        "ambiguous": false,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.Configuration.Set.Submission.Invalid",
+        "thrown": null
+      },
+      {
+        "operation": "set-tracked",
+        "input": "OperationCanceledException",
+        "statusCode": null,
+        "retryable": null,
+        "state": null,
+        "ambiguous": null,
+        "messageId": null,
+        "key": null,
+        "thrown": "OperationCanceledException"
+      },
+      {
+        "operation": "set-tracked",
+        "input": "TimeoutException",
+        "statusCode": null,
+        "retryable": null,
+        "state": null,
+        "ambiguous": null,
+        "messageId": null,
+        "key": null,
+        "thrown": "TimeoutException"
+      },
+      {
+        "operation": "remove-configuration-tracked",
+        "input": "EventStoreGatewayException",
+        "statusCode": 400,
+        "retryable": true,
+        "state": "Failed",
+        "ambiguous": false,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.Configuration.Remove.Submission.Invalid",
+        "thrown": null
+      },
+      {
+        "operation": "remove-configuration-tracked",
+        "input": "OperationCanceledException",
+        "statusCode": null,
+        "retryable": null,
+        "state": null,
+        "ambiguous": null,
+        "messageId": null,
+        "key": null,
+        "thrown": "OperationCanceledException"
+      },
+      {
+        "operation": "remove-configuration-tracked",
+        "input": "TimeoutException",
+        "statusCode": null,
+        "retryable": null,
+        "state": null,
+        "ambiguous": null,
+        "messageId": null,
+        "key": null,
+        "thrown": "TimeoutException"
+      },
+      {
+        "operation": "enable-tracked",
+        "input": "EventStoreGatewayException",
+        "statusCode": 400,
+        "retryable": true,
+        "state": "Failed",
+        "ambiguous": false,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.Lifecycle.Submission.Invalid",
+        "thrown": null
+      },
+      {
+        "operation": "enable-tracked",
+        "input": "OperationCanceledException",
+        "statusCode": null,
+        "retryable": null,
+        "state": null,
+        "ambiguous": null,
+        "messageId": null,
+        "key": null,
+        "thrown": "OperationCanceledException"
+      },
+      {
+        "operation": "enable-tracked",
+        "input": "TimeoutException",
+        "statusCode": null,
+        "retryable": null,
+        "state": null,
+        "ambiguous": null,
+        "messageId": null,
+        "key": null,
+        "thrown": "TimeoutException"
+      },
+      {
+        "operation": "disable-tracked",
+        "input": "EventStoreGatewayException",
+        "statusCode": 400,
+        "retryable": true,
+        "state": "Failed",
+        "ambiguous": false,
+        "messageId": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+        "key": "Tenants.Lifecycle.Submission.Invalid",
+        "thrown": null
+      },
+      {
+        "operation": "disable-tracked",
+        "input": "OperationCanceledException",
+        "statusCode": null,
+        "retryable": null,
+        "state": null,
+        "ambiguous": null,
+        "messageId": null,
+        "key": null,
+        "thrown": "OperationCanceledException"
+      },
+      {
+        "operation": "disable-tracked",
+        "input": "TimeoutException",
+        "statusCode": null,
+        "retryable": null,
+        "state": null,
+        "ambiguous": null,
+        "messageId": null,
+        "key": null,
+        "thrown": "TimeoutException"
+      }
+    ],
+    "harness_project_sha256": "797a96c205f76804c24bfce55c0388692bd37edcae9416fbf450b72fb1ff30af",
+    "harness_source_sha256": "f2bae7611a9fdb28c812b82a5bc9ced0f1e4ebab8b997330f6c2989f26baf968"
+  },
+  "compiled_diagnostic_inputs_sha256": {
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll": "0c328f896fea7f70705649604eebf0eb9d7ebc81c68a6d04b584d605ab25da67",
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.dll": "e229cfd641a4081cab989e79a0a57617b64f1933a243e44b15a7e41bb2c8b3b7",
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.EventStore.Client.dll": "6fa4224c40f0aa71d87b3f62ee63b4979f20cfd91c4bd0ee2c835c6e7f715c75"
+  },
+  "artifact_checks": {
+    "markdown_links_and_fragments": "pass",
+    "new_markdown_lf_and_whitespace": "pass",
+    "preserved_input_hashes": "pass",
+    "head_and_nine_root_submodule_heads": "unchanged",
+    "tracked_and_staged_diff": "empty",
+    "new_spec_gitlink_check": {
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-dw-337-tracked-dispatch-ambiguity.md",
+      "exit_code": 0,
+      "result": "PASS; no references pointer changes in range"
+    },
+    "git_diff_check": {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  }
+}
