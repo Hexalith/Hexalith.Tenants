@@ -1,0 +1,670 @@
+{
+  "direct_xml": [
+    {
+      "path": "/tmp/hexalith-dw247/focused-existing-debug.xml",
+      "sha256": "f1e63a3d36e957a8470ac3d072be8359c4efbcacc77549eee92b6bc0fa197c71",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "f5e831dd-05dd-4120-b843-27a4859f8c4a",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-16",
+          "run-time": "07:26:00",
+          "start-rtf": "2026-10-16T07:26:00.3594790+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-16T07:26:24.6585976+00:00",
+          "not-run": "0",
+          "passed": "485",
+          "skipped": "0",
+          "time": "24.299",
+          "time-rtf": "00:00:24.2990000",
+          "total": "485"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "path": "/tmp/hexalith-dw247/new-cases-corrected-debug.xml",
+      "sha256": "4c7b9e2e8f35cde7d909458478412236f89f23a4d8a05d7e14f877752b7ec09a",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "b575d2d8-0021-431c-a3fe-d80fced9ae11",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-16",
+          "run-time": "07:34:21",
+          "start-rtf": "2026-10-16T07:34:21.4582025+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-16T07:34:23.5738242+00:00",
+          "not-run": "0",
+          "passed": "168",
+          "skipped": "0",
+          "time": "2.117",
+          "time-rtf": "00:00:02.1170000",
+          "total": "168"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "path": "/tmp/hexalith-dw247/new-cases-initial-debug.xml",
+      "sha256": "080f68268a6e3930fc94b8591cbce8bb50def3df84b1431eda461b724839b6f2",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "fd2f3300-8b3a-4e70-ba36-6667420c2bc1",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-16",
+          "run-time": "07:32:33",
+          "start-rtf": "2026-10-16T07:32:33.8811033+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "33",
+          "finish-rtf": "2026-10-16T07:32:35.7253078+00:00",
+          "not-run": "0",
+          "passed": "131",
+          "skipped": "0",
+          "time": "1.844",
+          "time-rtf": "00:00:01.8440000",
+          "total": "164"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DeploymentConfigurationSelectsTheFixedDeadline(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DeploymentConfigurationSelectsTheFixedDeadline(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 80\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DeploymentConfigurationSelectsTheFixedDeadline(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DeploymentConfigurationSelectsTheFixedDeadline(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 80\n   at InvokeStub_TenantMembershipProjectionWaitTests.DeploymentConfigurationSelectsTheFixedDeadline(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DeploymentConfigurationSelectsTheFixedDeadline(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DeploymentConfigurationSelectsTheFixedDeadline(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 80\n   at InvokeStub_TenantMembershipProjectionWaitTests.DeploymentConfigurationSelectsTheFixedDeadline(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DefaultBoundStartsOnlyAtFirstProjectionPendingAndExpiresAtExactBoundary(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DefaultBoundStartsOnlyAtFirstProjectionPendingAndExpiresAtExactBoundary(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 58\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DefaultBoundStartsOnlyAtFirstProjectionPendingAndExpiresAtExactBoundary(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DefaultBoundStartsOnlyAtFirstProjectionPendingAndExpiresAtExactBoundary(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 58\n   at InvokeStub_TenantMembershipProjectionWaitTests.DefaultBoundStartsOnlyAtFirstProjectionPendingAndExpiresAtExactBoundary(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DefaultBoundStartsOnlyAtFirstProjectionPendingAndExpiresAtExactBoundary(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DefaultBoundStartsOnlyAtFirstProjectionPendingAndExpiresAtExactBoundary(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 58\n   at InvokeStub_TenantMembershipProjectionWaitTests.DefaultBoundStartsOnlyAtFirstProjectionPendingAndExpiresAtExactBoundary(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.MembershipBoundDoesNotScheduleOrExpireOtherRetainedCommandKinds(kind: \\\"create\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.MembershipBoundDoesNotScheduleOrExpireOtherRetainedCommandKinds(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 483\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.MembershipBoundDoesNotScheduleOrExpireOtherRetainedCommandKinds(kind: \\\"metadata\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.MembershipBoundDoesNotScheduleOrExpireOtherRetainedCommandKinds(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 483\n   at InvokeStub_TenantMembershipProjectionWaitTests.MembershipBoundDoesNotScheduleOrExpireOtherRetainedCommandKinds(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DetachedAttemptExpiresWithoutLosingEvidenceOrAdmissionAndCanBeAdopted(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DetachedAttemptExpiresWithoutLosingEvidenceOrAdmissionAndCanBeAdopted(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 248\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DetachedAttemptExpiresWithoutLosingEvidenceOrAdmissionAndCanBeAdopted(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DetachedAttemptExpiresWithoutLosingEvidenceOrAdmissionAndCanBeAdopted(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 248\n   at InvokeStub_TenantMembershipProjectionWaitTests.DetachedAttemptExpiresWithoutLosingEvidenceOrAdmissionAndCanBeAdopted(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DetachedAttemptExpiresWithoutLosingEvidenceOrAdmissionAndCanBeAdopted(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.DetachedAttemptExpiresWithoutLosingEvidenceOrAdmissionAndCanBeAdopted(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 248\n   at InvokeStub_TenantMembershipProjectionWaitTests.DetachedAttemptExpiresWithoutLosingEvidenceOrAdmissionAndCanBeAdopted(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ExpiryDoesNotAllowAResultCapturedBeforeAnotherEvidenceTransition(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ExpiryDoesNotAllowAResultCapturedBeforeAnotherEvidenceTransition(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 369\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ExpiryDoesNotAllowAResultCapturedBeforeAnotherEvidenceTransition(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ExpiryDoesNotAllowAResultCapturedBeforeAnotherEvidenceTransition(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 369\n   at InvokeStub_TenantMembershipProjectionWaitTests.ExpiryDoesNotAllowAResultCapturedBeforeAnotherEvidenceTransition(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ExpiryDoesNotAllowAResultCapturedBeforeAnotherEvidenceTransition(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ExpiryDoesNotAllowAResultCapturedBeforeAnotherEvidenceTransition(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 369\n   at InvokeStub_TenantMembershipProjectionWaitTests.ExpiryDoesNotAllowAResultCapturedBeforeAnotherEvidenceTransition(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedStatusNudgesAndTemporaryFailureConsumeTheOriginalElapsedBound(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedStatusNudgesAndTemporaryFailureConsumeTheOriginalElapsedBound(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 227\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedStatusNudgesAndTemporaryFailureConsumeTheOriginalElapsedBound(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedStatusNudgesAndTemporaryFailureConsumeTheOriginalElapsedBound(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 227\n   at InvokeStub_TenantMembershipProjectionWaitTests.RepeatedStatusNudgesAndTemporaryFailureConsumeTheOriginalElapsedBound(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedStatusNudgesAndTemporaryFailureConsumeTheOriginalElapsedBound(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedStatusNudgesAndTemporaryFailureConsumeTheOriginalElapsedBound(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 227\n   at InvokeStub_TenantMembershipProjectionWaitTests.RepeatedStatusNudgesAndTemporaryFailureConsumeTheOriginalElapsedBound(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.UnavailableMismatchedAndUnadvancedEvidenceCannotEscapeExpiredUncertainty(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.UnavailableMismatchedAndUnadvancedEvidenceCannotEscapeExpiredUncertainty(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 399\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.UnavailableMismatchedAndUnadvancedEvidenceCannotEscapeExpiredUncertainty(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.UnavailableMismatchedAndUnadvancedEvidenceCannotEscapeExpiredUncertainty(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 399\n   at InvokeStub_TenantMembershipProjectionWaitTests.UnavailableMismatchedAndUnadvancedEvidenceCannotEscapeExpiredUncertainty(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.UnavailableMismatchedAndUnadvancedEvidenceCannotEscapeExpiredUncertainty(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.UnavailableMismatchedAndUnadvancedEvidenceCannotEscapeExpiredUncertainty(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 399\n   at InvokeStub_TenantMembershipProjectionWaitTests.UnavailableMismatchedAndUnadvancedEvidenceCannotEscapeExpiredUncertainty(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TrackerDisposalStopsTimersAndObserversWithoutInventingTerminalEvidence(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TrackerDisposalStopsTimersAndObserversWithoutInventingTerminalEvidence(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 456\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TrackerDisposalStopsTimersAndObserversWithoutInventingTerminalEvidence(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TrackerDisposalStopsTimersAndObserversWithoutInventingTerminalEvidence(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 456\n   at InvokeStub_TenantMembershipProjectionWaitTests.TrackerDisposalStopsTimersAndObserversWithoutInventingTerminalEvidence(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TrackerDisposalStopsTimersAndObserversWithoutInventingTerminalEvidence(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TrackerDisposalStopsTimersAndObserversWithoutInventingTerminalEvidence(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 456\n   at InvokeStub_TenantMembershipProjectionWaitTests.TrackerDisposalStopsTimersAndObserversWithoutInventingTerminalEvidence(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TerminalEvidenceStopsItsTimerAndCannotExpireAReplacementAttempt(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), replacement.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TerminalEvidenceStopsItsTimerAndCannotExpireAReplacementAttempt(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 427\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TerminalEvidenceStopsItsTimerAndCannotExpireAReplacementAttempt(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), replacement.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TerminalEvidenceStopsItsTimerAndCannotExpireAReplacementAttempt(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 427\n   at InvokeStub_TenantMembershipProjectionWaitTests.TerminalEvidenceStopsItsTimerAndCannotExpireAReplacementAttempt(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TerminalEvidenceStopsItsTimerAndCannotExpireAReplacementAttempt(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), replacement.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.TerminalEvidenceStopsItsTimerAndCannotExpireAReplacementAttempt(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 427\n   at InvokeStub_TenantMembershipProjectionWaitTests.TerminalEvidenceStopsItsTimerAndCannotExpireAReplacementAttempt(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ModuleCompositionUsesItsConfigurationArgumentWhenTheHostHasNoConfigurationService(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ModuleCompositionUsesItsConfigurationArgumentWhenTheHostHasNoConfigurationService(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 143\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ModuleCompositionUsesItsConfigurationArgumentWhenTheHostHasNoConfigurationService(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ModuleCompositionUsesItsConfigurationArgumentWhenTheHostHasNoConfigurationService(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 143\n   at InvokeStub_TenantMembershipProjectionWaitTests.ModuleCompositionUsesItsConfigurationArgumentWhenTheHostHasNoConfigurationService(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ModuleCompositionUsesItsConfigurationArgumentWhenTheHostHasNoConfigurationService(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.ModuleCompositionUsesItsConfigurationArgumentWhenTheHostHasNoConfigurationService(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 143\n   at InvokeStub_TenantMembershipProjectionWaitTests.ModuleCompositionUsesItsConfigurationArgumentWhenTheHostHasNoConfigurationService(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedFocusOnlyNudgesPreservePreExpiryHeldEvidenceUntilItsQualifiedResultArrives(kind: \\\"add\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedFocusOnlyNudgesPreservePreExpiryHeldEvidenceUntilItsQualifiedResultArrives(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 311\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedFocusOnlyNudgesPreservePreExpiryHeldEvidenceUntilItsQualifiedResultArrives(kind: \\\"change\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedFocusOnlyNudgesPreservePreExpiryHeldEvidenceUntilItsQualifiedResultArrives(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 311\n   at InvokeStub_TenantMembershipProjectionWaitTests.RepeatedFocusOnlyNudgesPreservePreExpiryHeldEvidenceUntilItsQualifiedResultArrives(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedFocusOnlyNudgesPreservePreExpiryHeldEvidenceUntilItsQualifiedResultArrives(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : gate.IsOwnedBy(TenantCommandAggregateLock.ForTenant(TenantId), attempt.LeaseOwner)\n    should be\nTrue\n    but was\nFalse   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.AssertUnresolvedAdmission(TenantCommandAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate, TenantRetainedCommandAttempt attempt) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 650\n   at Hexalith.Tenants.UI.Tests.State.TenantMembershipProjectionWaitTests.RepeatedFocusOnlyNudgesPreservePreExpiryHeldEvidenceUntilItsQualifiedResultArrives(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipProjectionWaitTests.cs:line 311\n   at InvokeStub_TenantMembershipProjectionWaitTests.RepeatedFocusOnlyNudgesPreservePreExpiryHeldEvidenceUntilItsQualifiedResultArrives(Object, Span`1)\n   at System.Reflection.MethodBaseInvoker.InvokeWithOneArg(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.MembershipProjectionWaitTests.SameInstanceTenantReplacementKeepsIndependentOriginalDeadlines(kind: \\\"remove\\\")",
+          "failure": "Shouldly.ShouldAssertException : State()\n    should be\nTenantCommandLifecycleState.Idle\n    but was\nTenantCommandLifecycleState.Previewed   at Hexalith.Tenants.UI.Tests.Components.MembershipProjectionWaitTests.SameInstanceTenantReplacementKeepsIndependentOriginalDeadlines(String kind) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/MembershipProjectionWaitTests.cs:line 547\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        }
+      ]
+    },
+    {
+      "path": "/tmp/hexalith-dw247-completion/chromium-hang-guard-recheck.xml",
+      "sha256": "190a4c17bbc477ad47f3ed473c329a3b8ad2ad5a1c265198d099b8ff087b924e",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "bc6754e8-9d06-4141-8d08-ff99b74a260c",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-16",
+          "run-time": "07:56:26",
+          "start-rtf": "2026-10-16T07:56:26.1929444+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-16T07:56:32.4769069+00:00",
+          "not-run": "0",
+          "passed": "1",
+          "skipped": "0",
+          "time": "6.284",
+          "time-rtf": "00:00:06.2840000",
+          "total": "1"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "path": "/tmp/hexalith-dw247-completion/focused-final-debug.xml",
+      "sha256": "049b4a2ba5be79c8b4b2b93fe7bc0654b451ac0861c04d82f2578bea255539f0",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "a50256ba-d18e-4b8b-bc22-c5b649a47d29",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-16",
+          "run-time": "07:51:09",
+          "start-rtf": "2026-10-16T07:51:09.2458923+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-16T07:51:34.4753453+00:00",
+          "not-run": "0",
+          "passed": "657",
+          "skipped": "0",
+          "time": "25.231",
+          "time-rtf": "00:00:25.2310000",
+          "total": "657"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "path": "/tmp/hexalith-dw247-completion/focused-final-release.xml",
+      "sha256": "77e22f23b59b0096e2a1224a282643bf4332d2a092d37d740c9c46eb6f439a35",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "06ed798f-94d5-4e37-8bf6-8974746aef81",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-16",
+          "run-time": "07:53:37",
+          "start-rtf": "2026-10-16T07:53:37.6181149+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-16T07:54:04.2086984+00:00",
+          "not-run": "0",
+          "passed": "657",
+          "skipped": "0",
+          "time": "26.592",
+          "time-rtf": "00:00:26.5920000",
+          "total": "657"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "path": "/tmp/hexalith-dw247-completion/focused-qualified-debug.xml",
+      "sha256": "5d6027c39e8f92cdd2b7a17b63b35b82bbdce63dcd67fda3e786dbeb858f1242",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "c7e72b9a-bcb4-4bb8-8c21-8e3812c66c90",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-16",
+          "run-time": "07:57:16",
+          "start-rtf": "2026-10-16T07:57:16.4206303+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-16T07:57:41.7948524+00:00",
+          "not-run": "0",
+          "passed": "657",
+          "skipped": "0",
+          "time": "25.376",
+          "time-rtf": "00:00:25.3760000",
+          "total": "657"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "path": "/tmp/hexalith-dw247-completion/focused-qualified-release.xml",
+      "sha256": "a9d726e98c2adcb2991ff0ee4a55a9ef381083e4f11d45040f42d20709e4636d",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "e6868577-c205-493e-a229-bd5a8e2b7cf7",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-16",
+          "run-time": "07:59:45",
+          "start-rtf": "2026-10-16T07:59:45.6915131+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-16T08:00:11.1589057+00:00",
+          "not-run": "0",
+          "passed": "657",
+          "skipped": "0",
+          "time": "25.468",
+          "time-rtf": "00:00:25.4680000",
+          "total": "657"
+        }
+      ],
+      "failures": []
+    }
+  ],
+  "mtp_results": {
+    "full-final-debug": {
+      "total": 5368,
+      "failed": 0,
+      "succeeded": 5368,
+      "skipped": 0
+    },
+    "full-final-release": {
+      "total": 5368,
+      "failed": 1,
+      "succeeded": 5367,
+      "skipped": 0
+    },
+    "full-qualified-debug": {
+      "total": 5368,
+      "failed": 0,
+      "succeeded": 5368,
+      "skipped": 0
+    },
+    "full-qualified-release": {
+      "total": 5368,
+      "failed": 0,
+      "succeeded": 5368,
+      "skipped": 0
+    }
+  },
+  "command_summary": [
+    {
+      "label": "aspire-start",
+      "exit_code": 0,
+      "duration_seconds": 3.708
+    },
+    {
+      "label": "aspire-describe",
+      "exit_code": 0,
+      "duration_seconds": 0.407
+    },
+    {
+      "label": "aspire-otel",
+      "exit_code": 0,
+      "duration_seconds": 0.406
+    },
+    {
+      "label": "aspire-describe-ready",
+      "exit_code": 0,
+      "duration_seconds": 0.406
+    },
+    {
+      "label": "aspire-stop",
+      "exit_code": 0,
+      "duration_seconds": 0.707
+    },
+    {
+      "label": "build-initial-debug",
+      "exit_code": 0,
+      "duration_seconds": 13.849
+    },
+    {
+      "label": "focused-existing-debug",
+      "exit_code": 0,
+      "duration_seconds": 24.619
+    },
+    {
+      "label": "build-broad-release",
+      "exit_code": 1,
+      "duration_seconds": 2.664
+    },
+    {
+      "label": "build-strict-package-release",
+      "exit_code": 1,
+      "duration_seconds": 3.13
+    },
+    {
+      "label": "build-new-tests-debug",
+      "exit_code": 1,
+      "duration_seconds": 16.177
+    },
+    {
+      "label": "provenance-current",
+      "exit_code": 0,
+      "duration_seconds": 0.048
+    },
+    {
+      "label": "provenance-owning-2-1",
+      "exit_code": 1,
+      "duration_seconds": 0.088
+    },
+    {
+      "label": "provenance-owning-2-4",
+      "exit_code": 1,
+      "duration_seconds": 0.083
+    },
+    {
+      "label": "provenance-dw176",
+      "exit_code": 0,
+      "duration_seconds": 0.059
+    },
+    {
+      "label": "provenance-dw166",
+      "exit_code": 1,
+      "duration_seconds": 0.125
+    },
+    {
+      "label": "provenance-dw105",
+      "exit_code": 1,
+      "duration_seconds": 0.05
+    },
+    {
+      "label": "provenance-dw517",
+      "exit_code": 1,
+      "duration_seconds": 0.097
+    },
+    {
+      "label": "provenance-b6",
+      "exit_code": 1,
+      "duration_seconds": 0.108
+    },
+    {
+      "label": "provenance-b8",
+      "exit_code": 1,
+      "duration_seconds": 0.1
+    },
+    {
+      "label": "provenance-dw112",
+      "exit_code": 1,
+      "duration_seconds": 0.079
+    },
+    {
+      "label": "provenance-dw150",
+      "exit_code": 1,
+      "duration_seconds": 0.056
+    },
+    {
+      "label": "provenance-dw164",
+      "exit_code": 1,
+      "duration_seconds": 0.133
+    },
+    {
+      "label": "build-state-tests-debug",
+      "exit_code": 1,
+      "duration_seconds": 13.034
+    },
+    {
+      "label": "build-reviewed-tests-debug",
+      "exit_code": 1,
+      "duration_seconds": 11.452
+    },
+    {
+      "label": "build-qualification-debug",
+      "exit_code": 0,
+      "duration_seconds": 13.89
+    },
+    {
+      "label": "new-cases-initial-debug",
+      "exit_code": 1,
+      "duration_seconds": 2.168
+    },
+    {
+      "label": "build-corrected-cases-debug",
+      "exit_code": 0,
+      "duration_seconds": 11.122
+    },
+    {
+      "label": "new-cases-corrected-debug",
+      "exit_code": 0,
+      "duration_seconds": 2.496
+    },
+    {
+      "label": "preservation-before-final",
+      "exit_code": 0,
+      "duration_seconds": 2.552
+    },
+    {
+      "label": "build-final-debug",
+      "exit_code": 0,
+      "duration_seconds": 10.286
+    },
+    {
+      "label": "focused-final-debug",
+      "exit_code": 0,
+      "duration_seconds": 25.567
+    },
+    {
+      "label": "provenance-completion",
+      "exit_code": 0,
+      "duration_seconds": 0.053
+    },
+    {
+      "label": "full-final-debug",
+      "exit_code": 0,
+      "duration_seconds": 83.655
+    },
+    {
+      "label": "browser-final-debug",
+      "exit_code": 0,
+      "duration_seconds": 27.224
+    },
+    {
+      "label": "build-final-release",
+      "exit_code": 0,
+      "duration_seconds": 11.746
+    },
+    {
+      "label": "focused-final-release",
+      "exit_code": 0,
+      "duration_seconds": 27.029
+    },
+    {
+      "label": "aspire-completion-start",
+      "exit_code": 0,
+      "duration_seconds": 4.115
+    },
+    {
+      "label": "aspire-completion-describe",
+      "exit_code": 0,
+      "duration_seconds": 0.729
+    },
+    {
+      "label": "aspire-completion-otel",
+      "exit_code": 0,
+      "duration_seconds": 0.944
+    },
+    {
+      "label": "aspire-completion-ready",
+      "exit_code": 0,
+      "duration_seconds": 0.752
+    },
+    {
+      "label": "aspire-completion-describe-ready",
+      "exit_code": 0,
+      "duration_seconds": 0.847
+    },
+    {
+      "label": "aspire-completion-stop",
+      "exit_code": 0,
+      "duration_seconds": 1.526
+    },
+    {
+      "label": "full-final-release",
+      "exit_code": 2,
+      "duration_seconds": 118.532
+    },
+    {
+      "label": "chromium-hang-guard-recheck",
+      "exit_code": 0,
+      "duration_seconds": 6.61
+    },
+    {
+      "label": "build-qualified-debug",
+      "exit_code": 0,
+      "duration_seconds": 11.944
+    },
+    {
+      "label": "focused-qualified-debug",
+      "exit_code": 0,
+      "duration_seconds": 25.674
+    },
+    {
+      "label": "full-qualified-debug",
+      "exit_code": 0,
+      "duration_seconds": 86.619
+    },
+    {
+      "label": "browser-qualified-debug",
+      "exit_code": 0,
+      "duration_seconds": 28.573
+    },
+    {
+      "label": "build-qualified-release",
+      "exit_code": 0,
+      "duration_seconds": 8.328
+    },
+    {
+      "label": "focused-qualified-release",
+      "exit_code": 0,
+      "duration_seconds": 25.776
+    },
+    {
+      "label": "full-qualified-release",
+      "exit_code": 0,
+      "duration_seconds": 89.61
+    },
+    {
+      "label": "browser-qualified-release",
+      "exit_code": 0,
+      "duration_seconds": 27.513
+    },
+    {
+      "label": "ledger-audit-final",
+      "exit_code": 0,
+      "duration_seconds": 0.048
+    },
+    {
+      "label": "provenance-qualified",
+      "exit_code": 0,
+      "duration_seconds": 0.065
+    },
+    {
+      "label": "diff-check-completion",
+      "exit_code": 0,
+      "duration_seconds": 0.094
+    },
+    {
+      "label": "preservation-completion-final",
+      "exit_code": 0,
+      "duration_seconds": 0.599
+    }
+  ],
+  "browser_output_sha256": {
+    "browser-final-debug": "b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0",
+    "browser-qualified-debug": "b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0",
+    "browser-qualified-release": "ece037edde022a41e0f61e0e96f470e353aa893c3d354b973a35d9079f99a4b2"
+  },
+  "final_labels": [
+    "build-qualified-debug",
+    "focused-qualified-debug",
+    "full-qualified-debug",
+    "browser-qualified-debug",
+    "build-qualified-release",
+    "focused-qualified-release",
+    "full-qualified-release",
+    "browser-qualified-release"
+  ],
+  "new_state_cases": 57,
+  "new_component_cases": 115
+}

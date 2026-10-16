@@ -40,6 +40,8 @@ DW-176/DW-184 closure update — 2026-10-15: only these two records close after 
 
 DW-245/DW-265/DW-290 closure update — 2026-10-16: only these three duplicate queued membership projection-refresh records close. Both flows retain OR-combined intent in generation-tagged batches, serialize replay and idle handoff, consume explicit pending work across failure and preserve exact retained proof/identity/admission/disposal semantics. Independent review/recheck,62 new actual Fluent cases, focused462/full UI5196 in Debug/maintained Release and both unchanged Chromium lanes pass. All643 IDs remain:332 done/311 open,279 index rows; reconciled128 done/223 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. DW-248/DW-266/DW-267, all earlier B1–B8/DW evidence, unrelated findings/decisions, inherited/external work and dependency pointers, archive/sprint, gates and historical provenance/release blockers remain preserved. See [complete evidence](dw-245-validation-evidence.md). Next selected bundle: DW-247 bounded membership ProjectionPending recovery under its settled August25/26 decision; DW-323 remains separately scoped and DW-121 remains Builds-owned. Release remains not ready.
 
+After validated DW-247 closure (2026-10-16): 129 reconciled done,222 actionable,15 blocked,26 awaiting-decision,nine accepted limitations and38 uncertain;310 open. All 643 IDs remain:333 done/310 open across278 exact-covering maintenance rows. One configured retained membership projection deadline and exact late reconciliation pass independent review/recheck,172 dedicated cases, focused 657/full UI 5368 in Debug/maintained Release and both unchanged Chromium lanes. Initial failures and broad release/provenance blockers remain in [evidence](dw-247-validation-evidence.md). Only DW-247 changes; prior history,decisions,B1–B8/all earlier bundles,DW-248/DW-266/DW-267/DW-323,archive and sprint are preserved. Next selected bundle:DW-234/DW-251/DW-316 shared failure/status localization. Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -2314,19 +2316,25 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: No-advancement ProjectionPending has no in-place terminal escape. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: No-advancement ProjectionPending has no in-place terminal escape. evidence: When the postcondition matches and the command produced events but ordered provenance cannot bind the observed version to the attempt, all three membership snapshots stay ProjectionPending; TenantCommandFlowGuard.RetainsCommandActivity holds the lease and CanContinueReadOnly excludes that state, so no continue-read-only affordance renders. A fix mapping this to UnableToVerify was drafted and reverted during review: the I/O matrix permits "stay pending or unable to verify", and six tests deliberately pin ProjectionPending, making this a product decision. Recoverable today via route change or page disposal, both of which release the lease.
-status: open
+status: done 2026-10-16
 decision: 2026-08-26 Bound to UnableToVerify — After a configured retry or time bound, transition to UnableToVerify with status recovery and support-safe guidance.
 decision: 2026-08-25 Bound to UnableToVerify — After a configured retry or time bound, transition the retained attempt to UnableToVerify with status-recovery and support-safe guidance.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs membership confirmers retain ProjectionPending without qualifying advancement; TenantCommandFlowGuard.RetainsCommandActivity keeps it locked and CanContinueReadOnly excludes it. No membership time/poll budget implements the recorded 2026-08-25/26 UnableToVerify decision.
+disposition: done
+historical-verification-date-before-membership-bound: 2026-10-12
+historical-verification-before-membership-bound: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs membership confirmers retain ProjectionPending without qualifying advancement; TenantCommandFlowGuard.RetainsCommandActivity keeps it locked and CanContinueReadOnly excludes it. No membership time/poll budget implements the recorded 2026-08-25/26 UnableToVerify decision.
 verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-evidence-kind: verified-defect
+historical-evidence-kind-before-membership-bound: verified-defect
 priority: P2
 owner: unassigned
 dependencies: configured membership budget
-next-action: Apply the already-selected bounded retry/time transition to UnableToVerify with recovery.
+historical-next-action-before-membership-bound: Apply the already-selected bounded retry/time transition to UnableToVerify with recovery.
 related: DW-323
+verification-date: 2026-10-16
+verification: Retained add/change/remove membership attempts use one configured monotonic deadline from their first ProjectionPending transition. Expiry presents localized UnableToVerify without I/O, cancellation, fabricated terminal outcome or admission release; exact qualified late evidence still reconciles. 172 deterministic state/actual Fluent cases, focused 657/full UI 5368 in Debug and maintained Release, unchanged Chromium lanes and independent review/recheck pass. Initial Release Chromium-hang guard timeout is retained with passing focused/full rechecks; no timeout or gate changed. See dw-247-validation-evidence.md.
+evidence-kind: executed-regression
+next-action: None for DW-247; related lifecycle poll-budget DW-323 and shared-plumbing DW-248/DW-266/DW-267 remain open and separately scoped.
+resolution: The settled August25/26 bounded UnableToVerify decision is implemented and qualified. Original finding, legacy detail, both decisions and pre-closure verification/actions remain above. Recovery, Continue read-only, replacement/remount and disposal retain exact unresolved command ownership. Only DW-247 closes; full release readiness is not established.
+
 
 ### DW-248: Refresh-coalescing re-enters recursively instead of iterating
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25

@@ -879,6 +879,8 @@ public sealed class MembershipProjectionWaitTests : FluentBunitContext
     private Task ClickAsync(string testId)
     {
         FluentButton button = _cut.FindComponents<FluentButton>().Single(rendered => rendered.Instance.AdditionalAttributes?.TryGetValue("data-testid", out object? value) is true && Equals(value, testId)).Instance;
+        button.Disabled.ShouldBeFalse();
+        _cut.Find($"[data-testid='{testId}']").HasAttribute("disabled").ShouldBeFalse();
         return _cut.InvokeAsync(() => button.OnClick.InvokeAsync(new MouseEventArgs()));
     }
 

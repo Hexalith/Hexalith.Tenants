@@ -134,7 +134,9 @@ cancellation, so paging and refresh preserve established subscriptions.
 The add-member, change-role and removal flows use
 `Tenants:Ui:MembershipProjectionTimeout`, default `00:05:00`. Override it in host
 configuration or with `Tenants__Ui__MembershipProjectionTimeout`. Supply a positive
-finite invariant TimeSpan within .NET timer limits. Invalid values are rejected.
+finite invariant TimeSpan no greater than `49.17:02:47.294` (the .NET timer limit).
+Invalid values are rejected. The circuit-scoped tracker reads this setting when
+it is created; changing configuration does not change an existing tracker's bound.
 
 Each retained membership attempt starts one monotonic deadline when it first
 reaches `ProjectionPending`. Elapsed time includes held status/projection operations

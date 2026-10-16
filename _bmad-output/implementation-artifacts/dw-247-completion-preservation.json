@@ -1,0 +1,80 @@
+{
+  "captured_utc": "2026-10-16T08:03:35.480653+00:00",
+  "completion_entry_head": "6de661e129ff6f6f0c19795fcb1d032abee25d1d",
+  "repositories": {
+    ".": {
+      "head": "6de661e129ff6f6f0c19795fcb1d032abee25d1d",
+      "branch": "main",
+      "status": "M _bmad-output/implementation-artifacts/deferred-work.md\n M _bmad-output/implementation-artifacts/release-readiness.md\n M _bmad-output/implementation-artifacts/spec-dw-247-bounded-membership-projection-recovery.md\n M docs/maintenance-backlog.md\n M docs/quickstart.md\n M src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx\n M src/Hexalith.Tenants.UI/Resources/TenantsResources.resx\n M tests/Hexalith.Tenants.UI.Tests/Components/MembershipProjectionWaitTests.cs\n?? _bmad-output/implementation-artifacts/dw-247-completion-command-results.json\n?? _bmad-output/implementation-artifacts/dw-247-completion-inputs-before.json\n?? _bmad-output/implementation-artifacts/dw-247-completion-preservation.json\n?? _bmad-output/implementation-artifacts/dw-247-ledger-validation.json\n?? _bmad-output/implementation-artifacts/dw-247-ui-summary.json\n?? _bmad-output/implementation-artifacts/dw-247-validation-evidence.md\n?? _bmad-output/implementation-artifacts/dw-247-validation-inputs.json"
+    },
+    "references/Hexalith.EventStore": {
+      "head": "746b843a24f18b17a7572be25b76b735fa8e4ca6",
+      "branch": "main",
+      "status": ""
+    },
+    "references/Hexalith.Commons": {
+      "head": "9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798",
+      "branch": "main",
+      "status": ""
+    },
+    "references/Hexalith.AI.Tools": {
+      "head": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+      "branch": "main",
+      "status": ""
+    },
+    "references/Hexalith.FrontComposer": {
+      "head": "b06f86d554363ea5b8192cbc149a75c820dab2b8",
+      "branch": "main",
+      "status": ""
+    },
+    "references/Hexalith.Builds": {
+      "head": "f9f115528e43060d5f0af7dfbd8b22addc3c9a89",
+      "branch": "main",
+      "status": ""
+    },
+    "references/Hexalith.PolymorphicSerializations": {
+      "head": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375",
+      "branch": "main",
+      "status": ""
+    },
+    "references/Hexalith.Memories": {
+      "head": "99431f0fed102ea6ddbae33d28b9da4fc7f215a0",
+      "branch": "main",
+      "status": ""
+    },
+    "references/Hexalith.McpCli": {
+      "head": "7e99305a621e1bdf7119b6e924348857e2b5a5a4",
+      "branch": "main",
+      "status": ""
+    },
+    "references/Hexalith.Platform": {
+      "head": "3a29fe039320ab13d95ff7d9801761dad72bfed9",
+      "branch": "main",
+      "status": ""
+    }
+  },
+  "no_new_head_branch_gitlink_dependency_mutation": true,
+  "archive_and_sprint_preserved": {
+    "deferred-work-archive.md": "93fdfb3471642159b47686ea92e248d2d1dcbb5cf701210e99481624a56409cb",
+    "sprint-status.yaml": "8c7dd8eab8027c0455c27decbfc6c08be8d472e8a2a276a74be8f1b5a9a93fc7"
+  },
+  "frozen_intent_preserved": true,
+  "prior_readiness_exact_prefix_preserved": true,
+  "dw245_queued_intent_drains_preserved": {
+    "AddTenantMemberFlow": "0d29cb83acbecb0ad1dbc0d0812b2199d9d650914b0c3bf725de3f12d39cf467",
+    "ChangeTenantMemberRoleFlow": "0d29cb83acbecb0ad1dbc0d0812b2199d9d650914b0c3bf725de3f12d39cf467",
+    "RemoveTenantMemberFlow": "4372ca415b80a064190e161206c29b3ef3619b250d4cbd639c87194e2918d31c"
+  },
+  "initial_dw247_implementation_preservation": "dw-247-preservation.json",
+  "final_validation_inputs": "dw-247-validation-inputs.json",
+  "completion_changes": [
+    "_bmad-output/implementation-artifacts/deferred-work.md",
+    "_bmad-output/implementation-artifacts/release-readiness.md",
+    "_bmad-output/implementation-artifacts/spec-dw-247-bounded-membership-projection-recovery.md",
+    "docs/maintenance-backlog.md",
+    "docs/quickstart.md",
+    "src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx",
+    "src/Hexalith.Tenants.UI/Resources/TenantsResources.resx",
+    "tests/Hexalith.Tenants.UI.Tests/Components/MembershipProjectionWaitTests.cs"
+  ]
+}

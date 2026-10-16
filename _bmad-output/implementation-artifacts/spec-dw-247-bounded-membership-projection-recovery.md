@@ -2,7 +2,7 @@
 title: 'DW-247 bounded membership ProjectionPending recovery'
 type: 'bugfix'
 created: '2026-10-16'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 baseline_commit: 'a3f43655d68370389439c7d2c212ab7939bd164e'
 review_loop_iteration: 0
@@ -124,3 +124,60 @@ by the reviewer. Every finding is retained below.
 Independent read-only recheck found no unresolved concrete production issue; the
 caller suggestion was explicitly reclassified as optional coverage after tracing
 actual production proof boundaries. Final execution evidence is recorded separately.
+
+
+## Completion review — 2026-10-16
+
+Resumed the existing in-progress spec on clean entry
+`6de661e129ff6f6f0c19795fcb1d032abee25d1d`. The implementation and initial
+review corrections were already committed by the user. This pass preserves that
+history, completes qualification, and corrects only the following review findings.
+The frozen intent and original baseline remain unchanged; no sprint transition
+or commit is authorized by this spec.
+
+The skill's only configured review layer, context-free Blind Hunter, independently
+compared the original DW-247 entry-file copies with current production/test files.
+Changed content:103199 bytes/1024=100.780KiB; N=min(floor(sqrt(100.780)+1),10)=10.
+The reviewer ran no tests. Its read-only correction recheck reports no concrete
+regression and confirms all three applied corrections.
+
+| Finding | Verdict and disposition | Evidence |
+| --- | --- | --- |
+| Expiry guidance asks for an unavailable command reference | low, patched | All three membership audit entry points omit SupportSafeCommandReference and intentionally hide raw tracking IDs. EN/FR expiry resources now say to contact support without asking for a missing reference. Recovery and uncertainty guidance remain whole-string localized resources. |
+| Test click helper bypasses disabled controls | low, patched | Before invoking the Fluent callback, ClickAsync now asserts both FluentButton.Disabled=false and absence of the rendered disabled attribute. Existing held-operation cases therefore verify reachable recovery/Continue actions as well as callbacks. |
+| Early timer callback/reschedule branch lacks dedicated coverage | low, rejected optional coverage | The branch compares monotonic elapsed time under the same lock and rearms only the positive remainder. Existing exact/fractional boundary cases and held operations exercise the deadline contract. No production defect was demonstrated; a specialized early-firing clock would add test machinery beyond a simple correction. |
+| Queued callback after disposal lacks dedicated coverage | low, rejected optional coverage | ExpireMembershipWait rejects disposed trackers under _sync before state/timer publication. Existing disposal tests assert stopped timers, no notification, retained admission and no fabricated outcome. Injecting callbacks after disposal would require additional timer scaffolding without a demonstrated gap in behavior. |
+| Queued original callback after replacement lacks dedicated coverage | low, rejected optional coverage | The same locked callback checks IsCurrent using exact retained-attempt reference identity. Terminal/replacement tests pin removal of the old timer and preservation of the successor deadline. No stale-publication defect was demonstrated; additional callback scaffolding is optional. |
+| Separate-thread expiry/reconciliation boundary coverage | low, rejected optional coverage | Tracker updates and expiry serialize on _sync; held-I/O cases verify qualifying results both before and after expiry, and exact expiry-source comparisons reject other evidence changes. No lock-free write or concrete unsafe interleaving was found. Additional scheduling scaffolding would duplicate verified outcome orders. |
+| Independent UTC-clock jump coverage | low, rejected optional coverage | Production explicitly uses TimeProvider.GetTimestamp/GetElapsedTime and never UTC subtraction. Deterministic elapsed-bound tests cover current behavior. A second independently adjustable clock is optional regression hardening beyond the current defect. |
+| Actual DI-scope timer disposal coverage | low, rejected optional coverage | Module composition registers the IDisposable tracker as scoped; composition cases use real scopes and the tracker disposal cases assert timer/observer/admission behavior. No custom DI ownership path or failure was found. Additional combination coverage is optional duplication. |
+| One-tick-above-maximum configuration rejection coverage | low, rejected optional coverage | The invariant TimeSpan parser rejects nonpositive and values above uint.MaxValue-1 milliseconds. Tests pin the exact accepted maximum and reject larger durations. No precision defect was demonstrated; the extra ceiling-adjacent configuration case has negligible normal-use impact. |
+| Concrete maximum and setting-capture lifetime undocumented | low, patched | quickstart now specifies49.17:02:47.294 and construction-time capture by the circuit-scoped tracker. Existing trackers retain their original bound after configuration changes. |
+
+The rendered resource/callback correction does not change dispatch, deadline,
+identity, projection, caller, audit or admission semantics. Initial full Debug
+passed5368/5368. The first full maintained Release run passed5367/5368 and failed
+only RealChromiumFocusValidatorStopsWithinItsBoundWhenChromiumHangs at its unchanged
+15-second outer wait while the isolated app was starting. Its focused recheck
+passed1/1 in6.6s after exact-target app cleanup. No timeout or assertion was relaxed.
+All initial commands/failures remain in dw-247-completion-command-results.json.
+The pre-correction results are superseded by the corrected final qualification.
+
+The permitted local Aspire skill supplied a fresh isolated start, state/telemetry
+inspection, healthy tenants-ui wait, all 23 resources Running/Healthy, and exact-target
+stop before final qualification. No AppHost or dependency source was edited.
+Final input capture additionally covers RESX resources and browser HTML templates,
+which the inherited source-only hash list omitted.
+
+
+## Final qualification
+
+Corrected Debug source and maintained Release each pass657 focused cases and
+5368 full per-project MTP UI cases,zero failures/skips. Both unchanged Chromium
+lanes pass. All 6753 final inputs,including RESX and browser templates,remain
+stable; initial failures and all release/provenance limits remain recorded.
+Only DW-247 closes. The original frozen intent/baseline,all unrelated ledger
+records,archive/sprint and every repository HEAD/branch/dependency are preserved.
+See [validation evidence](dw-247-validation-evidence.md) and its linked exact
+commands,summary,hashes,preservation and ledger audit. Next selected bundle:
+DW-234/DW-251/DW-316. Completion leaves changes uncommitted under the frozen scope.

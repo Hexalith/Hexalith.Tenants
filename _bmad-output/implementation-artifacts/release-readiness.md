@@ -1340,3 +1340,57 @@ its settled August25/26 UnableToVerify decision. Related DW-323 remains separate
 scoped; DW-121 remains Builds-owned. No branch/stage/commit/push, dependency/version/
 gitlink update, nested initialization, deploy, production replay or migration ran.
 This scoped closure does not establish full release readiness.
+
+
+## DW-247 bounded membership projection recovery — 2026-10-16
+
+**Only DW-247 closes. Release remains not ready.** [Complete evidence](dw-247-validation-evidence.md), [frozen intent/review triage](spec-dw-247-bounded-membership-projection-recovery.md), [initial commands](dw-247-command-results.json), [completion commands](dw-247-completion-command-results.json), [test summary](dw-247-ui-summary.json), [final input hashes](dw-247-validation-inputs.json), [completion preservation](dw-247-completion-preservation.json) and [ledger audit](dw-247-ledger-validation.json) qualify this scoped change.
+
+Retained add/change/remove attempts use Tenants:Ui:MembershipProjectionTimeout
+(default00:05:00), one monotonic deadline from their first ProjectionPending.
+Expiry presents localized recoverable UnableToVerify without I/O, cancellation,
+redispatch, fabricated outcome or unresolved admission release. Refresh/coalescing,
+status recovery, Continue read-only, renderer detachment/replacement/remount and
+held I/O do not renew it. Exact authoritative late evidence can still reconcile;
+other evidence/caller/generation changes retain their continuation guards. Accepted
+and delivery-ambiguous states, removal audit lifetime and other command kinds retain
+their contracts. Terminal evidence stops the timer; circuit disposal stops timers
+and observers without manufacturing outcomes or releasing unresolved admission.
+
+172 dedicated cases (57 state/115 actual Fluent),focused 657 and full per-project
+MTP UI 5368 pass in both Debug source/maintained Release with zero failures/skips;
+both unchanged Chromium lanes pass. Original independent review/correction evidence
+and a fresh ten-finding review are retained. Three small guidance/control-assertion/
+documentation corrections are rechecked; seven optional coverage ideas were
+individually rejected with inspected evidence and no demonstrated production defect.
+Initial Release full-run Chromium-hang guard outer timeout remains recorded; focused
+1/1 and corrected full runs pass without increasing its15s bound. The fresh isolated
+AppHost reached all 23 resources Running/Healthy and exact-target cleanup completed.
+
+Broad solution Release remains blocked by two pinned SignalR10.0.12 NU1903 errors;
+strict package-only UI remains blocked by seven existing projection-scope APIs.
+The maintained UI lane retains its existing FrontComposer source exception and
+advisory policy. Historical owning2.1/2.4 and B6/B8/DW-517/DW-105/DW-108/DW-112/
+DW-150/DW-164/DW-183/DW-166/DW-173 gitlink attribution failures remain preserved.
+Current DW-247 provenance passes without narrowing its original baseline. No gate,
+exclusion,coverage floor,timeout,dependency version or gitlink was changed. Raw
+secret-scan/CI,authority/recovery/governance decisions,upstream/provider and hosted
+TLS/current-candidate performance/authenticated browser/clipboard/denial/human AT
+qualification holds remain. These maintained UI passes do not clear those holds.
+
+All 643 ledger IDs remain:333 done/310 open across278 exact-covering maintenance
+rows;reconciled129 done/222 actionable/15 blocked/26 awaiting-decision/nine accepted
+limitations/38 uncertain. Readiness partition:seven decision holds,115 follow-up
+and188 qualification/triage. Only DW-247 closes; historical findings/decisions and
+related DW-248/DW-266/DW-267/DW-323 remain unchanged. All prior B1–B8 and DW closures,
+archive(current323 IDs),sprint tracking,external commits and dependencies are
+preserved. All 6753 final qualification inputs,including resources and browser HTML,
+remain stable through final checks.
+
+**Next selected bundle: DW-234/DW-251/DW-316**, shared command failure/status
+localization, reverified in current gateways/default snapshot branches. DW-323
+stays separate;DW-121 remains Builds-owned. No branch/stage/commit/push,dependency/
+version/gitlink update,nested initialization,deploy,production replay or migration
+was performed during completion. The committed implementation was inherited at
+canonical entry6de661e129ff6f6f0c19795fcb1d032abee25d1d, not authored as a new commit
+by this run. This bounded closure does not establish full release readiness.
