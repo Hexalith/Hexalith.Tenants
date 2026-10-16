@@ -10556,9 +10556,9 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             first.SetResult();
             await secondEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
             cut.Render(p => p.Add(page => page.TenantId, latest));
-            attempts.ShouldBe(2);
-            second.SetResult();
             await finalEntered.Task.WaitAsync(BunitContext.DefaultWaitTimeout);
+            attempts.ShouldBe(3);
+            second.SetResult();
         }
         else
         {

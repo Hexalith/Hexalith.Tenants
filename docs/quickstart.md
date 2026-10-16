@@ -129,6 +129,28 @@ finish, preventing old cleanup from removing a replacement subscription. Other
 scopes remain usable. Route/caller cancellation is separate from ordinary load
 cancellation, so paging and refresh preserve established subscriptions.
 
+### UI membership projection wait
+
+The add-member, change-role and removal flows use
+`Tenants:Ui:MembershipProjectionTimeout`, default `00:05:00`. Override it in host
+configuration or with `Tenants__Ui__MembershipProjectionTimeout`. Supply a positive
+finite invariant TimeSpan within .NET timer limits. Invalid values are rejected.
+
+Each retained membership attempt starts one monotonic deadline when it first
+reaches `ProjectionPending`. Elapsed time includes held status/projection operations
+and detached renderers. Refreshes, concurrent or coalesced requests, notifications,
+status recovery, Continue read-only, replacement and remount never restart it.
+Accepted-only and ambiguous delivery attempts have separate lifecycle behavior.
+
+Expiry presents `UnableToVerify` with status recovery and support-safe guidance.
+It does not cancel the command, prove rejection or failure, or release its aggregate
+admission. Continue read-only and surface disposal detach the renderer while
+preserving the unresolved dispatched attempt and admission. Recovery queries the
+same attempt; only qualifying authoritative projection evidence can confirm it,
+including evidence arriving after expiry. Terminal evidence stops the timer and
+releases its admission. Circuit/tracker disposal stops timers and observers without
+inventing an outcome or releasing unresolved admission.
+
 ## Get an Access Token
 
 The EventStore command gateway requires a JWT token. The default AppHost starts the local Keycloak realm and configures OIDC validation with `RS256`. Its service administrator username and password are generated for each run and passed directly to the realm and service resources. They are not the `admin-user` / `admin-pass` pair, and the AppHost does not publish them for an interactive API session.

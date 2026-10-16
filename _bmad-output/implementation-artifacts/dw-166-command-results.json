@@ -691,6 +691,452 @@
       "exit_code": 0,
       "elapsed_seconds": 46.401,
       "output": "  Determining projects to restore...\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/Hexalith.Memories.Contracts.csproj (in 129 ms).\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts.UI/Hexalith.FrontComposer.Contracts.UI.csproj (in 246 ms).\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/Hexalith.FrontComposer.Contracts.csproj (in 245 ms).\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/Hexalith.EventStore.Client.csproj (in 288 ms).\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Hexalith.FrontComposer.Shell.csproj (in 289 ms).\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (in 305 ms).\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/Hexalith.Commons.UniqueIds.csproj (in 300 ms).\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/Hexalith.FrontComposer.Testing.csproj (in 295 ms).\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/Hexalith.FrontComposer.SourceTools.csproj (in 304 ms).\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/Hexalith.EventStore.Contracts.csproj (in 246 ms).\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj (in 303 ms).\n  Restored /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Client.Rest/Hexalith.Memories.Client.Rest.csproj (in 320 ms).\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj (in 310 ms).\n  Restored /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj (in 333 ms).\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n  Hexalith.FrontComposer.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Debug/netstandard2.0/Hexalith.FrontComposer.Contracts.dll\n  Hexalith.FrontComposer.SourceTools -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/bin/Debug/netstandard2.0/Hexalith.FrontComposer.SourceTools.dll\n  Hexalith.Commons.UniqueIds -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.3.121.0.nupkg'.\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.3.121.0.snupkg'.\n  Hexalith.EventStore.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll\n  Hexalith.Commons.UniqueIds -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.1.0.0.nupkg'.\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.1.0.0.snupkg'.\n  Hexalith.Tenants.Contracts -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/bin/Debug/net10.0/Hexalith.Tenants.Contracts.dll\n  Hexalith.EventStore.Client -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Debug/net10.0/Hexalith.EventStore.Client.dll\n  Hexalith.EventStore.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll\n  Hexalith.Tenants.Client -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/bin/Debug/net10.0/Hexalith.Tenants.Client.dll\n  Hexalith.FrontComposer.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Debug/net10.0/Hexalith.FrontComposer.Contracts.dll\n  Hexalith.FrontComposer.Contracts.UI -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts.UI/bin/Debug/net10.0/Hexalith.FrontComposer.Contracts.UI.dll\n  Hexalith.FrontComposer.Shell -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll\n  Hexalith.Memories.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/bin/Debug/net10.0/Hexalith.Memories.Contracts.dll\n  Hexalith.Memories.Client.Rest -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Client.Rest/bin/Debug/net10.0/Hexalith.Memories.Client.Rest.dll\n  Hexalith.EventStore.Client -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Debug/net10.0/Hexalith.EventStore.Client.dll\n  Hexalith.Tenants.UI -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/bin/Debug/net10.0/Hexalith.Tenants.UI.dll\n  Hexalith.FrontComposer.Testing -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/bin/Debug/net10.0/Hexalith.FrontComposer.Testing.dll\n  Hexalith.Tenants.UI.Tests -> /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll\n\nBuild succeeded.\n\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n    2 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:46.07\n"
+    },
+    {
+      "argv": [
+        "dotnet",
+        "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "-class",
+        "*TenantDetailSurfaceTests",
+        "-class",
+        "*TenantReadRefreshSubscriptionTests",
+        "-class",
+        "*TenantUiOperationPolicyTests",
+        "-class",
+        "*GlobalAdministratorsPageTests",
+        "-class",
+        "*TenantsWorkspaceTests",
+        "-class",
+        "*TenantsUiCompositionTests",
+        "-xml",
+        "/tmp/hexalith-dw166/focused-debug-current.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:05:14.477418+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 44.465,
+      "output": "The '-xml' switch has been deprecated in favor of '-result-xml' and will be removed in the next major version\n\nxUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.12)\n  Discovering: Hexalith.Tenants.UI.Tests\n  Discovered:  Hexalith.Tenants.UI.Tests\n  Starting:    Hexalith.Tenants.UI.Tests\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[100]\n      Start processing HTTP request GET https://memories.invalid/v1/search?*\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[100]\n      Sending HTTP request GET https://memories.invalid/v1/search?*\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[101]\n      Received HTTP response headers after 0.0021ms - 200\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[101]\n      End processing HTTP request after 2.0716ms - 200\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\n    Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.AuthorityTransitionDetachesHeldSetupAndHandsOffAfterLateCompletionWithoutChargingReplacement(lateFault: False) [FAIL]\n      Bunit.Extensions.WaitForHelpers.WaitForFailedException : The assertion did not pass within the timeout period.\n      \n      If this test does not fail consistently, the reason may be that\n      the wait timeout is too short, and the runtime did not have enough\n      time to complete the necessary number of renders of the component under test.\n      This can happen on highly utilized or slower hardware, for example.\n      \n      To determine if this is the cause, compare the check and render count(s) below\n      and see if they match what is expected. If they do not,\n      consider increasing the timeout, either at the individual\n      method call level, e.g. WaitForElement(\"div\", TimeSpan.FromSeconds(15)),\n      or via the static TestContext.DefaultWaitTimeout property.\n      \n      Check count: 1.\n      Component render count: 29.\n      Total render count across all components: 0.\n      ---- Shouldly.ShouldAssertException : PrivateField<int>(cut.Instance, \"_readRefreshSubscriptionInFlight\")\n          should be\n      0\n          but was\n      1\n      Stack Trace:\n        /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForState.cs(102,0): at Bunit.RenderedComponentWaitForHelperExtensions.WaitForAssertion[TComponent](IRenderedComponent`1 renderedComponent, Action assertion, Nullable`1 timeout)\n        tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs(510,0): at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.AuthorityTransitionDetachesHeldSetupAndHandsOffAfterLateCompletionWithoutChargingReplacement(Boolean lateFault)\n        --- End of stack trace from previous location ---\n        ----- Inner Stack Trace -----\n        tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs(513,0): at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.<>c__DisplayClass210_0.<AuthorityTransitionDetachesHeldSetupAndHandsOffAfterLateCompletionWithoutChargingReplacement>b__1()\n        /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs(226,0): at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.RunCheckAsync()\n  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')\n=== TEST EXECUTION SUMMARY ===\n   Hexalith.Tenants.UI.Tests  Total: 815, Errors: 0, Failed: 1, Skipped: 0, Not Run: 0, Time: 44.126s\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/validation-inputs.py",
+        "before"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:07:28.765926+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.167,
+      "output": "Captured 2136 UI validation input hashes before current Debug rebuild\n"
+    },
+    {
+      "argv": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:07:28.953987+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 17.72,
+      "output": "  Determining projects to restore...\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n  All projects are up-to-date for restore.\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n  Hexalith.FrontComposer.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Debug/netstandard2.0/Hexalith.FrontComposer.Contracts.dll\n  Hexalith.FrontComposer.SourceTools -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/bin/Debug/netstandard2.0/Hexalith.FrontComposer.SourceTools.dll\n  Hexalith.Commons.UniqueIds -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.3.121.0.nupkg'.\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.3.121.0.snupkg'.\n  Hexalith.EventStore.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll\n  Hexalith.Commons.UniqueIds -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.1.0.0.nupkg'.\n  Successfully created package '/home/administrator/projects/hexalith/tenants/references/Hexalith.Commons/src/libraries/Hexalith.Commons.UniqueIds/bin/Debug/Hexalith.Commons.UniqueIds.1.0.0.snupkg'.\n  Hexalith.Tenants.Contracts -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/bin/Debug/net10.0/Hexalith.Tenants.Contracts.dll\n  Hexalith.EventStore.Client -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Debug/net10.0/Hexalith.EventStore.Client.dll\n  Hexalith.EventStore.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Contracts/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll\n  Hexalith.Tenants.Client -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/bin/Debug/net10.0/Hexalith.Tenants.Client.dll\n  Hexalith.FrontComposer.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Debug/net10.0/Hexalith.FrontComposer.Contracts.dll\n  Hexalith.FrontComposer.Contracts.UI -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts.UI/bin/Debug/net10.0/Hexalith.FrontComposer.Contracts.UI.dll\n  Hexalith.FrontComposer.Shell -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll\n  Hexalith.Memories.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Contracts/bin/Debug/net10.0/Hexalith.Memories.Contracts.dll\n  Hexalith.Memories.Client.Rest -> /home/administrator/projects/hexalith/tenants/references/Hexalith.Memories/src/Hexalith.Memories.Client.Rest/bin/Debug/net10.0/Hexalith.Memories.Client.Rest.dll\n  Hexalith.EventStore.Client -> /home/administrator/projects/hexalith/tenants/references/Hexalith.EventStore/src/Hexalith.EventStore.Client/bin/Debug/net10.0/Hexalith.EventStore.Client.dll\n  Hexalith.Tenants.UI -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/bin/Debug/net10.0/Hexalith.Tenants.UI.dll\n  Hexalith.FrontComposer.Testing -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/bin/Debug/net10.0/Hexalith.FrontComposer.Testing.dll\n  Hexalith.Tenants.UI.Tests -> /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll\n\nBuild succeeded.\n\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n    2 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:17.45\n"
+    },
+    {
+      "argv": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Release",
+        "-p:UseHexalithProjectReferences=false",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:07:46.714230+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 19.547,
+      "output": "  Determining projects to restore...\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/Hexalith.Tenants.Client.csproj (in 263 ms).\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj (in 263 ms).\n  Restored /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj (in 263 ms).\n  Restored /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj (in 279 ms).\n  5 of 9 projects are up-to-date for restore.\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n  Hexalith.FrontComposer.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Release/netstandard2.0/Hexalith.FrontComposer.Contracts.dll\n  Hexalith.FrontComposer.SourceTools -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.SourceTools/bin/Release/netstandard2.0/Hexalith.FrontComposer.SourceTools.dll\n  Hexalith.Tenants.Contracts -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/bin/Release/net10.0/Hexalith.Tenants.Contracts.dll\n  Hexalith.Tenants.Client -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Client/bin/Release/net10.0/Hexalith.Tenants.Client.dll\n  Hexalith.FrontComposer.Contracts -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts/bin/Release/net10.0/Hexalith.FrontComposer.Contracts.dll\n  Hexalith.FrontComposer.Contracts.UI -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Contracts.UI/bin/Release/net10.0/Hexalith.FrontComposer.Contracts.UI.dll\n  Hexalith.FrontComposer.Shell -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/bin/Release/net10.0/Hexalith.FrontComposer.Shell.dll\n  Hexalith.Tenants.UI -> /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/bin/Release/net10.0/Hexalith.Tenants.UI.dll\n  Hexalith.FrontComposer.Testing -> /home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Testing/bin/Release/net10.0/Hexalith.FrontComposer.Testing.dll\n  Hexalith.Tenants.UI.Tests -> /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll\n\nBuild succeeded.\n\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj : warning NU1903: Package 'Microsoft.AspNetCore.SignalR.Common' 10.0.12 has a known high severity vulnerability, https://github.com/advisories/GHSA-334f-vvp4-7g6p\n    2 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:19.24\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-b6-audit-stream-separation.md"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:08.290137+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 0.133,
+      "output": "Story:    spec-b6-audit-stream-separation.md\nBaseline: 57b881b\nCompared: HEAD (a3f4365) + working tree\n\n6 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.Builds  01dfb16 -> f9f1155\n  [UNDECLARED] references/Hexalith.Commons  b247ed1 -> 9e874b1\n  [UNDECLARED] references/Hexalith.EventStore  93982b4 -> 746b843\n  [UNDECLARED] references/Hexalith.FrontComposer  c3174dc -> b06f86d\n  [UNDECLARED] references/Hexalith.Memories  7034b83 -> 99431f0\n  [UNDECLARED] references/Hexalith.Platform  8c1fcbc -> 3a29fe0\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 01dfb167754ca408c4e00645bb4d1a5b03f16e7e -- references/Hexalith.Builds\n    git checkout b247ed116c6523f8c596ec0a933eff8973d11568 -- references/Hexalith.Commons\n    git checkout 93982b4e1fe312169c57e2735c90be24b49460fb -- references/Hexalith.EventStore\n    git checkout c3174dc917b094f3736b098ac78a531f197dbe56 -- references/Hexalith.FrontComposer\n    git checkout 7034b839791fd8dbe0c6aff50b907fbecd90701a -- references/Hexalith.Memories\n    git checkout 8c1fcbc115b21b26528fb00e47edc5105fdafc6b -- references/Hexalith.Platform\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-dw-517-evidence-content-scanning.md"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:08.322749+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 0.111,
+      "output": "Story:    spec-dw-517-evidence-content-scanning.md\nBaseline: 23aeb38\nCompared: HEAD (a3f4365) + working tree\n\n6 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.Builds  9f0121c -> f9f1155\n  [UNDECLARED] references/Hexalith.Commons  b247ed1 -> 9e874b1\n  [UNDECLARED] references/Hexalith.EventStore  24d7192 -> 746b843\n  [UNDECLARED] references/Hexalith.FrontComposer  0e151a1 -> b06f86d\n  [UNDECLARED] references/Hexalith.Memories  e864054 -> 99431f0\n  [UNDECLARED] references/Hexalith.Platform  8580eb6 -> 3a29fe0\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9f0121c77e3f085c58f5c926057606db8e6511a7 -- references/Hexalith.Builds\n    git checkout b247ed116c6523f8c596ec0a933eff8973d11568 -- references/Hexalith.Commons\n    git checkout 24d719292b06d8a9d09771d837f8dd4d8d9b8997 -- references/Hexalith.EventStore\n    git checkout 0e151a139d178c1f5d90df50ee3d066ce4d4f35a -- references/Hexalith.FrontComposer\n    git checkout e864054d518021ba4a7870f42c07e9101178dd2f -- references/Hexalith.Memories\n    git checkout 8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb -- references/Hexalith.Platform\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-b8-eventstore-command-recovery.md"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:08.306042+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 0.131,
+      "output": "Story:    spec-b8-eventstore-command-recovery.md\nBaseline: b58da5f\nCompared: HEAD (a3f4365) + working tree\n\n6 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.Builds  9b44fed -> f9f1155\n  [UNDECLARED] references/Hexalith.Commons  b247ed1 -> 9e874b1\n  [UNDECLARED] references/Hexalith.EventStore  173ad7f -> 746b843\n  [UNDECLARED] references/Hexalith.FrontComposer  c3174dc -> b06f86d\n  [UNDECLARED] references/Hexalith.Memories  ed70998 -> 99431f0\n  [UNDECLARED] references/Hexalith.Platform  92a0292 -> 3a29fe0\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9b44fedd0017d42ee1b3e887730ab667046bda4d -- references/Hexalith.Builds\n    git checkout b247ed116c6523f8c596ec0a933eff8973d11568 -- references/Hexalith.Commons\n    git checkout 173ad7f4e56a72f44621c7d3d7be86a5ec19dc03 -- references/Hexalith.EventStore\n    git checkout c3174dc917b094f3736b098ac78a531f197dbe56 -- references/Hexalith.FrontComposer\n    git checkout ed70998ddb0a26407b08724e347e490f10b67305 -- references/Hexalith.Memories\n    git checkout 92a02924894f6f2f219801a90e5bf25716abd028 -- references/Hexalith.Platform\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-dw-112-status-filter-labeling.md"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:08.302228+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 0.139,
+      "output": "Story:    spec-dw-112-status-filter-labeling.md\nBaseline: 51f4045\nCompared: HEAD (a3f4365) + working tree\n\n6 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.Builds  9f0121c -> f9f1155\n  [UNDECLARED] references/Hexalith.Commons  b247ed1 -> 9e874b1\n  [UNDECLARED] references/Hexalith.EventStore  24d7192 -> 746b843\n  [UNDECLARED] references/Hexalith.FrontComposer  0e151a1 -> b06f86d\n  [UNDECLARED] references/Hexalith.Memories  e864054 -> 99431f0\n  [UNDECLARED] references/Hexalith.Platform  8580eb6 -> 3a29fe0\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9f0121c77e3f085c58f5c926057606db8e6511a7 -- references/Hexalith.Builds\n    git checkout b247ed116c6523f8c596ec0a933eff8973d11568 -- references/Hexalith.Commons\n    git checkout 24d719292b06d8a9d09771d837f8dd4d8d9b8997 -- references/Hexalith.EventStore\n    git checkout 0e151a139d178c1f5d90df50ee3d066ce4d4f35a -- references/Hexalith.FrontComposer\n    git checkout e864054d518021ba4a7870f42c07e9101178dd2f -- references/Hexalith.Memories\n    git checkout 8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb -- references/Hexalith.Platform\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-dw-105-108-dom-safe-tenant-identity.md"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:08.328519+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 0.115,
+      "output": "Story:    spec-dw-105-108-dom-safe-tenant-identity.md\nBaseline: 51f4045\nCompared: HEAD (a3f4365) + working tree\n\n6 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.Builds  9f0121c -> f9f1155\n  [UNDECLARED] references/Hexalith.Commons  b247ed1 -> 9e874b1\n  [UNDECLARED] references/Hexalith.EventStore  24d7192 -> 746b843\n  [UNDECLARED] references/Hexalith.FrontComposer  0e151a1 -> b06f86d\n  [UNDECLARED] references/Hexalith.Memories  e864054 -> 99431f0\n  [UNDECLARED] references/Hexalith.Platform  8580eb6 -> 3a29fe0\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9f0121c77e3f085c58f5c926057606db8e6511a7 -- references/Hexalith.Builds\n    git checkout b247ed116c6523f8c596ec0a933eff8973d11568 -- references/Hexalith.Commons\n    git checkout 24d719292b06d8a9d09771d837f8dd4d8d9b8997 -- references/Hexalith.EventStore\n    git checkout 0e151a139d178c1f5d90df50ee3d066ce4d4f35a -- references/Hexalith.FrontComposer\n    git checkout e864054d518021ba4a7870f42c07e9101178dd2f -- references/Hexalith.Memories\n    git checkout 8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb -- references/Hexalith.Platform\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-dw-166-173-finite-authorization-subscription-bounds.md"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:08.372809+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 0.075,
+      "output": "Story:    spec-dw-166-173-finite-authorization-subscription-bounds.md\nBaseline: 51f4045\nCompared: HEAD (a3f4365) + working tree\n\n6 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.Builds  9f0121c -> f9f1155\n  [UNDECLARED] references/Hexalith.Commons  b247ed1 -> 9e874b1\n  [UNDECLARED] references/Hexalith.EventStore  24d7192 -> 746b843\n  [UNDECLARED] references/Hexalith.FrontComposer  0e151a1 -> b06f86d\n  [UNDECLARED] references/Hexalith.Memories  e864054 -> 99431f0\n  [UNDECLARED] references/Hexalith.Platform  8580eb6 -> 3a29fe0\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9f0121c77e3f085c58f5c926057606db8e6511a7 -- references/Hexalith.Builds\n    git checkout b247ed116c6523f8c596ec0a933eff8973d11568 -- references/Hexalith.Commons\n    git checkout 24d719292b06d8a9d09771d837f8dd4d8d9b8997 -- references/Hexalith.EventStore\n    git checkout 0e151a139d178c1f5d90df50ee3d066ce4d4f35a -- references/Hexalith.FrontComposer\n    git checkout e864054d518021ba4a7870f42c07e9101178dd2f -- references/Hexalith.Memories\n    git checkout 8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb -- references/Hexalith.Platform\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-dw-150-combined-refresh-coordination.md"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:08.355993+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 0.094,
+      "output": "Story:    spec-dw-150-combined-refresh-coordination.md\nBaseline: 51f4045\nCompared: HEAD (a3f4365) + working tree\n\n6 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.Builds  9f0121c -> f9f1155\n  [UNDECLARED] references/Hexalith.Commons  b247ed1 -> 9e874b1\n  [UNDECLARED] references/Hexalith.EventStore  24d7192 -> 746b843\n  [UNDECLARED] references/Hexalith.FrontComposer  0e151a1 -> b06f86d\n  [UNDECLARED] references/Hexalith.Memories  e864054 -> 99431f0\n  [UNDECLARED] references/Hexalith.Platform  8580eb6 -> 3a29fe0\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9f0121c77e3f085c58f5c926057606db8e6511a7 -- references/Hexalith.Builds\n    git checkout b247ed116c6523f8c596ec0a933eff8973d11568 -- references/Hexalith.Commons\n    git checkout 24d719292b06d8a9d09771d837f8dd4d8d9b8997 -- references/Hexalith.EventStore\n    git checkout 0e151a139d178c1f5d90df50ee3d066ce4d4f35a -- references/Hexalith.FrontComposer\n    git checkout e864054d518021ba4a7870f42c07e9101178dd2f -- references/Hexalith.Memories\n    git checkout 8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb -- references/Hexalith.Platform\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "scripts/validate-story-gitlinks.py",
+        "_bmad-output/implementation-artifacts/spec-dw-164-183-refresh-subscription-handoff.md"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:08.355468+00:00",
+      "exit_code": 1,
+      "elapsed_seconds": 0.097,
+      "output": "Story:    spec-dw-164-183-refresh-subscription-handoff.md\nBaseline: 51f4045\nCompared: HEAD (a3f4365) + working tree\n\n6 references/ pointer change(s) in range:\n  [UNDECLARED] references/Hexalith.Builds  9f0121c -> f9f1155\n  [UNDECLARED] references/Hexalith.Commons  b247ed1 -> 9e874b1\n  [UNDECLARED] references/Hexalith.EventStore  24d7192 -> 746b843\n  [UNDECLARED] references/Hexalith.FrontComposer  0e151a1 -> b06f86d\n  [UNDECLARED] references/Hexalith.Memories  e864054 -> 99431f0\n  [UNDECLARED] references/Hexalith.Platform  8580eb6 -> 3a29fe0\n\nRESULT: FAIL\n\nEvery submodule pointer this story moves must be a deliberate, stated change.\nFor each UNDECLARED entry above, do one of:\n  DECLARE \u2014 add the path to the story's File List and say in the Completion Notes\n            why the bump belongs to this story.\n  REVERT  \u2014 restore the baseline pointer, then commit the bump separately:\n\n    git checkout 9f0121c77e3f085c58f5c926057606db8e6511a7 -- references/Hexalith.Builds\n    git checkout b247ed116c6523f8c596ec0a933eff8973d11568 -- references/Hexalith.Commons\n    git checkout 24d719292b06d8a9d09771d837f8dd4d8d9b8997 -- references/Hexalith.EventStore\n    git checkout 0e151a139d178c1f5d90df50ee3d066ce4d4f35a -- references/Hexalith.FrontComposer\n    git checkout e864054d518021ba4a7870f42c07e9101178dd2f -- references/Hexalith.Memories\n    git checkout 8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb -- references/Hexalith.Platform\n"
+    },
+    {
+      "argv": [
+        "dotnet",
+        "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "-class",
+        "*TenantDetailSurfaceTests",
+        "-class",
+        "*TenantReadRefreshSubscriptionTests",
+        "-class",
+        "*TenantUiOperationPolicyTests",
+        "-class",
+        "*GlobalAdministratorsPageTests",
+        "-class",
+        "*TenantsWorkspaceTests",
+        "-class",
+        "*TenantsUiCompositionTests",
+        "-xml",
+        "/tmp/hexalith-dw166/focused-debug-qualified.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:08:47.241098+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 43.497,
+      "output": "The '-xml' switch has been deprecated in favor of '-result-xml' and will be removed in the next major version\n\nxUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.12)\n  Discovering: Hexalith.Tenants.UI.Tests\n  Discovered:  Hexalith.Tenants.UI.Tests\n  Starting:    Hexalith.Tenants.UI.Tests\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[100]\n      Start processing HTTP request GET https://memories.invalid/v1/search?*\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[100]\n      Sending HTTP request GET https://memories.invalid/v1/search?*\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[101]\n      Received HTTP response headers after 0.0024ms - 200\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[101]\n      End processing HTTP request after 2.1386ms - 200\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\n  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')\n=== TEST EXECUTION SUMMARY ===\n   Hexalith.Tenants.UI.Tests  Total: 815, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 43.145s\n"
+    },
+    {
+      "argv": [
+        "dotnet",
+        "tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "-class",
+        "*TenantDetailSurfaceTests",
+        "-class",
+        "*TenantReadRefreshSubscriptionTests",
+        "-class",
+        "*TenantUiOperationPolicyTests",
+        "-class",
+        "*GlobalAdministratorsPageTests",
+        "-class",
+        "*TenantsWorkspaceTests",
+        "-class",
+        "*TenantsUiCompositionTests",
+        "-xml",
+        "/tmp/hexalith-dw166/focused-release-qualified.xml"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:08:47.238700+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 43.708,
+      "output": "The '-xml' switch has been deprecated in favor of '-result-xml' and will be removed in the next major version\n\nxUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.12)\n  Discovering: Hexalith.Tenants.UI.Tests\n  Discovered:  Hexalith.Tenants.UI.Tests\n  Starting:    Hexalith.Tenants.UI.Tests\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[100]\n      Start processing HTTP request GET https://memories.invalid/v1/search?*\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[100]\n      Sending HTTP request GET https://memories.invalid/v1/search?*\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[101]\n      Received HTTP response headers after 0.0841ms - 200\ninfo: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[101]\n      End processing HTTP request after 4.7136ms - 200\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application started. Press Ctrl+C to shut down.\ninfo: Microsoft.Hosting.Lifetime[0]\n      Hosting environment: Development\ninfo: Microsoft.Hosting.Lifetime[0]\n      Content root path: /home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI\ninfo: Microsoft.Hosting.Lifetime[0]\n      Application is shutting down...\n  Finished:    Hexalith.Tenants.UI.Tests (ID = 'b67fb5070ab844face28532f1d1b0673eaf8a9c5e59d25e13fd161155f1bf8c8')\n=== TEST EXECUTION SUMMARY ===\n   Hexalith.Tenants.UI.Tests  Total: 815, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 43.364s\n"
+    },
+    {
+      "argv": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "--no-ansi",
+        "--no-progress",
+        "--results-directory",
+        "/tmp/hexalith-dw166/mtp-debug-qualified"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:30.755469+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 80.992,
+      "output": "Running tests from /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) passed (1m 20s 401ms)\n\nTest run summary: Passed!\n  total: 5100\n  failed: 0\n  succeeded: 5100\n  skipped: 0\n  duration: 1m 20s 553ms\n"
+    },
+    {
+      "argv": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Release",
+        "--no-build",
+        "--no-ansi",
+        "--no-progress",
+        "--results-directory",
+        "/tmp/hexalith-dw166/mtp-release-qualified"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:09:30.965970+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 80.787,
+      "output": "Running tests from /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) passed (1m 20s 229ms)\n\nTest run summary: Passed!\n  total: 5100\n  failed: 0\n  succeeded: 5100\n  skipped: 0\n  duration: 1m 20s 368ms\n"
+    },
+    {
+      "argv": [
+        "env",
+        "TENANTS_BROWSER_BUILD_CONFIGURATION=Release",
+        "bash",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:10:51.769289+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 26.512,
+      "output": "Breakpoint asset provenance: {\"BuildConfiguration\":\"Release\",\"Manifest\":\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Release/net10.0/staticwebassets.build.json\",\"ManifestSha256\":\"11d740396d70da924660e8cc3628d9996ff500fa5e87a85f84721f6dc31f33f9\",\"SourceId\":\"Hexalith.FrontComposer.Shell\",\"SourceType\":\"Project\",\"Identity\":\"/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js\",\"RelativePath\":\"js/fc-layout-breakpoints#[.{fingerprint}]?.js\",\"Integrity\":\"R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=\",\"Sha256\":\"475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a\"}\n<output id=\"validation-report\">PASS 33 exotic anchors, 12 audit returns, 4 actual panel detail returns; all-tenants heading, lookup subject guard, exact DOM active element and rerender stability\nRendered tenant identity wrong-row focus control: correctly rejected.\nRendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed.\nRendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed.\nRendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected.\nBrowser: Google Chrome 154.0.8037.57 \nShipped module: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nShipped desktop: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-desktop-row;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-desktop-row;availability-state-line-programmatic-focus:availability-state;desktop-correction-retry-visible;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nShipped forced colors: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;availability-forced-colors-active-visible-text-icon-focus-outline;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nReturn-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)\nRemoval-dialog in-flow and hidden CSS mutations: correctly rejected\nUnstacked availability recoveries at 390px: correctly rejected\n{\"browser\":{\"protocolVersion\":\"1.3\",\"product\":\"Chrome/154.0.8037.57\",\"revision\":\"@73c14f6228d7cd537c855007e8f88678969cc0eb\",\"userAgent\":\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36\",\"jsVersion\":\"15.4.80.11\"},\"modulePath\":\"/home/administrator/.nuget/packages/microsoft.fluentui.aspnetcore.components/5.0.0/staticwebassets/Microsoft.FluentUI.AspNetCore.Components.lib.module.js\",\"results\":[{\"culture\":\"en\",\"mode\":\"ordinary\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"fallback\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"authoritative\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"partial\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"empty\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-0\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"transition-1\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-2\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"transition-3\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-4\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"delayed-0\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"delayed-1\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"status-0\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"status-1\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"status-2\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"fr\",\"mode\":\"ordinary\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"fallback\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"authoritative\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"partial\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"empty\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-0\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"transition-1\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-2\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"transition-3\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-4\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"delayed-0\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"delayed-1\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"status-0\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"status-1\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"status-2\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"}],\"staleNameControl\":\"rejected\",\"scope\":\"rendered Fluent fixtures; no authenticated topology or human AT claim\"}\n"
+    },
+    {
+      "argv": [
+        "env",
+        "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug",
+        "bash",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:10:51.764634+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 26.846,
+      "output": "Breakpoint asset provenance: {\"BuildConfiguration\":\"Debug\",\"Manifest\":\"/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.UI/obj/Debug/net10.0/staticwebassets.build.json\",\"ManifestSha256\":\"636252d4197be6696d741e0219fd49d55df56dadbdb4101bbfafc9710e56e627\",\"SourceId\":\"Hexalith.FrontComposer.Shell\",\"SourceType\":\"Project\",\"Identity\":\"/home/administrator/projects/hexalith/tenants/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js\",\"RelativePath\":\"js/fc-layout-breakpoints#[.{fingerprint}]?.js\",\"Integrity\":\"R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=\",\"Sha256\":\"475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a\"}\n<output id=\"validation-report\">PASS 33 exotic anchors, 12 audit returns, 4 actual panel detail returns; all-tenants heading, lookup subject guard, exact DOM active element and rerender stability\nRendered tenant identity wrong-row focus control: correctly rejected.\nRendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed.\nRendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed.\nRendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected.\nBrowser: Google Chrome 154.0.8037.57 \nShipped module: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nShipped desktop: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-desktop-row;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-desktop-row;availability-state-line-programmatic-focus:availability-state;desktop-correction-retry-visible;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nShipped forced colors: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;availability-forced-colors-active-visible-text-icon-focus-outline;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait\nReturn-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)\nRemoval-dialog in-flow and hidden CSS mutations: correctly rejected\nUnstacked availability recoveries at 390px: correctly rejected\n{\"browser\":{\"protocolVersion\":\"1.3\",\"product\":\"Chrome/154.0.8037.57\",\"revision\":\"@73c14f6228d7cd537c855007e8f88678969cc0eb\",\"userAgent\":\"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36\",\"jsVersion\":\"15.4.80.11\"},\"modulePath\":\"/home/administrator/.nuget/packages/microsoft.fluentui.aspnetcore.components/5.0.0/staticwebassets/Microsoft.FluentUI.AspNetCore.Components.lib.module.js\",\"results\":[{\"culture\":\"en\",\"mode\":\"ordinary\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"fallback\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"authoritative\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"partial\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"empty\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-0\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"transition-1\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-2\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"transition-3\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"transition-4\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"delayed-0\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"delayed-1\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"status-0\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"en\",\"mode\":\"status-1\",\"visible\":\"Status on current page\",\"accessibleName\":\"Status on current page\"},{\"culture\":\"en\",\"mode\":\"status-2\",\"visible\":\"Status across indexed candidates\",\"accessibleName\":\"Status across indexed candidates\"},{\"culture\":\"fr\",\"mode\":\"ordinary\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"fallback\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"authoritative\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"partial\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"empty\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-0\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"transition-1\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-2\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"transition-3\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"transition-4\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"delayed-0\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"delayed-1\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"status-0\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"},{\"culture\":\"fr\",\"mode\":\"status-1\",\"visible\":\"Statut sur la page actuelle\",\"accessibleName\":\"Statut sur la page actuelle\"},{\"culture\":\"fr\",\"mode\":\"status-2\",\"visible\":\"Statut parmi les candidats index\u00e9s\",\"accessibleName\":\"Statut parmi les candidats index\u00e9s\"}],\"staleNameControl\":\"rejected\",\"scope\":\"rendered Fluent fixtures; no authenticated topology or human AT claim\"}\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/validation-inputs.py",
+        "after"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:11:56.785372+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.169,
+      "output": "Stable validation inputs: True files 2136 changes []\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/close-ledger.py"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:11:56.975027+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.041,
+      "output": "Closed only166/173; updated related176/184 verification without closing; index counts327/316,282rows.\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/ui-summary.py"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:11:57.039107+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.059,
+      "output": "[('/tmp/hexalith-dw166/focused-debug-complete.xml', '815', '0'), ('/tmp/hexalith-dw166/focused-debug-current.xml', '815', '1'), ('/tmp/hexalith-dw166/focused-debug-fifth.xml', '724', '1'), ('/tmp/hexalith-dw166/focused-debug-final.xml', '724', '0'), ('/tmp/hexalith-dw166/focused-debug-fourth.xml', '724', '2'), ('/tmp/hexalith-dw166/focused-debug-initial.xml', '663', '10'), ('/tmp/hexalith-dw166/focused-debug-qualified.xml', '815', '0'), ('/tmp/hexalith-dw166/focused-debug-second.xml', '704', '3'), ('/tmp/hexalith-dw166/focused-debug-third.xml', '724', '1'), ('/tmp/hexalith-dw166/focused-release-complete.xml', '815', '0'), ('/tmp/hexalith-dw166/focused-release-qualified.xml', '815', '0')]\n[{'command_number': 29, 'argv': ['dotnet', 'test', '--project', 'tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj', '--configuration', 'Debug', '--no-build', '--no-ansi', '--no-progress', '--results-directory', '/tmp/hexalith-dw166/mtp-debug-final'], 'exit_code': 2, 'elapsed_seconds': 78.435, 'output_sha256': 'fbafa387d917cd04459ccc198314d105e8ef2346c380c27f568ca02d16c9d3eb', 'counts': {'total': 5100, 'failed': 1, 'succeeded': 5099, 'skipped': 0}, 'failed_identities': ['Hexalith.Tenants.UI.Tests.TenantsUiCompositionTests.Composed_read_graph_resolves_without_a_dependency_cycle']}, {'command_number': 32, 'argv': ['dotnet', 'test', '--project', 'tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj', '--configuration', 'Debug', '--no-build', '--no-ansi', '--no-progress', '--results-directory', '/tmp/hexalith-dw166/mtp-debug-complete'], 'exit_code': 0, 'elapsed_seconds': 88.128, 'output_sha256': '8acd66b93f4dee6358c41d1fb9bb1edd398bceae880d0cdbe42774d48f2a5bbb', 'counts': {'total': 5100, 'failed': 0, 'succeeded': 5100, 'skipped': 0}, 'failed_identities': []}, {'command_number': 37, 'argv': ['dotnet', 'test', '--project', 'tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj', '--configuration', 'Release', '--no-build', '--no-ansi', '--no-progress', '--results-directory', '/tmp/hexalith-dw166/mtp-release-complete'], 'exit_code': 0, 'elapsed_seconds': 87.488, 'output_sha256': '6c076bc90e4bdac2e2a634f17bf51fdba5b462c6b168f8911a08891b7cf7b6d6', 'counts': {'total': 5100, 'failed': 0, 'succeeded': 5100, 'skipped': 0}, 'failed_identities': []}, {'command_number': 55, 'argv': ['dotnet', 'test', '--project', 'tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj', '--configuration', 'Debug', '--no-build', '--no-ansi', '--no-progress', '--results-directory', '/tmp/hexalith-dw166/mtp-debug-qualified'], 'exit_code': 0, 'elapsed_seconds': 80.992, 'output_sha256': '94786d448af514eefdf9f6ae082e7a05819f2fcd6ccacc8a9ff0aeea4cf19c0e', 'counts': {'total': 5100, 'failed': 0, 'succeeded': 5100, 'skipped': 0}, 'failed_identities': []}, {'command_number': 56, 'argv': ['dotnet', 'test', '--project', 'tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj', '--configuration', 'Release', '--no-build', '--no-ansi', '--no-progress', '--results-directory', '/tmp/hexalith-dw166/mtp-release-qualified'], 'exit_code': 0, 'elapsed_seconds': 80.787, 'output_sha256': 'ca7cb382d2fae5eba75f1c93e2e64d771c5ef6326e3c8fd21d6c2ec8669ab8fe', 'counts': {'total': 5100, 'failed': 0, 'succeeded': 5100, 'skipped': 0}, 'failed_identities': []}]\n[{'command_number': 34, 'argv': ['env', 'TENANTS_BROWSER_BUILD_CONFIGURATION=Debug', 'bash', 'tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh'], 'exit_code': 0, 'elapsed_seconds': 28.354, 'output_sha256': 'b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0'}, {'command_number': 38, 'argv': ['env', 'TENANTS_BROWSER_BUILD_CONFIGURATION=Release', 'bash', 'tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh'], 'exit_code': 0, 'elapsed_seconds': 28.212, 'output_sha256': 'ece037edde022a41e0f61e0e96f470e353aa893c3d354b973a35d9079f99a4b2'}, {'command_number': 57, 'argv': ['env', 'TENANTS_BROWSER_BUILD_CONFIGURATION=Release', 'bash', 'tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh'], 'exit_code': 0, 'elapsed_seconds': 26.512, 'output_sha256': 'ece037edde022a41e0f61e0e96f470e353aa893c3d354b973a35d9079f99a4b2'}, {'command_number': 58, 'argv': ['env', 'TENANTS_BROWSER_BUILD_CONFIGURATION=Debug', 'bash', 'tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh'], 'exit_code': 0, 'elapsed_seconds': 26.846, 'output_sha256': 'b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0'}]\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/ledger-audit.py"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:15:07.332434+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.054,
+      "output": "{\n  \"checks\": {\n    \"all_643_ids_preserved\": true,\n    \"unrelated_records_byte_exact\": true,\n    \"all_open_ids_indexed_exactly_once\": true,\n    \"only_selected_action_rows_removed_and_related_rows_updated\": true,\n    \"expected_counts\": true,\n    \"original_findings_and_settled_decisions_preserved\": true,\n    \"only_166_173_closed\": true,\n    \"176_184_remain_open\": true,\n    \"historical_readiness_prefix_exact\": true\n  },\n  \"status_counts\": {\n    \"done\": 327,\n    \"open\": 316\n  },\n  \"reconciled_dispositions\": {\n    \"blocked\": 15,\n    \"done\": 123,\n    \"actionable\": 228,\n    \"accepted-limitation\": 9,\n    \"uncertain\": 38,\n    \"awaiting-decision\": 26\n  },\n  \"earlier_closed_record_boundary\": 204,\n  \"explicit_done_dispositions\": 15,\n  \"index_rows\": 282,\n  \"open_ids\": 316,\n  \"changed_ids\": [\n    166,\n    173,\n    176,\n    184\n  ],\n  \"closed_ids\": [\n    166,\n    173\n  ],\n  \"next_selected_bundle\": [\n    \"DW-176\",\n    \"DW-184\"\n  ],\n  \"historical_readiness_prefix_sha256\": \"d0ed739274e687f8c04339f5750110609423cd4a92b3c263c0d3dff7c20ed9c8\"\n}\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:15:07.407462+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.049,
+      "output": "warning: in the working copy of 'tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs', CRLF will be replaced by LF the next time Git touches it\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/capture-external.py"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:16:44.285850+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.732,
+      "output": "a3f43655d68370389439c7d2c212ab7939bd164e build: sync local changes via /pushall\na9d4eb5ce2f73458e4d2a2df42cbb154c5a0f920 build: sync local changes via /pushall\naf54222117b4b4238c7aa1ae7d83afcde8812f04 build: sync local changes via /pushall\n7d2a0b3563bd3d994b3d83dd991ec184f59b9355 build: sync local changes via /pushall\n693b98b997252ed4f072f808a070dbd349c564ae build: sync local changes via /pushall\n43831f77bd18055d8ceb4bb203687a040d3989fe build: sync local changes via /pushall\n6cb020e5c4a50169df2abf973d824faec9ee2e52 fix: deferrred work\n\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/preservation.py"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:16:45.043310+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 2.713,
+      "output": ". 6cb020e5c4a50169df2abf973d824faec9ee2e52 a3f43655d68370389439c7d2c212ab7939bd164e changed files 14\noutside bundle []\nreferences/Hexalith.EventStore 241652627a52e47c189b2b052db407cec172f813 746b843a24f18b17a7572be25b76b735fa8e4ca6 changed files 29\nreferences/Hexalith.Commons b247ed116c6523f8c596ec0a933eff8973d11568 9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 changed files 1\nreferences/Hexalith.AI.Tools 3f194e17174994d308ec84af9ee2b5aa68674d0d 3f194e17174994d308ec84af9ee2b5aa68674d0d changed files 0\nreferences/Hexalith.FrontComposer 0e151a139d178c1f5d90df50ee3d066ce4d4f35a b06f86d554363ea5b8192cbc149a75c820dab2b8 changed files 16\nreferences/Hexalith.Builds 9f0121c77e3f085c58f5c926057606db8e6511a7 f9f115528e43060d5f0af7dfbd8b22addc3c9a89 changed files 1\nreferences/Hexalith.PolymorphicSerializations 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 changed files 0\nreferences/Hexalith.Memories e864054d518021ba4a7870f42c07e9101178dd2f 99431f0fed102ea6ddbae33d28b9da4fc7f215a0 changed files 4\nreferences/Hexalith.McpCli 7e99305a621e1bdf7119b6e924348857e2b5a5a4 7e99305a621e1bdf7119b6e924348857e2b5a5a4 changed files 0\nreferences/Hexalith.Platform 8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb 3a29fe039320ab13d95ff7d9801761dad72bfed9 changed files 14\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--cached",
+        "--quiet"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:16:47.789253+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.004,
+      "output": ""
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/ledger-audit.py"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:16:47.817878+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.054,
+      "output": "{\n  \"checks\": {\n    \"all_643_ids_preserved\": true,\n    \"unrelated_records_byte_exact\": true,\n    \"all_open_ids_indexed_exactly_once\": true,\n    \"only_selected_action_rows_removed_and_related_rows_updated\": true,\n    \"expected_counts\": true,\n    \"original_findings_and_settled_decisions_preserved\": true,\n    \"only_166_173_closed\": true,\n    \"176_184_remain_open\": true,\n    \"historical_readiness_prefix_exact\": true\n  },\n  \"status_counts\": {\n    \"done\": 327,\n    \"open\": 316\n  },\n  \"reconciled_dispositions\": {\n    \"blocked\": 15,\n    \"done\": 123,\n    \"actionable\": 228,\n    \"accepted-limitation\": 9,\n    \"uncertain\": 38,\n    \"awaiting-decision\": 26\n  },\n  \"earlier_closed_record_boundary\": 204,\n  \"explicit_done_dispositions\": 15,\n  \"index_rows\": 282,\n  \"open_ids\": 316,\n  \"changed_ids\": [\n    166,\n    173,\n    176,\n    184\n  ],\n  \"closed_ids\": [\n    166,\n    173\n  ],\n  \"next_selected_bundle\": [\n    \"DW-176\",\n    \"DW-184\"\n  ],\n  \"historical_readiness_prefix_sha256\": \"d0ed739274e687f8c04339f5750110609423cd4a92b3c263c0d3dff7c20ed9c8\"\n}\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:16:47.895024+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.076,
+      "output": "warning: in the working copy of 'tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs', CRLF will be replaced by LF the next time Git touches it\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/ledger-audit.py"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:18:18.118650+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.051,
+      "output": "{\n  \"checks\": {\n    \"all_643_ids_preserved\": true,\n    \"unrelated_records_byte_exact\": true,\n    \"all_open_ids_indexed_exactly_once\": true,\n    \"only_selected_action_rows_removed_and_related_rows_updated\": true,\n    \"expected_counts\": true,\n    \"original_findings_and_settled_decisions_preserved\": true,\n    \"only_166_173_closed\": true,\n    \"176_184_remain_open\": true,\n    \"historical_readiness_prefix_exact\": true\n  },\n  \"status_counts\": {\n    \"done\": 327,\n    \"open\": 316\n  },\n  \"reconciled_dispositions\": {\n    \"blocked\": 15,\n    \"done\": 123,\n    \"actionable\": 228,\n    \"accepted-limitation\": 9,\n    \"uncertain\": 38,\n    \"awaiting-decision\": 26\n  },\n  \"earlier_closed_record_boundary\": 204,\n  \"explicit_done_dispositions\": 15,\n  \"index_rows\": 282,\n  \"open_ids\": 316,\n  \"changed_ids\": [\n    166,\n    173,\n    176,\n    184\n  ],\n  \"closed_ids\": [\n    166,\n    173\n  ],\n  \"next_selected_bundle\": [\n    \"DW-176\",\n    \"DW-184\"\n  ],\n  \"historical_readiness_prefix_sha256\": \"d0ed739274e687f8c04339f5750110609423cd4a92b3c263c0d3dff7c20ed9c8\"\n}\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:18:18.190012+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.048,
+      "output": "warning: in the working copy of 'tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs', CRLF will be replaced by LF the next time Git touches it\n"
+    },
+    {
+      "argv": [
+        "python3",
+        "/tmp/hexalith-dw166/ledger-audit.py"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:19:07.901558+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.062,
+      "output": "{\n  \"checks\": {\n    \"all_643_ids_preserved\": true,\n    \"unrelated_records_byte_exact\": true,\n    \"all_open_ids_indexed_exactly_once\": true,\n    \"only_selected_action_rows_removed_and_related_rows_updated\": true,\n    \"expected_counts\": true,\n    \"original_findings_and_settled_decisions_preserved\": true,\n    \"only_166_173_closed\": true,\n    \"176_184_remain_open\": true,\n    \"historical_readiness_prefix_exact\": true\n  },\n  \"status_counts\": {\n    \"done\": 327,\n    \"open\": 316\n  },\n  \"reconciled_dispositions\": {\n    \"blocked\": 15,\n    \"done\": 123,\n    \"actionable\": 228,\n    \"accepted-limitation\": 9,\n    \"uncertain\": 38,\n    \"awaiting-decision\": 26\n  },\n  \"earlier_closed_record_boundary\": 204,\n  \"explicit_done_dispositions\": 15,\n  \"index_rows\": 282,\n  \"open_ids\": 316,\n  \"changed_ids\": [\n    166,\n    173,\n    176,\n    184\n  ],\n  \"closed_ids\": [\n    166,\n    173\n  ],\n  \"next_selected_bundle\": [\n    \"DW-176\",\n    \"DW-184\"\n  ],\n  \"historical_readiness_prefix_sha256\": \"d0ed739274e687f8c04339f5750110609423cd4a92b3c263c0d3dff7c20ed9c8\"\n}\n"
+    },
+    {
+      "argv": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-15T16:19:07.990346+00:00",
+      "exit_code": 0,
+      "elapsed_seconds": 0.066,
+      "output": "warning: in the working copy of 'tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs', CRLF will be replaced by LF the next time Git touches it\n"
     }
   ]
 }

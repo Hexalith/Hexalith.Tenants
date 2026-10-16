@@ -34,6 +34,12 @@ DW-150 closure update — 2026-10-15: only DW-150 closes after combined member-r
 
 DW-164/DW-183 closure update — 2026-10-15: only these duplicate records close after completion-driven latest-route setup, route/caller callback binding and lease cleanup pass independent review,32 actual Fluent cases, final focused364/full UI5036 in Debug/maintained Release (zero failures/skips), and both unchanged Chromium lanes. All643 IDs remain:325 done/318 open,284 index rows; reconciled121 done/230 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Original findings, B1–B8, DW-517, DW-105/DW-108, DW-112, DW-150, inherited/external work/pointers, archive/sprint, gates and unresolved decisions remain preserved. See [complete evidence](dw-164-validation-evidence.md). Next separate bundle: DW-166/DW-173; their timeout/cancellation policy was not changed here. Release remains not ready.
 
+DW-166/DW-173 closure update — 2026-10-15: only these two records close after shared finite authorization/subscription policy, replaceable caller/route cancellation, exact scoped setup/cleanup ownership and three-failure recovery pass independent review, focused/full UI and maintained Chromium gates. All643 IDs remain:327 done/316 open,282 index rows; reconciled123 done/228 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. DW-176/DW-184 receive necessary consumer wiring but remain open for separate acceptance reconciliation. Prior findings/evidence, B1–B8, DW-517, DW-105/DW-108, DW-112, DW-150, DW-164/DW-183, inherited work and externally moved commits/pointers remain preserved; historical provenance blockers are retained without resets or false attribution. See [complete evidence](dw-166-validation-evidence.md). Next selected bundle: DW-176/DW-184 consumer acceptance reconciliation; release remains not ready.
+
+DW-176/DW-184 closure update — 2026-10-15: only these two records close after separately proving workspace consumer acceptance against the shared DW-173 policy. Current-caller entry/audit binding, active create-view/actual alias-route invalidation, pending/expired explicit authentication recovery, final admission release, dispatched tracking and late/disposal safety pass independent review, focused849/full UI5134 in both configurations and both unchanged Chromium lanes. All643 IDs remain:329 done/314 open,280 index rows; reconciled125 done/226 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Prior findings, decisions, B1–B8 and all earlier bundle evidence, inherited/external work, archive/sprint, gates and historical provenance blockers remain preserved. See [complete consumer evidence](dw-176-validation-evidence.md). Next selected bundle: DW-245/DW-265/DW-290, queued membership projection-refresh intent; DW-121 remains Builds-owned. Release remains not ready.
+
+DW-245/DW-265/DW-290 closure update — 2026-10-16: only these three duplicate queued membership projection-refresh records close. Both flows retain OR-combined intent in generation-tagged batches, serialize replay and idle handoff, consume explicit pending work across failure and preserve exact retained proof/identity/admission/disposal semantics. Independent review/recheck,62 new actual Fluent cases, focused462/full UI5196 in Debug/maintained Release and both unchanged Chromium lanes pass. All643 IDs remain:332 done/311 open,279 index rows; reconciled128 done/223 actionable/15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. DW-248/DW-266/DW-267, all earlier B1–B8/DW evidence, unrelated findings/decisions, inherited/external work and dependency pointers, archive/sprint, gates and historical provenance/release blockers remain preserved. See [complete evidence](dw-245-validation-evidence.md). Next selected bundle: DW-247 bounded membership ProjectionPending recovery under its settled August25/26 decision; DW-323 remains separately scoped and DW-121 remains Builds-owned. Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -679,27 +685,11 @@ next-action: Capture the invalid-cursor problem-details response and browser wid
 related: DW-116, DW-161
 
 ### DW-105: Degenerate/exotic tenant ids on the shared detail-nav path
-origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs:36; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor:17
-reason: The legacy ledger defers this issue: Degenerate/exotic tenant ids on the shared detail-nav path. Original context is preserved in legacy-detail.
-legacy-detail: - **Degenerate/exotic tenant ids on the shared detail-nav path** — (a) `TenantListNavigationContext.ToDetailUrl(TenantListRow)` now delegates to the new `ToDetailUrl(string tenantId, string anchor)` overload whose `ArgumentException.ThrowIfNullOrWhiteSpace(tenantId)` throws on a blank tenant id, where the pre-change inline body silently produced a `/tenants/?returnUrl=…` link; a render-time throw inside the `FluentDataGrid` template would tear down the list surface. (b) The row `id="{SelectorPrefix}-row-{context.TenantId}"` and the `tenants-my-row-{TenantId}` / `tenant-row-{TenantId}` focus anchors are built from the raw tenant id, so an id containing whitespace or CSS-significant characters produces an invalid HTML `id` and a non-resolving return-focus anchor. Both require a blank/exotic tenant id — the tenant id is the validated non-blank aggregate identifier and is slug-like in practice — and both share the pre-existing scope=all `TenantDataGrid` `id="tenant-row-{TenantId}"` pattern. Fix as cross-surface id-safety hardening (guard `DetailHrefFor`/normalize the anchor value across both grids), not a My-Tenants-only divergence. (`src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs:36`; `src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor:17`)
-pre-bundle-verification-date: 2026-10-12
-pre-bundle-verification: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs ToDetailUrl still throws for blank identifiers and constructs tenant-row-{TenantId}; Components/Tenants/TenantDataGrid.razor and Components/Users/MyTenantsDataGrid.razor still interpolate literal identifiers into DOM ids and return-focus anchors. Whitespace identifiers can make those anchors invalid.
-pre-bundle-verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor
-pre-bundle-evidence-kind: verified-defect
-pre-bundle-next-action: Define a stable DOM-safe encoding shared by both grids and navigation; cover whitespace and selector characters.
-resolution: Shared deterministic DOM-safe identity encoding and safe blank/unsupported rendering; owning identity/focus contract and complete review/validation are recorded in spec-dw-105-108-dom-safe-tenant-identity.md and dw-105-108-validation-evidence.md.
+
 status: done 2026-10-14
-disposition: done
-verification-date: 2026-10-14
-verification: Shared strict UTF-8 Base64url tenant DOM encoding is used by both grids, navigation and return anchors. Final independent83-case recheck, full Debug/maintained Release UI4971 each with zero failures/skips, and Chromium actual-rendered anchor/row/detail/heading/subject regressions pass. Route/authorization/command and focus safety bounds remain unchanged; release blockers remain separate. See dw-105-108-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantDomIdentity.cs; src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs; tests/Hexalith.Tenants.UI.Tests/Browser/tenant-identity-browser-validation.html
-evidence-kind: executed-component-navigation-browser
+origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
 priority: P2
-owner: unassigned
-dependencies: none
-next-action: None for DW-105/DW-108; bounded local closure. Existing release blockers remain recorded independently.
-related: DW-105, DW-108
+archived: 2026-10-15
 
 ### DW-106: Audit-grid unsafe references are omitted from copying but remain visible in the rendered reference label
 
@@ -720,29 +710,12 @@ source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identi
 archived: 2026-10-12
 
 ### DW-108: Caller-supplied tenant identifiers are reused as raw DOM ids and return-focus anchors
-origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
-location: TenantDataGrid.razor; MyTenantsDataGrid.razor
-source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
-reason: The legacy ledger defers this issue: Caller-supplied tenant identifiers are reused as raw DOM ids and return-focus anchors. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md` summary: Caller-supplied tenant identifiers are reused as raw DOM ids and return-focus anchors. evidence: `TenantDataGrid.razor`, `MyTenantsDataGrid.razor`, and `TenantListNavigationContext.cs` embed literal identifiers in anchors, so whitespace or selector-significant characters can make focus restoration unreliable; this navigation pattern predates the copy change.
-pre-bundle-verification-date: 2026-10-12
-pre-bundle-verification: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs ToDetailUrl still throws for blank identifiers and constructs tenant-row-{TenantId}; Components/Tenants/TenantDataGrid.razor and Components/Users/MyTenantsDataGrid.razor still interpolate literal identifiers into DOM ids and return-focus anchors. Whitespace identifiers can make those anchors invalid.
-pre-bundle-verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor
-pre-bundle-evidence-kind: verified-defect
-pre-bundle-next-action: Define a stable DOM-safe encoding shared by both grids and navigation; cover whitespace and selector characters.
-resolution: Shared deterministic DOM-safe identity encoding and safe blank/unsupported rendering; owning identity/focus contract and complete review/validation are recorded in spec-dw-105-108-dom-safe-tenant-identity.md and dw-105-108-validation-evidence.md.
+
 status: done 2026-10-14
-disposition: done
-verification-date: 2026-10-14
-verification: Shared strict UTF-8 Base64url tenant DOM encoding is used by both grids, navigation and return anchors. Final independent83-case recheck, full Debug/maintained Release UI4971 each with zero failures/skips, and Chromium actual-rendered anchor/row/detail/heading/subject regressions pass. Route/authorization/command and focus safety bounds remain unchanged; release blockers remain separate. See dw-105-108-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/State/TenantList/TenantDomIdentity.cs; src/Hexalith.Tenants.UI/State/TenantList/TenantListNavigationContext.cs; src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Users/MyTenantsDataGrid.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDomIdentityRenderingTests.cs; tests/Hexalith.Tenants.UI.Tests/Browser/tenant-identity-browser-validation.html
-evidence-kind: executed-component-navigation-browser
+origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identifier-copy-and-read-experience-evidence.md`
 priority: P2
-owner: unassigned
-dependencies: none
-next-action: None for DW-105/DW-108; bounded local closure. Existing release blockers remain recorded independently.
-related: DW-105, DW-108
-duplicate-of: DW-105
+archived: 2026-10-15
 
 ### DW-109: The audit receipt copies a hidden synthesized English composite rather than one exact visible localized literal
 
@@ -768,29 +741,12 @@ source_spec: `_bmad-output/implementation-artifacts/spec-1-8-support-safe-identi
 archived: 2026-10-12
 
 ### DW-112: The authoritative-search status filter's visible label and accessible name can describe different scopes
-origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
-location: TenantsWorkspace.razor
-source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
-reason: The legacy ledger defers this issue: The authoritative-search status filter's visible label and accessible name can describe different scopes. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The authoritative-search status filter's visible label and accessible name can describe different scopes. evidence: `TenantsWorkspace.razor` selects `StatusFilterLabelKey` for the visible label but retains the page-local `Tenants.List.StatusFilterLabel` for `aria-label`; this mismatch predates the current Story 1.9 review-repair diff.
-status: done 2026-10-15
-disposition: done
-pre-bundle-verification-date: 2026-10-12
-pre-bundle-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor status selector uses StatusFilterLabelKey for Label but Tenants.List.StatusFilterLabel for aria-label; authoritative and page-local scopes can still disagree.
-pre-bundle-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-pre-bundle-evidence-kind: verified-defect
-priority: P2
-owner: unassigned
-dependencies: none
-pre-bundle-next-action: Use the same scope-aware resource key for both labels and assert authoritative-search accessible naming.
-related: none
-verification-date: 2026-10-15
-verification: Same scope-aware resource names the visible label and host; stable Fluent native button is synchronized when the localized label changes. Actual EN/FR rendering, held loading/status transitions, selected state/request preservation, Chromium-computed names/focus and independent review pass; final Debug/maintained Release UI each4987 passed with zero failures/skips.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; src/Hexalith.Tenants.UI/wwwroot/js/tenantsStatusFilter.js; tests/Hexalith.Tenants.UI.Tests/Components/StatusFilterLabelRenderingTests.cs; tests/Hexalith.Tenants.UI.Tests/Browser/validate-status-filter-label-browser.mjs; _bmad-output/implementation-artifacts/dw-112-validation-evidence.md
-evidence-kind: executed-tests-and-browser
-next-action: none for DW-112; preserve inherited release/provenance holds and select DW-150 as the next Tenants-owned bundle.
-resolution: Only DW-112 closes after scope-aware labeling, stable-control name synchronization and independent review. Existing resources and filter/search/paging/authorization/command contracts remain unchanged. Exact commands, initial failures and bounded browser/provenance limits are recorded in dw-112-validation-evidence.md. Release remains not ready.
 
+status: done 2026-10-15
+origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
+priority: P2
+archived: 2026-10-15
 
 ### DW-113: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
@@ -1192,28 +1148,11 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-onl
 archived: 2026-10-12
 
 ### DW-150: An in-flight `RefreshTenantReadsAsync` is aborted silently by a concurrent detail refresh
-origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-only-tenant-configuration (2026-07-31)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:470-482
-reason: The legacy ledger defers this issue: An in-flight `RefreshTenantReadsAsync` is aborted silently by a concurrent detail refresh. Original context is preserved in legacy-detail.
-legacy-detail: - **An in-flight `RefreshTenantReadsAsync` is aborted silently by a concurrent detail refresh** — the documented guard at `:478-482` reroutes only when `_memberPageLoadInFlight` is set, and the read-refresh path never sets it. A projection notification starts `RefreshTenantReadsAsync` (member snapshot → `Refreshing`); the operator then triggers a detail refresh; `BeginLoad()` cancels the shared token and clears `IsRefreshing`. The member read is dropped, the refresh indicator vanishes, the pager re-enables and the table sits on stale rows with no error and no retry — the same failure the comment above the guard says it closed, reached through the other entry point. No test triggers a refresh while a member read is outstanding. Reason for deferral: the member-paging surface is owned outside Story 1.6, and the correct fix (widening the reroute condition to any in-flight member read) changes behaviour the member story's tests pin. Revisit if: the member table is reported showing stale rows after a refresh, or the member-paging story is reopened. [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:470-482]
-status: done 2026-10-15
-disposition: done
-pre-bundle-verification-date: 2026-10-12
-pre-bundle-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor RefreshTenantDetailAsync reroutes only _memberPageLoadInFlight; RefreshTenantReadsAsync marks members Refreshing without that flag. A detail refresh can still cancel the combined member read without reissuing it.
-pre-bundle-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-pre-bundle-evidence-kind: verified-defect
-priority: P2
-owner: unassigned
-dependencies: none
-pre-bundle-next-action: Drive a held member read plus detail refresh, then widen rerouting/coalescing to preserve that refresh.
-related: none
-verification-date: 2026-10-15
-verification: Detail refresh reroutes held navigation or any refreshing member snapshot through the existing combined read. Actual Fluent held-read regressions prove current cursor/independent evidence, repeated supersession, truthful failure/denial, cancellation, tenant/caller invalidation, late completion rejection and owning-only cursor recovery. Independent review resolves all five findings; final focused332 and full UI5004 pass in Debug/maintained Release with zero failures/skips; both maintained Chromium lanes pass.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-150-validation-evidence.md
-evidence-kind: executed-tests-and-browser
-next-action: none for DW-150; preserve release/provenance holds and select DW-164/DW-183 route-switch subscription handoff next.
-resolution: Only DW-150 closes after the minimal member-refresh reroute, seventeen meaningful held-read regressions and independent correction recheck. Existing cursor, caller/tenant, cancellation, authorization, command/lifecycle and focus contracts remain. Exact commands, initial failures and bounded validation are in dw-150-validation-evidence.md. Release remains not ready.
 
+status: done 2026-10-15
+origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-only-tenant-configuration (2026-07-31)"), 2026-08-25
+priority: P2
+archived: 2026-10-15
 
 ### DW-151: Undeclared `references/Hexalith.EventStore` gitlink bump in the working tree
 
@@ -1360,27 +1299,11 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 archived: 2026-10-12
 
 ### DW-164: A route change while the prior tenant's refresh subscription is pending can leave the new tenant without projection auto-refresh
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-01)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447
-reason: The legacy ledger defers this issue: A route change while the prior tenant's refresh subscription is pending can leave the new tenant without projection auto-refresh. Original context is preserved in legacy-detail.
-legacy-detail: - A route change while the prior tenant's refresh subscription is pending can leave the new tenant without projection auto-refresh. `EnsureReadRefreshLeaseAsync` rejects the new tenant while the old subscription owns `_readRefreshSubscriptionInFlight`; when the old attempt later disposes its lease and clears the flag, it does not schedule a render or retry for the current tenant. Reason for deferral: the race is in shared tenant-detail notification work that is outside Story 1.11's attributed implementation; this chunk included the file only to review the transferred lifecycle authorization consumer. Revisit if: the tenant-detail notification lifecycle is reviewed or the shared subscription retry logic is changed. [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447]
+
 status: done 2026-10-15
-disposition: done
-pre-bundle-verification-date: 2026-10-12
-pre-bundle-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor EnsureReadRefreshLeaseAsync refuses setup while the old tenant subscribe is in flight; its finally clears the flag without scheduling a render/retry for the new tenant. OnAfterRenderAsync retries only when another render occurs.
-pre-bundle-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-pre-bundle-evidence-kind: verified-defect
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-01)"), 2026-08-25
 priority: P2
-owner: unassigned
-dependencies: none
-pre-bundle-next-action: Add a held old-tenant subscribe/route-switch regression and trigger current-tenant retry after completion.
-related: DW-164, DW-183
-verification-date: 2026-10-15
-verification: Completion of obsolete setup releases its atomic gate and directly re-evaluates the latest authorized route on the renderer. Route epoch/caller version reject obsolete setup and copied callbacks; caller invalidation releases only this page's lease. Thirty-two actual Fluent held-setup cases cover success/Empty/throw, repeated and successive/returning routes, same-route reads/paging, current budget/recovery, caller/pending/sign-out/invalid/disposal, shared leases and suspended cleanup. Independent final32, focused364 and full UI5036 pass in Debug/maintained Release, zero failures/skips; both unchanged Chromium lanes pass.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-164-validation-evidence.md
-evidence-kind: executed-tests-and-browser
-next-action: none for DW-164; preserve release/provenance holds and select separate DW-166/DW-173 finite-bound bundle next.
-resolution: Only duplicate records DW-164/DW-183 close after completion-driven renderer handoff, exact route/caller callback binding and proven lease cleanup. Existing retry budget, setup cancellation/timeout policy and DW-150 combined-refresh coordination remain intact. Exact commands, initial failures, independent triage and limits are retained in dw-164-validation-evidence.md. Release remains not ready.
+archived: 2026-10-15
 
 ### DW-165: `TenantAuditPage` is the last production consumer of the synchronous `HttpContext`-only
 
@@ -1390,23 +1313,11 @@ priority: P2
 archived: 2026-10-12
 
 ### DW-166: `EnsureReadRefreshLeaseAsync` calls `SubscribeAsync` with `CancellationToken.None` and no timeout
+
+status: done 2026-10-15
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review, loop 2 (2026-08-01)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1120
-reason: The legacy ledger defers this issue: `EnsureReadRefreshLeaseAsync` calls `SubscribeAsync` with `CancellationToken.None` and no timeout. Original context is preserved in legacy-detail.
-legacy-detail: - `EnsureReadRefreshLeaseAsync` calls `SubscribeAsync` with `CancellationToken.None` and no timeout. If the subscription backend never answers, `_readRefreshSubscriptionInFlight` stays true and every later render, refresh-budget reset and re-authorization retry is rejected for the rest of the circuit. The bounded-budget design assumes attempts terminate; nothing enforces that. Reason for deferral: needs a timeout policy decision (value, and whether a timed-out attempt charges the budget) rather than a mechanical fix. Revisit if: notification setup is reworked, or a hung-subscribe incident is observed. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1120]
-status: open
-decision: 2026-08-26 Timeout charges budget — Apply a bounded timeout and count each timeout against the three-attempt recovery budget.
-decision: 2026-08-25 Timeout charges budget — Apply a bounded timeout and count each timeout against the three-attempt recovery budget.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor EnsureReadRefreshLeaseAsync still calls SubscribeAsync with CancellationToken.None and no finite wait. Existing 2026-08-25/26 decisions already require a bounded timeout charging the three-attempt budget.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: verified-defect
 priority: P2
-owner: unassigned
-dependencies: shared bound implementation with DW-173
-next-action: Apply the recorded shared finite timeout and count timeout against recovery attempts.
-related: DW-173, DW-176, DW-184
+archived: 2026-10-15
 
 ### DW-167: The grant and remove submit buttons are never disabled while a mutation is in flight
 
@@ -1446,23 +1357,11 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 archived: 2026-10-12
 
 ### DW-173: Authorization resolution is uncancellable from both consuming pages. The loop-2 patch made
+
+status: done 2026-10-15
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review (2026-08-01, loop 3)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1634; TenantsWorkspace.razor:564
-reason: The legacy ledger defers this issue: Authorization resolution is uncancellable from both consuming pages. Original context is preserved in legacy-detail.
-legacy-detail: - Authorization resolution is uncancellable from both consuming pages. The loop-2 patch made `TenantConfigurationPrincipalResolver.ResolveAsync` honour caller cancellation via `.WaitAsync(token)`, but `GlobalAdministratorsPage.ResolveAuthorizationReflectionAsync` and `TenantsWorkspace.razor:564` both call the BFF seam with no token, so `CancellationToken.None` plus an infinite timeout makes that seam inert for them. Only `TenantDetailPage` passes a token. `RetryAuthorizationAsync` additionally holds the atomic page-load gate across the resolve and releases it only in `finally`, so a hung provider leaves authorization-Retry, Retry, Reset, Previous and Next all disabled with nothing able to interrupt it. Reason for deferral: same timeout-policy decision as the existing `EnsureReadRefreshLeaseAsync` `CancellationToken.None` deferral — picking a bound is a policy call, and both should be settled together. Revisit if: a resolve/subscribe timeout policy is chosen, or a hung-provider incident is observed. [src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1634]
-status: open
-decision: 2026-08-26 Configured shared bound — Propagate page or circuit cancellation and apply one configurable finite resolver and subscription timeout.
-decision: 2026-08-25 Configured finite bound — Propagate page or circuit cancellation and apply one configurable finite resolver and subscription timeout, failing closed to Indeterminate.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor defaults ResolveAuthorizationReflectionAsync cancellation and calls it without a token during initialization/auth changes; TenantsWorkspace.razor does likewise. No finite bound wraps those calls. The 2026-08-25/26 shared configured-bound decision is settled.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: verified-defect
 priority: P2
-owner: unassigned
-dependencies: shared timeout policy implementation
-next-action: Propagate replaceable page/circuit cancellation and implement the recorded finite resolver/subscription bound.
-related: DW-166, DW-176, DW-184
+archived: 2026-10-15
 
 ### DW-174: AC5 remains partially unmet while the story sits in `review`: the narrow-viewport per-row Remove reason gap
 
@@ -1481,19 +1380,23 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565
 reason: The legacy ledger defers this issue: Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply. Original context is preserved in legacy-detail.
 legacy-detail: - Workspace GA entry resolve calls ResolveGlobalAdministratorsAuthorizationAsync without CancellationToken — deferred, pre-existing fire-and-forget entry path; version/_disposed still gate apply [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:565]
-status: open
+status: done 2026-10-15
 decision: 2026-08-26 Replaceable bounded CTS — Use a replaceable cancellation source plus the shared configured authorization bound.
 decision: 2026-08-25 Bounded workspace policy — Use a replaceable cancellation source plus the shared configured authorization bound.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor still calls ResolveGlobalAdministratorsAuthorizationAsync() without a cancellation token; version/disposed gates contain application but not the wait. The existing decision chooses replaceable bounded cancellation.
+disposition: done
+verification-date: 2026-10-15
+historical-verification-before-consumer-acceptance: Necessary workspace entry/create replaceable cancellation and shared bound wiring is present in DW-173. This related consumer record deliberately remains open for a separately scoped reconciliation of its full workspace caller/navigation/recovery acceptance; shared-provider closure is not blanket consumer closure. See dw-166-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: DW-173
-next-action: Wire replaceable cancellation and the shared finite bound into workspace authority resolution.
+historical-next-action-before-consumer-acceptance: Reconcile and separately qualify the remaining consumer acceptance against current shared-bound wiring; do not infer closure from DW-173.
 related: DW-173
+
+verification: Current source reuses DW-173 shared configured policy and replaceable entry/create cancellation. Rendered current-caller entry/audit binding, active view/actual alias-route invalidation, first/final create admission lease release, late success/fault after replacement, explicit recovery and disposal are proven; dispatched ownership remains intact. Independent review/rechecks, focused849 and full UI5134 in Debug/maintained Release, both unchanged Chromium lanes and2150 stable input hashes pass. See dw-176-validation-evidence.md.
+next-action: None for this record; scoped consumer acceptance is closed. Release/provenance holds remain in release-readiness.md.
+resolution: Closed only by DW-176/DW-184 consumer acceptance reconciliation; historical finding, settled decisions and pre-bundle verification/actions remain above.
 
 ### DW-177: Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
@@ -1577,47 +1480,34 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 archived: 2026-10-12
 
 ### DW-183: Route change during in-flight prior-tenant subscribe can briefly miss auto-refresh — deferred, previously deferred; OnAfterRender retry partially mitigates
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447
-reason: The legacy ledger defers this issue: Route change during in-flight prior-tenant subscribe can briefly miss auto-refresh — deferred, previously deferred; OnAfterRender retry partially mitigates. Original context is preserved in legacy-detail.
-legacy-detail: - Route change during in-flight prior-tenant subscribe can briefly miss auto-refresh — deferred, previously deferred; OnAfterRender retry partially mitigates [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:447]
+
 status: done 2026-10-15
-disposition: done
-pre-bundle-verification-date: 2026-10-12
-pre-bundle-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor EnsureReadRefreshLeaseAsync refuses setup while the old tenant subscribe is in flight; its finally clears the flag without scheduling a render/retry for the new tenant. OnAfterRenderAsync retries only when another render occurs.
-pre-bundle-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-pre-bundle-evidence-kind: verified-defect
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
 priority: P2
-owner: unassigned
-dependencies: none
-pre-bundle-next-action: Add a held old-tenant subscribe/route-switch regression and trigger current-tenant retry after completion.
-related: DW-164, DW-183
-duplicate-of: DW-164
-verification-date: 2026-10-15
-verification: Completion of obsolete setup releases its atomic gate and directly re-evaluates the latest authorized route on the renderer. Route epoch/caller version reject obsolete setup and copied callbacks; caller invalidation releases only this page's lease. Thirty-two actual Fluent held-setup cases cover success/Empty/throw, repeated and successive/returning routes, same-route reads/paging, current budget/recovery, caller/pending/sign-out/invalid/disposal, shared leases and suspended cleanup. Independent final32, focused364 and full UI5036 pass in Debug/maintained Release, zero failures/skips; both unchanged Chromium lanes pass.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-164-validation-evidence.md
-evidence-kind: executed-tests-and-browser
-next-action: none for DW-183; preserve release/provenance holds and select separate DW-166/DW-173 finite-bound bundle next.
-resolution: Only duplicate records DW-164/DW-183 close after completion-driven renderer handoff, exact route/caller callback binding and proven lease cleanup. Existing retry budget, setup cancellation/timeout policy and DW-150 combined-refresh coordination remain intact. Exact commands, initial failures, independent triage and limits are retained in dw-164-validation-evidence.md. Release remains not ready.
+archived: 2026-10-15
 
 ### DW-184: ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603
 reason: The legacy ledger defers this issue: ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes. Original context is preserved in legacy-detail.
 legacy-detail: - ApplyAuthenticationStateChangedAsync awaits authenticationStateTask with no timeout — deferred, pre-existing; fail-closed hides entry until auth completes [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:603]
-status: open
+status: done 2026-10-15
 decision: 2026-08-26 Bound authentication wait — Apply the shared authorization timeout and cancellation policy and leave the entry hidden on timeout.
 decision: 2026-08-25 Bound authentication wait — Apply the shared authorization timeout and cancellation policy and leave the entry hidden on timeout.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor ApplyAuthenticationStateChangedAsync directly awaits authenticationStateTask without timeout. Existing 2026-08-25/26 decisions require bounded fail-closed authentication waits.
+disposition: done
+verification-date: 2026-10-15
+historical-verification-before-consumer-acceptance: Necessary workspace authentication-event wait now uses the shared configured deadline and replaceable cancellation, clears current pending state on expiry and retains hidden authority. This related consumer record deliberately remains open for separately scoped authentication-event/provider acceptance reconciliation. See dw-166-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: DW-173
-next-action: Apply the shared timeout/cancellation while keeping authority hidden on expiry.
+historical-next-action-before-consumer-acceptance: Reconcile and separately qualify the remaining consumer acceptance against current shared-bound wiring; do not infer closure from DW-173.
 related: DW-173
+
+verification: Current source reuses DW-173 bounded authentication-event wait. Held initial/event evidence expires closed to Indeterminate; actual recovery reacquires pending/expired/current provider evidence, synchronous faults retire prior waits, and obsolete success/fault cannot restore authority, collapse the newer caller, dispatch or start post-disposal work. Independent review/rechecks, focused849 and full UI5134 in Debug/maintained Release, both unchanged Chromium lanes and2150 stable input hashes pass. See dw-176-validation-evidence.md.
+next-action: None for this record; scoped consumer acceptance is closed. Release/provenance holds remain in release-readiness.md.
+resolution: Closed only by DW-176/DW-184 consumer acceptance reconciliation; historical finding, settled decisions and pre-bundle verification/actions remain above.
 
 ### DW-185: Member Next stays enabled when HasMore has blank NextCursor — deferred, MemberAccessReview not in this story File List; page already no-ops; pre-existing pager honesty gap
 
@@ -2383,17 +2273,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Preserve queued projection-refresh intent in add-member and change-role flows. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Preserve queued projection-refresh intent in add-member and change-role flows. evidence: Both sibling flows collapse a projection refresh requested during an in-flight status-only refresh into a follow-up call with `requestProjectionRefresh: false`, so authoritative projection confirmation can remain pending.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
+status: done 2026-10-16
+disposition: done
+historical-verification-date-before-queued-intent: 2026-10-12
+verification-date: 2026-10-16
+historical-verification-before-queued-intent: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-evidence-kind: verified-defect
+historical-evidence-kind-before-queued-intent: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: shared membership refresh coalescer
-next-action: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
+historical-next-action-before-queued-intent: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
 related: DW-245, DW-265, DW-290, DW-248
+verification: Both membership flows now OR and consume queued status/projection intent per generation-tagged batch under a local atomic enqueue/idle handoff. Held actual Fluent regressions prove every coalesced replay, arrivals during status/reload/evidence, initial/replay failures, exact request counts, terminal/disposed retirement, late retained evidence and current-generation replacement without redispatch or overlap. Independent review/recheck, 62 new cases, focused462/full UI5196 in Debug/maintained Release, unchanged Chromium lanes and2151 stable validation inputs pass. See dw-245-validation-evidence.md.
+next-action: None for this duplicate bundle; only DW-245/DW-265/DW-290 close. DW-248/DW-266/DW-267 and release/provenance holds remain separately tracked.
+resolution: Queued projection-refresh intent is proven under the owning Story2.1/2.4 acceptance. Historical finding, source references and pre-bundle verification/actions remain above; no generic shared-plumbing closure is claimed.
 
 ### DW-246: Reconcile story gitlink validation with the seven post-baseline dependency pointer changes
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -2693,18 +2588,23 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: AddTenantMemberFlow.razor:513-541; ChangeTenantMemberRoleFlow.razor:572-600
 reason: The legacy ledger defers this issue: Refresh coalescing downgrades a user-initiated projection refresh to a status-only refresh and re-enters recursively. Original context is preserved in legacy-detail.
 legacy-detail: - summary: Refresh coalescing downgrades a user-initiated projection refresh to a status-only refresh and re-enters recursively. evidence: `AddTenantMemberFlow.razor:513-541` and the verbatim duplicate at `ChangeTenantMemberRoleFlow.razor:572-600` hard-code `requestProjectionRefresh: false` on every replay, so a Refresh pressed during an in-flight nudge never re-reads the projection. The post-`finally` tail re-enters the same method rather than looping. Already recorded from the story 2.1 review; a shared helper should be extracted rather than fixing three copies.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
+status: done 2026-10-16
+disposition: done
+historical-verification-date-before-queued-intent: 2026-10-12
+verification-date: 2026-10-16
+historical-verification-before-queued-intent: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-evidence-kind: verified-defect
+historical-evidence-kind-before-queued-intent: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: shared membership refresh coalescer
-next-action: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
+historical-next-action-before-queued-intent: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
 related: DW-245, DW-265, DW-290, DW-248
 duplicate-of: DW-245
+verification: Both membership flows now OR and consume queued status/projection intent per generation-tagged batch under a local atomic enqueue/idle handoff. Held actual Fluent regressions prove every coalesced replay, arrivals during status/reload/evidence, initial/replay failures, exact request counts, terminal/disposed retirement, late retained evidence and current-generation replacement without redispatch or overlap. Independent review/recheck, 62 new cases, focused462/full UI5196 in Debug/maintained Release, unchanged Chromium lanes and2151 stable validation inputs pass. See dw-245-validation-evidence.md.
+next-action: None for this duplicate bundle; only DW-245/DW-265/DW-290 close. DW-248/DW-266/DW-267 and release/provenance holds remain separately tracked.
+resolution: Queued projection-refresh intent is proven under the owning Story2.1/2.4 acceptance. Historical finding, source references and pre-bundle verification/actions remain above; no generic shared-plumbing closure is claimed.
 
 ### DW-266: `AsyncLocal<bool>` is the wrong primitive for dispatcher-bound re-entrancy state
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2975,18 +2875,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Preserve a queued manual projection refresh when add-member or change-role reconciliation is already processing a status-only nudge. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Preserve a queued manual projection refresh when add-member or change-role reconciliation is already processing a status-only nudge. evidence: Both membership flows return from an in-flight refresh without recording that the later caller requested projection reload, so the user-requested refresh can be dropped and confirmation delayed indefinitely.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
+status: done 2026-10-16
+disposition: done
+historical-verification-date-before-queued-intent: 2026-10-12
+verification-date: 2026-10-16
+historical-verification-before-queued-intent: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor coalesce only _refreshPending, reset refreshProjection=false and replay with requestProjectionRefresh:false. A manual projection request arriving during a status nudge is still downgraded.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-evidence-kind: verified-defect
+historical-evidence-kind-before-queued-intent: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: shared membership refresh coalescer
-next-action: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
+historical-next-action-before-queued-intent: Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression.
 related: DW-245, DW-265, DW-290, DW-248
 duplicate-of: DW-245
+verification: Both membership flows now OR and consume queued status/projection intent per generation-tagged batch under a local atomic enqueue/idle handoff. Held actual Fluent regressions prove every coalesced replay, arrivals during status/reload/evidence, initial/replay failures, exact request counts, terminal/disposed retirement, late retained evidence and current-generation replacement without redispatch or overlap. Independent review/recheck, 62 new cases, focused462/full UI5196 in Debug/maintained Release, unchanged Chromium lanes and2151 stable validation inputs pass. See dw-245-validation-evidence.md.
+next-action: None for this duplicate bundle; only DW-245/DW-265/DW-290 close. DW-248/DW-266/DW-267 and release/provenance holds remain separately tracked.
+resolution: Queued projection-refresh intent is proven under the owning Story2.1/2.4 acceptance. Historical finding, source references and pre-bundle verification/actions remain above; no generic shared-plumbing closure is claimed.
 
 ### DW-291: Reconcile Epic 3 tracker state so an epic and retrospective are not marked done while Story 3.2 is in review and Stories 3.3 through 3.6 remain backlog
 
@@ -6076,29 +5981,11 @@ related: none
 
 ### DW-499: Make terminal EventStore advisory status publication recoverable after a failed write or crash.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)"), 2026-10-12
-location: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Make terminal EventStore advisory status publication recoverable after a failed write or crash.\n  evidence: At EventStore baseline b51978d and in the current tree, CompleteTerminalAsync saves terminal idempotency and removes the pipeline before WriteAdvisoryStatusAsync, which logs ordinary write failures; exact terminal duplicates return cached results without status writes. An outage can leave committed execution without an available terminal proof. Recovery must retain the command's exact range and never substitute the aggregate head."
 status: done 2026-10-14
-disposition: done
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:6599-6729 CompleteTerminalAsync saves terminal idempotency and cleans pipeline before advisory status publication; WriteAdvisoryStatusAsync catches ordinary failures at :6755 onward. Exact-terminal duplicates return cached results without rebuilding the missing status. The command-specific terminal proof can remain unavailable after a failed final write.
-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
-evidence-kind: verified-defect
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P1
-owner: Hexalith.EventStore
-dependencies: EventStore terminal-status recovery design
-next-action: Design and test durable repair of terminal advisory status using the original command event range, including failed write/crash and exact-duplicate cases.
-related: none
-closure-verification-date: 2026-10-14
-closure-source-baseline: EventStore 173ad7f4e56a72f44621c7d3d7be86a5ec19dc03; preserved external HEAD 34c97acf9812c30ff610398baf3e00c9c9ed6c19 plus validated working-tree corrections
-closure-verification: Immutable terminal advisory intent/index is committed with terminal cleanup; matching duplicates and registered reminders repair the original status/range after failed writes or crashes, preserving cached outcomes and unrelated ownership.
-closure-evidence: _bmad-output/implementation-artifacts/spec-b8-eventstore-command-recovery.md; _bmad-output/implementation-artifacts/b8-validation-evidence.md; _bmad-output/implementation-artifacts/b8-command-results.json
-closure-validation: Independent review and final semantic rechecks resolved; Server4664 passed/0failed/25 unchanged historical skips;75 recovery-integrity and268 affected regressions passed;14 packages/13 library+1 tool consumers; Tenants6297 maintained and312 source compatibility cases; unchanged80/100 coverage gates passed.
-closure-limits: Local bounded defect closure only. Story-gitlink provenance, nested-layout/topology checks, scheduler/provider/capacity and existing release qualification/decision holds remain; no production replay/migration or assistant Git/dependency mutation. Original finding, legacy detail and pre-fix verification/action history are retained above.
-
+archived: 2026-10-15
 
 ### DW-500: Preserve ambiguous delivery identity and aggregate admission in the ordinary add-member and change-role flows.
 
@@ -6118,29 +6005,11 @@ archived: 2026-10-12
 
 ### DW-502: Validate or quarantine malformed persisted envelope ranges before EventStore command-resume publication.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)"), 2026-10-12
-location: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Validate or quarantine malformed persisted envelope ranges before EventStore command-resume publication.\n  evidence: Current-head blind finding BH9 traces ResumeFromEventsStoredAsync through HasVerifiedEventRange and PublishEventsAsync. Wrong envelope tenant/domain/aggregate/sequence/correlation omits correction proof but still publishes; the baseline b51978dd1d2a3721ad239db2623e1560377c7583 already publishes that loaded range unconditionally. Define platform publication rejection/quarantine and evidence-preservation behavior separately from the optional status-proof extension."
 status: done 2026-10-14
-disposition: done
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:4631-4644 computes rangeProofVerified with HasVerifiedEventRange but calls PublishEventsAsync regardless of that boolean. Malformed persisted envelope scope/sequence/correlation suppresses proof without preventing publication.
-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
-evidence-kind: verified-defect
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P1
-owner: Hexalith.EventStore
-dependencies: EventStore quarantine/recovery contract
-next-action: Add a platform-owned rejection/quarantine path for unverifiable resume ranges and persisted-evidence-preserving tests before pub/sub invocation.
-related: none
-closure-verification-date: 2026-10-14
-closure-source-baseline: EventStore 173ad7f4e56a72f44621c7d3d7be86a5ec19dc03; preserved external HEAD 34c97acf9812c30ff610398baf3e00c9c9ed6c19 plus validated working-tree corrections
-closure-verification: Checkpoint/envelope identity, scope, contiguous sequence/count and causation are verified before resume/handoff/activation/drain publication; malformed/missing evidence refuses with zero publication and stays retained for exact authorized restore; verified legacy rejection and ordinary ranges resume successfully.
-closure-evidence: _bmad-output/implementation-artifacts/spec-b8-eventstore-command-recovery.md; _bmad-output/implementation-artifacts/b8-validation-evidence.md; _bmad-output/implementation-artifacts/b8-command-results.json
-closure-validation: Independent review and final semantic rechecks resolved; Server4664 passed/0failed/25 unchanged historical skips;75 recovery-integrity and268 affected regressions passed;14 packages/13 library+1 tool consumers; Tenants6297 maintained and312 source compatibility cases; unchanged80/100 coverage gates passed.
-closure-limits: Local bounded defect closure only. Story-gitlink provenance, nested-layout/topology checks, scheduler/provider/capacity and existing release qualification/decision holds remain; no production replay/migration or assistant Git/dependency mutation. Original finding, legacy detail and pre-fix verification/action history are retained above.
-
+archived: 2026-10-15
 
 ### DW-503: Verify whether correction delivery/status continuations outside the renderer can corrupt visible state during remount or expiry (medium, unverified).
 
@@ -6425,36 +6294,11 @@ Diff reviewed: `/tmp/tenants-56-pass11-review-content-kr6d6_ah.diff` (699,840 by
 
 ### DW-517: Restore content scanning or governed, content-bound retirement for EventStore evidence paths currently skipped by the secret guard (high).
 
-origin: migrated from unnumbered ledger ("Deferred from: pass 12 workflow review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-05)"), 2026-10-12
-location: references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Restore content scanning or governed, content-bound retirement for EventStore evidence paths currently skipped by the secret guard (high).\n  evidence: Pass-12 BH1: upstream EventStore 38efbefd5da65d538723f9f85eca6a186dfc0a2f added ExplicitEvidenceArtifactPathPattern; ReadTrackedText returns null for every matching evidence CTRF JSON, the named verification directory and previous-candidate.md before examining content. Bind any allowed retirement to verified artifacts and add injected-content controls; this is independent of the exact password-free GitHub SSH-identity exception."
 status: done 2026-10-14
-disposition: done
-verification-date: 2026-10-14
-pre-dw-517-verification-date: 2026-10-12
-pre-dw-517-verification: references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs:1621-1632 still returns null for IsExplicitGeneratedPath before scanning content; :1753-1755 and regex :3645 include all evidence CTRF JSON, named verification paths and previous-candidate.md. Only a separate sealed capture is content-verified. The cited broad content-blind exclusions remain.
-pre-closure-verification: Owning repair removes broad pre-read evidence exclusions and retains exact sealed/binary/UI handling. 290 actual ingestion cases pass in Debug/Release; five bypass controls fail as required; independent review and recheck complete. Final focused security is 491 passed/1 failed (nine preserved historical findings). Full Server result and exact failures/limits are recorded in dw-517-validation-evidence.md and dw-517-command-results.json. No verified retirement approval covers those three files; no new exemption or evidence rewrite was created. DW-517 remains open pending owning content/disposition qualification.
-verification: Broad evidence pre-read exclusions are removed; all textual paths are scanned with the approved bounded semantic contract. Existing retirement approval and exact preserved content must verify before exclusion; seal/SSH/binary/UI handling remains intact. Final576 ingestion cases per configuration,778 security cases and full Server5240 passed/zero failed/25 unchanged skips; eleven bypasses fail; all29 review findings independently rechecked. No new exemption, re-pin or historical rewrite. See closure evidence and remaining release blockers below.
-verification-files: references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Security/SecretsProtectionTests.EvidenceIngestion.cs; references/Hexalith.EventStore/docs/architecture/evidence-secret-scanning.md; _bmad-output/implementation-artifacts/dw-517-validation-evidence.md
-evidence-kind: verified-gap
+origin: migrated from unnumbered ledger ("Deferred from: pass 12 workflow review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-05)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P1
-owner: Hexalith.EventStore
-dependencies: EventStore secret-guard evidence-retirement governance
-pre-dw-517-next-action: Restore content scanning for these textual evidence paths or bind each approved retirement to verified content with injected-secret negative controls.
-pre-closure-next-action: Resolve the owning contract for the nine restored historical findings: retain strict blocker, authorize a separate narrow semantic repair with injected-secret controls, or review exact governed retirement while active evidence stays scanned; then pass the owning gates before closure.
-next-action: None for DW-517; validated local closure. Next selected bundle is DW-105/DW-108. Existing release blockers remain separately recorded.
-related: none
-closure-verification-date: 2026-10-14
-closure-source-baseline: EventStore 24d719292b06d8a9d09771d837f8dd4d8d9b8997; preserved external HEAD 241652627a52e47c189b2b052db407cec172f813 plus validated unstaged working-tree repair; original Tenants baseline 23aeb38f9784cd67b3c2fa66fe1c007799df6826 retained.
-closure-policy-resolution: User explicitly approved recommended bounded semantic recognition. Every evidence path remains ingested; exact runtime expressions and proven negative/redaction probes qualify conservatively. No new retirement, exemption, hash re-pin or historical rewrite.
-closure-verification: Broad pre-read exclusions removed; existing approved retirement paths/hashes anchored to verified immutable Story5.3 authorization, with exact preserved bytes and fail-closed registry/integrity handling. Exact GitHub SSH identity, sealed capture and binary/UI handling preserved. Twenty-nine individual review findings patched and independently rechecked; unknown proof annotations revoke recognition.
-closure-evidence: _bmad-output/implementation-artifacts/spec-dw-517-evidence-content-scanning.md; _bmad-output/implementation-artifacts/dw-517-validation-evidence.md; _bmad-output/implementation-artifacts/dw-517-command-results.json; _bmad-output/implementation-artifacts/dw-517-mutation-evidence.json; _bmad-output/implementation-artifacts/dw-517-entry-state.json; references/Hexalith.EventStore/docs/architecture/evidence-secret-scanning.md
-closure-validation: Debug source/Release package builds zero warnings/errors;576 actual ingestion cases per configuration,778 focused security cases and full owning Server5240 passed/zero failed/25 unchanged DW1 ATDD skips (5265 total). Two affected maintained Python methods pass. Eleven deliberately bypassed controls fail assertions; unchanged exact-source control576/576 passes. Exact initial/intermediate failures and randomized NuGet-fixture instability preserved.
-closure-limits: Bounded local DW517 closure only; raw Gitleaks1561 inherited findings and CI wiring gap, unchanged randomized negative-fixture instability, external/historical story-gitlink provenance, existing nested-layout/topology/provider/authority/performance/browser/human-AT and seven decision holds remain release blockers. All1371 historical hashes and B1–B8/archive/sprint evidence preserved; no assistant Git/dependency mutation or production operation.
-
-
+archived: 2026-10-15
 
 ### DW-518: Correct EventStore command-status documentation to include positive event counts on eventful rejections.
 

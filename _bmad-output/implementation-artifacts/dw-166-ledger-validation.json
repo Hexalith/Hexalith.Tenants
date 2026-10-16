@@ -1,0 +1,44 @@
+{
+  "checks": {
+    "all_643_ids_preserved": true,
+    "unrelated_records_byte_exact": true,
+    "all_open_ids_indexed_exactly_once": true,
+    "only_selected_action_rows_removed_and_related_rows_updated": true,
+    "expected_counts": true,
+    "original_findings_and_settled_decisions_preserved": true,
+    "only_166_173_closed": true,
+    "176_184_remain_open": true,
+    "historical_readiness_prefix_exact": true
+  },
+  "status_counts": {
+    "done": 327,
+    "open": 316
+  },
+  "reconciled_dispositions": {
+    "blocked": 15,
+    "done": 123,
+    "actionable": 228,
+    "accepted-limitation": 9,
+    "uncertain": 38,
+    "awaiting-decision": 26
+  },
+  "earlier_closed_record_boundary": 204,
+  "explicit_done_dispositions": 15,
+  "index_rows": 282,
+  "open_ids": 316,
+  "changed_ids": [
+    166,
+    173,
+    176,
+    184
+  ],
+  "closed_ids": [
+    166,
+    173
+  ],
+  "next_selected_bundle": [
+    "DW-176",
+    "DW-184"
+  ],
+  "historical_readiness_prefix_sha256": "d0ed739274e687f8c04339f5750110609423cd4a92b3c263c0d3dff7c20ed9c8"
+}

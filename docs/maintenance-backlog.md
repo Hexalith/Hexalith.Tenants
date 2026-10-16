@@ -30,20 +30,26 @@ Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependen
 
 **DW-164/DW-183 closure (2026-10-15):** Obsolete setup now releases its atomic gate and directly hands setup to the latest authorized route on the renderer. Route/caller epochs reject obsolete/captured callbacks, caller invalidation releases only its own lease, and existing retry/timeout policy plus DW-150 coordination remain unchanged. Independent review resolves all six evidence gaps and its final32-case recheck passes; focused364/full UI5036 in both Debug/maintained Release and both unchanged Chromium lanes pass with zero failures/skips. [Exact commands, initial failures and remaining blockers](../_bmad-output/implementation-artifacts/dw-164-validation-evidence.md) retain broad audit/package/provenance and operational holds. Only these two duplicate records and their grouped row close:325 done/318 open across643 IDs,284 index rows;121 reconciled done/230 actionable. All prior history/B1–B8/DW-517/DW-105/DW-108/DW-112/DW-150, inherited/external work/pointers, archive/sprint, gates and decisions remain intact. Release remains not ready.
 
+**DW-166/DW-173 closure, 2026-10-15:** shared configurable finite authorization/subscription deadline, caller/route cancellation, exact per-scope setup/cleanup ownership and three-failure explicit recovery are verified. [Complete evidence and remaining blockers](../_bmad-output/implementation-artifacts/dw-166-validation-evidence.md) retain independent review, deterministic held-provider/late-completion regressions, Debug/maintained Release focused/full UI and unchanged Chromium outcomes. Only DW-166/DW-173 close:327 done/316 open across643 IDs,282 index rows;123 reconciled done/228 actionable. Related DW-176/DW-184 remain open despite necessary wiring. Earlier history/evidence, inherited work and external commits/dependency movements, archive/sprint, gates and decisions are preserved. Release remains not ready.
+
 All 439 requested records were reconciled: 152 marked-open DW entries plus 287 previously unnumbered records, now DW-357–DW-643. Original findings and resolution history are retained, including lossless JSON `legacy-detail` for migrated records. Duplicate references share an index row; they remain separate ledger records.
+
+**DW-176/DW-184 closure (2026-10-15):** Workspace consumer acceptance independently reconciles the existing DW-173 policy and fixes proven caller/view/route/recovery gaps. Actual Fluent/Router held operations, final admission lease release, dispatched tracking and late/disposal safety pass independent review, focused849/full UI5134 in Debug/maintained Release and both unchanged Chromium lanes. [Exact commands, initial failures and limits](../_bmad-output/implementation-artifacts/dw-176-validation-evidence.md) retain historical provenance/release blockers. Only these two records and their two index rows close:329 done/314 open across643 IDs,280 rows;125 reconciled done/226 actionable. Inherited files/external movements, B1–B8 and all earlier bundles, archive/sprint, gates and decisions remain preserved. Release remains not ready.
+
+**DW-245/DW-265/DW-290 closure (2026-10-16):** Only the three duplicate queued membership projection-refresh intent records close. Generation-tagged OR/consume batches retain every requested parent reload through serialized replay, failure and idle handoff, preserving exact command/projection/retained-admission semantics. Independent review/recheck,62 actual Fluent cases, focused462/full UI5196 in both configurations and both unchanged Chromium lanes pass. [Exact commands, initial failures and remaining blockers](../_bmad-output/implementation-artifacts/dw-245-validation-evidence.md). All643 IDs remain:332 done/311 open across279 rows;128 reconciled done/223 actionable. DW-248/DW-266/DW-267, B1–B8/all earlier bundles, historical findings/decisions/provenance, inherited/external work/pointers, archive/sprint and gates remain preserved. Release remains not ready.
 
 | Disposition | Records |
 | --- | ---: |
-| done | 121 |
-| actionable | 230 |
+| done | 128 |
+| actionable | 223 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 38 |
 
-**Remaining: 318 open records across 284 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 311 open records across 279 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
-**Next implementation bundle selected from the current ledger:** DW-166/DW-173, shared configured finite resolver/subscription bounds and replaceable cancellation. Both remain open/actionable with settled decisions: apply the shared configured bound, fail authority closed and charge subscription timeout against the existing three-attempt budget. Current source retains unbounded waits/default cancellation; DW-176/DW-184 remain separately tracked dependent consumers. This work was kept separate from the handoff fix. DW-121 remains Builds-owned. DW-164/DW-183 closure is scoped UI evidence; release remains not ready.
+**Next implementation bundle selected from the current ledger:** DW-247, bounded membership ProjectionPending recovery. The settled August25/26 decision requires a configured retry/time bound to UnableToVerify; current membership confirmers/guards still retain pending without it. Keep related DW-323 separately scoped. DW-121 remains Builds-owned. This closure does not establish full release readiness.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -61,10 +67,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
 | DW-121 | P2 | Defect / actionable | Hexalith.Builds | Hexalith.Builds owning workflow change | Align the input description/contract and callers with the recorded main-only policy. |
 | DW-128 | P2 | Defect / actionable | unassigned | coordinate DW-127 privacy contract | Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches. |
-| DW-166 | P2 | Defect / actionable | unassigned | shared bound implementation with DW-173 | Apply the recorded shared finite timeout and count timeout against recovery attempts. |
-| DW-173 | P2 | Defect / actionable | unassigned | shared timeout policy implementation | Propagate replaceable page/circuit cancellation and implement the recorded finite resolver/subscription bound. |
-| DW-176 | P2 | Defect / actionable | unassigned | DW-173 | Wire replaceable cancellation and the shared finite bound into workspace authority resolution. |
-| DW-184 | P2 | Defect / actionable | unassigned | DW-173 | Apply the shared timeout/cancellation while keeping authority hidden on expiry. |
 | DW-215 | P2 | Defect / actionable | unassigned | none | Validate candidate tags with the same SemVer parser/range as semantic-release and test rejected numeric forms. |
 | DW-216 | P2 | Defect / actionable | unassigned | none | Validate normalized NuGet grammar before stable/prerelease classification and cover malformed suffixes. |
 | DW-217 | P2 | Defect / actionable | unassigned | release-lineage policy | Align recovery guidance with authentic-tag-only lineage and reviewed recovery. |
@@ -74,7 +76,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-234 | P2 | Defect / actionable | unassigned | none | Convert shared failure/status results to whole-string EN/FR keys and preserve those keys in flows. |
 | DW-241 | P2 | Defect / actionable | unassigned | DW-194 focus contract | Restore to an existing launcher or stable member heading, containing stale-reference failures. |
 | DW-243, DW-262 | P2 | Defect / actionable | unassigned | none | Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard. |
-| DW-245, DW-265, DW-290 | P2 | Defect / actionable | unassigned | shared membership refresh coalescer | Retain and OR the queued projection-refresh intent through every replay, with a held status-read regression. |
 | DW-247 | P2 | Defect / actionable | unassigned | configured membership budget | Apply the already-selected bounded retry/time transition to UnableToVerify with recovery. |
 | DW-251 | P2 | Defect / actionable | unassigned | none | Localize the remaining status/validation branches in the shared pass. |
 | DW-268 | P2 | Defect / actionable | unassigned | browser style evidence | Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width. |

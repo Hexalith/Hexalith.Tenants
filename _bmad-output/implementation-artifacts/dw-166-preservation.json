@@ -1,14 +1,32 @@
 {
-  "captured_utc": "2026-10-15T15:59:49.011284+00:00",
+  "captured_utc": "2026-10-15T16:16:45.082200+00:00",
   "repositories": {
     ".": {
       "entry_head": "6cb020e5c4a50169df2abf973d824faec9ee2e52",
-      "current_head": "a9d4eb5ce2f73458e4d2a2df42cbb154c5a0f920",
+      "current_head": "a3f43655d68370389439c7d2c212ab7939bd164e",
       "entry_branch": "main",
       "current_branch": "main",
       "inherited_files": 3465,
-      "unchanged_inherited_files": 3454,
+      "unchanged_inherited_files": 3451,
       "changed_files": [
+        {
+          "path": "_bmad-output/implementation-artifacts/deferred-work.md",
+          "before": "1de88bb9ff8a8b0517d403d7edacc881b8db4616b3ab38a837c912b6510b865c",
+          "after": "8ba77cf5e97d90725cfe28efa4f81d42950a0a010aa9c30997579072c2653e2f",
+          "bundle_owned": true
+        },
+        {
+          "path": "_bmad-output/implementation-artifacts/release-readiness.md",
+          "before": "d0ed739274e687f8c04339f5750110609423cd4a92b3c263c0d3dff7c20ed9c8",
+          "after": "9f26e932e819a6754ca15e0020557418a7f0f9751deaa0de8faf1eb7402264a5",
+          "bundle_owned": true
+        },
+        {
+          "path": "docs/maintenance-backlog.md",
+          "before": "2b02aca207e8d9b3e946f073524986e9d0a958ebcfa0c8507936bd6153af5b42",
+          "after": "0057de5225908f787953d69a1ea45f9f45842ebbc291cc58d7ca4045673e95f3",
+          "bundle_owned": true
+        },
         {
           "path": "docs/quickstart.md",
           "before": "1045e3063242632ecf9b7e3e43da8c906d544f35d073cc7bc9fadcf82657b7ae",
@@ -77,9 +95,9 @@
         }
       ],
       "entry_index_hash": "9b7d8d54ac4b6116076345d21e67d0a927d00bae499b15aea8940bd5ecb3bb31",
-      "current_index_hash": "ae56f8ace7b915de2b1e0556f96ea71a6edd1f5da619bd73a43729b9e05bbaf3",
-      "status": "M _bmad-output/implementation-artifacts/dw-166-command-results.json\n M _bmad-output/implementation-artifacts/spec-dw-166-173-finite-authorization-subscription-bounds.md\n M docs/quickstart.md\n M references/Hexalith.EventStore\n M src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor\n M src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor\n M src/Hexalith.Tenants.UI/Services/TenantReadRefreshSubscription.cs\n M src/Hexalith.Tenants.UI/Services/TenantUiOperationPolicy.cs\n M tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs\n M tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs\n M tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs\n M tests/Hexalith.Tenants.UI.Tests/TenantsUiCompositionTests.cs\n?? _bmad-output/implementation-artifacts/dw-166-external-movements.json\n?? _bmad-output/implementation-artifacts/dw-166-preservation.json\n?? tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs\n?? tests/Hexalith.Tenants.UI.Tests/Services/TenantUiOperationPolicyTests.cs\n?? tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.FiniteBounds.cs",
-      "nested": "3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools (heads/main)\n 9f0121c77e3f085c58f5c926057606db8e6511a7 references/Hexalith.Builds (v4.31.2-1-g9f0121c)\n 9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 references/Hexalith.Commons (v2.30.1-19-g9e874b1)\n+746b843a24f18b17a7572be25b76b735fa8e4ca6 references/Hexalith.EventStore (v3.122.0-2-g746b843a)\n b06f86d554363ea5b8192cbc149a75c820dab2b8 references/Hexalith.FrontComposer (v4.6.0-33-gb06f86d5)\n 7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli (heads/main)\n 99431f0fed102ea6ddbae33d28b9da4fc7f215a0 references/Hexalith.Memories (v2.28.1-99-g99431f0f)\n c3af1f2c9e7b0d1b003a1bd5978545f664e38167 references/Hexalith.Platform (heads/main)\n 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations (v1.19.4)"
+      "current_index_hash": "ef1805cf9155b8d510f5916766fdffd5dcfd6054bb6151ac884ac0720f8f367d",
+      "status": "M _bmad-output/implementation-artifacts/deferred-work.md\n M _bmad-output/implementation-artifacts/dw-166-command-results.json\n M _bmad-output/implementation-artifacts/dw-166-external-movements.json\n M _bmad-output/implementation-artifacts/release-readiness.md\n M _bmad-output/implementation-artifacts/spec-dw-166-173-finite-authorization-subscription-bounds.md\n M docs/maintenance-backlog.md\n M tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs\n?? _bmad-output/implementation-artifacts/dw-166-ledger-validation.json\n?? _bmad-output/implementation-artifacts/dw-166-ui-summary.json\n?? _bmad-output/implementation-artifacts/dw-166-validation-evidence.md\n?? _bmad-output/implementation-artifacts/dw-166-validation-inputs.json",
+      "nested": "3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools (heads/main)\n f9f115528e43060d5f0af7dfbd8b22addc3c9a89 references/Hexalith.Builds (v4.31.2-2-gf9f1155)\n 9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 references/Hexalith.Commons (v2.30.1-19-g9e874b1)\n 746b843a24f18b17a7572be25b76b735fa8e4ca6 references/Hexalith.EventStore (v3.122.0-2-g746b843a)\n b06f86d554363ea5b8192cbc149a75c820dab2b8 references/Hexalith.FrontComposer (v4.6.0-33-gb06f86d5)\n 7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli (heads/main)\n 99431f0fed102ea6ddbae33d28b9da4fc7f215a0 references/Hexalith.Memories (v2.28.1-99-g99431f0f)\n 3a29fe039320ab13d95ff7d9801761dad72bfed9 references/Hexalith.Platform (heads/main)\n 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations (v1.19.4)"
     },
     "references/Hexalith.EventStore": {
       "entry_head": "241652627a52e47c189b2b052db407cec172f813",
@@ -414,14 +432,21 @@
     },
     "references/Hexalith.Builds": {
       "entry_head": "9f0121c77e3f085c58f5c926057606db8e6511a7",
-      "current_head": "9f0121c77e3f085c58f5c926057606db8e6511a7",
+      "current_head": "f9f115528e43060d5f0af7dfbd8b22addc3c9a89",
       "entry_branch": "main",
       "current_branch": "main",
       "inherited_files": 1430,
-      "unchanged_inherited_files": 1430,
-      "changed_files": [],
+      "unchanged_inherited_files": 1429,
+      "changed_files": [
+        {
+          "path": "Props/Directory.Packages.props",
+          "before": "cbdab4f8636299ad326580413f8f65cad1b7d3854d96775a33547fc616b07a2e",
+          "after": "47f38330465a4c19a2aaae3c2eed9a21b6cd671eb31b80ef0c189c34ab286b50",
+          "bundle_owned": false
+        }
+      ],
       "entry_index_hash": "592a093ab5a2733d981c8884aeeb355557469f488064294fb044158d92229625",
-      "current_index_hash": "592a093ab5a2733d981c8884aeeb355557469f488064294fb044158d92229625",
+      "current_index_hash": "e120e3910b7d450511467810f92c678fffbc6ae8a0be399c2b89a842eb092fa7",
       "status": "",
       "nested": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools"
     },
@@ -491,7 +516,7 @@
     },
     "references/Hexalith.Platform": {
       "entry_head": "8580eb64ac8a9ac3c025dd6c7f64aa6f39ce5cbb",
-      "current_head": "c3af1f2c9e7b0d1b003a1bd5978545f664e38167",
+      "current_head": "3a29fe039320ab13d95ff7d9801761dad72bfed9",
       "entry_branch": "main",
       "current_branch": "main",
       "inherited_files": 4183,
@@ -583,9 +608,9 @@
         }
       ],
       "entry_index_hash": "b48802fed9d1078ae6fa9cfa0cbff5cabc1627e332d7d57d3d1c4d0e6c69b783",
-      "current_index_hash": "918c177c4cf3bdafea21d0538a8b052cac6fdf60815762623a7e10c87fcd2eb3",
+      "current_index_hash": "e6e880191c2652b7fb95478b7a7f735ab78ab48c4095a1a63f9de45328c3413e",
       "status": "",
-      "nested": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-bc3acde828ebf6ef5f897080629db8deb2219813 references/Hexalith.Agents\n-9f0121c77e3f085c58f5c926057606db8e6511a7 references/Hexalith.Builds\n-839aee31e2a9be11feab3fb726006bb4c2f890b5 references/Hexalith.ChatBot\n-9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 references/Hexalith.Commons\n-58f158413df4e3d6b97190b2458e323eab6029c4 references/Hexalith.Conversations\n-210b90da172cc7ca946fbb06cfd44390bffa707b references/Hexalith.EventStore\n-ea1e9ac9745ad86aac7f2bf6ea84ee3741fea0ed references/Hexalith.Folders\n-b06f86d554363ea5b8192cbc149a75c820dab2b8 references/Hexalith.FrontComposer\n-7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli\n-785e2ae4cc5e7ff1e4ea5d2a530be0cb374b19e9 references/Hexalith.Memories\n-b87ca40b3bf3d75aed56c7e891c2f5b431e263ae references/Hexalith.Parties\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-42c8e7bc3a58d78e7c6ea4273711d697e81175e7 references/Hexalith.Projects\n-51f404513f2657e98f949f58f0df43b99b68a7d0 references/Hexalith.Tenants\n-c2aaef44cb7163baee26746b4f6ddc25ba29c08d references/Hexalith.Timesheets\n-ceef28532550061dd361dfe7df9c2a93582b2aa5 references/Hexalith.Works"
+      "nested": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-bc3acde828ebf6ef5f897080629db8deb2219813 references/Hexalith.Agents\n-9f0121c77e3f085c58f5c926057606db8e6511a7 references/Hexalith.Builds\n-839aee31e2a9be11feab3fb726006bb4c2f890b5 references/Hexalith.ChatBot\n-9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 references/Hexalith.Commons\n-58f158413df4e3d6b97190b2458e323eab6029c4 references/Hexalith.Conversations\n-210b90da172cc7ca946fbb06cfd44390bffa707b references/Hexalith.EventStore\n-ea1e9ac9745ad86aac7f2bf6ea84ee3741fea0ed references/Hexalith.Folders\n-b06f86d554363ea5b8192cbc149a75c820dab2b8 references/Hexalith.FrontComposer\n-7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli\n-99431f0fed102ea6ddbae33d28b9da4fc7f215a0 references/Hexalith.Memories\n-493730941329d1bca3b4f6b2f6a67ffe305c2443 references/Hexalith.Parties\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-42c8e7bc3a58d78e7c6ea4273711d697e81175e7 references/Hexalith.Projects\n-51f404513f2657e98f949f58f0df43b99b68a7d0 references/Hexalith.Tenants\n-c2aaef44cb7163baee26746b4f6ddc25ba29c08d references/Hexalith.Timesheets\n-ceef28532550061dd361dfe7df9c2a93582b2aa5 references/Hexalith.Works"
     }
   }
 }

@@ -170,8 +170,10 @@
     private bool _focusUserIdPending;
     private bool _focusRolePending;
     private bool _focusLifecyclePending;
+    private readonly object _refreshLock = new();
     private TaskCompletionSource? _refreshCompletion;
     private int _refreshPending;
+    private int _refreshPendingGeneration;
     private readonly AsyncLocal<bool> _isProjectionRefreshCallback = new();
 
     [Parameter]
@@ -412,12 +414,13 @@
         if (!retained || _disposed || generation != _attemptGeneration
             || !ReferenceEquals(_retainedAttempt, attempt)
             || attempt is not null && !Attempts.IsAttached(attempt, this)
-            || !delivery && !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected) && !ReferenceEquals(_snapshot, result))
+            || attempt is null && !delivery && !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected) && !ReferenceEquals(_snapshot, result))
         {
             return false;
         }
         _snapshot = result;
-        if (result.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+        SynchronizeRetainedAttempt();
+        if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
             || result.FocusTarget is TenantCommandFocusTarget.Lifecycle)
         {
             _focusLifecyclePending = true;
@@ -426,8 +429,10 @@
     }
 
     private bool IsCurrentContinuation(int generation, TenantAddMemberCommandSnapshot expected)
-        => !_disposed && generation == _attemptGeneration && TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected)
-            && (_retainedAttempt is null || Attempts.IsAttached(_retainedAttempt, this));
+        => !_disposed && generation == _attemptGeneration
+            && (_retainedAttempt is { } attempt
+                ? Attempts.IsAttached(attempt, this) && Attempts.IsExpectedEvidence(attempt, expected)
+                : TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected));
 
 
     private int OwnerCount
@@ -476,7 +481,8 @@
             or TenantCommandLifecycleState.Degraded;
 
     private bool CanContinueReadOnly
-        => !_isSubmitting && _retainedAttempt?.DeliveryInFlight is not true
+        => (!_isSubmitting || _snapshot.State is TenantCommandLifecycleState.UnableToVerify && _snapshot.ProjectionWaitExpired)
+            && _retainedAttempt?.DeliveryInFlight is not true
             && (_snapshot.State is TenantCommandLifecycleState.UnableToVerify or TenantCommandLifecycleState.Degraded
                 || TenantCommandAttemptTracker.IsTerminal(_snapshot));
 
@@ -603,6 +609,7 @@
         }
 
         _snapshot = snapshot;
+        SynchronizeRetainedAttempt();
         if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
         {
             _focusLifecyclePending = true;
@@ -1034,58 +1041,91 @@
     private async Task RefreshCommandStatusAsync(bool requestProjectionRefresh, bool waitForRunningRefresh = true)
     {
         SynchronizeRetainedAttempt();
-        if (_disposed || TenantCommandAttemptTracker.IsTerminal(_snapshot))
+        TaskCompletionSource completion;
+        bool ownsRefresh;
+        lock (_refreshLock)
         {
-            return;
+            if (_disposed || TenantCommandAttemptTracker.IsTerminal(_snapshot))
+            {
+                return;
+            }
+
+            // A replacement attempt may enqueue while an older generation still owns the drain.
+            // Keep only requests for the current attempt, without making it wait for another user action.
+            if (_refreshPendingGeneration != _attemptGeneration)
+            {
+                _refreshPending = 0;
+                _refreshPendingGeneration = _attemptGeneration;
+            }
+            // Work and projection intent form one batch. A status-only nudge cannot clear a manual request.
+            _refreshPending |= requestProjectionRefresh ? 3 : 1;
+            ownsRefresh = _refreshCompletion is null;
+            completion = _refreshCompletion ??= new(TaskCreationOptions.RunContinuationsAsynchronously);
         }
-        int refreshGeneration = _attemptGeneration;
-        // The running refresh doubles as the in-flight gate, so a merged request can wait for exactly the
-        // refresh (and replay) that will serve it. The replay request is written before the gate is tried: an
-        // owner finishing between a failed gate and a later write would release this caller without running it.
-        // An owner clears it before its first lookup.
-        Volatile.Write(ref _refreshPending, 1);
-        TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        if (Interlocked.CompareExchange(ref _refreshCompletion, completion, null) is { } running)
+
+        if (!ownsRefresh)
         {
-            // A request merged into the refresh already running is served by that refresh's replay. Waiting for
-            // it keeps the caller (for example the shared audit control's bounded Refresh) from observing an
-            // unchanged state before the replay has run. A SignalR nudge does not wait.
+            // Manual recovery waits for the owner and its queued batches; notification nudges never wait.
             if (waitForRunningRefresh)
             {
-                await running.Task.ConfigureAwait(false);
+                await completion.Task.ConfigureAwait(false);
             }
-
             return;
         }
 
+        Exception? failure = null;
         try
         {
-            try
+            while (true)
             {
-                bool refreshProjection = requestProjectionRefresh;
-                do
+                int pending;
+                lock (_refreshLock)
                 {
-                    Volatile.Write(ref _refreshPending, 0);
-                    await RefreshCommandStatusCoreAsync(refreshProjection).ConfigureAwait(false);
-                    refreshProjection = false;
+                    pending = _refreshPending;
+                    _refreshPending = 0;
+                    if (_disposed || TenantCommandAttemptTracker.IsTerminal(_snapshot) || pending == 0)
+                    {
+                        // Enqueue and idle handoff share the lock: there is no release-window replay to lose.
+                        _refreshCompletion = null;
+                        break;
+                    }
+                    if (_refreshPendingGeneration != _attemptGeneration)
+                    {
+                        continue;
+                    }
                 }
-                while (!_disposed && refreshGeneration == _attemptGeneration
-                    && !TenantCommandAttemptTracker.IsTerminal(_snapshot) && Interlocked.Exchange(ref _refreshPending, 0) != 0);
-            }
-            finally
-            {
-                Volatile.Write(ref _refreshCompletion, null);
-            }
 
-            if (Interlocked.Exchange(ref _refreshPending, 0) != 0)
-            {
-                await RefreshCommandStatusAsync(requestProjectionRefresh: false).ConfigureAwait(false);
+                try
+                {
+                    await RefreshCommandStatusCoreAsync((pending & 2) != 0).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    // The failed batch is consumed, never automatically retried. Explicit requests queued
+                    // during it still run; all waiting callers observe the failure after the drain retires.
+                    failure ??= exception;
+                }
             }
         }
         finally
         {
-            completion.TrySetResult();
+            lock (_refreshLock)
+            {
+                if (ReferenceEquals(_refreshCompletion, completion))
+                {
+                    _refreshCompletion = null;
+                }
+            }
+            if (failure is null)
+            {
+                completion.TrySetResult();
+            }
+            else
+            {
+                completion.TrySetException(failure);
+            }
         }
+        await completion.Task.ConfigureAwait(false);
     }
 
     private async Task RefreshCommandStatusCoreAsync(bool requestProjectionRefresh)
@@ -1182,6 +1222,7 @@
             return;
         }
         _readOnlyDetached = true;
+        _isSubmitting = false;
         Attempts.Detach(_retainedAttempt, this);
         _retainedAttempt = null;
         _attemptGeneration++;

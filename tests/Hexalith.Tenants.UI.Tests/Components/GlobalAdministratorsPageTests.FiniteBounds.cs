@@ -507,12 +507,12 @@ public sealed partial class GlobalAdministratorsPageTests
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         composition.Reflection = TenantLifecycleAuthorizationReflectionState.MissingPermission;
         authentication.Set(NonAdministratorPrincipal());
-        cut.WaitForAssertion(() =>
-        {
-            cut.Find("[data-testid='tenants-global-admins-unavailable']");
-            PrivateField<int>(cut.Instance, "_readRefreshSubscriptionInFlight").ShouldBe(0);
-            PrivateField<int>(cut.Instance, "_readRefreshAttempts").ShouldBe(0);
-        });
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admins-unavailable']"));
+        // Setup gate completion does not itself render. Observe it within the same default wait
+        // instead of requiring an unrelated render to re-run a DOM wait assertion.
+        await WaitUntilAsync(() => PrivateField<int>(cut.Instance, "_readRefreshSubscriptionInFlight") == 0,
+            BunitContext.DefaultWaitTimeout);
+        PrivateField<int>(cut.Instance, "_readRefreshAttempts").ShouldBe(0);
         setupToken.IsCancellationRequested.ShouldBeTrue();
         PrivateField<IAsyncDisposable?>(cut.Instance, "_readRefreshLease").ShouldBeNull();
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(GetGlobalAdministratorsQuery.ProjectionType, "system");
@@ -522,12 +522,10 @@ public sealed partial class GlobalAdministratorsPageTests
 
         composition.Reflection = TenantLifecycleAuthorizationReflectionState.Authorized;
         authentication.Set(GlobalAdministratorPrincipal());
-        cut.WaitForAssertion(() =>
-        {
-            gateway.GlobalAdministratorCalls.ShouldBe(2);
-            PrivateField<int>(cut.Instance, "_readRefreshSubscriptionInFlight").ShouldBe(1);
-            PrivateField<int>(cut.Instance, "_readRefreshAttempts").ShouldBe(0);
-        });
+        cut.WaitForAssertion(() => gateway.GlobalAdministratorCalls.ShouldBe(2));
+        await WaitUntilAsync(() => PrivateField<int>(cut.Instance, "_readRefreshSubscriptionInFlight") == 1,
+            BunitContext.DefaultWaitTimeout);
+        PrivateField<int>(cut.Instance, "_readRefreshAttempts").ShouldBe(0);
         Volatile.Read(ref setupCalls).ShouldBe(1, "Replacement ownership must await obsolete scope cleanup.");
         if (lateFault)
         {

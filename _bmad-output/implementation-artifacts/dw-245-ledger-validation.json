@@ -1,0 +1,29 @@
+{
+  "all_ids": 643,
+  "status_counts": {
+    "done": 332,
+    "open": 311
+  },
+  "reconciled_done": 128,
+  "open_dispositions": {
+    "blocked": 15,
+    "actionable": 223,
+    "accepted-limitation": 9,
+    "uncertain": 38,
+    "awaiting-decision": 26
+  },
+  "index_rows": 279,
+  "index_exactly_covers_open": true,
+  "changed_ids": [
+    245,
+    265,
+    290
+  ],
+  "unrelated_blocks_unchanged": true,
+  "related_248_266_267_unchanged": true,
+  "historical_readiness_prefix_unchanged": true,
+  "archive_sha256": "93fdfb3471642159b47686ea92e248d2d1dcbb5cf701210e99481624a56409cb",
+  "archive_ids": 323,
+  "sprint_sha256": "8c7dd8eab8027c0455c27decbfc6c08be8d472e8a2a276a74be8f1b5a9a93fc7",
+  "archive_and_sprint_unchanged": true
+}

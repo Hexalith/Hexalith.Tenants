@@ -2,7 +2,7 @@
 title: 'DW-166/DW-173 finite authorization and subscription bounds'
 type: 'bugfix'
 created: '2026-10-15'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 baseline_commit: '51f404513f2657e98f949f58f0df43b99b68a7d0'
 review_loop_iteration: 0
@@ -153,3 +153,27 @@ Final verification refinements:
   and command outputs remain retained alongside interim successful runs.
 - Final independent source recheck reports no unresolved concrete finding; it
   inspected all ten fixes and added cases without claiming to execute tests.
+
+- First full Debug5100 passed5099: the composition graph test synchronously disposed
+  a scope containing the now asynchronously disposable coordinator. The test uses
+  await-using AsyncServiceScope/provider; every dependency-cycle assertion remains.
+  Final focused coverage includes all91 composition cases (815 total).
+- Debug/maintained Release subsequently pass focused815, full5100 and Chromium.
+  An external EventStore movement changed Client sources after a Debug build; a
+  current-source rebuild/recheck therefore ran instead of resetting that movement.
+  Its first815-case run passed814: a new GA transition fixture used a DOM/render
+  assertion to observe setup-gate completion, which does not itself render. It now
+  polls that gate using the same BunitContext.DefaultWaitTimeout, keeping exact
+  failure-budget/ownership/request assertions and increasing no timeout. Final
+  qualification captures2136 source/configuration hashes across the rebuild and
+  both configurations' checks, recording all interim results separately.
+
+Final qualification: Debug/source and maintained Release builds pass; focused815/815
+and full per-project MTP UI5100/5100 pass in each configuration, zero failures/skips.
+Both unchanged Chromium lanes pass;2136 source/configuration hashes remain stable
+across the final rebuild and checks. Only DW-166/DW-173 close; canonical counts are
+327 done/316 open,282 index rows,123 reconciled done/228 actionable. DW-176/DW-184
+remain open and are the next separate acceptance reconciliation bundle. Complete
+commands, initial failures, movements, preservation and release holds are recorded
+in [validation evidence](dw-166-validation-evidence.md). No Git/dependency/production
+mutation was performed by this run; external commits/movements remain visible.

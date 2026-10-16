@@ -1,0 +1,618 @@
+{
+  "direct_xml": [
+    {
+      "file": "/tmp/hexalith-dw176/consumer-green-fixed.xml",
+      "sha256": "a8eb72591e89da1b833cd7e38105469b0c4e734e63c2aa8a17cf3b4935c56cc3",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "c8a2728b-ca3c-46d0-9340-84e926490d56",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:39:23",
+          "start-rtf": "2026-10-15T16:39:23.8362898+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T16:39:24.9607887+00:00",
+          "not-run": "0",
+          "passed": "17",
+          "skipped": "0",
+          "time": "1.127",
+          "time-rtf": "00:00:01.1270000",
+          "total": "17"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "file": "/tmp/hexalith-dw176/consumer-green.xml",
+      "sha256": "3380a9627851d49cf745da82425744b6fd769b2261dcaf1e47da6a258566e2aa",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "9c23ee38-0b7e-4064-ae3f-66530178bbd4",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:37:35",
+          "start-rtf": "2026-10-15T16:37:35.8784224+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "2",
+          "finish-rtf": "2026-10-15T16:37:37.0234186+00:00",
+          "not-run": "0",
+          "passed": "15",
+          "skipped": "0",
+          "time": "1.145",
+          "time-rtf": "00:00:01.1450000",
+          "total": "17"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(mineScope: True, lateFault: False)",
+          "failure": "Bunit.Rendering.ComponentDisposedException : The component has been removed from the render tree by the renderer and is no longer available for inspection. ComponentId = 67.   at Bunit.RenderedComponent`1.EnsureComponentNotDisposed() in /_/src/bunit/Rendering/RenderedComponent.cs:line 152\n   at Bunit.RenderedComponent`1.get_Instance() in /_/src/bunit/Rendering/RenderedComponent.cs:line 30\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(Boolean mineScope, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 271\n--- End of stack trace from previous location ---"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(mineScope: True, lateFault: True)",
+          "failure": "Bunit.Rendering.ComponentDisposedException : The component has been removed from the render tree by the renderer and is no longer available for inspection. ComponentId = 67.   at Bunit.RenderedComponent`1.EnsureComponentNotDisposed() in /_/src/bunit/Rendering/RenderedComponent.cs:line 152\n   at Bunit.RenderedComponent`1.get_Instance() in /_/src/bunit/Rendering/RenderedComponent.cs:line 30\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(Boolean mineScope, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 271\n--- End of stack trace from previous location ---"
+        }
+      ]
+    },
+    {
+      "file": "/tmp/hexalith-dw176/consumer-red.xml",
+      "sha256": "0541f89062959ae34f90bf9d39538f49f8392d0c133bfba6d1a6322522508ad4",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "7ddbae9c-68f2-4070-b442-1fb115c28221",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:36:12",
+          "start-rtf": "2026-10-15T16:36:12.2997373+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "11",
+          "finish-rtf": "2026-10-15T16:36:17.3606241+00:00",
+          "not-run": "0",
+          "passed": "6",
+          "skipped": "0",
+          "time": "5.061",
+          "time-rtf": "00:00:05.0610000",
+          "total": "17"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRetainedAuthorityRefreshCannotStartPostDisposalWork",
+          "failure": "Shouldly.ShouldAssertException : PrivateField<long>(cut.Instance, \\\"_auditRefreshVersion\\\")\n    should be\n0L\n    but was\n1L   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRetainedAuthorityRefreshCannotStartPostDisposalWork() in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 457\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAuthenticationExpiryRequiresCurrentProviderRecovery(initialAuthentication: False, lateFault: False)",
+          "failure": "Shouldly.ShouldAssertException : resolutions\n    should be\n1\n    but was\n2\n\nAdditional Info:\n    Expired authentication cannot start create authorization.   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAuthenticationExpiryRequiresCurrentProviderRecovery(Boolean initialAuthentication, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 80\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAuthenticationExpiryRequiresCurrentProviderRecovery(initialAuthentication: False, lateFault: True)",
+          "failure": "Shouldly.ShouldAssertException : resolutions\n    should be\n1\n    but was\n2\n\nAdditional Info:\n    Expired authentication cannot start create authorization.   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAuthenticationExpiryRequiresCurrentProviderRecovery(Boolean initialAuthentication, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 80\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAuthenticationExpiryRequiresCurrentProviderRecovery(initialAuthentication: True, lateFault: False)",
+          "failure": "Shouldly.ShouldAssertException : resolutions\n    should be\n0\n    but was\n1\n\nAdditional Info:\n    Expired authentication cannot start create authorization.   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAuthenticationExpiryRequiresCurrentProviderRecovery(Boolean initialAuthentication, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 80\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAuthenticationExpiryRequiresCurrentProviderRecovery(initialAuthentication: True, lateFault: True)",
+          "failure": "Shouldly.ShouldAssertException : resolutions\n    should be\n0\n    but was\n1\n\nAdditional Info:\n    Expired authentication cannot start create authorization.   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAuthenticationExpiryRequiresCurrentProviderRecovery(Boolean initialAuthentication, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 80\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAccessorChangeClosesEntryAuditAndCreateOnAnUnrelatedRender(previousAuthority: Authorized)",
+          "failure": "Bunit.Extensions.WaitForHelpers.WaitForFailedException : The assertion did not pass within the timeout period.\n\nIf this test does not fail consistently, the reason may be that\nthe wait timeout is too short, and the runtime did not have enough\ntime to complete the necessary number of renders of the component under test.\nThis can happen on highly utilized or slower hardware, for example.\n\nTo determine if this is the cause, compare the check and render count(s) below\nand see if they match what is expected. If they do not,\nconsider increasing the timeout, either at the individual\nmethod call level, e.g. WaitForElement(\\\"div\\\", TimeSpan.FromSeconds(15)),\nor via the static TestContext.DefaultWaitTimeout property.\n\nCheck count: 1.\nComponent render count: 121.\nTotal render count across all components: 0.\n---- Shouldly.ShouldAssertException : cut.FindAll(\\\"[data-testid='tenants-global-administrators-entry']\\\")\n    should be empty but had\n1\n    item and was\n[AngleSharp.Html.Dom.HtmlUnknownElement (23865320)]   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForAssertion[TComponent](IRenderedComponent`1 renderedComponent, Action assertion, Nullable`1 timeout) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForState.cs:line 102\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAccessorChangeClosesEntryAuditAndCreateOnAnUnrelatedRender(TenantLifecycleAuthorizationReflectionState previousAuthority) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 175\n--- End of stack trace from previous location ---\n----- Inner Stack Trace -----\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.AssertUnconfirmedWorkspace(IRenderedComponent`1 cut) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 466\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.<>c__DisplayClass1_0.<WorkspaceConsumerAccessorChangeClosesEntryAuditAndCreateOnAnUnrelatedRender>b__3() in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 177\n   at Bunit.Extensions.WaitForHelpers.WaitForAssertionHelper`1.<>c__DisplayClass6_0.<.ctor>b__0() in /_/src/bunit/Extensions/WaitForHelpers/WaitForAssertionHelper.cs:line 35\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.<>c__DisplayClass32_0.<WrapSynchronousChecker>b__0() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 297\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.RunCheckAsync() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 226"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAccessorChangeClosesEntryAuditAndCreateOnAnUnrelatedRender(previousAuthority: MissingPermission)",
+          "failure": "Bunit.Extensions.WaitForHelpers.WaitForFailedException : The assertion did not pass within the timeout period.\n\nIf this test does not fail consistently, the reason may be that\nthe wait timeout is too short, and the runtime did not have enough\ntime to complete the necessary number of renders of the component under test.\nThis can happen on highly utilized or slower hardware, for example.\n\nTo determine if this is the cause, compare the check and render count(s) below\nand see if they match what is expected. If they do not,\nconsider increasing the timeout, either at the individual\nmethod call level, e.g. WaitForElement(\\\"div\\\", TimeSpan.FromSeconds(15)),\nor via the static TestContext.DefaultWaitTimeout property.\n\nCheck count: 1.\nComponent render count: 116.\nTotal render count across all components: 0.\n---- Shouldly.ShouldAssertException : cut.FindComponent<CreateTenantFlow>().Instance.AuditReadDenied\n    should be\nFalse\n    but was\nTrue   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForAssertion[TComponent](IRenderedComponent`1 renderedComponent, Action assertion, Nullable`1 timeout) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForState.cs:line 102\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerAccessorChangeClosesEntryAuditAndCreateOnAnUnrelatedRender(TenantLifecycleAuthorizationReflectionState previousAuthority) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 175\n--- End of stack trace from previous location ---\n----- Inner Stack Trace -----\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.<>c__DisplayClass1_0.<WorkspaceConsumerAccessorChangeClosesEntryAuditAndCreateOnAnUnrelatedRender>b__3() in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 178\n   at Bunit.Extensions.WaitForHelpers.WaitForAssertionHelper`1.<>c__DisplayClass6_0.<.ctor>b__0() in /_/src/bunit/Extensions/WaitForHelpers/WaitForAssertionHelper.cs:line 35\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.<>c__DisplayClass32_0.<WrapSynchronousChecker>b__0() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 297\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.RunCheckAsync() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 226"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(mineScope: False, lateFault: False)",
+          "failure": "Shouldly.ShouldAssertException : cut.FindComponent<CreateTenantFlow>().Instance.IsAuthorized\n    should be\nFalse\n    but was\nTrue   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(Boolean mineScope, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 262\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(mineScope: False, lateFault: True)",
+          "failure": "Shouldly.ShouldAssertException : cut.FindComponent<CreateTenantFlow>().Instance.IsAuthorized\n    should be\nFalse\n    but was\nTrue   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(Boolean mineScope, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 262\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(mineScope: True, lateFault: False)",
+          "failure": "Bunit.Extensions.WaitForHelpers.WaitForFailedException : The CSS selector and/or predicate did not result in a matching element before the timeout period passed.\n\nIf this test does not fail consistently, the reason may be that\nthe wait timeout is too short, and the runtime did not have enough\ntime to complete the necessary number of renders of the component under test.\nThis can happen on highly utilized or slower hardware, for example.\n\nTo determine if this is the cause, compare the check and render count(s) below\nand see if they match what is expected. If they do not,\nconsider increasing the timeout, either at the individual\nmethod call level, e.g. WaitForElement(\\\"div\\\", TimeSpan.FromSeconds(15)),\nor via the static TestContext.DefaultWaitTimeout property.\n\nCheck count: 1.\nComponent render count: 138.\nTotal render count across all components: 0.\n---- Bunit.ElementNotFoundException : No elements were found that matches the selector '[data-testid='tenants-my-list']'   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForElementCore[TComponent,TElement](IRenderedComponent`1 renderedComponent, String cssSelector, Nullable`1 timeout) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForElement.cs:line 363\n   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForElementCore[TComponent](IRenderedComponent`1 renderedComponent, String cssSelector, Nullable`1 timeout) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForElement.cs:line 353\n   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForElement[TComponent](IRenderedComponent`1 renderedComponent, String cssSelector) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForElement.cs:line 21\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(Boolean mineScope, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 253\n--- End of stack trace from previous location ---\n----- Inner Stack Trace -----\n   at Bunit.RenderedComponentExtensions.Find[TComponent,TElement](IRenderedComponent`1 renderedComponent, String cssSelector) in /_/src/bunit/Extensions/RenderedComponentExtensions.cs:line 42\n   at Bunit.Extensions.WaitForHelpers.WaitForElementHelper`2.<>c__DisplayClass5_0.<.ctor>b__0() in /_/src/bunit/Extensions/WaitForHelpers/WaitForElementHelper.cs:line 35\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.<>c__DisplayClass32_0.<WrapSynchronousChecker>b__0() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 297\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.RunCheckAsync() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 226"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(mineScope: True, lateFault: True)",
+          "failure": "Bunit.Extensions.WaitForHelpers.WaitForFailedException : The CSS selector and/or predicate did not result in a matching element before the timeout period passed.\n\nIf this test does not fail consistently, the reason may be that\nthe wait timeout is too short, and the runtime did not have enough\ntime to complete the necessary number of renders of the component under test.\nThis can happen on highly utilized or slower hardware, for example.\n\nTo determine if this is the cause, compare the check and render count(s) below\nand see if they match what is expected. If they do not,\nconsider increasing the timeout, either at the individual\nmethod call level, e.g. WaitForElement(\\\"div\\\", TimeSpan.FromSeconds(15)),\nor via the static TestContext.DefaultWaitTimeout property.\n\nCheck count: 1.\nComponent render count: 138.\nTotal render count across all components: 0.\n---- Bunit.ElementNotFoundException : No elements were found that matches the selector '[data-testid='tenants-my-list']'   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForElementCore[TComponent,TElement](IRenderedComponent`1 renderedComponent, String cssSelector, Nullable`1 timeout) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForElement.cs:line 363\n   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForElementCore[TComponent](IRenderedComponent`1 renderedComponent, String cssSelector, Nullable`1 timeout) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForElement.cs:line 353\n   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForElement[TComponent](IRenderedComponent`1 renderedComponent, String cssSelector) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForElement.cs:line 21\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerViewTransitionCancelsHeldCreateAndPermitsExactExplicitRetry(Boolean mineScope, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs:line 253\n--- End of stack trace from previous location ---\n----- Inner Stack Trace -----\n   at Bunit.RenderedComponentExtensions.Find[TComponent,TElement](IRenderedComponent`1 renderedComponent, String cssSelector) in /_/src/bunit/Extensions/RenderedComponentExtensions.cs:line 42\n   at Bunit.Extensions.WaitForHelpers.WaitForElementHelper`2.<>c__DisplayClass5_0.<.ctor>b__0() in /_/src/bunit/Extensions/WaitForHelpers/WaitForElementHelper.cs:line 35\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.<>c__DisplayClass32_0.<WrapSynchronousChecker>b__0() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 297\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.RunCheckAsync() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 226"
+        }
+      ]
+    },
+    {
+      "file": "/tmp/hexalith-dw176/focused-entry.xml",
+      "sha256": "0d78541ace6e0bd88c30c0ec9e840c79c2e0f0edaa37bfe65c77a017b5c9604f",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "72c1b513-b853-41c7-a9e0-6f1290bc9d97",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:33:46",
+          "start-rtf": "2026-10-15T16:33:46.1894782+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T16:33:49.7485374+00:00",
+          "not-run": "0",
+          "passed": "85",
+          "skipped": "0",
+          "time": "3.559",
+          "time-rtf": "00:00:03.5590000",
+          "total": "85"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "file": "/tmp/hexalith-dw176/focused-final-debug.xml",
+      "sha256": "98b6a76c6150adbdf5354653ee75f46e1ef41e23c91fa0e83cb194f2719aba50",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "fbc284cf-21a0-4431-9aae-61f515dd0f88",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:53:05",
+          "start-rtf": "2026-10-15T16:53:05.0014967+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T16:53:56.5725084+00:00",
+          "not-run": "0",
+          "passed": "849",
+          "skipped": "0",
+          "time": "51.573",
+          "time-rtf": "00:00:51.5730000",
+          "total": "849"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "file": "/tmp/hexalith-dw176/focused-final-release.xml",
+      "sha256": "1d4515104e260308e673209bb68b73711a265eef4d734b5bb1eb741c6790fe75",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "ac815aa3-3e94-4241-aab6-8d2b910cddf7",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:53:55",
+          "start-rtf": "2026-10-15T16:53:55.2445870+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T16:54:50.8455884+00:00",
+          "not-run": "0",
+          "passed": "849",
+          "skipped": "0",
+          "time": "55.603",
+          "time-rtf": "00:00:55.6030000",
+          "total": "849"
+        }
+      ],
+      "failures": []
+    },
+    {
+      "file": "/tmp/hexalith-dw176/focused-qualified-debug.xml",
+      "sha256": "37cd940ef6d6890b9d12192795d5938f51d9be404bd69230be4e7f3c46a98e43",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "c9ea90b2-787d-4b40-9f87-d12a5a129d66",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:46:30",
+          "start-rtf": "2026-10-15T16:46:30.3679697+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "6",
+          "finish-rtf": "2026-10-15T16:47:59.5227143+00:00",
+          "not-run": "0",
+          "passed": "843",
+          "skipped": "0",
+          "time": "89.158",
+          "time-rtf": "00:01:29.1580000",
+          "total": "849"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_setup_survives_same_route_reads_or_hands_off_through_two_obsolete_owners(successiveRoutes: True)",
+          "failure": "Shouldly.ShouldAssertException : attempts\n    should be\n2\n    but was\n3   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_setup_survives_same_route_reads_or_hands_off_through_two_obsolete_owners(Boolean successiveRoutes) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10559\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(mineScope: False, finalAdmission: False, lateFault: False)",
+          "failure": "Shouldly.ShouldAssertException : state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 351\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(Boolean mineScope, Boolean finalAdmission, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 109\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(mineScope: False, finalAdmission: False, lateFault: True)",
+          "failure": "Shouldly.ShouldAssertException : state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 351\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(Boolean mineScope, Boolean finalAdmission, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 109\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(mineScope: False, finalAdmission: True, lateFault: False)",
+          "failure": "Shouldly.ShouldAssertException : state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 351\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(Boolean mineScope, Boolean finalAdmission, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 109\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(mineScope: False, finalAdmission: True, lateFault: True)",
+          "failure": "Shouldly.ShouldAssertException : state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 351\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(Boolean mineScope, Boolean finalAdmission, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 109\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionPreservesAlreadyDispatchedCreateAndExactRecovery(mineScope: False)",
+          "failure": "Shouldly.ShouldAssertException : state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 351\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionPreservesAlreadyDispatchedCreateAndExactRecovery(Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 232\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        }
+      ]
+    },
+    {
+      "file": "/tmp/hexalith-dw176/focused-qualified-release.xml",
+      "sha256": "5a5c09d84524495048e4953815ea402c6f531faa7143deada8abfd15eff41ce3",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "f6517bf9-9149-403c-a318-6972136bec8d",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:47:18",
+          "start-rtf": "2026-10-15T16:47:18.9938063+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "5",
+          "finish-rtf": "2026-10-15T16:48:28.2971906+00:00",
+          "not-run": "0",
+          "passed": "844",
+          "skipped": "0",
+          "time": "69.312",
+          "time-rtf": "00:01:09.3120000",
+          "total": "849"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionPreservesAlreadyDispatchedCreateAndExactRecovery(mineScope: False)",
+          "failure": "Shouldly.ShouldAssertException : PrivateField<TenantWorkspaceState>(router.FindComponent<TenantsWorkspace>().Instance, \\\"_workspaceState\\\");\n        state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 350\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionPreservesAlreadyDispatchedCreateAndExactRecovery(Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 232\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(mineScope: False, finalAdmission: False, lateFault: False)",
+          "failure": "Shouldly.ShouldAssertException : PrivateField<TenantWorkspaceState>(router.FindComponent<TenantsWorkspace>().Instance, \\\"_workspaceState\\\");\n        state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 350\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(Boolean mineScope, Boolean finalAdmission, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 109\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(mineScope: False, finalAdmission: False, lateFault: True)",
+          "failure": "Shouldly.ShouldAssertException : PrivateField<TenantWorkspaceState>(router.FindComponent<TenantsWorkspace>().Instance, \\\"_workspaceState\\\");\n        state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 350\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(Boolean mineScope, Boolean finalAdmission, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 109\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(mineScope: False, finalAdmission: True, lateFault: False)",
+          "failure": "Shouldly.ShouldAssertException : PrivateField<TenantWorkspaceState>(router.FindComponent<TenantsWorkspace>().Instance, \\\"_workspaceState\\\");\n        state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 350\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(Boolean mineScope, Boolean finalAdmission, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 109\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(mineScope: False, finalAdmission: True, lateFault: True)",
+          "failure": "Shouldly.ShouldAssertException : PrivateField<TenantWorkspaceState>(router.FindComponent<TenantsWorkspace>().Instance, \\\"_workspaceState\\\");\n        state.Tab\n    should be\n\\\"users\\\"\n    but was\n\\\"tenants\\\"\n    difference\nDifference     |  |    |    |    |    |    |    |   \n               | \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \\\\|/  \nIndex          | 0    1    2    3    4    5    6    \nExpected Value | u    s    e    r    s              \nActual Value   | t    e    n    a    n    t    s    \nExpected Code  | 117  115  101  114  115            \nActual Code    | 116  101  110  97   110  116  115     at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.NavigateConsumerLifecycleAsync(IRenderedComponent`1 router, NavigationManager navigation, Boolean mineScope) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 350\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.TenantsWorkspaceTests.WorkspaceConsumerRouterTransitionCancelsUndispatchedAdmissionAndReleasesAllocatedLease(Boolean mineScope, Boolean finalAdmission, Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs:line 109\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        }
+      ]
+    },
+    {
+      "file": "/tmp/hexalith-dw176/route-consumer-check.xml",
+      "sha256": "7cde91dab6d1fea60e186c82d3f6b665fb00f3447f9b85d20a509d1b7cee2120",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "10936f2c-ad5f-4180-8579-437ba433f44e",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:51:42",
+          "start-rtf": "2026-10-15T16:51:42.1348943+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T16:51:44.2640114+00:00",
+          "not-run": "0",
+          "passed": "36",
+          "skipped": "0",
+          "time": "2.129",
+          "time-rtf": "00:00:02.1290000",
+          "total": "36"
+        }
+      ],
+      "failures": []
+    }
+  ],
+  "mtp_results": {
+    "full-final-debug": {
+      "total": 5134,
+      "failed": 0,
+      "succeeded": 5134,
+      "skipped": 0
+    },
+    "full-final-release": {
+      "total": 5134,
+      "failed": 0,
+      "succeeded": 5134,
+      "skipped": 0
+    }
+  },
+  "command_summary": [
+    {
+      "label": "aspire-ps",
+      "exit_code": 0,
+      "duration_seconds": 0.304
+    },
+    {
+      "label": "aspire-start",
+      "exit_code": 0,
+      "duration_seconds": 4.208
+    },
+    {
+      "label": "aspire-describe",
+      "exit_code": 0,
+      "duration_seconds": 0.407
+    },
+    {
+      "label": "provenance-dw176",
+      "exit_code": 0,
+      "duration_seconds": 0.045
+    },
+    {
+      "label": "provenance-dw166",
+      "exit_code": 1,
+      "duration_seconds": 0.045
+    },
+    {
+      "label": "aspire-otel",
+      "exit_code": 0,
+      "duration_seconds": 0.409
+    },
+    {
+      "label": "aspire-stop",
+      "exit_code": 0,
+      "duration_seconds": 0.705
+    },
+    {
+      "label": "focused-entry",
+      "exit_code": 0,
+      "duration_seconds": 3.992
+    },
+    {
+      "label": "provenance-dw105",
+      "exit_code": 1,
+      "duration_seconds": 0.05
+    },
+    {
+      "label": "provenance-dw517",
+      "exit_code": 1,
+      "duration_seconds": 0.05
+    },
+    {
+      "label": "provenance-b6",
+      "exit_code": 1,
+      "duration_seconds": 0.051
+    },
+    {
+      "label": "provenance-b8",
+      "exit_code": 1,
+      "duration_seconds": 0.052
+    },
+    {
+      "label": "provenance-dw112",
+      "exit_code": 1,
+      "duration_seconds": 0.049
+    },
+    {
+      "label": "provenance-dw150",
+      "exit_code": 1,
+      "duration_seconds": 0.049
+    },
+    {
+      "label": "provenance-dw164",
+      "exit_code": 1,
+      "duration_seconds": 0.048
+    },
+    {
+      "label": "build-red-debug",
+      "exit_code": 1,
+      "duration_seconds": 13.443
+    },
+    {
+      "label": "build-red-debug-fixed",
+      "exit_code": 0,
+      "duration_seconds": 16.38
+    },
+    {
+      "label": "consumer-red",
+      "exit_code": 1,
+      "duration_seconds": 5.585
+    },
+    {
+      "label": "build-green-debug",
+      "exit_code": 0,
+      "duration_seconds": 11.844
+    },
+    {
+      "label": "consumer-green",
+      "exit_code": 1,
+      "duration_seconds": 1.487
+    },
+    {
+      "label": "build-broad-release",
+      "exit_code": 1,
+      "duration_seconds": 3.768
+    },
+    {
+      "label": "build-strict-package-release",
+      "exit_code": 1,
+      "duration_seconds": 4.114
+    },
+    {
+      "label": "build-debug-current",
+      "exit_code": 0,
+      "duration_seconds": 11.208
+    },
+    {
+      "label": "consumer-green-fixed",
+      "exit_code": 0,
+      "duration_seconds": 1.435
+    },
+    {
+      "label": "build-maintained-release",
+      "exit_code": 0,
+      "duration_seconds": 8.955
+    },
+    {
+      "label": "diff-check-source",
+      "exit_code": 0,
+      "duration_seconds": 0.008
+    },
+    {
+      "label": "diff-check-all",
+      "exit_code": 2,
+      "duration_seconds": 0.194
+    },
+    {
+      "label": "build-review-debug",
+      "exit_code": 1,
+      "duration_seconds": 37.977
+    },
+    {
+      "label": "check-new-file-whitespace",
+      "exit_code": 0,
+      "duration_seconds": 0.039
+    },
+    {
+      "label": "build-qualified-debug",
+      "exit_code": 0,
+      "duration_seconds": 35.5
+    },
+    {
+      "label": "build-qualified-release",
+      "exit_code": 0,
+      "duration_seconds": 27.552
+    },
+    {
+      "label": "focused-qualified-debug",
+      "exit_code": 1,
+      "duration_seconds": 89.764
+    },
+    {
+      "label": "focused-qualified-release",
+      "exit_code": 1,
+      "duration_seconds": 71.389
+    },
+    {
+      "label": "build-route-debug",
+      "exit_code": 0,
+      "duration_seconds": 14.485
+    },
+    {
+      "label": "route-consumer-check",
+      "exit_code": 0,
+      "duration_seconds": 2.464
+    },
+    {
+      "label": "build-final-debug",
+      "exit_code": 0,
+      "duration_seconds": 28.335
+    },
+    {
+      "label": "build-final-release",
+      "exit_code": 0,
+      "duration_seconds": 9.645
+    },
+    {
+      "label": "browser-final-debug",
+      "exit_code": 0,
+      "duration_seconds": 33.156
+    },
+    {
+      "label": "focused-final-debug",
+      "exit_code": 0,
+      "duration_seconds": 51.962
+    },
+    {
+      "label": "preservation-before-closure",
+      "exit_code": 0,
+      "duration_seconds": 3.861
+    },
+    {
+      "label": "browser-final-release",
+      "exit_code": 0,
+      "duration_seconds": 37.698
+    },
+    {
+      "label": "focused-final-release",
+      "exit_code": 0,
+      "duration_seconds": 56.256
+    },
+    {
+      "label": "validation-input-stability",
+      "exit_code": 1,
+      "duration_seconds": 0.133
+    },
+    {
+      "label": "full-final-debug",
+      "exit_code": 0,
+      "duration_seconds": 99.622
+    },
+    {
+      "label": "validation-input-stability-fixed",
+      "exit_code": 0,
+      "duration_seconds": 0.204
+    },
+    {
+      "label": "full-final-release",
+      "exit_code": 0,
+      "duration_seconds": 97.393
+    },
+    {
+      "label": "validation-input-stability-final",
+      "exit_code": 0,
+      "duration_seconds": 0.126
+    },
+    {
+      "label": "ledger-final",
+      "exit_code": 0,
+      "duration_seconds": 0.081
+    },
+    {
+      "label": "preservation-final",
+      "exit_code": 0,
+      "duration_seconds": 3.631
+    },
+    {
+      "label": "provenance-final",
+      "exit_code": 0,
+      "duration_seconds": 0.099
+    },
+    {
+      "label": "final-artifact-links",
+      "exit_code": 0,
+      "duration_seconds": 0.016
+    },
+    {
+      "label": "final-scoped-diff-check",
+      "exit_code": 0,
+      "duration_seconds": 0.019
+    }
+  ],
+  "browser_output_sha256": {
+    "browser-final-debug": "b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0",
+    "browser-final-release": "ece037edde022a41e0f61e0e96f470e353aa893c3d354b973a35d9079f99a4b2"
+  }
+}

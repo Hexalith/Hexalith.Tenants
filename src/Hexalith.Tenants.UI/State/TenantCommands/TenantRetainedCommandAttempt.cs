@@ -23,6 +23,15 @@ internal sealed class TenantRetainedCommandAttempt(
     /// <summary>Gets or sets the complete typed reconciliation snapshot.</summary>
     internal object Snapshot { get; set; } = snapshot;
 
+    /// <summary>Gets or sets the monotonic start of this membership attempt's one projection wait.</summary>
+    internal long? MembershipProjectionStartedTimestamp { get; set; }
+
+    /// <summary>Gets or sets the timer owned by this retained attempt, independently of its renderer.</summary>
+    internal ITimer? MembershipProjectionTimer { get; set; }
+
+    /// <summary>Gets or sets the exact evidence changed only by deadline expiry, for late reconciliation.</summary>
+    internal object? MembershipProjectionExpirySource { get; set; }
+
     /// <summary>Gets or sets whether a delivery is awaiting its result.</summary>
     internal bool DeliveryInFlight { get; set; }
 }

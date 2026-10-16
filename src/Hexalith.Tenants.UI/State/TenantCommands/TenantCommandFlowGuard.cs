@@ -8,7 +8,8 @@ public static class TenantCommandFlowGuard
     /// (<see cref="TenantCommandLifecycleState.RequestSent"/> /
     /// <see cref="TenantCommandLifecycleState.Accepted"/> /
     /// <see cref="TenantCommandLifecycleState.ProjectionPending"/>).
-    /// Recoverable uncertain outcomes release the lock so continue-read-only recovery stays reachable.
+    /// This state-only guard does not release dispatched admission: the retained-attempt tracker
+    /// preserves unresolved ownership when an uncertain outcome offers continue-read-only.
     /// </summary>
     /// <param name="state">Current command lifecycle state.</param>
     /// <param name="isSubmitting">Whether a local submit call is still in progress.</param>

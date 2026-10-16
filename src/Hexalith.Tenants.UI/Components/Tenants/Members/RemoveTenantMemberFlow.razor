@@ -560,12 +560,13 @@
         if (!retained || _disposed || generation != _attemptGeneration
             || !ReferenceEquals(_retainedAttempt, attempt)
             || attempt is not null && !Attempts.IsAttached(attempt, this)
-            || !delivery && !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected) && !ReferenceEquals(_snapshot, result))
+            || attempt is null && !delivery && !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected) && !ReferenceEquals(_snapshot, result))
         {
             return false;
         }
         _snapshot = result;
-        if (result.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
+        SynchronizeRetainedAttempt();
+        if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
             || result.FocusTarget is TenantCommandFocusTarget.Lifecycle)
         {
             _focusLifecyclePending = true;
@@ -574,8 +575,10 @@
     }
 
     private bool IsCurrentContinuation(int generation, TenantRemoveMemberCommandSnapshot expected)
-        => !_disposed && generation == _attemptGeneration && TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected)
-            && (_retainedAttempt is null || Attempts.IsAttached(_retainedAttempt, this));
+        => !_disposed && generation == _attemptGeneration
+            && (_retainedAttempt is { } attempt
+                ? Attempts.IsAttached(attempt, this) && Attempts.IsExpectedEvidence(attempt, expected)
+                : TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected));
 
 
     private int OwnerCount
@@ -683,7 +686,8 @@
             or TenantCommandLifecycleState.Degraded;
 
     private bool CanContinueReadOnly
-        => !_isSubmitting && _retainedAttempt?.DeliveryInFlight is not true
+        => (!_isSubmitting || _snapshot.State is TenantCommandLifecycleState.UnableToVerify && _snapshot.ProjectionWaitExpired)
+            && _retainedAttempt?.DeliveryInFlight is not true
             && (_snapshot.State is TenantCommandLifecycleState.UnableToVerify or TenantCommandLifecycleState.Degraded
                 || TenantCommandAttemptTracker.IsTerminal(_snapshot));
 
@@ -957,6 +961,7 @@
         }
 
         _snapshot = snapshot;
+        SynchronizeRetainedAttempt();
         if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive
             || _snapshot.FocusTarget is TenantCommandFocusTarget.Lifecycle)
         {
@@ -1851,6 +1856,7 @@
             return;
         }
         _readOnlyDetached = true;
+        _isSubmitting = false;
         Attempts.Detach(_retainedAttempt, this);
         _retainedAttempt = null;
         _attemptGeneration++;

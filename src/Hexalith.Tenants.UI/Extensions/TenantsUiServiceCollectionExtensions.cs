@@ -98,7 +98,10 @@ public static class TenantsUiServiceCollectionExtensions
             provider.GetService<TimeProvider>()));
         services.TryAddScoped<TenantReadRefreshSubscription>();
         services.TryAddScoped<TenantAggregateCommandAdmissionGate>();
-        services.TryAddScoped<TenantCommandAttemptTracker>();
+        services.TryAddScoped(provider => new TenantCommandAttemptTracker(
+            provider.GetRequiredService<TenantAggregateCommandAdmissionGate>(),
+            provider.GetService<IConfiguration>() ?? configuration,
+            provider.GetService<TimeProvider>()));
         services.TryAddScoped(provider => new TenantCreateAttemptTracker(provider.GetRequiredService<TenantCommandAttemptTracker>()));
         services.TryAddScoped<TenantCreateAuditReturnState>();
         services.TryAddScoped<TenantLifecycleAttemptTracker>();

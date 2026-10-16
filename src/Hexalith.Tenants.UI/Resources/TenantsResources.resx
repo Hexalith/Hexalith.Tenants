@@ -4309,4 +4309,7 @@
   <data name="Tenants.Members.UnavailableReason.AuthorityIndeterminate" xml:space="preserve">
     <value>Current membership authority could not be verified. Refresh before changing access.</value>
   </data>
+  <data name="Tenants.Membership.ProjectionWait.Expired" xml:space="preserve">
+    <value>Projection confirmation could not be verified within the waiting period. Retry status lookup, continue read-only, or contact support with the command reference. This does not mean the command failed.</value>
+  </data>
 </root>

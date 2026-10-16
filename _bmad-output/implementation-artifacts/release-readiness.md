@@ -1139,3 +1139,204 @@ three-failure accounting. Current source retains the recorded unbounded/default-
 cancellation paths. DW-176/DW-184 remain separately tracked dependent consumers;
 DW-121 remains Builds-owned. This closure is scoped UI evidence, not full release
 readiness.
+
+## DW-166/DW-173 remediation evidence — 2026-10-15
+
+**Current assessment after this bundle: not ready for release. Only DW-166/DW-173 close.**
+One shared configurable finite policy now bounds authorization, authentication-event
+settling and optional refresh-subscription setup/cleanup. It propagates replaceable
+caller/circuit cancellation, fails authority closed to Indeterminate and charges
+current subscription expiry to the existing three-failed-attempt budget. The setting
+`Tenants:Ui:AuthorizationAndSubscriptionTimeout` defaults to00:00:10; invalid/infinite
+values are rejected. Existing HTTP/enrichment/command/test timeout policies remain.
+
+An independent deadline waiter and CancelAsync isolate providers whose tasks or
+cancellation callbacks stall. Actual provider/callback completion owns token disposal.
+The real coordinator frees shared gates, promptly detaches obsolete callbacks and
+keeps exact per-scope quarantine through late setup/cleanup, preventing old unsubscribe
+from removing a replacement. Independent reference-counted consumers remain live.
+GA authority resolves share caller lifetime across overlapping refreshes; failed
+collapse validates the caller inside the renderer. Subscription setup/adoption/callbacks
+retain exact caller/route ownership and completion-driven handoff. Detail setup uses
+separate scope cancellation, preserving DW-164/DW-183 and DW-150, ordinary reads,
+ETags/truthful refresh, cursor/history, focus and command/lifecycle/admission behavior.
+
+64 new cases include35 actual Fluent GA/workspace, three actual Fluent detail and26
+policy/real-coordinator cases, with held cooperative/ignored operations, late outcomes,
+active caller/disposal transitions, actual requests, budget exhaustion/explicit recovery,
+shared leases, blocked cancellation callbacks and held cleanup. Production registration
+and exact nondefault virtual deadlines are exercised. Ten independent review findings
+are individually patched; final read-only rechecks find no unresolved concrete issue.
+Final Debug/source and maintained Release builds pass, focused815/815 and unfiltered
+per-project MTP UI5100/5100 pass in each configuration, zero failures/skips. Both unchanged
+Chromium lanes/negative controls pass.2136 source/configuration hashes are stable across
+final rebuilds and checks. [Complete evidence/limits](dw-166-validation-evidence.md),
+[contract/triage](spec-dw-166-173-finite-authorization-subscription-bounds.md),
+[exact commands](dw-166-command-results.json), [UI results](dw-166-ui-summary.json),
+[stable inputs](dw-166-validation-inputs.json), [entry](dw-166-entry-state.json),
+[external movements](dw-166-external-movements.json), [preservation](dw-166-preservation.json)
+and [ledger audit](dw-166-ledger-validation.json) retain the record.
+
+Initial failures remain visible: focused663 failed10, a build had three fixture type/import
+errors, focused704 failed3 cleanup-observation assertions, expanded724 runs exposed
+replacement-gate and backend-entry/adoption fixture assumptions, and full5100 failed1
+synchronous composition-scope disposal. A later current-source815 failed1 DOM-wait
+assertion on a nonrendering setup gate. Corrections preserve exact assertions and
+original real/virtual bounds; final qualification includes them. UI skips remain zero;
+historical Server25 DW1 ATDD skips remain unchanged/unrerun. No gate/exclusion/floor,
+package version, unrelated timeout or nested initialization changed in this run.
+
+External Git activity moved Tenants from activation51f404513f2657e98f949f58f0df43b99b68a7d0
+through seven commits to a3f43655d68370389439c7d2c212ab7939bd164e, recording some in-progress
+files. Capture/review distinguishes activation, entry6cb020e5c4a50169df2abf973d824faec9ee2e52
+and current content. EventStore's initial recorded24d719292b06d8a9d09771d837f8dd4d8d9b8997/
+checkout241652627a52e47c189b2b052db407cec172f813 subsequently became externally recorded
+f359f65e130575ea52a3a8ea8511004d2adcc7dd, then recorded/current checkout
+746b843a24f18b17a7572be25b76b735fa8e4ca6. Builds/Commons/FrontComposer/Memories/Platform
+also moved externally. Builds changed the EventStore package pin3.120.0→3.121.0;
+final qualification uses the preserved3.121.0 catalog, stable across the checks. A Client source change
+after a Debug build triggered a fresh rebuild/requalification. No movement is attributed
+to this bundle and no pointer was reset/updated by this run. Current story-gitlink commands
+still fail: B6/B8 and DW ranges report six undeclared movements each. Historical
+findings remain in this exact retained readiness prefix. No declaration/baseline bypass ran.
+
+Broad Release solution remains blocked on two pinned SignalR NU1903 errors; strict
+package-only UI retains seven projection-scope API errors. Maintained UI keeps its
+existing FrontComposer source exception/advisory policy. Earlier raw-secret-scan/CI,
+seven authority/recovery/governance decisions, nested-layout/startup/provider,
+current-candidate NFR10/performance, hosted TLS/browser, production authority/revocation
+and authenticated browser/clipboard/human AT holds remain. Local isolated Aspire reached
+Running/security Healthy and exact-target stop passed; initial TLS health failures remain
+recorded. Local/static evidence does not qualify those release holds.
+
+All643 IDs remain:327 done/316 open,282 index rows; reconciled123 done/228 actionable/
+15 blocked/26 awaiting-decision/nine accepted limitations/38 uncertain. Only DW-166/DW-173
+close. Necessary DW-176/DW-184 consumer wiring is present, but both records stay open
+for separate acceptance reconciliation. B1–B8, DW-517, DW-105/DW-108, DW-112, DW-150,
+DW-164/DW-183, original findings, unrelated records, archive/sprint and settled decisions
+remain preserved. This run performed no stage/commit/push/branch, dependency/version/
+gitlink update, deployment, production replay or data migration.
+
+**Next selected bundle: DW-176/DW-184**, separately reconcile and qualify workspace
+consumer acceptance against the implemented shared policy. DW-121 remains Builds-owned.
+This scoped closure does not establish full release readiness.
+
+
+## DW-176/DW-184 workspace consumer acceptance — 2026-10-15
+
+**Current assessment after this bundle: not ready for release. Only DW-176/DW-184 close.**
+DW-173 already supplied shared-bound wiring; this separate reconciliation proves its
+workspace consumers and repairs only demonstrated caller, active create-view, actual
+alias-route and pending explicit-recovery gaps. Production changes stay in the workspace;
+shared policy/coordinator, dependency versions and unrelated timeout policies stay intact.
+
+[Complete consumer evidence](dw-176-validation-evidence.md),
+[owning contract/review triage](spec-dw-176-184-workspace-consumer-acceptance.md),
+[exact commands](dw-176-command-results.json), [UI results](dw-176-ui-summary.json),
+[stable inputs](dw-176-validation-inputs.json), [entry capture](dw-176-entry-state.json),
+[preservation](dw-176-preservation.json) and [ledger audit](dw-176-ledger-validation.json)
+retain the bounded qualification and every initial failure.
+
+34 new actual Fluent cases include held initial authentication/events, deterministic
+expiry, actual explicit recovery before/after expiry and synchronous provider faults,
+current-caller entry/audit binding, real Router Users/mine transitions, both create
+authorization stages, undispatched allocated-lease release and exact retry. Late
+success/fault follows consumer CTS retirement and replacement dispatch; it cannot
+restore obsolete authority or disturb the newer attempt. Already-dispatched responses
+retain None cancellation, exact intent/message/correlation/baseline/tracker/lease,
+remount adoption and status recovery without redelivery. Independent review's seven
+findings and later alias/fixture rechecks are resolved without changing any bound.
+
+Final Debug/source and maintained Release builds pass; focused849/849 and unfiltered
+per-project MTP UI5134/5134 pass in both configurations with zero failures/skips.
+Both unchanged Chromium lanes pass original assertions and negative controls.
+All2150 validation inputs remain stable; twelve compiled output hashes are recorded.
+The earlier17-case failures, two fixture compile rounds,849-case route failures and
+one inherited detail-handoff ordering failure remain recorded. That fixture now waits
+for gamma's third setup before releasing obsolete beta, preserving exact ownership.
+Historical Server25 DW1 ATDD skips are unchanged/unrerun. No gate/exclusion/floor,
+dependency/version, unrelated timeout or nested initialization changed.
+
+Tenants remains main at a3f43655d68370389439c7d2c212ab7939bd164e; all ten captured
+branches/HEADs/gitlinks and dependency sources are unchanged from entry. Inherited
+DW-166 work and prior external commits/movements remain explicitly preserved.
+This bundle's entry-relative story-gitlink check passes with no pointer changes;
+unchanged B6/B8 and prior DW ranges still fail on six historical/external movements
+each. No prior baseline/declaration was narrowed, reset or falsely attributed.
+Whole-worktree whitespace check still reports the inherited archive EOF blank line;
+changed-source/new-file checks pass and archive bytes are preserved.
+
+Broad Release solution remains blocked on two pinned SignalR NU1903 errors; strict
+package-only UI retains seven projection-scope API errors. Maintained passes retain
+the existing FrontComposer source exception and advisory policy. Raw secret-scan/CI,
+seven authority/recovery/governance decisions, upstream nested-layout/startup/provider,
+dedicated current-candidate NFR10/performance, hosted TLS/browser, production authority/
+revocation and authenticated browser/clipboard/denial/human AT holds remain.
+Isolated local Aspire Running/Healthy and exact-target stop do not qualify these holds.
+
+All643 IDs remain:329 done/314 open across280 exact-covering maintenance rows;
+reconciled125 done/226 actionable/15 blocked/26 awaiting-decision/nine accepted
+limitations/38 uncertain. Current readiness partition is seven decision holds,
+119 follow-up and188 qualification/triage records. Only DW-176/DW-184 close;
+every unrelated ledger block, historical finding/decision/readiness prefix, archive
+(current323 IDs) and sprint record stays intact. B1–B8, DW-517, DW-105/DW-108,
+DW-112, DW-150, DW-164/DW-183 and DW-166/DW-173 remain preserved.
+
+**Next selected bundle: DW-245/DW-265/DW-290**, duplicate queued membership projection-
+refresh intent findings. DW-121 remains Builds-owned. This run performed no branch,
+stage/commit/push, dependency/version/gitlink update, deployment, production replay
+or data migration. This scoped closure does not establish full release readiness.
+
+## DW-245/DW-265/DW-290 queued membership projection-refresh intent — 2026-10-16
+
+**Only DW-245/DW-265/DW-290 close. Release remains not ready.**
+[Complete evidence](dw-245-validation-evidence.md), [owning contract/review triage](spec-dw-245-265-290-queued-membership-refresh.md), [exact commands](dw-245-command-results.json), [test summary](dw-245-ui-summary.json), [validation hashes](dw-245-validation-inputs.json), [preservation](dw-245-preservation.json) and [ledger audit](dw-245-ledger-validation.json) qualify this bounded change.
+
+Both AddTenantMemberFlow and ChangeTenantMemberRoleFlow now retain OR-combined parent
+projection-refresh intent in generation-tagged batches. Atomic enqueue/consume/idle
+handoff preserves requests during replay without overlapping core work, redundant
+parent dispatch or self-generated retries. Explicit queued work survives a failed
+batch; owner/manual waiters observe thrown failures after the drain. Old-generation,
+terminal and disposed work cannot consume current requests. Status and notifications
+remain nudges; only authoritative projection evidence confirms. Exact tracking,
+caller binding, retained attempts, aggregate admission, dispatched cancellation
+separation and disposal ownership remain intact.
+
+62 new actual Fluent held-operation cases cover both flows, order/coalescing,
+status/reload/evidence replay arrivals and faults, actual unmount/replacement,
+late retained evidence, same-instance generation handoff and concurrent idle arrivals.
+Independent Blind Hunter's seven findings are patched and rechecked. Focused462 and
+full UI5196 pass in Debug source and maintained Release, zero failures/skips; both
+unchanged Chromium lanes pass with original negative controls. No test timeout,
+exclusion, coverage floor, gate or dependency version changed. Historical Server25
+DW1 skips remain unchanged/unrerun. Local Aspire reached Running/Healthy and was
+stopped by exact target; workload assertion/projection retry telemetry warnings
+remain, and this does not qualify deployed/provider boundaries.
+
+Broad Release still fails two pinned SignalR10.0.12 NU1903 errors; strict package-only
+UI still fails seven existing projection-scope API gaps. Maintained passes retain the
+existing FrontComposer source exception/advisory policy. Historical B6/B8/DW-517,
+DW-105/DW-108/DW-112/DW-150/DW-164/DW-183/DW-166/DW-173 ranges still fail six external
+pointer movements each; owning2.1/2.4 provenance also remains blocked. Entry-relative
+bundle/DW-176 checks pass. No pointer reset, baseline narrowing or false attribution
+was used. Inherited archive EOF whitespace still fails whole-tree diff check; scoped
+checks pass and archive bytes remain preserved. Raw secret-scan/CI, seven authority/
+recovery/governance decisions, upstream nested-layout/startup/provider, current-candidate
+NFR10/performance, hosted TLS and authenticated browser/clipboard/denial/human AT and
+production authority/revocation holds remain.
+
+All643 IDs remain:332 done/311 open across279 exact-covering maintenance rows;
+reconciled128 done/223 actionable/15 blocked/26 awaiting-decision/nine accepted
+limitations/38 uncertain. Current readiness partition is seven decision holds,
+116 follow-up and188 qualification/triage records. Only these three records close;
+DW-248/DW-266/DW-267 and every unrelated block, historical finding/decision/readiness
+prefix, archive(current323 IDs) and sprint tracking remain unchanged. B1–B8 and
+DW-517/DW-105/DW-108/DW-112/DW-150/DW-164/DW-183/DW-166/DW-173/DW-176/DW-184 remain
+preserved. All ten repository branches/full HEADs/dependency pointers and relevant
+inputs are captured; inherited/external work is preserved without attribution here.
+
+**Next selected bundle: DW-247**, bounded membership ProjectionPending recovery under
+its settled August25/26 UnableToVerify decision. Related DW-323 remains separately
+scoped; DW-121 remains Builds-owned. No branch/stage/commit/push, dependency/version/
+gitlink update, nested initialization, deploy, production replay or migration ran.
+This scoped closure does not establish full release readiness.

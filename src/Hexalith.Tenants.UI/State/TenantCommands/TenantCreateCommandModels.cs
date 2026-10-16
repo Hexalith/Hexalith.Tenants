@@ -476,6 +476,9 @@ public sealed record TenantAddMemberCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
+    /// <summary>Gets whether the retained membership projection wait has expired without terminal evidence.</summary>
+    public bool ProjectionWaitExpired { get; init; }
+
     public static TenantAddMemberCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 
@@ -549,10 +552,14 @@ public sealed record TenantAddMemberCommandSnapshot(
 
         if (status.IsPending || status.IsRetryableFailure)
         {
+            // A temporary status nudge does not revoke previously qualified command-event evidence.
+            // Keep the expiry uncertainty eligible for the same projection proof as before expiry.
+            bool expiredWait = State is TenantCommandLifecycleState.UnableToVerify && ProjectionWaitExpired
+                && SafeMessageKey == TenantMembershipProjectionWaitPolicy.ExpiredMessageKey;
             return this with
             {
-                SafeMessage = status.SafeMessage,
-                SafeMessageKey = status.SafeMessageKey,
+                SafeMessage = expiredWait ? null : status.SafeMessage,
+                SafeMessageKey = expiredWait ? TenantMembershipProjectionWaitPolicy.ExpiredMessageKey : status.SafeMessageKey,
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -629,7 +636,9 @@ public sealed record TenantAddMemberCommandSnapshot(
         }
 
         // Only status-driven ProjectionPending (Completed/Events*) may confirm; Accepted alone never does.
-        if (State is not TenantCommandLifecycleState.ProjectionPending) {
+        if (State is not TenantCommandLifecycleState.ProjectionPending
+            && !(State is TenantCommandLifecycleState.UnableToVerify && ProjectionWaitExpired
+                && SafeMessageKey == TenantMembershipProjectionWaitPolicy.ExpiredMessageKey)) {
             return this;
         }
 
@@ -701,6 +710,9 @@ public sealed record TenantChangeRoleCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
+    /// <summary>Gets whether the retained membership projection wait has expired without terminal evidence.</summary>
+    public bool ProjectionWaitExpired { get; init; }
+
     public static TenantChangeRoleCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 
@@ -796,10 +808,14 @@ public sealed record TenantChangeRoleCommandSnapshot(
 
         if (status.IsPending || status.IsRetryableFailure)
         {
+            // A temporary status nudge does not revoke previously qualified command-event evidence.
+            // Keep the expiry uncertainty eligible for the same projection proof as before expiry.
+            bool expiredWait = State is TenantCommandLifecycleState.UnableToVerify && ProjectionWaitExpired
+                && SafeMessageKey == TenantMembershipProjectionWaitPolicy.ExpiredMessageKey;
             return this with
             {
-                SafeMessage = status.SafeMessage,
-                SafeMessageKey = status.SafeMessageKey,
+                SafeMessage = expiredWait ? null : status.SafeMessage,
+                SafeMessageKey = expiredWait ? TenantMembershipProjectionWaitPolicy.ExpiredMessageKey : status.SafeMessageKey,
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -888,7 +904,9 @@ public sealed record TenantChangeRoleCommandSnapshot(
         }
 
         // Only status-driven ProjectionPending (Completed/Events*) may confirm; Accepted alone never does.
-        if (State is not TenantCommandLifecycleState.ProjectionPending) {
+        if (State is not TenantCommandLifecycleState.ProjectionPending
+            && !(State is TenantCommandLifecycleState.UnableToVerify && ProjectionWaitExpired
+                && SafeMessageKey == TenantMembershipProjectionWaitPolicy.ExpiredMessageKey)) {
             return this;
         }
 
@@ -988,6 +1006,9 @@ public sealed record TenantRemoveMemberCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
+    /// <summary>Gets whether the retained membership projection wait has expired without terminal evidence.</summary>
+    public bool ProjectionWaitExpired { get; init; }
+
     /// <summary>Gets the exact verified command's committed aggregate sequence, retained only for proof.</summary>
     internal long? CommittedEventSequence { get; init; }
 
@@ -1129,10 +1150,14 @@ public sealed record TenantRemoveMemberCommandSnapshot(
 
         if (status.IsPending || status.IsRetryableFailure)
         {
+            // A temporary status nudge does not revoke previously qualified command-event evidence.
+            // Keep the expiry uncertainty eligible for the same projection proof as before expiry.
+            bool expiredWait = State is TenantCommandLifecycleState.UnableToVerify && ProjectionWaitExpired
+                && SafeMessageKey == TenantMembershipProjectionWaitPolicy.ExpiredMessageKey;
             return this with
             {
-                SafeMessage = status.SafeMessage,
-                SafeMessageKey = status.SafeMessageKey,
+                SafeMessage = expiredWait ? null : status.SafeMessage,
+                SafeMessageKey = expiredWait ? TenantMembershipProjectionWaitPolicy.ExpiredMessageKey : status.SafeMessageKey,
                 AuditState = TenantCommandAuditStates.FromStatusLookup(status, AuditState),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
@@ -1231,7 +1256,9 @@ public sealed record TenantRemoveMemberCommandSnapshot(
         }
 
         // Only status-driven ProjectionPending (Completed/Events*) may confirm; Accepted alone never does.
-        if (State is TenantCommandLifecycleState.ProjectionPending) {
+        if (State is TenantCommandLifecycleState.ProjectionPending
+            || State is TenantCommandLifecycleState.UnableToVerify && ProjectionWaitExpired
+                && SafeMessageKey == TenantMembershipProjectionWaitPolicy.ExpiredMessageKey) {
             if (BaselinePostconditionMet) {
                 return this with {
                     State = TenantCommandLifecycleState.AlreadyApplied,

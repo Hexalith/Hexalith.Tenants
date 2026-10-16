@@ -1,0 +1,353 @@
+{
+  "entry_utc": "2026-10-16T06:28:22.159185+00:00",
+  "final_utc": "2026-10-16T06:51:25.451093+00:00",
+  "inherited_work_preserved": true,
+  "changed_entry_files": {
+    "_bmad-output/implementation-artifacts/deferred-work.md": {
+      "before": "5422309a30909617e07e38c906d20a28b3d293ddafcc24579d557e4d273070c0",
+      "after": "f6af2f380d777e1c19a033f9651c22f3937abacb2fb2a3b636ce2e0277db6d5a"
+    },
+    "_bmad-output/implementation-artifacts/release-readiness.md": {
+      "before": "f81821721ba5e36aa93f2571716703fedaeb9aa4cb960a17d7a1e004b3c15503",
+      "after": "0cf1882914725d2598c196ea5eb6bc944dfded0b68adb2c9f2b3734f9802a34f"
+    },
+    "docs/maintenance-backlog.md": {
+      "before": "4de824c7e1125963fee19b7422f8cd0aed078648756f2c98bf06f0695cc02caf",
+      "after": "95487dcf651d5d39298f1a9d609227da65b1ca3810aa2f2031933d12af703698"
+    },
+    "src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor": {
+      "before": "c5b6e789b66306f4e17283175d7763add7bea865f7e1758990169020e6508744",
+      "after": "e8c1db5ad05b62dd7daccacf0ff68a24577301c8badf06d2aa6c1c5d84f0a7c4"
+    },
+    "src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor": {
+      "before": "315b27f354fce4b6f7774517a557dea068a2e76f7b84fe3d888d1ba52e91e79b",
+      "after": "df828889eb7b6c4b93cfc2043c0435c5e990091cc382f3ee59ed5d9d9b9ceaca"
+    }
+  },
+  "allowed_entry_changes_only": true,
+  "repositories": {
+    ".": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "a3f43655d68370389439c7d2c212ab7939bd164e\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": " M _bmad-output/implementation-artifacts/deferred-work-archive.md\n M _bmad-output/implementation-artifacts/deferred-work.md\n M _bmad-output/implementation-artifacts/dw-166-command-results.json\n M _bmad-output/implementation-artifacts/dw-166-external-movements.json\n M _bmad-output/implementation-artifacts/dw-166-preservation.json\n M _bmad-output/implementation-artifacts/release-readiness.md\n M _bmad-output/implementation-artifacts/spec-dw-166-173-finite-authorization-subscription-bounds.md\n M docs/maintenance-backlog.md\n M src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor\n M src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor\n M src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor\n M tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs\n M tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs\n?? _bmad-output/implementation-artifacts/dw-166-ledger-validation.json\n?? _bmad-output/implementation-artifacts/dw-166-ui-summary.json\n?? _bmad-output/implementation-artifacts/dw-166-validation-evidence.md\n?? _bmad-output/implementation-artifacts/dw-166-validation-inputs.json\n?? _bmad-output/implementation-artifacts/dw-176-command-results.json\n?? _bmad-output/implementation-artifacts/dw-176-entry-state.json\n?? _bmad-output/implementation-artifacts/dw-176-ledger-validation.json\n?? _bmad-output/implementation-artifacts/dw-176-preservation.json\n?? _bmad-output/implementation-artifacts/dw-176-ui-summary.json\n?? _bmad-output/implementation-artifacts/dw-176-validation-evidence.md\n?? _bmad-output/implementation-artifacts/dw-176-validation-inputs-before.json\n?? _bmad-output/implementation-artifacts/dw-176-validation-inputs.json\n?? _bmad-output/implementation-artifacts/dw-245-command-results.json\n?? _bmad-output/implementation-artifacts/dw-245-entry-state.json\n?? _bmad-output/implementation-artifacts/dw-245-final-inputs-before.json\n?? _bmad-output/implementation-artifacts/dw-245-ledger-validation.json\n?? _bmad-output/implementation-artifacts/dw-245-preservation.json\n?? _bmad-output/implementation-artifacts/dw-245-ui-summary.json\n?? _bmad-output/implementation-artifacts/dw-245-validation-evidence.md\n?? _bmad-output/implementation-artifacts/dw-245-validation-inputs-before.json\n?? _bmad-output/implementation-artifacts/dw-245-validation-inputs.json\n?? _bmad-output/implementation-artifacts/spec-dw-176-184-workspace-consumer-acceptance.md\n?? _bmad-output/implementation-artifacts/spec-dw-245-265-290-queued-membership-refresh.md\n?? tests/Hexalith.Tenants.UI.Tests/Components/MembershipRefreshIntentTests.cs\n?? tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerAcceptance.cs\n?? tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs\n?? tests/Hexalith.Tenants.UI.Tests/WorkspaceAcceptanceAuthenticationStateProvider.cs\n",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools\n160000 f9f115528e43060d5f0af7dfbd8b22addc3c9a89 0\treferences/Hexalith.Builds\n160000 9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 0\treferences/Hexalith.Commons\n160000 746b843a24f18b17a7572be25b76b735fa8e4ca6 0\treferences/Hexalith.EventStore\n160000 b06f86d554363ea5b8192cbc149a75c820dab2b8 0\treferences/Hexalith.FrontComposer\n160000 7e99305a621e1bdf7119b6e924348857e2b5a5a4 0\treferences/Hexalith.McpCli\n160000 99431f0fed102ea6ddbae33d28b9da4fc7f215a0 0\treferences/Hexalith.Memories\n160000 3a29fe039320ab13d95ff7d9801761dad72bfed9 0\treferences/Hexalith.Platform\n160000 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 0\treferences/Hexalith.PolymorphicSerializations",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": " 3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools (heads/main)\n f9f115528e43060d5f0af7dfbd8b22addc3c9a89 references/Hexalith.Builds (v4.31.2-2-gf9f1155)\n 9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 references/Hexalith.Commons (v2.30.1-19-g9e874b1)\n 746b843a24f18b17a7572be25b76b735fa8e4ca6 references/Hexalith.EventStore (v3.122.0-2-g746b843a)\n b06f86d554363ea5b8192cbc149a75c820dab2b8 references/Hexalith.FrontComposer (v4.6.0-33-gb06f86d5)\n 7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli (heads/main)\n 99431f0fed102ea6ddbae33d28b9da4fc7f215a0 references/Hexalith.Memories (v2.28.1-99-g99431f0f)\n 3a29fe039320ab13d95ff7d9801761dad72bfed9 references/Hexalith.Platform (heads/main)\n 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations (v1.19.4)\n",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.EventStore": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "746b843a24f18b17a7572be25b76b735fa8e4ca6\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools\n160000 9f0121c77e3f085c58f5c926057606db8e6511a7 0\treferences/Hexalith.Builds\n160000 b247ed116c6523f8c596ec0a933eff8973d11568 0\treferences/Hexalith.Commons\n160000 0e151a139d178c1f5d90df50ee3d066ce4d4f35a 0\treferences/Hexalith.FrontComposer\n160000 7e99305a621e1bdf7119b6e924348857e2b5a5a4 0\treferences/Hexalith.McpCli\n160000 e864054d518021ba4a7870f42c07e9101178dd2f 0\treferences/Hexalith.Memories\n160000 4b9cb5624159de0782dd3329cdcc3b2d66010509 0\treferences/Hexalith.Platform\n160000 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 0\treferences/Hexalith.PolymorphicSerializations\n160000 51f404513f2657e98f949f58f0df43b99b68a7d0 0\treferences/Hexalith.Tenants",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-9f0121c77e3f085c58f5c926057606db8e6511a7 references/Hexalith.Builds\n-b247ed116c6523f8c596ec0a933eff8973d11568 references/Hexalith.Commons\n-0e151a139d178c1f5d90df50ee3d066ce4d4f35a references/Hexalith.FrontComposer\n-7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli\n-e864054d518021ba4a7870f42c07e9101178dd2f references/Hexalith.Memories\n-4b9cb5624159de0782dd3329cdcc3b2d66010509 references/Hexalith.Platform\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-51f404513f2657e98f949f58f0df43b99b68a7d0 references/Hexalith.Tenants\n",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.Commons": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools\n160000 c16249a6a0c88b903e14c7f6612632e2c70d4e94 0\treferences/Hexalith.Builds\n160000 4252c432ca1ba27a8571a082372b9384f3d13299 0\treferences/Hexalith.PolymorphicSerializations",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-c16249a6a0c88b903e14c7f6612632e2c70d4e94 references/Hexalith.Builds\n-4252c432ca1ba27a8571a082372b9384f3d13299 references/Hexalith.PolymorphicSerializations\n",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.AI.Tools": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "3f194e17174994d308ec84af9ee2b5aa68674d0d\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.FrontComposer": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "b06f86d554363ea5b8192cbc149a75c820dab2b8\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools\n160000 9f0121c77e3f085c58f5c926057606db8e6511a7 0\treferences/Hexalith.Builds\n160000 b247ed116c6523f8c596ec0a933eff8973d11568 0\treferences/Hexalith.Commons\n160000 6394d0500e6e277b8975cb397c9f0389f9a16929 0\treferences/Hexalith.EventStore\n160000 379cb1a2f031f63c4a7148bbf32eb9d4d917dd6a 0\treferences/Hexalith.Memories\n160000 b87ca40b3bf3d75aed56c7e891c2f5b431e263ae 0\treferences/Hexalith.Parties\n160000 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 0\treferences/Hexalith.PolymorphicSerializations\n160000 51f404513f2657e98f949f58f0df43b99b68a7d0 0\treferences/Hexalith.Tenants",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-9f0121c77e3f085c58f5c926057606db8e6511a7 references/Hexalith.Builds\n-b247ed116c6523f8c596ec0a933eff8973d11568 references/Hexalith.Commons\n-6394d0500e6e277b8975cb397c9f0389f9a16929 references/Hexalith.EventStore\n-379cb1a2f031f63c4a7148bbf32eb9d4d917dd6a references/Hexalith.Memories\n-b87ca40b3bf3d75aed56c7e891c2f5b431e263ae references/Hexalith.Parties\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-51f404513f2657e98f949f58f0df43b99b68a7d0 references/Hexalith.Tenants\n",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.Builds": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "f9f115528e43060d5f0af7dfbd8b22addc3c9a89\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.PolymorphicSerializations": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "98de6e013840ece9f0fa7c68ab7dcdf2bba3b375\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools\n160000 688eec9a4333245cc0ff7772115c769094471863 0\treferences/Hexalith.Builds",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-688eec9a4333245cc0ff7772115c769094471863 references/Hexalith.Builds\n",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.Memories": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "99431f0fed102ea6ddbae33d28b9da4fc7f215a0\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools\n160000 9f0121c77e3f085c58f5c926057606db8e6511a7 0\treferences/Hexalith.Builds\n160000 9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 0\treferences/Hexalith.Commons\n160000 210b90da172cc7ca946fbb06cfd44390bffa707b 0\treferences/Hexalith.EventStore\n160000 e0476b71c7623840ba2ab0c276e43800a51fd44a 0\treferences/Hexalith.FrontComposer\n160000 7e99305a621e1bdf7119b6e924348857e2b5a5a4 0\treferences/Hexalith.McpCli\n160000 55bee680e6901a45946dd8bf1e4a4060952bd7ea 0\treferences/Hexalith.Platform\n160000 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 0\treferences/Hexalith.PolymorphicSerializations\n160000 51f404513f2657e98f949f58f0df43b99b68a7d0 0\treferences/Hexalith.Tenants",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-9f0121c77e3f085c58f5c926057606db8e6511a7 references/Hexalith.Builds\n-9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 references/Hexalith.Commons\n-210b90da172cc7ca946fbb06cfd44390bffa707b references/Hexalith.EventStore\n-e0476b71c7623840ba2ab0c276e43800a51fd44a references/Hexalith.FrontComposer\n-7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli\n-55bee680e6901a45946dd8bf1e4a4060952bd7ea references/Hexalith.Platform\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-51f404513f2657e98f949f58f0df43b99b68a7d0 references/Hexalith.Tenants\n",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.McpCli": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "7e99305a621e1bdf7119b6e924348857e2b5a5a4\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools\n160000 ecb092449c95abf6de2c3d348dc086bb368eb556 0\treferences/Hexalith.Agents\n160000 cdadaba24354df0221c6808d4df11f4ed30436ae 0\treferences/Hexalith.Builds\n160000 c7de36b2a4c72d2b3e2d867cffe3cdddec597547 0\treferences/Hexalith.ChatBot\n160000 b247ed116c6523f8c596ec0a933eff8973d11568 0\treferences/Hexalith.Commons\n160000 fb2426ac54146d50e68229e44d3848694d72ea18 0\treferences/Hexalith.Conversations\n160000 80be7deb8167e89e76284eda14853b4cd9c9c4aa 0\treferences/Hexalith.EventStore\n160000 18cf524bc4e6943b5141afb9a79b976abce5fb2b 0\treferences/Hexalith.Folders\n160000 0e114214007c22f5cdbac21a6853cff4208340ee 0\treferences/Hexalith.FrontComposer\n160000 499b7a838a36a4cd500ab517d86acf07b1d74ad4 0\treferences/Hexalith.Memories\n160000 56cb4401c4179d431385ad3d931fefa402e4fc5a 0\treferences/Hexalith.Parties\n160000 91d6ed23c9b68e734ac4b82b3c2d83cbe1ab906a 0\treferences/Hexalith.Platform\n160000 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 0\treferences/Hexalith.PolymorphicSerializations\n160000 1152c8397f35fed1580e20915833dd958e8dbe07 0\treferences/Hexalith.Projects\n160000 1c165899457d9950bc8bc10cb2d29dff101ab386 0\treferences/Hexalith.Tenants\n160000 aef3f4ed4b4bb9bfee270d75361d637013c13551 0\treferences/Hexalith.Timesheets\n160000 0a70f6d14db69c51848fa4799b05f8994f7ab77b 0\treferences/Hexalith.Works",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-ecb092449c95abf6de2c3d348dc086bb368eb556 references/Hexalith.Agents\n-cdadaba24354df0221c6808d4df11f4ed30436ae references/Hexalith.Builds\n-c7de36b2a4c72d2b3e2d867cffe3cdddec597547 references/Hexalith.ChatBot\n-b247ed116c6523f8c596ec0a933eff8973d11568 references/Hexalith.Commons\n-fb2426ac54146d50e68229e44d3848694d72ea18 references/Hexalith.Conversations\n-80be7deb8167e89e76284eda14853b4cd9c9c4aa references/Hexalith.EventStore\n-18cf524bc4e6943b5141afb9a79b976abce5fb2b references/Hexalith.Folders\n-0e114214007c22f5cdbac21a6853cff4208340ee references/Hexalith.FrontComposer\n-499b7a838a36a4cd500ab517d86acf07b1d74ad4 references/Hexalith.Memories\n-56cb4401c4179d431385ad3d931fefa402e4fc5a references/Hexalith.Parties\n-91d6ed23c9b68e734ac4b82b3c2d83cbe1ab906a references/Hexalith.Platform\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-1152c8397f35fed1580e20915833dd958e8dbe07 references/Hexalith.Projects\n-1c165899457d9950bc8bc10cb2d29dff101ab386 references/Hexalith.Tenants\n-aef3f4ed4b4bb9bfee270d75361d637013c13551 references/Hexalith.Timesheets\n-0a70f6d14db69c51848fa4799b05f8994f7ab77b references/Hexalith.Works\n",
+        "stderr": ""
+      }
+    },
+    "references/Hexalith.Platform": {
+      "branch": {
+        "exit": 0,
+        "output": "main\n",
+        "stderr": ""
+      },
+      "head": {
+        "exit": 0,
+        "output": "3a29fe039320ab13d95ff7d9801761dad72bfed9\n",
+        "stderr": ""
+      },
+      "status": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "index_gitlinks": {
+        "exit": 0,
+        "output": "160000 3f194e17174994d308ec84af9ee2b5aa68674d0d 0\treferences/Hexalith.AI.Tools\n160000 bc3acde828ebf6ef5f897080629db8deb2219813 0\treferences/Hexalith.Agents\n160000 9f0121c77e3f085c58f5c926057606db8e6511a7 0\treferences/Hexalith.Builds\n160000 839aee31e2a9be11feab3fb726006bb4c2f890b5 0\treferences/Hexalith.ChatBot\n160000 9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 0\treferences/Hexalith.Commons\n160000 58f158413df4e3d6b97190b2458e323eab6029c4 0\treferences/Hexalith.Conversations\n160000 210b90da172cc7ca946fbb06cfd44390bffa707b 0\treferences/Hexalith.EventStore\n160000 ea1e9ac9745ad86aac7f2bf6ea84ee3741fea0ed 0\treferences/Hexalith.Folders\n160000 b06f86d554363ea5b8192cbc149a75c820dab2b8 0\treferences/Hexalith.FrontComposer\n160000 7e99305a621e1bdf7119b6e924348857e2b5a5a4 0\treferences/Hexalith.McpCli\n160000 99431f0fed102ea6ddbae33d28b9da4fc7f215a0 0\treferences/Hexalith.Memories\n160000 493730941329d1bca3b4f6b2f6a67ffe305c2443 0\treferences/Hexalith.Parties\n160000 98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 0\treferences/Hexalith.PolymorphicSerializations\n160000 42c8e7bc3a58d78e7c6ea4273711d697e81175e7 0\treferences/Hexalith.Projects\n160000 51f404513f2657e98f949f58f0df43b99b68a7d0 0\treferences/Hexalith.Tenants\n160000 c2aaef44cb7163baee26746b4f6ddc25ba29c08d 0\treferences/Hexalith.Timesheets\n160000 ceef28532550061dd361dfe7df9c2a93582b2aa5 0\treferences/Hexalith.Works",
+        "stderr": ""
+      },
+      "head_gitlinks": {
+        "exit": 0,
+        "output": "",
+        "stderr": ""
+      },
+      "nested_status": {
+        "exit": 0,
+        "output": "-3f194e17174994d308ec84af9ee2b5aa68674d0d references/Hexalith.AI.Tools\n-bc3acde828ebf6ef5f897080629db8deb2219813 references/Hexalith.Agents\n-9f0121c77e3f085c58f5c926057606db8e6511a7 references/Hexalith.Builds\n-839aee31e2a9be11feab3fb726006bb4c2f890b5 references/Hexalith.ChatBot\n-9e874b1a3c6e7b6ff07b6f40b81d36e4e1403798 references/Hexalith.Commons\n-58f158413df4e3d6b97190b2458e323eab6029c4 references/Hexalith.Conversations\n-210b90da172cc7ca946fbb06cfd44390bffa707b references/Hexalith.EventStore\n-ea1e9ac9745ad86aac7f2bf6ea84ee3741fea0ed references/Hexalith.Folders\n-b06f86d554363ea5b8192cbc149a75c820dab2b8 references/Hexalith.FrontComposer\n-7e99305a621e1bdf7119b6e924348857e2b5a5a4 references/Hexalith.McpCli\n-99431f0fed102ea6ddbae33d28b9da4fc7f215a0 references/Hexalith.Memories\n-493730941329d1bca3b4f6b2f6a67ffe305c2443 references/Hexalith.Parties\n-98de6e013840ece9f0fa7c68ab7dcdf2bba3b375 references/Hexalith.PolymorphicSerializations\n-42c8e7bc3a58d78e7c6ea4273711d697e81175e7 references/Hexalith.Projects\n-51f404513f2657e98f949f58f0df43b99b68a7d0 references/Hexalith.Tenants\n-c2aaef44cb7163baee26746b4f6ddc25ba29c08d references/Hexalith.Timesheets\n-ceef28532550061dd361dfe7df9c2a93582b2aa5 references/Hexalith.Works\n",
+        "stderr": ""
+      }
+    }
+  },
+  "external_vcs_movements": {},
+  "dependency_input_changes": {},
+  "no_new_dependency_or_pointer_movement": true
+}

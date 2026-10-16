@@ -1,0 +1,582 @@
+{
+  "xml_runs": [
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-complete.xml",
+      "sha256": "ef9b763229a7e427468c97752508a4f5742924038da92543d877e119cdc42dd4",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "8428b4e8-7536-4cbd-9380-35f9cd004e8c",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "15:57:22",
+          "start-rtf": "2026-10-15T15:57:22.4973722+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T15:58:09.1344537+00:00",
+          "not-run": "0",
+          "passed": "815",
+          "skipped": "0",
+          "time": "46.649",
+          "time-rtf": "00:00:46.6490000",
+          "total": "815"
+        }
+      ],
+      "failures": [],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-current.xml",
+      "sha256": "5d6fbce6a6c47569e5576eab01055708aae67188d48200aa6a76d56a57ae9034",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "96697007-accf-4f95-a0ae-6989c21a3570",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:05:14",
+          "start-rtf": "2026-10-15T16:05:14.7633101+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "1",
+          "finish-rtf": "2026-10-15T16:05:58.8855759+00:00",
+          "not-run": "0",
+          "passed": "814",
+          "skipped": "0",
+          "time": "44.126",
+          "time-rtf": "00:00:44.1260000",
+          "total": "815"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.AuthorityTransitionDetachesHeldSetupAndHandsOffAfterLateCompletionWithoutChargingReplacement(lateFault: False)",
+          "message": "Bunit.Extensions.WaitForHelpers.WaitForFailedException : The assertion did not pass within the timeout period.\n\nIf this test does not fail consistently, the reason may be that\nthe wait timeout is too short, and the runtime did not have enough\ntime to complete the necessary number of renders of the component under test.\nThis can happen on highly utilized or slower hardware, for example.\n\nTo determine if this is the cause, compare the check and render count(s) below\nand see if they match what is expected. If they do not,\nconsider increasing the timeout, either at the individual\nmethod call level, e.g. WaitForElement(\\\"div\\\", TimeSpan.FromSeconds(15)),\nor via the static TestContext.DefaultWaitTimeout property.\n\nCheck count: 1.\nComponent render count: 29.\nTotal render count across all components: 0.\n---- Shouldly.ShouldAssertException : PrivateField<int>(cut.Instance, \\\"_readRefreshSubscriptionInFlight\\\")\n    should be\n0\n    but was\n1",
+          "stack_trace": "   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForAssertion[TComponent](IRenderedComponent`1 renderedComponent, Action assertion, Nullable`1 timeout) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForState.cs:line 102\n   at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.AuthorityTransitionDetachesHeldSetupAndHandsOffAfterLateCompletionWithoutChargingReplacement(Boolean lateFault) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs:line 510\n--- End of stack trace from previous location ---\n----- Inner Stack Trace -----\n   at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.<>c__DisplayClass210_0.<AuthorityTransitionDetachesHeldSetupAndHandsOffAfterLateCompletionWithoutChargingReplacement>b__1() in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FiniteBounds.cs:line 513\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.RunCheckAsync() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 226"
+        }
+      ],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-fifth.xml",
+      "sha256": "594ef0d626b84d14086ab418b97a02fbb0ecbfbf2c417dfda7c1583034215ebd",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "ad2abfc7-2044-4dd7-b6e2-9a16b37c14eb",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "15:52:22",
+          "start-rtf": "2026-10-15T15:52:22.7606250+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "1",
+          "finish-rtf": "2026-10-15T15:52:57.5286658+00:00",
+          "not-run": "0",
+          "passed": "723",
+          "skipped": "0",
+          "time": "34.770",
+          "time-rtf": "00:00:34.7700000",
+          "total": "724"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : HandoffField<string>(cut, \\\"_subscriptionTenantId\\\")\n    should be\n\\\"tenant.alpha\\\"\n    but was\nnull",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(String completion, String route) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10238\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        }
+      ],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-final.xml",
+      "sha256": "1778659bfd8bf0419bd6e6a0a4e9013fcc1fd03e1b6d3040364ae742472a2ca1",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "5a78a5ce-7e29-4203-9ec3-0e5cae438981",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "15:54:11",
+          "start-rtf": "2026-10-15T15:54:11.2860805+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T15:54:47.0008286+00:00",
+          "not-run": "0",
+          "passed": "724",
+          "skipped": "0",
+          "time": "35.716",
+          "time-rtf": "00:00:35.7160000",
+          "total": "724"
+        }
+      ],
+      "failures": [],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-fourth.xml",
+      "sha256": "73901a00ed4d0cbfd3f3710fca3bb3bcf3f662f20554e47f295452df0da1002a",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "f4e9a43b-9dd0-4216-a5d9-0de9e51ad6cd",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "15:50:38",
+          "start-rtf": "2026-10-15T15:50:38.8017120+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "2",
+          "finish-rtf": "2026-10-15T15:51:15.1161526+00:00",
+          "not-run": "0",
+          "passed": "722",
+          "skipped": "0",
+          "time": "36.315",
+          "time-rtf": "00:00:36.3150000",
+          "total": "724"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(outcome: \\\"late-success\\\")",
+          "message": "System.Threading.Tasks.TaskCanceledException : A task was canceled.",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.WaitForHandoffIdleAsync(IRenderedComponent`1 cut) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10417\n   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(String outcome) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10718\n--- End of stack trace from previous location ---"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(outcome: \\\"late-failure\\\")",
+          "message": "System.Threading.Tasks.TaskCanceledException : A task was canceled.",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.WaitForHandoffIdleAsync(IRenderedComponent`1 cut) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10417\n   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(String outcome) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10718\n--- End of stack trace from previous location ---"
+        }
+      ],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-initial.xml",
+      "sha256": "ea926e1342bf600d41c7fa655fdadf24b23ff9ac2b8e9e999cb1386abc14e7db",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "6322f280-619f-4801-87d0-b963f158f289",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "15:36:20",
+          "start-rtf": "2026-10-15T15:36:20.8719817+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "10",
+          "finish-rtf": "2026-10-15T15:36:55.7719532+00:00",
+          "not-run": "0",
+          "passed": "653",
+          "skipped": "0",
+          "time": "34.902",
+          "time-rtf": "00:00:34.9020000",
+          "total": "663"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"repeated\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n2\n    but was\n3",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(String completion, String route) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10239\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"repeated\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n2\n    but was\n3",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(String completion, String route) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10239\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"repeated\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n2\n    but was\n3",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(String completion, String route) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10239\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"success\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n2\n    but was\n3",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(String completion, String route) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10239\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"empty\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n2\n    but was\n3",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(String completion, String route) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10239\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(completion: \\\"throw\\\", route: \\\"return\\\")",
+          "message": "Shouldly.ShouldAssertException : attempts\n    should be\n2\n    but was\n3",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Obsolete_subscription_completion_hands_off_to_latest_route_without_render(String completion, String route) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10239\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(outcome: \\\"cooperative\\\")",
+          "message": "Shouldly.ShouldAssertException : callbacks.Count\n    should be\n0\n    but was\n1",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(String outcome) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10694\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(outcome: \\\"late-success\\\")",
+          "message": "Shouldly.ShouldAssertException : HandoffReadCount(gateway)\n    should be\n10\n    but was\n12\n\nAdditional Info:\n    a copied obsolete callback must issue no detail/member reads",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.<>c__DisplayClass264_0.<<AssertObsoleteHandoffCallbackAsync>b__0>d.MoveNext() in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10760\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Microsoft.AspNetCore.Components.Rendering.RendererSynchronizationContext.<>c.<<InvokeAsync>b__10_0>d.MoveNext()\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(String outcome) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10701\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(outcome: \\\"late-failure\\\")",
+          "message": "Shouldly.ShouldAssertException : HandoffReadCount(gateway)\n    should be\n10\n    but was\n12\n\nAdditional Info:\n    a copied obsolete callback must issue no detail/member reads",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.<>c__DisplayClass264_0.<<AssertObsoleteHandoffCallbackAsync>b__0>d.MoveNext() in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10760\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Microsoft.AspNetCore.Components.Rendering.RendererSynchronizationContext.<>c.<<InvokeAsync>b__10_0>d.MoveNext()\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(String outcome) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10701\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)\n--- End of stack trace from previous location ---\n   at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()\n   at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)\n   at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.Notification_setup_failure_logs_only_a_support_safe_reason_code",
+          "message": "Bunit.Extensions.WaitForHelpers.WaitForFailedException : The assertion did not pass within the timeout period.\n\nIf this test does not fail consistently, the reason may be that\nthe wait timeout is too short, and the runtime did not have enough\ntime to complete the necessary number of renders of the component under test.\nThis can happen on highly utilized or slower hardware, for example.\n\nTo determine if this is the cause, compare the check and render count(s) below\nand see if they match what is expected. If they do not,\nconsider increasing the timeout, either at the individual\nmethod call level, e.g. WaitForElement(\\\"div\\\", TimeSpan.FromSeconds(15)),\nor via the static TestContext.DefaultWaitTimeout property.\n\nCheck count: 1.\nComponent render count: 1.\nTotal render count across all components: 0.\n---- Shouldly.ShouldAssertException : cut.WaitForAssertion(logger.Messages\n    should contain\n\\\"Optional projection refresh setup failed. ReasonCode=notification-setup-failed\\\"\n    but was actually\n[\\\"Initializing root component 0 (Bunit.Rendering.BunitRootComponent)\\\", \\\"Rendering component 0 of type Bunit.Rendering.BunitRootComponent\\\", \\\"Initializing component 1 (Bunit.Rendering.ContainerFragment) as child of 0 (Bunit.Rendering.BunitRootComponent)\\\", \\\"Rendering component 1 of type Bunit.Rendering.ContainerFragment\\\", \\\"Initializing component 2 (Hexalith.Tenants.UI.Components.Pages.GlobalAdministratorsPage) as child of 1 (Bunit.Rendering.ContainerFragment)\\\", \\\"Rendering component 2 of type Hexalith.Tenants.UI.Components.Pages.GlobalAdministratorsPage\\\", \\\"Initializing component 3 (Hexalith.FrontComposer.Shell.Components.Layout.FcPageLayout) as child of 2 (Hexalith.Tenants.UI.Components.Pages.GlobalAdministratorsPage)\\\", \\\"Rendering component 3 of type Hexalith.FrontComposer.Shell.Components.Layout.FcPageLayout\\\", \\\"Initializing component 4 (Microsoft.FluentUI.AspNetCore.Components.FluentStack) as child of 3 (Hexalith.FrontComposer.Shell.Components.Layout.FcPageLayout)\\\", \\\"Rendering component 4 of type Microsoft.FluentUI.AspNetCore.Components.FluentStack\\\", \\\"Initializing component 5 (Hexalith.FrontComposer.Shell.Components.Layout.FcPageHeader) as child of 4 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Initializing component 6 (Microsoft.FluentUI.AspNetCore.Components.FluentAnchorButton) as child of 4 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Initializing component 7 (Microsoft.FluentUI.AspNetCore.Components.FluentMessageBar) as child of 4 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Initializing component 8 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordion) as child of 4 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Rendering component 5 of type Hexalith.FrontComposer.Shell.Components.Layout.FcPageHeader\\\", \\\"Initializing component 9 (Microsoft.AspNetCore.Components.Web.PageTitle) as child of 5 (Hexalith.FrontComposer.Shell.Components.Layout.FcPageHeader)\\\", \\\"Initializing component 10 (Microsoft.FluentUI.AspNetCore.Components.FluentStack) as child of 5 (Hexalith.FrontComposer.Shell.Components.Layout.FcPageHeader)\\\", \\\"Rendering component 6 of type Microsoft.FluentUI.AspNetCore.Components.FluentAnchorButton\\\", \\\"Rendering component 7 of type Microsoft.FluentUI.AspNetCore.Components.FluentMessageBar\\\", \\\"Initializing component 11 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 7 (Microsoft.FluentUI.AspNetCore.Components.FluentMessageBar)\\\", \\\"Initializing component 12 (Microsoft.FluentUI.AspNetCore.Components.FluentButton) as child of 7 (Microsoft.FluentUI.AspNetCore.Components.FluentMessageBar)\\\", \\\"Rendering component 8 of type Microsoft.FluentUI.AspNetCore.Components.FluentAccordion\\\", \\\"Initializing component 13 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.FluentUI.AspNetCore.Components.FluentAccordion]) as child of 8 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordion)\\\", \\\"Rendering component 9 of type Microsoft.AspNetCore.Components.Web.PageTitle\\\", \\\"Initializing component 14 (Microsoft.AspNetCore.Components.Sections.SectionContent) as child of 9 (Microsoft.AspNetCore.Components.Web.PageTitle)\\\", \\\"Rendering component 10 of type Microsoft.FluentUI.AspNetCore.Components.FluentStack\\\", \\\"Initializing component 15 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 10 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Initializing component 16 (Microsoft.FluentUI.AspNetCore.Components.FluentStack) as child of 10 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Initializing component 17 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 10 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Rendering component 11 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Initializing component 18 (Microsoft.FluentUI.AspNetCore.Components.FluentIcon`1[Microsoft.FluentUI.AspNetCore.Components.Icon]) as child of 11 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag)\\\", \\\"Rendering component 12 of type Microsoft.FluentUI.AspNetCore.Components.FluentButton\\\", \\\"Initializing component 19 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 12 (Microsoft.FluentUI.AspNetCore.Components.FluentButton)\\\", \\\"Rendering component 13 of type Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.FluentUI.AspNetCore.Components.FluentAccordion]\\\", \\\"Initializing component 20 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem) as child of 13 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.FluentUI.AspNetCore.Components.FluentAccordion])\\\", \\\"Initializing component 21 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem) as child of 13 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.FluentUI.AspNetCore.Components.FluentAccordion])\\\", \\\"Initializing component 22 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem) as child of 13 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.FluentUI.AspNetCore.Components.FluentAccordion])\\\", \\\"Initializing component 23 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem) as child of 13 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.FluentUI.AspNetCore.Components.FluentAccordion])\\\", \\\"Rendering component 15 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Initializing component 24 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 15 (Microsoft.FluentUI.AspNetCore.Components.FluentText)\\\", \\\"Rendering component 16 of type Microsoft.FluentUI.AspNetCore.Components.FluentStack\\\", \\\"Initializing component 25 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 16 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Rendering component 17 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Initializing component 26 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 17 (Microsoft.FluentUI.AspNetCore.Components.FluentText)\\\", \\\"Rendering component 18 of type Microsoft.FluentUI.AspNetCore.Components.FluentIcon`1[Microsoft.FluentUI.AspNetCore.Components.Icon]\\\", \\\"Rendering component 19 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Initializing component 27 (Microsoft.FluentUI.AspNetCore.Components.FluentIcon`1[Microsoft.FluentUI.AspNetCore.Components.Icon]) as child of 19 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag)\\\", \\\"Rendering component 20 of type Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem\\\", \\\"Rendering component 21 of type Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem\\\", \\\"Initializing component 28 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 21 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 29 (Microsoft.FluentUI.AspNetCore.Components.FluentStack) as child of 21 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 30 (Hexalith.Tenants.UI.Components.Shared.ProjectionLifecycleStatus) as child of 21 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 31 (Microsoft.FluentUI.AspNetCore.Components.FluentStack) as child of 21 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Rendering component 22 of type Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem\\\", \\\"Initializing component 32 (Microsoft.FluentUI.AspNetCore.Components.FluentStack) as child of 22 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 33 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 22 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 34 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 22 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 35 (Microsoft.AspNetCore.Components.Forms.EditForm) as child of 22 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 36 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 22 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 37 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 22 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Rendering component 23 of type Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem\\\", \\\"Initializing component 38 (Microsoft.FluentUI.AspNetCore.Components.FluentStack) as child of 23 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 39 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 23 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Initializing component 40 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 23 (Microsoft.FluentUI.AspNetCore.Components.FluentAccordionItem)\\\", \\\"Rendering component 24 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Rendering component 25 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Initializing component 41 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 25 (Microsoft.FluentUI.AspNetCore.Components.FluentText)\\\", \\\"Rendering component 26 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Rendering component 27 of type Microsoft.FluentUI.AspNetCore.Components.FluentIcon`1[Microsoft.FluentUI.AspNetCore.Components.Icon]\\\", \\\"Rendering component 28 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Rendering component 29 of type Microsoft.FluentUI.AspNetCore.Components.FluentStack\\\", \\\"Rendering component 30 of type Hexalith.Tenants.UI.Components.Shared.ProjectionLifecycleStatus\\\", \\\"Initializing component 42 (Hexalith.Tenants.UI.Components.Shared.ProjectionLifecycleBadge) as child of 30 (Hexalith.Tenants.UI.Components.Shared.ProjectionLifecycleStatus)\\\", \\\"Rendering component 31 of type Microsoft.FluentUI.AspNetCore.Components.FluentStack\\\", \\\"Initializing component 43 (Microsoft.FluentUI.AspNetCore.Components.FluentButton) as child of 31 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Initializing component 44 (Microsoft.FluentUI.AspNetCore.Components.FluentButton) as child of 31 (Microsoft.FluentUI.AspNetCore.Components.FluentStack)\\\", \\\"Rendering component 32 of type Microsoft.FluentUI.AspNetCore.Components.FluentStack\\\", \\\"Rendering component 33 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Rendering component 34 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Rendering component 35 of type Microsoft.AspNetCore.Components.Forms.EditForm\\\", \\\"Initializing component 45 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.AspNetCore.Components.Forms.EditContext]) as child of 35 (Microsoft.AspNetCore.Components.Forms.EditForm)\\\", \\\"Rendering component 36 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Rendering component 37 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Rendering component 38 of type Microsoft.FluentUI.AspNetCore.Components.FluentStack\\\", \\\"Rendering component 39 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Rendering component 40 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Rendering component 41 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Rendering component 42 of type Hexalith.Tenants.UI.Components.Shared.ProjectionLifecycleBadge\\\", \\\"Initializing component 46 (Microsoft.FluentUI.AspNetCore.Components.FluentBadge) as child of 42 (Hexalith.Tenants.UI.Components.Shared.ProjectionLifecycleBadge)\\\", \\\"Rendering component 43 of type Microsoft.FluentUI.AspNetCore.Components.FluentButton\\\", \\\"Initializing component 47 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 43 (Microsoft.FluentUI.AspNetCore.Components.FluentButton)\\\", \\\"Rendering component 44 of type Microsoft.FluentUI.AspNetCore.Components.FluentButton\\\", \\\"Initializing component 48 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 44 (Microsoft.FluentUI.AspNetCore.Components.FluentButton)\\\", \\\"Rendering component 45 of type Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.AspNetCore.Components.Forms.EditContext]\\\", \\\"Initializing component 49 (Microsoft.FluentUI.AspNetCore.Components.FluentTextInput) as child of 45 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.AspNetCore.Components.Forms.EditContext])\\\", \\\"Initializing component 50 (Microsoft.FluentUI.AspNetCore.Components.FluentText) as child of 45 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.AspNetCore.Components.Forms.EditContext])\\\", \\\"Initializing component 51 (Microsoft.FluentUI.AspNetCore.Components.FluentButton) as child of 45 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.AspNetCore.Components.Forms.EditContext])\\\", \\\"Initializing component 52 (Microsoft.FluentUI.AspNetCore.Components.FluentButton) as child of 45 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.AspNetCore.Components.Forms.EditContext])\\\", \\\"Rendering component 46 of type Microsoft.FluentUI.AspNetCore.Components.FluentBadge\\\", \\\"Initializing component 53 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 46 (Microsoft.FluentUI.AspNetCore.Components.FluentBadge)\\\", \\\"Rendering component 47 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Rendering component 48 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Rendering component 49 of type Microsoft.FluentUI.AspNetCore.Components.FluentTextInput\\\", \\\"Initializing component 54 (Microsoft.FluentUI.AspNetCore.Components.FluentField) as child of 49 (Microsoft.FluentUI.AspNetCore.Components.FluentTextInput)\\\", \\\"Rendering component 50 of type Microsoft.FluentUI.AspNetCore.Components.FluentText\\\", \\\"Rendering component 51 of type Microsoft.FluentUI.AspNetCore.Components.FluentButton\\\", \\\"Initializing component 55 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 51 (Microsoft.FluentUI.AspNetCore.Components.FluentButton)\\\", \\\"Rendering component 52 of type Microsoft.FluentUI.AspNetCore.Components.FluentButton\\\", \\\"Initializing component 56 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag) as child of 52 (Microsoft.FluentUI.AspNetCore.Components.FluentButton)\\\", \\\"Rendering component 53 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Initializing component 57 (Microsoft.FluentUI.AspNetCore.Components.FluentIcon`1[Microsoft.FluentUI.AspNetCore.Components.Icon]) as child of 53 (Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag)\\\", \\\"Rendering component 54 of type Microsoft.FluentUI.AspNetCore.Components.FluentField\\\", \\\"Initializing component 58 (Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.FluentUI.AspNetCore.Components.FluentField]) as child of 54 (Microsoft.FluentUI.AspNetCore.Components.FluentField)\\\", \\\"Rendering component 55 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Rendering component 56 of type Microsoft.FluentUI.AspNetCore.Components.Utilities.AddTag\\\", \\\"Rendering component 57 of type Microsoft.FluentUI.AspNetCore.Components.FluentIcon`1[Microsoft.FluentUI.AspNetCore.Components.Icon]\\\", \\\"Rendering component 58 of type Microsoft.AspNetCore.Components.CascadingValue`1[Microsoft.FluentUI.AspNetCore.Components.FluentField]\\\", \\\"Tenant read refresh notification operation failed. ReasonCode: notification-setup-failed\\\", \\\"The initial render of component 0 is completed.\\\", \\\"Checking the wait condition for component 2.\\\"]",
+          "stack_trace": "   at Bunit.RenderedComponentWaitForHelperExtensions.WaitForAssertion[TComponent](IRenderedComponent`1 renderedComponent, Action assertion, Nullable`1 timeout) in /_/src/bunit/Extensions/WaitForHelpers/RenderedComponentWaitForHelperExtensions.WaitForState.cs:line 102\n   at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.Notification_setup_failure_logs_only_a_support_safe_reason_code() in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:line 1010\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.RuntimeMethodHandle.InvokeMethod(ObjectHandleOnStack target, Void** arguments, ObjectHandleOnStack sig, BOOL isConstructor, ObjectHandleOnStack result)\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\n   at System.Reflection.RuntimeMethodInfo.Invoke(Object obj, BindingFlags invokeAttr, Binder binder, Object[] parameters, CultureInfo culture)\n----- Inner Stack Trace -----\n   at Hexalith.Tenants.UI.Tests.Components.GlobalAdministratorsPageTests.<>c__DisplayClass20_0.<Notification_setup_failure_logs_only_a_support_safe_reason_code>b__0() in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs:line 1010\n   at Bunit.Extensions.WaitForHelpers.WaitForHelper`2.RunCheckAsync() in /_/src/bunit/Extensions/WaitForHelpers/WaitForHelper.cs:line 226"
+        }
+      ],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-qualified.xml",
+      "sha256": "f753d7cd9a4c355416d36e9ff6b82fdb640b17c407491f5ae57d2f9563bae253",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "75777934-ea75-456f-9d88-5af0331c12e1",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:08:47",
+          "start-rtf": "2026-10-15T16:08:47.5371765+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T16:09:30.6787435+00:00",
+          "not-run": "0",
+          "passed": "815",
+          "skipped": "0",
+          "time": "43.145",
+          "time-rtf": "00:00:43.1450000",
+          "total": "815"
+        }
+      ],
+      "failures": [],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-second.xml",
+      "sha256": "a4891e556ee1e17ceb19af6eeda9b87787d973a960bba3a38a1902ffa8141085",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "6edd7c2e-b388-4627-a9e5-bd385904978e",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "15:40:09",
+          "start-rtf": "2026-10-15T15:40:09.6546803+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "3",
+          "finish-rtf": "2026-10-15T15:40:44.9182071+00:00",
+          "not-run": "0",
+          "passed": "701",
+          "skipped": "0",
+          "time": "35.265",
+          "time-rtf": "00:00:35.2650000",
+          "total": "704"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(transition: \\\"invalid-route\\\", completion: \\\"empty\\\")",
+          "message": "NSubstitute.Exceptions.ReceivedCallsException : Expected to receive exactly 1 call matching:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", any CancellationToken)\nActually received no matching calls.\n",
+          "stack_trace": "   at NSubstitute.Core.ReceivedCallsExceptionThrower.Throw(ICallSpecification callSpecification, IEnumerable`1 matchingCalls, IEnumerable`1 nonMatchingCalls, Quantity requiredQuantity)\n   at NSubstitute.Routing.Handlers.CheckReceivedCallsHandler.Handle(ICall call)\n   at NSubstitute.Routing.Route.Handle(ICall call)\n   at NSubstitute.Core.CallRouter.Route(ICall call)\n   at NSubstitute.Proxies.CastleDynamicProxy.CastleForwardingInterceptor.Intercept(IInvocation invocation)\n   at Castle.DynamicProxy.AbstractInvocation.Proceed()\n   at NSubstitute.Proxies.CastleDynamicProxy.ProxyIdInterceptor.Intercept(IInvocation invocation)\n   at Castle.DynamicProxy.AbstractInvocation.Proceed()\n   at Castle.Proxies.ObjectProxy_3.UnsubscribeAsync(String projectionType, String tenantId, CancellationToken cancellationToken)\n   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(String transition, String completion) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10399\n--- End of stack trace from previous location ---"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(transition: \\\"signed-out\\\", completion: \\\"throw\\\")",
+          "message": "NSubstitute.Exceptions.ReceivedCallsException : Expected to receive exactly 1 call matching:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", any CancellationToken)\nActually received no matching calls.\n",
+          "stack_trace": "   at NSubstitute.Core.ReceivedCallsExceptionThrower.Throw(ICallSpecification callSpecification, IEnumerable`1 matchingCalls, IEnumerable`1 nonMatchingCalls, Quantity requiredQuantity)\n   at NSubstitute.Routing.Handlers.CheckReceivedCallsHandler.Handle(ICall call)\n   at NSubstitute.Routing.Route.Handle(ICall call)\n   at NSubstitute.Core.CallRouter.Route(ICall call)\n   at NSubstitute.Proxies.CastleDynamicProxy.CastleForwardingInterceptor.Intercept(IInvocation invocation)\n   at Castle.DynamicProxy.AbstractInvocation.Proceed()\n   at NSubstitute.Proxies.CastleDynamicProxy.ProxyIdInterceptor.Intercept(IInvocation invocation)\n   at Castle.DynamicProxy.AbstractInvocation.Proceed()\n   at Castle.Proxies.ObjectProxy_3.UnsubscribeAsync(String projectionType, String tenantId, CancellationToken cancellationToken)\n   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(String transition, String completion) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10399\n--- End of stack trace from previous location ---"
+        },
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(transition: \\\"signed-out\\\", completion: \\\"empty\\\")",
+          "message": "NSubstitute.Exceptions.ReceivedCallsException : Expected to receive exactly 1 call matching:\n\\tUnsubscribeAsync(\\\"tenants\\\", \\\"tenant.alpha\\\", any CancellationToken)\nActually received no matching calls.\n",
+          "stack_trace": "   at NSubstitute.Core.ReceivedCallsExceptionThrower.Throw(ICallSpecification callSpecification, IEnumerable`1 matchingCalls, IEnumerable`1 nonMatchingCalls, Quantity requiredQuantity)\n   at NSubstitute.Routing.Handlers.CheckReceivedCallsHandler.Handle(ICall call)\n   at NSubstitute.Routing.Route.Handle(ICall call)\n   at NSubstitute.Core.CallRouter.Route(ICall call)\n   at NSubstitute.Proxies.CastleDynamicProxy.CastleForwardingInterceptor.Intercept(IInvocation invocation)\n   at Castle.DynamicProxy.AbstractInvocation.Proceed()\n   at NSubstitute.Proxies.CastleDynamicProxy.ProxyIdInterceptor.Intercept(IInvocation invocation)\n   at Castle.DynamicProxy.AbstractInvocation.Proceed()\n   at Castle.Proxies.ObjectProxy_3.UnsubscribeAsync(String projectionType, String tenantId, CancellationToken cancellationToken)\n   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Held_subscription_completion_respects_current_caller_route_and_disposal(String transition, String completion) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10399\n--- End of stack trace from previous location ---"
+        }
+      ],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-debug-third.xml",
+      "sha256": "ff6453798c4b9bba513549cbde65065cf47ed1b5a812e8ca5fb64386a0c4aa11",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "c0bf0e76-e184-4361-b2f2-b6c59f9cbd48",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "15:48:03",
+          "start-rtf": "2026-10-15T15:48:03.5816554+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "1",
+          "finish-rtf": "2026-10-15T15:48:39.3303826+00:00",
+          "not-run": "0",
+          "passed": "723",
+          "skipped": "0",
+          "time": "35.750",
+          "time-rtf": "00:00:35.7500000",
+          "total": "724"
+        }
+      ],
+      "failures": [
+        {
+          "name": "Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(outcome: \\\"cooperative\\\")",
+          "message": "System.Threading.Tasks.TaskCanceledException : A task was canceled.",
+          "stack_trace": "   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.WaitForHandoffIdleAsync(IRenderedComponent`1 cut) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10417\n   at Hexalith.Tenants.UI.Tests.Components.TenantDetailSurfaceTests.Finite_subscription_deadline_releases_detail_gate_and_explicit_refresh_recovers(String outcome) in /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:line 10704\n--- End of stack trace from previous location ---"
+        }
+      ],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-release-complete.xml",
+      "sha256": "66cba66f338131d719bd58757c1362b7c2600b584d05bcaedba7049d1c7210b9",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "5ce073cb-6510-44ae-a606-518c39ea1db8",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:00:38",
+          "start-rtf": "2026-10-15T16:00:38.3614462+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T16:01:21.1597343+00:00",
+          "not-run": "0",
+          "passed": "815",
+          "skipped": "0",
+          "time": "42.802",
+          "time-rtf": "00:00:42.8020000",
+          "total": "815"
+        }
+      ],
+      "failures": [],
+      "skips": []
+    },
+    {
+      "path": "/tmp/hexalith-dw166/focused-release-qualified.xml",
+      "sha256": "b17b1e7727ba558bd26c8473538b9bfe5cd4bb705867dc37d486cdeaae6b2094",
+      "assemblies": [
+        {
+          "environment": "64-bit (x64) .NET 10.0.12 [collection-per-class, non-parallel]",
+          "id": "12ded802-c8b1-471a-9b0b-16d89e73dc2b",
+          "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Release/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "run-date": "2026-10-15",
+          "run-time": "16:08:47",
+          "start-rtf": "2026-10-15T16:08:47.5320799+00:00",
+          "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+          "target-framework": ".NETCoreApp,Version=v10.0",
+          "errors": "0",
+          "failed": "0",
+          "finish-rtf": "2026-10-15T16:09:30.8924332+00:00",
+          "not-run": "0",
+          "passed": "815",
+          "skipped": "0",
+          "time": "43.364",
+          "time-rtf": "00:00:43.3640000",
+          "total": "815"
+        }
+      ],
+      "failures": [],
+      "skips": []
+    }
+  ],
+  "full_ui_runs": [
+    {
+      "command_number": 29,
+      "argv": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "--no-ansi",
+        "--no-progress",
+        "--results-directory",
+        "/tmp/hexalith-dw166/mtp-debug-final"
+      ],
+      "exit_code": 2,
+      "elapsed_seconds": 78.435,
+      "output_sha256": "fbafa387d917cd04459ccc198314d105e8ef2346c380c27f568ca02d16c9d3eb",
+      "counts": {
+        "total": 5100,
+        "failed": 1,
+        "succeeded": 5099,
+        "skipped": 0
+      },
+      "failed_identities": [
+        "Hexalith.Tenants.UI.Tests.TenantsUiCompositionTests.Composed_read_graph_resolves_without_a_dependency_cycle"
+      ]
+    },
+    {
+      "command_number": 32,
+      "argv": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "--no-ansi",
+        "--no-progress",
+        "--results-directory",
+        "/tmp/hexalith-dw166/mtp-debug-complete"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 88.128,
+      "output_sha256": "8acd66b93f4dee6358c41d1fb9bb1edd398bceae880d0cdbe42774d48f2a5bbb",
+      "counts": {
+        "total": 5100,
+        "failed": 0,
+        "succeeded": 5100,
+        "skipped": 0
+      },
+      "failed_identities": []
+    },
+    {
+      "command_number": 37,
+      "argv": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Release",
+        "--no-build",
+        "--no-ansi",
+        "--no-progress",
+        "--results-directory",
+        "/tmp/hexalith-dw166/mtp-release-complete"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 87.488,
+      "output_sha256": "6c076bc90e4bdac2e2a634f17bf51fdba5b462c6b168f8911a08891b7cf7b6d6",
+      "counts": {
+        "total": 5100,
+        "failed": 0,
+        "succeeded": 5100,
+        "skipped": 0
+      },
+      "failed_identities": []
+    },
+    {
+      "command_number": 55,
+      "argv": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "--no-ansi",
+        "--no-progress",
+        "--results-directory",
+        "/tmp/hexalith-dw166/mtp-debug-qualified"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 80.992,
+      "output_sha256": "94786d448af514eefdf9f6ae082e7a05819f2fcd6ccacc8a9ff0aeea4cf19c0e",
+      "counts": {
+        "total": 5100,
+        "failed": 0,
+        "succeeded": 5100,
+        "skipped": 0
+      },
+      "failed_identities": []
+    },
+    {
+      "command_number": 56,
+      "argv": [
+        "dotnet",
+        "test",
+        "--project",
+        "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+        "--configuration",
+        "Release",
+        "--no-build",
+        "--no-ansi",
+        "--no-progress",
+        "--results-directory",
+        "/tmp/hexalith-dw166/mtp-release-qualified"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 80.787,
+      "output_sha256": "ca7cb382d2fae5eba75f1c93e2e64d771c5ef6326e3c8fd21d6c2ec8669ab8fe",
+      "counts": {
+        "total": 5100,
+        "failed": 0,
+        "succeeded": 5100,
+        "skipped": 0
+      },
+      "failed_identities": []
+    }
+  ],
+  "browser_runs": [
+    {
+      "command_number": 34,
+      "argv": [
+        "env",
+        "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug",
+        "bash",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 28.354,
+      "output_sha256": "b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0"
+    },
+    {
+      "command_number": 38,
+      "argv": [
+        "env",
+        "TENANTS_BROWSER_BUILD_CONFIGURATION=Release",
+        "bash",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 28.212,
+      "output_sha256": "ece037edde022a41e0f61e0e96f470e353aa893c3d354b973a35d9079f99a4b2"
+    },
+    {
+      "command_number": 57,
+      "argv": [
+        "env",
+        "TENANTS_BROWSER_BUILD_CONFIGURATION=Release",
+        "bash",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 26.512,
+      "output_sha256": "ece037edde022a41e0f61e0e96f470e353aa893c3d354b973a35d9079f99a4b2"
+    },
+    {
+      "command_number": 58,
+      "argv": [
+        "env",
+        "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug",
+        "bash",
+        "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh"
+      ],
+      "exit_code": 0,
+      "elapsed_seconds": 26.846,
+      "output_sha256": "b3399dd610040e78d38bcbe38a2818c9e2e7420c38061246e4ae6326cd84a5f0"
+    }
+  ],
+  "limits": "Rendered Fluent fixtures and maintained Chromium checks; no authenticated live topology, production provider/revocation, clipboard or human AT qualification."
+}

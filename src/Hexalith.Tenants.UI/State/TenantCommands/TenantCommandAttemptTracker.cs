@@ -1,13 +1,22 @@
+using Microsoft.Extensions.Configuration;
+
 namespace Hexalith.Tenants.UI.State.TenantCommands;
 
 /// <summary>Retains complete tenant command attempts and their exact aggregate admission for a circuit.</summary>
 /// <param name="admissionGate">The circuit-scoped aggregate admission gate.</param>
-public sealed class TenantCommandAttemptTracker(TenantAggregateCommandAdmissionGate admissionGate)
+/// <param name="configuration">Deployment configuration for the membership projection wait.</param>
+/// <param name="timeProvider">The membership deadline clock; defaults to the system clock.</param>
+public sealed class TenantCommandAttemptTracker(
+    TenantAggregateCommandAdmissionGate admissionGate,
+    IConfiguration? configuration = null,
+    TimeProvider? timeProvider = null) : IDisposable
 {
     /// <summary>Raised when exact retained reconciliation evidence advances.</summary>
     public event EventHandler? StateChanged;
 
     private readonly object _sync = new();
+    private readonly TenantMembershipProjectionWaitPolicy _membershipProjectionWait = new(configuration, timeProvider);
+    private bool _disposed;
     private readonly Dictionary<string, TenantRetainedCommandAttempt> _attempts = new(StringComparer.Ordinal);
 
     /// <summary>Returns whether the aggregate retains unresolved command ownership.</summary>
@@ -37,7 +46,7 @@ public sealed class TenantCommandAttemptTracker(TenantAggregateCommandAdmissionG
     {
         lock (_sync)
         {
-            if (_attempts.TryGetValue(tenantId, out TenantRetainedCommandAttempt? existing) && !IsTerminal(existing.Snapshot))
+            if (_disposed || _attempts.TryGetValue(tenantId, out TenantRetainedCommandAttempt? existing) && !IsTerminal(existing.Snapshot))
             {
                 attempt = null;
                 return false;
@@ -62,7 +71,7 @@ public sealed class TenantCommandAttemptTracker(TenantAggregateCommandAdmissionG
     {
         lock (_sync)
         {
-            if (_attempts.TryGetValue(tenantId, out TenantRetainedCommandAttempt? retained)
+            if (!_disposed && _attempts.TryGetValue(tenantId, out TenantRetainedCommandAttempt? retained)
                 && retained.Snapshot is TSnapshot typed
                 && (retained.SurfaceOwner is null || ReferenceEquals(retained.SurfaceOwner, surfaceOwner)))
             {
@@ -98,28 +107,128 @@ public sealed class TenantCommandAttemptTracker(TenantAggregateCommandAdmissionG
     /// <summary>Publishes evidence only against the exact retained snapshot observed before an await.</summary>
     internal bool TryUpdate(TenantRetainedCommandAttempt attempt, object expected, object snapshot)
     {
+        object published;
         lock (_sync)
         {
             if (!TryUpdateCore(attempt, expected, snapshot))
             {
                 return false;
             }
+            published = attempt.Snapshot;
         }
-        PublishAdvance(attempt, expected, snapshot);
+        PublishAdvance(attempt, expected, published);
         return true;
     }
 
     private bool TryUpdateCore(TenantRetainedCommandAttempt attempt, object expected, object snapshot)
     {
-        if (!IsCurrent(attempt) || !HasSameEvidence(attempt.Snapshot, expected)
+        if (_disposed || !IsCurrent(attempt) || !IsExpectedEvidenceCore(attempt, expected)
             || IsTerminal(expected) && StateOf(expected) != StateOf(snapshot)
                 && !(expected is TenantRemoveMemberCommandSnapshot { State: TenantCommandLifecycleState.Rejected }
                     && StateOf(snapshot) is TenantCommandLifecycleState.AlreadyApplied))
         {
             return false;
         }
-        attempt.Snapshot = snapshot;
+        // Focus-only notification nudges do not supersede evidence captured before timer expiry.
+        if (!HasSameEvidence(attempt.Snapshot, snapshot))
+        {
+            attempt.MembershipProjectionExpirySource = null;
+        }
+        attempt.Snapshot = NormalizeMembershipWaitCore(attempt, snapshot);
+        if (IsTerminal(attempt.Snapshot))
+        {
+            attempt.MembershipProjectionTimer?.Dispose();
+            attempt.MembershipProjectionTimer = null;
+        }
         return true;
+    }
+
+    /// <summary>Compares current exact evidence, allowing only the timer's own uncertainty transition.</summary>
+    internal bool IsExpectedEvidence(TenantRetainedCommandAttempt attempt, object expected)
+    {
+        lock (_sync)
+        {
+            return !_disposed && IsCurrent(attempt) && IsExpectedEvidenceCore(attempt, expected);
+        }
+    }
+
+    private static bool IsExpectedEvidenceCore(TenantRetainedCommandAttempt attempt, object expected)
+        => HasSameEvidence(attempt.Snapshot, expected)
+            || attempt.MembershipProjectionExpirySource is { } source
+                && HasSameEvidence(source, expected)
+                && HasSameEvidence(attempt.Snapshot, TenantMembershipProjectionWaitPolicy.Expire(source));
+
+    private object NormalizeMembershipWaitCore(TenantRetainedCommandAttempt attempt, object snapshot)
+    {
+        if (!TenantMembershipProjectionWaitPolicy.IsPending(snapshot))
+        {
+            return snapshot;
+        }
+
+        TimeProvider clock = _membershipProjectionWait.Clock;
+        if (attempt.MembershipProjectionStartedTimestamp is null)
+        {
+            attempt.MembershipProjectionStartedTimestamp = clock.GetTimestamp();
+            // Assign before arming so even the shortest configured timer has one exact owner.
+            attempt.MembershipProjectionTimer = clock.CreateTimer(
+                _ => ExpireMembershipWait(attempt), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
+            _ = attempt.MembershipProjectionTimer.Change(_membershipProjectionWait.Timeout, Timeout.InfiniteTimeSpan);
+        }
+
+        if (clock.GetElapsedTime(attempt.MembershipProjectionStartedTimestamp.Value) >= _membershipProjectionWait.Timeout)
+        {
+            attempt.MembershipProjectionExpirySource = snapshot;
+            return TenantMembershipProjectionWaitPolicy.Expire(snapshot);
+        }
+        return snapshot;
+    }
+
+    private void ExpireMembershipWait(TenantRetainedCommandAttempt attempt)
+    {
+        object expected;
+        object result;
+        lock (_sync)
+        {
+            if (_disposed || !IsCurrent(attempt))
+            {
+                return;
+            }
+            TimeSpan elapsed = _membershipProjectionWait.Clock.GetElapsedTime(attempt.MembershipProjectionStartedTimestamp!.Value);
+            if (elapsed < _membershipProjectionWait.Timeout)
+            {
+                TimeSpan remaining = _membershipProjectionWait.Timeout - elapsed;
+                _ = attempt.MembershipProjectionTimer?.Change(
+                    remaining < TimeSpan.FromMilliseconds(1) ? TimeSpan.FromMilliseconds(1) : remaining,
+                    Timeout.InfiniteTimeSpan);
+                return;
+            }
+            attempt.MembershipProjectionTimer?.Dispose();
+            attempt.MembershipProjectionTimer = null;
+            expected = attempt.Snapshot;
+            result = TenantMembershipProjectionWaitPolicy.Expire(expected);
+            if (ReferenceEquals(expected, result))
+            {
+                return;
+            }
+            attempt.MembershipProjectionExpirySource = expected;
+            attempt.Snapshot = result;
+        }
+        PublishAdvance(attempt, expected, result);
+    }
+
+    /// <summary>Stops circuit-owned timers without cancelling dispatched commands or inventing terminal evidence.</summary>
+    public void Dispose()
+    {
+        lock (_sync)
+        {
+            _disposed = true;
+            StateChanged = null;
+            foreach (TenantRetainedCommandAttempt attempt in _attempts.Values)
+            {
+                attempt.MembershipProjectionTimer?.Dispose();
+                attempt.MembershipProjectionTimer = null;
+            }
+        }
     }
 
     private void PublishAdvance(TenantRetainedCommandAttempt attempt, object expected, object snapshot)
@@ -132,6 +241,15 @@ public sealed class TenantCommandAttemptTracker(TenantAggregateCommandAdmissionG
         {
             foreach (EventHandler observer in observers.GetInvocationList().Cast<EventHandler>())
             {
+                lock (_sync)
+                {
+                    if (_disposed)
+                    {
+                        return;
+                    }
+                    // Claim this observer before leaving the lock. An already claimed observer may
+                    // finish during disposal; disposal prevents later claims and state publication.
+                }
                 try
                 {
                     observer(this, EventArgs.Empty);
@@ -149,7 +267,7 @@ public sealed class TenantCommandAttemptTracker(TenantAggregateCommandAdmissionG
     {
         lock (_sync)
         {
-            if (!IsCurrent(attempt) || !ReferenceEquals(attempt.SurfaceOwner, surfaceOwner)
+            if (_disposed || !IsCurrent(attempt) || !ReferenceEquals(attempt.SurfaceOwner, surfaceOwner)
                 || attempt.DeliveryInFlight || IsTerminal(attempt.Snapshot))
             {
                 return false;
@@ -169,6 +287,7 @@ public sealed class TenantCommandAttemptTracker(TenantAggregateCommandAdmissionG
     internal bool TryCompleteDelivery(TenantRetainedCommandAttempt attempt, object expected, object snapshot)
     {
         object current;
+        object published;
         lock (_sync)
         {
             if (!IsCurrent(attempt) || !attempt.DeliveryInFlight)
@@ -182,8 +301,9 @@ public sealed class TenantCommandAttemptTracker(TenantAggregateCommandAdmissionG
             {
                 return false;
             }
+            published = attempt.Snapshot;
         }
-        PublishAdvance(attempt, current, snapshot);
+        PublishAdvance(attempt, current, published);
         return true;
     }
 
