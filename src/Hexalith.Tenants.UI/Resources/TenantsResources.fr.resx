@@ -2361,6 +2361,9 @@
   <data name="Tenants.RemoveMember.Lifecycle.Title" xml:space="preserve">
     <value>Cycle de vie de la commande de retrait de membre</value>
   </data>
+  <data name="Tenants.RemoveMember.Admission.Changed" xml:space="preserve">
+    <value>Les vérifications de sécurité ont changé pendant la confirmation. Vérifiez l’aperçu et confirmez à nouveau le retrait.</value>
+  </data>
   <data name="Tenants.RemoveMember.Validation.ConfirmationRequired" xml:space="preserve">
     <value>Saisissez exactement {0} avant de retirer ce membre.</value>
   </data>

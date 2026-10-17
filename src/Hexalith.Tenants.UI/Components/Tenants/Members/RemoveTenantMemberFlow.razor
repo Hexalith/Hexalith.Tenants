@@ -206,7 +206,9 @@
            data-testid="tenants-remove-member-live-region"
            aria-live="@LiveRegionMode"
            aria-atomic="true">
-            @(_snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed && !string.IsNullOrWhiteSpace(DisplaySafeMessage) ? DisplaySafeMessage : StateText)
+            @((_snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed
+                || _snapshot.State is TenantCommandLifecycleState.Failed && _snapshot.FocusTarget is TenantCommandFocusTarget.Submit)
+                && !string.IsNullOrWhiteSpace(DisplaySafeMessage) ? DisplaySafeMessage : StateText)
         </p>
     </section>
 
@@ -1301,9 +1303,9 @@
         {
             return;
         }
-        string? eligibilityReason = authorityAdmitted ? EligibilityUnavailableReason
-            : !HasSafeMeasuredViewport ? Localizer["Tenants.RemoveMember.Unavailable.Narrow"].Value : AuthorizationUnavailableReason;
-        if (admitted && (eligibilityReason is not null || !IsPreviewEvidenceComplete || !string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal)))
+        // An obsolete admission generation refuses dispatch without claiming that authority was denied.
+        string? eligibilityReason = EligibilityUnavailableReason;
+        if (admitted && (!authorityAdmitted || eligibilityReason is not null || !IsPreviewEvidenceComplete || !string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal)))
         {
             TenantRetainedCommandAttempt? refusedAttempt = _retainedAttempt;
             try
@@ -1322,9 +1324,22 @@
             Attempts.Detach(refusedAttempt, this);
             _retainedAttempt = null;
             _isSubmitting = false;
-            string reason = eligibilityReason ?? Localizer["Tenants.RemoveMember.Preview.Blocked.Required"].Value;
+            // Cleanup can await parent work while the current safety evidence changes again.
+            eligibilityReason = EligibilityUnavailableReason;
+            bool confirmationMatches = string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal);
+            bool currentSafetyRefusal = eligibilityReason is not null || !IsPreviewEvidenceComplete || !confirmationMatches;
+            string reason = eligibilityReason
+                ?? (!authorityAdmitted && admissionGeneration == Volatile.Read(ref _admissionGeneration)
+                    ? AuthorizationUnavailableReason
+                    : !IsPreviewEvidenceComplete
+                        ? Localizer["Tenants.RemoveMember.Preview.Blocked.Required"].Value
+                        : !confirmationMatches
+                            ? Localizer[ElevatedRiskVisible
+                                ? "Tenants.RemoveMember.Validation.ElevatedConfirmationRequired"
+                                : "Tenants.RemoveMember.Validation.ConfirmationRequired", Member.UserId].Value
+                            : Localizer["Tenants.RemoveMember.Admission.Changed"].Value);
             SetSnapshot(retryMessageId is null
-                ? RefuseBeforeDispatch(reason, retriedAttempt)
+                ? RefuseBeforeDispatch(reason, retriedAttempt, safetyRefusal: currentSafetyRefusal)
                 : RefuseRetry(reason, retriedAttempt));
             return;
         }

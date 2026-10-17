@@ -1,0 +1,28 @@
+{
+  "baseline_commit": "3f4901afa260309f467e1971c082c5db4b7c4108",
+  "record_count": 647,
+  "done": 346,
+  "open": 301,
+  "index_rows": 269,
+  "unrelated_ledger_bodies_unchanged": 646,
+  "original_dw_647_fields_preserved": true,
+  "unrelated_index_rows_unchanged": true,
+  "archive_sprint_unchanged": true,
+  "head_indexed_gitlinks_unchanged": true,
+  "index_exact_cover": true,
+  "final_test_inputs_unchanged": true,
+  "test_results": {
+    "focused": {
+      "total": 430,
+      "passed": 430,
+      "failed": 0,
+      "skipped": 0
+    },
+    "full": {
+      "total": 6124,
+      "passed": 6124,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
+}

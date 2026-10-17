@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-647 closure (2026-10-17):** Held removal admission now explains current freshness, exact confirmation and authority refusals accurately in EN/FR, including retry announcements, changes during cleanup and explicit reconfirmation after safety recovers. Independent review/rechecks, 50 new cases, zero-warning/error Debug source build, focused 430 and full UI 6124 pass with zero failures/skips. Only DW-647 closes: 647 IDs remain, 346 done/301 open across 269 exact-covering maintenance rows. Original findings/pre-closure fields, all unrelated records, prior evidence, archive/sprint, dependencies and release holds are preserved. See [exact commands, initial failures and limits](dw-647-validation-evidence.md). Release remains not ready.
+
 **DW-646 closure (2026-10-17):** Only DW-646 closes after failed-removal identity retention across refused/faulted retry admission, cleanup, disposal and real parent cancel/reopen passes independent review/correction rechecks. The final Debug source build has zero warnings/errors; focused 380 and full UI 6074 pass with zero failures/skips, including 32 new cases. All 647 IDs remain:345 done/302 open across 270 exact-covering maintenance rows. Original findings/pre-closure evidence, DW-647, every unrelated ledger body, prior evidence, archive/sprint, dependency pointers and release holds are preserved. See [complete validation and initial failures](dw-646-validation-evidence.md). Release remains not ready.
 
 Reconciliation date: 2026-10-12. Verified against Tenants HEAD `7a2a126f` and the existing checked-out root dependencies. Scope: all 152 entries marked open and all 287 unnumbered findings/restatements (including 254 `source_spec` records). Unnumbered records now have DW-357 through DW-643; their original multiline text and resolution notes are preserved as a JSON string in the single-line `legacy-detail` field. Existing DW identifiers, findings, decisions, closed stubs and archive content are preserved. No BMAD artifact was moved.
@@ -8534,14 +8536,22 @@ archived: 2026-10-17
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-645-predispatch-release-recovery.md`
   summary: Preserve accurate localized refusal feedback when current safety changes invalidate a held removal admission.
   evidence: Independent DW-645 review traced freshness/confirmation invalidation of admission generation to ReauthorizeAdmissionAsync returning false and SubmitAsync selecting AuthorizationUnavailableReason even while authority remains authorized. The reason-selection logic is unchanged from canonical entry e667d5391dae306e631dec23acd191863e54130c.
-status: open
-disposition: actionable
+pre-dw-647-status: open
+status: done 2026-10-17
+pre-dw-647-disposition: actionable
+disposition: resolved
+pre-dw-647-verification-date: 2026-10-17
 verification-date: 2026-10-17
-verification: Source-verified generation invalidation and reason selection at entry and current source. Existing held-admission regressions prove no dispatch and recoverability but do not pin the exact explanation. No wrong-copy EN/FR execution or correction was performed; preserve that limit.
+pre-dw-647-verification: Source-verified generation invalidation and reason selection at entry and current source. Existing held-admission regressions prove no dispatch and recoverability but do not pin the exact explanation. No wrong-copy EN/FR execution or correction was performed; preserve that limit.
+verification: Executed 50 new EN/FR held-admission, held-authority, held-cleanup and same-ID retry cases; final Debug source build has zero warnings/errors, focused 430/430 and full UI 6124/6124 pass with zero failures/skips. Independent review and both correction rechecks accept all five findings. Exact commands, initial failures and limits are retained in dw-647-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
-evidence-kind: verified-defect
+pre-dw-647-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: Tenants UI
 dependencies: Current safety reason versus invalidated admission-generation feedback
-next-action: Assert shipped EN/FR freshness/confirmation refusal feedback during held admission and distinguish changed safety evidence from genuinely denied or indeterminate authority without weakening reauthorization.
+pre-dw-647-next-action: Assert shipped EN/FR freshness/confirmation refusal feedback during held admission and distinguish changed safety evidence from genuinely denied or indeterminate authority without weakening reauthorization.
+next-action: Closed within DW-647; existing release qualification holds and unrelated deferred work remain unchanged.
 related: DW-645, DW-644
+resolution-evidence: [Exact validation, initial failures and independent review](dw-647-validation-evidence.md)
+resolution-spec: spec-dw-647-removal-admission-feedback.md

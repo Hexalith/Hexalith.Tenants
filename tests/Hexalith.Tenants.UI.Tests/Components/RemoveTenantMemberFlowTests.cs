@@ -1013,6 +1013,455 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         acquisitions.ShouldBe(2);
     }
 
+    /// <summary>Held admission reports the current safety blocker in the shipped resource culture.</summary>
+    /// <param name="cultureName">The resource culture to render.</param>
+    /// <param name="blocker">The safety evidence changed while admission is held.</param>
+    /// <param name="isRetry">Whether the refused submission retries a failed delivery.</param>
+    [Theory]
+    [InlineData("en-US", "stale", false)]
+    [InlineData("fr-FR", "stale", false)]
+    [InlineData("en-US", "unknown", false)]
+    [InlineData("fr-FR", "unknown", false)]
+    [InlineData("en-US", "confirmation", false)]
+    [InlineData("fr-FR", "confirmation", false)]
+    [InlineData("en-US", "elevated-confirmation", false)]
+    [InlineData("fr-FR", "elevated-confirmation", false)]
+    [InlineData("en-US", "stale", true)]
+    [InlineData("fr-FR", "stale", true)]
+    [InlineData("en-US", "unknown", true)]
+    [InlineData("fr-FR", "unknown", true)]
+    [InlineData("en-US", "confirmation", true)]
+    [InlineData("fr-FR", "confirmation", true)]
+    [InlineData("en-US", "elevated-confirmation", true)]
+    [InlineData("fr-FR", "elevated-confirmation", true)]
+    public async Task HeldRemovalAdmissionExplainsCurrentSafetyRefusal(string cultureName, string blocker, bool isRetry)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Delivery outcome needs recovery.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        Services.AddLocalization();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        int releases = 0;
+        int heldAcquisition = isRetry ? 2 : 1;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            if (!active)
+            {
+                releases++;
+                return Task.FromResult(true);
+            }
+            return ++acquisitions == heldAcquisition ? acquired.Task : Task.FromResult(true);
+        });
+        bool confirmationChanged = blocker is "confirmation" or "elevated-confirmation";
+        cut.Render(p => p.Add(x => x.TargetGlobalAdministratorFriction, blocker is "elevated-confirmation"));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        if (isRetry)
+        {
+            await cut.Find("form").SubmitAsync();
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        }
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        Task submission = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => acquisitions.ShouldBe(heldAcquisition));
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        if (confirmationChanged)
+        {
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("changed-user");
+        }
+        else
+        {
+            cut.Render(p => p.Add(x => x.Freshness, blocker is "stale" ? ReadModelFreshnessState.Stale : ReadModelFreshnessState.Unknown));
+        }
+        acquired.SetResult(true);
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+
+        string resourceKey = confirmationChanged
+            ? blocker is "elevated-confirmation"
+                ? "Tenants.RemoveMember.Validation.ElevatedConfirmationRequired"
+                : "Tenants.RemoveMember.Validation.ConfirmationRequired"
+            : "Tenants.RemoveMember.Unavailable.Freshness";
+        string explanation = confirmationChanged ? localizer[resourceKey, "reader-user"].Value : localizer[resourceKey].Value;
+        explanation.ShouldNotBe(resourceKey);
+        cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldBe(explanation);
+        cut.Instance.Snapshot.SafeMessage.ShouldBe(explanation);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBeNull();
+        cut.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.CorrelationId.ShouldBe(original.CorrelationId);
+        cut.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+        cut.Instance.Snapshot.State.ShouldBe(original.State);
+        cut.Instance.Snapshot.AuditState.ShouldBe(isRetry ? TenantCommandAuditState.AuditUnavailable : TenantCommandAuditState.NotStarted);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").TextContent.Trim().ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 1 : 0);
+        gateway.StatusCallCount.ShouldBe(0);
+        releases.ShouldBe(heldAcquisition);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 1 : 0);
+        await cut.Find("form").SubmitAsync();
+        acquisitions.ShouldBe(heldAcquisition + 1);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 2 : 1);
+        if (isRetry)
+        {
+            gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        }
+    }
+
+    /// <summary>Stable-generation fresh authority failures retain their distinct localized explanations.</summary>
+    /// <param name="cultureName">The resource culture to render.</param>
+    /// <param name="failure">The fresh authority outcome after activity admission.</param>
+    /// <param name="isRetry">Whether the refused submission retries a failed delivery.</param>
+    [Theory]
+    [InlineData("en-US", "denied", false)]
+    [InlineData("fr-FR", "denied", false)]
+    [InlineData("en-US", "indeterminate", false)]
+    [InlineData("fr-FR", "indeterminate", false)]
+    [InlineData("en-US", "fault", false)]
+    [InlineData("fr-FR", "fault", false)]
+    [InlineData("en-US", "denied", true)]
+    [InlineData("fr-FR", "denied", true)]
+    [InlineData("en-US", "indeterminate", true)]
+    [InlineData("fr-FR", "indeterminate", true)]
+    [InlineData("en-US", "fault", true)]
+    [InlineData("fr-FR", "fault", true)]
+    public async Task HeldRemovalAdmissionExplainsActualAuthorityFailure(string cultureName, string failure, bool isRetry)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Delivery outcome needs recovery.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        Services.AddLocalization();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        int heldAcquisition = isRetry ? 2 : 1;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+            active && ++acquisitions == heldAcquisition ? acquired.Task : Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        if (isRetry)
+        {
+            await cut.Find("form").SubmitAsync();
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        }
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        int authorityReads = 0;
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ =>
+        {
+            if (++authorityReads == 1)
+            {
+                return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+            }
+            return failure switch
+            {
+                "denied" => Task.FromResult(TenantLifecycleAuthorizationReflectionState.MissingPermission),
+                "indeterminate" => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Indeterminate),
+                _ => Task.FromException<TenantLifecycleAuthorizationReflectionState>(new InvalidOperationException("private authority failure")),
+            };
+        }));
+        Task submission = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => acquisitions.ShouldBe(heldAcquisition));
+        acquired.SetResult(true);
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        string resourceKey = failure is "denied" ? "Tenants.RemoveMember.Unavailable.Authorization" : "Tenants.Mutation.Unavailable.AuthorityIndeterminate";
+        string explanation = localizer[resourceKey].Value;
+        explanation.ShouldNotBe(resourceKey);
+        cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").TextContent.Trim().ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        cut.Markup.ShouldNotContain("private authority failure");
+        authorityReads.ShouldBe(2);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 1 : 0);
+        gateway.StatusCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+        cut.Instance.Snapshot.AuditState.ShouldBe(isRetry ? TenantCommandAuditState.AuditUnavailable : TenantCommandAuditState.NotStarted);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
+        await cut.Find("form").SubmitAsync();
+        acquisitions.ShouldBe(heldAcquisition + 1);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 2 : 1);
+        if (isRetry)
+        {
+            gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        }
+    }
+
+    /// <summary>Restored safety evidence cannot revive invalidated admission or bypass a fresh explicit submission.</summary>
+    /// <param name="cultureName">The resource culture to render.</param>
+    /// <param name="changeConfirmation">Whether confirmation changes instead of freshness.</param>
+    /// <param name="isRetry">Whether the refused submission retries a failed delivery.</param>
+    [Theory]
+    [InlineData("en-US", false, false)]
+    [InlineData("fr-FR", false, false)]
+    [InlineData("en-US", true, false)]
+    [InlineData("fr-FR", true, false)]
+    [InlineData("en-US", false, true)]
+    [InlineData("fr-FR", false, true)]
+    [InlineData("en-US", true, true)]
+    [InlineData("fr-FR", true, true)]
+    public async Task RestoredSafetyStillRefusesInvalidatedRemovalAdmission(string cultureName, bool changeConfirmation, bool isRetry)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Delivery outcome needs recovery.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        Services.AddLocalization();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        int authorityReads = 0;
+        int heldAcquisition = isRetry ? 2 : 1;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+            active && ++acquisitions == heldAcquisition ? acquired.Task : Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        if (isRetry)
+        {
+            await cut.Find("form").SubmitAsync();
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        }
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ =>
+        {
+            authorityReads++;
+            return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        }));
+        Task submission = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => acquisitions.ShouldBe(heldAcquisition));
+        if (changeConfirmation)
+        {
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("changed-user");
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        }
+        else
+        {
+            cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+            cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        }
+        acquired.SetResult(true);
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        authorityReads.ShouldBe(2);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 1 : 0);
+        gateway.StatusCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.State.ShouldBe(original.State);
+        string explanation = localizer["Tenants.RemoveMember.Admission.Changed"].Value;
+        explanation.ShouldNotBe("Tenants.RemoveMember.Admission.Changed");
+        cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").TextContent.Trim().ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        await cut.Find("form").SubmitAsync();
+        authorityReads.ShouldBe(4);
+        acquisitions.ShouldBe(heldAcquisition + 1);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 2 : 1);
+        if (isRetry)
+        {
+            gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        }
+    }
+
+    /// <summary>Safety invalidation cancels a held authority read and ignores its late result.</summary>
+    /// <param name="cultureName">The resource culture to render.</param>
+    /// <param name="changeConfirmation">Whether confirmation changes instead of freshness.</param>
+    /// <param name="isRetry">Whether the refused submission retries a failed delivery.</param>
+    [Theory]
+    [InlineData("en-US", false, false)]
+    [InlineData("fr-FR", false, false)]
+    [InlineData("en-US", true, false)]
+    [InlineData("fr-FR", true, false)]
+    [InlineData("en-US", false, true)]
+    [InlineData("fr-FR", false, true)]
+    [InlineData("en-US", true, true)]
+    [InlineData("fr-FR", true, true)]
+    public async Task PendingRemovalAuthorityReadReportsChangedSafety(string cultureName, bool changeConfirmation, bool isRetry)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Delivery outcome needs recovery.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        Services.AddLocalization();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        if (isRetry)
+        {
+            await cut.Find("form").SubmitAsync();
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        }
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        var authority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken authorityToken = default;
+        int authorityReads = 0;
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, token =>
+        {
+            if (++authorityReads == 2)
+            {
+                authorityToken = token;
+                return authority.Task;
+            }
+            return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        }));
+        Task submission = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => authorityReads.ShouldBe(2));
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        if (changeConfirmation)
+        {
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("changed-user");
+        }
+        else
+        {
+            cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        }
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        authorityToken.IsCancellationRequested.ShouldBeTrue();
+        string explanation = changeConfirmation
+            ? localizer["Tenants.RemoveMember.Validation.ConfirmationRequired", "reader-user"].Value
+            : localizer["Tenants.RemoveMember.Unavailable.Freshness"].Value;
+        cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").TextContent.Trim().ShouldBe(explanation);
+        TenantRemoveMemberCommandSnapshot refused = cut.Instance.Snapshot;
+        authority.SetResult(TenantLifecycleAuthorizationReflectionState.MissingPermission);
+        await cut.InvokeAsync(() => Task.CompletedTask);
+        cut.Instance.Snapshot.ShouldBe(refused);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 1 : 0);
+        gateway.StatusCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        authorityReads.ShouldBe(4);
+        gateway.RemoveMemberCallCount.ShouldBe(isRetry ? 2 : 1);
+        if (isRetry)
+        {
+            gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        }
+    }
+
+    /// <summary>Feedback reflects safety changes that occur while undispatched cleanup is held.</summary>
+    /// <param name="cultureName">The resource culture to render.</param>
+    /// <param name="blocker">The blocker that supersedes the original stale-read refusal.</param>
+    [Theory]
+    [InlineData("en-US", "denied")]
+    [InlineData("fr-FR", "denied")]
+    [InlineData("en-US", "confirmation")]
+    [InlineData("fr-FR", "confirmation")]
+    [InlineData("en-US", "restored")]
+    [InlineData("fr-FR", "restored")]
+    public async Task HeldRemovalCleanupPublishesCurrentRefusal(string cultureName, string blocker)
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        Services.AddLocalization();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var released = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active)
+            {
+                return acquired.Task;
+            }
+            releaseEntered.TrySetResult();
+            return released.Task;
+        });
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        Task submission = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue());
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        acquired.SetResult(true);
+        await releaseEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        if (blocker is "denied")
+        {
+            cut.Render(p => p.Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.MissingPermission));
+        }
+        else
+        {
+            cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+            if (blocker is "confirmation")
+            {
+                cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("changed-user");
+            }
+        }
+        released.SetResult(true);
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+        string explanation = blocker switch
+        {
+            "denied" => localizer["Tenants.RemoveMember.Unavailable.Authorization"].Value,
+            "confirmation" => localizer["Tenants.RemoveMember.Validation.ConfirmationRequired", "reader-user"].Value,
+            _ => localizer["Tenants.RemoveMember.Admission.Changed"].Value,
+        };
+        cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").TextContent.Trim().ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        gateway.StatusCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.MessageId.ShouldBeNull();
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
     /// <summary>A faulted release preserves an undispatched refusal and requires fresh activity admission.</summary>
     /// <param name="changeConfirmation">Whether confirmation changes instead of freshness.</param>
     /// <param name="useActivityCallback">Whether activity uses the event callback rather than the lease delegate.</param>
