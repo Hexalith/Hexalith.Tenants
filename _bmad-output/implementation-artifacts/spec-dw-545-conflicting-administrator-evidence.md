@@ -2,7 +2,7 @@
 title: 'DW-545 conflicting administrator projection evidence'
 type: 'chore'
 created: '2026-10-17'
-status: 'in-review'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 baseline_commit: 'ceac6269da3e99d4d5e33c9fa3dd163959395f0f'
@@ -45,3 +45,5 @@ context: []
 - Current evidence and all initial results are in [validation evidence](dw-545-validation-evidence.md). Preservation passes for all 647 IDs, original DW-545 fields, the other 646 ledger records, archive/sprint and production sources. Counts remain 353 done/294 open across 265 exact-covering maintenance rows. The story-gitlink guard passes with no pointer movement. Five task files remain unstaged/untracked; the explicit repository restriction on staging/committing without a task requirement takes precedence over the workflow's automatic commit step. No production/API/dependency or release qualification change was made.
 
 - **low / patch — final bookkeeping terminology:** Independent final review accepts the test identities/counts, preservation, open ledger status and in-review spec. Its wording correction is accepted: earlier append-only notes describing "inherited" failures or a "timing recheck" mean only failures in unchanged existing tests and a focused recheck. Those words do not establish a timing or other root cause; none is established. Current validation evidence uses the precise cause-neutral terms. No new deferred goal results.
+
+- **Acceptance completed 2026-10-17:** The authorized [UI acceptance follow-up](spec-dw-545-ui-acceptance-followup.md) reproduces and repairs the separate removal renderer/confirmation ordering, adds controlled queued-authority and held-cleanup cases, and awaits the parent cancellation fixture. Independent review/correction recheck, a zero-warning/error Debug source build and full UI6243/6243 pass with zero failures/skips. All72 conflict cases remain included. The prior pending outcomes above remain historical evidence. Only DW-545 closes; DW-648 records separate ambiguous-retry qualification without a defect reproduction claim. See [complete commands, controls and limits](dw-545-ui-acceptance-evidence.md). Release holds remain.

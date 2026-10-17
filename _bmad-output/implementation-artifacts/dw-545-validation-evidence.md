@@ -1,5 +1,7 @@
 # DW-545 validation evidence
 
+**Later acceptance completed (2026-10-17):** The [authorized UI acceptance follow-up](dw-545-ui-acceptance-evidence.md) fixes the reproduced removal ordering races and a parent fixture completion gap. Independent review/recheck, zero-warning/error Debug source build and full UI6243/6243 pass with zero failures/skips, including all72 conflict cases. DW-545 is now closed; DW-648 records separate ambiguous-retry qualification. The original pending-stage body below is preserved as historical evidence; its failures are not rewritten as passes. Release remains not ready.
+
 Entry: clean `main` at `ceac6269da3e99d4d5e33c9fa3dd163959395f0f`, 2026-10-17. The user selected DW-545 from the deferred-work ledger. **Acceptance remains pending:** the full UI completion gate is red; DW-545 stays open/actionable and its spec stays `in-review`.
 
 ## Source finding

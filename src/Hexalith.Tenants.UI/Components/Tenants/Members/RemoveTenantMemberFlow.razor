@@ -1136,8 +1136,8 @@
 
     private void OnConfirmationInput(string? value)
     {
-        InvalidateAdmission();
         _confirmationText = value;
+        InvalidateAdmission();
     }
 
     private async Task SubmitAsync()
@@ -1151,7 +1151,8 @@
         TenantRetainedCommandAttempt? initialAttempt = _retainedAttempt;
         int initialAttemptGeneration = _attemptGeneration;
         long admissionGeneration = _admissionGeneration;
-        if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(false))
+        // Admission reads and refusal publication share the renderer with input and parameter updates.
+        if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(true))
         {
             if (!_disposed && admissionGeneration == Volatile.Read(ref _admissionGeneration)
                 && initialAttemptGeneration == _attemptGeneration && ReferenceEquals(initialAttempt, _retainedAttempt)
@@ -1161,7 +1162,8 @@
             }
             return;
         }
-        if (_disposed || initialAttemptGeneration != _attemptGeneration
+        if (_disposed || admissionGeneration != Volatile.Read(ref _admissionGeneration)
+            || initialAttemptGeneration != _attemptGeneration
             || !ReferenceEquals(initialAttempt, _retainedAttempt)
             || !TenantCommandAttemptTracker.HasSameEvidence(initialEvidence, _snapshot))
         {
@@ -1293,12 +1295,13 @@
 
         int submitGeneration = _attemptGeneration;
         _isSubmitting = true;
-        bool admitted = await SetCommandActivityRaisedAsync(true).ConfigureAwait(false);
+        bool admitted = await SetCommandActivityRaisedAsync(true).ConfigureAwait(true);
         if (_disposed || submitGeneration != _attemptGeneration)
         {
             return;
         }
-        bool authorityAdmitted = admitted && await ReauthorizeAdmissionAsync(admissionGeneration).ConfigureAwait(false);
+        bool authorityAdmitted = admitted && await ReauthorizeAdmissionAsync(admissionGeneration).ConfigureAwait(true)
+            && admissionGeneration == Volatile.Read(ref _admissionGeneration);
         if (_disposed || submitGeneration != _attemptGeneration)
         {
             return;
@@ -1310,7 +1313,7 @@
             TenantRetainedCommandAttempt? refusedAttempt = _retainedAttempt;
             try
             {
-                _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+                _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(true);
             }
             catch (Exception)
             {

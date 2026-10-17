@@ -5698,7 +5698,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
         cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
-        cut.Find("[data-testid='tenants-remove-member-cancel']").Click();
+        await cut.Find("[data-testid='tenants-remove-member-cancel']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
         cut.FindComponents<RemoveTenantMemberFlow>().ShouldBeEmpty();
         cut.FindAll("[data-testid='tenants-remove-member-open']")[1].Click();
         RemoveTenantMemberFlow replacement = cut.FindComponent<RemoveTenantMemberFlow>().Instance;

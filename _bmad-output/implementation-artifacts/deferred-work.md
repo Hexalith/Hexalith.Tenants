@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-545 closure and DW-648 review follow-up (2026-10-17):** Existing administrator conflict validation is accepted after the removal UI acceptance repair. Confirmation is published before cancellation; admission/cleanup resumes on the renderer and rejects obsolete authority generations. Exact EN/FR feedback, retained identity, no-dispatch and recovery controls pass independent review/recheck, a zero-warning/error Debug source build and full UI 6243/6243 with zero failures/skips. Original conflict findings, failing controls and all prior acceptance failures remain in [complete follow-up evidence](dw-545-ui-acceptance-evidence.md). Only DW-545 closes; the separate ambiguous RequestSent retry path gains qualification follow-up DW-648 without a reproduced defect claim. All 647 original IDs/fields remain plus DW-648: 648 IDs, 354 done/294 open across 265 exact-covering index rows. Archive/sprint, unrelated records, dependencies and release holds are preserved. Release remains not ready.
+
 **DW-545 verification, acceptance pending (2026-10-17):** Current row validation already rejects every representable conflicting duplicate; supported identical/ordinal deduplication remains unchanged. Independent review/recheck accepts 72 new conflict cases, final loader 99/99 and zero-warning/error Debug source build. Final full UI has 6229 passed/two failures/zero skips in unchanged removal-confirmation tests; all 72 new cases pass. DW-545 stays open/actionable and the spec stays in review under the all-tests gate. All 647 IDs remain, 353 done/294 open across 265 maintenance rows. Original findings/fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact commands, results and limits](dw-545-validation-evidence.md). No production defect reproduction or runtime fix is claimed.
 
 **DW-528/DW-542 closure (2026-10-17):** Bootstrap authority responses enforce the existing 64 KiB cap before buffering, with the client deadline, cancellation, subject binding and disposal preserved. The authorized follow-up documents the existing delegated owner query and repairs its SDK fixture, including real dispatcher/source-evidence checks. Independent review/recheck, a zero-warning/error Debug source build, 31 focused cases and the full Server 951/951 pass with zero failures/skips; all 24 new bootstrap cases remain included. Only these duplicate records close: all 647 IDs remain, 353 done/294 open across 265 exact-covering index rows. Original findings, pending-stage evidence, initial file-lock failures and all earlier results remain; unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-528-542-validation-evidence.md). Release remains not ready.
@@ -6724,24 +6726,31 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjecti
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; duplicate global-administrator ids are dropped and the page is still marked complete.\n  evidence: `GlobalAdministratorsProjectionLoader` ignores a failed `TryAdd` and sets `IsCompleteEvidence`. Conflicting administrator rows can disappear from a ready page. That loader is the global-administrator read, not this correction."
-status: open
-disposition: actionable
+pre-dw-545-acceptance-status: open
+status: done 2026-10-17
+pre-dw-545-acceptance-disposition: actionable
+disposition: resolved
 pre-dw-545-verification-date: 2026-10-12
 verification-date: 2026-10-17
 pre-dw-545-verification: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs:67 discards rows.TryAdd failure and :82 sets IsCompleteEvidence=true after page exhaustion. Conflicting duplicate UserId rows across stable pages are silently discarded; no duplicate-conflict fail-closed test was found.
-verification: Current sealed GlobalAdministratorRow has only UserId/Freshness/Lifecycle; IsCurrentStablePage requires every row to be Current/Current before merging, so all representable equal-ID conflicts already fail closed. Added 72 regressions covering every defined non-current state, order, page location and continuation; final loader 99/99 passes, zero failures/skips, with zero-warning/error Debug source build and accepted independent review/recheck. Final full UI has 6229 passed/two failures/zero skips in unchanged removal-confirmation tests; all 72 added cases pass. Full UI acceptance remains pending, with exact initial/focused/final results retained in dw-545-validation-evidence.md. No production defect reproduction or runtime fix is claimed.
+pre-dw-545-acceptance-verification: Current sealed GlobalAdministratorRow has only UserId/Freshness/Lifecycle; IsCurrentStablePage requires every row to be Current/Current before merging, so all representable equal-ID conflicts already fail closed. Added 72 regressions covering every defined non-current state, order, page location and continuation; final loader 99/99 passes, zero failures/skips, with zero-warning/error Debug source build and accepted independent review/recheck. Final full UI has 6229 passed/two failures/zero skips in unchanged removal-confirmation tests; all 72 added cases pass. Full UI acceptance remains pending, with exact initial/focused/final results retained in dw-545-validation-evidence.md. No production defect reproduction or runtime fix is claimed.
+verification: Existing loader guards already reject all representable conflicting administrator rows; accepted 72 conflict cases and identical/ordinal behavior remain unchanged. Authorized follow-up fixes removal admission renderer/confirmation ordering and queued authority generation consumption, preserving exact refusal, no-dispatch and same-ID retry semantics. Independent review/recheck, zero-warning/error Debug source build and full UI 6243/6243 pass with zero failures/skips. Failed controls and all earlier acceptance failures remain in dw-545-validation-evidence.md and dw-545-ui-acceptance-evidence.md. No loader production defect reproduction or loader runtime fix is claimed; ambiguous-delivery retry qualification remains separately open as DW-648.
 pre-dw-545-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs; src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs
+pre-dw-545-acceptance-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs; src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs; src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
 pre-dw-545-evidence-kind: verified-defect
 evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Global-administrator projection completeness contract
 pre-dw-545-next-action: Reject conflicting duplicate administrator rows as incomplete evidence and cover same/conflicting duplicates across cursor pages.
-next-action: Retain current identical-duplicate/ordinal behavior and the new conflict coverage; resolve the separate existing removal-confirmation test failures and pass the full UI completion gate before closing DW-545.
+pre-dw-545-acceptance-next-action: Retain current identical-duplicate/ordinal behavior and the new conflict coverage; resolve the separate existing removal-confirmation test failures and pass the full UI completion gate before closing DW-545.
+next-action: Closed after the full UI acceptance follow-up; preserve supported identical duplicates and ordinal identity, all historical results and existing release holds. DW-648 remains separate follow-up qualification.
 related: none
-validation-evidence: [Exact commands, review and pending acceptance](dw-545-validation-evidence.md)
+pre-dw-545-acceptance-validation-evidence: [Exact commands, review and pending acceptance](dw-545-validation-evidence.md)
+validation-evidence: [Original conflict evidence and prior failures](dw-545-validation-evidence.md); [completed UI acceptance, controls and limits](dw-545-ui-acceptance-evidence.md)
 validation-spec: spec-dw-545-conflicting-administrator-evidence.md
+resolution-spec: spec-dw-545-ui-acceptance-followup.md
 
 ### DW-546: Story 5.7; loading may drop an in-flight global-administrator correction when that story mounts the panel. Not reachable on the tenant audit page since `10c9f6f6`; unverified, high if true.
 
@@ -8640,3 +8649,20 @@ next-action: Closed within DW-647; existing release qualification holds and unre
 related: DW-645, DW-644
 resolution-evidence: [Exact validation, initial failures and independent review](dw-647-validation-evidence.md)
 resolution-spec: spec-dw-647-removal-admission-feedback.md
+### DW-648: Queued successful authority results on ambiguous removal-delivery retries lack regression coverage.
+
+origin: independent review of DW-545 UI acceptance follow-up, 2026-10-17
+location: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-545-ui-acceptance-followup.md`
+summary: Qualify admission-generation and renderer ordering on the separate RequestSent ambiguous-delivery retry path.
+status: open
+disposition: actionable
+verification-date: 2026-10-17
+verification: Read-only review confirms RetryDeliveryAsync handles RequestSent retries separately, retains ConfigureAwait(false), and has no caller-side generation comparison after the helper returns. Existing identity tests and the repaired Failed-retry second-read matrix do not prove successful authority consumption queued before a change-and-restore safety transition on this path. No controlled execution/mutation of that interleaving or production defect reproduction is claimed; this is a qualification gap, not a demonstrated regression introduced by the DW-545 repair.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
+evidence-kind: verified-gap
+priority: P2
+owner: Tenants UI
+dependencies: Supported ambiguous-delivery same-ID retry contract; controlled renderer/authority completion fixture
+next-action: Exercise an actual RequestSent same-ID retry with a successful authority result queued before safety changes and restores; assert no obsolete-generation dispatch and safe identity-preserving recovery, then repair runtime only if the regression reproduces.
+related: DW-545
