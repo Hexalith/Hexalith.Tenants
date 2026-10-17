@@ -34,4 +34,7 @@ internal sealed class TenantRetainedCommandAttempt(
 
     /// <summary>Gets or sets whether a delivery is awaiting its result.</summary>
     internal bool DeliveryInFlight { get; set; }
+
+    /// <summary>Gets or sets failed removal evidence to restore if this exact retry is abandoned before delivery.</summary>
+    internal TenantRetainedCommandAttempt? UndispatchedRemovalRetryBasis { get; set; }
 }

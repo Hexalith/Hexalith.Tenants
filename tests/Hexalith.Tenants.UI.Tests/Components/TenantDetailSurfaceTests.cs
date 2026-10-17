@@ -5390,6 +5390,82 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             $"aria-controls on {launchTestId} must point to the rendered {regionId} region containing the flow.");
     }
 
+    /// <summary>Real parent cancellation and reopening preserve a failed removal after its retry is refused.</summary>
+    /// <param name="faultRelease">Whether the parent activity release callback faults.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task MemberReviewCancelReopenPreservesRefusedRemovalRetryIdentity(bool faultRelease)
+    {
+        List<(RemoveUserFromTenant Request, string? Id)> deliveries = [];
+        ITenantCommandGateway gateway = Substitute.For<ITenantCommandGateway>();
+        gateway.RemoveUserFromTenantAsync(Arg.Any<RemoveUserFromTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                deliveries.Add((call.Arg<RemoveUserFromTenant>(), call.ArgAt<string?>(1)));
+                return Task.FromResult(TenantCommandSubmissionResult.Failed("Delivery needs recovery") with { MessageId = call.ArgAt<string?>(1) });
+            });
+        RegisterComponentServices(gateway);
+        TenantDetail detail = Detail("tenant.alpha");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        int releases = 0;
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(p => p
+            .Add(x => x.IsRemoveMemberAuthorized, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(x => x.AuditProofCapabilityAvailable, true)
+            .Add(x => x.Detail, detail)
+            .Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(x => x.Freshness, ReadModelFreshnessState.Current)
+            .Add(x => x.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(x => x.ProjectionVersion, "tenant-sequence:1")
+            .Add(x => x.Members, MemberSnapshot(detail))
+            .Add(x => x.CommandActivityLease, active =>
+            {
+                if (active && ++acquisitions == 2)
+                {
+                    entered.TrySetResult();
+                    return acquired.Task;
+                }
+                return !active && ++releases == 2 && faultRelease
+                    ? Task.FromException<bool>(new InvalidOperationException("Release failed")) : Task.FromResult(true);
+            }));
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[1].Click();
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("[data-testid='tenants-remove-member-flow'] form").SubmitAsync();
+        RemoveTenantMemberFlow originalFlow = cut.FindComponent<RemoveTenantMemberFlow>().Instance;
+        TenantRemoveMemberCommandSnapshot original = originalFlow.Snapshot;
+        original.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        Task retry = cut.Find("[data-testid='tenants-remove-member-flow'] form").SubmitAsync();
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        acquired.SetResult(true);
+        await retry.WaitAsync(TimeSpan.FromSeconds(5));
+        deliveries.Count.ShouldBe(1);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-cancel']").Click();
+        cut.FindComponents<RemoveTenantMemberFlow>().ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-remove-member-open']")[1].Click();
+        RemoveTenantMemberFlow replacement = cut.FindComponent<RemoveTenantMemberFlow>().Instance;
+        replacement.ShouldNotBeSameAs(originalFlow);
+        replacement.Snapshot.MessageId.ShouldBe(original.MessageId);
+        replacement.Snapshot.Intent.ShouldBe(original.Intent);
+        replacement.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        replacement.Snapshot.BaselineProjectionVersion.ShouldBe(original.BaselineProjectionVersion);
+        await cut.Find("[data-testid='tenants-remove-member-flow'] form").SubmitAsync();
+        deliveries.Count.ShouldBe(1);
+        acquisitions.ShouldBe(2);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("[data-testid='tenants-remove-member-flow'] form").SubmitAsync();
+        deliveries.Count.ShouldBe(2);
+        deliveries[1].ShouldBe(deliveries[0]);
+        acquisitions.ShouldBe(3);
+    }
+
     [Fact]
     public void Member_access_review_retargeting_creates_fresh_change_and_remove_flow_instances()
     {

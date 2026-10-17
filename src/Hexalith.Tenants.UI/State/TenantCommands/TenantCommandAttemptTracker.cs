@@ -59,7 +59,21 @@ public sealed class TenantCommandAttemptTracker(
                 return false;
             }
 
-            attempt = new(tenantId, leaseOwner, lease!, surfaceOwner, snapshot);
+            attempt = new(tenantId, leaseOwner, lease!, surfaceOwner, snapshot)
+            {
+                UndispatchedRemovalRetryBasis = existing is { SurfaceOwner: null, DeliveryInFlight: false,
+                    Snapshot: TenantRemoveMemberCommandSnapshot { State: TenantCommandLifecycleState.Failed,
+                        Intent: not null, MessageId: not null } failed }
+                    && snapshot is TenantRemoveMemberCommandSnapshot { State: TenantCommandLifecycleState.RequestSent,
+                        CorrelationId: null } retry
+                    && string.IsNullOrWhiteSpace(failed.CorrelationId)
+                    && !string.IsNullOrWhiteSpace(failed.MessageId)
+                    && string.Equals(failed.Intent.TenantId, tenantId, StringComparison.Ordinal)
+                    && Equals(failed.Intent, retry.Intent)
+                    && string.Equals(failed.MessageId, retry.MessageId, StringComparison.Ordinal)
+                    && failed.AttemptStartedAtUtc == retry.AttemptStartedAtUtc
+                        ? existing : null,
+            };
             _attempts[tenantId] = attempt;
             return true;
         }
@@ -279,6 +293,7 @@ public sealed class TenantCommandAttemptTracker(
             }
 
             attempt.DeliveryInFlight = true;
+            attempt.UndispatchedRemovalRetryBasis = null;
             return true;
         }
     }
@@ -320,7 +335,15 @@ public sealed class TenantCommandAttemptTracker(
             attempt.SurfaceOwner = null;
             if (!attempt.Lease.IsDispatchMarked && attempt.Lease.TryAbandonBeforeDispatch(attempt.LeaseOwner))
             {
-                _ = _attempts.Remove(attempt.TenantId);
+                if (attempt.UndispatchedRemovalRetryBasis is { } failedRemoval)
+                {
+                    _attempts[attempt.TenantId] = failedRemoval;
+                    attempt.UndispatchedRemovalRetryBasis = null;
+                }
+                else
+                {
+                    _ = _attempts.Remove(attempt.TenantId);
+                }
             }
         }
     }

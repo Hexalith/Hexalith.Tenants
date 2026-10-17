@@ -83,4 +83,94 @@ public sealed class TenantRetainedCommandAttemptTests
         gate.IsLocked(key).ShouldBeTrue();
         replacement!.TryAbandonBeforeDispatch(replacementOwner).ShouldBeTrue();
     }
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public void AbandonedSameIdentityRemovalRetryRestoresOriginalEvidenceWithoutHoldingAdmission(string? correlationId)
+    {
+        TenantAggregateCommandAdmissionGate gate = new();
+        using TenantCommandAttemptTracker tracker = new(gate);
+        object owner = new();
+        TenantRemoveMemberCommandSnapshot pending = new(TenantCommandLifecycleState.RequestSent,
+            new("tenant.alpha", "reader"), MessageId: "original", BaselineProjectionVersion: "tenant-sequence:1",
+            AttemptStartedAtUtc: DateTimeOffset.UtcNow);
+        tracker.TryBegin("tenant.alpha", owner, pending, out TenantRetainedCommandAttempt? original).ShouldBeTrue();
+        tracker.TryStartDelivery(original!, owner).ShouldBeTrue();
+        TenantRemoveMemberCommandSnapshot failed = pending with { State = TenantCommandLifecycleState.Failed, CorrelationId = correlationId };
+        tracker.TryCompleteDelivery(original!, pending, failed).ShouldBeTrue();
+        tracker.Detach(original, owner);
+        TenantRemoveMemberCommandSnapshot retry = failed.RequestSent("tenant-sequence:2", attemptStartedAtUtc: failed.AttemptStartedAtUtc) with { CorrelationId = null };
+        tracker.TryBegin("tenant.alpha", owner, retry, out TenantRetainedCommandAttempt? admission).ShouldBeTrue();
+        tracker.Detach(admission, new object());
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        tracker.Detach(admission, owner);
+        tracker.Find<TenantRemoveMemberCommandSnapshot>("tenant.alpha").ShouldBeSameAs(failed);
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        object replacement = new();
+        tracker.TryAdopt<TenantRemoveMemberCommandSnapshot>("tenant.alpha", replacement, out var restored, out var evidence).ShouldBeTrue();
+        restored.ShouldBeSameAs(original);
+        evidence.ShouldBeSameAs(failed);
+        tracker.Detach(restored, replacement);
+        tracker.TryBegin("tenant.alpha", replacement, retry, out var next).ShouldBeTrue();
+        tracker.Detach(admission, owner);
+        tracker.IsAttached(next!, replacement).ShouldBeTrue();
+        tracker.TryCompleteDelivery(admission!, retry, failed).ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData("message")]
+    [InlineData("intent")]
+    [InlineData("started")]
+    [InlineData("correlation")]
+    public void UnrelatedUndispatchedRemovalDoesNotRestoreOlderFailure(string mismatch)
+    {
+        TenantAggregateCommandAdmissionGate gate = new();
+        using TenantCommandAttemptTracker tracker = new(gate);
+        object owner = new();
+        TenantRemoveMemberCommandSnapshot failed = new(TenantCommandLifecycleState.Failed,
+            new("tenant.alpha", "reader"), MessageId: "original", AttemptStartedAtUtc: DateTimeOffset.UtcNow);
+        tracker.TryBegin("tenant.alpha", owner, failed, out var original).ShouldBeTrue();
+        tracker.TryUpdate(original!, failed, failed).ShouldBeTrue();
+        tracker.Detach(original, owner);
+        TenantRemoveMemberCommandSnapshot retry = failed.RequestSent(attemptStartedAtUtc: failed.AttemptStartedAtUtc);
+        retry = mismatch switch
+        {
+            "message" => retry with { MessageId = "different" },
+            "intent" => retry with { Intent = new("tenant.alpha", "other-reader") },
+            "started" => retry with { AttemptStartedAtUtc = retry.AttemptStartedAtUtc!.Value.AddMinutes(1) },
+            "correlation" => retry with { CorrelationId = "known" },
+            _ => throw new ArgumentException("Unknown mismatch.", nameof(mismatch)),
+        };
+        tracker.TryBegin("tenant.alpha", owner, retry, out var admission).ShouldBeTrue();
+        tracker.Detach(admission, owner);
+        tracker.Find<TenantRemoveMemberCommandSnapshot>("tenant.alpha").ShouldBeNull();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    [Fact]
+    public void DispatchedRetryCannotRestorePriorTerminalFailureAfterRendererDetaches()
+    {
+        TenantAggregateCommandAdmissionGate gate = new();
+        using TenantCommandAttemptTracker tracker = new(gate);
+        object owner = new();
+        TenantRemoveMemberCommandSnapshot failed = new(TenantCommandLifecycleState.Failed,
+            new("tenant.alpha", "reader"), MessageId: "original", AttemptStartedAtUtc: DateTimeOffset.UtcNow);
+        tracker.TryBegin("tenant.alpha", owner, failed, out var original).ShouldBeTrue();
+        tracker.TryUpdate(original!, failed, failed).ShouldBeTrue();
+        tracker.Detach(original, owner);
+        TenantRemoveMemberCommandSnapshot retry = failed.RequestSent(attemptStartedAtUtc: failed.AttemptStartedAtUtc);
+        tracker.TryBegin("tenant.alpha", owner, retry, out var admission).ShouldBeTrue();
+        tracker.TryStartDelivery(admission!, owner).ShouldBeTrue();
+        tracker.Detach(admission, owner);
+        tracker.Find<TenantRemoveMemberCommandSnapshot>("tenant.alpha").ShouldBeSameAs(retry);
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        tracker.TryCompleteDelivery(admission!, retry, retry with { State = TenantCommandLifecycleState.Rejected }).ShouldBeTrue();
+        tracker.Find<TenantRemoveMemberCommandSnapshot>("tenant.alpha")!.State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
 }

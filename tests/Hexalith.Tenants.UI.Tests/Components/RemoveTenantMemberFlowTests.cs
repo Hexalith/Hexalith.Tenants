@@ -1736,6 +1736,330 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         acquisitions.ShouldBe(2);
     }
 
+    /// <summary>Abandoned retries keep the delivered identity independently of the renderer and its admission.</summary>
+    /// <param name="refusal">The stage that abandons the undispatched retry.</param>
+    /// <param name="faultRelease">Whether safety cleanup faults.</param>
+    [Theory]
+    [InlineData("freshness", false)]
+    [InlineData("freshness", true)]
+    [InlineData("confirmation", false)]
+    [InlineData("confirmation", true)]
+    [InlineData("acquisition-refused", false)]
+    [InlineData("acquisition-fault", false)]
+    [InlineData("dispose", false)]
+    [InlineData("dispose", true)]
+    public async Task AbandonedRemovalRetryRetainsIdentityAcrossRendererReplacement(string refusal, bool faultRelease)
+    {
+        var delivered = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int deliveries = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            RemoveMemberAsync = _ => ++deliveries == 1
+                ? Task.FromResult(TenantCommandSubmissionResult.Failed("Delivery outcome needs recovery.") with
+                {
+                    MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                }) : delivered.Task,
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+            {
+                CommittedEventSequence = 2,
+            },
+        };
+        RegisterServices(gateway, CreateCapableQueryGateway());
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var released = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        int releases = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active)
+            {
+                if (++acquisitions != 2)
+                {
+                    return Task.FromResult(true);
+                }
+                return refusal switch
+                {
+                    "acquisition-refused" => Task.FromResult(false),
+                    "acquisition-fault" => Task.FromException<bool>(new InvalidOperationException("Admission failed")),
+                    _ => acquired.Task,
+                };
+            }
+            if (++releases == 2 && refusal is not "acquisition-refused" and not "acquisition-fault")
+            {
+                releaseEntered.TrySetResult();
+                return released.Task;
+            }
+            return Task.FromResult(true);
+        });
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        original.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        Task retry = cut.Find("form").SubmitAsync();
+        if (refusal is not "acquisition-refused" and not "acquisition-fault")
+        {
+            cut.WaitForAssertion(() => acquisitions.ShouldBe(2));
+            if (refusal is "confirmation")
+            {
+                cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("changed");
+            }
+            else
+            {
+                cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+            }
+            acquired.SetResult(true);
+            await releaseEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            if (refusal is "dispose")
+            {
+                cut.Dispose();
+            }
+            if (faultRelease)
+            {
+                released.SetException(new InvalidOperationException("Release failed"));
+            }
+            else
+            {
+                released.SetResult(true);
+            }
+        }
+        await retry.WaitAsync(TimeSpan.FromSeconds(5));
+        if (refusal is not "dispose")
+        {
+            cut.Dispose();
+        }
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(0);
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        tracker.Find<TenantRemoveMemberCommandSnapshot>("tenant.alpha").ShouldBe(original);
+
+        int freshAdmissions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> replacement = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active)
+            {
+                freshAdmissions++;
+            }
+            return Task.FromResult(true);
+        });
+        replacement.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        replacement.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+        replacement.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        replacement.Instance.Snapshot.BaselineProjectionVersion.ShouldBe(original.BaselineProjectionVersion);
+        await replacement.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        freshAdmissions.ShouldBe(0);
+        replacement.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        Task resubmission = replacement.Find("form").SubmitAsync();
+        replacement.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
+        freshAdmissions.ShouldBe(1);
+        gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        delivered.SetResult(TenantCommandSubmissionResult.Accepted(original.MessageId!, "correlation-1"));
+        await resubmission;
+        replacement.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        TenantDetail after = Detail("tenant.alpha", [new("owner-user", TenantRole.TenantOwner), new("second-owner", TenantRole.TenantOwner)]);
+        await replacement.InvokeAsync(() => replacement.Instance.ApplyProjectionEvidence(Proof(after, "tenant-sequence:2")));
+        replacement.WaitForAssertion(() =>
+        {
+            replacement.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+            tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+            gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        });
+        replacement.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        gateway.RemoveMemberCallCount.ShouldBe(2);
+    }
+
+    /// <summary>Blank correlation variants use the same retained retry contract as missing correlation.</summary>
+    /// <param name="correlationId">The missing or blank gateway correlation value.</param>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    public async Task RefusedRemovalRetryWithBlankCorrelationRetainsOriginalIdentity(string? correlationId)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Recover delivery") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                CorrelationId = correlationId,
+            },
+        };
+        RegisterServices(gateway);
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active => Task.FromResult(!active || ++acquisitions != 2));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        await cut.Find("form").SubmitAsync();
+        cut.Dispose();
+        IRenderedComponent<RemoveTenantMemberFlow> replacement = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        replacement.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        replacement.Instance.Snapshot.CorrelationId.ShouldBe(correlationId);
+        replacement.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await replacement.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(2);
+        gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+    }
+
+    /// <summary>Old callback completion cannot remove a replacement retry's exact admission or evidence.</summary>
+    /// <param name="stage">Whether acquisition or release remains pending during replacement.</param>
+    /// <param name="faultCallback">Whether the old callback faults.</param>
+    [Theory]
+    [InlineData("acquisition", false)]
+    [InlineData("acquisition", true)]
+    [InlineData("release", false)]
+    [InlineData("release", true)]
+    public async Task PendingRetryCallbackCannotOverwriteReplacementOwnership(string stage, bool faultCallback)
+    {
+        var delivered = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int deliveries = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            RemoveMemberAsync = _ => ++deliveries == 1
+                ? Task.FromResult(TenantCommandSubmissionResult.Failed("Recover delivery") with { MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV" })
+                : delivered.Task,
+        };
+        RegisterServices(gateway);
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseEntered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var released = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        int releases = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> old = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active)
+            {
+                return ++acquisitions == 2 ? acquired.Task : Task.FromResult(true);
+            }
+            if (++releases == 2)
+            {
+                releaseEntered.TrySetResult();
+                return released.Task;
+            }
+            return Task.FromResult(true);
+        });
+        old.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await old.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = old.Instance.Snapshot;
+        Task oldRetry = old.Find("form").SubmitAsync();
+        old.WaitForAssertion(() => acquisitions.ShouldBe(2));
+        if (stage is "release")
+        {
+            old.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+            acquired.SetResult(true);
+            await releaseEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        ((IDisposable)old.Instance).Dispose();
+        tracker.Find<TenantRemoveMemberCommandSnapshot>("tenant.alpha").ShouldBe(original);
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        IRenderedComponent<RemoveTenantMemberFlow> replacement = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        replacement.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        Task replacementRetry = replacement.Find("form").SubmitAsync();
+        replacement.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(2));
+        TenantRemoveMemberCommandSnapshot expected = replacement.Instance.Snapshot;
+        TenantRetainedCommandAttempt attempt = (TenantRetainedCommandAttempt)typeof(RemoveTenantMemberFlow)
+            .GetField("_retainedAttempt", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(replacement.Instance)!;
+        TaskCompletionSource<bool> pending = stage is "release" ? released : acquired;
+        if (faultCallback)
+        {
+            pending.SetException(new InvalidOperationException("Old callback failed"));
+        }
+        else
+        {
+            pending.SetResult(true);
+        }
+        await oldRetry.WaitAsync(TimeSpan.FromSeconds(5));
+        replacement.Instance.Snapshot.ShouldBe(expected);
+        tracker.IsAttached(attempt, replacement.Instance).ShouldBeTrue();
+        tracker.Find<TenantRemoveMemberCommandSnapshot>("tenant.alpha").ShouldBe(expected);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        delivered.SetResult(TenantCommandSubmissionResult.Accepted(original.MessageId!, "replacement-correlation"));
+        await replacementRetry.WaitAsync(TimeSpan.FromSeconds(5));
+        replacement.Instance.Snapshot.CorrelationId.ShouldBe("replacement-correlation");
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
+    /// <summary>Restoring a failed identity cannot bypass the replacement's current safety gates.</summary>
+    /// <param name="blocker">The current condition that refuses removal.</param>
+    [Theory]
+    [InlineData("denied")]
+    [InlineData("unknown")]
+    [InlineData("stale")]
+    [InlineData("viewport")]
+    [InlineData("unknown-role")]
+    [InlineData("disabled")]
+    [InlineData("audit")]
+    public async Task RestoredFailedRemovalStillRequiresCurrentSafetyEvidence(string blocker)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Recover delivery") with { MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV" },
+        };
+        RegisterServices(gateway);
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> old = RenderLeaseRecoveryFlow(active => Task.FromResult(!active || ++acquisitions != 2));
+        old.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await old.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = old.Instance.Snapshot;
+        await old.Find("form").SubmitAsync();
+        old.Dispose();
+        int freshAdmissions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> replacement = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active)
+            {
+                freshAdmissions++;
+            }
+            return Task.FromResult(true);
+        });
+        if (blocker is "denied" or "unknown")
+        {
+            TenantLifecycleAuthorizationReflectionState authority = blocker is "denied"
+                ? TenantLifecycleAuthorizationReflectionState.MissingPermission : TenantLifecycleAuthorizationReflectionState.Indeterminate;
+            replacement.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(authority)));
+        }
+        else if (blocker is "stale")
+        {
+            replacement.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        }
+        else if (blocker is "viewport")
+        {
+            Services.GetRequiredService<TenantHighImpactViewportObservation>().Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+        }
+        else if (blocker is "unknown-role")
+        {
+            replacement.Render(p => p.Add(x => x.Member, new TenantMember("reader-user", TenantRole.Unknown)));
+        }
+        else if (blocker is "disabled")
+        {
+            replacement.Render(p => p.Add(x => x.Detail, Detail("tenant.alpha") with { Status = TenantStatus.Disabled }));
+        }
+        else
+        {
+            replacement.Render(p => p.Add(x => x.AuditProofCapabilityAvailable, false));
+        }
+        replacement.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await replacement.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        freshAdmissions.ShouldBe(0);
+        replacement.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        replacement.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        replacement.Dispose();
+        Services.GetRequiredService<TenantCommandAttemptTracker>().Find<TenantRemoveMemberCommandSnapshot>("tenant.alpha")!.MessageId.ShouldBe(original.MessageId);
+    }
+
     private IRenderedComponent<RemoveTenantMemberFlow> RenderLeaseRecoveryFlow(
         Func<bool, Task<bool>> lease,
         ReadModelFreshnessState freshness = ReadModelFreshnessState.Current)

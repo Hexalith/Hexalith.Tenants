@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-646 closure (2026-10-17):** Only DW-646 closes after failed-removal identity retention across refused/faulted retry admission, cleanup, disposal and real parent cancel/reopen passes independent review/correction rechecks. The final Debug source build has zero warnings/errors; focused 380 and full UI 6074 pass with zero failures/skips, including 32 new cases. All 647 IDs remain:345 done/302 open across 270 exact-covering maintenance rows. Original findings/pre-closure evidence, DW-647, every unrelated ledger body, prior evidence, archive/sprint, dependency pointers and release holds are preserved. See [complete validation and initial failures](dw-646-validation-evidence.md). Release remains not ready.
+
 Reconciliation date: 2026-10-12. Verified against Tenants HEAD `7a2a126f` and the existing checked-out root dependencies. Scope: all 152 entries marked open and all 287 unnumbered findings/restatements (including 254 `source_spec` records). Unnumbered records now have DW-357 through DW-643; their original multiline text and resolution notes are preserved as a JSON string in the single-line `legacy-detail` field. Existing DW identifiers, findings, decisions, closed stubs and archive content are preserved. No BMAD artifact was moved.
 
 This ledger remains the source of truth; [the maintenance backlog](../../docs/maintenance-backlog.md) is its concise remaining-work index. `status` remains `open` or `done <ISO date>` for existing readers. Supplementary single-line fields record `disposition`, verification date/evidence, evidence kind, priority, owner, dependencies, next action and exact duplicate relationships. Accepted limitations and uncertain findings remain open; acceptance records an existing intentional boundary, not completion. `verification-files` resolves abbreviated filenames where unambiguous. `legacy-detail` on migrated records decodes to the original text, including earlier resolutions.
@@ -8642,17 +8644,24 @@ next-action: None for DW-645; completed after reviewed verification. DW-646 and 
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-645-predispatch-release-recovery.md`
   summary: Preserve the possibly delivered failed-removal identity across cancel/reopen after a pre-dispatch retry safety refusal.
   evidence: Independent DW-645 review traced replacement of the terminal failed attempt with a new undispatched RequestSent admission, followed by Detach removing that record and RefuseRetry restoring original evidence only after the retained-attempt reference is null. MemberAccessReview cancel/reopen destroys that local snapshot. Identical successful-release cleanup exists at canonical entry e667d5391dae306e631dec23acd191863e54130c; DW-645 does not introduce it.
-status: open
-disposition: actionable
-verification-date: 2026-10-17
-verification: Source-verified against entry and current SubmitAsync, TenantCommandAttemptTracker.Detach and MemberAccessReview.CloseRemoveMemberAsync. Current executed regression proves same-live-renderer message reuse only. No cancel/reopen or replacement reproduction of this older loss was executed; do not infer that broader recovery is repaired.
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-17
+pre-closure-verification: Source-verified against entry and current SubmitAsync, TenantCommandAttemptTracker.Detach and MemberAccessReview.CloseRemoveMemberAsync. Current executed regression proves same-live-renderer message reuse only. No cancel/reopen or replacement reproduction of this older loss was executed; do not infer that broader recovery is repaired.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAttemptTracker.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
-evidence-kind: verified-defect
+pre-closure-evidence-kind: verified-defect
 priority: P2
 owner: Tenants UI
 dependencies: Retained failed-attempt identity across undispatched retry abandonment
-next-action: Add failed delivery, held retry safety refusal, cancel/reopen and same-ID recovery coverage, then preserve the original recovery basis without retaining an undispatched aggregate lock.
+pre-closure-next-action: Add failed delivery, held retry safety refusal, cancel/reopen and same-ID recovery coverage, then preserve the original recovery basis without retaining an undispatched aggregate lock.
 related: DW-645, DW-644
+closure-evidence: _bmad-output/implementation-artifacts/dw-646-validation-evidence.md
+status: done 2026-10-17
+disposition: done
+verification-date: 2026-10-17
+verification: Matching failed removal evidence survives undispatched retry abandonment, including blank correlation values, refused/faulted activity acquisition, held safety release, disposal and late callbacks. Cancel/reopen restores original request/message/start/baseline without retaining an aggregate lock; fresh confirmation/admission/current safety remain required. Delivery-start clears rollback, preserving dispatched ownership. Thirty-two new cases, independent review/correction rechecks, zero-warning/error Debug source build, focused 380 and full UI 6074 pass with zero failures/skips. Exact initial failures, commands and limits are retained in closure evidence; DW-647 remains separate.
+evidence-kind: executed-regression-and-independent-review
+next-action: None for DW-646; completed after reviewed verification. DW-647 remains the separate localized-feedback follow-up.
 
 ### DW-647: A freshness or confirmation change during removal admission can announce unavailable authority instead of its actual refusal reason.
 

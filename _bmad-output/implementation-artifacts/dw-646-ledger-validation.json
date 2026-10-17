@@ -1,0 +1,12 @@
+{
+  "baseline_commit": "f052c0094d952cb4856a4aa1e1e69cd15ca6ac72",
+  "record_count": 647,
+  "done": 345,
+  "open": 302,
+  "index_rows": 270,
+  "unrelated_ledger_bodies_unchanged": 646,
+  "original_dw_646_fields_preserved": true,
+  "archive_sprint_unchanged": true,
+  "head_indexed_gitlinks_unchanged": true,
+  "index_exact_cover": true
+}
