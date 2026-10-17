@@ -92,7 +92,7 @@ internal static class TenantConfigurationSafeComposer
                 policy.IsGlobalAdministrator,
                 policy.AuthorizedPrefixes,
                 rows,
-                ResolveAuthority(safeModel.TenantId, tenantStatus, safeModel, policy)));
+                ResolveAuthority(safeModel.TenantId, safeModel, policy)));
     }
 
     /// <summary>
@@ -215,12 +215,11 @@ internal static class TenantConfigurationSafeComposer
         TenantConfigurationReadPolicyResolution policy)
     {
         ArgumentNullException.ThrowIfNull(detail);
-        return ResolveAuthority(detail.TenantId, detail.Status, detail.Members, policy);
+        return ResolveAuthority(detail.TenantId, detail.Members, policy);
     }
 
     private static TenantConfigurationAuthorityState ResolveAuthority(
         string tenantId,
-        TenantStatus tenantStatus,
         TenantConfigurationSafeModel safeModel,
         TenantConfigurationReadPolicyResolution policy)
     {
@@ -230,7 +229,7 @@ internal static class TenantConfigurationSafeComposer
         // A safe configuration model deliberately carries no membership rows. Reauthorization that only
         // receives that model therefore cannot re-prove TenantOwner authority; it may preserve global
         // administrator evidence, but ordinary principals fail closed until sanitized detail is supplied.
-        _ = tenantStatus;
+        // Lifecycle status is not an input, so it cannot drop preserved global-administrator evidence.
         return policy.PrincipalState is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator
             ? TenantConfigurationAuthorityState.GlobalAdministrator
             : policy.PrincipalState is TenantConfigurationPrincipalEvidenceState.Indeterminate
@@ -240,17 +239,14 @@ internal static class TenantConfigurationSafeComposer
 
     private static TenantConfigurationAuthorityState ResolveAuthority(
         string tenantId,
-        TenantStatus tenantStatus,
         IReadOnlyList<TenantMember> members,
         TenantConfigurationReadPolicyResolution policy)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         ArgumentNullException.ThrowIfNull(members);
 
-        // Lifecycle status never gates mutation authority itself -- a disabled tenant blocks
-        // configuration through the separate TenantDisabled domain outcome, not by revoking role.
-        _ = tenantStatus;
-
+        // Status is not a parameter. A disabled tenant blocks configuration through the separate
+        // TenantDisabled domain outcome; this method does not choose a role from lifecycle.
         if (policy.PrincipalState is TenantConfigurationPrincipalEvidenceState.GlobalAdministrator)
         {
             return TenantConfigurationAuthorityState.GlobalAdministrator;

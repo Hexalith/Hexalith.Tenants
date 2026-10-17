@@ -1074,6 +1074,84 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Fact]
+    public void Lifecycle_status_does_not_change_resolved_configuration_authority()
+    {
+        // Status is stored on the context and must not choose a role. A resolver that treated Disabled
+        // as MissingPermission, or a safe-model reauthorization that dropped the supplied status, fails here.
+        Dictionary<string, string> configuration = new(StringComparer.Ordinal)
+        {
+            ["billing.mode"] = "trial",
+        };
+        TenantConfigurationReadPolicyResolution ownerPolicy = OwnerPolicy();
+        TenantConfigurationReadPolicyResolution globalPolicy = GlobalPolicy();
+        TenantConfigurationComposition activeOwner = TenantConfigurationSafeComposer.Compose(
+            Detail(configuration, TenantStatus.Active),
+            ownerPolicy);
+
+        foreach (TenantStatus status in new[] { TenantStatus.Unknown, TenantStatus.Active, TenantStatus.Disabled })
+        {
+            TenantDetail ownerDetail = Detail(configuration, status);
+            TenantConfigurationManagementContext owner = TenantConfigurationSafeComposer.Compose(
+                ownerDetail,
+                ownerPolicy).ManagementContext;
+            owner.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.TenantOwner);
+            owner.HasMutationAuthority.ShouldBeTrue();
+            owner.TenantStatus.ShouldBe(status);
+            owner.AuthorityState.ShouldBe(activeOwner.ManagementContext.AuthorityState);
+
+            TenantDetail contributorDetail = new(
+                "tenant.alpha",
+                "Alpha",
+                "Description",
+                status,
+                [new TenantMember("operator.alpha", TenantRole.TenantContributor)],
+                configuration,
+                DateTimeOffset.UtcNow);
+            TenantConfigurationManagementContext contributor = TenantConfigurationSafeComposer.Compose(
+                contributorDetail,
+                ownerPolicy).ManagementContext;
+            contributor.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.MissingPermission);
+            contributor.HasMutationAuthority.ShouldBeFalse();
+            contributor.TenantStatus.ShouldBe(status);
+
+            (_, TenantConfigurationManagementContext reauthorized) = TenantConfigurationSafeComposer.Reauthorize(
+                activeOwner.SafeModel,
+                status,
+                ownerPolicy,
+                degraded: false);
+            reauthorized.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.MissingPermission);
+            reauthorized.HasMutationAuthority.ShouldBeFalse();
+            reauthorized.TenantStatus.ShouldBe(status);
+            reauthorized.IsAvailable.ShouldBeTrue();
+
+            (_, TenantConfigurationManagementContext globalReauthorized) = TenantConfigurationSafeComposer.Reauthorize(
+                activeOwner.SafeModel,
+                status,
+                globalPolicy,
+                degraded: false);
+            globalReauthorized.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.GlobalAdministrator);
+            globalReauthorized.HasMutationAuthority.ShouldBeTrue();
+            globalReauthorized.TenantStatus.ShouldBe(status);
+
+            (_, TenantConfigurationManagementContext fromDetail) = TenantConfigurationSafeComposer.Reauthorize(
+                ownerDetail,
+                activeOwner.SafeModel,
+                ownerPolicy,
+                degraded: false);
+            fromDetail.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.TenantOwner);
+            fromDetail.HasMutationAuthority.ShouldBeTrue();
+            fromDetail.TenantStatus.ShouldBe(status);
+
+            TenantConfigurationManagementContext global = TenantConfigurationSafeComposer.Compose(
+                Detail(configuration, status),
+                globalPolicy).ManagementContext;
+            global.AuthorityState.ShouldBe(TenantConfigurationAuthorityState.GlobalAdministrator);
+            global.HasMutationAuthority.ShouldBeTrue();
+            global.TenantStatus.ShouldBe(status);
+        }
+    }
+
+    [Fact]
     public void Configuration_reload_invalidates_cached_grants_before_the_next_resolution()
     {
         IConfigurationRoot configuration = new ConfigurationBuilder()
@@ -1263,15 +1341,41 @@ public sealed class TenantConfigurationReadPolicyTests
             .AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(json)))
             .Build();
 
-    private static TenantDetail Detail(IReadOnlyDictionary<string, string> configuration)
+    private static TenantDetail Detail(
+        IReadOnlyDictionary<string, string> configuration,
+        TenantStatus status = TenantStatus.Active)
         => new(
             "tenant.alpha",
             "Alpha",
             "Description",
-            TenantStatus.Active,
+            status,
             [new TenantMember("operator.alpha", TenantRole.TenantOwner)],
             configuration,
             DateTimeOffset.UtcNow);
+
+    private static TenantConfigurationReadPolicyResolution OwnerPolicy()
+        => new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [{ "TenantId": "tenant.alpha", "Subject": "operator.alpha", "Prefix": "billing" }],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"));
+
+    private static TenantConfigurationReadPolicyResolution GlobalPolicy()
+        => new TenantConfigurationReadPolicyProvider(Configuration("""
+            {
+              "Tenants": {
+                "ConfigurationReadPolicy": {
+                  "PrefixGrants": [],
+                  "DisplaySafe": ["billing.mode"]
+                }
+              }
+            }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"));
 
     private sealed class StubAuthenticationStateProvider(ClaimsPrincipal principal) : AuthenticationStateProvider
     {

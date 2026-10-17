@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-308/DW-314 closure and DW-649 review deferral (2026-10-17):** Configuration management contexts now require an explicit authority state, and the private resolvers no longer accept a lifecycle status they discard. The old five-argument calls failed compilation (CS7036) before each test passed the authority the previous default would have chosen. Unknown, Active, and Disabled stay independent of owner, contributor, global, and both reauthorization paths. Independent review, a zero-warning/error Debug source build, focused policy 80/80 and full UI 6263/6263 pass with zero failures/skips. Only these duplicate records close. The detail-page safe-model stub that still grants TenantOwner is newly open as DW-649; production already returns MissingPermission for that shape, and this change preserved the stub's previous meaning. All 649 IDs remain: 357 done/292 open across 264 exact-covering index rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-308-314-validation-evidence.md). Release remains not ready.
+
 **DW-648 closure (2026-10-17):** Ambiguous member-removal retries now consume current authority on the renderer and reject obsolete admission generations while retaining the original identity and ownership. Controlled pre-fix queued cases reproduce the defect; nineteen new regressions, independent review/recheck, a zero-warning/error Debug source build, focused 240/240 and full UI 6262/6262 pass with zero failures/skips. Only DW-648 closes: all 648 IDs remain, 355 done/293 open across 264 exact-covering index rows. Historical findings and initial failures, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-648-validation-evidence.md). Release remains not ready.
 
 **DW-545 closure and DW-648 review follow-up (2026-10-17):** Existing administrator conflict validation is accepted after the removal UI acceptance repair. Confirmation is published before cancellation; admission/cleanup resumes on the renderer and rejects obsolete authority generations. Exact EN/FR feedback, retained identity, no-dispatch and recovery controls pass independent review/recheck, a zero-warning/error Debug source build and full UI 6243/6243 with zero failures/skips. Original conflict findings, failing controls and all prior acceptance failures remain in [complete follow-up evidence](dw-545-ui-acceptance-evidence.md). Only DW-545 closes; the separate ambiguous RequestSent retry path gains qualification follow-up DW-648 without a reproduced defect claim. All 647 original IDs/fields remain plus DW-648: 648 IDs, 354 done/294 open across 265 exact-covering index rows. Archive/sprint, unrelated records, dependencies and release holds are preserved. Release remains not ready.
@@ -3053,17 +3055,25 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: TenantConfigurationManagementContext
 reason: The legacy ledger defers this issue: `TenantConfigurationManagementContext`'s null `authorityState` default (implicit `TenantOwner` grant) and `TenantConfigurationSafeComposer`'s `_ = tenantStatus;` discard were documented with comments rather than removed. Original context is preserved in legacy-detail.
 legacy-detail: - `TenantConfigurationManagementContext`'s null `authorityState` default (implicit `TenantOwner` grant) and `TenantConfigurationSafeComposer`'s `_ = tenantStatus;` discard were documented with comments rather than removed.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs Available still accepts authorityState=null and grants TenantOwner for nonglobal callers; Services/Configuration/TenantConfigurationSafeComposer.cs still discards tenantStatus in authority helpers. Production supplies explicit evidence, but the public implicit-grant trap remains.
+pre-dw-308-status: open
+status: done 2026-10-17
+pre-dw-308-disposition: actionable
+disposition: resolved
+pre-dw-308-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-308-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs Available still accepts authorityState=null and grants TenantOwner for nonglobal callers; Services/Configuration/TenantConfigurationSafeComposer.cs still discards tenantStatus in authority helpers. Production supplies explicit evidence, but the public implicit-grant trap remains.
+verification: Available now requires TenantConfigurationAuthorityState and does not infer a role. Private resolvers no longer take tenantStatus. The pre-update UI test build failed with CS7036 on every old five-argument call. Final Debug source build has zero warnings/errors; policy tests 80/80 and full UI 6263/6263 pass with zero failures/skips. Exact commands and the initial compile failure remain in dw-308-314-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
-evidence-kind: verified-defect
+pre-dw-308-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Require explicit authority at construction and reconcile unused status parameters with compatibility tests.
-related: DW-308, DW-314
+pre-dw-308-next-action: Require explicit authority at construction and reconcile unused status parameters with compatibility tests.
+next-action: Closed within DW-308; DW-649 records the separate page-stub mismatch. Existing release holds remain.
+related: DW-314, DW-649
+resolution-evidence: [Exact validation, initial compile failure and independent review](dw-308-314-validation-evidence.md)
+resolution-spec: spec-dw-308-314-explicit-configuration-authority.md
 
 ### DW-309: `_hasAdoptedRetainedAttempt` is latched before the tracker lookup, and a `Detail.TenantId` change on a mounted flow is never re-adopted. Latent only — the parent renders the flow solely for a loaded tenant
 
@@ -3112,18 +3122,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs:85-92
 reason: The legacy ledger defers this issue: `TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it. Original context is preserved in legacy-detail.
 legacy-detail: - **`TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it** — `src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs:85-92`. The `<remarks>` explains at length that the null default silently grants `TenantOwner`, exists only for tests predating the authority distinction, and "a new test should not rely on" it. A comment cannot stop the next test from taking the 5-argument overload. Second occurrence — also deferred in Loop 2. Deferred again because configuration authority is Story 3.5/3.6 territory, which Story 3.4's "Never" list excludes.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs Available still accepts authorityState=null and grants TenantOwner for nonglobal callers; Services/Configuration/TenantConfigurationSafeComposer.cs still discards tenantStatus in authority helpers. Production supplies explicit evidence, but the public implicit-grant trap remains.
+pre-dw-314-status: open
+status: done 2026-10-17
+pre-dw-314-disposition: actionable
+disposition: resolved
+pre-dw-314-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-314-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs Available still accepts authorityState=null and grants TenantOwner for nonglobal callers; Services/Configuration/TenantConfigurationSafeComposer.cs still discards tenantStatus in authority helpers. Production supplies explicit evidence, but the public implicit-grant trap remains.
+verification: Closed with DW-308. Available requires an explicit authority argument, and the private resolvers no longer discard tenantStatus. Final Debug source build, policy 80/80 and full UI 6263/6263 pass with zero failures/skips. Evidence is dw-308-314-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
-evidence-kind: verified-defect
+pre-dw-314-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Require explicit authority at construction and reconcile unused status parameters with compatibility tests.
-related: DW-308, DW-314
+pre-dw-314-next-action: Require explicit authority at construction and reconcile unused status parameters with compatibility tests.
+next-action: Closed within DW-314; the duplicate DW-308 record holds the shared evidence.
+related: DW-308, DW-649
 duplicate-of: DW-308
+resolution-evidence: [Exact validation, initial compile failure and independent review](dw-308-314-validation-evidence.md)
+resolution-spec: spec-dw-308-314-explicit-configuration-authority.md
 
 ### DW-315: `TenantCommandGateway.BoundSafeFailureReason` returns most backend failure text verbatim
 
@@ -8675,3 +8693,20 @@ next-action: Closed within DW-648; retain existing release qualification holds a
 related: DW-545
 resolution-evidence: [Exact validation, initial failures and independent review](dw-648-validation-evidence.md)
 resolution-spec: spec-dw-648-ambiguous-removal-retry-admission.md
+
+### DW-649: The tenant detail page's configuration reauthorization stub grants TenantOwner where production safe-model reauthorization grants MissingPermission.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-308-314-explicit-configuration-authority.md`
+  summary: The detail-page safe-model reauthorization stub still grants TenantOwner for a non-global principal.
+  evidence: Independent DW-308 review compared `Detail_page_set_configuration_completes_preview_dispatch_status_and_projection_proof` with `TenantConfigurationSafeComposer.Reauthorize(safeModel, status, policy)`. Production returns MissingPermission when the safe model has no membership and the principal is not a global administrator. The stub previously omitted authority and received the implicit TenantOwner grant; this change preserved that meaning by passing TenantOwner explicitly. No page behavior was changed.
+status: open
+disposition: actionable
+verification-date: 2026-10-17
+verification: Source comparison only. The stub at TenantDetailSurfaceTests.ReauthorizeConfigurationManagement passes TenantConfigurationAuthorityState.TenantOwner with isGlobalAdministrator false. The composer's safe-model resolver returns MissingPermission for a non-global principal. No execution changed the stub.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
+evidence-kind: verified-gap
+priority: P2
+owner: unassigned
+dependencies: none
+next-action: Decide whether that page fixture should fail closed with MissingPermission, then cover the production result without changing unrelated detail-page flows.
+related: DW-308

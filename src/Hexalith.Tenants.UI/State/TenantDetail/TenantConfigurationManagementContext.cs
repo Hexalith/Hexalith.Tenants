@@ -82,29 +82,27 @@ public sealed class TenantConfigurationManagementContext
             ? row
             : null;
 
-    /// <remarks>
-    /// Every production call site (<c>TenantConfigurationSafeComposer</c>) always passes an explicit
-    /// <paramref name="authorityState"/> resolved from current policy. The <see langword="null"/> default
-    /// below (falling back to <c>TenantOwner</c> for a non-global-administrator) exists only so tests that
-    /// predate the authority-state distinction keep compiling with the 5-argument form; it grants an
-    /// implicit <c>TenantOwner</c> role that a new test should not rely on -- pass the argument explicitly
-    /// when the authority distinction matters to what is being tested.
-    /// </remarks>
+    /// <summary>Creates an available context for authority the caller has already resolved.</summary>
+    /// <param name="tenantId">Tenant identifier.</param>
+    /// <param name="tenantStatus">Last-confirmed tenant lifecycle. Stored only; it does not choose a role.</param>
+    /// <param name="isGlobalAdministrator">Whether global-administrator wildcard scope is proven.</param>
+    /// <param name="authorizedPrefixes">Literal prefixes, or the sole administrator wildcard.</param>
+    /// <param name="removableRows">Current safe rows eligible as remove targets.</param>
+    /// <param name="authorityState">Server-reflected mutation authority. This is never inferred.</param>
+    /// <returns>An available management context.</returns>
     internal static TenantConfigurationManagementContext Available(
         string tenantId,
         TenantStatus tenantStatus,
         bool isGlobalAdministrator,
         IEnumerable<string> authorizedPrefixes,
         IEnumerable<TenantConfigurationSafeRow> removableRows,
-        TenantConfigurationAuthorityState? authorityState = null)
+        TenantConfigurationAuthorityState authorityState)
         => new(
             tenantId,
             tenantStatus,
             true,
             isGlobalAdministrator,
-            authorityState ?? (isGlobalAdministrator
-                ? TenantConfigurationAuthorityState.GlobalAdministrator
-                : TenantConfigurationAuthorityState.TenantOwner),
+            authorityState,
             authorizedPrefixes,
             removableRows);
 

@@ -3361,7 +3361,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                     status,
                     isGlobalAdministrator: false,
                     ["billing"],
-                    safeModel.Rows),
+                    safeModel.Rows,
+                    TenantConfigurationAuthorityState.TenantOwner),
         };
         ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
         queryGateway.SupportsSetConfigurationPreview.Returns(true);
@@ -3794,7 +3795,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
         TenantConfigurationManagementContext withRow = TenantConfigurationManagementContext.Available(
-            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]);
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -3812,7 +3814,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         await cut.InvokeAsync(() => flow.Instance.CommandActivityLease!(true));
 
         TenantConfigurationManagementContext withoutRow = TenantConfigurationManagementContext.Available(
-            "tenant.alpha", TenantStatus.Active, false, ["billing"], []);
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], [],
+            TenantConfigurationAuthorityState.TenantOwner);
         cut.Render(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, withoutRow)
@@ -3834,7 +3837,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
         TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
-            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]);
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -3882,7 +3886,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantStatus.Active,
             false,
             ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -3930,7 +3935,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantStatus.Active,
             false,
             ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, available)
@@ -3968,7 +3974,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, TenantConfigurationManagementContext.Available(
                 "tenant.alpha", TenantStatus.Active, false, ["billing"],
-                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]))
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+                TenantConfigurationAuthorityState.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Stale)
             .Add(p => p.Freshness, ReadModelFreshnessState.Stale));
 
@@ -3985,7 +3992,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, TenantConfigurationManagementContext.Available(
                 "tenant.alpha", TenantStatus.Active, false, ["billing"],
-                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]))
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+                TenantConfigurationAuthorityState.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
@@ -4008,7 +4016,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         JSInterop.Mode = JSRuntimeMode.Loose;
         TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
         TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
-            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]);
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -4027,7 +4036,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Render(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, TenantConfigurationManagementContext.Available(
-                "tenant.alpha", TenantStatus.Active, false, ["billing"], []))
+                "tenant.alpha", TenantStatus.Active, false, ["billing"], [],
+                TenantConfigurationAuthorityState.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
@@ -4053,7 +4063,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Render(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, TenantConfigurationManagementContext.Available(
-                "tenant.alpha", TenantStatus.Active, false, ["billing"], []))
+                "tenant.alpha", TenantStatus.Active, false, ["billing"], [],
+                TenantConfigurationAuthorityState.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
         FocusedElementIds().Count.ShouldBe(focusedAfterClose.Count);
@@ -4070,7 +4081,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Unavailable)
             .Add(p => p.Context, TenantConfigurationManagementContext.Available(
                 "tenant.alpha", TenantStatus.Active, false, ["billing"],
-                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]))
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+                TenantConfigurationAuthorityState.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Unavailable)
             .Add(p => p.Freshness, ReadModelFreshnessState.Unknown));
 
@@ -4785,7 +4797,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         int acquisitionCalls = 0;
         TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
             intent.TenantId, TenantStatus.Active, false, ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Context, context)
             .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
@@ -4884,7 +4897,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
             "tenant.alpha", TenantStatus.Active, false, ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Context, context)
             .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
@@ -5012,7 +5026,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Accepted(TenantCommandSubmissionResult.Accepted(messageId, messageId))).ShouldBeTrue();
         return TenantConfigurationManagementContext.Available(
             tenantId, TenantStatus.Active, false, ["billing"],
-            [new TenantConfigurationSafeRow("billing", key, "trial")]);
+            [new TenantConfigurationSafeRow("billing", key, "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
     }
 
     [Fact]
@@ -5023,7 +5038,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantConfigurationSafeRow row = new("billing", "billing.mode", "trial");
         TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
-            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row]);
+            "tenant.alpha", TenantStatus.Active, false, ["billing"], [row],
+            TenantConfigurationAuthorityState.TenantOwner);
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, context)
@@ -5038,7 +5054,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Render(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, TenantConfigurationManagementContext.Available(
-                "tenant.alpha", TenantStatus.Active, false, ["billing"], []))
+                "tenant.alpha", TenantStatus.Active, false, ["billing"], [],
+                TenantConfigurationAuthorityState.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
@@ -5051,7 +5068,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         RegisterComponentServices();
         TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
             "tenant.alpha", TenantStatus.Active, false, ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, context)
@@ -5068,7 +5086,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, TenantConfigurationManagementContext.Available(
                 "tenant.beta", TenantStatus.Active, false, ["billing"],
-                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]))
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+                TenantConfigurationAuthorityState.TenantOwner))
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
@@ -5085,7 +5104,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantStatus.Active,
             false,
             ["billing"],
-            [row]);
+            [row],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -5130,7 +5150,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantStatus.Active,
             false,
             ["billing"],
-            [row]);
+            [row],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -5174,7 +5195,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantStatus.Active,
             false,
             ["maintenance"],
-            [row]);
+            [row],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -5215,7 +5237,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 TenantStatus.Active,
                 false,
                 [],
-                []))
+                [],
+                TenantConfigurationAuthorityState.TenantOwner))
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current));
 
@@ -5242,7 +5265,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantStatus.Active,
             false,
             ["billing"],
-            []);
+            [],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> validEmpty = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -5284,7 +5308,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantStatus.Active,
             false,
             ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(component => component.Context, context)
@@ -8552,7 +8577,8 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 detail.Status,
                 isGlobalAdministrator: false,
                 rows.Select(static row => row.Namespace).Distinct(StringComparer.Ordinal),
-                rows));
+                rows,
+                TenantConfigurationAuthorityState.TenantOwner));
         return TenantDetailSnapshot.Ready(
             composition,
             "\"etag\"",

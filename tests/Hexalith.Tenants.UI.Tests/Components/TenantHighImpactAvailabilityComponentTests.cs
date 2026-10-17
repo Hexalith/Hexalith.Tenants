@@ -7,6 +7,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
 using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
@@ -32,7 +33,8 @@ public sealed class TenantHighImpactAvailabilityComponentTests : FluentBunitCont
             TenantStatus.Active,
             isGlobalAdministrator: false,
             ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
         TenantHighImpactActionEvidence set = Evidence(TenantHighImpactAction.SetConfiguration);
         TenantHighImpactActionEvidence remove = Evidence(TenantHighImpactAction.RemoveConfiguration);
 
@@ -71,7 +73,8 @@ public sealed class TenantHighImpactAvailabilityComponentTests : FluentBunitCont
             TenantStatus.Active,
             isGlobalAdministrator: false,
             ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
         TenantHighImpactActionEvidence set = Evidence(TenantHighImpactAction.SetConfiguration) with
         {
             Viewport = TenantHighImpactViewportState.Safe,
@@ -119,7 +122,8 @@ public sealed class TenantHighImpactAvailabilityComponentTests : FluentBunitCont
             TenantStatus.Active,
             isGlobalAdministrator: false,
             ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(component => component.Context, context)
@@ -150,7 +154,8 @@ public sealed class TenantHighImpactAvailabilityComponentTests : FluentBunitCont
             TenantStatus.Active,
             isGlobalAdministrator: false,
             ["billing"],
-            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
             .Add(component => component.Context, context)
@@ -202,7 +207,8 @@ public sealed class TenantHighImpactAvailabilityComponentTests : FluentBunitCont
                 TenantStatus.Active,
                 isGlobalAdministrator: false,
                 ["billing"],
-                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+                [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")],
+                TenantConfigurationAuthorityState.TenantOwner);
             TenantHighImpactActionEvidence set = Evidence(TenantHighImpactAction.SetConfiguration) with
             {
                 Freshness = TenantHighImpactFreshnessState.Aging,

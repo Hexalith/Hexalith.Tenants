@@ -2351,7 +2351,8 @@ public sealed class TenantQueryGatewayTests
                 TenantStatus.Active,
                 false,
                 ["billing"],
-                [priorRow]));
+                [priorRow],
+                TenantConfigurationAuthorityState.TenantOwner));
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             priorComposition,
             "prior",
@@ -2385,7 +2386,8 @@ public sealed class TenantQueryGatewayTests
                 TenantStatus.Active,
                 false,
                 ["billing"],
-                [priorRow]));
+                [priorRow],
+                TenantConfigurationAuthorityState.TenantOwner));
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             priorComposition,
             "prior",
@@ -2437,7 +2439,8 @@ public sealed class TenantQueryGatewayTests
                 TenantStatus.Active,
                 false,
                 ["billing"],
-                [priorRow]));
+                [priorRow],
+                TenantConfigurationAuthorityState.TenantOwner));
         TenantDetailSnapshot previous = TenantDetailSnapshot.Ready(
             priorComposition,
             "prior",
@@ -7446,7 +7449,8 @@ public sealed class TenantQueryGatewayTests
                 TenantStatus.Active,
                 false,
                 ["billing"],
-                [priorRow]));
+                [priorRow],
+                TenantConfigurationAuthorityState.TenantOwner));
         return TenantDetailSnapshot.Ready(
             priorComposition,
             "prior",

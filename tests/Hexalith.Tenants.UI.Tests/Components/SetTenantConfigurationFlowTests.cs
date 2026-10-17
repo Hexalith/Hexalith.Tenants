@@ -11,6 +11,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
 using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -44,7 +45,8 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         Services.AddSingleton<ITenantCommandGateway>(gateway);
         Services.AddSingleton(new TenantSetConfigurationAttemptTracker());
         TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
-            "global-administrators", TenantStatus.Active, false, ["billing"], []);
+            "global-administrators", TenantStatus.Active, false, ["billing"], [],
+            TenantConfigurationAuthorityState.TenantOwner);
         IRenderedComponent<SetTenantConfigurationFlow> cut = Render<SetTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Context, context)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -749,7 +751,8 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             TenantStatus.Active,
             isGlobalAdministrator: false,
             ["billing"],
-            []);
+            [],
+            TenantConfigurationAuthorityState.TenantOwner);
         cut.Render(parameters => parameters
             .Add(p => p.Context, nextContext)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
@@ -833,7 +836,10 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             TenantStatus.Active,
             globalAdministrator,
             prefixes,
-            []);
+            [],
+            globalAdministrator
+                ? TenantConfigurationAuthorityState.GlobalAdministrator
+                : TenantConfigurationAuthorityState.TenantOwner);
 
     private static TenantSetConfigurationPreview Preview(
         TenantSetConfigurationIntent intent,

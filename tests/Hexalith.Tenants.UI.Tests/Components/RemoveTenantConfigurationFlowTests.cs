@@ -11,6 +11,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.Components.Tenants.Configuration;
 using Hexalith.Tenants.UI.Resources;
+using Hexalith.Tenants.UI.Services.Configuration;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
@@ -108,7 +109,8 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             TenantStatus.Active,
             false,
             ["app.feature"],
-            [new TenantConfigurationSafeRow("app", "app.feature.flag", "enabled")]);
+            [new TenantConfigurationSafeRow("app", "app.feature.flag", "enabled")],
+            TenantConfigurationAuthorityState.TenantOwner);
 
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
@@ -1428,7 +1430,8 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             TenantStatus.Active,
             false,
             authorizedPrefixes,
-            rows);
+            rows,
+            TenantConfigurationAuthorityState.TenantOwner);
     }
 
     // First dot segment. This is the *display* grouping a safe row carries, and it is deliberately NOT the
