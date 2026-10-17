@@ -206,7 +206,7 @@
            data-testid="tenants-remove-member-live-region"
            aria-live="@LiveRegionMode"
            aria-atomic="true">
-            @StateText
+            @(_snapshot.State is TenantCommandLifecycleState.Previewed && !string.IsNullOrWhiteSpace(DisplaySafeMessage) ? DisplaySafeMessage : StateText)
         </p>
     </section>
 
@@ -1275,14 +1275,14 @@
         {
             _isSubmitting = false;
 
-            // Blocked() builds a fresh record, which would drop the Intent captured by RequestSent above, so a
-            // first attempt's refusal is applied in place. A refused retry keeps the failed attempt it retried
-            // (see RefuseRetry).
+            // Nothing was dispatched on a first refusal: keep the preview resubmittable with its intent.
+            // UnableToVerify would send the next submit through the tracking-loss guard. A refused retry
+            // keeps the possibly delivered failed attempt instead (see RefuseRetry).
             string reason = CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value;
             SetSnapshot(retryMessageId is null
                 ? _snapshot with
                 {
-                    State = TenantCommandLifecycleState.UnableToVerify,
+                    State = TenantCommandLifecycleState.Previewed,
                     MessageId = null,
                     CorrelationId = null,
                     SafeMessage = reason,

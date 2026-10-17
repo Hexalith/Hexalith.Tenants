@@ -50,7 +50,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 137 |
+| done | 138 |
 | actionable | 215 |
 | blocked | 15 |
 | awaiting-decision | 26 |
@@ -63,7 +63,9 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-468 closure (2026-10-16):** The formatter uses the supported Allman value and CONTRIBUTING.md matches the existing baseline. Separate owning-project formatter checks and pinned-SDK positive/negative/autofix controls pass after independent review corrections. [Exact reproduction, complete probe runner, historical formatting failures and workspace limitations](../_bmad-output/implementation-artifacts/dw-468-validation-evidence.md) preserve the remaining limits. Only DW-468 and its row close: 341 done/302 open across 643 IDs, 270 rows; 137 reconciled done/215 actionable/37 uncertain. Original fields/legacy detail, application/test sources, prior closures/evidence, archive/sprint, dependencies and release holds remain preserved.
 
-**Current implementation completed:** DW-468; prior DW-331, DW-470 and DW-285 closures are preserved. No further implementation bundle is selected here. DW-606 formatting work and DW-323 remain separately scoped; DW-121 remains Builds-owned. This closure does not establish full release readiness.
+**DW-480 closure and DW-644 review deferral (2026-10-16):** First pre-dispatch removal lease refusal now preserves a resubmittable preview, safe busy feedback and no audit attempt. Independent review/recheck, Debug focused94/full UI5999 pass with zero failures/skips, including EN/FR live-region text, current authority, held reacquisition cleanup and normal Accepted/status/projection confirmation. [Exact commands, initial fixture failures and limits](../_bmad-output/implementation-artifacts/dw-480-validation-evidence.md). Only DW-480 closes; the separate existing stale-to-current pre-dispatch recovery defect remains newly open as DW-644. All 644 IDs remain: 342 done/302 open across 270 rows; the original reconciliation now has138 done/214 actionable, plus newly actionable DW-644 (215 actionable total). Prior history, archive/sprint, dependencies and release holds remain preserved.
+
+**Current implementation completed:** DW-480; prior DW-468, DW-331, DW-470 and DW-285 closures are preserved. DW-644 remains open with source verification and a concrete recovery regression to add. No further implementation bundle is selected here. Release remains not ready.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -113,7 +115,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-449 | P2 | Defect / actionable | unassigned | Preserve Story 5.4 option-b command/audit separation | Handle IsPending in the five command lifecycle snapshots without assertive unverifiable feedback, preserving their already-correct independent audit state. |
 | DW-464, DW-496, DW-555 | P2 | Defect / actionable | unassigned | Hosted runner Chromium launch diagnosis | Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios. |
 | DW-469 | P2 | Defect / actionable | unassigned | Configuration tracker resumed-identity result | Pass retry identity to lifecycle audit mapping and expose whether configuration BeginDispatch resumed a retained identity; test pre-dispatch failure on retry. |
-| DW-480 | P2 | Defect / actionable | unassigned | Member command pre-dispatch state contract | Keep the pre-dispatch lease refusal resubmittable and prove a second submit dispatches once after the lease becomes available. |
+| DW-644 | P2 | Defect / actionable | unassigned | Explicit undispatched refusal state | Preserve safe resubmission after stale pre-dispatch evidence becomes current, retaining genuine tracking-loss safeguards. |
 | DW-505 | P2 | Defect / actionable | unassigned | DW-464 hosted Chromium repair | Repair and rerun the pinned hosted Chromium launch and subsequent correction preview/negative controls; no further package-boundary repair is needed for this record. |
 | DW-506 | P2 | Defect / actionable | unassigned | Global correction recovery-label contract | Use the actual retry-eligibility predicate for retry-specific text and cover ambiguous-but-ineligible and blank-correlation states. |
 | DW-511 | P2 | Defect / actionable | Hexalith.EventStore | EventStore ambiguity contract | Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions. |

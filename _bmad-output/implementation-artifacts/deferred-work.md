@@ -54,6 +54,8 @@ After validated DW-331 closure (2026-10-16): 136 reconciled done, 215 actionable
 
 After validated DW-468 closure (2026-10-16): 137 reconciled done, 215 actionable, 15 blocked, 26 awaiting-decision, nine accepted limitations and 37 uncertain; 302 open. All 643 IDs remain: 341 done/302 open across 270 exact-covering maintenance rows. The formatter now uses the supported Allman value, and contributor guidance agrees. Independent review corrections, separate owning-project checks and pinned-SDK positive/negative/autofix controls qualify the policy repair; the historical three-file formatting failures and workspace limitations remain in [complete evidence](dw-468-validation-evidence.md). Only DW-468 closes; original fields/legacy detail, all earlier evidence, source files, archive/sprint, dependency pointers and release holds are preserved. Release remains not ready.
 
+**DW-480 closure and DW-644 review deferral (2026-10-16):** A first member-removal activity-lease refusal now keeps an undispatched resubmittable preview and meaningful localized refusal feedback. Independent review/recheck, final Debug focused94/full UI5999 pass with zero failures/skips. [Exact commands, initial fixture failures and limits](dw-480-validation-evidence.md) retain all results. Only DW-480 closes; the separate existing stale-to-current pre-dispatch recovery defect is newly recorded as open DW-644. There are now 644 unique IDs: 342 done/302 open across 270 maintenance rows; the original 439-record reconciliation has 138 done/214 actionable, plus one newly actionable DW-644. Historical findings, unrelated record bodies, archive/sprint, dependencies and release holds remain preserved. No Git/dependency mutation ran. Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -5664,16 +5666,23 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberF
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: After a first-attempt activity-lease refusal in RemoveMember, a second submit shows \"This attempt can no longer be tracked\", although nothing was dispatched.\n  evidence:\n  - The refusal sets `UnableToVerify` with a null MessageId (`RemoveTenantMemberFlow.razor:853-862`).\n  - The next submit enters the branch for `UnableToVerify` with a null MessageId (`:772-791`), which shows `Tenants.Members.Submit.TrackingLost`. The operator must Cancel and reopen to try again.\n  - Both branches are the same at baseline `55f3dc63`, except for the audit state Story 5.4 changed.\n  - `RemoveTenantMemberFlowTests.Retry_refused_by_the_activity_lease_…` (row `isRetry=false`) stops before the second submit, so no test pins this.\n  - Fix direction: keep a pre-dispatch busy refusal resubmittable, for example a Blocked-style state that keeps the Intent, and add a test that the second submit dispatches once the lease is granted."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:772-791 treats UnableToVerify with no MessageId as TrackingLost; activity-lease refusal at :853-862 creates exactly that state before any dispatch. Existing Retry_refused_by_the_activity_lease coverage does not resubmit after the first refusal.
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-12
+pre-closure-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:772-791 treats UnableToVerify with no MessageId as TrackingLost; activity-lease refusal at :853-862 creates exactly that state before any dispatch. Existing Retry_refused_by_the_activity_lease coverage does not resubmit after the first refusal.
+pre-closure-evidence-kind: verified-defect
+pre-closure-next-action: Keep the pre-dispatch lease refusal resubmittable and prove a second submit dispatches once after the lease becomes available.
+closure-evidence: _bmad-output/implementation-artifacts/dw-480-validation-evidence.md
+status: done 2026-10-16
+disposition: done
+verification-date: 2026-10-16
+verification: The undispatched first activity-lease refusal now returns to Previewed with intact preview/intent, null IDs and NotStarted audit. Repeated callback decline/exception and real competing aggregate ownership recover without reopening; same-ID delivered retries and tracking-loss guards remain unchanged. Independent review/recheck, final Debug focused94/full UI5999 pass with zero failures/skips. EN/FR refusal announcements, fresh authority, held reacquisition safety and Accepted/status/projection lease release are verified; see dw-480-validation-evidence.md. The separate preexisting stale-to-current refusal gap remains open as DW-644.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
-evidence-kind: verified-defect
+evidence-kind: executed-regression-and-independent-review
 priority: P2
 owner: unassigned
 dependencies: Member command pre-dispatch state contract
-next-action: Keep the pre-dispatch lease refusal resubmittable and prove a second submit dispatches once after the lease becomes available.
+next-action: None for DW-480; completed after reviewed validation. DW-644 separately owns non-lease stale-evidence recovery.
 related: none
 
 
@@ -8578,3 +8587,19 @@ owner: unassigned
 dependencies: Story-owned commit guard policy; later independent-pointer attribution
 next-action: Cover an unrecorded later pointer-moving commit and enforce the approved endpoint/attribution rule.
 related: DW-585
+### DW-644: A non-lease pre-dispatch freshness refusal cannot resume after freshness becomes current.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-480-predispatch-removal-resubmission.md`
+  summary: Preserve safe resubmission after an undispatched removal is blocked by stale evidence and that evidence subsequently recovers.
+  evidence: Independent DW-480 review traced SubmitAsync's unavailable-preview branch to TenantRemoveMemberCommandSnapshot.Blocked, which returns UnableToVerify without message/correlation IDs; after Freshness returns to Current, the earlier tracking-loss guard still refuses submission. The new stale-evidence acceptance case reaches this existing branch but intentionally stops before restoration. This is separate from the corrected first activity-lease refusal.
+status: open
+disposition: actionable
+verification-date: 2026-10-16
+verification: Source-verified at entry e91aef5d9a6ffee045f40957594010db61b36e5d and the DW-480 working tree: RemoveTenantMemberFlow.SubmitAsync uses Blocked before dispatch on unavailable preview/freshness; Blocked is UnableToVerify with no IDs, and the next eligible submit reports Tenants.Members.Submit.TrackingLost. No restoration-through-dispatch regression was executed; preserve that verification limit.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
+evidence-kind: verified-defect
+priority: P2
+owner: unassigned
+dependencies: Explicit undispatched refusal state; preserve genuine tracking-loss and same-ID dispatched recovery
+next-action: Add a current-to-stale-to-current submission regression and distinguish explicitly undispatched safety refusals from genuine lost tracking, retaining all admission/preview/authorization checks.
+related: DW-480
