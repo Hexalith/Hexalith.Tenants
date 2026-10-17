@@ -4906,3 +4906,195 @@ evidence-kind: executed-regression
 next-action: None for DW-337. DW-285/DW-470 acceptance reconciliation, DW-469 audit identity, DW-625 recovery and all separate release holds remain open.
 resolution: Implements the settled 2026-09-06 unified ambiguity decision; only DW-337 closes. Original finding, duplicated settled decisions and pre-fix verification/action values remain above.
 
+### DW-331: A contradictory complete-read authorization-scope flag is not revalidated by the pure removal evaluator.
+origin: spec-deferred b78a2689221d
+location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionAvailabilityEvaluator.cs:46
+source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
+severity: medium
+reason: GlobalAdministratorActionAvailabilityEvaluator accepts CompleteKind Ready with non-empty complete rows without checking CompleteIsAuthorizationScopedEmpty. The bounded page loader rejects that shape and both installed production callers currently supply internally consistent snapshots, so the defect predates and is not caused by this re-drive's action-specific readiness change; a direct public evaluator caller could still construct the contradictory evidence and receive an available removal result.
+status: done 2026-10-16
+archived: 2026-10-17
+disposition: done
+verification-date: 2026-10-16
+verification: EvaluateRemove now rejects CompleteIsAuthorizationScopedEmpty through IncompletePopulation before target/count/preview decisions, preserving common-gate precedence and grant independence. Nine new behavioral cases independently reviewed/rechecked; final Debug focused33/full UI5988 pass with zero failures/skips. An initial intermittent unchanged correction-test failure and passing isolated/full rechecks remain in dw-331-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionAvailabilityEvaluator.cs
+evidence-kind: executed-tests-and-reviewed-source
+priority: P2
+owner: unassigned
+dependencies: none
+next-action: none; DW-331 scope contradiction rejected and acceptance verified.
+pre-dw-331-status: open
+pre-dw-331-disposition: actionable
+pre-dw-331-verification-date: 2026-10-12
+pre-dw-331-verification: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorActionAvailabilityEvaluator.cs EvaluateRemove checks complete rows/kind/freshness/lifecycle/version but not CompleteIsAuthorizationScopedEmpty. Its public contradictory-evidence case remains admitted; bounded production loaders reject it.
+pre-dw-331-evidence-kind: verified-defect
+pre-dw-331-next-action: Fail closed on contradictory complete-scope flags and add a pure evaluator regression.
+resolution: Added the missing pure population-scope guard and nine behavioral acceptance cases; only DW-331 closes, preserving history, archive, sprint and release holds.
+closure-spec: `_bmad-output/implementation-artifacts/spec-dw-331-complete-population-scope.md`
+closure-evidence: `_bmad-output/implementation-artifacts/dw-331-validation-evidence.md`
+related: none
+
+### DW-468: Reconcile dotnet formatter same-line-brace expectations with the Hexalith baseline requirement for Allman braces.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery-3.md (2026-09-30)"), 2026-10-12
+location: _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
+source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-4.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-4.md`\n  summary: Reconcile dotnet formatter same-line-brace expectations with the Hexalith baseline requirement for Allman braces.\n  evidence: The supplementary read-only dotnet format whitespace check on the three changed UI test files exited 2 with 299 WHITESPACE diagnostics before review amendments; it requested same-line braces for existing Allman blocks and four new blocks matching that required style. The exact command and result are in the 2026-10-01 addendum to story-5-4-re-review-verification-2026-09-30.md. A policy correction belongs in separate repository maintenance; no formatting configuration or build/test gate was weakened here."
+status: done 2026-10-16
+archived: 2026-10-17
+disposition: done
+verification-date: 2026-10-16
+verification: Corrected the unsupported Allman formatting value to all and aligned CONTRIBUTING.md. Separate owning-project production/test formatter checks pass with zero formatting diagnostics; pinned-SDK old/current, same-line, indentation, exact-byte autofix and idempotence controls pass independent review corrections. Historical three-file formatting still fails on preserved non-policy whitespace/line endings; workspace warnings and prior advisory observation remain in dw-468-validation-evidence.md.
+verification-files: .editorconfig; CONTRIBUTING.md; _bmad-output/implementation-artifacts/dw-468-validation-evidence.md
+evidence-kind: executed-formatter-and-reviewed-configuration
+priority: P3
+owner: unassigned
+dependencies: Focused current formatter reproduction
+next-action: none; Allman policy conflict repaired and focused formatting behavior verified.
+pre-dw-468-status: open
+pre-dw-468-disposition: uncertain
+pre-dw-468-verification-date: 2026-10-12
+pre-dw-468-verification: .editorconfig:52 still sets csharp_new_line_before_open_brace = all:warning; the required Hexalith baseline and _bmad-output/project-context.md require Allman. story-5-4-re-review-verification-2026-09-30.md:78 preserves the 299-diagnostic formatter result, but no current formatter reproduction proves the current effective configuration still requests same-line braces. Allman policy itself is already settled.
+pre-dw-468-verification-files: _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
+pre-dw-468-evidence-kind: unverified-risk
+pre-dw-468-next-action: Rerun the exact read-only whitespace command recorded in the 2026-10-01 addendum and inspect effective formatting configuration if the conflict persists.
+resolution: Corrected the formatter value and contributor sentence without changing application/test source, analyzer severities or historical evidence; only DW-468 closes.
+closure-spec: `_bmad-output/implementation-artifacts/spec-dw-468-allman-formatting.md`
+closure-evidence: `_bmad-output/implementation-artifacts/dw-468-validation-evidence.md`
+related: none
+
+
+### DW-470: Keep the localized reason of a keyed failed submission in AddMember and ChangeRole.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-10-01, review 5)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
+source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Keep the localized reason of a keyed failed submission in AddMember and ChangeRole.\n  evidence: Pre-existing. The failure arm sets `SafeMessage = result.SafeMessage, SafeMessageKey = null` (`AddTenantMemberFlow.razor:558`, `ChangeTenantMemberRoleFlow.razor:617`), so `FailedWithKey(\"Tenants.Commands.Unavailable.InvalidTrackingReference\")` renders no explanation. It is reachable only when the reused message id fails `TryResolveMessageId`. The fix is to pass `result.SafeMessageKey` through, as RemoveMember and Metadata already do."
+status: done 2026-10-16
+archived: 2026-10-17
+disposition: done
+verification-date: 2026-10-16
+verification: Existing initial/retry key propagation independently reviewed and qualified by 12 actual Fluent EN/FR keyed-only failure cases covering initial, failed-resubmit and ambiguous-retry paths. Reviewed Debug focused207/full UI5979 pass with zero failures/skips; exact explanation/announcement, baseline, identity/intent, rendered audit semantics and terminal admission are asserted. See dw-470-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
+evidence-kind: executed-tests-and-reviewed-source
+priority: P2
+owner: unassigned
+dependencies: none
+next-action: none; DW-470 acceptance reconciled without runtime changes.
+pre-dw-470-status: open
+pre-dw-470-disposition: actionable
+pre-dw-470-verification-date: 2026-10-12
+pre-dw-470-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor:552-561 and ChangeTenantMemberRoleFlow.razor:611-620 still replace result.SafeMessageKey with null. TenantCommandGateway.TryResolveMessageId failures return keyed-only InvalidTrackingReference, so these flows suppress the localized explanation.
+pre-dw-470-evidence-kind: verified-defect
+pre-dw-470-next-action: Preserve SafeMessageKey in both nonaccepted result paths and cover a keyed-only failure.
+resolution: Runtime fix already present; missing keyed-only failure acceptance coverage added and independently reviewed. Only DW-470 closes; historical findings, archive, sprint and release holds preserved.
+closure-spec: `_bmad-output/implementation-artifacts/spec-dw-470-keyed-member-failures.md`
+closure-evidence: `_bmad-output/implementation-artifacts/dw-470-validation-evidence.md`
+related: DW-500
+
+
+### DW-480: After a first-attempt activity-lease refusal in RemoveMember, a second submit shows "This attempt can no longer be tracked", although nothing was dispatched.
+
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-10-01, review 8)"), 2026-10-12
+location: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
+reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
+legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: After a first-attempt activity-lease refusal in RemoveMember, a second submit shows \"This attempt can no longer be tracked\", although nothing was dispatched.\n  evidence:\n  - The refusal sets `UnableToVerify` with a null MessageId (`RemoveTenantMemberFlow.razor:853-862`).\n  - The next submit enters the branch for `UnableToVerify` with a null MessageId (`:772-791`), which shows `Tenants.Members.Submit.TrackingLost`. The operator must Cancel and reopen to try again.\n  - Both branches are the same at baseline `55f3dc63`, except for the audit state Story 5.4 changed.\n  - `RemoveTenantMemberFlowTests.Retry_refused_by_the_activity_lease_…` (row `isRetry=false`) stops before the second submit, so no test pins this.\n  - Fix direction: keep a pre-dispatch busy refusal resubmittable, for example a Blocked-style state that keeps the Intent, and add a test that the second submit dispatches once the lease is granted."
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-12
+pre-closure-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor:772-791 treats UnableToVerify with no MessageId as TrackingLost; activity-lease refusal at :853-862 creates exactly that state before any dispatch. Existing Retry_refused_by_the_activity_lease coverage does not resubmit after the first refusal.
+pre-closure-evidence-kind: verified-defect
+pre-closure-next-action: Keep the pre-dispatch lease refusal resubmittable and prove a second submit dispatches once after the lease becomes available.
+closure-evidence: _bmad-output/implementation-artifacts/dw-480-validation-evidence.md
+status: done 2026-10-16
+archived: 2026-10-17
+disposition: done
+verification-date: 2026-10-16
+verification: The undispatched first activity-lease refusal now returns to Previewed with intact preview/intent, null IDs and NotStarted audit. Repeated callback decline/exception and real competing aggregate ownership recover without reopening; same-ID delivered retries and tracking-loss guards remain unchanged. Independent review/recheck, final Debug focused94/full UI5999 pass with zero failures/skips. EN/FR refusal announcements, fresh authority, held reacquisition safety and Accepted/status/projection lease release are verified; see dw-480-validation-evidence.md. The separate preexisting stale-to-current refusal gap remains open as DW-644.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+evidence-kind: executed-regression-and-independent-review
+priority: P2
+owner: unassigned
+dependencies: Member command pre-dispatch state contract
+next-action: None for DW-480; completed after reviewed validation. DW-644 separately owns non-lease stale-evidence recovery.
+related: none
+
+
+### DW-644: A non-lease pre-dispatch freshness refusal cannot resume after freshness becomes current.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-480-predispatch-removal-resubmission.md`
+  summary: Preserve safe resubmission after an undispatched removal is blocked by stale evidence and that evidence subsequently recovers.
+  evidence: Independent DW-480 review traced SubmitAsync's unavailable-preview branch to TenantRemoveMemberCommandSnapshot.Blocked, which returns UnableToVerify without message/correlation IDs; after Freshness returns to Current, the earlier tracking-loss guard still refuses submission. The new stale-evidence acceptance case reaches this existing branch but intentionally stops before restoration. This is separate from the corrected first activity-lease refusal.
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-16
+pre-closure-verification: Source-verified at entry e91aef5d9a6ffee045f40957594010db61b36e5d and the DW-480 working tree: RemoveTenantMemberFlow.SubmitAsync uses Blocked before dispatch on unavailable preview/freshness; Blocked is UnableToVerify with no IDs, and the next eligible submit reports Tenants.Members.Submit.TrackingLost. No restoration-through-dispatch regression was executed; preserve that verification limit.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
+pre-closure-evidence-kind: verified-defect
+priority: P2
+owner: unassigned
+dependencies: Explicit undispatched refusal state; preserve genuine tracking-loss and same-ID dispatched recovery
+pre-closure-next-action: Add a current-to-stale-to-current submission regression and distinguish explicitly undispatched safety refusals from genuine lost tracking, retaining all admission/preview/authorization checks.
+related: DW-480
+closure-evidence: _bmad-output/implementation-artifacts/dw-644-validation-evidence.md
+status: done 2026-10-17
+archived: 2026-10-17
+disposition: done
+verification-date: 2026-10-17
+verification: Explicitly undispatched safety refusals retain Idle/Previewed with original preview evidence, null IDs and audit NotStarted; current evidence permits deliberate resubmission through all safety gates. Changed tenant/member identity clears old typed confirmation before restoration, resolved safety copy disappears, and prior delivered or partially tracked attempts preserve recovery safeguards. Independent review/correction rechecks pass; Debug removal121/shared207/full UI6026 pass with zero failures/skips. Exact commands, initial failures, runtime limitations and the separate source-only DW-645 cleanup deferral remain in dw-644-validation-evidence.md.
+evidence-kind: executed-regression-and-independent-review
+next-action: None for DW-644; completed after reviewed verification. DW-645 separately owns throwing activity-release cleanup.
+
+### DW-645: A throwing pre-dispatch activity-release callback leaves removal recovery without retained ownership.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-644-predispatch-freshness-recovery.md`
+  summary: Keep an undispatched removal safely recoverable when its safety-refusal cleanup callback throws.
+  evidence: Independent DW-644 review traced held-admission safety refusal to detaching the retained attempt, clearing submission activity and awaiting SetCommandActivityRaisedAsync(false) before installing a recoverable snapshot. That method rethrows false-release callback errors, so a throwing callback leaves RequestSent after its retained attempt was detached. Both the cleanup ordering and rethrow are present in the entry baseline; this is separate existing cleanup behavior.
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-17
+pre-closure-verification: Source-verified at canonical entry 0e1fe111a5b4cce684455948b4fd12960589ef55 and independently rechecked against DW-644 source. SubmitAsync detaches before awaiting false activity release; the false-release catch rethrows before a recoverable refusal is installed. RetryDeliveryAsync then requires an attached retained attempt. No throwing-release execution or repair was performed; preserve this verification limit.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
+pre-closure-evidence-kind: verified-defect
+priority: P2
+owner: Tenants UI
+dependencies: Undispatched activity-release callback fault handling; preserve actual admission safety and dispatched ownership
+pre-closure-next-action: Add a held-acquisition freshness/confirmation refusal with a throwing false-release callback, then preserve recoverable local state and require safe admission reacquisition without dropping potentially delivered identities.
+related: DW-644, DW-480
+closure-evidence: _bmad-output/implementation-artifacts/dw-645-validation-evidence.md
+status: done 2026-10-17
+archived: 2026-10-17
+disposition: done
+verification-date: 2026-10-17
+verification: Retained ownership and submission barrier survive pending release until its successful or faulted completion. Matching generation/attempt guards then restore recoverable undispatched state and force fresh activity admission. Debug source build has zero warnings/errors; removal137, prerequisite global7 and full UI6042 pass with zero failures/skips. Independent review and correction recheck accept lifecycle, disposal, safety and late-completion coverage. DW-646 and DW-647 separately preserve older source-only retention/feedback defects; broader failed-retry renderer replacement is not claimed repaired.
+evidence-kind: executed-regression-and-independent-review
+next-action: None for DW-645; completed after reviewed verification. DW-646 and DW-647 remain separately actionable.
+
+### DW-646: A refused failed-delivery removal retry retains its prior message identity only in the live renderer.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-645-predispatch-release-recovery.md`
+  summary: Preserve the possibly delivered failed-removal identity across cancel/reopen after a pre-dispatch retry safety refusal.
+  evidence: Independent DW-645 review traced replacement of the terminal failed attempt with a new undispatched RequestSent admission, followed by Detach removing that record and RefuseRetry restoring original evidence only after the retained-attempt reference is null. MemberAccessReview cancel/reopen destroys that local snapshot. Identical successful-release cleanup exists at canonical entry e667d5391dae306e631dec23acd191863e54130c; DW-645 does not introduce it.
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-17
+pre-closure-verification: Source-verified against entry and current SubmitAsync, TenantCommandAttemptTracker.Detach and MemberAccessReview.CloseRemoveMemberAsync. Current executed regression proves same-live-renderer message reuse only. No cancel/reopen or replacement reproduction of this older loss was executed; do not infer that broader recovery is repaired.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAttemptTracker.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+pre-closure-evidence-kind: verified-defect
+priority: P2
+owner: Tenants UI
+dependencies: Retained failed-attempt identity across undispatched retry abandonment
+pre-closure-next-action: Add failed delivery, held retry safety refusal, cancel/reopen and same-ID recovery coverage, then preserve the original recovery basis without retaining an undispatched aggregate lock.
+related: DW-645, DW-644
+closure-evidence: _bmad-output/implementation-artifacts/dw-646-validation-evidence.md
+status: done 2026-10-17
+archived: 2026-10-17
+disposition: done
+verification-date: 2026-10-17
+verification: Matching failed removal evidence survives undispatched retry abandonment, including blank correlation values, refused/faulted activity acquisition, held safety release, disposal and late callbacks. Cancel/reopen restores original request/message/start/baseline without retaining an aggregate lock; fresh confirmation/admission/current safety remain required. Delivery-start clears rollback, preserving dispatched ownership. Thirty-two new cases, independent review/correction rechecks, zero-warning/error Debug source build, focused 380 and full UI 6074 pass with zero failures/skips. Exact initial failures, commands and limits are retained in closure evidence; DW-647 remains separate.
+evidence-kind: executed-regression-and-independent-review
+next-action: None for DW-646; completed after reviewed verification. DW-647 remains the separate localized-feedback follow-up.
+
