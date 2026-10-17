@@ -1,0 +1,67 @@
+{
+  "baseline_commit": "fa56dc1e7abd48e770a87925d3aa3b221e648cf7",
+  "changed_ledger_records": [
+    "DW-325",
+    "DW-587"
+  ],
+  "record_count": 647,
+  "done_count": 348,
+  "open_count": 299,
+  "maintenance_rows": 268,
+  "all_645_unrelated_records_preserved": true,
+  "all_unrelated_index_rows_preserved": true,
+  "preclosure_fields_preserved": true,
+  "open_index_exact_once": true,
+  "archive_and_sprint_preserved": {
+    "_bmad-output/implementation-artifacts/deferred-work-archive.md": true,
+    "_bmad-output/implementation-artifacts/sprint-status.yaml": true
+  },
+  "gitlinks_preserved": true,
+  "head_preserved_before_workflow_commit": true,
+  "source_hashes_match_reviewed_execution": true,
+  "input_hashes": {
+    "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor": "80087cbd73d963a33aad92149953b0ba2c5867aabd929f6999c154156d1c085a",
+    "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs": "f15d8a146b14e569a72dbc3fcb0672a099c11eb971ddee9f53a325b88dc43b88",
+    "src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfigurationAttemptTracker.cs": "cf0f1f2df931d7f9533b4d3e4e48d7056ad626c4310ae5a790d482746b22b314",
+    "tests/Hexalith.Tenants.UI.Tests/State/TenantRemoveConfigurationAttemptTrackerTests.cs": "5995b85f5d466335745fb45204f2cd514412d3fb05a832dccac658855015c5be"
+  },
+  "test_results": {
+    "focused": {
+      "total": "470",
+      "executed": "470",
+      "passed": "470",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "full": {
+      "total": "6137",
+      "executed": "6137",
+      "passed": "6137",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "review": "Five findings accepted and corrected; independent recheck accepts all five, no deferrals."
+}

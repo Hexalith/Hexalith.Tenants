@@ -2,6 +2,7 @@
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Microsoft.JSInterop
+@implements IDisposable
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 
@@ -173,8 +174,13 @@
     // child reports activity false.
     private bool _setCommandInFlight;
     private bool _removeCommandInFlight;
+    // Retention can keep an adopted flow visible even when it has not acquired a live lease. It must not
+    // become child-owned activity: a refused adoption has no accepted activity callback to release later.
+    private bool _retainedRemoveCommandInFlight;
+    private TenantRemoveConfigurationAttemptTracker? _removeAttemptTracker;
+    private bool _disposed;
 
-    private bool ChildCommandInFlight => _setCommandInFlight || _removeCommandInFlight;
+    private bool ChildCommandInFlight => _setCommandInFlight || _removeCommandInFlight || _retainedRemoveCommandInFlight;
 
     [Parameter]
     public TenantConfigurationManagementContext? Context { get; set; }
@@ -245,7 +251,7 @@
         => _removeFlow?.ApplySignalRNudgeAsync() ?? Task.CompletedTask;
 
     private TenantRemoveConfigurationAttemptTracker? RemoveAttemptTracker
-        => Services.GetService<TenantRemoveConfigurationAttemptTracker>();
+        => _removeAttemptTracker;
 
     private bool IsManagementUnavailable
         => !HasPolicyScope || !string.IsNullOrWhiteSpace(UnavailableReason);
@@ -342,6 +348,56 @@
         && string.IsNullOrWhiteSpace(UnavailableReason)
         && EffectiveContext.RemovableRows.Count > 0;
 
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        _removeAttemptTracker = Services.GetService<TenantRemoveConfigurationAttemptTracker>();
+        if (_removeAttemptTracker is not null)
+        {
+            _removeAttemptTracker.OwnershipExpired += OnRemoveOwnershipExpired;
+        }
+    }
+
+    private void OnRemoveOwnershipExpired(string tenantId)
+        => _ = RefreshExpiredRemoveActivityAsync(tenantId);
+
+    private async Task RefreshExpiredRemoveActivityAsync(string tenantId)
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (_disposed || !string.Equals(tenantId, EffectiveContext.TenantId, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                // Another attempt may have replaced the expired one before this renderer work runs.
+                TenantRemoveConfigurationCommandSnapshot? retained = RemoveAttemptTracker?.Find(tenantId);
+                _retainedRemoveCommandInFlight = retained?.Intent is not null;
+                if (retained?.Intent is { } intent)
+                {
+                    _removeKey = intent.FullKey;
+                    _removeCommandStarted = true;
+                }
+
+                if (!ChildCommandInFlight && IsManagementUnavailable && _removeKey is not null)
+                {
+                    // Expiry removes the modal when command support is unavailable. Its launcher is also
+                    // removed in this branch, so return keyboard focus to the surviving landmark heading.
+                    _focusRemoveLaunchKey = null;
+                    _focusHeadingPending = true;
+                }
+
+                StateHasChanged();
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The renderer can be disposed after the tracker captures its subscriber list.
+        }
+    }
+
     protected override void OnParametersSet()
     {
         // A tenant switch invalidates every open interaction, including one whose command is still settling:
@@ -361,11 +417,11 @@
         }
 
         TenantRemoveConfigurationCommandSnapshot? retained = RemoveAttemptTracker?.Find(EffectiveContext.TenantId);
+        _retainedRemoveCommandInFlight = retained?.Intent is not null;
         if (retained?.Intent is { } retainedIntent)
         {
             _removeKey = retainedIntent.FullKey;
             _removeCommandStarted = true;
-            _removeCommandInFlight = true;
         }
 
         // Once a remove command has been submitted the flow owns its own dismissal. Clearing the target
@@ -477,6 +533,10 @@
         }
 
         _removeCommandInFlight = isActive;
+        if (!isActive)
+        {
+            _retainedRemoveCommandInFlight = RemoveAttemptTracker?.Find(EffectiveContext.TenantId)?.Intent is not null;
+        }
 
         if (RemoveCommandActivityLease is not null)
         {
@@ -563,7 +623,18 @@
         // never touch _setCommandInFlight: a sibling Set command settling behind this dialog owns that lease
         // and clearing it here unmounted the Set flow mid-command.
         _removeCommandInFlight = false;
+        _retainedRemoveCommandInFlight = RemoveAttemptTracker?.Find(EffectiveContext.TenantId)?.Intent is not null;
         await Task.CompletedTask.ConfigureAwait(false);
+    }
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        _disposed = true;
+        if (_removeAttemptTracker is not null)
+        {
+            _removeAttemptTracker.OwnershipExpired -= OnRemoveOwnershipExpired;
+        }
     }
 
     private string StatusText(TenantStatus status)

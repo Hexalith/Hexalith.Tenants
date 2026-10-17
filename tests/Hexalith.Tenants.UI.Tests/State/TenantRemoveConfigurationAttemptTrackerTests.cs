@@ -153,6 +153,42 @@ public sealed class TenantRemoveConfigurationAttemptTrackerTests
         retained.StatusObservationCount.ShouldBe(recovered.StatusObservationCount);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Forget_notifies_only_for_matching_expired_ownership(bool retainSnapshot, bool expired)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        using var tracker = new TenantRemoveConfigurationAttemptTracker(() => now);
+        TenantRemoveConfigurationCommandSnapshot snapshot = AcceptedSnapshot(tracker, now, Intent("tenant.alpha", "billing.mode"));
+        if (retainSnapshot)
+        {
+            tracker.Remember(snapshot).ShouldBeTrue();
+        }
+
+        List<string> notifications = [];
+        tracker.OwnershipExpired += tenantId =>
+        {
+            tracker.HasPendingOwnership(tenantId).ShouldBeFalse();
+            notifications.Add(tenantId);
+        };
+        if (expired)
+        {
+            now += TenantRemoveConfigurationCommandSnapshot.MaximumRetainedAttemptDuration;
+        }
+
+        tracker.Forget("tenant.alpha", NUlid.Ulid.NewUlid().ToString());
+        notifications.ShouldBeEmpty();
+        tracker.Forget("tenant.alpha", snapshot.MessageId!);
+        tracker.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        notifications.Count.ShouldBe(expired ? 1 : 0);
+        if (expired) notifications[0].ShouldBe("tenant.alpha");
+        tracker.Forget("tenant.alpha", snapshot.MessageId!);
+        notifications.Count.ShouldBe(expired ? 1 : 0);
+    }
+
     private static TenantRemoveConfigurationCommandSnapshot AcceptedSnapshot(
         TenantRemoveConfigurationAttemptTracker tracker,
         DateTimeOffset now,

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-325/DW-587 closure (2026-10-17):** Configuration management now separates retained removal evidence from accepted flow activity and recovers after refused-adoption expiry in either timer ordering. Independent review/recheck, thirteen new cases, zero-warning/error Debug source build, focused 470 and full UI 6137 pass with zero failures/skips. Only these duplicate records close: all 647 IDs remain, 348 done/299 open across 268 exact-covering maintenance rows. Historical findings/pre-closure evidence, unrelated records, archive/sprint, dependencies and release holds are preserved. The historical literal unmounted-child scenario is not claimed as reproduced. See [exact evidence and limits](dw-325-587-validation-evidence.md). Release remains not ready.
+
 **DW-647 closure (2026-10-17):** Held removal admission now explains current freshness, exact confirmation and authority refusals accurately in EN/FR, including retry announcements, changes during cleanup and explicit reconfirmation after safety recovers. Independent review/rechecks, 50 new cases, zero-warning/error Debug source build, focused 430 and full UI 6124 pass with zero failures/skips. Only DW-647 closes: 647 IDs remain, 346 done/301 open across 269 exact-covering maintenance rows. Original findings/pre-closure fields, all unrelated records, prior evidence, archive/sprint, dependencies and release holds are preserved. See [exact commands, initial failures and limits](dw-647-validation-evidence.md). Release remains not ready.
 
 **DW-646 closure (2026-10-17):** Only DW-646 closes after failed-removal identity retention across refused/faulted retry admission, cleanup, disposal and real parent cancel/reopen passes independent review/correction rechecks. The final Debug source build has zero warnings/errors; focused 380 and full UI 6074 pass with zero failures/skips, including 32 new cases. All 647 IDs remain:345 done/302 open across 270 exact-covering maintenance rows. Original findings/pre-closure evidence, DW-647, every unrelated ledger body, prior evidence, archive/sprint, dependency pointers and release holds are preserved. See [complete validation and initial failures](dw-646-validation-evidence.md). Release remains not ready.
@@ -3238,17 +3240,25 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigu
 source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
 severity: low
 reason: OnParametersSet sets _removeCommandInFlight = true whenever RemoveAttemptTracker.Find returns a retained attempt, and only the flow's own lease callback lowers it. Tracker expiry raised while the flow is unmounted never runs that callback. The obvious else-reset was implemented and reverted: it lowers ChildCommandInFlight at the instant of confirmation, and the management landmark then replaces both flows with the unavailable paragraph before the operator can see the terminal state (Matching_signalr_notification_reconciles_retained_remove_without_redispatch_or_nudge_success fails). Impact is limited: the page clears its own _commandInFlight on expiry, so IsCommandSurfaceAvailable still recovers. A correct fix needs a distinct "flow owns the lease" signal.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor OnParametersSet still only raises _removeCommandInFlight for retained attempts; there is no reset when a tracker expires while the child is unmounted. Original terminal-unmount regression prevents a naive else-reset.
+pre-dw-325-status: open
+status: done 2026-10-17
+pre-dw-325-disposition: actionable
+disposition: resolved
+pre-dw-325-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-325-verification: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor OnParametersSet still only raises _removeCommandInFlight for retained attempts; there is no reset when a tracker expires while the child is unmounted. Original terminal-unmount regression prevents a naive else-reset.
+verification: Executed refused-adoption regressions prove retained-only activity clears with tracker-first and child-first expiry, exact heading focus, held-renderer replacement/tenant switching, accepted child/sibling activity preservation and disposal. Final Debug source build has zero warnings/errors; focused 470/470 and full UI 6137/6137 pass with zero failures/skips. Independent review accepts all five corrections. The historical literal unmounted-child scenario was not reproduced; current rendering preserves an adopted child and the executed failure involves one that never acquired activity.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor
-evidence-kind: verified-defect
+pre-dw-325-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: retained remove activity ownership
-next-action: Represent flow-owned activity separately from retained-attempt activity and pin expiry plus visible confirmation.
+pre-dw-325-next-action: Represent flow-owned activity separately from retained-attempt activity and pin expiry plus visible confirmation.
+next-action: Closed together with its duplicate after expiry/ownership qualification; unrelated deferred work and release holds remain unchanged.
 related: DW-587
+resolution-evidence: [Exact commands, initial failures, review and limits](dw-325-587-validation-evidence.md)
+resolution-spec: spec-dw-325-587-remove-configuration-activity.md
 
 ### DW-326: One of the ten mandated preview facts is a constant, and roughly two dozen enum-keyed EN/FR strings can never render.
 origin: spec-deferred 3352ed6ca1f0
@@ -7466,18 +7476,25 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Clear a retained remove-configuration activity latch when its attempt expires without a mounted child.\n  evidence: `TenantConfigurationManagement` sets `_removeCommandInFlight` from a retained attempt and clears it on context change or child callback, which an unmounted child cannot send."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantConfigurationManagement.OnParametersSet sets _removeCommandInFlight=true from a retained removal; it has no inverse reset when Find returns null and no tracker expiry subscription. Same-tenant expiry with no mounted child can retain the latch.
-evidence-kind: verified-defect
+pre-dw-587-status: open
+status: done 2026-10-17
+pre-dw-587-disposition: actionable
+disposition: resolved
+pre-dw-587-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-587-verification: TenantConfigurationManagement.OnParametersSet sets _removeCommandInFlight=true from a retained removal; it has no inverse reset when Find returns null and no tracker expiry subscription. Same-tenant expiry with no mounted child can retain the latch.
+verification: Executed refused-adoption regressions prove retained-only activity clears with tracker-first and child-first expiry, exact heading focus, held-renderer replacement/tenant switching, accepted child/sibling activity preservation and disposal. Final Debug source build has zero warnings/errors; focused 470/470 and full UI 6137/6137 pass with zero failures/skips. Independent review accepts all five corrections. The historical literal unmounted-child scenario was not reproduced; current rendering preserves an adopted child and the executed failure involves one that never acquired activity.
+pre-dw-587-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Removal tracker expiry notification
-next-action: Clear/recompute the parent activity latch when the retained attempt expires without a mounted child.
+pre-dw-587-next-action: Clear/recompute the parent activity latch when the retained attempt expires without a mounted child.
+next-action: Closed together with its duplicate after expiry/ownership qualification; unrelated deferred work and release holds remain unchanged.
 related: none
 duplicate-of: DW-325
-
+resolution-evidence: [Exact commands, initial failures, review and limits](dw-325-587-validation-evidence.md)
+resolution-spec: spec-dw-325-587-remove-configuration-activity.md
 
 ### DW-588: Reject a recovery state with an existing GitHub Release and missing tag.
 

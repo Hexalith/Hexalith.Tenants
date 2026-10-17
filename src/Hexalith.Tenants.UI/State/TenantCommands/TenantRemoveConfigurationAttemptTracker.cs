@@ -169,17 +169,21 @@ public sealed class TenantRemoveConfigurationAttemptTracker : IDisposable
         }
 
         ArgumentException.ThrowIfNullOrWhiteSpace(messageId);
+        bool expired = false;
         lock (_sync)
         {
+            DateTimeOffset now = _utcNow().ToUniversalTime();
             if (_snapshots.TryGetValue(tenantId, out TenantRemoveConfigurationCommandSnapshot? retained)
                 && string.Equals(retained.MessageId, messageId, StringComparison.Ordinal))
             {
+                expired |= retained.IsRetentionExpired(now);
                 _ = _snapshots.Remove(tenantId);
             }
 
             if (_dispatches.TryGetValue(tenantId, out var dispatch)
                 && string.Equals(dispatch.MessageId, messageId, StringComparison.Ordinal))
             {
+                expired |= IsExpired(dispatch.AttemptStartedAtUtc, now);
                 _ = _dispatches.Remove(tenantId);
             }
 
@@ -187,6 +191,18 @@ public sealed class TenantRemoveConfigurationAttemptTracker : IDisposable
             {
                 CancelExpiryLocked(tenantId);
             }
+            else
+            {
+                // A different identity still owns the tenant; forgetting stale evidence cannot expire it.
+                expired = false;
+            }
+        }
+
+        // The flow's expiry timer may win the race with our timer. Publish the same bounded-ownership
+        // notification after removing that expired identity, before its canceled timer can disappear silently.
+        if (expired)
+        {
+            RaiseOwnershipExpired([tenantId]);
         }
     }
 

@@ -4764,6 +4764,257 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             Arg.Any<CancellationToken>());
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public async Task Management_releases_retained_only_activity_after_refused_adoption_expires(bool rerender, bool childFirst)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        using var tracker = new TenantRemoveConfigurationAttemptTracker(() => now);
+        TenantRemoveConfigurationIntent intent = new("tenant.alpha", "billing", "billing.mode");
+        TenantRemoveConfigurationPreview preview = TenantRemoveConfigurationPreview.Create(
+            intent, TenantStatus.Active, TenantRemoveConfigurationCurrentState.Present,
+            ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, "tenant-sequence:41", true);
+        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        tracker.Remember(TenantRemoveConfigurationCommandSnapshot.Idle().Previewed(preview)
+            .RequestSent(preview, messageId, startedAt)
+            .Accepted(TenantCommandSubmissionResult.Accepted(messageId, messageId))).ShouldBeTrue();
+        Services.AddSingleton(tracker);
+        RegisterComponentServices();
+        int acquisitionCalls = 0;
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            intent.TenantId, TenantStatus.Active, false, ["billing"],
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration))
+            .Add(p => p.IsCommandSurfaceAvailable, false)
+            .Add(p => p.RemoveCommandActivityLease, active =>
+            {
+                if (active)
+                {
+                    acquisitionCalls++;
+                }
+
+                return Task.FromResult(!active);
+            }));
+        cut.WaitForAssertion(() => acquisitionCalls.ShouldBe(1));
+        cut.FindComponent<RemoveTenantConfigurationFlow>().Instance.Snapshot.MessageId.ShouldBe(messageId);
+        cut.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldBeEmpty();
+
+        // Pruning on a tracker consumer's thread emits the existing expiry notification. No child owns
+        // accepted activity, and no parameter update is needed in the notification-only case.
+        int focusCalls = FocusedElementIds().Count;
+        now += TenantRemoveConfigurationCommandSnapshot.MaximumRetainedAttemptDuration;
+        if (childFirst)
+        {
+            RemoveTenantConfigurationFlow flow = cut.FindComponent<RemoveTenantConfigurationFlow>().Instance;
+            await cut.InvokeAsync(() => flow.ExpireRetainedAttemptAsync(now));
+        }
+        else
+        {
+            await Task.Run(() => tracker.HasPendingOwnership(intent.TenantId).ShouldBeFalse());
+        }
+        if (rerender)
+        {
+            cut.Render();
+        }
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-management-unavailable']")
+            .TextContent.Trim().ShouldBe(Services.GetRequiredService<IStringLocalizer<TenantsResources>>()
+                ["Tenants.Configuration.Management.Unavailable.CommandSurface"].Value));
+        cut.FindComponents<RemoveTenantConfigurationFlow>().ShouldBeEmpty();
+        acquisitionCalls.ShouldBe(1);
+        FocusedElementIds().Count.ShouldBe(focusCalls + 1);
+        FocusedElementIds()[^1].ShouldBe(CapturedElementReferenceId(cut.Instance, "_headingElement"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Management_retention_expiry_preserves_activity_owned_by_each_flow(bool setOwnsActivity)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        using var tracker = new TenantRemoveConfigurationAttemptTracker(() => now);
+        TenantConfigurationManagementContext context = RememberManagementRemoval(tracker, now);
+        Services.AddSingleton(tracker);
+        RegisterComponentServices();
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration))
+            .Add(p => p.IsCommandSurfaceAvailable, false)
+            .Add(p => p.RemoveCommandActivityLease, active => Task.FromResult(!active || !setOwnsActivity)));
+        RemoveTenantConfigurationFlow remove = cut.FindComponent<RemoveTenantConfigurationFlow>().Instance;
+        SetTenantConfigurationFlow set = cut.FindComponent<SetTenantConfigurationFlow>().Instance;
+        if (setOwnsActivity)
+        {
+            await cut.InvokeAsync(() => set.CommandActivityLease.ShouldNotBeNull()(true));
+        }
+        else
+        {
+            cut.WaitForAssertion(() => remove.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+        }
+
+        now += TenantRemoveConfigurationCommandSnapshot.MaximumRetainedAttemptDuration;
+        await Task.Run(() => tracker.HasPendingOwnership(context.TenantId).ShouldBeFalse());
+        await cut.InvokeAsync(() => { });
+        cut.Render();
+
+        cut.FindComponent<SetTenantConfigurationFlow>().Instance.ShouldBeSameAs(set);
+        cut.FindComponent<RemoveTenantConfigurationFlow>().Instance.ShouldBeSameAs(remove);
+        cut.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldBeEmpty();
+        Func<bool, Task<bool>> lease = setOwnsActivity
+            ? set.CommandActivityLease.ShouldNotBeNull()
+            : remove.CommandActivityLease.ShouldNotBeNull();
+        await cut.InvokeAsync(() => lease(false));
+        cut.Render();
+        cut.Find("[data-testid='tenants-config-management-unavailable']");
+    }
+
+    [Fact]
+    public async Task Management_ignores_expiry_for_another_tenant()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        using var tracker = new TenantRemoveConfigurationAttemptTracker(() => now);
+        _ = RememberManagementRemoval(tracker, now, "tenant.beta");
+        Services.AddSingleton(tracker);
+        RegisterComponentServices();
+        TenantConfigurationManagementContext context = TenantConfigurationManagementContext.Available(
+            "tenant.alpha", TenantStatus.Active, false, ["billing"],
+            [new TenantConfigurationSafeRow("billing", "billing.mode", "trial")]);
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration)));
+        SetTenantConfigurationFlow set = cut.FindComponent<SetTenantConfigurationFlow>().Instance;
+        int renders = cut.RenderCount;
+
+        now += TenantRemoveConfigurationCommandSnapshot.MaximumRetainedAttemptDuration;
+        await Task.Run(() => tracker.HasPendingOwnership("tenant.beta").ShouldBeFalse());
+        await cut.InvokeAsync(() => { });
+
+        cut.RenderCount.ShouldBe(renders);
+        cut.FindComponent<SetTenantConfigurationFlow>().Instance.ShouldBeSameAs(set);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Management_queued_expiry_preserves_replacement_target_and_current_tenant(bool switchTenant)
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        using var tracker = new TenantRemoveConfigurationAttemptTracker(() => now);
+        TenantConfigurationManagementContext context = RememberManagementRemoval(tracker, now);
+        Services.AddSingleton(tracker);
+        RegisterComponentServices();
+        int acquisitions = 0;
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration))
+            .Add(p => p.IsCommandSurfaceAvailable, false)
+            .Add(p => p.RemoveCommandActivityLease, active =>
+            {
+                if (active) acquisitions++;
+                return Task.FromResult(!active);
+            }));
+        cut.WaitForAssertion(() => acquisitions.ShouldBe(1));
+        using var dispatcherHeld = new ManualResetEventSlim();
+        using var releaseDispatcher = new ManualResetEventSlim();
+        TenantConfigurationManagementContext? replacement = null;
+        Task blocker = Task.Run(() => Renderer.Dispatcher.InvokeAsync(() =>
+        {
+            dispatcherHeld.Set();
+            releaseDispatcher.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            if (switchTenant)
+            {
+                TenantConfigurationManagementContext next = replacement.ShouldNotBeNull();
+                cut.Render(parameters => parameters
+                    .Add(p => p.Context, next)
+                    .Add(p => p.SetEvidence, ManagementEvidence(next, TenantHighImpactAction.SetConfiguration))
+                    .Add(p => p.RemoveEvidence, ManagementEvidence(next, TenantHighImpactAction.RemoveConfiguration)));
+            }
+        }));
+        try
+        {
+            dispatcherHeld.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            now += TenantRemoveConfigurationCommandSnapshot.MaximumRetainedAttemptDuration;
+            await Task.Run(() => tracker.HasPendingOwnership(context.TenantId).ShouldBeFalse());
+            replacement = RememberManagementRemoval(tracker, now,
+                switchTenant ? "tenant.beta" : context.TenantId, "billing.region");
+        }
+        finally
+        {
+            releaseDispatcher.Set();
+            await blocker.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        await Renderer.Dispatcher.InvokeAsync(() => { });
+        cut.WaitForAssertion(() =>
+        {
+            RemoveTenantConfigurationFlow flow = cut.FindComponent<RemoveTenantConfigurationFlow>().Instance;
+            flow.TargetKey.ShouldBe("billing.region");
+            flow.Snapshot.Intent.ShouldNotBeNull().FullKey.ShouldBe(flow.TargetKey);
+            flow.Snapshot.Intent.TenantId.ShouldBe(switchTenant ? "tenant.beta" : "tenant.alpha");
+            tracker.Find(flow.Snapshot.Intent.TenantId).ShouldNotBeNull().MessageId.ShouldBe(flow.Snapshot.MessageId);
+        });
+        cut.FindAll("[data-testid='tenants-config-management-unavailable']").ShouldBeEmpty();
+        Renderer.UnhandledException.IsCompleted.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Management_disposal_releases_its_tracker_subscription()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        using var tracker = new TenantRemoveConfigurationAttemptTracker(() => now);
+        TenantConfigurationManagementContext context = RememberManagementRemoval(tracker, now);
+        Services.AddSingleton(tracker);
+        RegisterComponentServices();
+        IRenderedComponent<TenantConfigurationManagement> cut = Render<TenantConfigurationManagement>(parameters => parameters
+            .Add(p => p.Context, context)
+            .Add(p => p.SetEvidence, ManagementEvidence(context, TenantHighImpactAction.SetConfiguration))
+            .Add(p => p.RemoveEvidence, ManagementEvidence(context, TenantHighImpactAction.RemoveConfiguration))
+            .Add(p => p.RemoveCommandActivityLease, active => Task.FromResult(!active)));
+        TenantConfigurationManagement management = cut.Instance;
+        FieldInfo eventField = typeof(TenantRemoveConfigurationAttemptTracker)
+            .GetField("OwnershipExpired", BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
+        Delegate[] Subscribers() => (eventField.GetValue(tracker) as Delegate)?.GetInvocationList() ?? [];
+        Subscribers().Count(handler => ReferenceEquals(handler.Target, management)).ShouldBe(1);
+        Delegate callback = Subscribers().Single(handler => ReferenceEquals(handler.Target, management));
+
+        int renders = cut.RenderCount;
+        await DisposeComponentsAsync();
+
+        Subscribers().ShouldNotContain(handler => ReferenceEquals(handler.Target, management));
+        // A tracker may already have captured the callback when disposal removes it.
+        await Task.Run(() => ((Action<string>)callback)(context.TenantId));
+        await Renderer.Dispatcher.InvokeAsync(() => { });
+        cut.RenderCount.ShouldBe(renders);
+        Renderer.UnhandledException.IsCompleted.ShouldBeFalse();
+    }
+
+    private static TenantConfigurationManagementContext RememberManagementRemoval(
+        TenantRemoveConfigurationAttemptTracker tracker,
+        DateTimeOffset now,
+        string tenantId = "tenant.alpha",
+        string key = "billing.mode")
+    {
+        TenantRemoveConfigurationIntent intent = new(tenantId, "billing", key);
+        TenantRemoveConfigurationPreview preview = TenantRemoveConfigurationPreview.Create(
+            intent, TenantStatus.Active, TenantRemoveConfigurationCurrentState.Present,
+            ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, "tenant-sequence:41", true);
+        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        tracker.Remember(TenantRemoveConfigurationCommandSnapshot.Idle().Previewed(preview)
+            .RequestSent(preview, messageId, startedAt)
+            .Accepted(TenantCommandSubmissionResult.Accepted(messageId, messageId))).ShouldBeTrue();
+        return TenantConfigurationManagementContext.Available(
+            tenantId, TenantStatus.Active, false, ["billing"],
+            [new TenantConfigurationSafeRow("billing", key, "trial")]);
+    }
+
     [Fact]
     public void Management_closes_an_untouched_remove_flow_when_its_target_row_disappears()
     {
