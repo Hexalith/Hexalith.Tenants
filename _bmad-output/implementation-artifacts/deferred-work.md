@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-545 verification, acceptance pending (2026-10-17):** Current row validation already rejects every representable conflicting duplicate; supported identical/ordinal deduplication remains unchanged. Independent review/recheck accepts 72 new conflict cases, final loader 99/99 and zero-warning/error Debug source build. Final full UI has 6229 passed/two failures/zero skips in unchanged removal-confirmation tests; all 72 new cases pass. DW-545 stays open/actionable and the spec stays in review under the all-tests gate. All 647 IDs remain, 353 done/294 open across 265 maintenance rows. Original findings/fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact commands, results and limits](dw-545-validation-evidence.md). No production defect reproduction or runtime fix is claimed.
+
 **DW-528/DW-542 closure (2026-10-17):** Bootstrap authority responses enforce the existing 64 KiB cap before buffering, with the client deadline, cancellation, subject binding and disposal preserved. The authorized follow-up documents the existing delegated owner query and repairs its SDK fixture, including real dispatcher/source-evidence checks. Independent review/recheck, a zero-warning/error Debug source build, 31 focused cases and the full Server 951/951 pass with zero failures/skips; all 24 new bootstrap cases remain included. Only these duplicate records close: all 647 IDs remain, 353 done/294 open across 265 exact-covering index rows. Original findings, pending-stage evidence, initial file-lock failures and all earlier results remain; unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-528-542-validation-evidence.md). Release remains not ready.
 
 **DW-528/DW-542 repair, acceptance pending (2026-10-17):** Bootstrap authority responses now enforce the existing 64 KiB cap before buffering, with a shared header/body timeout, cancellation and disposal preserved. Independent review/recheck, 24 new cases, a zero-warning/error Debug source build and 87/87 focused bootstrap/configuration cases pass. The full Server project has 948 passed/three failed/zero skipped; all three failures reproduce with the unchanged entry provider. The required all-tests completion gate therefore keeps both records open/actionable and the spec in review. All 647 IDs, 351 done/296 open and 266 index rows remain. Historical fields, unrelated records, archive/sprint, dependencies and release holds are preserved. See [exact commands, baseline comparison and limits](dw-528-542-validation-evidence.md).
@@ -6724,16 +6726,22 @@ reason: Original finding and any prior resolutions are preserved losslessly in l
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; duplicate global-administrator ids are dropped and the page is still marked complete.\n  evidence: `GlobalAdministratorsProjectionLoader` ignores a failed `TryAdd` and sets `IsCompleteEvidence`. Conflicting administrator rows can disappear from a ready page. That loader is the global-administrator read, not this correction."
 status: open
 disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs:67 discards rows.TryAdd failure and :82 sets IsCompleteEvidence=true after page exhaustion. Conflicting duplicate UserId rows across stable pages are silently discarded; no duplicate-conflict fail-closed test was found.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs
-evidence-kind: verified-defect
+pre-dw-545-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-545-verification: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs:67 discards rows.TryAdd failure and :82 sets IsCompleteEvidence=true after page exhaustion. Conflicting duplicate UserId rows across stable pages are silently discarded; no duplicate-conflict fail-closed test was found.
+verification: Current sealed GlobalAdministratorRow has only UserId/Freshness/Lifecycle; IsCurrentStablePage requires every row to be Current/Current before merging, so all representable equal-ID conflicts already fail closed. Added 72 regressions covering every defined non-current state, order, page location and continuation; final loader 99/99 passes, zero failures/skips, with zero-warning/error Debug source build and accepted independent review/recheck. Final full UI has 6229 passed/two failures/zero skips in unchanged removal-confirmation tests; all 72 added cases pass. Full UI acceptance remains pending, with exact initial/focused/final results retained in dw-545-validation-evidence.md. No production defect reproduction or runtime fix is claimed.
+pre-dw-545-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs; src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs
+pre-dw-545-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Global-administrator projection completeness contract
-next-action: Reject conflicting duplicate administrator rows as incomplete evidence and cover same/conflicting duplicates across cursor pages.
+pre-dw-545-next-action: Reject conflicting duplicate administrator rows as incomplete evidence and cover same/conflicting duplicates across cursor pages.
+next-action: Retain current identical-duplicate/ordinal behavior and the new conflict coverage; resolve the separate existing removal-confirmation test failures and pass the full UI completion gate before closing DW-545.
 related: none
-
+validation-evidence: [Exact commands, review and pending acceptance](dw-545-validation-evidence.md)
+validation-spec: spec-dw-545-conflicting-administrator-evidence.md
 
 ### DW-546: Story 5.7; loading may drop an in-flight global-administrator correction when that story mounts the panel. Not reachable on the tenant audit page since `10c9f6f6`; unverified, high if true.
 

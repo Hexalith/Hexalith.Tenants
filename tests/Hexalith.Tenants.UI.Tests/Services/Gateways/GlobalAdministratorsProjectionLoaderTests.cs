@@ -351,6 +351,91 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
         calls.ShouldBe(2);
     }
 
+    [Theory]
+    [MemberData(nameof(ConflictingDuplicateEvidenceCases))]
+    public async Task LoadAsyncRejectsConflictingDuplicateEvidenceWithoutReadingFurtherPages(
+        ReadModelFreshnessState freshness,
+        ProjectionLifecycleState lifecycle,
+        bool acrossPages,
+        bool conflictFirst,
+        bool hasContinuation)
+    {
+        GlobalAdministratorRow current = CurrentRow("private-admin");
+        GlobalAdministratorRow conflicting = current with
+        {
+            Freshness = freshness,
+            Lifecycle = lifecycle,
+        };
+        GlobalAdministratorRow first = conflictFirst ? conflicting : current;
+        GlobalAdministratorRow second = conflictFirst ? current : conflicting;
+        var requests = new List<GlobalAdministratorsRequest>();
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetGlobalAdministratorsAsync(
+                Arg.Any<GlobalAdministratorsRequest>(),
+                Arg.Any<GlobalAdministratorsSnapshot?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                GlobalAdministratorsRequest request = call.ArgAt<GlobalAdministratorsRequest>(0);
+                call.ArgAt<GlobalAdministratorsSnapshot?>(1).ShouldBeNull();
+                call.ArgAt<CancellationToken>(2).ShouldBe(TestContext.Current.CancellationToken);
+                requests.Add(request);
+                bool firstPage = requests.Count == 1;
+                bool hasMore = acrossPages && firstPage || hasContinuation;
+                GlobalAdministratorsSnapshot page = Page(
+                    ["private-admin"],
+                    hasMore ? firstPage ? "opaque/page-two+" : "must-not-follow" : null,
+                    hasMore,
+                    request: request) with
+                {
+                    Rows = acrossPages
+                        ? firstPage ? [CurrentRow("unrelated-admin"), first] : [second]
+                        : [CurrentRow("unrelated-admin"), first, second],
+                };
+                return Task.FromResult(page);
+            });
+
+        GlobalAdministratorsSnapshot result = await GlobalAdministratorsProjectionLoader.LoadAsync(
+            gateway,
+            new GlobalAdministratorsRequest(PageSize: 7, ETag: "initial-validator"),
+            TestContext.Current.CancellationToken);
+
+        AssertCanonicalIncomplete(result);
+        result.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
+        requests.Count.ShouldBe(acrossPages && !conflictFirst ? 2 : 1);
+        requests[0].ShouldBe(new GlobalAdministratorsRequest(PageSize: 7, ETag: "initial-validator"));
+        if (requests.Count == 2)
+        {
+            requests[1].ShouldBe(new GlobalAdministratorsRequest("opaque/page-two+", PageSize: 7));
+        }
+    }
+
+    /// <summary>Supplies every non-current row state with both orderings, page locations and continuations.</summary>
+    /// <returns>The conflicting row states and cursor-walk arrangements.</returns>
+    public static IEnumerable<object[]> ConflictingDuplicateEvidenceCases()
+    {
+        IEnumerable<(ReadModelFreshnessState Freshness, ProjectionLifecycleState Lifecycle)> conflicts =
+            Enum.GetValues<ReadModelFreshnessState>()
+                .Where(static state => state is not ReadModelFreshnessState.Current)
+                .Select(static state => (Freshness: state, Lifecycle: ProjectionLifecycleState.Current))
+                .Concat(Enum.GetValues<ProjectionLifecycleState>()
+                    .Where(static state => state is not ProjectionLifecycleState.Current)
+                    .Select(static state => (Freshness: ReadModelFreshnessState.Current, Lifecycle: state)));
+        foreach ((ReadModelFreshnessState freshness, ProjectionLifecycleState lifecycle) in conflicts)
+        {
+            foreach (bool acrossPages in new[] { false, true })
+            {
+                foreach (bool conflictFirst in new[] { false, true })
+                {
+                    foreach (bool hasContinuation in new[] { false, true })
+                    {
+                        yield return [freshness, lifecycle, acrossPages, conflictFirst, hasContinuation];
+                    }
+                }
+            }
+        }
+    }
+
     private static void AssertCanonicalIncomplete(GlobalAdministratorsSnapshot result)
     {
         result.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Unavailable);
@@ -361,6 +446,12 @@ public sealed class GlobalAdministratorsProjectionLoaderTests
         result.ETag.ShouldBeNull();
         result.ProjectionVersion.ShouldBeNull();
         result.RequestCursor.ShouldBeNull();
+        result.CallerScope.ShouldBeNull();
+        result.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
+        result.Lifecycle.ShouldBe(ProjectionLifecycleState.Unknown);
+        result.IsAuthorizationScopedEmpty.ShouldBeFalse();
+        result.PagingRecovered.ShouldBeFalse();
+        result.RequestPageSize.ShouldBe(new GlobalAdministratorsRequest().PageSize);
     }
 
     private static GlobalAdministratorsSnapshot Page(
