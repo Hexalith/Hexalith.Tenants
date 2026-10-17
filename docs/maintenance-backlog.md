@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-243/DW-262/DW-612 closure (2026-10-17):** Seven legacy FAST token usages across member-removal, metadata-edit and configuration-set styling now follow the existing Fluent 2 theme roles. The guard covers active CSS/Razor and legacy primitives without exemptions. Independent review/recheck, zero-warning/error Debug build, full UI 6159/6159 and light/dark/forced-colors plus maintained Chromium checks pass. The initial focused held-authority failure and passing recheck are preserved in [exact evidence and limits](../_bmad-output/implementation-artifacts/dw-243-262-612-validation-evidence.md). Only these three records close: all 647 IDs remain, 351 done/296 open across 266 exact-covering maintenance rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds are preserved. Release remains not ready.
+
 Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependencies. [Deferred work](../_bmad-output/implementation-artifacts/deferred-work.md) is the source of truth. Update dispositions and evidence there first; this file indexes remaining actions. Epics 1–5 and their retrospectives are `done` in [sprint status](../_bmad-output/implementation-artifacts/sprint-status.yaml). Artifacts remain in place.
 
 **B1 update (2026-10-12):** DW-567 and DW-550/DW-598 are closed in the validated working tree over Tenants `2638d7f8e5347f5cba6aba123bc95f5b13c6f2a1`. Authenticated bootstrap actor/target binding, secure authority validation before I/O, persisted rejection replay and secret-free diagnostics passed the maintained checks. See [exact commands, results and limits](../_bmad-output/implementation-artifacts/release-readiness.md#b1-remediation-evidence-2026-10-12). The original reconciliation was 86 done/265 actionable/353 open; these three closures explain the current counts and two removed action rows. Historical findings remain in their ledger entries; the archive, sprint tracking, remaining blockers and all decisions are unchanged.
@@ -50,14 +52,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 138 |
-| actionable | 215 |
+| done | 351 |
+| actionable | 209 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 303 open records across 271 index rows.** Counts include duplicate restatements and exclude the 204 earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 296 open records across 266 index rows.** Disposition counts now cover all 647 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -75,7 +77,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-325/DW-587 closure (2026-10-17):** Retained removal activity is separate from accepted child activity. Refused adoption recovers under both expiry orderings; modal focus, current replacement target/tenant, sibling activity and disposal are qualified by thirteen new cases and independent review/recheck. Final Debug source build has zero warnings/errors; focused 470/full UI 6137 pass with zero failures/skips. Only these duplicates and their shared action row close: 647 IDs, 348 done/299 open, 268 exact-covering rows. [Exact commands, initial failures, review and limits](../_bmad-output/implementation-artifacts/dw-325-587-validation-evidence.md) preserve the historical unmounted-child evidence limit, earlier findings, archive/sprint, dependencies and release holds. Release remains not ready.
 
-**Current implementation completed:** DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
+**Current implementation completed:** DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -100,7 +102,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-225 | P2 | Defect / actionable | unassigned | DW-222 | Replace wall-clock qualification with exact command causation/sequence in coordination with DW-222. |
 | DW-227 | P2 | Defect / actionable | unassigned | shared modal/focus contract | Focus the native/Fluent interactive Cancel and launcher controls and assert browser keyboard behavior. |
 | DW-241 | P2 | Defect / actionable | unassigned | DW-194 focus contract | Restore to an existing launcher or stable member heading, containing stale-reference failures. |
-| DW-243, DW-262 | P2 | Defect / actionable | unassigned | none | Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard. |
 | DW-268 | P2 | Defect / actionable | unassigned | browser style evidence | Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width. |
 | DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
 | DW-308, DW-314 | P2 | Defect / actionable | unassigned | none | Require explicit authority at construction and reconcile unused status parameters with compatibility tests. |
@@ -261,7 +262,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-596 | P3 | Gap / actionable | EventStore 3.120.0 dependency refresh (spec-eventstore-3-117-1.md) and agent-context maintenance | Current dependency/provenance facts | Refresh the dependency narrative and CI project list without claiming unresolved audit acceptance. |
 | DW-605 | P3 | Gap / actionable | unassigned | none | Plan a mechanical split into files named after each C# type without behavior changes. |
 | DW-606 | P3 | Gap / actionable | unassigned | Owning source formatting work | Normalize the affected C# files in a separate formatting-only change. |
-| DW-612 | P3 | Gap / actionable | unassigned | Fluent V5 theme token mapping | Replace the two legacy border tokens with the appropriate Fluent V5 token. |
 | DW-613 | P3 | Gap / actionable | unassigned | Existing FrontComposer not-found conventions | Add a framework-conforming in-app unmatched-route message and safe recovery link. |
 | DW-616 | P3 | Gap / actionable | unassigned | Interactive host/browser fixture | Navigate the running interactive router to a FrontComposer-owned route and assert correct shell content. |
 | DW-639 | P3 | Gap / actionable | unassigned | Supported auth configuration aliases | Name both accepted configuration alternatives in the safe exception and align message tests. |

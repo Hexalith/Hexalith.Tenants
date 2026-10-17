@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-243/DW-262/DW-612 closure (2026-10-17):** Seven legacy FAST token usages across member-removal, metadata-edit and configuration-set styling now follow the existing Fluent 2 theme roles. The guard covers active CSS/Razor and legacy primitives without exemptions. Independent review/recheck, zero-warning/error Debug build, full UI 6159/6159 and light/dark/forced-colors plus maintained Chromium checks pass. The initial focused held-authority failure and passing recheck are preserved in [exact evidence and limits](dw-243-262-612-validation-evidence.md). Only these three records close: all 647 IDs remain, 351 done/296 open across 266 exact-covering maintenance rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds are preserved. Release remains not ready.
+
 **DW-325/DW-587 closure (2026-10-17):** Configuration management now separates retained removal evidence from accepted flow activity and recovers after refused-adoption expiry in either timer ordering. Independent review/recheck, thirteen new cases, zero-warning/error Debug source build, focused 470 and full UI 6137 pass with zero failures/skips. Only these duplicate records close: all 647 IDs remain, 348 done/299 open across 268 exact-covering maintenance rows. Historical findings/pre-closure evidence, unrelated records, archive/sprint, dependencies and release holds are preserved. The historical literal unmounted-child scenario is not claimed as reproduced. See [exact evidence and limits](dw-325-587-validation-evidence.md). Release remains not ready.
 
 **DW-647 closure (2026-10-17):** Held removal admission now explains current freshness, exact confirmation and authority refusals accurately in EN/FR, including retry announcements, changes during cleanup and explicit reconfirmation after safety recovers. Independent review/rechecks, 50 new cases, zero-warning/error Debug source build, focused 430 and full UI 6124 pass with zero failures/skips. Only DW-647 closes: 647 IDs remain, 346 done/301 open across 269 exact-covering maintenance rows. Original findings/pre-closure fields, all unrelated records, prior evidence, archive/sprint, dependencies and release holds are preserved. See [exact commands, initial failures and limits](dw-647-validation-evidence.md). Release remains not ready.
@@ -2219,17 +2221,25 @@ location: RemoveTenantMemberFlow.razor.css
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Replace legacy Fluent/FAST CSS custom properties in the remove-member dialog. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Replace legacy Fluent/FAST CSS custom properties in the remove-member dialog. evidence: `RemoveTenantMemberFlow.razor.css` still uses `--neutral-stroke-rest`, `--error-fill-rest`, and `--focus-stroke-outer`, contrary to the repository's Fluent UI v5 token guidance.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css still uses --neutral-stroke-rest, --error-fill-rest and --focus-stroke-outer. tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs does not prove removal of these legacy variables.
+pre-dw-243-status: open
+status: done 2026-10-17
+pre-dw-243-disposition: actionable
+disposition: resolved
+pre-dw-243-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-243-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css still uses --neutral-stroke-rest, --error-fill-rest and --focus-stroke-outer. tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs does not prove removal of these legacy variables.
+verification: All seven obsolete token references now use existing Fluent 2 neutral/danger border and focus roles while preserving system fallbacks and forced-colors rules. The new guard covers active CSS and Razor, named FAST primitives, nested fallbacks and comments with 21 controls. Independent review/correction recheck accepts both guard fixes; final Debug source build has zero warnings/errors, 6159 full UI tests pass with zero failures/skips, and computed light/dark/forced-colors plus maintained rendered Chromium checks pass. The expanded focused run had one unchanged held-authority case failure; its immediate eight-case recheck and full suite pass. See resolution evidence for limits.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css; tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs
-evidence-kind: verified-defect
+pre-dw-243-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard.
+pre-dw-243-next-action: Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard.
+next-action: Closed after token migration and conformance/browser qualification; unrelated deferred work and release holds remain unchanged.
 related: DW-243, DW-262, DW-612
+resolution-evidence: [Commands, initial failures, review and limits](dw-243-262-612-validation-evidence.md)
+resolution-spec: spec-dw-243-262-612-fluent-theme-tokens.md
 
 ### DW-244: Align rejected remove-member recovery copy with actions the surface actually provides
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -2487,18 +2497,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: RemoveTenantMemberFlow.razor.css:4; project-context.md
 reason: The legacy ledger defers this issue: Legacy FAST token `--neutral-stroke-rest` survives in `RemoveTenantMemberFlow.razor.css:4`. Original context is preserved in legacy-detail.
 legacy-detail: - **Legacy FAST token `--neutral-stroke-rest` survives in `RemoveTenantMemberFlow.razor.css:4`.** `project-context.md` bans `--neutral-*` outright, yet `DomainUiFluentConformanceTests` passes — the guard does not cover custom-property names. Noted rather than patched because this story's diff moved *off* a banned token (`--accent-fill-rest` → `--error-fill-rest` at `.css:36`), i.e. it improved the file; the residual token and the guard gap are pre-existing.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css still uses --neutral-stroke-rest, --error-fill-rest and --focus-stroke-outer. tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs does not prove removal of these legacy variables.
+pre-dw-262-status: open
+status: done 2026-10-17
+pre-dw-262-disposition: actionable
+disposition: resolved
+pre-dw-262-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-262-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css still uses --neutral-stroke-rest, --error-fill-rest and --focus-stroke-outer. tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs does not prove removal of these legacy variables.
+verification: All seven obsolete token references now use existing Fluent 2 neutral/danger border and focus roles while preserving system fallbacks and forced-colors rules. The new guard covers active CSS and Razor, named FAST primitives, nested fallbacks and comments with 21 controls. Independent review/correction recheck accepts both guard fixes; final Debug source build has zero warnings/errors, 6159 full UI tests pass with zero failures/skips, and computed light/dark/forced-colors plus maintained rendered Chromium checks pass. The expanded focused run had one unchanged held-authority case failure; its immediate eight-case recheck and full suite pass. See resolution evidence for limits.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css; tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs
-evidence-kind: verified-defect
+pre-dw-262-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard.
+pre-dw-262-next-action: Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard.
+next-action: Closed after token migration and conformance/browser qualification; unrelated deferred work and release holds remain unchanged.
 related: DW-243, DW-262, DW-612
 duplicate-of: DW-243
+resolution-evidence: [Commands, initial failures, review and limits](dw-243-262-612-validation-evidence.md)
+resolution-spec: spec-dw-243-262-612-fluent-theme-tokens.md
 
 ### DW-263: `RemoveTenantMemberFlow.Dispose` does not release the command-activity lease — attempted and reverted
 
@@ -7968,17 +7986,25 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadata
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Replace legacy Fluent border variables in tenant metadata and member-removal CSS.\n  evidence: Two components use --neutral-stroke-rest with CanvasText fallback while V5 components use --colorNeutralStroke1, so their borders can fail to follow the theme."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: EditTenantMetadataFlow.razor.css:6 and RemoveTenantMemberFlow.razor.css:4 still use --neutral-stroke-rest with CanvasText fallback; Hexalith UX and current Fluent components use V5 tokens.
+pre-dw-612-status: open
+status: done 2026-10-17
+pre-dw-612-disposition: actionable
+disposition: resolved
+pre-dw-612-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-612-verification: EditTenantMetadataFlow.razor.css:6 and RemoveTenantMemberFlow.razor.css:4 still use --neutral-stroke-rest with CanvasText fallback; Hexalith UX and current Fluent components use V5 tokens.
+verification: All seven obsolete token references now use existing Fluent 2 neutral/danger border and focus roles while preserving system fallbacks and forced-colors rules. The new guard covers active CSS and Razor, named FAST primitives, nested fallbacks and comments with 21 controls. Independent review/correction recheck accepts both guard fixes; final Debug source build has zero warnings/errors, 6159 full UI tests pass with zero failures/skips, and computed light/dark/forced-colors plus maintained rendered Chromium checks pass. The expanded focused run had one unchanged held-authority case failure; its immediate eight-case recheck and full suite pass. See resolution evidence for limits.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css
-evidence-kind: verified-gap
+pre-dw-612-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: Fluent V5 theme token mapping
-next-action: Replace the two legacy border tokens with the appropriate Fluent V5 token.
+pre-dw-612-next-action: Replace the two legacy border tokens with the appropriate Fluent V5 token.
+next-action: Closed after token migration and conformance/browser qualification; unrelated deferred work and release holds remain unchanged.
 related: none
+resolution-evidence: [Commands, initial failures, review and limits](dw-243-262-612-validation-evidence.md)
+resolution-spec: spec-dw-243-262-612-fluent-theme-tokens.md
 
 
 ### DW-613: Render a recovery surface for unmatched interactive UI routes.

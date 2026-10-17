@@ -1,0 +1,187 @@
+{
+  "baseline_commit": "a28e19330a3a97aaf48b4f77d8b66793e5d877a1",
+  "changed_ledger_records": [
+    "DW-243",
+    "DW-262",
+    "DW-612"
+  ],
+  "record_count": 647,
+  "done_count": 351,
+  "open_count": 296,
+  "maintenance_rows": 266,
+  "all_644_unrelated_records_preserved": true,
+  "unrelated_index_rows_preserved": true,
+  "preclosure_fields_preserved": true,
+  "open_index_exact_once": true,
+  "archive_and_sprint_preserved": {
+    "_bmad-output/implementation-artifacts/deferred-work-archive.md": true,
+    "_bmad-output/implementation-artifacts/sprint-status.yaml": true
+  },
+  "gitlinks_preserved": true,
+  "head_preserved_before_workflow_commit": true,
+  "source_hashes_match_reviewed_execution": true,
+  "input_hashes": {
+    "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css": "dc19ca03fc403670435a02dbbaba5c6467c00f658eca178bb47d7301a69e7450",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor.css": "95fd43f1f187ff615c08422a6fef2c66860b6e8dc724f80b59898ea27e38a1f6",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css": "51e11d58542558a7bc4c6433635ed17d620623cee4c090021ae85eb2ea49b7bf",
+    "tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs": "c44de61ec128e311fcd1bd139fd3cd8c4759735c6820ce6139db02ec0c55d386"
+  },
+  "test_results": {
+    "red": {
+      "total": 1,
+      "executed": 1,
+      "passed": 0,
+      "failed": 1,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "initial_focused": {
+      "total": 375,
+      "executed": 375,
+      "passed": 375,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "expanded_focused": {
+      "total": 383,
+      "executed": 383,
+      "passed": 382,
+      "failed": 1,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "held_read_recheck": {
+      "total": 8,
+      "executed": 8,
+      "passed": 8,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    },
+    "full": {
+      "total": 6159,
+      "executed": 6159,
+      "passed": 6159,
+      "failed": 0,
+      "error": 0,
+      "timeout": 0,
+      "aborted": 0,
+      "inconclusive": 0,
+      "passedButRunAborted": 0,
+      "notRunnable": 0,
+      "notExecuted": 0,
+      "disconnected": 0,
+      "warning": 0,
+      "completed": 0,
+      "inProgress": 0,
+      "pending": 0
+    }
+  },
+  "browser_computed_styles": {
+    "results": [
+      {
+        "scheme": "light",
+        "expected": {
+          "neutral": "rgb(209, 209, 209)",
+          "danger": "rgb(209, 52, 56)",
+          "focus": "rgb(0, 0, 0)"
+        },
+        "actual": {
+          "removalBorder": "rgb(209, 209, 209)",
+          "metadataBorder": "rgb(209, 209, 209)",
+          "removalDanger": "rgb(209, 52, 56)",
+          "metadataDanger": "rgb(209, 52, 56)",
+          "focuses": [
+            "rgb(0, 0, 0)",
+            "rgb(0, 0, 0)",
+            "rgb(0, 0, 0)"
+          ]
+        }
+      },
+      {
+        "scheme": "dark",
+        "expected": {
+          "neutral": "rgb(102, 102, 102)",
+          "danger": "rgb(227, 125, 128)",
+          "focus": "rgb(255, 255, 255)"
+        },
+        "actual": {
+          "removalBorder": "rgb(102, 102, 102)",
+          "metadataBorder": "rgb(102, 102, 102)",
+          "removalDanger": "rgb(227, 125, 128)",
+          "metadataDanger": "rgb(227, 125, 128)",
+          "focuses": [
+            "rgb(255, 255, 255)",
+            "rgb(255, 255, 255)",
+            "rgb(255, 255, 255)"
+          ]
+        }
+      }
+    ],
+    "forced": {
+      "canvasText": "rgb(255, 255, 255)",
+      "highlight": "rgba(0, 230, 255, 0.8)",
+      "borders": [
+        "rgb(255, 255, 255)",
+        "rgb(255, 255, 255)",
+        "rgb(255, 255, 255)",
+        "rgb(255, 255, 255)"
+      ],
+      "outlines": [
+        "rgba(0, 230, 255, 0.8)",
+        "rgba(0, 230, 255, 0.8)",
+        "rgba(0, 230, 255, 0.8)"
+      ]
+    }
+  },
+  "review": "Two findings accepted and patched; independent correction recheck accepts both, no deferrals.",
+  "validation_limit": "Expanded focused run had one unchanged held-authority failure (382/383); immediate targeted recheck 8/8 and full UI 6159/6159 pass. Computed token check uses isolated scoped-CSS fixture; maintained Chromium runner uses actual rendered fixtures. No authenticated workflow or human AT claim.",
+  "commitlint": {
+    "command": "node_modules/.bin/commitlint --edit /tmp/tenants-dw-243-262-612/commit-message.txt",
+    "version": "21.2.3",
+    "exit_code": 0,
+    "candidate": "fix(ui): migrate command flow styles to Fluent theme tokens\n",
+    "candidate_sha256": "7242d60537cdb01448e9713be0736ca6c798bb8dda52c2c9182fc9e94a4a52e0"
+  }
+}

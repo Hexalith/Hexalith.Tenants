@@ -1,7 +1,7 @@
 /* fc-css-exception: bordered command-flow dialog card; border + container padding and block margin define
    the card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-remove-member-flow {
-    border: 1px solid var(--neutral-stroke-rest, CanvasText);
+    border: 1px solid var(--colorNeutralStroke1, CanvasText);
     display: grid;
     gap: 1rem;
     margin-block: 1rem;
@@ -33,7 +33,7 @@
 /* fc-css-exception: left-accent callout padding on the semantic <section> preview region; preserves
    the border-accent treatment Fluent has no primitive for. */
 .tenants-remove-member-flow__preview {
-    border-inline-start: .25rem solid var(--error-fill-rest, CanvasText);
+    border-inline-start: .25rem solid var(--colorPaletteRedBorder2, CanvasText);
     max-inline-size: 56rem;
     padding-inline-start: 1rem;
 }
@@ -114,7 +114,7 @@
 }
 
 .tenants-remove-member-flow :focus-visible {
-    outline: 3px solid var(--focus-stroke-outer, Highlight);
+    outline: 3px solid var(--colorStrokeFocus2, Highlight);
     outline-offset: 2px;
 }
 

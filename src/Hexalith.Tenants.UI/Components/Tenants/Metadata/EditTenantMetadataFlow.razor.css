@@ -3,7 +3,7 @@
 .tenants-edit-metadata {
     display: grid;
     gap: 1rem;
-    border-block: 1px solid var(--neutral-stroke-rest, CanvasText);
+    border-block: 1px solid var(--colorNeutralStroke1, CanvasText);
     padding-block: 1rem;
 }
 
@@ -38,7 +38,7 @@
    no Fluent typography primitive wraps these semantic paragraphs. */
 .tenants-edit-metadata__unavailable,
 .tenants-edit-metadata__validation {
-    border-inline-start: .25rem solid var(--error-fill-rest, CanvasText);
+    border-inline-start: .25rem solid var(--colorPaletteRedBorder2, CanvasText);
     margin: 0;
     padding-inline-start: .75rem;
 }
@@ -60,7 +60,7 @@
 }
 
 .tenants-edit-metadata__lifecycle:focus-visible {
-    outline: .125rem solid var(--focus-stroke-outer, Highlight);
+    outline: .125rem solid var(--colorStrokeFocus2, Highlight);
     outline-offset: .125rem;
 }
 

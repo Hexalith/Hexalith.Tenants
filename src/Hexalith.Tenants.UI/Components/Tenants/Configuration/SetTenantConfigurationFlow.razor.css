@@ -109,7 +109,7 @@
 }
 
 .tenants-config-set :focus-visible {
-    outline: 3px solid var(--focus-stroke-outer, Highlight);
+    outline: 3px solid var(--colorStrokeFocus2, Highlight);
     outline-offset: 2px;
 }
 

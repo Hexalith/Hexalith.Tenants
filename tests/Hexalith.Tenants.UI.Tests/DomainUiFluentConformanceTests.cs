@@ -48,6 +48,12 @@ public sealed class DomainUiFluentConformanceTests
         "/\\*.*?\\*/",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
+    // Legacy FAST roles do not follow the V5 theme. Layout exceptions cannot exempt them.
+    private static readonly Regex LegacyFluentCssToken = new(
+        "--(?:(?:neutral|type-ramp|accent|palette|error-fill|focus-stroke)-[a-zA-Z0-9_-]+"
+        + "|fill-color|body-font|design-unit|stroke-width)(?![a-zA-Z0-9_-])",
+        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
     private static readonly Regex NativeControlCssSelector = new(
         "(^|[\\s,{>+~])(?:button|input|select|textarea)(?=[:.#\\s,{>+~\\[]|$)",
         RegexOptions.Compiled | RegexOptions.CultureInvariant | RegexOptions.Multiline);
@@ -452,6 +458,66 @@ public sealed class DomainUiFluentConformanceTests
             "Page-root layout belongs to FrontComposer/Fluent primitives. Page CSS may keep component-specific "
             + $"exceptions, but must not set root display/grid/padding/max-width (incl. logical properties): {string.Join("; ", offenders)}");
     }
+
+    [Fact]
+    [Trait("Category", "Governance")]
+    public void DomainUiUsesCurrentFluentThemeTokens()
+    {
+        string uiRoot = Path.Combine(ProjectRoot(), "src", "Hexalith.Tenants.UI");
+        string componentsRoot = Path.Combine(uiRoot, "Components");
+        string[] uiFiles = Directory.GetFiles(componentsRoot, "*.css", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(Path.Combine(uiRoot, "wwwroot"), "*.css", SearchOption.AllDirectories))
+            .Concat(Directory.GetFiles(componentsRoot, "*.razor", SearchOption.AllDirectories))
+            .ToArray();
+        uiFiles.ShouldNotBeEmpty();
+
+        List<string> offenders = [];
+        foreach (string file in uiFiles)
+        {
+            foreach (Match token in LegacyFluentTokenMatches(File.ReadAllText(file)))
+            {
+                offenders.Add($"{Path.GetRelativePath(uiRoot, file)} ({token.Value})");
+            }
+        }
+
+        offenders.ShouldBeEmpty(
+            "UI styles must use Fluent 2 theme roles or system colors instead of legacy FAST tokens: "
+            + string.Join("; ", offenders));
+    }
+
+    [Theory]
+    [Trait("Category", "Governance")]
+    [InlineData(".flow { border: 1px solid var(--neutral-stroke-rest, CanvasText); }")]
+    [InlineData(".flow { --error-fill-rest: red; }")]
+    [InlineData(".flow:focus-visible { outline-color: var(--focus-stroke-outer, Highlight); }")]
+    [InlineData(".flow { color: var(--type-ramp-base-font-size); }")]
+    [InlineData(".flow { color: var(--accent-fill-rest); }")]
+    [InlineData(".flow { color: var(--palette-red-foreground1); }")]
+    [InlineData(".flow { color: var(--colorNeutralForeground1, var(--neutral-foreground-rest)); }")]
+    [InlineData("/* fc-css-exception: documented layout gap */ .flow { color: var(--neutral-foreground-rest); }")]
+    [InlineData(".flow { background: var(--fill-color, Canvas); }")]
+    [InlineData(".flow { font-family: var(--body-font); }")]
+    [InlineData(".flow { gap: var(--design-unit); }")]
+    [InlineData(".flow { border-width: var(--stroke-width); }")]
+    [InlineData("<FluentStack Style=\"border-color: var(--neutral-stroke-rest, CanvasText)\" />")]
+    [InlineData("<style>.flow { color: var(--neutral-foreground-rest); }</style>")]
+    public void LegacyFluentTokenGuardRejectsActiveLegacyRoles(string css)
+        => LegacyFluentTokenMatches(css).ShouldNotBeEmpty();
+
+    [Theory]
+    [Trait("Category", "Governance")]
+    [InlineData(".flow { border: 1px solid var(--colorNeutralStroke1, CanvasText); }")]
+    [InlineData(".flow { border-color: var(--colorPaletteRedBorder2, CanvasText); }")]
+    [InlineData(".flow:focus-visible { outline-color: var(--colorStrokeFocus2, Highlight); }")]
+    [InlineData(".flow { color: CanvasText; outline-color: Highlight; }")]
+    [InlineData("/* Legacy example: var(--neutral-stroke-rest) */ .flow { color: CanvasText; }")]
+    [InlineData("@* <FluentStack Style=\"border-color: var(--neutral-stroke-rest)\" /> *@")]
+    [InlineData("<!-- <style>.flow { color: var(--neutral-foreground-rest); }</style> -->")]
+    public void LegacyFluentTokenGuardAllowsCurrentRolesSystemColorsAndComments(string css)
+        => LegacyFluentTokenMatches(css).ShouldBeEmpty();
+
+    private static MatchCollection LegacyFluentTokenMatches(string content)
+        => LegacyFluentCssToken.Matches(CssComment.Replace(RazorOrHtmlComment.Replace(content, string.Empty), string.Empty));
 
     [Fact]
     [Trait("Category", "Governance")]
