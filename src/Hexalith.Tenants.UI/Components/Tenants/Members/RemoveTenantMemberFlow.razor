@@ -1431,7 +1431,8 @@
         TenantRetainedCommandAttempt? attempt = _retainedAttempt;
         int generation = _attemptGeneration;
         long admissionGeneration = _admissionGeneration;
-        if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(false))
+        // Consume retry authority on the renderer, where safety changes invalidate its generation.
+        if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(true))
         {
             if (!_disposed && admissionGeneration == Volatile.Read(ref _admissionGeneration))
             {
@@ -1440,7 +1441,8 @@
             return;
         }
         ITenantCommandGateway? gateway = CommandGateway;
-        if (_disposed || generation != _attemptGeneration || !ReferenceEquals(attempt, _retainedAttempt)
+        if (_disposed || admissionGeneration != Volatile.Read(ref _admissionGeneration)
+            || generation != _attemptGeneration || !ReferenceEquals(attempt, _retainedAttempt)
             || !TenantCommandAttemptTracker.HasSameEvidence(expected, _snapshot) || !CanRetryDelivery
             || _isSubmitting || expected.Intent is null || attempt is null || gateway is null
             || !IsPreviewComplete || !string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal)

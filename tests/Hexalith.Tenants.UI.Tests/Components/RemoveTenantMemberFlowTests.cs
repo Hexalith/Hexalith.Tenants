@@ -1517,6 +1517,379 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         }
     }
 
+    /// <summary>Ambiguous delivery retries reject obsolete authority while retaining their original ownership and identity.</summary>
+    /// <param name="changeConfirmation">Whether confirmation changes instead of freshness.</param>
+    /// <param name="queueSuccessfulAuthority">Whether authority succeeds before the safety transition.</param>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task AmbiguousRemovalRetryRejectsChangedAdmissionGeneration(bool changeConfirmation, bool queueSuccessfulAuthority)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Delivery outcome needs recovery.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+                IsAmbiguousFailure = true,
+            },
+        };
+        RegisterServices(gateway);
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        using var releaseGateway = new ManualResetEventSlim();
+        int observeGatewayResolution = 0;
+        int offRendererGatewayResolutions = 0;
+        Services.RemoveAll<ITenantCommandGateway>();
+        Services.AddTransient<ITenantCommandGateway>(_ =>
+        {
+            if (Volatile.Read(ref observeGatewayResolution) == 1 && !Renderer.Dispatcher.CheckAccess())
+            {
+                Interlocked.Increment(ref offRendererGatewayResolutions);
+                // An obsolete off-renderer continuation must consume the restored safety values,
+                // rather than racing dispatch ahead of the controlled parameter/input transition.
+                releaseGateway.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            }
+            return gateway;
+        });
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active) acquisitions++;
+            return Task.FromResult(true);
+        });
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        original.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        original.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        original.CorrelationId.ShouldBeNull();
+        original.AttemptStartedAtUtc.ShouldNotBeNull();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        acquisitions.ShouldBe(1);
+        var authority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int authorityReads = 0;
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ => ++authorityReads == 2
+            ? authority.Task : Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
+        Task retry = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => authorityReads.ShouldBe(2));
+        Volatile.Write(ref observeGatewayResolution, 1);
+        using var dispatcherEntered = new ManualResetEventSlim();
+        using var releaseDispatcher = new ManualResetEventSlim();
+        Task blocker = Task.Run(() => Renderer.Dispatcher.InvokeAsync(() =>
+        {
+            dispatcherEntered.Set();
+            releaseDispatcher.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            if (changeConfirmation)
+            {
+                cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("changed-user");
+                cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+            }
+            else
+            {
+                cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+                cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+            }
+        }));
+        try
+        {
+            dispatcherEntered.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            if (queueSuccessfulAuthority)
+            {
+                authority.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+                FieldInfo resolving = typeof(RemoveTenantMemberFlow).GetField("_authorityResolutionInProgress", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                await WaitUntilAsync(() => !(bool)resolving.GetValue(cut.Instance)!, TimeSpan.FromSeconds(5));
+                retry.IsCompleted.ShouldBeFalse();
+            }
+        }
+        finally
+        {
+            releaseDispatcher.Set();
+            try
+            {
+                await blocker.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            finally
+            {
+                releaseGateway.Set();
+                authority.TrySetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+            }
+        }
+        await retry.WaitAsync(TimeSpan.FromSeconds(5));
+        Volatile.Write(ref observeGatewayResolution, 0);
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        offRendererGatewayResolutions.ShouldBe(0);
+        gateway.StatusCallCount.ShouldBe(0);
+        acquisitions.ShouldBe(1);
+        cut.Instance.Snapshot.ShouldBe(original);
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+
+        await cut.Find("form").SubmitAsync();
+        authorityReads.ShouldBe(4);
+        gateway.RemoveMemberCallCount.ShouldBe(2);
+        gateway.LastRemoveMemberRequest.ShouldBe(original.Intent);
+        gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        gateway.StatusCallCount.ShouldBe(0);
+        acquisitions.ShouldBe(1);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
+    /// <summary>A real ambiguous retry refuses unavailable current authority and can later be accepted under its original identity.</summary>
+    /// <param name="refusal">The current authority failure to exercise.</param>
+    [Theory]
+    [InlineData("denied")]
+    [InlineData("indeterminate")]
+    [InlineData("faulted")]
+    [InlineData("cancelled")]
+    public async Task AmbiguousRemovalRetryReauthorizesBeforeSameIdentityAcceptance(string refusal)
+    {
+        int deliveries = 0;
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        StubTenantCommandGateway gateway = new()
+        {
+            RemoveMemberAsync = _ => Task.FromResult(++deliveries == 1
+                ? TenantCommandSubmissionResult.Ambiguous(messageId, "Tenants.RemoveMember.Unavailable.CommandSurface")
+                : TenantCommandSubmissionResult.Accepted(messageId, "retry-correlation")),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        RegisterServices(gateway);
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        original.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        original.CorrelationId.ShouldBeNull();
+        int authorityReads = 0;
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ => ++authorityReads == 1
+            ? Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)
+            : refusal switch
+            {
+                "denied" => Task.FromResult(TenantLifecycleAuthorizationReflectionState.MissingPermission),
+                "indeterminate" => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Indeterminate),
+                "faulted" => Task.FromException<TenantLifecycleAuthorizationReflectionState>(new InvalidOperationException("Private authority failure")),
+                _ => Task.FromCanceled<TenantLifecycleAuthorizationReflectionState>(new CancellationToken(canceled: true)),
+            }));
+        await cut.Find("form").SubmitAsync();
+        authorityReads.ShouldBe(2);
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        cut.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+        cut.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.CorrelationId.ShouldBeNull();
+        cut.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldBe(localizer[refusal is "denied"
+            ? "Tenants.RemoveMember.Unavailable.Authorization" : "Tenants.Mutation.Unavailable.AuthorityIndeterminate"].Value);
+        cut.Markup.ShouldNotContain("Private authority failure");
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ =>
+        {
+            authorityReads++;
+            return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        }));
+        await cut.Find("form").SubmitAsync();
+        authorityReads.ShouldBe(4);
+        gateway.RemoveMemberCallCount.ShouldBe(2);
+        gateway.LastRemoveMemberRequest.ShouldBe(original.Intent);
+        gateway.LastRemoveMemberMessageId.ShouldBe(messageId);
+        cut.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        cut.Instance.Snapshot.CorrelationId.ShouldBe("retry-correlation");
+        gateway.StatusCallCount.ShouldBe(1);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
+    /// <summary>Suspended ambiguous recovery can proceed through status and projection without inventing audit availability.</summary>
+    [Fact]
+    public async Task SuspendedAmbiguousRemovalRetryConfirmsOnlyAfterMatchingProjection()
+    {
+        int deliveries = 0;
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        bool completed = false;
+        bool removed = false;
+        StubTenantCommandGateway gateway = new()
+        {
+            RemoveMemberAsync = _ => Task.FromResult(++deliveries == 1
+                ? TenantCommandSubmissionResult.Ambiguous(messageId, "Tenants.RemoveMember.Unavailable.CommandSurface")
+                : TenantCommandSubmissionResult.Accepted(messageId, "retry-correlation")),
+            StatusAsync = (_, _) => Task.FromResult(completed
+                ? new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 }
+                : new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true)),
+        };
+        RegisterServices(gateway);
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        original.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        var authority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int authorityReads = 0;
+        cut.Render(p => p
+            .Add(x => x.AuthorizationReflectionProvider, _ => ++authorityReads == 2
+                ? authority.Task : Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(x => x.ProjectionEvidenceProvider, request => Task.FromResult(removed
+                ? Proof(Detail(request.TenantId, [new TenantMember("owner-user", TenantRole.TenantOwner)]), "tenant-sequence:2")
+                : Proof(Detail(request.TenantId), "tenant-sequence:1"))));
+        Task retry = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => authorityReads.ShouldBe(2));
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        authority.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await retry.WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.RemoveMemberCallCount.ShouldBe(2);
+        gateway.LastRemoveMemberRequest.ShouldBe(original.Intent);
+        gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        completed = true;
+        await cut.Find("[data-testid='tenants-remove-member-refresh']").ClickAsync(new MouseEventArgs());
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        removed = true;
+        await cut.Find("[data-testid='tenants-remove-member-refresh']").ClickAsync(new MouseEventArgs());
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        cut.Instance.Snapshot.AuditState.ShouldNotBe(TenantCommandAuditState.AuditAvailable);
+        gateway.RemoveMemberCallCount.ShouldBe(2);
+        gateway.StatusCallCount.ShouldBe(3);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+    }
+
+    /// <summary>Late ambiguous retry authority cannot alter replacement authority, targets, or renderers.</summary>
+    /// <param name="replacement">The authority or renderer context to replace.</param>
+    /// <param name="queueSuccessfulAuthority">Whether authority succeeds before replacement.</param>
+    [Theory]
+    [InlineData("provider", false)]
+    [InlineData("provider", true)]
+    [InlineData("version", false)]
+    [InlineData("version", true)]
+    [InlineData("tenant", false)]
+    [InlineData("tenant", true)]
+    [InlineData("member", false)]
+    [InlineData("member", true)]
+    [InlineData("dispose", false)]
+    [InlineData("dispose", true)]
+    public async Task AmbiguousRemovalRetryPreservesReplacementContext(string replacement, bool queueSuccessfulAuthority)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Ambiguous("01ARZ3NDEKTSV4RRFFQ69G5FAV", "Tenants.RemoveMember.Unavailable.CommandSurface"),
+        };
+        RegisterServices(gateway);
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        TenantRemoveMemberCommandSnapshot original = cut.Instance.Snapshot;
+        original.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        var authority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int authorityReads = 0;
+        Func<CancellationToken, Task<TenantLifecycleAuthorizationReflectionState>> provider = _ => ++authorityReads == 2
+            ? authority.Task : Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, provider));
+        Task retry = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => authorityReads.ShouldBe(2));
+        IRenderedComponent<RemoveTenantMemberFlow> current = cut;
+        TenantRemoveMemberCommandSnapshot? replacementSnapshot = null;
+        using var dispatcherEntered = new ManualResetEventSlim();
+        using var releaseDispatcher = new ManualResetEventSlim();
+        Task blocker = Task.Run(() => Renderer.Dispatcher.InvokeAsync(() =>
+        {
+            dispatcherEntered.Set();
+            releaseDispatcher.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            switch (replacement)
+            {
+                case "provider":
+                    cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
+                    cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, provider));
+                    break;
+                case "version":
+                    cut.Render(p => p.Add(x => x.AuthorizationVersion, 1));
+                    cut.Render(p => p.Add(x => x.AuthorizationVersion, 0));
+                    break;
+                case "tenant":
+                    cut.Render(p => p.Add(x => x.Detail, Detail("tenant.beta")));
+                    break;
+                case "member":
+                    cut.Render(p => p.Add(x => x.Member, new TenantMember("second-owner", TenantRole.TenantOwner)));
+                    break;
+                default:
+                    // Dispose the component before remounting; bUnit wrapper cleanup can be queued
+                    // behind the same held renderer continuation this fixture is controlling.
+                    ((IDisposable)cut.Instance).Dispose();
+                    current = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+                    break;
+            }
+            replacementSnapshot = current.Instance.Snapshot;
+        }));
+        try
+        {
+            dispatcherEntered.Wait(TimeSpan.FromSeconds(5)).ShouldBeTrue();
+            if (queueSuccessfulAuthority)
+            {
+                authority.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+                FieldInfo resolving = typeof(RemoveTenantMemberFlow).GetField("_authorityResolutionInProgress", BindingFlags.Instance | BindingFlags.NonPublic)!;
+                await WaitUntilAsync(() => !(bool)resolving.GetValue(cut.Instance)!, TimeSpan.FromSeconds(5));
+                retry.IsCompleted.ShouldBeFalse();
+            }
+        }
+        finally
+        {
+            releaseDispatcher.Set();
+            try
+            {
+                await blocker.WaitAsync(TimeSpan.FromSeconds(5));
+            }
+            finally
+            {
+                authority.TrySetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+            }
+        }
+        await retry.WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(0);
+        current.Instance.Snapshot.ShouldBe(replacementSnapshot.ShouldNotBeNull());
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        if (replacement is "tenant")
+        {
+            attempts.HasPendingOwnership("tenant.beta").ShouldBeFalse();
+            gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.beta")).ShouldBeFalse();
+        }
+        if (replacement is "provider" or "version" or "dispose")
+        {
+            current.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+            await current.Find("form").SubmitAsync();
+            gateway.RemoveMemberCallCount.ShouldBe(2);
+            gateway.LastRemoveMemberRequest.ShouldBe(original.Intent);
+            gateway.LastRemoveMemberMessageId.ShouldBe(original.MessageId);
+            current.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        }
+    }
+
     /// <summary>Feedback reflects safety changes that occur while undispatched cleanup is held.</summary>
     /// <param name="cultureName">The resource culture to render.</param>
     /// <param name="blocker">The blocker that supersedes the original stale-read refusal.</param>

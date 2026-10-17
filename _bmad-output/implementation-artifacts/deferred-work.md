@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-648 closure (2026-10-17):** Ambiguous member-removal retries now consume current authority on the renderer and reject obsolete admission generations while retaining the original identity and ownership. Controlled pre-fix queued cases reproduce the defect; nineteen new regressions, independent review/recheck, a zero-warning/error Debug source build, focused 240/240 and full UI 6262/6262 pass with zero failures/skips. Only DW-648 closes: all 648 IDs remain, 355 done/293 open across 264 exact-covering index rows. Historical findings and initial failures, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-648-validation-evidence.md). Release remains not ready.
+
 **DW-545 closure and DW-648 review follow-up (2026-10-17):** Existing administrator conflict validation is accepted after the removal UI acceptance repair. Confirmation is published before cancellation; admission/cleanup resumes on the renderer and rejects obsolete authority generations. Exact EN/FR feedback, retained identity, no-dispatch and recovery controls pass independent review/recheck, a zero-warning/error Debug source build and full UI 6243/6243 with zero failures/skips. Original conflict findings, failing controls and all prior acceptance failures remain in [complete follow-up evidence](dw-545-ui-acceptance-evidence.md). Only DW-545 closes; the separate ambiguous RequestSent retry path gains qualification follow-up DW-648 without a reproduced defect claim. All 647 original IDs/fields remain plus DW-648: 648 IDs, 354 done/294 open across 265 exact-covering index rows. Archive/sprint, unrelated records, dependencies and release holds are preserved. Release remains not ready.
 
 **DW-545 verification, acceptance pending (2026-10-17):** Current row validation already rejects every representable conflicting duplicate; supported identical/ordinal deduplication remains unchanged. Independent review/recheck accepts 72 new conflict cases, final loader 99/99 and zero-warning/error Debug source build. Final full UI has 6229 passed/two failures/zero skips in unchanged removal-confirmation tests; all 72 new cases pass. DW-545 stays open/actionable and the spec stays in review under the all-tests gate. All 647 IDs remain, 353 done/294 open across 265 maintenance rows. Original findings/fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact commands, results and limits](dw-545-validation-evidence.md). No production defect reproduction or runtime fix is claimed.
@@ -8655,14 +8657,21 @@ origin: independent review of DW-545 UI acceptance follow-up, 2026-10-17
 location: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-dw-545-ui-acceptance-followup.md`
 summary: Qualify admission-generation and renderer ordering on the separate RequestSent ambiguous-delivery retry path.
-status: open
-disposition: actionable
+pre-dw-648-status: open
+status: done 2026-10-17
+pre-dw-648-disposition: actionable
+disposition: resolved
 verification-date: 2026-10-17
-verification: Read-only review confirms RetryDeliveryAsync handles RequestSent retries separately, retains ConfigureAwait(false), and has no caller-side generation comparison after the helper returns. Existing identity tests and the repaired Failed-retry second-read matrix do not prove successful authority consumption queued before a change-and-restore safety transition on this path. No controlled execution/mutation of that interleaving or production defect reproduction is claimed; this is a qualification gap, not a demonstrated regression introduced by the DW-545 repair.
+pre-dw-648-verification: Read-only review confirms RetryDeliveryAsync handles RequestSent retries separately, retains ConfigureAwait(false), and has no caller-side generation comparison after the helper returns. Existing identity tests and the repaired Failed-retry second-read matrix do not prove successful authority consumption queued before a change-and-restore safety transition on this path. No controlled execution/mutation of that interleaving or production defect reproduction is claimed; this is a qualification gap, not a demonstrated regression introduced by the DW-545 repair.
+verification: Controlled component reproduction against unchanged runtime dispatched obsolete queued-authority retries in both change-and-restore cases (two failures/two passes). The retry now consumes authority on the renderer and checks admission generation. Nineteen new cases qualify pending/queued safety, denied/indeterminate/faulted/canceled authority, replacement/disposal, same-ID recovery and separate status/projection/audit truth. Independent review/recheck, zero-warning/error Debug source build, focused 240/240 and final full UI 6262/6262 pass with zero failures/skips. Exact commands and initial failures remain in dw-648-validation-evidence.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
-evidence-kind: verified-gap
+pre-dw-648-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: Tenants UI
 dependencies: Supported ambiguous-delivery same-ID retry contract; controlled renderer/authority completion fixture
-next-action: Exercise an actual RequestSent same-ID retry with a successful authority result queued before safety changes and restores; assert no obsolete-generation dispatch and safe identity-preserving recovery, then repair runtime only if the regression reproduces.
+pre-dw-648-next-action: Exercise an actual RequestSent same-ID retry with a successful authority result queued before safety changes and restores; assert no obsolete-generation dispatch and safe identity-preserving recovery, then repair runtime only if the regression reproduces.
+next-action: Closed within DW-648; retain existing release qualification holds and unrelated deferred work.
 related: DW-545
+resolution-evidence: [Exact validation, initial failures and independent review](dw-648-validation-evidence.md)
+resolution-spec: spec-dw-648-ambiguous-removal-retry-admission.md
