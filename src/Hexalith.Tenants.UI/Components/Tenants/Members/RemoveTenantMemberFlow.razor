@@ -1305,14 +1305,23 @@
             : !HasSafeMeasuredViewport ? Localizer["Tenants.RemoveMember.Unavailable.Narrow"].Value : AuthorizationUnavailableReason;
         if (admitted && (eligibilityReason is not null || !IsPreviewEvidenceComplete || !string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal)))
         {
-            Attempts.Detach(_retainedAttempt, this);
-            _retainedAttempt = null;
-            _isSubmitting = false;
-            _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
-            if (_disposed || submitGeneration != _attemptGeneration)
+            TenantRetainedCommandAttempt? refusedAttempt = _retainedAttempt;
+            try
+            {
+                _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                // No delivery began. Restore the refusal below and require fresh activity admission.
+            }
+            if (_disposed || submitGeneration != _attemptGeneration || !ReferenceEquals(_retainedAttempt, refusedAttempt))
             {
                 return;
             }
+            _hasRaisedCommandActivity = false;
+            Attempts.Detach(refusedAttempt, this);
+            _retainedAttempt = null;
+            _isSubmitting = false;
             string reason = eligibilityReason ?? Localizer["Tenants.RemoveMember.Preview.Blocked.Required"].Value;
             SetSnapshot(retryMessageId is null
                 ? RefuseBeforeDispatch(reason, retriedAttempt)

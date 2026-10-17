@@ -3374,7 +3374,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
-    public void TargetReplacementInvalidatesOpenUndispatchedPreviewAndReleasesItsExactLease()
+    public async Task TargetReplacementInvalidatesOpenUndispatchedPreviewAndReleasesItsExactLease()
     {
         var commandGateway = new StubTenantCommandGateway();
         Services.AddSingleton<ITenantsBffComposition>(
@@ -3393,13 +3393,17 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         TenantAggregateCommandLease previewLease =
             PrivateField<TenantAggregateCommandLease>(cut.Instance, "_grantAdmissionLease");
 
-        // bUnit dispatches `onchange` regardless of `disabled`, so the invalidation branch below is only
-        // reachable in a browser if the control is actually still live. Pin the production control too:
-        // while a preview is open the field is disabled, which is what stops the retarget the branch guards.
+        // The field prevents new edits while a preview is open. Invoke its callback below to simulate
+        // an input event already queued before it became disabled and exercise the stale-event guard.
         cut.Find("[data-testid='tenants-global-admin-grant-user-id']")
             .HasAttribute("disabled").ShouldBeTrue();
 
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-b");
+        FluentTextInput targetInput = cut.FindComponents<FluentTextInput>()
+            .Select(rendered => rendered.Instance)
+            .Single(instance => instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && string.Equals(actual as string, "tenants-global-admin-grant-user-id", StringComparison.Ordinal));
+        await cut.InvokeAsync(() => targetInput.ValueChanged.InvokeAsync("target-b"));
 
         GlobalAdministratorGrantCommandSnapshot invalidated =
             PrivateField<GlobalAdministratorGrantCommandSnapshot>(cut.Instance, "_grantSnapshot");
@@ -7582,7 +7586,13 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         }
         else
         {
-            cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-b");
+            // Exercise a queued callback; the current DOM input correctly refuses edits while disabled.
+            FluentTextInput targetInput = cut.FindComponents<FluentTextInput>()
+                .Select(rendered => rendered.Instance)
+                .Single(instance => instance.AdditionalAttributes is { } attributes
+                    && attributes.TryGetValue("data-testid", out object? actual)
+                    && string.Equals(actual as string, "tenants-global-admin-grant-user-id", StringComparison.Ordinal));
+            await cut.InvokeAsync(() => targetInput.ValueChanged.InvokeAsync("target-b"));
         }
 
         await submit.WaitAsync(TimeSpan.FromSeconds(5));

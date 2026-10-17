@@ -8618,14 +8618,55 @@ next-action: None for DW-644; completed after reviewed verification. DW-645 sepa
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-644-predispatch-freshness-recovery.md`
   summary: Keep an undispatched removal safely recoverable when its safety-refusal cleanup callback throws.
   evidence: Independent DW-644 review traced held-admission safety refusal to detaching the retained attempt, clearing submission activity and awaiting SetCommandActivityRaisedAsync(false) before installing a recoverable snapshot. That method rethrows false-release callback errors, so a throwing callback leaves RequestSent after its retained attempt was detached. Both the cleanup ordering and rethrow are present in the entry baseline; this is separate existing cleanup behavior.
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-17
+pre-closure-verification: Source-verified at canonical entry 0e1fe111a5b4cce684455948b4fd12960589ef55 and independently rechecked against DW-644 source. SubmitAsync detaches before awaiting false activity release; the false-release catch rethrows before a recoverable refusal is installed. RetryDeliveryAsync then requires an attached retained attempt. No throwing-release execution or repair was performed; preserve this verification limit.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
+pre-closure-evidence-kind: verified-defect
+priority: P2
+owner: Tenants UI
+dependencies: Undispatched activity-release callback fault handling; preserve actual admission safety and dispatched ownership
+pre-closure-next-action: Add a held-acquisition freshness/confirmation refusal with a throwing false-release callback, then preserve recoverable local state and require safe admission reacquisition without dropping potentially delivered identities.
+related: DW-644, DW-480
+closure-evidence: _bmad-output/implementation-artifacts/dw-645-validation-evidence.md
+status: done 2026-10-17
+disposition: done
+verification-date: 2026-10-17
+verification: Retained ownership and submission barrier survive pending release until its successful or faulted completion. Matching generation/attempt guards then restore recoverable undispatched state and force fresh activity admission. Debug source build has zero warnings/errors; removal137, prerequisite global7 and full UI6042 pass with zero failures/skips. Independent review and correction recheck accept lifecycle, disposal, safety and late-completion coverage. DW-646 and DW-647 separately preserve older source-only retention/feedback defects; broader failed-retry renderer replacement is not claimed repaired.
+evidence-kind: executed-regression-and-independent-review
+next-action: None for DW-645; completed after reviewed verification. DW-646 and DW-647 remain separately actionable.
+
+### DW-646: A refused failed-delivery removal retry retains its prior message identity only in the live renderer.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-645-predispatch-release-recovery.md`
+  summary: Preserve the possibly delivered failed-removal identity across cancel/reopen after a pre-dispatch retry safety refusal.
+  evidence: Independent DW-645 review traced replacement of the terminal failed attempt with a new undispatched RequestSent admission, followed by Detach removing that record and RefuseRetry restoring original evidence only after the retained-attempt reference is null. MemberAccessReview cancel/reopen destroys that local snapshot. Identical successful-release cleanup exists at canonical entry e667d5391dae306e631dec23acd191863e54130c; DW-645 does not introduce it.
 status: open
 disposition: actionable
 verification-date: 2026-10-17
-verification: Source-verified at canonical entry 0e1fe111a5b4cce684455948b4fd12960589ef55 and independently rechecked against DW-644 source. SubmitAsync detaches before awaiting false activity release; the false-release catch rethrows before a recoverable refusal is installed. RetryDeliveryAsync then requires an attached retained attempt. No throwing-release execution or repair was performed; preserve this verification limit.
+verification: Source-verified against entry and current SubmitAsync, TenantCommandAttemptTracker.Detach and MemberAccessReview.CloseRemoveMemberAsync. Current executed regression proves same-live-renderer message reuse only. No cancel/reopen or replacement reproduction of this older loss was executed; do not infer that broader recovery is repaired.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAttemptTracker.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+evidence-kind: verified-defect
+priority: P2
+owner: Tenants UI
+dependencies: Retained failed-attempt identity across undispatched retry abandonment
+next-action: Add failed delivery, held retry safety refusal, cancel/reopen and same-ID recovery coverage, then preserve the original recovery basis without retaining an undispatched aggregate lock.
+related: DW-645, DW-644
+
+### DW-647: A freshness or confirmation change during removal admission can announce unavailable authority instead of its actual refusal reason.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-645-predispatch-release-recovery.md`
+  summary: Preserve accurate localized refusal feedback when current safety changes invalidate a held removal admission.
+  evidence: Independent DW-645 review traced freshness/confirmation invalidation of admission generation to ReauthorizeAdmissionAsync returning false and SubmitAsync selecting AuthorizationUnavailableReason even while authority remains authorized. The reason-selection logic is unchanged from canonical entry e667d5391dae306e631dec23acd191863e54130c.
+status: open
+disposition: actionable
+verification-date: 2026-10-17
+verification: Source-verified generation invalidation and reason selection at entry and current source. Existing held-admission regressions prove no dispatch and recoverability but do not pin the exact explanation. No wrong-copy EN/FR execution or correction was performed; preserve that limit.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
 evidence-kind: verified-defect
 priority: P2
 owner: Tenants UI
-dependencies: Undispatched activity-release callback fault handling; preserve actual admission safety and dispatched ownership
-next-action: Add a held-acquisition freshness/confirmation refusal with a throwing false-release callback, then preserve recoverable local state and require safe admission reacquisition without dropping potentially delivered identities.
-related: DW-644, DW-480
+dependencies: Current safety reason versus invalidated admission-generation feedback
+next-action: Assert shipped EN/FR freshness/confirmation refusal feedback during held admission and distinguish changed safety evidence from genuinely denied or indeterminate authority without weakening reauthorization.
+related: DW-645, DW-644
