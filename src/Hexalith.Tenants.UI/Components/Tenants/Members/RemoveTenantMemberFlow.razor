@@ -206,7 +206,7 @@
            data-testid="tenants-remove-member-live-region"
            aria-live="@LiveRegionMode"
            aria-atomic="true">
-            @(_snapshot.State is TenantCommandLifecycleState.Previewed && !string.IsNullOrWhiteSpace(DisplaySafeMessage) ? DisplaySafeMessage : StateText)
+            @(_snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed && !string.IsNullOrWhiteSpace(DisplaySafeMessage) ? DisplaySafeMessage : StateText)
         </p>
     </section>
 
@@ -247,6 +247,8 @@
     private string? _validationMessage;
     private bool _isSubmitting;
     private bool _hasRaisedCommandActivity;
+    private bool _hasUndispatchedSafetyRefusal;
+    private (string TenantId, string UserId)? _previewIdentity;
     private bool _dismissed;
     private FluentTextInput _confirmationElement = default!;
     private ElementReference _submitElement;
@@ -533,6 +535,9 @@
             _hasRaisedCommandActivity = false;
             _isSubmitting = false;
             _snapshot = TenantRemoveMemberCommandSnapshot.Idle();
+            _confirmationText = null;
+            _validationMessage = null;
+            _hasUndispatchedSafetyRefusal = false;
         }
         if (_readOnlyDetached || Services.GetService<TenantAggregateCommandAdmissionGate>() is null || Services.GetService<TenantCommandAttemptTracker>() is null || !IsAuthorized)
         {
@@ -692,7 +697,11 @@
                 || TenantCommandAttemptTracker.IsTerminal(_snapshot));
 
     private string? DisplaySafeMessage
-        => !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
+        => _hasUndispatchedSafetyRefusal
+            && _snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed
+            && IsPreviewComplete && string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal)
+                ? null
+                : !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
             ? Localizer[_snapshot.SafeMessageKey].Value
             : _snapshot.SafeMessage;
 
@@ -886,8 +895,22 @@
 
     protected override void OnParametersSet()
     {
+        (string TenantId, string UserId) identity = (Detail.TenantId, Member.UserId);
+        bool identityChanged = _previewIdentity is { } previous && previous != identity;
+        _previewIdentity = identity;
+        if (identityChanged)
+        {
+            _confirmationText = null;
+            _validationMessage = null;
+            _hasUndispatchedSafetyRefusal = false;
+        }
         ObserveAdmissionParameters();
         RestoreRetainedAttempt();
+        if (identityChanged && _retainedAttempt is null
+            && _snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed)
+        {
+            _snapshot = TenantRemoveMemberCommandSnapshot.Idle();
+        }
         InitializeIdlePreview();
     }
 
@@ -967,6 +990,30 @@
         {
             _focusLifecyclePending = true;
         }
+    }
+
+    /// <summary>Keeps an explicitly undispatched refusal recoverable without claiming a command or audit attempt.</summary>
+    /// <param name="reason">The localized reason that currently prevents submission.</param>
+    /// <param name="preview">The original undispatched preview evidence.</param>
+    /// <param name="safetyRefusal">Whether current safety evidence can establish that the refusal has resolved.</param>
+    /// <returns>The retained preview or idle state with its refusal feedback.</returns>
+    private TenantRemoveMemberCommandSnapshot RefuseBeforeDispatch(
+        string reason,
+        TenantRemoveMemberCommandSnapshot preview,
+        bool safetyRefusal = true)
+    {
+        _hasUndispatchedSafetyRefusal = safetyRefusal;
+        return preview with
+        {
+            State = preview.IsPreviewComplete ? TenantCommandLifecycleState.Previewed : TenantCommandLifecycleState.Idle,
+            MessageId = null,
+            CorrelationId = null,
+            SafeMessage = reason,
+            SafeMessageKey = null,
+            AuditState = TenantCommandAuditStates.NotStarted,
+            FocusTarget = TenantCommandFocusTarget.Submit,
+            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+        };
     }
 
     // A refused retry keeps the failed attempt it retried: that identity may already have reached the server, so
@@ -1206,9 +1253,10 @@
 
         if (!string.IsNullOrWhiteSpace(UnavailableReason) || !IsPreviewComplete)
         {
-            SetSnapshot(TenantRemoveMemberCommandSnapshot.Blocked(
-                UnavailableReason ?? Localizer["Tenants.RemoveMember.Preview.Blocked.Required"].Value,
-                TenantCommandFocusTarget.Submit));
+            string reason = UnavailableReason ?? Localizer["Tenants.RemoveMember.Preview.Blocked.Required"].Value;
+            bool undispatched = _snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed
+                && string.IsNullOrWhiteSpace(_snapshot.MessageId) && string.IsNullOrWhiteSpace(_snapshot.CorrelationId);
+            SetSnapshot(undispatched ? RefuseBeforeDispatch(reason, _snapshot) : RefuseRetry(reason, _snapshot));
             return;
         }
 
@@ -1267,7 +1315,7 @@
             }
             string reason = eligibilityReason ?? Localizer["Tenants.RemoveMember.Preview.Blocked.Required"].Value;
             SetSnapshot(retryMessageId is null
-                ? TenantRemoveMemberCommandSnapshot.Blocked(reason, TenantCommandFocusTarget.Submit)
+                ? RefuseBeforeDispatch(reason, retriedAttempt)
                 : RefuseRetry(reason, retriedAttempt));
             return;
         }
@@ -1280,17 +1328,7 @@
             // keeps the possibly delivered failed attempt instead (see RefuseRetry).
             string reason = CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.InFlight"].Value;
             SetSnapshot(retryMessageId is null
-                ? _snapshot with
-                {
-                    State = TenantCommandLifecycleState.Previewed,
-                    MessageId = null,
-                    CorrelationId = null,
-                    SafeMessage = reason,
-                    SafeMessageKey = null,
-                    AuditState = TenantCommandAuditStates.NotStarted,
-                    FocusTarget = TenantCommandFocusTarget.Submit,
-                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-                }
+                ? RefuseBeforeDispatch(reason, retriedAttempt, safetyRefusal: false)
                 : RefuseRetry(reason, retriedAttempt));
             return;
         }
@@ -1304,7 +1342,7 @@
                 _retainedAttempt = null;
                 string reason = Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value;
                 SetSnapshot(retryMessageId is null
-                    ? TenantRemoveMemberCommandSnapshot.Blocked(reason, TenantCommandFocusTarget.Submit)
+                    ? RefuseBeforeDispatch(reason, retriedAttempt)
                     : RefuseRetry(reason, retriedAttempt));
                 return;
             }

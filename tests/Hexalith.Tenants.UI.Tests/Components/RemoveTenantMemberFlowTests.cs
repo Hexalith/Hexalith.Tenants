@@ -885,7 +885,447 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
     }
 
-    private IRenderedComponent<RemoveTenantMemberFlow> RenderLeaseRecoveryFlow(Func<bool, Task<bool>> lease)
+    /// <summary>Repeated pre-dispatch freshness refusals recover without reopening or losing the confirmed preview.</summary>
+    /// <param name="freshness">The unavailable freshness to recover from.</param>
+    [Theory]
+    [InlineData(ReadModelFreshnessState.Stale)]
+    [InlineData(ReadModelFreshnessState.Unknown)]
+    [InlineData(ReadModelFreshnessState.Aging)]
+    public async Task UndispatchedFreshnessRefusalAllowsExplicitResubmissionAfterRecovery(ReadModelFreshnessState freshness)
+    {
+        var delivery = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway gateway = new()
+        {
+            RemoveMemberAsync = _ => delivery.Task,
+            Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+            {
+                CommittedEventSequence = 2,
+            },
+        };
+        ITenantQueryGateway queries = CreateCapableQueryGateway();
+        RegisterServices(gateway, queries);
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active)
+            {
+                acquisitions++;
+            }
+            return Task.FromResult(true);
+        });
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        TenantRemoveMemberCommandSnapshot preview = cut.Instance.Snapshot;
+        cut.Render(p => p.Add(x => x.Freshness, freshness));
+
+        for (int i = 0; i < 2; i++)
+        {
+            await cut.Find("form").SubmitAsync();
+            gateway.RemoveMemberCallCount.ShouldBe(0);
+            gateway.StatusCallCount.ShouldBe(0);
+            queries.ReceivedCalls().ShouldBeEmpty();
+            acquisitions.ShouldBe(0);
+            attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+            gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+            cut.Instance.Snapshot.MessageId.ShouldBeNull();
+            cut.Instance.Snapshot.CorrelationId.ShouldBeNull();
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+            cut.Find("[data-testid='tenants-remove-member-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        }
+
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        cut.FindAll("[data-testid='tenants-remove-member-safe-message']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-remove-member-live-region']").TextContent.ShouldNotContain("Refresh current tenant detail");
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").GetAttribute("value").ShouldBe("reader-user");
+        Task submission = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
+        cut.Instance.Snapshot.Intent.ShouldBe(preview.Intent);
+        cut.Instance.Snapshot.LastConfirmedMemberProjection.ShouldBeSameAs(preview.LastConfirmedMemberProjection);
+        cut.Instance.Snapshot.CurrentConfirmedRole.ShouldBe(preview.CurrentConfirmedRole);
+        cut.Instance.Snapshot.OwnerCount.ShouldBe(preview.OwnerCount);
+        cut.Instance.Snapshot.TargetGlobalAdministratorFriction.ShouldBe(preview.TargetGlobalAdministratorFriction);
+        string messageId = gateway.LastRemoveMemberMessageId.ShouldNotBeNull();
+        NUlid.Ulid.TryParse(messageId, out _).ShouldBeTrue();
+        acquisitions.ShouldBe(1);
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        delivery.SetResult(TenantCommandSubmissionResult.Accepted(messageId, "correlation-1"));
+        await submission;
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        TenantDetail after = Detail("tenant.alpha", [new("owner-user", TenantRole.TenantOwner), new("second-owner", TenantRole.TenantOwner)]);
+        await cut.InvokeAsync(() => cut.Instance.ApplyProjectionEvidence(Proof(after, "tenant-sequence:2")));
+        cut.WaitForAssertion(() =>
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+            attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+            gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        });
+        cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+    }
+
+    /// <summary>Recovery from a held admission safety refusal rechecks all evidence on a new explicit submit.</summary>
+    /// <param name="changeConfirmation">Whether confirmation changes instead of freshness.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UndispatchedHeldAdmissionRefusalAllowsResubmissionAfterSafetyRecovers(bool changeConfirmation)
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+            !active || ++acquisitions > 1 ? Task.FromResult(true) : acquired.Task);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        Task submission = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => acquisitions.ShouldBe(1));
+        if (changeConfirmation)
+        {
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("changed-user");
+        }
+        else
+        {
+            cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        }
+        acquired.SetResult(true);
+        await submission;
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        gateway.StatusCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.MessageId.ShouldBeNull();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.LastRemoveMemberRequest.ShouldBe(new RemoveUserFromTenant("tenant.alpha", "reader-user"));
+        acquisitions.ShouldBe(2);
+    }
+
+    /// <summary>Freshness restoration cannot bypass confirmation, fresh authority, audit support or measured viewport.</summary>
+    /// <param name="blocker">The safety gate that remains unavailable after freshness recovers.</param>
+    [Theory]
+    [InlineData("confirmation")]
+    [InlineData("authority-denied")]
+    [InlineData("authority-unknown")]
+    [InlineData("audit")]
+    [InlineData("viewport")]
+    public async Task UndispatchedFreshnessRecoveryStillRequiresEveryCurrentSafetyGate(string blocker)
+    {
+        ArgumentNullException.ThrowIfNull(blocker);
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active)
+            {
+                acquisitions++;
+            }
+            return Task.FromResult(true);
+        });
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        await cut.Find("form").SubmitAsync();
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        int authorityReads = 0;
+        if (blocker == "confirmation")
+        {
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("changed-user");
+        }
+        else if (blocker.StartsWith("authority-", StringComparison.Ordinal))
+        {
+            cut.Render(p => p.Add(x => x.AuthorizationReflectionProvider, _ =>
+            {
+                authorityReads++;
+                return Task.FromResult(blocker == "authority-denied"
+                    ? TenantLifecycleAuthorizationReflectionState.MissingPermission
+                    : TenantLifecycleAuthorizationReflectionState.Indeterminate);
+            }));
+        }
+        else if (blocker == "audit")
+        {
+            cut.Render(p => p.Add(x => x.AuditProofCapabilityAvailable, false));
+        }
+        else
+        {
+            Services.GetRequiredService<TenantHighImpactViewportObservation>()
+                .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+        }
+
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        gateway.StatusCallCount.ShouldBe(0);
+        acquisitions.ShouldBe(0);
+        cut.Instance.Snapshot.MessageId.ShouldBeNull();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        if (blocker.StartsWith("authority-", StringComparison.Ordinal))
+        {
+            authorityReads.ShouldBe(1);
+        }
+
+        cut.Render(p => p
+            .Add(x => x.AuditProofCapabilityAvailable, true)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
+        Services.GetRequiredService<TenantHighImpactViewportObservation>()
+            .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+    }
+
+    /// <summary>A refused previously delivered failed attempt retains its exact identity after freshness recovers.</summary>
+    [Fact]
+    public async Task FailedDeliveryFreshnessRefusalPreservesSameIdentityRecovery()
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Failed("Delivery outcome needs recovery.") with
+            {
+                MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(2);
+        gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+    }
+
+    /// <summary>Unknown delivered-attempt state without tracking cannot be reset as a new preview.</summary>
+    /// <param name="state">The uncertain lifecycle whose tracking is missing.</param>
+    /// <param name="messageId">The remaining message identifier, if any.</param>
+    /// <param name="correlationId">The remaining correlation identifier, if any.</param>
+    [Theory]
+    [InlineData(TenantCommandLifecycleState.UnableToVerify, null, null)]
+    [InlineData(TenantCommandLifecycleState.UnableToVerify, "message-only", null)]
+    [InlineData(TenantCommandLifecycleState.UnableToVerify, null, "correlation-only")]
+    [InlineData(TenantCommandLifecycleState.Degraded, null, null)]
+    [InlineData(TenantCommandLifecycleState.Degraded, "message-only", null)]
+    [InlineData(TenantCommandLifecycleState.Degraded, null, "correlation-only")]
+    public async Task UncertainStateWithoutTrackingRemainsFailClosed(
+        TenantCommandLifecycleState state,
+        string? messageId,
+        string? correlationId)
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        typeof(RemoveTenantMemberFlow).GetField("_snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(cut.Instance, cut.Instance.Snapshot with { State = state, MessageId = messageId, CorrelationId = correlationId });
+
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        await cut.Find("form").SubmitAsync();
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        gateway.StatusCallCount.ShouldBe(0);
+        cut.Instance.Snapshot.State.ShouldBe(state);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Members.Submit.TrackingLost");
+        cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+        cut.Instance.Snapshot.CorrelationId.ShouldBe(correlationId);
+    }
+
+    /// <summary>Pre-dispatch refusal feedback announces the existing whole localized freshness explanation.</summary>
+    /// <param name="cultureName">The shipped resource culture.</param>
+    /// <param name="initiallyUnavailable">Whether no complete preview existed before the refusal.</param>
+    [Theory]
+    [InlineData("en-US", false)]
+    [InlineData("fr-FR", false)]
+    [InlineData("en-US", true)]
+    [InlineData("fr-FR", true)]
+    public async Task UndispatchedFreshnessRefusalAnnouncesLocalizedExplanation(string cultureName, bool initiallyUnavailable)
+    {
+        RegisterServices(new StubTenantCommandGateway());
+        Services.AddLocalization();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
+        IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(
+            _ => Task.FromResult(true), initiallyUnavailable ? ReadModelFreshnessState.Stale : ReadModelFreshnessState.Current);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        await cut.Find("form").SubmitAsync();
+        string explanation = localizer["Tenants.RemoveMember.Unavailable.Freshness"].Value;
+        explanation.ShouldNotBe("Tenants.RemoveMember.Unavailable.Freshness");
+        cut.Find("[data-testid='tenants-remove-member-live-region']").TextContent.Trim().ShouldBe(explanation);
+        cut.Find("[data-testid='tenants-remove-member-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldBe(explanation);
+        cut.Instance.Snapshot.State.ShouldBe(initiallyUnavailable ? TenantCommandLifecycleState.Idle : TenantCommandLifecycleState.Previewed);
+        cut.FindAll("[data-testid='tenants-remove-member-preview-item']").ShouldBeEmpty();
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        cut.FindAll("[data-testid='tenants-remove-member-safe-message']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-remove-member-live-region']").TextContent.Trim()
+            .ShouldBe(localizer["Tenants.RemoveMember.State.Previewed"].Value);
+    }
+
+    /// <summary>Changing a pre-dispatch identity discards old confirmation and rebuilds the matching preview.</summary>
+    /// <param name="changeTenant">Whether the tenant changes instead of the target member.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task UndispatchedRecoveryRequiresConfirmationForTheCurrentIdentity(bool changeTenant)
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Stale));
+        await cut.Find("form").SubmitAsync();
+        string tenantId = changeTenant ? "tenant.beta" : "tenant.alpha";
+        string userId = changeTenant ? "reader-user" : "second-reader";
+        TenantDetail replacement = Detail(tenantId,
+            [new("owner-user", TenantRole.TenantOwner), new(userId, TenantRole.TenantReader)]);
+        cut.Render(p => p
+            .Add(x => x.Detail, replacement)
+            .Add(x => x.Member, new TenantMember(userId, TenantRole.TenantReader)));
+        cut.Instance.Snapshot.Intent.ShouldBeNull();
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").GetAttribute("value").ShouldBeNullOrEmpty();
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        RemoveUserFromTenant request = new(tenantId, userId);
+        cut.Instance.Snapshot.Intent.ShouldBe(request);
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change(userId);
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.LastRemoveMemberRequest.ShouldBe(request);
+        cut.Instance.Snapshot.Intent.ShouldBe(request);
+    }
+
+    /// <summary>Initially unavailable identity replacement clears confirmation even though no preview intent exists.</summary>
+    /// <param name="changeTenant">Whether the tenant changes instead of the target member.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task InitiallyUnavailableIdentityReplacementRequiresNewTypedConfirmation(bool changeTenant)
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true), ReadModelFreshnessState.Stale);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        cut.Instance.Snapshot.Intent.ShouldBeNull();
+        string tenantId = changeTenant ? "tenant.beta" : "tenant.alpha";
+        string userId = changeTenant ? "reader-user" : "second-reader";
+        cut.Render(p => p
+            .Add(x => x.Detail, Detail(tenantId, [new("owner-user", TenantRole.TenantOwner), new(userId, TenantRole.TenantReader)]))
+            .Add(x => x.Member, new TenantMember(userId, TenantRole.TenantReader)));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").GetAttribute("value").ShouldBeNullOrEmpty();
+        cut.Render(p => p.Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change(userId);
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.LastRemoveMemberRequest.ShouldBe(new RemoveUserFromTenant(tenantId, userId));
+        cut.Instance.Snapshot.Intent.ShouldBe(gateway.LastRemoveMemberRequest);
+    }
+
+    /// <summary>Replacing the tenant during held admission cannot reuse the old tenant's confirmation.</summary>
+    [Fact]
+    public async Task HeldAdmissionTenantReplacementRequiresNewTypedConfirmation()
+    {
+        StubTenantCommandGateway gateway = new();
+        RegisterServices(gateway);
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        var acquired = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+            !active || ++acquisitions > 1 ? Task.FromResult(true) : acquired.Task);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        Task oldSubmission = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => acquisitions.ShouldBe(1));
+        cut.Render(p => p.Add(x => x.Detail, Detail("tenant.beta")));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").GetAttribute("value").ShouldBeNullOrEmpty();
+        cut.Instance.Snapshot.Intent.ShouldBe(new RemoveUserFromTenant("tenant.beta", "reader-user"));
+        acquired.SetResult(true);
+        await oldSubmission;
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.LastRemoveMemberRequest.ShouldBe(new RemoveUserFromTenant("tenant.beta", "reader-user"));
+        cut.Instance.Snapshot.Intent.ShouldBe(gateway.LastRemoveMemberRequest);
+    }
+
+    /// <summary>A gateway lost immediately before delivery leaves an undispatched, recoverable preview.</summary>
+    [Fact]
+    public async Task FirstGatewayDisappearanceBeforeDeliveryAllowsResubmissionAfterRestoration()
+    {
+        StubTenantCommandGateway gateway = new();
+        ITenantQueryGateway queries = CreateCapableQueryGateway();
+        RegisterServices(gateway, queries);
+        Services.AddSingleton<TenantAggregateCommandAdmissionGate>();
+        Services.AddSingleton<TenantCommandAttemptTracker>();
+        bool disappear = false;
+        int resolutions = 0;
+        Services.AddTransient<ITenantCommandGateway>(_ => disappear && ++resolutions > 1 ? null! : gateway);
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        int acquisitions = 0;
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            if (active && ++acquisitions == 1)
+            {
+                disappear = true;
+            }
+            return Task.FromResult(true);
+        });
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        gateway.StatusCallCount.ShouldBe(0);
+        queries.ReceivedCalls().ShouldBeEmpty();
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Previewed);
+        cut.Instance.Snapshot.MessageId.ShouldBeNull();
+        cut.Instance.Snapshot.CorrelationId.ShouldBeNull();
+        cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        attempts.HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldBe("Tenant command support is unavailable.");
+
+        disappear = false;
+        cut.Render();
+        cut.FindAll("[data-testid='tenants-remove-member-safe-message']").ShouldBeEmpty();
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        acquisitions.ShouldBe(2);
+    }
+
+    private IRenderedComponent<RemoveTenantMemberFlow> RenderLeaseRecoveryFlow(
+        Func<bool, Task<bool>> lease,
+        ReadModelFreshnessState freshness = ReadModelFreshnessState.Current)
         => Render<RemoveTenantMemberFlow>(p => p
             .Add(x => x.IsAuthorized, true)
             .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
@@ -894,7 +1334,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(x => x.Detail, Detail("tenant.alpha"))
             .Add(x => x.Member, new TenantMember("reader-user", TenantRole.TenantReader))
             .Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(x => x.Freshness, ReadModelFreshnessState.Current)
+            .Add(x => x.Freshness, freshness)
             .Add(x => x.ProjectionVersion, "tenant-sequence:1")
             .Add(x => x.CommandActivityLease, lease));
 
@@ -1309,7 +1749,13 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.Find("form").Submit();
 
         gateway.RemoveMemberCallCount.ShouldBe(0);
-        cut.Find("[data-testid='tenants-remove-member-state']").TextContent.ShouldContain("Unable to verify");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
+        cut.Instance.Snapshot.IsPreviewComplete.ShouldBeFalse();
+        cut.Render(p => p
+            .Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(x => x.Freshness, ReadModelFreshnessState.Current));
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
     }
 
     [Fact]

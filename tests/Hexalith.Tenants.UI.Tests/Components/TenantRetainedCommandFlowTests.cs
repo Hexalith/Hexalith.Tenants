@@ -673,6 +673,13 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         TenantDetail oldDetail = (TenantDetail)component.GetType().GetProperty("Detail")!.GetValue(component)!;
         await cut.InvokeAsync(() => ((IComponent)component).SetParametersAsync(ParameterView.FromDictionary(
             new Dictionary<string, object?> { ["Detail"] = oldDetail with { TenantId = "tenant.beta" } })));
+        if (kind is "remove")
+        {
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").GetAttribute("value").ShouldBeNullOrEmpty();
+            await cut.Find("form").SubmitAsync();
+            gateway.ReceivedCalls().Count(call => call.GetMethodInfo().Name == DispatchName(kind)).ShouldBe(0);
+            Submit(kind, cut, send: false);
+        }
         Task newSubmit = cut.Find("form").SubmitAsync();
         await WaitForAsync(() => gateway.ReceivedCalls().Count(call => call.GetMethodInfo().Name == DispatchName(kind)) == 1);
         object newSnapshot = Snapshot(component);

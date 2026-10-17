@@ -56,6 +56,8 @@ After validated DW-468 closure (2026-10-16): 137 reconciled done, 215 actionable
 
 **DW-480 closure and DW-644 review deferral (2026-10-16):** A first member-removal activity-lease refusal now keeps an undispatched resubmittable preview and meaningful localized refusal feedback. Independent review/recheck, final Debug focused94/full UI5999 pass with zero failures/skips. [Exact commands, initial fixture failures and limits](dw-480-validation-evidence.md) retain all results. Only DW-480 closes; the separate existing stale-to-current pre-dispatch recovery defect is newly recorded as open DW-644. There are now 644 unique IDs: 342 done/302 open across 270 maintenance rows; the original 439-record reconciliation has 138 done/214 actionable, plus one newly actionable DW-644. Historical findings, unrelated record bodies, archive/sprint, dependencies and release holds remain preserved. No Git/dependency mutation ran. Release remains not ready.
 
+**DW-644 closure and DW-645 review deferral (2026-10-17):** Explicitly undispatched evidence refusals now recover through deliberate resubmission with existing safety checks, accurate EN/FR feedback and renewed confirmation after any tenant/target identity replacement. Independent review and correction rechecks, Debug removal121/shared207/full UI6026 pass with zero failures/skips. [Exact commands, initial failures and runtime limits](dw-644-validation-evidence.md) retain all evidence. Only DW-644 closes; the older throwing-release cleanup defect is newly open as source-verified DW-645. All 645 IDs remain:343 done/302 open across270 maintenance rows. The original439-record reconciliation remains138 done/214 actionable; new DW-645 contributes one additional actionable record. All643 unrelated original record bodies, earlier history/decisions, archive/sprint, dependency pointers and release holds remain preserved. Release remains not ready.
+
 ### DW-1: Follow-up review still recommended for 1-8-support-safe-identifier-copy-and-read-experience-evidence after the damping cap was spent
 
 status: done 2026-08-27
@@ -8592,14 +8594,38 @@ related: DW-585
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-480-predispatch-removal-resubmission.md`
   summary: Preserve safe resubmission after an undispatched removal is blocked by stale evidence and that evidence subsequently recovers.
   evidence: Independent DW-480 review traced SubmitAsync's unavailable-preview branch to TenantRemoveMemberCommandSnapshot.Blocked, which returns UnableToVerify without message/correlation IDs; after Freshness returns to Current, the earlier tracking-loss guard still refuses submission. The new stale-evidence acceptance case reaches this existing branch but intentionally stops before restoration. This is separate from the corrected first activity-lease refusal.
-status: open
-disposition: actionable
-verification-date: 2026-10-16
-verification: Source-verified at entry e91aef5d9a6ffee045f40957594010db61b36e5d and the DW-480 working tree: RemoveTenantMemberFlow.SubmitAsync uses Blocked before dispatch on unavailable preview/freshness; Blocked is UnableToVerify with no IDs, and the next eligible submit reports Tenants.Members.Submit.TrackingLost. No restoration-through-dispatch regression was executed; preserve that verification limit.
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-16
+pre-closure-verification: Source-verified at entry e91aef5d9a6ffee045f40957594010db61b36e5d and the DW-480 working tree: RemoveTenantMemberFlow.SubmitAsync uses Blocked before dispatch on unavailable preview/freshness; Blocked is UnableToVerify with no IDs, and the next eligible submit reports Tenants.Members.Submit.TrackingLost. No restoration-through-dispatch regression was executed; preserve that verification limit.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
-evidence-kind: verified-defect
+pre-closure-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: Explicit undispatched refusal state; preserve genuine tracking-loss and same-ID dispatched recovery
-next-action: Add a current-to-stale-to-current submission regression and distinguish explicitly undispatched safety refusals from genuine lost tracking, retaining all admission/preview/authorization checks.
+pre-closure-next-action: Add a current-to-stale-to-current submission regression and distinguish explicitly undispatched safety refusals from genuine lost tracking, retaining all admission/preview/authorization checks.
 related: DW-480
+closure-evidence: _bmad-output/implementation-artifacts/dw-644-validation-evidence.md
+status: done 2026-10-17
+disposition: done
+verification-date: 2026-10-17
+verification: Explicitly undispatched safety refusals retain Idle/Previewed with original preview evidence, null IDs and audit NotStarted; current evidence permits deliberate resubmission through all safety gates. Changed tenant/member identity clears old typed confirmation before restoration, resolved safety copy disappears, and prior delivered or partially tracked attempts preserve recovery safeguards. Independent review/correction rechecks pass; Debug removal121/shared207/full UI6026 pass with zero failures/skips. Exact commands, initial failures, runtime limitations and the separate source-only DW-645 cleanup deferral remain in dw-644-validation-evidence.md.
+evidence-kind: executed-regression-and-independent-review
+next-action: None for DW-644; completed after reviewed verification. DW-645 separately owns throwing activity-release cleanup.
+
+### DW-645: A throwing pre-dispatch activity-release callback leaves removal recovery without retained ownership.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-644-predispatch-freshness-recovery.md`
+  summary: Keep an undispatched removal safely recoverable when its safety-refusal cleanup callback throws.
+  evidence: Independent DW-644 review traced held-admission safety refusal to detaching the retained attempt, clearing submission activity and awaiting SetCommandActivityRaisedAsync(false) before installing a recoverable snapshot. That method rethrows false-release callback errors, so a throwing callback leaves RequestSent after its retained attempt was detached. Both the cleanup ordering and rethrow are present in the entry baseline; this is separate existing cleanup behavior.
+status: open
+disposition: actionable
+verification-date: 2026-10-17
+verification: Source-verified at canonical entry 0e1fe111a5b4cce684455948b4fd12960589ef55 and independently rechecked against DW-644 source. SubmitAsync detaches before awaiting false activity release; the false-release catch rethrows before a recoverable refusal is installed. RetryDeliveryAsync then requires an attached retained attempt. No throwing-release execution or repair was performed; preserve this verification limit.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
+evidence-kind: verified-defect
+priority: P2
+owner: Tenants UI
+dependencies: Undispatched activity-release callback fault handling; preserve actual admission safety and dispatched ownership
+next-action: Add a held-acquisition freshness/confirmation refusal with a throwing false-release callback, then preserve recoverable local state and require safe admission reacquisition without dropping potentially delivered identities.
+related: DW-644, DW-480
