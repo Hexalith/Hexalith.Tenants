@@ -5,8 +5,12 @@ using System.Xml.Linq;
 using Hexalith.EventStore.Client.Discovery;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
+using Hexalith.EventStore.Client.Streams;
+using Hexalith.EventStore.Contracts.Identity;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.EventStore.DomainService;
+using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Queries.Handlers;
 using Hexalith.Tenants.Server.Aggregates;
@@ -16,6 +20,8 @@ using Hexalith.Tenants.Telemetry;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -133,6 +139,10 @@ public class EventPublicationConfigurationTests {
         builder.AddEventStoreDomainService(typeof(TenantAggregate).Assembly, typeof(GetTenantQueryHandler).Assembly);
         builder.Services.AddSingleton<IReadModelStore, EmptyReadModelStore>();
         builder.Services.AddSingleton<IQueryCursorCodec, EmptyQueryCursorCodec>();
+        // Match the host's domain-owned dependencies for the discovered owner-authority handler.
+        IAuthoritativeEventStreamReader reader = Substitute.For<IAuthoritativeEventStreamReader>();
+        builder.Services.AddScoped(_ => reader);
+        builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<TenantTelemetry>(serviceProvider => new TenantTelemetry(
             serviceProvider.GetRequiredKeyedService<EventStoreDomainDiagnostics>("tenants")));
         builder.Services.AddLogging();
@@ -149,6 +159,7 @@ public class EventPublicationConfigurationTests {
                 GetTenantUsersQuery.QueryType,
                 GetUserTenantsQuery.QueryType,
                 ListTenantsQuery.QueryType,
+                ResolveTenantOwnerAuthority.QueryType,
             ],
             ignoreOrder: true);
 
@@ -167,6 +178,7 @@ public class EventPublicationConfigurationTests {
                 GetTenantUsersQuery.QueryType,
                 GetUserTenantsQuery.QueryType,
                 ListTenantsQuery.QueryType,
+                ResolveTenantOwnerAuthority.QueryType,
             ],
             ignoreOrder: true);
 
@@ -188,6 +200,54 @@ public class EventPublicationConfigurationTests {
 
         result.Success.ShouldBeTrue();
         result.ProjectionType.ShouldBe("tenant-index");
+
+        var identity = new AggregateIdentity("system", "tenants", "tenant-1");
+        DateTimeOffset observedAt = DateTimeOffset.UtcNow;
+        var created = new TenantCreated(identity.AggregateId, "Tenant 1", null, observedAt);
+        StreamReadEvent[] events =
+        [
+            new(1, typeof(TenantCreated).FullName!, JsonSerializer.SerializeToUtf8Bytes(created),
+                "json", 1, "owner-query-created", null, null, observedAt, "creator"),
+        ];
+        reader.ReadAsync(identity, Arg.Any<CancellationToken>()).Returns(Task.FromResult(
+            new AuthoritativeStreamReadResult(new AuthoritativeEventStream(identity, 1, observedAt, events, "owner-query-observation"), null)));
+        var ownerRequest = new ResolveTenantOwnerAuthority(identity.AggregateId, "user-1", "GrantChatBotAuthority", "human", "Http");
+        QueryEnvelope ownerQuery = new(
+            tenantId: identity.TenantId,
+            domain: identity.Domain,
+            aggregateId: identity.AggregateId,
+            queryType: ResolveTenantOwnerAuthority.QueryType,
+            payload: JsonSerializer.SerializeToUtf8Bytes(ownerRequest, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+            correlationId: "corr-sdk-owner-query-dispatch",
+            userId: ownerRequest.PrincipalId)
+        {
+            AuthenticatedWorkloadId = "chatbot",
+            IsDelegated = true,
+            OriginalActorId = ownerRequest.PrincipalId,
+        };
+
+        QueryResult ownerResult = await DomainQueryDispatcher.ExecuteAsync(scope.ServiceProvider, ownerQuery);
+
+        ownerResult.Success.ShouldBeTrue();
+        ownerResult.ProjectionType.ShouldBeNull();
+        ownerResult.Metadata.ShouldNotBeNull().Provenance.ShouldBe(QueryResponseProvenance.HandlerComputed);
+        JsonElement ownerPayload = ownerResult.GetPayload();
+        ownerPayload.GetProperty("tenantId").GetString().ShouldBe(identity.AggregateId);
+        ownerPayload.GetProperty("principalId").GetString().ShouldBe(ownerRequest.PrincipalId);
+        ownerPayload.GetProperty("allowed").GetBoolean().ShouldBeFalse();
+        ownerPayload.GetProperty("sourceVersion").GetInt64().ShouldBe(1);
+        ownerPayload.GetProperty("observationId").GetString().ShouldBe("owner-query-observation");
+        await reader.Received(1).ReadAsync(identity, Arg.Any<CancellationToken>());
+
+        reader.ReadAsync(identity, Arg.Any<CancellationToken>()).Returns(Task.FromResult(
+            new AuthoritativeStreamReadResult(null, "source-unavailable")));
+
+        QueryResult unavailableOwnerResult = await DomainQueryDispatcher.ExecuteAsync(scope.ServiceProvider, ownerQuery);
+
+        unavailableOwnerResult.Success.ShouldBeFalse();
+        unavailableOwnerResult.ErrorMessage.ShouldBe(QueryAdapterFailureReason.Forbidden);
+        unavailableOwnerResult.PayloadBytes.ShouldBeNull();
+        await reader.Received(2).ReadAsync(identity, Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -101,16 +101,25 @@ internal sealed partial class TenantBootstrapCredentialProvider(
         });
 
         var tokenEndpoint = new Uri($"{authorityUri.AbsoluteUri.TrimEnd('/')}/protocol/openid-connect/token");
-        using HttpResponseMessage response = await httpClient.PostAsync(tokenEndpoint, form, cancellationToken).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint)
+        {
+            Content = form,
+        };
+        // Headers-only completion leaves body consumption outside HttpClient.Timeout, so retain the
+        // same deadline while the existing bounded loader reads the authority response.
+        using var requestCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        requestCancellation.CancelAfter(httpClient.Timeout);
+        CancellationToken requestToken = requestCancellation.Token;
+        using HttpResponseMessage response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, requestToken).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode) {
             Log.TokenRequestFailed(logger, (int)response.StatusCode);
             return null;
         }
 
-        await response.Content.LoadIntoBufferAsync(MaxTokenResponseBytes, cancellationToken).ConfigureAwait(false);
-        Stream stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        await response.Content.LoadIntoBufferAsync(MaxTokenResponseBytes, requestToken).ConfigureAwait(false);
+        Stream stream = await response.Content.ReadAsStreamAsync(requestToken).ConfigureAwait(false);
         await using (stream.ConfigureAwait(false)) {
-            using JsonDocument document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            using JsonDocument document = await JsonDocument.ParseAsync(stream, cancellationToken: requestToken).ConfigureAwait(false);
             string? token = document.RootElement.TryGetProperty("access_token", out JsonElement tokenElement)
                 && tokenElement.ValueKind == JsonValueKind.String
                     ? tokenElement.GetString()

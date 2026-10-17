@@ -103,7 +103,7 @@ Every success event below is published to `tenants.events`. The EventStore envel
 
 ### Query and DTO Contracts
 
-All query contracts implement `IQueryContract`; controllers are REST adapters that dispatch through EventStore `SubmitQuery`. Query request members are explicit bindable adapter fields: `TenantId` and `UserId` come from route segments where applicable, paged queries accept `Cursor` and `PageSize`, and tenant-audit queries additionally accept `Category`, `From`, and `To` filters. Query response DTOs are public contracts in the same package and are safe for consumers to deserialize by property name.
+The six read-model query contracts below implement `IQueryContract`; controllers are REST adapters that dispatch through EventStore `SubmitQuery`. Query request members are explicit bindable adapter fields: `TenantId` and `UserId` come from route segments where applicable, paged queries accept `Cursor` and `PageSize`, and tenant-audit queries additionally accept `Category`, `From`, and `To` filters. Query response DTOs are public contracts in the same package and are safe for consumers to deserialize by property name. The delegated owner-evidence request is documented separately in [Delegated TenantOwner Evidence](#delegated-tenantowner-evidence).
 
 | Query contract | Package | `QueryType` | `Domain` | `ProjectionType` | Response shape | Intended REST adapter | Intended consumer |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -125,6 +125,23 @@ All query contracts implement `IQueryContract`; controllers are REST adapters th
 | `GlobalAdministratorSummary` | `UserId` |
 
 For audit-based global-administrator correction on an existing installation, first complete the [audit storage rollout and replay prerequisites](audit-stream-rollout.md). Deploy compatible readers and separated writers together, stop old writers, preserve legacy evidence and resolve ownership uncertainty before any separately authorized replay. The singleton and literal tenant `system` have distinct durable histories and dedicated audit keys; replaying only the singleton cannot restore previously lost tenant evidence. Keep correction unavailable until authorized, complete global-administrator and explicit global audit reads report ordered `tenant-sequence:<number>` provenance covering the committed sequence. Do not substitute wall time, a combined-stream version or a similar audit event. This change performs no production replay or migration.
+
+#### Delegated TenantOwner Evidence
+
+`ResolveTenantOwnerAuthority` is a delegated request served by `TenantOwnerAuthorityQueryHandler` in the `tenants` domain. It uses the `TenantAggregate` source stream to establish current owner evidence for the bound requester and operation. Its static `QueryType` is `Hexalith.Tenants.Contracts.Queries.ResolveTenantOwnerAuthority`. It is a plain request record served through the domain-service query dispatcher; the six read-model `IQueryContract` adapters above remain the canonical REST read inventory.
+
+| Contract | Package | Fields | Intended caller or consumer |
+| --- | --- | --- | --- |
+| `ResolveTenantOwnerAuthority` | `Hexalith.Tenants.Contracts` | `TenantId`, `PrincipalId`, `Operation`, `ActorClass`, `Origin`; static `QueryType` | Delegated `chatbot` or `projects` workloads requesting owner evidence |
+| `TenantOwnerAuthorityResult` | `Hexalith.Tenants.Contracts` | `TenantId`, `PrincipalId`, `Operation`, `ActorClass`, `Origin`, `Allowed`, `SourceVersion`, `ObservationId`, `ObservedAt` | The requesting workload's authorization decision |
+
+The request's `TenantId` must match the envelope's `AggregateId`, while the envelope's `TenantId` is `system`. `PrincipalId` must equal both the authenticated `UserId` and delegated `OriginalActorId`. `ActorClass` must be `human`; `Operation` and `Origin` accept any nonblank values and are echoed in the result. The requesting workload still enforces operation-specific authorization. The envelope must identify an authenticated `chatbot` or `projects` workload with `IsDelegated` set.
+
+The handler uses `JsonSerializerDefaults.Web`: request/response payload properties use camelCase, such as `tenantId`, `principalId`, `actorClass`, `allowed`, and `sourceVersion`. A successful `QueryResult` carries the UTF-8 JSON in `PayloadBytes`, with `ProjectionType = null` and `Metadata.Provenance = HandlerComputed`. Invalid binding or an unavailable, incomplete or invalid source returns `Success = false` with `ErrorMessage = "Forbidden"` and no payload. Once endpoint authorization and administrator verification succeed, the SDK's `/query` endpoint wraps that handler result in HTTP 200; callers must inspect `Success` before reading the payload. A successful query whose payload has `Allowed = false` is a valid non-owner verdict rather than a source failure.
+
+On a complete valid source, `Allowed` is true only for an active tenant whose membership history currently assigns `TenantOwner` to that principal. A valid source can return `Allowed = false` after removal or another non-owner state. `SourceVersion` is the source stream head, `ObservationId` identifies the source observation, and `ObservedAt` is its observation timestamp. The response contains authorization evidence only; keep its internal provenance out of operator-facing copy and do not substitute a retained read-model snapshot for a fresh authority check.
+
+Runtime prerequisites are a Base64-encoded PKCS#8 RSA private key of at least 2048 bits in `Authentication:BoundStreamRead:PrivateKey`, a workload assertion issuer trusted by EventStore for `eventstore:stream-read`, and EventStore validation of the matching bound-stream proof. The [source gateway](../src/Hexalith.Tenants/Authorization/TenantOwnerSourceGateway.cs) sends the assertion and `X-Hexalith-Bound-Stream-Read-Proof` to the workload stream-read route; missing credentials or trust makes the source unavailable. The [host registration](../src/Hexalith.Tenants/Program.cs) gives the complete source observation ten seconds. The shared reader limits each source walk to 10,000 events and 16 MiB of event payload bytes; exceeding these bounds fails closed even when the principal is an owner.
 
 ### Rejection and Enum Contracts
 

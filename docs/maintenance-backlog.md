@@ -1,5 +1,9 @@
 # Maintenance backlog
 
+**DW-528/DW-542 closure (2026-10-17):** Bootstrap authority responses enforce the existing 64 KiB cap before buffering, with the client deadline, cancellation, subject binding and disposal preserved. The authorized follow-up documents the existing delegated owner query and repairs its SDK fixture, including real dispatcher/source-evidence checks. Independent review/recheck, a zero-warning/error Debug source build, 31 focused cases and the full Server 951/951 pass with zero failures/skips; all 24 new bootstrap cases remain included. Only these duplicate records close: all 647 IDs remain, 353 done/294 open across 265 exact-covering index rows. Original findings, pending-stage evidence, initial file-lock failures and all earlier results remain; unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-528-542-validation-evidence.md). Release remains not ready.
+
+**DW-528/DW-542 repair, acceptance pending (2026-10-17):** Bootstrap authority responses now enforce the existing 64 KiB cap before buffering, with a shared header/body timeout, cancellation and disposal preserved. Independent review/recheck, 24 new cases, a zero-warning/error Debug source build and 87/87 focused bootstrap/configuration cases pass. The full Server project has 948 passed/three failed/zero skipped; all three failures reproduce with the unchanged entry provider. The required all-tests completion gate therefore keeps both records open/actionable and the spec in review. All 647 IDs, 351 done/296 open and 266 index rows remain. Historical fields, unrelated records, archive/sprint, dependencies and release holds are preserved. See [exact commands, baseline comparison and limits](../_bmad-output/implementation-artifacts/dw-528-542-validation-evidence.md).
+
 **DW-243/DW-262/DW-612 closure (2026-10-17):** Seven legacy FAST token usages across member-removal, metadata-edit and configuration-set styling now follow the existing Fluent 2 theme roles. The guard covers active CSS/Razor and legacy primitives without exemptions. Independent review/recheck, zero-warning/error Debug build, full UI 6159/6159 and light/dark/forced-colors plus maintained Chromium checks pass. The initial focused held-authority failure and passing recheck are preserved in [exact evidence and limits](../_bmad-output/implementation-artifacts/dw-243-262-612-validation-evidence.md). Only these three records close: all 647 IDs remain, 351 done/296 open across 266 exact-covering maintenance rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds are preserved. Release remains not ready.
 
 Verified 2026-10-12 against Tenants `7a2a126f` and its checked-out root dependencies. [Deferred work](../_bmad-output/implementation-artifacts/deferred-work.md) is the source of truth. Update dispositions and evidence there first; this file indexes remaining actions. Epics 1–5 and their retrospectives are `done` in [sprint status](../_bmad-output/implementation-artifacts/sprint-status.yaml). Artifacts remain in place.
@@ -52,14 +56,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 351 |
-| actionable | 209 |
+| done | 353 |
+| actionable | 207 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 296 open records across 266 index rows.** Disposition counts now cover all 647 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 294 open records across 265 index rows.** Disposition counts now cover all 647 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -77,7 +81,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-325/DW-587 closure (2026-10-17):** Retained removal activity is separate from accepted child activity. Refused adoption recovers under both expiry orderings; modal focus, current replacement target/tenant, sibling activity and disposal are qualified by thirteen new cases and independent review/recheck. Final Debug source build has zero warnings/errors; focused 470/full UI 6137 pass with zero failures/skips. Only these duplicates and their shared action row close: 647 IDs, 348 done/299 open, 268 exact-covering rows. [Exact commands, initial failures, review and limits](../_bmad-output/implementation-artifacts/dw-325-587-validation-evidence.md) preserve the historical unmounted-child evidence limit, earlier findings, archive/sprint, dependencies and release holds. Release remains not ready.
 
-**Current implementation completed:** DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
+**Current implementation completed:** DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -135,7 +139,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-524 | P2 | Defect / actionable | unassigned | Shared singleton-index sequence contract | Add per-aggregate index replay ordering and persisted-index end-state regression covering older TenantUpdated and membership/lifecycle events. |
 | DW-525 | P2 | Defect / actionable | unassigned | EventStore legacy projection admission contract | Add equivalent fail-closed projection evolution admission at this custom route and route-level no-persistence rejection coverage. |
 | DW-526 | P2 | Defect / actionable | unassigned | Gitlink recorded-provenance tests | Normalize absent/null pointer representations and add valid addition/removal CLI cases. |
-| DW-528, DW-542 | P2 | Defect / actionable | unassigned | Bootstrap authority response contract | Use headers-first bounded token response reading and add an oversized authority-response test. |
 | DW-545 | P2 | Defect / actionable | unassigned | Global-administrator projection completeness contract | Reject conflicting duplicate administrator rows as incomplete evidence and cover same/conflicting duplicates across cursor pages. |
 | DW-573 | P2 | Defect / actionable | release owner | Validated recovery missing-package inventory | Condition account validation/login on packages needing publication while retaining their publication gate. |
 | DW-575 | P2 | Defect / actionable | Tenants bootstrap and quickstart documentation | DW-567 bootstrap identity boundary | Require configured administrator verification before optional bootstrap checks, and replace the wrong-subject command example. |

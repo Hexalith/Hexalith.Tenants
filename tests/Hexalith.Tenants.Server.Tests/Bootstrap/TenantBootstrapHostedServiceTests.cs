@@ -660,6 +660,310 @@ public class TenantBootstrapHostedServiceTests {
         }
     }
 
+    [Theory]
+    [InlineData(65535, false)]
+    [InlineData(65536, false)]
+    [InlineData(65537, false)]
+    [InlineData(65535, true)]
+    [InlineData(65536, true)]
+    [InlineData(65537, true)]
+    public async Task AuthorityTokenResponseEnforcesByteLimit(int responseBytes, bool declaresLength)
+    {
+        string delegatedToken = CreateAuthorityToken();
+        using var stream = new BootstrapTokenResponseStream(CreateTokenResponseBody(delegatedToken, responseBytes));
+        using var content = new StreamContent(stream);
+        if (declaresLength)
+        {
+            content.Headers.ContentLength = responseBytes;
+        }
+
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        }));
+        using var httpClient = new HttpClient(handler);
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapCredentialProvider provider = CreateAuthorityCredentialProvider(logger);
+
+        if (responseBytes <= TokenResponseLimit)
+        {
+            string? acquiredToken = await provider.AcquireAsync(AuthorityAdministrator, httpClient, CancellationToken.None);
+            acquiredToken.ShouldBe(delegatedToken);
+            stream.BytesRead.ShouldBe(responseBytes);
+        }
+        else
+        {
+            await Should.ThrowAsync<HttpRequestException>(() => provider.AcquireAsync(AuthorityAdministrator, httpClient, CancellationToken.None));
+            if (declaresLength)
+            {
+                stream.BytesRead.ShouldBe(0);
+            }
+        }
+
+        stream.IsDisposed.ShouldBeTrue();
+        AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword, delegatedToken, AuthorityUrl);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4096)]
+    [InlineData(81920)]
+    [InlineData(262144)]
+    public async Task UnknownLengthAuthorityTokenResponseStopsBeforeDrainingOversizedBody(int readChunkSize)
+    {
+        string delegatedToken = CreateAuthorityToken();
+        const int responseBytes = 1024 * 1024;
+        using var stream = new BootstrapTokenResponseStream(CreateTokenResponseBody(delegatedToken, responseBytes), readChunkSize: readChunkSize);
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StreamContent(stream, readChunkSize),
+        }));
+        using var httpClient = new HttpClient(handler);
+        TenantBootstrapCredentialProvider provider = CreateAuthorityCredentialProvider(new TestLogger<TenantBootstrapHostedService>());
+
+        await Should.ThrowAsync<HttpRequestException>(() => provider.AcquireAsync(AuthorityAdministrator, httpClient, CancellationToken.None));
+
+        stream.BytesRead.ShouldBeInRange(TokenResponseLimit, TokenResponseLimit + readChunkSize);
+        stream.BytesRead.ShouldBeLessThan(responseBytes);
+        stream.IsDisposed.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(65537)]
+    [InlineData(1048576)]
+    public async Task AuthorityTokenResponseEnforcesLimitDespiteUnderstatedContentLength(int responseBytes)
+    {
+        using var stream = new BootstrapTokenResponseStream(CreateTokenResponseBody(CreateAuthorityToken(), responseBytes));
+        using var content = new StreamContent(stream);
+        content.Headers.ContentLength = TokenResponseLimit - 1;
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = content,
+        }));
+        using var httpClient = new HttpClient(handler);
+        TenantBootstrapCredentialProvider provider = CreateAuthorityCredentialProvider(new TestLogger<TenantBootstrapHostedService>());
+
+        await Should.ThrowAsync<HttpRequestException>(() => provider.AcquireAsync(AuthorityAdministrator, httpClient, CancellationToken.None));
+
+        stream.BytesRead.ShouldBeInRange(TokenResponseLimit, TokenResponseLimit + 4096);
+        stream.IsDisposed.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.BadRequest)]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.InternalServerError)]
+    public async Task FailedAuthorityTokenResponseIsDisposedWithoutReadingBody(HttpStatusCode statusCode)
+    {
+        using var stream = new BootstrapTokenResponseStream(new byte[TokenResponseLimit * 4]);
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(statusCode)
+        {
+            Content = new StreamContent(stream),
+        }));
+        using var httpClient = new HttpClient(handler);
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapCredentialProvider provider = CreateAuthorityCredentialProvider(logger);
+
+        string? token = await provider.AcquireAsync(AuthorityAdministrator, httpClient, CancellationToken.None);
+
+        token.ShouldBeNull();
+        stream.BytesRead.ShouldBe(0);
+        stream.IsDisposed.ShouldBeTrue();
+        logger.Entries.ShouldContain(entry => entry.EventId.Id == 2005 && entry.Message.Contains(((int)statusCode).ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal));
+        AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword, AuthorityUrl);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AuthorityTokenResponseReadHonorsCallerCancellation(bool infiniteClientTimeout)
+    {
+        using var stream = new BootstrapTokenResponseStream([], blockReads: true);
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new StreamContent(stream),
+        }));
+        using var httpClient = new HttpClient(handler);
+        if (infiniteClientTimeout)
+        {
+            httpClient.Timeout = Timeout.InfiniteTimeSpan;
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        TenantBootstrapCredentialProvider provider = CreateAuthorityCredentialProvider(new TestLogger<TenantBootstrapHostedService>());
+        Task<string?> acquisition = provider.AcquireAsync(AuthorityAdministrator, httpClient, cancellation.Token);
+        await stream.ReadStarted.WaitAsync(TimeSpan.FromSeconds(10));
+        acquisition.IsCompleted.ShouldBeFalse();
+
+        cancellation.Cancel();
+        await Should.ThrowAsync<OperationCanceledException>(() => acquisition.WaitAsync(TimeSpan.FromSeconds(10)));
+
+        stream.BytesRead.ShouldBe(0);
+        stream.IsDisposed.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AuthorityTokenResponseReadSharesClientTimeoutWithHeaders()
+    {
+        using var stream = new BootstrapTokenResponseStream([], blockReads: true);
+        using var handler = new TestHttpMessageHandler(async (_, cancellationToken) =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StreamContent(stream),
+            };
+        });
+        using var httpClient = new HttpClient(handler)
+        {
+            Timeout = TimeSpan.FromSeconds(2),
+        };
+        TenantBootstrapCredentialProvider provider = CreateAuthorityCredentialProvider(new TestLogger<TenantBootstrapHostedService>());
+        Task<string?> acquisition = provider.AcquireAsync(AuthorityAdministrator, httpClient, CancellationToken.None);
+        await stream.ReadStarted.WaitAsync(TimeSpan.FromSeconds(10));
+
+        // The headers used half the two-second budget. A new two-second body deadline would
+        // exceed this watchdog and throw TimeoutException instead of operation cancellation.
+        await Should.ThrowAsync<OperationCanceledException>(() => acquisition.WaitAsync(TimeSpan.FromMilliseconds(1500)));
+
+        stream.IsDisposed.ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    public async Task StreamedAuthorityTokenAtLimitDispatchesOnlyForConfiguredSubject(bool subjectMatches, bool declaresLength)
+    {
+        string delegatedToken = CreateAuthorityToken(subjectMatches);
+        using var stream = new BootstrapTokenResponseStream(CreateTokenResponseBody(delegatedToken, TokenResponseLimit));
+        using var content = new StreamContent(stream);
+        if (declaresLength)
+        {
+            content.Headers.ContentLength = TokenResponseLimit;
+        }
+
+        int requestCount = 0;
+        string? authorization = null;
+        using var handler = new TestHttpMessageHandler((request, _) =>
+        {
+            if (++requestCount == 1)
+            {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+            }
+
+            authorization = request.Headers.Authorization?.ToString();
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+        using var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = AuthorityAdministrator }),
+            lifetime,
+            logger,
+            AuthoritySettings(),
+            Environments.Production);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id is 2001 or 2006));
+
+        requestCount.ShouldBe(subjectMatches ? 2 : 1);
+        authorization.ShouldBe(subjectMatches ? "Bearer " + delegatedToken : null);
+        if (!subjectMatches)
+        {
+            logger.Messages.ShouldContain(static message => message.Contains("authority-subject-mismatch", StringComparison.Ordinal));
+        }
+
+        logger.Entries.ShouldNotContain(static entry => entry.EventId.Id == 2002);
+        stream.BytesRead.ShouldBe(TokenResponseLimit);
+        stream.IsDisposed.ShouldBeTrue();
+        AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword, delegatedToken, AuthorityUrl, "diagnostic-other-subject", "diagnostic-body-secret");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OversizedAuthorityTokenResponsePreventsBootstrapDispatchWithSafeDiagnostics(bool declaresLength)
+    {
+        string delegatedToken = CreateAuthorityToken();
+        const int responseBytes = TokenResponseLimit * 4;
+        using var stream = new BootstrapTokenResponseStream(CreateTokenResponseBody(delegatedToken, responseBytes));
+        using var content = new StreamContent(stream);
+        if (declaresLength)
+        {
+            content.Headers.ContentLength = responseBytes;
+        }
+
+        int requestCount = 0;
+        using var handler = new TestHttpMessageHandler((_, _) => Task.FromResult(new HttpResponseMessage(++requestCount == 1 ? HttpStatusCode.OK : HttpStatusCode.Accepted)
+        {
+            Content = requestCount == 1 ? content : null,
+        }));
+        using var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = AuthorityAdministrator }),
+            lifetime,
+            logger,
+            AuthoritySettings(),
+            Environments.Production);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id is 2001 or 2002));
+
+        requestCount.ShouldBe(1);
+        TestLogEntry failure = logger.Entries.Single(static entry => entry.EventId.Id == 2002);
+        failure.Message.ShouldContain("credential-acquisition");
+        failure.Message.ShouldContain(nameof(HttpRequestException));
+        failure.ExceptionText.ShouldBeNull();
+        logger.Entries.ShouldNotContain(static entry => entry.EventId.Id == 2001);
+        stream.IsDisposed.ShouldBeTrue();
+        AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword, delegatedToken, AuthorityUrl, "diagnostic-body-secret");
+    }
+
+    private const int TokenResponseLimit = 64 * 1024;
+    private const string AuthorityAdministrator = "diagnostic-administrator";
+    private const string AuthorityUsername = "diagnostic-username";
+    private const string AuthorityPassword = "diagnostic-password";
+    private const string AuthorityUrl = "https://identity.example.test/realms/hexalith";
+
+    private static Dictionary<string, string?> AuthoritySettings() => new(StringComparer.Ordinal)
+    {
+        ["EventStore:Authentication:Authority"] = AuthorityUrl,
+        ["EventStore:Authentication:Username"] = AuthorityUsername,
+        ["EventStore:Authentication:Password"] = AuthorityPassword,
+    };
+
+    private static TenantBootstrapCredentialProvider CreateAuthorityCredentialProvider(ILogger logger)
+    {
+        IHostEnvironment environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns(Environments.Production);
+        return new TenantBootstrapCredentialProvider(
+            new ConfigurationBuilder().AddInMemoryCollection(AuthoritySettings()).Build(),
+            environment,
+            TimeProvider.System,
+            logger);
+    }
+
+    private static string CreateAuthorityToken(bool subjectMatches = true) => new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
+    {
+        Claims = new Dictionary<string, object>(StringComparer.Ordinal) { ["sub"] = subjectMatches ? AuthorityAdministrator : "diagnostic-other-subject" },
+    });
+
+    private static byte[] CreateTokenResponseBody(string delegatedToken, int responseBytes)
+    {
+        byte[] json = JsonSerializer.SerializeToUtf8Bytes(new { access_token = delegatedToken, secret = "diagnostic-body-secret" });
+        var body = new byte[responseBytes];
+        body.AsSpan().Fill((byte)' ');
+        json.CopyTo(body, 0);
+        return body;
+    }
+
     private static void AssertSupportSafeDiagnostics(TestLogger<TenantBootstrapHostedService> logger, params string[] sensitiveValues) {
         foreach (TestLogEntry entry in logger.Entries) {
             string diagnostics = $"{entry.Message}\n{entry.DiagnosticState}\n{entry.ExceptionText}";

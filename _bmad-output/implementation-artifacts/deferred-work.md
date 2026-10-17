@@ -1,5 +1,9 @@
 # Deferred Work
 
+**DW-528/DW-542 closure (2026-10-17):** Bootstrap authority responses enforce the existing 64 KiB cap before buffering, with the client deadline, cancellation, subject binding and disposal preserved. The authorized follow-up documents the existing delegated owner query and repairs its SDK fixture, including real dispatcher/source-evidence checks. Independent review/recheck, a zero-warning/error Debug source build, 31 focused cases and the full Server 951/951 pass with zero failures/skips; all 24 new bootstrap cases remain included. Only these duplicate records close: all 647 IDs remain, 353 done/294 open across 265 exact-covering index rows. Original findings, pending-stage evidence, initial file-lock failures and all earlier results remain; unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-528-542-validation-evidence.md). Release remains not ready.
+
+**DW-528/DW-542 repair, acceptance pending (2026-10-17):** Bootstrap authority responses now enforce the existing 64 KiB cap before buffering, with a shared header/body timeout, cancellation and disposal preserved. Independent review/recheck, 24 new cases, a zero-warning/error Debug source build and 87/87 focused bootstrap/configuration cases pass. The full Server project has 948 passed/three failed/zero skipped; all three failures reproduce with the unchanged entry provider. The required all-tests completion gate therefore keeps both records open/actionable and the spec in review. All 647 IDs, 351 done/296 open and 266 index rows remain. Historical fields, unrelated records, archive/sprint, dependencies and release holds are preserved. See [exact commands, baseline comparison and limits](dw-528-542-validation-evidence.md).
+
 **DW-243/DW-262/DW-612 closure (2026-10-17):** Seven legacy FAST token usages across member-removal, metadata-edit and configuration-set styling now follow the existing Fluent 2 theme roles. The guard covers active CSS/Razor and legacy primitives without exemptions. Independent review/recheck, zero-warning/error Debug build, full UI 6159/6159 and light/dark/forced-colors plus maintained Chromium checks pass. The initial focused held-authority failure and passing recheck are preserved in [exact evidence and limits](dw-243-262-612-validation-evidence.md). Only these three records close: all 647 IDs remain, 351 done/296 open across 266 exact-covering maintenance rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds are preserved. Release remains not ready.
 
 **DW-325/DW-587 closure (2026-10-17):** Configuration management now separates retained removal evidence from accepted flow activity and recovers after refused-adoption expiry in either timer ordering. Independent review/recheck, thirteen new cases, zero-warning/error Debug source build, focused 470 and full UI 6137 pass with zero failures/skips. Only these duplicate records close: all 647 IDs remain, 348 done/299 open across 268 exact-covering maintenance rows. Historical findings/pre-closure evidence, unrelated records, archive/sprint, dependencies and release holds are preserved. The historical literal unmounted-child scenario is not claimed as reproduced. See [exact evidence and limits](dw-325-587-validation-evidence.md). Release remains not ready.
@@ -6382,17 +6386,32 @@ location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; s
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; bootstrap token responses are buffered before the intended 64 KiB bound is enforced.\n  evidence: BH7: TenantBootstrapCredentialProvider.cs:86 uses buffered PostAsync, then calls LoadIntoBufferAsync with 64 KiB; TenantBootstrapHostedService creates a default HttpClient. An oversized authority response consumes memory before this cap. Use headers-first bounded reading and an oversized-response test in the pre-existing bootstrap flow."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:85-93 uses buffered HttpClient.PostAsync before LoadIntoBufferAsync(MaxTokenResponseBytes). TenantBootstrapHostedService.cs:95 creates a default client, so oversized response buffering precedes the intended 64-KiB check; current bootstrap tests lack oversized authority responses.
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
-evidence-kind: verified-defect
+pre-dw-528-status: open
+status: done 2026-10-17
+pre-dw-528-disposition: actionable
+disposition: resolved
+pre-dw-528-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-528-verification: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:85-93 uses buffered HttpClient.PostAsync before LoadIntoBufferAsync(MaxTokenResponseBytes). TenantBootstrapHostedService.cs:95 creates a default client, so oversized response buffering precedes the intended 64-KiB check; current bootstrap tests lack oversized authority responses.
+pre-closure-dw-528-verification: Headers-first response completion now precedes the existing 65,536-byte bounded loader; a linked client deadline covers sending and body consumption. Twenty-four added streamed boundary, understated-length, variable-chunk, cancellation, disposal, subject-binding and hosted-dispatch regressions pass. Final Debug source build has zero warnings/errors; focused bootstrap/configuration 87/87 pass. Full Server 948/951 pass with three failures reproduced using the unchanged entry provider: two contract-documentation checks and one owner-authority query-handler registration check. Repair is implemented and independently reviewed; the required all-tests completion gate keeps this record open pending those baseline failures.
+verification: Headers-first response completion now enforces the existing 65,536-byte buffer limit, preserving the shared header/body client deadline, caller cancellation, disposal and exact delegated-subject checks. Independent review corrections pass, including 24 added bootstrap cases and SDK owner dispatch with exact stream identity, HandlerComputed payload metadata and fresh unavailable-source denial. The user-authorized follow-up repairs the three original Server failures through contract documentation and the discovery fixture; no runtime query policy changed. Final Debug source build has zero warnings/errors; focused documentation/configuration/owner-query 31/31 and complete Server 951/951 pass with zero failures/skips. Original failures, baseline comparison and copy-lock recovery are retained in the evidence.
+pre-dw-528-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
+verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs; tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs; docs/event-contract-reference.md
+pre-dw-528-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Bootstrap authority response contract
-next-action: Use headers-first bounded token response reading and add an oversized authority-response test.
+pre-dw-528-next-action: Use headers-first bounded token response reading and add an oversized authority-response test.
+pre-closure-dw-528-next-action: Resolve or explicitly reassess the three baseline Server gate failures in dw-528-542-validation-evidence.md, rerun the complete owning test project and obtain passing required acceptance before closure.
+next-action: Closed after the authorized Server gate repair and passing full-project qualification; unrelated deferred work and release holds remain unchanged.
 related: DW-542
+repair-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs
+repair-evidence: [Commands, baseline failures, review and limits](dw-528-542-validation-evidence.md)
+repair-spec: spec-dw-528-542-bootstrap-response-limit.md
+resolution-evidence: [Commands, initial failures, follow-up repair, review and limits](dw-528-542-validation-evidence.md)
+resolution-spec: spec-dw-528-542-bootstrap-response-limit.md
+
 
 
 ### DW-529: medium; performance evidence records root HEAD while measuring an unrestricted working tree.
@@ -6639,18 +6658,33 @@ location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; s
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; bootstrap token retrieval buffers the response before applying its 64 KiB cap.\n  evidence: `TenantBootstrapCredentialProvider` calls `HttpClient.PostAsync` and only then `LoadIntoBufferAsync`. The password grant and subject check sit on that same path. This is outside the tenant-correction story."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:85-93 uses buffered HttpClient.PostAsync before LoadIntoBufferAsync(MaxTokenResponseBytes). TenantBootstrapHostedService.cs:95 creates a default client, so oversized response buffering precedes the intended 64-KiB check; current bootstrap tests lack oversized authority responses.
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
-evidence-kind: verified-defect
+pre-dw-542-status: open
+status: done 2026-10-17
+pre-dw-542-disposition: actionable
+disposition: resolved
+pre-dw-542-verification-date: 2026-10-12
+verification-date: 2026-10-17
+pre-dw-542-verification: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:85-93 uses buffered HttpClient.PostAsync before LoadIntoBufferAsync(MaxTokenResponseBytes). TenantBootstrapHostedService.cs:95 creates a default client, so oversized response buffering precedes the intended 64-KiB check; current bootstrap tests lack oversized authority responses.
+pre-closure-dw-542-verification: Headers-first response completion now precedes the existing 65,536-byte bounded loader; a linked client deadline covers sending and body consumption. Twenty-four added streamed boundary, understated-length, variable-chunk, cancellation, disposal, subject-binding and hosted-dispatch regressions pass. Final Debug source build has zero warnings/errors; focused bootstrap/configuration 87/87 pass. Full Server 948/951 pass with three failures reproduced using the unchanged entry provider: two contract-documentation checks and one owner-authority query-handler registration check. Repair is implemented and independently reviewed; the required all-tests completion gate keeps this record open pending those baseline failures.
+verification: Headers-first response completion now enforces the existing 65,536-byte buffer limit, preserving the shared header/body client deadline, caller cancellation, disposal and exact delegated-subject checks. Independent review corrections pass, including 24 added bootstrap cases and SDK owner dispatch with exact stream identity, HandlerComputed payload metadata and fresh unavailable-source denial. The user-authorized follow-up repairs the three original Server failures through contract documentation and the discovery fixture; no runtime query policy changed. Final Debug source build has zero warnings/errors; focused documentation/configuration/owner-query 31/31 and complete Server 951/951 pass with zero failures/skips. Original failures, baseline comparison and copy-lock recovery are retained in the evidence.
+pre-dw-542-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
+verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs; tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs; docs/event-contract-reference.md
+pre-dw-542-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Bootstrap authority response contract
-next-action: Use headers-first bounded token response reading and add an oversized authority-response test.
+pre-dw-542-next-action: Use headers-first bounded token response reading and add an oversized authority-response test.
+pre-closure-dw-542-next-action: Resolve or explicitly reassess the three baseline Server gate failures in dw-528-542-validation-evidence.md, rerun the complete owning test project and obtain passing required acceptance before closure.
+next-action: Closed after the authorized Server gate repair and passing full-project qualification; unrelated deferred work and release holds remain unchanged.
 related: DW-528
 duplicate-of: DW-528
+repair-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs
+repair-evidence: [Commands, baseline failures, review and limits](dw-528-542-validation-evidence.md)
+repair-spec: spec-dw-528-542-bootstrap-response-limit.md
+resolution-evidence: [Commands, initial failures, follow-up repair, review and limits](dw-528-542-validation-evidence.md)
+resolution-spec: spec-dw-528-542-bootstrap-response-limit.md
+
 
 
 ### DW-543: high claim superseded by pass-17 gateway tracing; see the medium command-API test-expectation defer below.
