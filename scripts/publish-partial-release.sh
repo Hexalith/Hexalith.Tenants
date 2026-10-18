@@ -25,6 +25,9 @@ while IFS= read -r package_id; do
   [ "$actual_hash" = "$expected_hash" ] || { echo "[partial-release-recovery] Existing package $package_id does not match the reviewed source." >&2; exit 1; }
 done < "$state_directory/existing-packages"
 
+live_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+[ "$live_sha" = "$source_sha" ] || { echo '[partial-release-recovery] Live main changed before publication.' >&2; exit 1; }
+
 while IFS= read -r package_id; do
   [ -n "$package_id" ] || continue
   package_file="nupkgs/${package_id}.${version}.nupkg"

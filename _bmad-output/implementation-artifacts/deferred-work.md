@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-590 closure (2026-10-18):** Recovery publication now rechecks exact live main after artifact preparation and existing-package hash verification, before the first publication. Original production continued in all 29 unsafe-source cases; independent review/recheck, seven rejected harmful mutations, a zero-warning/error Debug source build, focused 46/46 and full Contracts 397/397 pass with zero failures/skips. Only DW-590 closes: all 653 IDs remain, 370 done/283 open across 255 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds remain preserved. See [complete evidence](dw-590-validation-evidence.md). Release remains not ready.
+
 **DW-588 closure (2026-10-18):** Recovery preflight now rejects an existing GitHub Release whose matching tag is missing before destination reads or recovery-state preparation. Original production failed both new defect cases; independent review/recheck, a zero-warning/error Debug source build, focused 18/18 and full Contracts 351/351 pass with zero failures/skips. Only DW-588 closes: all 653 IDs remain, 369 done/284 open across 256 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint and release holds remain preserved. Concurrent external pointer commits and the failing historical attribution gate are recorded in [complete evidence](dw-588-validation-evidence.md). Release remains not ready.
 
 **DW-218 closure (2026-10-18):** Contributor and agent release guidance now follows explicit dispatch and exact-source CI/publication checks, with date-bound reachable v5.8.0 history distinguished from the unchanged 4.0.0 safety minimum. Historical recovery/consumer observations and changelog entries remain. Independent review/recheck, final zero-warning/error Debug source build and full Contracts 333/333 pass with zero failures/skips. Only DW-218 closes: all 653 IDs remain, 368 done/285 open across 257 exact-covering maintenance rows. Original fields, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-218-validation-evidence.md). Release remains not ready.
@@ -7719,17 +7721,26 @@ location: scripts/publish-partial-release.sh
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Recheck the live main SHA immediately before partial release publication.\n  evidence: `publish-partial-release.sh` checks main before building and packing, then publishes without a second check after those operations."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: publish-partial-release.sh compares live main before build/pack/hash validation; no second source check precedes the first push/publication. Main may advance during those operations.
-verification-files: scripts/publish-partial-release.sh
-evidence-kind: verified-gap
+pre-dw-590-status: open
+status: done 2026-10-18
+pre-dw-590-disposition: actionable
+disposition: done
+pre-dw-590-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-590-verification: publish-partial-release.sh compares live main before build/pack/hash validation; no second source check precedes the first push/publication. Main may advance during those operations.
+verification: Recovery publication now rechecks exact live main after all local preparation and existing-package hash comparisons, before package/container/release publication. Original production failed all 33 initial sequence checks, including 29 unsafe-source cases proceeding to publication. Independent review/recheck resolved five fixture gaps; final zero-warning/error Debug source build, focused 46/46 and maintained Contracts 397/397 pass with zero failures/skips. Seven harmful copied-script mutations are rejected, with a pristine 46/46 control. Existing initial and hash refusals, complete/empty inventory and exact publication arguments remain covered. Exact commands, initial failures and runtime/release limits remain in dw-590-validation-evidence.md.
+pre-dw-590-verification-files: scripts/publish-partial-release.sh
+verification-files: scripts/publish-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs
+pre-dw-590-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Exact-source publication invariant
-next-action: Recheck live main after all build/validation work and immediately before publication.
+pre-dw-590-next-action: Recheck live main after all build/validation work and immediately before publication.
+next-action: Closed within DW-590; preserve separate release-recovery records and existing qualification holds.
 related: DW-563
+resolution-evidence: [Exact commands, independent review and validation limits](dw-590-validation-evidence.md)
+resolution-spec: spec-dw-590-final-recovery-source-check.md
 
 
 ### DW-591: Add a rendered document-language test for English and French UI cultures.

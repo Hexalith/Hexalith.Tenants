@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-590 closure (2026-10-18):** Recovery publication now rechecks exact live main after artifact preparation and existing-package hash verification, before the first publication. Original production continued in all 29 unsafe-source cases; independent review/recheck, seven rejected harmful mutations, a zero-warning/error Debug source build, focused 46/46 and full Contracts 397/397 pass with zero failures/skips. Only DW-590 closes: all 653 IDs remain, 370 done/283 open across 255 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-590-validation-evidence.md). Release remains not ready.
+
 **DW-588 closure (2026-10-18):** Recovery preflight now rejects an existing GitHub Release whose matching tag is missing before destination reads or recovery-state preparation. Original production failed both new defect cases; independent review/recheck, a zero-warning/error Debug source build, focused 18/18 and full Contracts 351/351 pass with zero failures/skips. Only DW-588 closes: all 653 IDs remain, 369 done/284 open across 256 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint and release holds remain preserved. Concurrent external pointer commits and the failing historical attribution gate are recorded in [complete evidence](../_bmad-output/implementation-artifacts/dw-588-validation-evidence.md). Release remains not ready.
 
 **DW-218 closure (2026-10-18):** Contributor and agent release guidance now follows explicit dispatch and exact-source CI/publication checks, with date-bound reachable v5.8.0 history distinguished from the unchanged 4.0.0 safety minimum. Historical recovery/consumer observations and changelog entries remain. Independent review/recheck, final zero-warning/error Debug source build and full Contracts 333/333 pass with zero failures/skips. Only DW-218 closes: all 653 IDs remain, 368 done/285 open across 257 exact-covering maintenance rows. Original fields, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-218-validation-evidence.md). Release remains not ready.
@@ -86,14 +88,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 369 |
-| actionable | 197 |
+| done | 370 |
+| actionable | 196 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 284 open records across 256 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 283 open records across 255 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -111,7 +113,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-325/DW-587 closure (2026-10-17):** Retained removal activity is separate from accepted child activity. Refused adoption recovers under both expiry orderings; modal focus, current replacement target/tenant, sibling activity and disposal are qualified by thirteen new cases and independent review/recheck. Final Debug source build has zero warnings/errors; focused 470/full UI 6137 pass with zero failures/skips. Only these duplicates and their shared action row close: 647 IDs, 348 done/299 open, 268 exact-covering rows. [Exact commands, initial failures, review and limits](../_bmad-output/implementation-artifacts/dw-325-587-validation-evidence.md) preserve the historical unmounted-child evidence limit, earlier findings, archive/sprint, dependencies and release holds. Release remains not ready.
 
-**Current implementation completed:** DW-588; DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
+**Current implementation completed:** DW-590; DW-588; DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -232,7 +234,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-582 | P2 | Gap / actionable | unassigned | Reviewed container digest/provenance | Compare existing OCI content/provenance with reviewed immutable source before accepting recovery. |
 | DW-583 | P2 | Gap / actionable | unassigned | Immutable release-artifact manifest | Verify every expected destination and artifact content after normal publication. |
 | DW-585 | P2 | Gap / actionable | unassigned | Changed-story selection/base revision | Add actual changed-story validation alongside the validator regression lane. |
-| DW-590 | P2 | Gap / actionable | unassigned | Exact-source publication invariant | Recheck live main after all build/validation work and immediately before publication. |
 | DW-593 | P2 | Gap / awaiting-decision | release recovery (recover-partial-release.yml) | Release-owner exact execution provenance decision | Define and enforce the approved publication/recovery Builds revision relationship. |
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 | DW-602 | P2 | Gap / actionable | unassigned | Requested page-size propagation to payload validator | Reject oversized item counts before hydration and test bounded detail-call fanout. |
