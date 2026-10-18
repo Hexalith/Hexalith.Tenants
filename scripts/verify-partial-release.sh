@@ -25,6 +25,14 @@ case "$tag_type" in commit|tag) ;; *) echo '[partial-release-recovery] Tag has a
 case "$tag_sha" in "$source_sha") ;; *) echo '[partial-release-recovery] Tag does not resolve to the reviewed source.' >&2; exit 1 ;; esac
 release_json="$(gh api "repos/${repository}/releases/tags/v${version}")"
 printf '%s' "$release_json" | jq -e --arg tag "v${version}" '(.tag_name == $tag) and (.draft == false)' >/dev/null
+expected_prerelease=false
+if [[ "$version" == *-* ]]; then
+  expected_prerelease=true
+fi
+printf '%s' "$release_json" | jq -e --argjson expected "$expected_prerelease" '.prerelease == $expected' >/dev/null || {
+  echo '[partial-release-recovery] Release prerelease classification does not match the reviewed version.' >&2
+  exit 1
+}
 mapfile -t release_assets < <(printf '%s' "$release_json" | jq -r '.assets[].name')
 [ "${#release_assets[@]}" -eq 5 ] || { echo '[partial-release-recovery] Release asset count is not five.' >&2; exit 1; }
 for package_id in $(jq -r '.packages[].id' tools/release-packages.json); do

@@ -48,7 +48,11 @@ fi
 
 release_status="$(gh api --include "repos/${GITHUB_REPOSITORY}/releases/tags/v${version}" 2>/dev/null | sed -n '1p' | awk '{ print $2 }' || true)"
 if [ "$release_status" = 404 ]; then
-  gh release create "v${version}" --target "$source_sha" --title "v${version}" --generate-notes nupkgs/*.nupkg
+  release_options=()
+  if [[ "$version" == *-* ]]; then
+    release_options+=(--prerelease)
+  fi
+  gh release create "v${version}" --target "$source_sha" --title "v${version}" --generate-notes "${release_options[@]}" nupkgs/*.nupkg
 elif [ "$release_status" != 200 ]; then
   echo '[partial-release-recovery] GitHub Release state could not be proved.' >&2
   exit 1

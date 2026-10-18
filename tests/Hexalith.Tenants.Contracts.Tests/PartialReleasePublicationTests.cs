@@ -8,7 +8,7 @@ using Shouldly;
 namespace Hexalith.Tenants.Contracts.Tests;
 
 /// <summary>
-/// Exercises the recovery publisher's exact-source gate with isolated publication tools.
+/// Exercises recovery publication and its guards with isolated publication tools.
 /// </summary>
 public class PartialReleasePublicationTests
 {
@@ -25,6 +25,27 @@ public class PartialReleasePublicationTests
     public async Task UnchangedSourceCanPublishMissingArtifacts(string inventory)
     {
         await RunPublisherAsync(inventory, "stable");
+    }
+
+    /// <summary>
+    /// Recovered previews are marked as prereleases while stable releases keep their classification.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    /// <param name="version">The reviewed recovery version.</param>
+    /// <param name="prerelease">Whether release creation must request prerelease classification.</param>
+    [Theory]
+    [InlineData("release", "1.2.3", false)]
+    [InlineData("release", "1.2.3-alpha", true)]
+    [InlineData("release", "1.2.3-rc.1", true)]
+    [InlineData("release", "1.2.3-preview-build.7", true)]
+    [InlineData("release", "1.2.3-0", true)]
+    [InlineData("mixed", "1.2.3-rc.1", true)]
+    [InlineData("all-missing", "1.2.3-rc.1", true)]
+    [InlineData("package", "1.2.3-rc.1", true)]
+    [InlineData("container", "1.2.3-rc.1", true)]
+    public async Task RecoveryPreservesReleaseClassification(string inventory, string version, bool prerelease)
+    {
+        await RunPublisherAsync(inventory, "stable", version: version, prerelease: prerelease);
     }
 
     /// <summary>
@@ -100,10 +121,14 @@ public class PartialReleasePublicationTests
         await RunPublisherAsync("package", response);
     }
 
-    private static async Task RunPublisherAsync(string inventory, string response, string stage = "hash")
+    private static async Task RunPublisherAsync(
+        string inventory,
+        string response,
+        string stage = "hash",
+        string version = "1.2.3",
+        bool prerelease = false)
     {
         const string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        const string version = "1.2.3";
         const string packageContent = "reviewed fixture package\n";
         string repoRoot = FindRepoRoot();
         string temporaryRoot = Path.Combine(Path.GetTempPath(), $"tenants-publication-{Guid.NewGuid():N}");
@@ -174,21 +199,26 @@ public class PartialReleasePublicationTests
                         malformed) echo unproven ;;
                         *) unexpected "response $FIXTURE_RESPONSE" ;;
                       esac ;;
-                    'api --include repos/fixture/recovery/releases/tags/v1.2.3')
+                    "api --include repos/fixture/recovery/releases/tags/v${FIXTURE_VERSION}")
                       echo release-read >> "$FIXTURE_CALLS"
                       if [ "$FIXTURE_INVENTORY" = release ] || [ "$FIXTURE_INVENTORY" = mixed ] || [ "$FIXTURE_INVENTORY" = all-missing ]; then
                         printf 'HTTP/2.0 404 Not Found\n'; return 1
                       fi
                       printf 'HTTP/2.0 200 OK\n' ;;
                     'release create '*)
-                      [ "$*" = "$FIXTURE_RELEASE_COMMAND" ] || { unexpected "gh $*"; return 97; }
+                      mapfile -t expected_arguments < "$FIXTURE_RELEASE_ARGUMENTS"
+                      [ "$#" = "${#expected_arguments[@]}" ] || { unexpected "gh argument count $*"; return 97; }
+                      for expected_argument in "${expected_arguments[@]}"; do
+                        [ "$1" = "$expected_argument" ] || { unexpected "gh argument $1"; return 97; }
+                        shift
+                      done
                       echo release-publish >> "$FIXTURE_CALLS" ;;
                     *) unexpected "gh $*" ;;
                   esac
                 }
                 dotnet() {
                   case "$*" in
-                    'build Hexalith.Tenants.slnx --configuration Release -p:Version=1.2.3') prepare build ;;
+                    "build Hexalith.Tenants.slnx --configuration Release -p:Version=${FIXTURE_VERSION}") prepare build ;;
                     'nuget push '*)
                       [ "$#" = 7 ] && [ "$4 $5 $6 $7" = '--source https://api.nuget.org/v3/index.json --api-key fixture-key' ] || { unexpected "dotnet $*"; return 97; }
                       case "|$FIXTURE_MISSING_FILES|" in
@@ -203,7 +233,7 @@ public class PartialReleasePublicationTests
                 }
                 python3() {
                   case "$*" in
-                    'scripts/pack-release-packages.py ./nupkgs 1.2.3') prepare pack ;;
+                    "scripts/pack-release-packages.py ./nupkgs ${FIXTURE_VERSION}") prepare pack ;;
                     'scripts/validate-nuget-packages.py ./nupkgs') prepare packages ;;
                     'scripts/validate-consumer-package-references.py ./nupkgs') prepare consumers ;;
                     *) unexpected "python3 $*" ;;
@@ -222,7 +252,7 @@ public class PartialReleasePublicationTests
                     *) unexpected "docker $*" ;;
                   esac
                 }
-                source "$FIXTURE_PUBLISHER" 1.2.3
+                source "$FIXTURE_PUBLISHER" "$FIXTURE_VERSION"
                 """;
             using Process process = new()
             {
@@ -240,6 +270,7 @@ public class PartialReleasePublicationTests
             var environment = process.StartInfo.Environment;
             environment["FIXTURE_PUBLISHER"] = Path.Combine(repoRoot, "scripts/publish-partial-release.sh");
             environment["FIXTURE_SHA"] = sourceSha;
+            environment["FIXTURE_VERSION"] = version;
             environment["FIXTURE_STAGE"] = existingIds.Length == 0 && stage == "hash" ? "consumers" : stage;
             environment["FIXTURE_RESPONSE"] = response;
             environment["FIXTURE_INVENTORY"] = inventory;
@@ -248,8 +279,15 @@ public class PartialReleasePublicationTests
             environment["FIXTURE_PREPARED"] = Path.Combine(temporaryRoot, "prepared");
             environment["FIXTURE_LAST_EXISTING_FILE"] = existingIds.Length == 0 ? string.Empty : $"nupkgs/{existingIds[^1]}.{version}.nupkg";
             environment["FIXTURE_MISSING_FILES"] = string.Join('|', missingIds.Select(id => $"nupkgs/{id}.{version}.nupkg"));
-            environment["FIXTURE_RELEASE_COMMAND"] = $"release create v{version} --target {sourceSha} --title v{version} --generate-notes "
-                + string.Join(' ', ids.Order(StringComparer.Ordinal).Select(id => $"nupkgs/{id}.{version}.nupkg"));
+            List<string> releaseArguments = ["release", "create", $"v{version}", "--target", sourceSha, "--title", $"v{version}", "--generate-notes"];
+            if (prerelease)
+            {
+                releaseArguments.Add("--prerelease");
+            }
+
+            releaseArguments.AddRange(ids.Order(StringComparer.Ordinal).Select(id => $"nupkgs/{id}.{version}.nupkg"));
+            environment["FIXTURE_RELEASE_ARGUMENTS"] = Path.Combine(temporaryRoot, "release-arguments");
+            await File.WriteAllTextAsync(environment["FIXTURE_RELEASE_ARGUMENTS"]!, string.Join('\n', releaseArguments) + "\n");
             environment["FIXTURE_CONTAINER_COMMAND"] = "publish src/Hexalith.Tenants/Hexalith.Tenants.csproj --configuration Release /t:PublishContainer "
                 + "-p:RuntimeIdentifiers=linux-musl-x64;linux-musl-arm64 -p:ContainerRuntimeIdentifiers=linux-musl-x64;linux-musl-arm64 "
                 + "-p:ContainerImageFormat=OCI -p:UseHexalithProjectReferences=false -p:ContainerRegistry=fixture.invalid "

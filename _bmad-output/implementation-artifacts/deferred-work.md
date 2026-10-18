@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-621 closure (2026-10-18):** Recovery creation now marks suffix-bearing versions as prereleases, and final verification requires matching Boolean metadata. Original publisher/verifier cases fail 6/55 and 8/13 respectively; independent review corrections, isolated replay/mutation controls, a zero-warning/error Debug source build, focused 68/68 and full Contracts 419/419 pass with zero failures/skips. Only DW-621 closes: all 653 IDs remain, 371 done/282 open across 254 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds are preserved. See [complete evidence](dw-621-validation-evidence.md). Release remains not ready.
+
 **DW-590 closure (2026-10-18):** Recovery publication now rechecks exact live main after artifact preparation and existing-package hash verification, before the first publication. Original production continued in all 29 unsafe-source cases; independent review/recheck, seven rejected harmful mutations, a zero-warning/error Debug source build, focused 46/46 and full Contracts 397/397 pass with zero failures/skips. Only DW-590 closes: all 653 IDs remain, 370 done/283 open across 255 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds remain preserved. See [complete evidence](dw-590-validation-evidence.md). Release remains not ready.
 
 **DW-588 closure (2026-10-18):** Recovery preflight now rejects an existing GitHub Release whose matching tag is missing before destination reads or recovery-state preparation. Original production failed both new defect cases; independent review/recheck, a zero-warning/error Debug source build, focused 18/18 and full Contracts 351/351 pass with zero failures/skips. Only DW-588 closes: all 653 IDs remain, 369 done/284 open across 256 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint and release holds remain preserved. Concurrent external pointer commits and the failing historical attribution gate are recorded in [complete evidence](dw-588-validation-evidence.md). Release remains not ready.
@@ -8338,17 +8340,27 @@ location: scripts/publish-partial-release.sh
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Mark recovered prerelease versions as prereleases in GitHub Releases.\n  evidence: The recovery publisher calls gh release create without --prerelease for a version containing a prerelease suffix, leaving GitHub to mark it stable."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: publish-partial-release.sh gh release create has no --prerelease flag, while validator accepts SemVer prerelease suffixes. Recovery can mark a prerelease GitHub version stable.
-verification-files: scripts/publish-partial-release.sh
-evidence-kind: verified-defect
+pre-dw-621-status: open
+status: done 2026-10-18
+pre-dw-621-disposition: actionable
+disposition: resolved
+pre-dw-621-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-621-verification: publish-partial-release.sh gh release create has no --prerelease flag, while validator accepts SemVer prerelease suffixes. Recovery can mark a prerelease GitHub version stable.
+verification: New recovery releases now request prerelease classification for suffix-bearing versions, and final verification requires matching Boolean metadata. Original publisher cases failed 6/55; original verifier cases failed 8/13. Independent review corrections, a zero-warning/error Debug source build, focused 68/68 and full Contracts 419/419 pass with zero failures/skips. Isolated baseline replay and three harmful mutation checks qualify classification and argument boundaries. Exact commands, original failures and limits are retained in dw-621-validation-evidence.md.
+pre-dw-621-verification-files: scripts/publish-partial-release.sh
+verification-files: scripts/publish-partial-release.sh; scripts/verify-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs; tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseVerificationTests.cs; _bmad-output/implementation-artifacts/dw-621-check-variants.py
+pre-dw-621-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
-owner: unassigned
+pre-dw-621-owner: unassigned
+owner: Tenants release recovery
 dependencies: SemVer prerelease classification
-next-action: Set and verify GitHub prerelease metadata for suffix-bearing versions.
+pre-dw-621-next-action: Set and verify GitHub prerelease metadata for suffix-bearing versions.
+next-action: Closed within DW-621; preserve unrelated deferred work and existing release qualification holds.
 related: none
+resolution-evidence: [Exact validation, original failures and review corrections](dw-621-validation-evidence.md)
+resolution-spec: spec-dw-621-recovery-prerelease-classification.md
 
 
 ### DW-622: Test the effective Tenants UI read endpoint in the AppHost resource model.
