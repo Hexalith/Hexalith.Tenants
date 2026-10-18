@@ -308,8 +308,11 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
                 return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
             }
 
-            DateTimeOffset? from = TryGetDateTimeOffset(root, "from");
-            DateTimeOffset? to = TryGetDateTimeOffset(root, "to");
+            if (!TryGetDateTimeOffset(root, "from", out DateTimeOffset? from)
+                || !TryGetDateTimeOffset(root, "to", out DateTimeOffset? to))
+            {
+                return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
+            }
             string? cursor = root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String
                 ? cursorEl.GetString()
                 : null;
@@ -325,14 +328,23 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             AuditEventCategory? category = null;
             string? errorMessage = null;
             if (root.TryGetProperty("category", out JsonElement categoryEl)
-                && categoryEl.ValueKind == JsonValueKind.String
-                && !string.IsNullOrWhiteSpace(categoryEl.GetString())) {
-                string categoryValue = categoryEl.GetString()!;
-                if (Enum.TryParse(categoryValue, ignoreCase: true, out AuditEventCategory parsed)) {
-                    category = parsed;
+                && categoryEl.ValueKind != JsonValueKind.Null)
+            {
+                if (categoryEl.ValueKind != JsonValueKind.String)
+                {
+                    errorMessage = QueryAdapterFailureReason.InvalidEnvelope;
                 }
-                else {
-                    errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit category: {categoryValue}";
+                else if (!string.IsNullOrWhiteSpace(categoryEl.GetString()))
+                {
+                    string categoryValue = categoryEl.GetString()!;
+                    if (Enum.TryParse(categoryValue, ignoreCase: true, out AuditEventCategory parsed))
+                    {
+                        category = parsed;
+                    }
+                    else
+                    {
+                        errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit category: {categoryValue}";
+                    }
                 }
             }
 
@@ -360,13 +372,22 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         }
     }
 
-    private static DateTimeOffset? TryGetDateTimeOffset(JsonElement root, string propertyName) {
+    private static bool TryGetDateTimeOffset(JsonElement root, string propertyName, out DateTimeOffset? value)
+    {
+        value = null;
         if (!root.TryGetProperty(propertyName, out JsonElement element)
-            || element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined) {
-            return null;
+            || element.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+        {
+            return true;
         }
 
-        return element.TryGetDateTimeOffset(out DateTimeOffset value) ? value : null;
+        if (element.ValueKind != JsonValueKind.String || !element.TryGetDateTimeOffset(out DateTimeOffset parsed))
+        {
+            return false;
+        }
+
+        value = parsed;
+        return true;
     }
 
     private protected PaginatedResult<TResult> ProtectCursor<TResult>(

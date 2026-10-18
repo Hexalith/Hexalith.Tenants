@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-424 closure and DW-650 review deferral (2026-10-18):** Malformed supplied audit dates and non-string categories now return InvalidEnvelope before cursor decoding or audit reads. Independent review/recheck, 59 focused cases and full Server 1010/1010 pass with zero failures/skips; the final Debug source build passes with one transient copy-retry warning and zero errors. Only DW-424 closes. A separately reproduced pre-existing Unicode category string exception is newly open as DW-650. All 649 original IDs remain plus DW-650: 650 IDs, 359 done/291 open across 263 exact-covering maintenance rows. Historical findings, initial failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-424-validation-evidence.md). Release remains not ready.
+
 **DW-649 closure (2026-10-18):** The tenant detail page's successful set-configuration test now uses a caller who is present as an owner and no longer supplies an unconditional-owner callback that the page never invokes. A second case changes owner evidence before submit and proves the fresh preview refuses dispatch. The initial 0/2 callback experiment established the unused seam; independent review corrections, the final zero-warning/error Debug source build, focused 2/2 and full UI 6264/6264 pass with zero failures/skips. Only DW-649 closes: all 649 IDs remain, 358 done/291 open across 263 exact-covering index rows. The original finding and incorrect safe-model/page equivalence claim remain visible below with [complete evidence](dw-649-validation-evidence.md). Historical records, archive/sprint, dependencies and release holds are preserved. Release remains not ready.
 
 **DW-308/DW-314 closure and DW-649 review deferral (2026-10-17):** Configuration management contexts now require an explicit authority state, and the private resolvers no longer accept a lifecycle status they discard. The old five-argument calls failed compilation (CS7036) before each test passed the authority the previous default would have chosen. Unknown, Active, and Disabled stay independent of owner, contributor, global, and both reauthorization paths. Independent review, a zero-warning/error Debug source build, focused policy 80/80 and full UI 6263/6263 pass with zero failures/skips. Only these duplicate records close. The detail-page safe-model stub that still grants TenantOwner is newly open as DW-649; production already returns MissingPermission for that shape, and this change preserved the stub's previous meaning. All 649 IDs remain: 357 done/292 open across 264 exact-covering index rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-308-314-validation-evidence.md). Release remains not ready.
@@ -4769,17 +4771,26 @@ location: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`\n  summary: Reject malformed audit date and non-string category fields in direct server query payloads.\n  evidence: `TenantQueryHandlerBase.DeserializeAuditPayload` converts malformed `from`/`to` and non-string `category` to null filters; the method is unchanged from the Story 5.1 baseline, so a direct authorized query can broaden its tenant-scoped result."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs::DeserializeAuditPayload:301-327 still converts invalid from/to through TryGetDateTimeOffset to null and only parses category when its JSON kind is String. Non-string category and malformed date fields can silently become missing filters and broaden an authorized direct read.
-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
-evidence-kind: verified-defect
+pre-dw-424-status: open
+status: done 2026-10-18
+pre-dw-424-disposition: actionable
+disposition: resolved
+pre-dw-424-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-424-verification: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs::DeserializeAuditPayload:301-327 still converts invalid from/to through TryGetDateTimeOffset to null and only parses category when its JSON kind is String. Non-string category and malformed date fields can silently become missing filters and broaden an authorized direct read.
+verification: Malformed supplied date strings and wrong JSON kinds, plus non-string/non-null categories, now return InvalidEnvelope before cursor decoding or audit reads. Optional filters, active scope, numeric-string categories, final duplicate-member semantics, offsets, inclusive bounds and authorization precedence are covered. Original-parser control failed 25/39; final 59 focused and full Server 1010/1010 pass with zero failures/skips after independent review/recheck. The final Debug source build passes with zero errors and one transient MSB3026 copy-retry warning. Exact commands, initial failures and limits are in dw-424-validation-evidence.md. The pre-existing Unicode category string decoding exception is separately recorded as DW-650.
+pre-dw-424-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
+verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; src/Hexalith.Tenants/Queries/Handlers/GetTenantAuditQueryHandler.cs; tests/Hexalith.Tenants.Server.Tests/Queries/GetTenantAuditQueryHandlerTests.cs
+pre-dw-424-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Reject supplied-but-malformed date/category filter fields with InvalidEnvelope and add direct query-handler tests for each malformed JSON kind/date.
+pre-dw-424-next-action: Reject supplied-but-malformed date/category filter fields with InvalidEnvelope and add direct query-handler tests for each malformed JSON kind/date.
+next-action: Closed within DW-424; preserve the separate DW-650 category-decoding follow-up and existing release holds.
 related: DW-408
+resolution-evidence: [Exact commands, initial failures, independent review and limits](dw-424-validation-evidence.md)
+resolution-spec: spec-dw-424-malformed-audit-filters.md
 
 
 ### DW-425: Recheck audit load generation inside the queued tenant-detail projection write.
@@ -8722,3 +8733,23 @@ next-action: Closed within DW-649; retain unrelated deferred work and release qu
 related: DW-308
 resolution-evidence: [Exact validation, initial failures and source qualification](dw-649-validation-evidence.md)
 resolution-spec: spec-dw-649-detail-page-configuration-reauthorization.md
+
+### DW-650: Lone-surrogate category strings escape direct audit payload validation.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-424-malformed-audit-filters.md`
+  summary: Reject invalid Unicode category string decoding with InvalidEnvelope rather than throwing from the audit query parser.
+  evidence: Independent review reproduced both escaped lone high and low surrogate category strings through the built query handler, which throws InvalidOperationException at categoryEl.GetString(). The baseline uses the identical accessor; a direct baseline-accessor comparison throws identically. This pre-existing string-category issue is outside DW-424's selected malformed-date/non-string-category repair. The repaired date path rejects the corresponding surrogate strings.
+origin: DW-424 independent review, 2026-10-18
+location: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs::DeserializeAuditPayload
+status: open
+disposition: actionable
+verification-date: 2026-10-18
+verification: Current built-handler and original-accessor reproductions confirm the category exception. The original comparison was an accessor expression, not a separately built baseline handler. A saved accessor control run with dotnet fsi --exec /tmp/tenants-dw-424/category-surrogate.fsx exits 0 and prints System.InvalidOperationException for both inputs; exact evidence and limits are in dw-424-validation-evidence.md.
+verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; _bmad-output/implementation-artifacts/dw-424-validation-evidence.md
+evidence-kind: verified-defect
+severity: medium
+priority: P2
+owner: Tenants query handlers
+dependencies: Preserve existing optional and string-category compatibility semantics
+next-action: Contain malformed Unicode category decoding with a safe InvalidEnvelope result and direct handler regressions for both lone-surrogate forms, preserving authorization precedence and no audit reads.
+related: DW-424
