@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-215 closure (2026-10-18):** Plain stable release tags now require canonical decimal components within semantic-release's safe-integer range before conversion, sorting or reachability requests. Initial production tests failed 24/36; independent review/recheck, final focused 49/49, full Contracts 203/203 and a zero-warning/error Debug source build pass. Actual selector/parser parity matches 5,832 candidates with zero admission/order differences; actionlint and story-gitlink checks pass. Only DW-215 closes: all 653 IDs remain, 364 done/289 open across 261 exact-covering maintenance rows. Historical findings, unrelated records, DW-216, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-215-validation-evidence.md). Release remains not ready.
+
 **DW-653 closure (2026-10-18):** Undecodable Unicode standard pagination cursors now return bare InvalidEnvelope before cursor-codec use in all four consumers, preserving their existing authorization/read order, valid protected cursors, parsing defaults and page-size bounds. Original-production tests failed 54/64; independent review added six compatibility controls, and final focused 112/112 plus full Server 1316/1316 pass with zero failures/skips. Final Debug source build succeeds with one transient copy-retry warning and zero errors. Only DW-653 closes: all 653 IDs remain, 363 done/290 open across 262 exact-covering maintenance rows. Original findings and earlier failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-653-validation-evidence.md). Release remains not ready.
 
 **DW-652 closure (2026-10-18):** Embedded unpaired-surrogate audit dates now return bare InvalidEnvelope before cursor decoding or audit reads, preserving authorization and valid date semantics. Initial production tests failed 44/261; independent review led to six compatibility controls, and final focused 267/267 plus full Server 1218/1218 pass with zero failures/skips. The final Debug source build has zero warnings/errors. Only DW-652 closes: all 653 IDs remain, 362 done/291 open across 263 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint and release holds remain preserved. DW-653 remains open. See [complete evidence](dw-652-validation-evidence.md). Release remains not ready.
@@ -1903,17 +1905,27 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 reason: The legacy ledger defers this issue: Align release-tag validation with semantic-release SemVer parsing. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Align release-tag validation with semantic-release SemVer parsing. evidence: The pre-existing tag filter accepts leading-zero or oversized numeric tags that semantic-release may ignore, allowing the guard and release engine to select different floors.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/release.yml release_tags still accepts ^v[0-9]+\.[0-9]+\.[0-9]+$, including leading zeros and arbitrary numeric width, before selecting a floor; .releaserc.json uses semantic-release tag semantics.
-verification-files: .github/workflows/release.yml
-evidence-kind: verified-defect
+pre-dw-215-status: open
+status: done 2026-10-18
+pre-dw-215-disposition: actionable
+disposition: resolved
+pre-dw-215-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-215-verification: .github/workflows/release.yml release_tags still accepts ^v[0-9]+\.[0-9]+\.[0-9]+$, including leading zeros and arbitrary numeric width, before selecting a floor; .releaserc.json uses semantic-release tag semantics.
+verification: The plain stable release-tag selector now validates canonical decimal components and the inclusive 9007199254740991 bound as strings before numeric sorting or reachability requests. Initial unchanged-production cases failed 24/36; independent review added thirteen controls and shared fixtures. Final focused 49/49 and full Contracts 203/203 pass with zero failures/skips; final Debug source build has zero warnings/errors. Actual selector parity with installed semantic-release 25.0.9 / semver 7.8.5 matches 5,832 candidates with zero admission/order mismatches. Actionlint, whitespace and story-gitlink checks pass. Exact commands, initial failures, review and runtime limits are in dw-215-validation-evidence.md.
+pre-dw-215-verification-files: .github/workflows/release.yml
+verification-files: .github/workflows/release.yml; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs; _bmad-output/implementation-artifacts/dw-215-validation-evidence.md
+pre-dw-215-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Validate candidate tags with the same SemVer parser/range as semantic-release and test rejected numeric forms.
+pre-dw-215-next-action: Validate candidate tags with the same SemVer parser/range as semantic-release and test rejected numeric forms.
+next-action: Closed within DW-215; preserve DW-216 and all unrelated deferred work and release qualification holds.
 related: none
+resolution-evidence: [Exact validation, initial failures and independent review](dw-215-validation-evidence.md)
+resolution-spec: spec-dw-215-release-tag-semver-validation.md
+
 
 ### DW-216: Validate normalized NuGet version grammar before excluding prereleases from the registry floor
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25

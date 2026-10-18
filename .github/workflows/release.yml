@@ -108,11 +108,16 @@ jobs:
           fi
 
           # Only plain vMAJOR.MINOR.PATCH tags are release tags here, matching tagFormat in
-          # .releaserc.json. The regex is also what makes the tag name safe to interpolate below.
+          # .releaserc.json. Match semantic-release's semver core rules: no leading zeroes and
+          # every component at most Number.MAX_SAFE_INTEGER. Check decimal strings before
+          # tonumber so oversized tags cannot round into a valid floor or overflow parsing.
+          # The regex also makes the tag name safe to interpolate below.
           release_tags="$(printf '%s\n' "$tag_refs" | jq -r '
             [ .[][].ref
               | ltrimstr("refs/tags/")
-              | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))
+              | select(test("^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\z"))
+              | select(ltrimstr("v") | split(".") | all(.[];
+                  length < 16 or (length == 16 and . <= "9007199254740991")))
             ]
             | unique
             | sort_by(ltrimstr("v") | split(".") | map(tonumber))

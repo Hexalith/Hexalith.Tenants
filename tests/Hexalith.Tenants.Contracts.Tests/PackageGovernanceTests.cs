@@ -1164,6 +1164,152 @@ public class PackageGovernanceTests {
         }
     }
 
+    /// <summary>
+    /// Gets invalid plain release tags for fallback and invalid-only evidence checks.
+    /// </summary>
+    public static TheoryData<string> InvalidPlainReleaseTags { get; } = new()
+    {
+        "v09.0.0",
+        "v3.016.0",
+        "v3.15.02",
+        "v0009.0.0",
+        "v3.0016.0",
+        "v3.15.0002",
+        "v00.0.0",
+        "v0.00.0",
+        "v0.0.00",
+        "v9007199254740992.0.0",
+        "v0.9007199254740992.0",
+        "v0.0.9007199254740992",
+        "v10000000000000000.0.0",
+        "v0.10000000000000000.0",
+        "v0.0.10000000000000000",
+        "v9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999.0.0",
+        "v0.9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999.0",
+        "v0.0.9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999",
+        "v99.0.0+build.1",
+        "v99.0.0.0",
+    };
+
+    /// <summary>
+    /// Invalid release tags cannot hide registry drift or trigger reachability reads.
+    /// </summary>
+    /// <param name="invalidTag">The release tag under test.</param>
+    [Theory]
+    [MemberData(nameof(InvalidPlainReleaseTags))]
+    public async Task ReleaseWorkflowIgnoresTagsOutsidePlainReleasePolicy(string invalidTag)
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+        const string validTag = "v3.15.1";
+        const string packageId = "Hexalith.Tenants.Contracts";
+
+        (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse(invalidTag, validTag)),
+                (CompareEndpoint(validTag), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse(packageId))),
+            RegistryResponses((packageId, 0, "200", PublishedVersions("4.0.0"))),
+            [
+                $"api --paginate {TagRefsEndpoint}",
+                $"api {CompareEndpoint(validTag)}",
+                $"api {ManifestEndpoint}",
+                $"curl {RegistryUrl(packageId)}",
+            ]);
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain($"exceed the release tag floor {validTag}");
+        result.Error.ShouldContain($"{packageId} 4.0.0");
+        result.Error.ShouldNotContain(invalidTag);
+    }
+
+    /// <summary>
+    /// Invalid-only release tag evidence cannot establish a release floor.
+    /// </summary>
+    /// <param name="invalidTag">The release tag under test.</param>
+    [Theory]
+    [MemberData(nameof(InvalidPlainReleaseTags))]
+    public async Task ReleaseWorkflowCannotEstablishFloorFromInvalidTag(string invalidTag)
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+
+        (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses((TagRefsEndpoint, 0, TagRefsResponse(invalidTag))),
+            RegistryResponses(),
+            [$"api --paginate {TagRefsEndpoint}"]);
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain("No release tag is reachable");
+    }
+
+    /// <summary>
+    /// Canonical release tags at the supported numeric boundaries remain accepted.
+    /// </summary>
+    /// <param name="validTag">The release tag under test.</param>
+    [Theory]
+    [InlineData("v0.0.0")]
+    [InlineData("v1000000000000000.0.0")]
+    [InlineData("v0.1000000000000000.0")]
+    [InlineData("v0.0.1000000000000000")]
+    [InlineData("v9007199254740991.0.0")]
+    [InlineData("v0.9007199254740991.0")]
+    [InlineData("v0.0.9007199254740991")]
+    [InlineData("v9007199254740991.9007199254740991.9007199254740991")]
+    public async Task ReleaseWorkflowAcceptsSemanticReleaseNumericBoundaries(string validTag)
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+        const string packageId = "Hexalith.Tenants.Contracts";
+
+        (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse(validTag)),
+                (CompareEndpoint(validTag), 0, CompareResponse("identical")),
+                (ManifestEndpoint, 0, ManifestResponse(packageId))),
+            RegistryResponses((packageId, 0, "200", PublishedVersions("0.0.0"))),
+            [
+                $"api --paginate {TagRefsEndpoint}",
+                $"api {CompareEndpoint(validTag)}",
+                $"api {ManifestEndpoint}",
+                $"curl {RegistryUrl(packageId)}",
+            ]);
+
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Output.ShouldContain($"Release tag floor {validTag} is at or above every published version");
+    }
+
+    /// <summary>
+    /// Valid boundary tags retain numeric ordering and require source reachability.
+    /// </summary>
+    [Fact]
+    public async Task ReleaseWorkflowOrdersSafeIntegerBoundariesBeforeReachability()
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+        const string maximumTag = "v9007199254740991.9007199254740991.9007199254740991";
+        const string lowerTag = "v9007199254740991.9007199254740991.9007199254740990";
+        const string packageId = "Hexalith.Tenants.Contracts";
+
+        (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse(lowerTag, "v9.10.0", maximumTag, lowerTag)),
+                (CompareEndpoint(maximumTag), 0, CompareResponse("behind")),
+                (CompareEndpoint(lowerTag), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse(packageId))),
+            RegistryResponses((packageId, 0, "200", PublishedVersions("4.0.0"))),
+            [
+                $"api --paginate {TagRefsEndpoint}",
+                $"api {CompareEndpoint(maximumTag)}",
+                $"api {CompareEndpoint(lowerTag)}",
+                $"api {ManifestEndpoint}",
+                $"curl {RegistryUrl(packageId)}",
+            ]);
+
+        result.ExitCode.ShouldBe(0, result.Error);
+        result.Output.ShouldContain($"Release tag floor {lowerTag} is at or above every published version");
+    }
+
     [Fact]
     public async Task Release_workflow_registry_drift_guard_fails_closed_on_every_unprovable_state() {
         string repoRoot = FindRepoRoot();
