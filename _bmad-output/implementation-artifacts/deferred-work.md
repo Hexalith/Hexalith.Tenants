@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-622 closure (2026-10-18):** Two AppHost model regressions verify the UI read endpoint in both authentication modes after environment callbacks. Five later wrong-resource, HTTP, alias and allocation-dependent overrides are rejected; the restored maintained AppHost suite passes 8/8 with zero failures/skips and the Debug source build has zero warnings/errors. Only DW-622 closes: all 655 IDs remain, 380 done/275 open across 247 maintenance rows. Original fields, unrelated records, existing user changes, dependencies and release holds remain preserved. See [exact commands and review](dw-622-validation-evidence.md).
+
 **DW-634 closure (2026-10-18):** Disabled bootstrap now has deterministic proof that it never obtains ApplicationStarted or ApplicationStopping tokens for deferred registration; an enabled control observes token access and actual HTTP delivery after startup. The missing-return mutation fails only the disabled test. Final bootstrap 85/85 and full Server 1316/1316 pass with zero failures/skips; the Debug source build has zero warnings/errors. Only DW-634 closes: all 655 IDs remain, 379 done/276 open across 248 maintenance rows. Original fields, unrelated records, dependencies and release holds remain preserved. See [exact commands and review](dw-634-validation-evidence.md).
 
 **DW-637 closure (2026-10-18):** Two deterministic component regressions now prove mounted authentication notifications are received and post-disposal notifications cannot reach the global-administrator correction panel or page handlers. Each independent unsubscribe-removal control fails only its matching test. A zero-warning/error Debug source rebuild, focused 391/391 and full UI 6266/6266 pass with zero failures/skips. Only DW-637 closes: all 655 IDs remain, 378 done/277 open across 249 maintenance rows. Original fields, unrelated records, production sources, dependencies and release holds remain preserved; the existing formatting blocker is recorded in [complete evidence](dw-637-validation-evidence.md).
@@ -8395,16 +8397,22 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Test the effective Tenants UI read endpoint in the AppHost resource model.\n  evidence: Existing tests inspect source text for Tenants__BaseAddress but do not evaluate the UI resource environment; a later override could redirect authorized reads to EventStore while the source-text checks pass."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: AppHost Program.cs sets UI Tenants__BaseAddress to tenantsApi HTTPS, but AppHostSecurityResourceGraphTests evaluates only authentication/token environments, not the UI effective read endpoint. Source-text wiring checks cannot catch later overrides.
+pre-dw-622-status: open
+status: done 2026-10-18
+pre-dw-622-disposition: actionable
+disposition: done
+pre-dw-622-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-622-verification: AppHost Program.cs sets UI Tenants__BaseAddress to tenantsApi HTTPS, but AppHostSecurityResourceGraphTests evaluates only authentication/token environments, not the UI effective read endpoint. Source-text wiring checks cannot catch later overrides.
+verification: The actual AppHost UI environment is evaluated after every environment callback in both Keycloak and symmetric modes. Two new cases verify the final read endpoint resource, HTTPS name and allocated URL. The Debug source build has zero warnings/errors; the maintained AppHost project passes 8/8 with zero failures/skips. Five isolated later overrides (EventStore, HTTP, uppercase/colon aliases and allocation-dependent callbacks) each fail exactly the two new cases while six existing controls pass; normal outputs are rebuilt in finally. Exact commands, harness correction and limits are in dw-622-validation-evidence.md.
 evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Evaluated AppHost environment fixture
-next-action: Assert the effective tenants-ui Tenants__BaseAddress resolves to the expected tenants-api endpoint.
+pre-dw-622-next-action: Assert the effective tenants-ui Tenants__BaseAddress resolves to the expected tenants-api endpoint.
+next-action: Closed within DW-622; retain unrelated deferred work, dependencies and release qualification holds.
 related: none
+verification-files: tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs; _bmad-output/implementation-artifacts/dw-622-validation-evidence.md
 
 
 ### DW-623: Verify whether BFF submit-time and EventStore event-time clock skew can hide an exact global-administrator correction audit proof.

@@ -8,9 +8,35 @@ using Shouldly;
 
 namespace Hexalith.Tenants.AppHost.Tests;
 
-/// <summary>Checks security environment wiring in the built AppHost model without starting services.</summary>
+/// <summary>Checks security and read endpoint wiring in the AppHost model without starting services.</summary>
 public sealed class AppHostSecurityResourceGraphTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task UiReadsResolveToTenantsApiHttpsInBothAuthenticationModes(bool enableKeycloak)
+    {
+        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+                [$"--EnableKeycloak={enableKeycloak}", "--Authentication:JwtBearer:SigningKey=RunModelSigningKey-AtLeast32Chars!"]);
+        IResource tenantsUi = builder.Resources.Single(static resource => resource.Name == "tenants-ui");
+        ProjectResource tenantsApi = builder.Resources.OfType<ProjectResource>()
+            .Single(static resource => resource.Name == "tenants-api");
+
+        EndpointAnnotation apiHttps = tenantsApi.Annotations.OfType<EndpointAnnotation>()
+            .Single(static endpoint => endpoint.Name == "https");
+        apiHttps.AllocatedEndpoint = new AllocatedEndpoint(apiHttps, "localhost", 45123);
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        IReadOnlyDictionary<string, object> environment = await GetEnvironmentAsync(tenantsUi, builder.ExecutionContext, timeout.Token);
+        EndpointReference readEndpoint = environment
+            .Where(static entry => string.Equals(entry.Key.Replace("__", ":", StringComparison.Ordinal), "Tenants:BaseAddress", StringComparison.OrdinalIgnoreCase))
+            .ShouldHaveSingleItem().Value.ShouldBeOfType<EndpointReference>();
+        readEndpoint.Resource.ShouldBeSameAs(tenantsApi);
+        readEndpoint.EndpointName.ShouldBe("https");
+        (await readEndpoint.GetValueAsync(timeout.Token)).ShouldBe("https://localhost:45123");
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -116,16 +142,17 @@ public sealed class AppHostSecurityResourceGraphTests
 
     private static async Task<IReadOnlyDictionary<string, object>> GetEnvironmentAsync(
         IResource resource,
-        DistributedApplicationExecutionContext execution)
+        DistributedApplicationExecutionContext execution,
+        CancellationToken cancellationToken = default)
     {
         var context = new EnvironmentCallbackContext(
             execution,
             resource,
             new Dictionary<string, object>(),
-            CancellationToken.None);
+            cancellationToken);
         foreach (EnvironmentCallbackAnnotation annotation in resource.Annotations.OfType<EnvironmentCallbackAnnotation>())
         {
-            await annotation.Callback(context);
+            await annotation.Callback(context).WaitAsync(cancellationToken);
         }
 
         return context.EnvironmentVariables;
