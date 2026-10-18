@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-640 closure (2026-10-18):** A real-host registration test pins the gateway readiness timeout to three seconds and its ready tag. The maintained readiness class passes 6/6; removing the production timeout through an isolated compile overlay makes the new case fail on the infinite default. Only DW-640 closes: all 655 IDs remain, 376 done/279 open across 251 maintenance rows. Runtime behavior, unrelated records, dependencies and release holds remain preserved. See [exact commands and scope limits](dw-640-validation-evidence.md).
+
 **DW-641 closure (2026-10-18):** Existing authentication tests already cover conflicting nonblank legacy/alias signing keys and authorities. Fresh precedence 2/2 and generated-controller 44/44 pass with zero failures/skips/errors; the Debug source fallback build has zero warnings/errors. The ordinary audit-enabled build remains blocked by Commons NU1902. Only this stale record closes: all 655 IDs remain, 375 done/280 open across 252 maintenance rows. Historical evidence, DW-639, unrelated work and release holds remain preserved. See [exact evidence and limits](dw-641-validation-evidence.md).
 
 **DW-655 closure (2026-10-18):** Recovery verifies the final unterminated existing-package ID before publication. Twenty-six new cases, independent review/recheck, a zero-warning/error Debug source build, focused 142/142 and maintained Contracts 506/506 pass with zero failures/skips. Isolated replay reproduces all 26 baseline failures through actual publication calls, rejects blanket refusal in six matching controls and proves checks survive Python optimization. Only DW-655 closes: all 655 IDs remain, 374 done/281 open across 253 exactly covering maintenance rows. Original fields, historical evidence, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-655-validation-evidence.md). Release remains not ready.
@@ -8683,16 +8685,25 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; the public API readiness registration does not prove its three-second gateway timeout.\n  evidence: `src/Hexalith.Tenants.Api/Program.cs:83` registers `eventstore-gateway` with `TimeSpan.FromSeconds(3)`, and `tests/Hexalith.Tenants.IntegrationTests/TenantsApiReadinessTests.cs` returns a completed response without reading `HealthCheckRegistration.Timeout`. Dropping the timeout argument leaves that test green. The registration comes from the independent API commit `6b6a35f0`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: API Program.cs registers eventstore-gateway timeout=3 seconds; TenantsApiReadinessTests uses completed stub responses and never inspects HealthCheckRegistration.Timeout or deadline behavior. Timeout removal is not covered.
-evidence-kind: verified-gap
+pre-dw-640-status: open
+status: done 2026-10-18
+pre-dw-640-disposition: actionable
+disposition: done
+pre-dw-640-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-640-verification: API Program.cs registers eventstore-gateway timeout=3 seconds; TenantsApiReadinessTests uses completed stub responses and never inspects HealthCheckRegistration.Timeout or deadline behavior. Timeout removal is not covered.
+verification: The real API host registration is now covered by ReadyRegistersThreeSecondGatewayTimeout: the effective eventstore-gateway check has Timeout=3 seconds and the ready tag. All six readiness cases pass through the maintained Debug source project runner. An isolated compile overlay removing the production timeout builds successfully and makes the new test fail on the infinite default; normal-source verification is recorded in dw-640-validation-evidence.md. Runtime behavior is unchanged; no live deadline or broad integration-suite qualification is claimed.
+pre-dw-640-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Health-check registration/test fixture
-next-action: Assert the effective registration timeout or exercise a cancellable stalled gateway health check.
+pre-dw-640-next-action: Assert the effective registration timeout or exercise a cancellable stalled gateway health check.
+next-action: Closed with an effective-registration regression and timeout-removal mutation evidence; preserve unrelated deferred work and existing release qualification holds.
 related: none
+verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiReadinessTests.cs; _bmad-output/implementation-artifacts/dw-640-validation-evidence.md
+resolution-evidence: [Exact validation and scope limits](dw-640-validation-evidence.md)
+resolution-spec: spec-dw-640-api-readiness-timeout.md
 
 
 ### DW-641: medium; legacy authentication settings are not tested against a different non-blank alias.

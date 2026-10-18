@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-640 closure (2026-10-18):** A real-host registration test pins the gateway readiness timeout to three seconds and its ready tag. The maintained readiness class passes 6/6; removing the production timeout through an isolated compile overlay makes the new case fail on the infinite default. Only DW-640 closes: all 655 IDs remain, 376 done/279 open across 251 maintenance rows. Runtime behavior, unrelated records, dependencies and release holds remain preserved. See [exact commands and scope limits](../_bmad-output/implementation-artifacts/dw-640-validation-evidence.md).
+
 **DW-641 closure (2026-10-18):** Existing authentication tests already cover conflicting nonblank legacy/alias signing keys and authorities. Fresh precedence 2/2 and generated-controller 44/44 pass with zero failures/skips/errors; the Debug source fallback build has zero warnings/errors. The ordinary audit-enabled build remains blocked by Commons NU1902. Only this stale record closes: all 655 IDs remain, 375 done/280 open across 252 maintenance rows. Historical evidence, DW-639, unrelated work and release holds remain preserved. See [exact evidence and limits](../_bmad-output/implementation-artifacts/dw-641-validation-evidence.md).
 
 **DW-655 closure (2026-10-18):** Recovery verifies the final unterminated existing-package ID before publication. Twenty-six new cases, independent review/recheck, a zero-warning/error Debug source build, focused 142/142 and maintained Contracts 506/506 pass with zero failures/skips. Isolated replay reproduces all 26 baseline failures through actual publication calls, rejects blanket refusal in six matching controls and proves checks survive Python optimization. Only DW-655 closes: all 655 IDs remain, 374 done/281 open across 253 exactly covering maintenance rows. Original fields, historical evidence, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-655-validation-evidence.md). Release remains not ready.
@@ -98,14 +100,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 375 |
-| actionable | 193 |
+| done | 376 |
+| actionable | 192 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 280 open records across 252 index rows.** Disposition counts now cover all 655 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 279 open records across 251 index rows.** Disposition counts now cover all 655 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -255,7 +257,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-634 | P2 | Gap / actionable | unassigned | Deterministic host-lifetime/callback fixture | Assert no deferred callback/work registration for disabled bootstrap rather than waiting for absent traffic. |
 | DW-635 | P2 | Gap / actionable | unassigned | Manifest authorization inventory semantics | Record the current-global-administrator condition using the owning schema authorization representation. |
 | DW-637 | P2 | Gap / actionable | unassigned | Observable authentication test provider | Add post-disposal provider-notification regressions for both components that fail if unsubscription is removed. |
-| DW-640 | P2 | Gap / actionable | unassigned | Health-check registration/test fixture | Assert the effective registration timeout or exercise a cancellable stalled gateway health check. |
 | DW-643 | P2 | Gap / actionable | unassigned | Story-owned commit guard policy; later independent-pointer attribution | Cover an unrecorded later pointer-moving commit and enforce the approved endpoint/attribution rule. |
 | DW-113 | P3 | Defect / actionable | unassigned | none | Add explicit fallback/mapping and EN/FR coverage for every accepted reason. |
 | DW-158 | P3 | Defect / actionable | unassigned | none | Return a diagnostic assertion naming the condition when the two-second wait expires. |

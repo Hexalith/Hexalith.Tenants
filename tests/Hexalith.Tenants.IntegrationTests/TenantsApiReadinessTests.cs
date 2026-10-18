@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 
 using Shouldly;
 
@@ -14,6 +15,26 @@ namespace Hexalith.Tenants.IntegrationTests;
 /// <summary>HTTP readiness coverage for the public API's EventStore gateway dependency.</summary>
 public sealed class TenantsApiReadinessTests
 {
+    /// <summary>Ensures the public host bounds its gateway readiness check to three seconds.</summary>
+    [Fact]
+    public void ReadyRegistersThreeSecondGatewayTimeout()
+    {
+        using WebApplicationFactory<TenantsApi::Program> factory = new WebApplicationFactory<TenantsApi::Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                _ = builder.UseSetting("EventStore:Authentication:SigningKey", "readiness-test-signing-key-at-least-32-bytes");
+                _ = builder.UseSetting("DAPR_HTTP_ENDPOINT", "http://localhost:4367");
+            });
+
+        HealthCheckServiceOptions options = factory.Services
+            .GetRequiredService<IOptions<HealthCheckServiceOptions>>().Value;
+        HealthCheckRegistration registration = options.Registrations.Single(check => check.Name == "eventstore-gateway");
+
+        registration.Timeout.ShouldBe(TimeSpan.FromSeconds(3));
+        registration.Tags.ShouldContain("ready");
+        registration.FailureStatus.ShouldBe(HealthStatus.Unhealthy);
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.OK, HttpStatusCode.OK)]
     [InlineData(HttpStatusCode.ServiceUnavailable, HttpStatusCode.ServiceUnavailable)]
