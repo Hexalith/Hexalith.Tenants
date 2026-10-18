@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-637 closure (2026-10-18):** Two deterministic component regressions now prove mounted authentication notifications are received and post-disposal notifications cannot reach the global-administrator correction panel or page handlers. Each independent unsubscribe-removal control fails only its matching test. A zero-warning/error Debug source rebuild, focused 391/391 and full UI 6266/6266 pass with zero failures/skips. Only DW-637 closes: all 655 IDs remain, 378 done/277 open across 249 maintenance rows. Original fields, unrelated records, production sources, dependencies and release holds remain preserved; the existing formatting blocker is recorded in [complete evidence](dw-637-validation-evidence.md).
+
 **DW-639 closure (2026-10-18):** Existing missing/short signing-key diagnostics and real-host tests already name both accepted configuration alternatives. The fresh ordinary audit-enabled Debug source build has zero warnings/errors, and the maintained generated-controller class passes 44/44 with zero failures/skips, including five exact diagnostic cases. Only this stale record closes: all 655 IDs remain, 377 done/278 open across 250 maintenance rows. Historical findings, unrelated records, application/tests, dependencies and release holds remain preserved. See [exact commands and scope limits](dw-639-validation-evidence.md).
 
 **DW-640 closure (2026-10-18):** A real-host registration test pins the gateway readiness timeout to three seconds and its ready tag. The maintained readiness class passes 6/6; removing the production timeout through an isolated compile overlay makes the new case fail on the infinite default. Only DW-640 closes: all 655 IDs remain, 376 done/279 open across 251 maintenance rows. Runtime behavior, unrelated records, dependencies and release holds remain preserved. See [exact commands and scope limits](dw-640-validation-evidence.md).
@@ -8639,16 +8641,25 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; pin the authentication-state unsubscribe on disposal of `GlobalAdministratorCorrectionPanel` and `GlobalAdministratorsPage`.\n  evidence: Pre-existing test gap: both subscriptions exist at Story 5.7 baseline `66072cc4`, and fix pass `2315aad9` closed only the `TenantAuditPage` equivalent. In an isolated checkout of `2315aad9`, deleting `AuthenticationStateChanged -= OnAuthenticationStateChanged` at `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:2367`, or at `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:2397`, leaves the UI suite at 4,075/4,075 green. A regression would keep disposed components referenced by the circuit's provider, and the panel handler (`:2026`) would run `RetainReconciliationForReplacement()` and `InvalidateOperation()` after disposal. Suggested shape: the `TenantAuditPage` dispose test from `2315aad9` — after disposal raise a principal change and assert the handler's counter is unchanged (`_authorizationGeneration` on the panel, `_authorizationTransitionVersion` on the page)."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorCorrectionPanel.Dispose and GlobalAdministratorsPage.DisposeAsync unsubscribe AuthenticationStateChanged, but inspected component tests lack a post-disposal principal-change assertion for their counters. TenantAuditPageTests has the equivalent explicit disposal regression. Original mutation evidence is historical, not rerun.
-evidence-kind: verified-gap
+pre-dw-637-status: open
+status: done 2026-10-18
+pre-dw-637-disposition: actionable
+disposition: done
+pre-dw-637-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-637-verification: GlobalAdministratorCorrectionPanel.Dispose and GlobalAdministratorsPage.DisposeAsync unsubscribe AuthenticationStateChanged, but inspected component tests lack a post-disposal principal-change assertion for their counters. TenantAuditPageTests has the equivalent explicit disposal regression. Original mutation evidence is historical, not rerun.
+verification: Two component regressions exercise real provider notifications while mounted, dispose on the renderer, and require no later handler-entry generation changes. Each independently removed unsubscribe causes its matching test to fail (expected 2L, actual 3L) while the other passes. Focused classes pass 131/131 and 260/260, and the maintained full UI project passes 6266/6266 with zero failures/skips after a zero-warning/error ordinary Debug source rebuild. Production sources are unchanged. Exact commands, fixture failures, the existing formatting blocker and scope limits remain in dw-637-validation-evidence.md.
+pre-dw-637-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Observable authentication test provider
-next-action: Add post-disposal provider-notification regressions for both components that fail if unsubscription is removed.
+pre-dw-637-next-action: Add post-disposal provider-notification regressions for both components that fail if unsubscription is removed.
+next-action: Closed with deterministic provider-notification regressions and independent unsubscribe-removal controls; preserve unrelated work and existing release qualification holds.
 related: none
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs; _bmad-output/implementation-artifacts/dw-637-validation-evidence.md
+resolution-evidence: [Exact validation and scope limits](dw-637-validation-evidence.md)
+resolution-spec: spec-dw-637-authentication-disposal-regressions.md
 
 
 ## Deferred from: Story 5.7 Review 10 triage (2026-10-12)
