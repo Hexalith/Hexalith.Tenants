@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-649 closure (2026-10-18):** The tenant detail page's successful set-configuration test now uses a caller who is present as an owner and no longer supplies an unconditional-owner callback that the page never invokes. A second case changes owner evidence before submit and proves the fresh preview refuses dispatch. The initial 0/2 callback experiment established the unused seam; independent review corrections, the final zero-warning/error Debug source build, focused 2/2 and full UI 6264/6264 pass with zero failures/skips. Only DW-649 closes: all 649 IDs remain, 358 done/291 open across 263 exact-covering index rows. The original finding and incorrect safe-model/page equivalence claim remain visible below with [complete evidence](dw-649-validation-evidence.md). Historical records, archive/sprint, dependencies and release holds are preserved. Release remains not ready.
+
 **DW-308/DW-314 closure and DW-649 review deferral (2026-10-17):** Configuration management contexts now require an explicit authority state, and the private resolvers no longer accept a lifecycle status they discard. The old five-argument calls failed compilation (CS7036) before each test passed the authority the previous default would have chosen. Unknown, Active, and Disabled stay independent of owner, contributor, global, and both reauthorization paths. Independent review, a zero-warning/error Debug source build, focused policy 80/80 and full UI 6263/6263 pass with zero failures/skips. Only these duplicate records close. The detail-page safe-model stub that still grants TenantOwner is newly open as DW-649; production already returns MissingPermission for that shape, and this change preserved the stub's previous meaning. All 649 IDs remain: 357 done/292 open across 264 exact-covering index rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-308-314-validation-evidence.md). Release remains not ready.
 
 **DW-648 closure (2026-10-17):** Ambiguous member-removal retries now consume current authority on the renderer and reject obsolete admission generations while retaining the original identity and ownership. Controlled pre-fix queued cases reproduce the defect; nineteen new regressions, independent review/recheck, a zero-warning/error Debug source build, focused 240/240 and full UI 6262/6262 pass with zero failures/skips. Only DW-648 closes: all 648 IDs remain, 355 done/293 open across 264 exact-covering index rows. Historical findings and initial failures, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-648-validation-evidence.md). Release remains not ready.
@@ -8699,14 +8701,24 @@ resolution-spec: spec-dw-648-ambiguous-removal-retry-admission.md
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-308-314-explicit-configuration-authority.md`
   summary: The detail-page safe-model reauthorization stub still grants TenantOwner for a non-global principal.
   evidence: Independent DW-308 review compared `Detail_page_set_configuration_completes_preview_dispatch_status_and_projection_proof` with `TenantConfigurationSafeComposer.Reauthorize(safeModel, status, policy)`. Production returns MissingPermission when the safe model has no membership and the principal is not a global administrator. The stub previously omitted authority and received the implicit TenantOwner grant; this change preserved that meaning by passing TenantOwner explicitly. No page behavior was changed.
-status: open
-disposition: actionable
-verification-date: 2026-10-17
-verification: Source comparison only. The stub at TenantDetailSurfaceTests.ReauthorizeConfigurationManagement passes TenantConfigurationAuthorityState.TenantOwner with isGlobalAdministrator false. The composer's safe-model resolver returns MissingPermission for a non-global principal. No execution changed the stub.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
-evidence-kind: verified-gap
+pre-dw-649-status: open
+status: done 2026-10-18
+pre-dw-649-disposition: actionable
+disposition: resolved
+pre-dw-649-verification-date: 2026-10-17
+verification-date: 2026-10-18
+pre-dw-649-verification: Source comparison only. The stub at TenantDetailSurfaceTests.ReauthorizeConfigurationManagement passes TenantConfigurationAuthorityState.TenantOwner with isGlobalAdministrator false. The composer's safe-model resolver returns MissingPermission for a non-global principal. No execution changed the stub.
+verification: The original comparison conflated the page's unused ReauthorizeProvider with the safe-model-only resolver; the page's live submit path uses a fresh preview that resolves policy and owner membership. The positive test now has matching caller/owner evidence and no unconditional callback. A new page case refuses the changed-owner submit-time preview and proves zero dispatch/status/projection-proof calls. Independent review corrections, the zero-warning/error Debug source build, focused 2/2 and final full UI 6264/6264 pass with zero failures/skips. Exact commands, initial failed experiments and limits are in dw-649-validation-evidence.md.
+pre-dw-649-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
+pre-dw-649-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
-owner: unassigned
+pre-dw-649-owner: unassigned
+owner: Tenants UI
 dependencies: none
-next-action: Decide whether that page fixture should fail closed with MissingPermission, then cover the production result without changing unrelated detail-page flows.
+pre-dw-649-next-action: Decide whether that page fixture should fail closed with MissingPermission, then cover the production result without changing unrelated detail-page flows.
+next-action: Closed within DW-649; retain unrelated deferred work and release qualification holds.
 related: DW-308
+resolution-evidence: [Exact validation, initial failures and source qualification](dw-649-validation-evidence.md)
+resolution-spec: spec-dw-649-detail-page-configuration-reauthorization.md
