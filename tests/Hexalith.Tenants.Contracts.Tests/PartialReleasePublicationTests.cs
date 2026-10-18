@@ -153,14 +153,86 @@ public class PartialReleasePublicationTests
         await RunPublisherAsync(inventory, "hash-mismatch", mismatchIndex: mismatchIndex);
     }
 
+    /// <summary>
+    /// Every existing package needs reviewed hash evidence before any recovery publication.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    /// <param name="missingHashIndex">The existing-package position without hash evidence.</param>
+    [Theory]
+    [InlineData("package", 0)]
+    [InlineData("package-existing", 0)]
+    [InlineData("package-existing", 1)]
+    [InlineData("package-existing", 2)]
+    [InlineData("package-existing", 3)]
+    [InlineData("container", 0)]
+    [InlineData("container", 1)]
+    [InlineData("container", 2)]
+    [InlineData("container", 3)]
+    [InlineData("container", 4)]
+    [InlineData("release", 0)]
+    [InlineData("release", 1)]
+    [InlineData("release", 2)]
+    [InlineData("release", 3)]
+    [InlineData("release", 4)]
+    [InlineData("mixed-existing", 0)]
+    [InlineData("mixed-existing", 1)]
+    [InlineData("mixed-existing", 2)]
+    [InlineData("mixed-existing", 3)]
+    public async Task MissingExpectedHashPreventsEveryPublication(string inventory, int missingHashIndex)
+    {
+        await RunPublisherAsync(inventory, "hash-record-absent", mismatchIndex: missingHashIndex);
+    }
+
+    /// <summary>
+    /// Missing or unusable evidence files cannot authorize recovery publication.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    /// <param name="response">The missing or unusable hash evidence.</param>
+    [Theory]
+    [InlineData("package-existing", "hash-file-empty")]
+    [InlineData("package-existing", "hash-file-whitespace")]
+    [InlineData("package-existing", "hash-wrong-id")]
+    [InlineData("package-existing", "hash-record-blank")]
+    [InlineData("package-existing", "hash-file-absent")]
+    [InlineData("container", "hash-file-empty")]
+    [InlineData("container", "hash-file-whitespace")]
+    [InlineData("container", "hash-wrong-id")]
+    [InlineData("container", "hash-record-blank")]
+    [InlineData("container", "hash-file-absent")]
+    [InlineData("release", "hash-file-empty")]
+    [InlineData("release", "hash-file-whitespace")]
+    [InlineData("release", "hash-wrong-id")]
+    [InlineData("release", "hash-record-blank")]
+    [InlineData("release", "hash-file-absent")]
+    [InlineData("mixed-existing", "hash-file-empty")]
+    [InlineData("mixed-existing", "hash-file-whitespace")]
+    [InlineData("mixed-existing", "hash-wrong-id")]
+    [InlineData("mixed-existing", "hash-record-blank")]
+    [InlineData("mixed-existing", "hash-file-absent")]
+    public async Task UnusableExpectedHashesPreventEveryPublication(string inventory, string response)
+    {
+        await RunPublisherAsync(inventory, response);
+    }
+
+    /// <summary>
+    /// Recovery without existing packages does not need a hash evidence file.
+    /// </summary>
+    [Fact]
+    public async Task NoExistingPackagesCanPublishWithoutHashFile()
+    {
+        await RunPublisherAsync("all-missing", "stable", omitHashFile: true);
+    }
+
     private static async Task RunPublisherAsync(
         string inventory,
         string response,
         string stage = "hash",
         string version = "1.2.3",
         bool prerelease = false,
-        int mismatchIndex = 0)
+        int mismatchIndex = 0,
+        bool omitHashFile = false)
     {
+        ArgumentNullException.ThrowIfNull(response);
         const string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         string repoRoot = FindRepoRoot();
         string temporaryRoot = Path.Combine(Path.GetTempPath(), $"tenants-publication-{Guid.NewGuid():N}");
@@ -183,6 +255,11 @@ public class PartialReleasePublicationTests
                 _ => [],
             };
             string[] existingIds = [.. ids.Except(missingIds, StringComparer.Ordinal)];
+            if (response is "hash-wrong-id" or "hash-record-blank")
+            {
+                mismatchIndex = existingIds.Length - 1;
+            }
+
             Dictionary<string, string> packageContents = ids.ToDictionary(id => id, id => $"reviewed fixture package {id}\n", StringComparer.Ordinal);
             Dictionary<string, string> originalState = new(StringComparer.Ordinal)
             {
@@ -197,6 +274,28 @@ public class PartialReleasePublicationTests
             if (response == "missing-inventory")
             {
                 originalState.Remove("missing-packages");
+            }
+
+            if (response == "hash-file-absent" || omitHashFile)
+            {
+                originalState.Remove("existing-package-sha256");
+            }
+            else if (response.StartsWith("hash-", StringComparison.Ordinal) && response != "hash-mismatch")
+            {
+                string selectedId = existingIds[mismatchIndex];
+                string[] hashRecords = originalState["existing-package-sha256"].Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                originalState["existing-package-sha256"] = response switch
+                {
+                    "hash-file-empty" => string.Empty,
+                    "hash-file-whitespace" => " \t\n\n",
+                    "hash-wrong-id" => originalState["existing-package-sha256"].Replace($" {selectedId}\n", " Unrelated.Package\n", StringComparison.Ordinal),
+                    "hash-record-blank" => string.Concat(hashRecords.Select(line => line.EndsWith($" {selectedId}", StringComparison.Ordinal)
+                        ? $" {selectedId}\n" : line + "\n")),
+                    "hash-record-absent" => string.Concat(hashRecords
+                        .Where(line => !line.EndsWith($" {selectedId}", StringComparison.Ordinal))
+                        .Select(line => line + "\n")),
+                    _ => throw new ArgumentOutOfRangeException(nameof(response)),
+                };
             }
 
             foreach (var file in originalState)
@@ -307,7 +406,7 @@ public class PartialReleasePublicationTests
             environment["FIXTURE_SHA"] = sourceSha;
             environment["FIXTURE_VERSION"] = version;
             environment["FIXTURE_STAGE"] = existingIds.Length == 0 && stage == "hash" ? "consumers" : stage;
-            environment["FIXTURE_RESPONSE"] = response == "hash-mismatch" ? "stable" : response;
+            environment["FIXTURE_RESPONSE"] = response.StartsWith("hash-", StringComparison.Ordinal) ? "stable" : response;
             environment["FIXTURE_INVENTORY"] = inventory;
             environment["FIXTURE_CALLS"] = callLog;
             environment["FIXTURE_UNEXPECTED"] = unexpectedLog;
@@ -363,6 +462,9 @@ public class PartialReleasePublicationTests
                 "missing-inventory" => "Missing-package state is absent.",
                 "initially-stale" => "Live main changed before publication.",
                 "hash-mismatch" => $"Existing package {existingIds[mismatchIndex]} does not match the reviewed source.",
+                "hash-record-absent" or "hash-file-empty" or "hash-file-whitespace" or "hash-wrong-id" or "hash-record-blank"
+                    => $"Existing package {existingIds[mismatchIndex]} has no reviewed hash.",
+                "hash-file-absent" => "existing-package-sha256",
                 _ => null,
             };
             if (response is "source-mismatch" or "version-mismatch" or "missing-inventory")
@@ -377,6 +479,11 @@ public class PartialReleasePublicationTests
             {
                 expected = ["main", "build", "pack", "packages", "consumers"];
                 expected.AddRange(existingIds.Take(mismatchIndex + 1).Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
+            }
+            else if (response.StartsWith("hash-", StringComparison.Ordinal))
+            {
+                expected = ["main", "build", "pack", "packages", "consumers"];
+                expected.AddRange(existingIds.Take(mismatchIndex).Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
             }
 
             if (response == "stable")
@@ -395,7 +502,14 @@ public class PartialReleasePublicationTests
             }
 
             calls.ShouldBe(expected.ToArray(), customMessage: diagnostics);
-            process.ExitCode.ShouldBe(response == "stable" ? 0 : response == "unavailable" ? 7 : 1, diagnostics);
+            if (response == "hash-file-absent")
+            {
+                process.ExitCode.ShouldNotBe(0, diagnostics);
+            }
+            else
+            {
+                process.ExitCode.ShouldBe(response == "stable" ? 0 : response == "unavailable" ? 7 : 1, diagnostics);
+            }
             if (refusal is not null)
             {
                 diagnostics.ShouldContain(refusal);

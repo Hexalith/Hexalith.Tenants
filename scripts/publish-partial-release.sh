@@ -20,7 +20,7 @@ while IFS= read -r package_id; do
   [ -n "$package_id" ] || continue
   package_file="nupkgs/${package_id}.${version}.nupkg"
   expected_hash="$(awk -v id="$package_id" '$2 == id { print $1 }' "$state_directory/existing-package-sha256")"
-  [ -n "$expected_hash" ] || continue
+  [ -n "$expected_hash" ] || { echo "[partial-release-recovery] Existing package $package_id has no reviewed hash." >&2; exit 1; }
   actual_hash="$(sha256sum "$package_file" | awk '{ print $1 }')"
   [ "$actual_hash" = "$expected_hash" ] || { echo "[partial-release-recovery] Existing package $package_id does not match the reviewed source." >&2; exit 1; }
 done < "$state_directory/existing-packages"

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-654 closure and DW-655 review deferral (2026-10-18):** Existing-package recovery now refuses missing expected hashes before publication. Forty new cases, independent review corrections, a zero-warning/error Debug source build, focused 116/116 and maintained Contracts 480/480 pass with zero failures/skips. Isolated replay reproduces all 35 baseline failures and rejects an unconditional hash-file requirement. The separate pre-existing unterminated-inventory omission is reproduced and retained as DW-655. Only DW-654 closes: all 654 original IDs remain plus DW-655, 655 total/373 done/282 open across 254 exactly covering maintenance rows. Historical fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact evidence and replay](dw-654-validation-evidence.md). Release remains not ready.
+
 **DW-608 closure and DW-654 review deferral (2026-10-18):** Existing-package recovery hash refusals are independently qualified against supplied reviewed hashes at every package position and destination. Independent review/recheck, zero-warning/error Debug source build, focused 76/76 and maintained Contracts 440/440 pass with zero failures/skips; four mutations and two replay-failure controls are verified. The unchanged publisher's missing-expected-hash continuation is separately reproduced and retained as DW-654. Only DW-608 closes: all 653 original IDs remain plus DW-654, 654 total/372 done/282 open across 254 exactly covering maintenance rows. Historical fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact evidence and reproduction](dw-608-validation-evidence.md). Release remains not ready.
 
 **DW-621 closure (2026-10-18):** Recovery creation now marks suffix-bearing versions as prereleases, and final verification requires matching Boolean metadata. Original publisher/verifier cases fail 6/55 and 8/13 respectively; independent review corrections, isolated replay/mutation controls, a zero-warning/error Debug source build, focused 68/68 and full Contracts 419/419 pass with zero failures/skips. Only DW-621 closes: all 653 IDs remain, 371 done/282 open across 254 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds are preserved. See [complete evidence](dw-621-validation-evidence.md). Release remains not ready.
@@ -8965,14 +8967,38 @@ resolution-spec: spec-dw-653-malformed-unicode-standard-cursors.md
   evidence: Independent DW-608 review identified the unchanged publisher's empty-hash continue branch. The tracked local probe invokes production with differing Contracts package bytes and stable main evidence: missing expected hash exits 0 and reaches four intercepted package pushes, container login/publication and release creation; supplying the reviewed hash exits 1 at the package-specific refusal before publication. No remote publication occurs.
 origin: DW-608 independent review, 2026-10-18
 location: scripts/publish-partial-release.sh::existing-packages hash loop
-status: open
-disposition: actionable
+pre-dw-654-status: open
+status: done 2026-10-18
+pre-dw-654-disposition: actionable
+disposition: resolved
 verification-date: 2026-10-18
-verification: bash _bmad-output/implementation-artifacts/dw-608-probe-missing-hash.sh missing exits 0 and records all three intercepted publication destinations; the present argument exits 1 with the existing hash-mismatch refusal. The production publisher is unchanged from entry revision 1dd9613e27abe935002d9d3af3a1f476bfdd73a6.
-verification-files: scripts/publish-partial-release.sh; _bmad-output/implementation-artifacts/dw-608-probe-missing-hash.sh; _bmad-output/implementation-artifacts/dw-608-validation-evidence.md
+pre-dw-654-verification: bash _bmad-output/implementation-artifacts/dw-608-probe-missing-hash.sh missing exits 0 and records all three intercepted publication destinations; the present argument exits 1 with the existing hash-mismatch refusal. The production publisher is unchanged from entry revision 1dd9613e27abe935002d9d3af3a1f476bfdd73a6.
+verification: Empty per-ID expected-hash lookups now refuse before publication. Forty new cases cover every existing-package position, unusable/missing files and no-existing-package compatibility; exact call prefixes and retained state are asserted. Independent review corrections, a zero-warning/error Debug source build, focused 116/116 and maintained Contracts 480/480 pass with zero failures/skips. Isolated baseline replay reproduces 35 intended failures, while an unconditional hash-file mutation fails the positive control. The separate unterminated-inventory gap remains open as DW-655. Exact commands, initial failures and limits are in dw-654-validation-evidence.md.
+pre-dw-654-verification-files: scripts/publish-partial-release.sh; _bmad-output/implementation-artifacts/dw-608-probe-missing-hash.sh; _bmad-output/implementation-artifacts/dw-608-validation-evidence.md
+verification-files: scripts/publish-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs; _bmad-output/implementation-artifacts/spec-dw-654-missing-recovery-package-hashes.md; _bmad-output/implementation-artifacts/dw-654-check-variants.py; _bmad-output/implementation-artifacts/dw-654-validation-evidence.md
 evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: Recovery-state completeness and reviewed expected-hash evidence
-next-action: Fail closed when any existing package lacks its reviewed hash, with executable missing-evidence refusals and matching-evidence controls before every publication destination.
+pre-dw-654-next-action: Fail closed when any existing package lacks its reviewed hash, with executable missing-evidence refusals and matching-evidence controls before every publication destination.
+next-action: Closed within DW-654; retain DW-655, DW-620, unrelated deferred work and existing release qualification holds.
 related: DW-608,DW-620
+
+### DW-655: An unterminated final existing-package inventory line bypasses recovery hash verification.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-654-missing-recovery-package-hashes.md`
+  summary: Process or reject an unterminated final existing-package ID before recovery publication.
+  evidence: Independent DW-654 review and the tracked replay probe reproduce current production exiting 0 and reaching four intercepted package pushes, container login/publication and release creation when existing-packages contains an unterminated Contracts ID and expected hashes are empty. Normal preflight emits terminated lines; the existing while-read loop skips malformed or truncated final state. No remote publication occurs.
+origin: DW-654 independent review, 2026-10-18
+location: scripts/publish-partial-release.sh::existing-packages read loop
+status: open
+disposition: actionable
+verification-date: 2026-10-18
+verification: python3 _bmad-output/implementation-artifacts/dw-654-check-variants.py --output-directory /tmp/dw-654/variants --probe-truncated-inventory exits 0 after validating the exact intercepted publication sequence for an unterminated inventory and empty hashes. The optional probe changes only the historical probe's project-root binding and final inventory newline; the production publisher remains untouched.
+verification-files: scripts/publish-partial-release.sh; _bmad-output/implementation-artifacts/dw-654-check-variants.py; _bmad-output/implementation-artifacts/dw-654-validation-evidence.md
+evidence-kind: verified-defect
+priority: P2
+owner: unassigned
+dependencies: Recovery-state inventory completeness and line parsing
+next-action: Process the final unterminated package ID or refuse malformed inventory, with executable no-publication and canonical-state controls.
+related: DW-654
