@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-608 closure and DW-654 review deferral (2026-10-18):** Existing-package recovery hash refusals are independently qualified against supplied reviewed hashes at every package position and destination. Independent review/recheck, zero-warning/error Debug source build, focused 76/76 and maintained Contracts 440/440 pass with zero failures/skips; four mutations and two replay-failure controls are verified. The unchanged publisher's missing-expected-hash continuation is separately reproduced and retained as DW-654. Only DW-608 closes: all 653 original IDs remain plus DW-654, 654 total/372 done/282 open across 254 exactly covering maintenance rows. Historical fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact evidence and reproduction](../_bmad-output/implementation-artifacts/dw-608-validation-evidence.md). Release remains not ready.
+
 **DW-621 closure (2026-10-18):** Recovery creation now marks suffix-bearing versions as prereleases, and final verification requires matching Boolean metadata. Original publisher/verifier cases fail 6/55 and 8/13 respectively; independent review corrections, isolated replay/mutation controls, a zero-warning/error Debug source build, focused 68/68 and full Contracts 419/419 pass with zero failures/skips. Only DW-621 closes: all 653 IDs remain, 371 done/282 open across 254 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds are preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-621-validation-evidence.md). Release remains not ready.
 
 **DW-590 closure (2026-10-18):** Recovery publication now rechecks exact live main after artifact preparation and existing-package hash verification, before the first publication. Original production continued in all 29 unsafe-source cases; independent review/recheck, seven rejected harmful mutations, a zero-warning/error Debug source build, focused 46/46 and full Contracts 397/397 pass with zero failures/skips. Only DW-590 closes: all 653 IDs remain, 370 done/283 open across 255 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-590-validation-evidence.md). Release remains not ready.
@@ -90,14 +92,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 371 |
+| done | 372 |
 | actionable | 195 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 282 open records across 254 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 282 open records across 254 index rows.** Disposition counts now cover all 654 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -239,7 +241,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 | DW-602 | P2 | Gap / actionable | unassigned | Requested page-size propagation to payload validator | Reject oversized item counts before hydration and test bounded detail-call fanout. |
 | DW-604 | P2 | Gap / actionable | unassigned | Platform projection rebuild/versioning contract | Specify a safe tenant projection schema rebuild/version path and its rollout verification. |
-| DW-608 | P2 | Gap / actionable | unassigned | Mock publication tools/state fixture | Execute the mismatch path and assert exit before any package/container/release publication. |
 | DW-609 | P2 | Gap / actionable | unassigned | Permission-change invalidation/reauthorization contract | Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts. |
 | DW-614 | P2 | Gap / actionable | unassigned | Authenticated real Tenants host fixture | Issue a safe multi-tenant test principal and prove the selected current-tenant alias through the rendered host. |
 | DW-615 | P2 | Gap / actionable | unassigned | Blocking in-process host fixture | Add a mandatory anonymous host scope-denial lane without depending on the advisory topology tier. |
@@ -251,6 +252,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-640 | P2 | Gap / actionable | unassigned | Health-check registration/test fixture | Assert the effective registration timeout or exercise a cancellable stalled gateway health check. |
 | DW-641 | P2 | Gap / actionable | unassigned | Conflicting auth configuration fixture | Test distinct nonblank legacy/alias authority and signing keys and assert legacy precedence. |
 | DW-643 | P2 | Gap / actionable | unassigned | Story-owned commit guard policy; later independent-pointer attribution | Cover an unrecorded later pointer-moving commit and enforce the approved endpoint/attribution rule. |
+| DW-654 | P2 | Defect / actionable | unassigned | Recovery-state completeness and reviewed expected-hash evidence | Refuse an existing package without its reviewed expected hash before any publication. |
 | DW-113 | P3 | Defect / actionable | unassigned | none | Add explicit fallback/mapping and EN/FR coverage for every accepted reason. |
 | DW-158 | P3 | Defect / actionable | unassigned | none | Return a diagnostic assertion naming the condition when the two-second wait expires. |
 | DW-186 | P3 | Defect / actionable | unassigned | none | Add the recorded lifecycle reason category with compatible resource/chip mappings. |

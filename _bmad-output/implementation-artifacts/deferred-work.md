@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-608 closure and DW-654 review deferral (2026-10-18):** Existing-package recovery hash refusals are independently qualified against supplied reviewed hashes at every package position and destination. Independent review/recheck, zero-warning/error Debug source build, focused 76/76 and maintained Contracts 440/440 pass with zero failures/skips; four mutations and two replay-failure controls are verified. The unchanged publisher's missing-expected-hash continuation is separately reproduced and retained as DW-654. Only DW-608 closes: all 653 original IDs remain plus DW-654, 654 total/372 done/282 open across 254 exactly covering maintenance rows. Historical fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact evidence and reproduction](dw-608-validation-evidence.md). Release remains not ready.
+
 **DW-621 closure (2026-10-18):** Recovery creation now marks suffix-bearing versions as prereleases, and final verification requires matching Boolean metadata. Original publisher/verifier cases fail 6/55 and 8/13 respectively; independent review corrections, isolated replay/mutation controls, a zero-warning/error Debug source build, focused 68/68 and full Contracts 419/419 pass with zero failures/skips. Only DW-621 closes: all 653 IDs remain, 371 done/282 open across 254 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds are preserved. See [complete evidence](dw-621-validation-evidence.md). Release remains not ready.
 
 **DW-590 closure (2026-10-18):** Recovery publication now rechecks exact live main after artifact preparation and existing-package hash verification, before the first publication. Original production continued in all 29 unsafe-source cases; independent review/recheck, seven rejected harmful mutations, a zero-warning/error Debug source build, focused 46/46 and full Contracts 397/397 pass with zero failures/skips. Only DW-590 closes: all 653 IDs remain, 370 done/283 open across 255 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint, dependency pointers and release holds remain preserved. See [complete evidence](dw-590-validation-evidence.md). Release remains not ready.
@@ -8081,17 +8083,26 @@ location: scripts/publish-partial-release.sh
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Execute a mismatched existing-package hash test for partial-release recovery.\n  evidence: Existing tests do not run publish-partial-release.sh with a mismatched package hash, so removal of its comparison could let a mixed-source release publish without test failure."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: publish-partial-release.sh compares existing NuGet SHA256 hashes, but PackageGovernanceTests.Partial_release_recovery_is_protected_and_never_skips_duplicate_packages only inspects script text. No executable hash-mismatch case was found.
-verification-files: scripts/publish-partial-release.sh
-evidence-kind: verified-gap
+pre-dw-608-status: open
+status: done 2026-10-18
+pre-dw-608-disposition: actionable
+disposition: resolved
+pre-dw-608-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-608-verification: publish-partial-release.sh compares existing NuGet SHA256 hashes, but PackageGovernanceTests.Partial_release_recovery_is_protected_and_never_skips_duplicate_packages only inspects script text. No executable hash-mismatch case was found.
+verification: The unchanged publisher refuses differing bytes against supplied reviewed hashes at every existing-package position across package-only, container-only, release-only and mixed recovery. Stable source responses, distinct per-ID contents, reordered hash records, exact refusal prefixes and retained state are qualified. Independent review/recheck, focused 76/76 and maintained Contracts 440/440 pass with zero failures/skips; the Debug source build has zero warnings/errors. Four copied-script mutations are rejected, and the replay rejects stale XML and unrelated fixture failures. The separate absent-expected-hash defect remains open as DW-654. Exact commands, initial results and limits are in dw-608-validation-evidence.md.
+pre-dw-608-verification-files: scripts/publish-partial-release.sh
+verification-files: scripts/publish-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs; _bmad-output/implementation-artifacts/dw-608-check-variants.py; _bmad-output/implementation-artifacts/dw-608-check-runner-refusals.py; _bmad-output/implementation-artifacts/dw-608-validation-evidence.md
+pre-dw-608-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Mock publication tools/state fixture
-next-action: Execute the mismatch path and assert exit before any package/container/release publication.
+pre-dw-608-next-action: Execute the mismatch path and assert exit before any package/container/release publication.
+next-action: Closed within DW-608; retain DW-654, DW-620, unrelated deferred work and existing release qualification holds.
 related: DW-620
+resolution-evidence: [Exact validation, independent review and limits](dw-608-validation-evidence.md)
+resolution-spec: spec-dw-608-existing-package-hash-refusal.md
 
 
 ### DW-609: Clear or reauthorize retained tenant, audit, and membership snapshots when permissions change within the same user and tenant scope.
@@ -8946,3 +8957,22 @@ next-action: Closed within DW-653; retain unrelated deferred work and existing r
 related: DW-651
 resolution-evidence: [Exact validation, initial failures and independent review](dw-653-validation-evidence.md)
 resolution-spec: spec-dw-653-malformed-unicode-standard-cursors.md
+
+### DW-654: Missing expected package hashes allow partial-release recovery to skip content comparison.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-608-existing-package-hash-refusal.md`
+  summary: Refuse existing-package recovery when reviewed expected-hash evidence is absent.
+  evidence: Independent DW-608 review identified the unchanged publisher's empty-hash continue branch. The tracked local probe invokes production with differing Contracts package bytes and stable main evidence: missing expected hash exits 0 and reaches four intercepted package pushes, container login/publication and release creation; supplying the reviewed hash exits 1 at the package-specific refusal before publication. No remote publication occurs.
+origin: DW-608 independent review, 2026-10-18
+location: scripts/publish-partial-release.sh::existing-packages hash loop
+status: open
+disposition: actionable
+verification-date: 2026-10-18
+verification: bash _bmad-output/implementation-artifacts/dw-608-probe-missing-hash.sh missing exits 0 and records all three intercepted publication destinations; the present argument exits 1 with the existing hash-mismatch refusal. The production publisher is unchanged from entry revision 1dd9613e27abe935002d9d3af3a1f476bfdd73a6.
+verification-files: scripts/publish-partial-release.sh; _bmad-output/implementation-artifacts/dw-608-probe-missing-hash.sh; _bmad-output/implementation-artifacts/dw-608-validation-evidence.md
+evidence-kind: verified-defect
+priority: P2
+owner: unassigned
+dependencies: Recovery-state completeness and reviewed expected-hash evidence
+next-action: Fail closed when any existing package lacks its reviewed hash, with executable missing-evidence refusals and matching-evidence controls before every publication destination.
+related: DW-608,DW-620

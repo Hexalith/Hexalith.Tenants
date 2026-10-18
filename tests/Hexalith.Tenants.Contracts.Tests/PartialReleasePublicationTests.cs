@@ -18,9 +18,11 @@ public class PartialReleasePublicationTests
     /// <param name="inventory">The destinations requiring publication.</param>
     [Theory]
     [InlineData("package")]
+    [InlineData("package-existing")]
     [InlineData("container")]
     [InlineData("release")]
     [InlineData("mixed")]
+    [InlineData("mixed-existing")]
     [InlineData("all-missing")]
     public async Task UnchangedSourceCanPublishMissingArtifacts(string inventory)
     {
@@ -121,15 +123,45 @@ public class PartialReleasePublicationTests
         await RunPublisherAsync("package", response);
     }
 
+    /// <summary>
+    /// Different bytes at any existing-package position stop every recovery destination.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    /// <param name="mismatchIndex">The existing-package position with different bytes.</param>
+    [Theory]
+    [InlineData("package", 0)]
+    [InlineData("package-existing", 0)]
+    [InlineData("package-existing", 1)]
+    [InlineData("package-existing", 2)]
+    [InlineData("package-existing", 3)]
+    [InlineData("container", 0)]
+    [InlineData("container", 1)]
+    [InlineData("container", 2)]
+    [InlineData("container", 3)]
+    [InlineData("container", 4)]
+    [InlineData("release", 0)]
+    [InlineData("release", 1)]
+    [InlineData("release", 2)]
+    [InlineData("release", 3)]
+    [InlineData("release", 4)]
+    [InlineData("mixed-existing", 0)]
+    [InlineData("mixed-existing", 1)]
+    [InlineData("mixed-existing", 2)]
+    [InlineData("mixed-existing", 3)]
+    public async Task ExistingPackageHashMismatchPreventsEveryPublication(string inventory, int mismatchIndex)
+    {
+        await RunPublisherAsync(inventory, "hash-mismatch", mismatchIndex: mismatchIndex);
+    }
+
     private static async Task RunPublisherAsync(
         string inventory,
         string response,
         string stage = "hash",
         string version = "1.2.3",
-        bool prerelease = false)
+        bool prerelease = false,
+        int mismatchIndex = 0)
     {
         const string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-        const string packageContent = "reviewed fixture package\n";
         string repoRoot = FindRepoRoot();
         string temporaryRoot = Path.Combine(Path.GetTempPath(), $"tenants-publication-{Guid.NewGuid():N}");
         string stateDirectory = Path.Combine(temporaryRoot, "state");
@@ -144,20 +176,23 @@ public class PartialReleasePublicationTests
             string[] missingIds = inventory switch
             {
                 "package" => ids[1..],
+                "package-existing" => ids[^1..],
                 "mixed" => ids[1..],
+                "mixed-existing" => ids[^1..],
                 "all-missing" => ids,
                 _ => [],
             };
             string[] existingIds = [.. ids.Except(missingIds, StringComparer.Ordinal)];
-            string hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(packageContent)));
+            Dictionary<string, string> packageContents = ids.ToDictionary(id => id, id => $"reviewed fixture package {id}\n", StringComparer.Ordinal);
             Dictionary<string, string> originalState = new(StringComparer.Ordinal)
             {
                 ["source-sha"] = response == "source-mismatch" ? new string('b', 40) + "\n" : sourceSha + "\n",
                 ["version"] = response == "version-mismatch" ? "9.9.9\n" : version + "\n",
                 ["missing-packages"] = missingIds.Length == 0 ? string.Empty : string.Join('\n', missingIds) + "\n",
                 ["existing-packages"] = existingIds.Length == 0 ? string.Empty : string.Join('\n', existingIds) + "\n",
-                ["existing-package-sha256"] = string.Concat(existingIds.Select(id => $"{hash} {id}\n")),
-                ["container-state"] = inventory is "container" or "mixed" or "all-missing" ? "absent\n" : "present\n",
+                ["existing-package-sha256"] = string.Concat(existingIds.Reverse().Select(id =>
+                    $"{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(packageContents[id])))} {id}\n")),
+                ["container-state"] = inventory is "container" or "mixed" or "mixed-existing" or "all-missing" ? "absent\n" : "present\n",
             };
             if (response == "missing-inventory")
             {
@@ -172,7 +207,7 @@ public class PartialReleasePublicationTests
             Directory.CreateDirectory(Path.Combine(temporaryRoot, "nupkgs"));
             foreach (string id in ids)
             {
-                string content = response == "hash-mismatch" && id == existingIds[0] ? "different package\n" : packageContent;
+                string content = response == "hash-mismatch" && id == existingIds[mismatchIndex] ? "different package\n" : packageContents[id];
                 await File.WriteAllTextAsync(Path.Combine(temporaryRoot, "nupkgs", $"{id}.{version}.nupkg"), content);
             }
 
@@ -201,7 +236,7 @@ public class PartialReleasePublicationTests
                       esac ;;
                     "api --include repos/fixture/recovery/releases/tags/v${FIXTURE_VERSION}")
                       echo release-read >> "$FIXTURE_CALLS"
-                      if [ "$FIXTURE_INVENTORY" = release ] || [ "$FIXTURE_INVENTORY" = mixed ] || [ "$FIXTURE_INVENTORY" = all-missing ]; then
+                      if [ "$FIXTURE_INVENTORY" = release ] || [ "$FIXTURE_INVENTORY" = mixed ] || [ "$FIXTURE_INVENTORY" = mixed-existing ] || [ "$FIXTURE_INVENTORY" = all-missing ]; then
                         printf 'HTTP/2.0 404 Not Found\n'; return 1
                       fi
                       printf 'HTTP/2.0 200 OK\n' ;;
@@ -272,7 +307,7 @@ public class PartialReleasePublicationTests
             environment["FIXTURE_SHA"] = sourceSha;
             environment["FIXTURE_VERSION"] = version;
             environment["FIXTURE_STAGE"] = existingIds.Length == 0 && stage == "hash" ? "consumers" : stage;
-            environment["FIXTURE_RESPONSE"] = response;
+            environment["FIXTURE_RESPONSE"] = response == "hash-mismatch" ? "stable" : response;
             environment["FIXTURE_INVENTORY"] = inventory;
             environment["FIXTURE_CALLS"] = callLog;
             environment["FIXTURE_UNEXPECTED"] = unexpectedLog;
@@ -327,7 +362,7 @@ public class PartialReleasePublicationTests
                 "version-mismatch" => "Recovery version changed.",
                 "missing-inventory" => "Missing-package state is absent.",
                 "initially-stale" => "Live main changed before publication.",
-                "hash-mismatch" => $"Existing package {existingIds[0]} does not match the reviewed source.",
+                "hash-mismatch" => $"Existing package {existingIds[mismatchIndex]} does not match the reviewed source.",
                 _ => null,
             };
             if (response is "source-mismatch" or "version-mismatch" or "missing-inventory")
@@ -340,19 +375,20 @@ public class PartialReleasePublicationTests
             }
             else if (response == "hash-mismatch")
             {
-                expected.RemoveAt(expected.Count - 1);
+                expected = ["main", "build", "pack", "packages", "consumers"];
+                expected.AddRange(existingIds.Take(mismatchIndex + 1).Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
             }
 
             if (response == "stable")
             {
                 expected.AddRange(missingIds.Select(id => $"package-publish nupkgs/{id}.{version}.nupkg"));
-                if (inventory is "container" or "mixed" or "all-missing")
+                if (inventory is "container" or "mixed" or "mixed-existing" or "all-missing")
                 {
                     expected.AddRange(["container-login", "container-publish"]);
                 }
 
                 expected.Add("release-read");
-                if (inventory is "release" or "mixed" or "all-missing")
+                if (inventory is "release" or "mixed" or "mixed-existing" or "all-missing")
                 {
                     expected.Add("release-publish");
                 }
