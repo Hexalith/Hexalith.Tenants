@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-652 closure (2026-10-18):** Embedded unpaired-surrogate audit dates now return bare InvalidEnvelope before cursor decoding or audit reads, preserving authorization and valid date semantics. Initial production tests failed 44/261; independent review led to six compatibility controls, and final focused 267/267 plus full Server 1218/1218 pass with zero failures/skips. The final Debug source build has zero warnings/errors. Only DW-652 closes: all 653 IDs remain, 362 done/291 open across 263 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint and release holds remain preserved. DW-653 remains open. See [complete evidence](dw-652-validation-evidence.md). Release remains not ready.
+
 **DW-651 closure and DW-652/DW-653 review deferrals (2026-10-18):** Malformed Unicode audit cursor and stream strings now return InvalidEnvelope before codec use or audit reads, preserving authorization precedence, opaque cursor scope, and stream selection. Original production tests failed 16/155; independent review, final focused 155/155 and full Server 1106/1106 pass with zero failures/skips. The Debug source build passes with one transient copy-retry warning and zero errors. Only DW-651 closes. Embedded unpaired surrogates in audit dates and malformed Unicode cursors on the standard pagination parser remain open as DW-652 and DW-653. All 651 original IDs remain plus those two records: 653 IDs, 361 done/292 open across 264 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-651-validation-evidence.md). Release remains not ready.
 
 **DW-650 closure and DW-651 review deferral (2026-10-18):** Malformed Unicode category decoding now returns InvalidEnvelope before cursor decoding or audit reads, preserving authorization precedence and existing category semantics. Independent review/recheck, final focused 119/119 and full Server 1070/1070 pass with zero failures/skips; the Debug source build passes with two transient copy-retry warnings and zero errors. Only DW-650 closes. Existing cursor/stream Unicode decoding exceptions are newly open as DW-651. All 650 original IDs remain plus DW-651: 651 IDs, 360 done/291 open across 263 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-650-validation-evidence.md). Release remains not ready.
@@ -8803,18 +8805,26 @@ resolution-spec: spec-dw-651-malformed-unicode-audit-cursor-stream.md
   evidence: `dotnet fsi --exec /tmp/tenants-dw-651/datecheck.fsx` exits 0. A lone `\ud800` date returns false. A date-like value with a trailing `\ud800`, a swapped `\udc00\ud800`, and a trailing `\udfff` throw InvalidOperationException from `JsonElement.TryGetDateTimeOffset`. `DeserializeAuditPayload` catches only `JsonException`, and `ExecuteAsync` rethrows other exceptions. DW-651 did not change this date path. No handler execution of the embedded forms is claimed.
 origin: DW-651 independent review, 2026-10-18
 location: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs::TryGetDateTimeOffset
-status: open
-disposition: actionable
+status: done 2026-10-18
+pre-dw-652-disposition: actionable
+disposition: resolved
+pre-dw-652-verification-date: 2026-10-18
 verification-date: 2026-10-18
-verification: API reproduction above. Existing focused date cases cover only whole-value lone surrogates, which do not throw.
-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
-evidence-kind: verified-defect
+pre-dw-652-verification: API reproduction above. Existing focused date cases cover only whole-value lone surrogates, which do not throw.
+verification: The local date accessor now contains InvalidOperationException and produces bare InvalidEnvelope before codec use or audit reads. Initial original-production handler tests failed 44/261; final focused 267/267 and full Server 1218/1218 pass with zero failures/skips. Final Debug source build has zero warnings/errors. Independent review prompted six additional compatibility controls and durable evidence/reproduction guidance; no production defect or new deferral remains from that review. Earlier whole-value rejection, authorization, inclusive offset bounds, final duplicates and protected cursor scope remain covered. Exact commands, initial failures, intermediate warnings and limits are in dw-652-validation-evidence.md.
+pre-dw-652-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
+verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; tests/Hexalith.Tenants.Server.Tests/Queries/GetTenantAuditQueryHandlerTests.cs; _bmad-output/implementation-artifacts/dw-652-validation-evidence.md
+pre-dw-652-evidence-kind: verified-defect
+evidence-kind: executed-regression
 severity: medium
 priority: P2
 owner: Tenants query handlers
 dependencies: Preserve authorization precedence and the existing whole-value lone-surrogate date rejection
-next-action: Contain embedded unpaired-surrogate audit date decoding with InvalidEnvelope and direct handler regressions, before cursor decoding or audit reads.
+pre-dw-652-next-action: Contain embedded unpaired-surrogate audit date decoding with InvalidEnvelope and direct handler regressions, before cursor decoding or audit reads.
+next-action: Closed within DW-652; preserve DW-653, unrelated deferred work and existing release qualification holds.
 related: DW-651
+resolution-evidence: [Exact validation, initial failures and independent review](dw-652-validation-evidence.md)
+resolution-spec: spec-dw-652-malformed-unicode-audit-dates.md
 
 ### DW-653: Malformed Unicode cursors on standard tenant queries escape pagination parsing.
 

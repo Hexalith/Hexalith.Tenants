@@ -412,13 +412,21 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             return true;
         }
 
-        if (element.ValueKind != JsonValueKind.String || !element.TryGetDateTimeOffset(out DateTimeOffset parsed))
+        try
         {
+            if (element.ValueKind != JsonValueKind.String || !element.TryGetDateTimeOffset(out DateTimeOffset parsed))
+            {
+                return false;
+            }
+
+            value = parsed;
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            // Embedded unpaired surrogates can fail during date decoding instead of returning false.
             return false;
         }
-
-        value = parsed;
-        return true;
     }
 
     private protected PaginatedResult<TResult> ProtectCursor<TResult>(

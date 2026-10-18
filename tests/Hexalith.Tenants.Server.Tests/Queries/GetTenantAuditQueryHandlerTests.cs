@@ -378,6 +378,207 @@ public sealed class GetTenantAuditQueryHandlerTests
         await AssertOnlyAuthorityWasReadAsync(store);
     }
 
+    /// <summary>Gets embedded Unicode date failures with both bound, cursor and authorization variants.</summary>
+    public static TheoryData<string, string, bool, string> MalformedUnicodeDates
+    {
+        get
+        {
+            TheoryData<string, string, bool, string> cases = [];
+            foreach (string propertyName in new[] { "from", "to" })
+            {
+                foreach (string date in new[]
+                {
+                    "2026-05-14T10:00:00Z\\ud800", "2026-05-14T10:00:00Z\\udbff",
+                    "2026-05-14T10:00:00Z\\udc00", "2026-05-14T10:00:00Z\\udfff",
+                    "\\ud8002026-05-14T10:00:00Z", "\\udc002026-05-14T10:00:00Z",
+                    "2026-05-14T10:00:00\\ud800Z", "2026-05-14T10:00:00\\udc00Z",
+                    "2026-05-14T10:00:00Z\\udc00\\ud800", "2026-05-14T10:00:00Z\\ud800x\\udc00",
+                })
+                {
+                    foreach (bool withCursor in new[] { false, true })
+                    {
+                        cases.Add(propertyName, date, withCursor, "admin-1");
+                        cases.Add(propertyName, date, withCursor, "non-admin");
+                    }
+                }
+            }
+
+            return cases;
+        }
+    }
+
+    /// <summary>Contains malformed date decoding after authorization and before codec or audit access.</summary>
+    [Theory]
+    [MemberData(nameof(MalformedUnicodeDates))]
+    public async Task MalformedUnicodeDateReturnsFailureBeforeCodecOrAuditReadAsync(
+        string propertyName,
+        string date,
+        bool withCursor,
+        string userId)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+        string cursor = withCursor ? ",\"cursor\":\"invalid-cursor\"" : string.Empty;
+
+        QueryResult result = await ExecuteAsync(store, codec, $"{{\"{propertyName}\":\"{date}\"{cursor}}}", userId);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(userId == "admin-1"
+            ? QueryAdapterFailureReason.InvalidEnvelope
+            : QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Rejects malformed bounds even when the other bound is valid, before cursor or audit access.</summary>
+    [Theory]
+    [InlineData("{\"from\":\"2026-05-14T10:00:00Z\",\"to\":\"2026-05-14T11:00:00Z\\udc00\",\"cursor\":\"invalid-cursor\"}", "admin-1")]
+    [InlineData("{\"from\":\"2026-05-14T10:00:00Z\\ud800\",\"to\":\"2026-05-14T11:00:00Z\",\"cursor\":\"invalid-cursor\"}", "admin-1")]
+    [InlineData("{\"from\":\"2026-05-14T10:00:00Z\",\"to\":\"2026-05-14T11:00:00Z\\udc00\",\"cursor\":\"invalid-cursor\"}", "non-admin")]
+    [InlineData("{\"from\":\"2026-05-14T10:00:00Z\\ud800\",\"to\":\"2026-05-14T11:00:00Z\",\"cursor\":\"invalid-cursor\"}", "non-admin")]
+    public async Task MixedValidAndMalformedDatesReturnFailureBeforeCodecOrAuditReadAsync(string payload, string userId)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+
+        QueryResult result = await ExecuteAsync(store, codec, payload, userId);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(userId == "admin-1"
+            ? QueryAdapterFailureReason.InvalidEnvelope
+            : QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Gets malformed UTF-8 date bytes without transcoding them through a string.</summary>
+    public static TheoryData<string, byte[], string> MalformedUtf8Dates
+    {
+        get
+        {
+            TheoryData<string, byte[], string> cases = [];
+            foreach (string propertyName in new[] { "from", "to" })
+            {
+                foreach (byte[] dateSuffix in new byte[][]
+                {
+                    [0x80], [0xc0, 0xaf], [0xed, 0xa0, 0x80], [0xf4, 0x90, 0x80, 0x80],
+                })
+                {
+                    cases.Add(propertyName, dateSuffix, "admin-1");
+                    cases.Add(propertyName, dateSuffix, "non-admin");
+                }
+            }
+
+            return cases;
+        }
+    }
+
+    /// <summary>Rejects malformed UTF-8 date suffixes while preserving authorization and cursor precedence.</summary>
+    [Theory]
+    [MemberData(nameof(MalformedUtf8Dates))]
+    public async Task MalformedUtf8DateReturnsFailureBeforeCodecOrAuditReadAsync(
+        string propertyName,
+        byte[] dateSuffix,
+        string userId)
+    {
+        ArgumentNullException.ThrowIfNull(dateSuffix);
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+        byte[] payload =
+        [
+            .. Encoding.UTF8.GetBytes($"{{\"{propertyName}\":\"2026-05-14T10:00:00Z"),
+            .. dateSuffix,
+            .. Encoding.UTF8.GetBytes("\",\"cursor\":\"invalid-cursor\"}"),
+        ];
+
+        QueryResult result = await ExecuteAsync(store, codec, payload, userId);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(userId == "admin-1"
+            ? QueryAdapterFailureReason.InvalidEnvelope
+            : QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Preserves inclusive offset bounds and protected cursor scope across escaped date spellings.</summary>
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public async Task EquivalentDateSpellingsResumeProtectedCursorAsync(bool escapedFirst, bool normalizeOffset)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = CreateCursorCodec();
+        string from = "2026-05-14T12:00:00+02:00";
+        string to = "2026-05-14T11:00:00Z";
+        string firstFrom = escapedFirst ? ToJsonUnicodeEscapes(from) : from;
+        string firstTo = escapedFirst ? ToJsonUnicodeEscapes(to) : to;
+        string nextFrom = normalizeOffset ? "2026-05-14T10:00:00Z" : from;
+        string nextTo = normalizeOffset ? "2026-05-14T13:00:00+02:00" : to;
+        string secondFrom = escapedFirst ? nextFrom : ToJsonUnicodeEscapes(nextFrom);
+        string secondTo = escapedFirst ? nextTo : ToJsonUnicodeEscapes(nextTo);
+
+        QueryResult first = await ExecuteAsync(store, codec,
+            $"{{\"from\":\"{firstFrom}\",\"to\":\"{firstTo}\",\"pageSize\":2}}");
+
+        ReadEventIds(first).ShouldBe(["from", "access"]);
+        using JsonDocument firstPage = JsonDocument.Parse(first.PayloadBytes.ShouldNotBeNull());
+        firstPage.RootElement.GetProperty("hasMore").GetBoolean().ShouldBeTrue();
+        string cursor = firstPage.RootElement.GetProperty("cursor").GetString().ShouldNotBeNull();
+        cursor.ShouldNotBeNullOrWhiteSpace();
+
+        QueryResult second = await ExecuteAsync(store, codec,
+            $"{{\"from\":\"{secondFrom}\",\"to\":\"{secondTo}\",\"cursor\":{JsonSerializer.Serialize(cursor)},\"pageSize\":2}}");
+
+        ReadEventIds(second).ShouldBe(["to"]);
+        using JsonDocument secondPage = JsonDocument.Parse(second.PayloadBytes.ShouldNotBeNull());
+        secondPage.RootElement.GetProperty("hasMore").GetBoolean().ShouldBeFalse();
+        secondPage.RootElement.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    /// <summary>Validates only the final duplicate date member, including malformed earlier strings.</summary>
+    [Theory]
+    [InlineData("from", false, false)]
+    [InlineData("from", false, true)]
+    [InlineData("from", true, false)]
+    [InlineData("from", true, true)]
+    [InlineData("to", false, false)]
+    [InlineData("to", false, true)]
+    [InlineData("to", true, false)]
+    [InlineData("to", true, true)]
+    public async Task DuplicateUnicodeDateRetainsLastValueSemanticsAsync(string propertyName, bool malformedLast, bool useNull)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = malformedLast ? Substitute.For<IQueryCursorCodec>() : CreateCursorCodec();
+        string malformed = "\"2026-05-14T10:00:00Z\\ud800\"";
+        string valid = useNull ? "null" : "\"2026-05-14T10:00:00Z\"";
+        string first = malformedLast ? valid : malformed;
+        string last = malformedLast ? malformed : valid;
+
+        QueryResult result = await ExecuteAsync(store, codec, $"{{\"{propertyName}\":{first},\"{propertyName}\":{last}}}");
+
+        if (malformedLast)
+        {
+            result.Success.ShouldBeFalse();
+            result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.InvalidEnvelope);
+            result.PayloadBytes.ShouldBeNull();
+            codec.ReceivedCalls().ShouldBeEmpty();
+            await AssertOnlyAuthorityWasReadAsync(store);
+        }
+        else
+        {
+            string[] expected = useNull
+                ? ["before", "from", "access", "to", "after"]
+                : propertyName == "from" ? ["from", "access", "to", "after"] : ["before", "from"];
+            ReadEventIds(result).ShouldBe(expected);
+        }
+    }
+
     /// <summary>Gets invalid timestamp strings and JSON kinds for both inclusive bounds.</summary>
     public static TheoryData<string, string> InvalidDateFilters
     {
