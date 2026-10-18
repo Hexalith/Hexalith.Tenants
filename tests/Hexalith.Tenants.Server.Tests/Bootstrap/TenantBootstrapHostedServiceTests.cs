@@ -27,19 +27,28 @@ namespace Hexalith.Tenants.Server.Tests.Bootstrap;
 
 public class TenantBootstrapHostedServiceTests {
     [Fact]
-    public async Task StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator() {
+    public async Task StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator()
+    {
         bool httpCalled = false;
-        var handler = new TestHttpMessageHandler((_, _) => {
+        using var handler = new TestHttpMessageHandler((_, _) =>
+        {
             httpCalled = true;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
         });
-        var lifetime = new TestHostApplicationLifetime();
+        using var started = new CancellationTokenSource();
+        using var stopping = new CancellationTokenSource();
+        IHostApplicationLifetime lifetime = Substitute.For<IHostApplicationLifetime>();
+        lifetime.ApplicationStarted.Returns(started.Token);
+        lifetime.ApplicationStopping.Returns(stopping.Token);
+        lifetime.ClearReceivedCalls();
         var logger = new TestLogger<TenantBootstrapHostedService>();
-        IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
+        IConfiguration configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
             ["Tenants:BootstrapGlobalAdminEnabled"] = "false",
             ["Tenants:BootstrapGlobalAdminUserId"] = "admin-user-1",
         }).Build();
         TenantBootstrapOptions boundOptions = configuration.GetSection("Tenants").Get<TenantBootstrapOptions>()!;
+        boundOptions.BootstrapGlobalAdminEnabled.ShouldBeFalse();
         boundOptions.BootstrapGlobalAdminUserId.ShouldBe("admin-user-1");
         TenantBootstrapHostedService service = CreateService(
             CreateScopeFactory(handler),
@@ -48,10 +57,15 @@ public class TenantBootstrapHostedServiceTests {
             logger);
 
         await service.StartAsync(CancellationToken.None);
-        lifetime.StartApplication();
-        await Task.Delay(50);
 
+        // No started token was obtained, so no deferred startup callback can be registered.
+        _ = lifetime.DidNotReceive().ApplicationStarted;
+        _ = lifetime.DidNotReceive().ApplicationStopping;
+        started.Cancel();
+        _ = lifetime.DidNotReceive().ApplicationStarted;
+        _ = lifetime.DidNotReceive().ApplicationStopping;
         httpCalled.ShouldBeFalse();
+        boundOptions.BootstrapGlobalAdminUserId.ShouldBe("admin-user-1");
         logger.Entries.ShouldContain(entry => entry.EventId.Id == 2007);
     }
 
@@ -106,27 +120,52 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Fact]
-    public async Task StartAsync_with_configured_userId_waits_until_application_started() {
-        bool httpCalled = false;
-        var handler = new TestHttpMessageHandler((_, _) => {
-            httpCalled = true;
+    public async Task StartAsyncWithEnabledBootstrapReadsLifetimeAndSendsAfterStartup()
+    {
+        using var started = new CancellationTokenSource();
+        var commandSent = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var scopeDisposed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int requestCount = 0;
+        using var handler = new TestHttpMessageHandler((_, _) =>
+        {
+            Interlocked.Increment(ref requestCount);
+            commandSent.TrySetResult(started.IsCancellationRequested);
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
         });
 
-        IServiceScopeFactory scopeFactory = CreateScopeFactory(handler);
-        var lifetime = new TestHostApplicationLifetime();
-        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions {
+        await using AsyncServiceScope realScope = CreateScopeFactory(handler).CreateAsyncScope();
+        IServiceScope observedScope = Substitute.For<IServiceScope, IAsyncDisposable>();
+        observedScope.ServiceProvider.Returns(realScope.ServiceProvider);
+        ((IAsyncDisposable)observedScope).DisposeAsync().Returns(_ =>
+        {
+            scopeDisposed.TrySetResult();
+            return ValueTask.CompletedTask;
+        });
+        IServiceScopeFactory scopeFactory = Substitute.For<IServiceScopeFactory>();
+        scopeFactory.CreateScope().Returns(observedScope);
+        using var stopping = new CancellationTokenSource();
+        IHostApplicationLifetime lifetime = Substitute.For<IHostApplicationLifetime>();
+        lifetime.ApplicationStarted.Returns(started.Token);
+        lifetime.ApplicationStopping.Returns(stopping.Token);
+        lifetime.ClearReceivedCalls();
+        IOptions<TenantBootstrapOptions> options = Options.Create(new TenantBootstrapOptions
+        {
             BootstrapGlobalAdminUserId = "admin-user-1",
         });
 
-        var service = CreateService(scopeFactory, options, lifetime, NullLogger<TenantBootstrapHostedService>.Instance);
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapHostedService service = CreateService(scopeFactory, options, lifetime, logger);
 
         await service.StartAsync(CancellationToken.None);
-        await Task.Delay(50);
-        httpCalled.ShouldBeFalse();
 
-        lifetime.StartApplication();
-        await WaitUntilAsync(() => httpCalled);
+        _ = lifetime.Received(1).ApplicationStarted;
+        _ = lifetime.Received(1).ApplicationStopping;
+
+        started.Cancel();
+        (await commandSent.Task.WaitAsync(TimeSpan.FromSeconds(10))).ShouldBeTrue();
+        await scopeDisposed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        Volatile.Read(ref requestCount).ShouldBe(1);
+        logger.Entries.ShouldContain(entry => entry.EventId.Id == 2001);
     }
 
     [Theory]

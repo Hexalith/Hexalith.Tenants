@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-634 closure (2026-10-18):** Disabled bootstrap now has deterministic proof that it never obtains ApplicationStarted or ApplicationStopping tokens for deferred registration; an enabled control observes token access and actual HTTP delivery after startup. The missing-return mutation fails only the disabled test. Final bootstrap 85/85 and full Server 1316/1316 pass with zero failures/skips; the Debug source build has zero warnings/errors. Only DW-634 closes: all 655 IDs remain, 379 done/276 open across 248 maintenance rows. Original fields, unrelated records, dependencies and release holds remain preserved. See [exact commands and review](dw-634-validation-evidence.md).
+
 **DW-637 closure (2026-10-18):** Two deterministic component regressions now prove mounted authentication notifications are received and post-disposal notifications cannot reach the global-administrator correction panel or page handlers. Each independent unsubscribe-removal control fails only its matching test. A zero-warning/error Debug source rebuild, focused 391/391 and full UI 6266/6266 pass with zero failures/skips. Only DW-637 closes: all 655 IDs remain, 378 done/277 open across 249 maintenance rows. Original fields, unrelated records, production sources, dependencies and release holds remain preserved; the existing formatting blocker is recorded in [complete evidence](dw-637-validation-evidence.md).
 
 **DW-639 closure (2026-10-18):** Existing missing/short signing-key diagnostics and real-host tests already name both accepted configuration alternatives. The fresh ordinary audit-enabled Debug source build has zero warnings/errors, and the maintained generated-controller class passes 44/44 with zero failures/skips, including five exact diagnostic cases. Only this stale record closes: all 655 IDs remain, 377 done/278 open across 250 maintenance rows. Historical findings, unrelated records, application/tests, dependencies and release holds remain preserved. See [exact commands and scope limits](dw-639-validation-evidence.md).
@@ -8581,16 +8583,25 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; make the disabled-bootstrap test deterministically prove no deferred command is registered.\n  evidence: `StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator` in `tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs:30`, independently committed in `6b6a35f0`, waits with `Task.Delay(50)` at `:52` for absence of HTTP traffic, but the enabled path schedules its HTTP work with `Task.Run` after `ApplicationStarted`; a late task could escape the assertion."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantBootstrapHostedServiceTests.StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator still asserts no HTTP after Task.Delay(50), while enabled service work is deferred after ApplicationStarted. The timing-based negative proof remains.
-evidence-kind: verified-gap
+pre-dw-634-status: open
+status: done 2026-10-18
+pre-dw-634-disposition: actionable
+disposition: resolved
+pre-dw-634-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-634-verification: TenantBootstrapHostedServiceTests.StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator still asserts no HTTP after Task.Delay(50), while enabled service work is deferred after ApplicationStarted. The timing-based negative proof remains.
+verification: The disabled regression now proves no ApplicationStarted/Stopping token access before and after startup signaling, preserving the configured administrator and disabled diagnostic without a fixed delay. The enabled control observes lifetime access and actual post-startup HTTP delivery. An isolated missing-return production compile overlay fails exactly this negative assertion (84/85 pass); final normal-source bootstrap 85/85 and full Server 1316/1316 pass with zero failures/skips. The Debug source build has zero warnings/errors. Exact commands, mutation diagnostic and independent review are retained in dw-634-validation-evidence.md.
+pre-dw-634-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Deterministic host-lifetime/callback fixture
-next-action: Assert no deferred callback/work registration for disabled bootstrap rather than waiting for absent traffic.
+pre-dw-634-next-action: Assert no deferred callback/work registration for disabled bootstrap rather than waiting for absent traffic.
+next-action: Closed within DW-634; preserve unrelated deferred work, dependency changes and all existing release qualification holds.
 related: none
+verification-files: tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; _bmad-output/implementation-artifacts/dw-634-validation-evidence.md
+resolution-spec: spec-dw-634-disabled-bootstrap-registration.md
+resolution-evidence: [Exact validation and independent review](dw-634-validation-evidence.md)
 
 
 ### DW-635: medium; record current global-administrator membership in the independent module manifest authorization inventory.
