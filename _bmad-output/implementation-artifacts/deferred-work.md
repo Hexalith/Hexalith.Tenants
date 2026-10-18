@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-216 closure (2026-10-18):** Registry versions now validate complete grammar, canonical decimal cores within NuGet's Int32 range, prerelease identifiers and the 64-character NuGet.org limit before prerelease exclusion. Existing aliases, valid prereleases and four-component numeric ordering remain covered. Original production failed 64/116 cases; review length controls failed four/130 before correction. Independent review/recheck, final focused 130/130, full Contracts 333/333 and a zero-warning/error Debug source build pass. Only DW-216 closes: all 653 IDs remain, 365 done/288 open across 260 exact-covering maintenance rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-216-validation-evidence.md). Release remains not ready.
+
 **DW-215 closure (2026-10-18):** Plain stable release tags now require canonical decimal components within semantic-release's safe-integer range before conversion, sorting or reachability requests. Initial production tests failed 24/36; independent review/recheck, final focused 49/49, full Contracts 203/203 and a zero-warning/error Debug source build pass. Actual selector/parser parity matches 5,832 candidates with zero admission/order differences; actionlint and story-gitlink checks pass. Only DW-215 closes: all 653 IDs remain, 364 done/289 open across 261 exact-covering maintenance rows. Historical findings, unrelated records, DW-216, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-215-validation-evidence.md). Release remains not ready.
 
 **DW-653 closure (2026-10-18):** Undecodable Unicode standard pagination cursors now return bare InvalidEnvelope before cursor-codec use in all four consumers, preserving their existing authorization/read order, valid protected cursors, parsing defaults and page-size bounds. Original-production tests failed 54/64; independent review added six compatibility controls, and final focused 112/112 plus full Server 1316/1316 pass with zero failures/skips. Final Debug source build succeeds with one transient copy-retry warning and zero errors. Only DW-653 closes: all 653 IDs remain, 363 done/290 open across 262 exact-covering maintenance rows. Original findings and earlier failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-653-validation-evidence.md). Release remains not ready.
@@ -1933,17 +1935,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 reason: The legacy ledger defers this issue: Validate normalized NuGet version grammar before excluding prereleases from the registry floor. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Validate normalized NuGet version grammar before excluding prereleases from the registry floor. evidence: The pre-existing registry parser accepts malformed prerelease and non-normalized stable strings, which can turn unusable evidence into a passing drift check.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/release.yml registry grammar permits leading-zero stable forms and malformed prerelease identifiers under [0-9A-Za-z.-]+, then excludes any hyphenated value. Invalid evidence can still pass the floor guard.
-verification-files: .github/workflows/release.yml
-evidence-kind: verified-defect
+pre-dw-216-status: open
+status: done 2026-10-18
+pre-dw-216-disposition: actionable
+disposition: resolved
+pre-dw-216-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-216-verification: .github/workflows/release.yml registry grammar permits leading-zero stable forms and malformed prerelease identifiers under [0-9A-Za-z.-]+, then excludes any hyphenated value. Invalid evidence can still pass the floor guard.
+verification: Complete version grammar, canonical Int32-bounded core components, valid prerelease identifiers and the 64-character NuGet.org bound are checked before exclusion. Original production failed 64/116 cases; review length controls failed four/130 before correction. Independent review/recheck, final focused 130/130, full Contracts 333/333 and zero-warning/error Debug source build pass with zero failures/skips. Existing two-component/zero-revision/case compatibility, valid prereleases, malformed non-string evidence and full numeric ordering remain covered. Exact commands, initial failures and limits are in dw-216-validation-evidence.md.
+pre-dw-216-verification-files: .github/workflows/release.yml
+verification-files: .github/workflows/release.yml; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs; _bmad-output/implementation-artifacts/dw-216-validation-evidence.md
+pre-dw-216-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Validate normalized NuGet grammar before stable/prerelease classification and cover malformed suffixes.
+pre-dw-216-next-action: Validate normalized NuGet grammar before stable/prerelease classification and cover malformed suffixes.
+next-action: Closed within DW-216; preserve unrelated deferred work and existing release qualification holds.
 related: none
+resolution-evidence: [Exact validation, initial failures and independent review](dw-216-validation-evidence.md)
+resolution-spec: spec-dw-216-registry-version-validation.md
 
 ### DW-217: Reconcile publication-preflight and contributor recovery guidance with authentic-tag-only provenance policy
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25

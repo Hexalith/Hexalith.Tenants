@@ -1310,6 +1310,219 @@ public class PackageGovernanceTests {
         result.Output.ShouldContain($"Release tag floor {lowerTag} is at or above every published version");
     }
 
+    /// <summary>
+    /// Gets invalid registry versions that must be rejected before prerelease exclusion.
+    /// </summary>
+    public static TheoryData<string, bool> InvalidRegistryVersions
+    {
+        get
+        {
+            string[] versions =
+            [
+                "03.15.1", "3.015.1", "3.15.01", "3.15.1.01",
+                "00.0.0", "0.00.0", "0.0.00", "0.0.0.00",
+                "03.15.1-rc.1", "3.015.1-rc.1", "3.15.01-rc.1", "3.15.1.01-rc.1",
+                "2147483648.0.0", "0.2147483648.0", "0.0.2147483648", "0.0.0.2147483648",
+                "2147483648.0.0-rc.1", "0.2147483648.0-rc.1", "0.0.2147483648-rc.1", "0.0.0.2147483648-rc.1",
+                "9999999999999999999999999999999999999999.0.0",
+                "9999999999999999999999999999999999999999.0.0-rc.1",
+                "3.15.1-", "3.15.1-.", "3.15.1-.rc", "3.15.1-rc.", "3.15.1-rc..1",
+                "3.15.1-01", "3.15.1-00", "3.15.1-rc.01", "3.15.1-01.rc", "3.15.1-rc.00.1",
+                "3.15.1-rc_1", "3.15.1-révision", "3.15.1-rc/1",
+                "3.15.1+build.1", "3.15.1-rc.1+build.1",
+                "3.15.1\n", "3.15.1-rc.1\n", " 3.15.1", "3.15.1 ",
+                "3", "3.15.1.0.1", "3.15..1", "v3.15.1", "",
+                "4.1.0-" + new string('a', 59), "4.1.0-" + new string('9', 59),
+            ];
+            TheoryData<string, bool> data = new();
+            foreach (string version in versions)
+            {
+                data.Add(version, false);
+                data.Add(version, true);
+            }
+
+            return data;
+        }
+    }
+
+    /// <summary>
+    /// Malformed registry evidence fails closed in isolated and mixed version indexes.
+    /// </summary>
+    /// <param name="invalidVersion">The untrusted registry version.</param>
+    /// <param name="includeStable">Whether valid stable evidence accompanies the invalid entry.</param>
+    [Theory]
+    [MemberData(nameof(InvalidRegistryVersions))]
+    public async Task ReleaseRegistryRejectsInvalidVersionBeforeClassification(string invalidVersion, bool includeStable)
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+        const string packageId = "Hexalith.Tenants.Contracts";
+        const string floorTag = "v3.15.1";
+        string[] versions = includeStable ? ["3.15.1", invalidVersion, "4.1.0-rc.1"] : [invalidVersion];
+
+        (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse(floorTag)),
+                (CompareEndpoint(floorTag), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse(packageId))),
+            RegistryResponses((packageId, 0, "200", PublishedVersions(versions))),
+            [
+                $"api --paginate {TagRefsEndpoint}",
+                $"api {CompareEndpoint(floorTag)}",
+                $"api {ManifestEndpoint}",
+                $"curl {RegistryUrl(packageId)}",
+            ]);
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain($"The published version index for {packageId} could not be validated safely.");
+        result.Output.ShouldNotContain("is at or above every published version");
+        result.Error.ShouldNotContain("Published package versions exceed");
+    }
+
+    /// <summary>
+    /// Valid prerelease identifiers remain excluded even when their cores exceed the floor.
+    /// </summary>
+    /// <param name="version">The valid prerelease version.</param>
+    [Theory]
+    [InlineData("4.1.0-rc.1")]
+    [InlineData("4.1.0-0")]
+    [InlineData("4.1.0-1")]
+    [InlineData("4.1.0-alpha.0")]
+    [InlineData("4.1.0-rc-001")]
+    [InlineData("4.1.0-01a")]
+    [InlineData("4.1.0--")]
+    [InlineData("4.1.0--.rc")]
+    [InlineData("4.1.0-rc.-")]
+    [InlineData("4.1.0-RC.1")]
+    [InlineData("4.1-rc.1")]
+    [InlineData("4.1.0.0-rc.1")]
+    [InlineData("4.1.0.1-rc.1")]
+    [InlineData("2147483647.2147483647.2147483647.2147483647-rc.1")]
+    [InlineData("4.1.0-9999999999999999999999999999999999999999")]
+    [InlineData("4.1.0-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    [InlineData("4.1.0-9999999999999999999999999999999999999999999999999999999999")]
+    public async Task ReleaseRegistryExcludesOnlyValidPrereleaseVersions(string version)
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+        const string packageId = "Hexalith.Tenants.Contracts";
+        const string floorTag = "v3.15.1";
+
+        foreach (string[] versions in new[] { new[] { version }, new[] { "3.15.1", version } })
+        {
+            (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+                workflow,
+                GitHubResponses(
+                    (TagRefsEndpoint, 0, TagRefsResponse(floorTag)),
+                    (CompareEndpoint(floorTag), 0, CompareResponse("identical")),
+                    (ManifestEndpoint, 0, ManifestResponse(packageId))),
+                RegistryResponses((packageId, 0, "200", PublishedVersions(versions))));
+
+            result.ExitCode.ShouldBe(0, result.Error);
+            result.Output.ShouldContain($"Release tag floor {floorTag} is at or above every published version");
+        }
+    }
+
+    /// <summary>
+    /// Invalid JSON values and misplaced invalid strings cannot be hidden by stable drift.
+    /// </summary>
+    /// <param name="entries">The raw registry version array entries.</param>
+    [Theory]
+    [InlineData("null")]
+    [InlineData("42")]
+    [InlineData("true")]
+    [InlineData("{}")]
+    [InlineData("[]")]
+    [InlineData("\"3.15.2\",\"4.1.0-rc..1\"")]
+    [InlineData("\"4.1.0-rc..1\",\"3.15.2\"")]
+    public async Task ReleaseRegistryRejectsInvalidIndexEntries(string entries)
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+        const string packageId = "Hexalith.Tenants.Contracts";
+        const string floorTag = "v3.15.1";
+
+        foreach (string body in new[] { $"{{\"versions\":[{entries}]}}", $"{{\"versions\":[\"3.15.1\",{entries},\"4.1.0-rc.1\"]}}" })
+        {
+            (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+                workflow,
+                GitHubResponses(
+                    (TagRefsEndpoint, 0, TagRefsResponse(floorTag)),
+                    (CompareEndpoint(floorTag), 0, CompareResponse("ahead")),
+                    (ManifestEndpoint, 0, ManifestResponse(packageId))),
+                RegistryResponses((packageId, 0, "200", body)));
+
+            result.ExitCode.ShouldBe(1, result.Output);
+            result.Error.ShouldContain($"The published version index for {packageId} could not be validated safely.");
+            result.Output.ShouldNotContain("is at or above every published version");
+            result.Error.ShouldNotContain("Published package versions exceed");
+        }
+    }
+
+    /// <summary>
+    /// Excluding valid prereleases retains the highest genuine stable version in a mixed index.
+    /// </summary>
+    [Fact]
+    public async Task ReleaseRegistryReportsStableDriftAlongsideValidPrerelease()
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+        const string packageId = "Hexalith.Tenants.Contracts";
+        const string floorTag = "v3.15.1";
+
+        (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse(floorTag)),
+                (CompareEndpoint(floorTag), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse(packageId))),
+            RegistryResponses((packageId, 0, "200", PublishedVersions("3.15.1", "3.15.2", "4.1.0-rc.1"))));
+
+        result.ExitCode.ShouldBe(1, result.Output);
+        result.Error.ShouldContain($"exceed the release tag floor {floorTag}");
+        result.Error.ShouldContain($"{packageId} 3.15.2");
+        result.Error.ShouldNotContain("4.1.0-rc.1");
+        result.Error.ShouldNotContain("could not be validated safely");
+    }
+
+    /// <summary>
+    /// Stable compatibility aliases and NuGet integer boundaries retain numeric ordering.
+    /// </summary>
+    /// <param name="version">The stable registry version.</param>
+    /// <param name="floorTag">The reachable release tag.</param>
+    /// <param name="exceedsFloor">Whether the stable version exceeds the floor.</param>
+    [Theory]
+    [InlineData("0.0.0", "v0.0.0", false)]
+    [InlineData("3.15", "v3.15.1", false)]
+    [InlineData("3.15.1.0", "v3.15.1", false)]
+    [InlineData("2147483647.0.0", "v2147483647.0.0", false)]
+    [InlineData("0.2147483647.0", "v0.2147483647.0", false)]
+    [InlineData("0.0.2147483647", "v0.0.2147483647", false)]
+    [InlineData("3.15.0.2147483647", "v3.15.1", false)]
+    [InlineData("3.15.1.2147483647", "v3.15.1", true)]
+    [InlineData("10.0.0", "v9.9.9", true)]
+    public async Task ReleaseRegistryPreservesStableVersionBoundaries(string version, string floorTag, bool exceedsFloor)
+    {
+        string workflow = File.ReadAllText(Path.Combine(FindRepoRoot(), ".github/workflows/release.yml"));
+        const string packageId = "Hexalith.Tenants.Contracts";
+
+        (int ExitCode, string Output, string Error) result = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse(floorTag)),
+                (CompareEndpoint(floorTag), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse(packageId))),
+            RegistryResponses((packageId, 0, "200", PublishedVersions(version))));
+
+        result.ExitCode.ShouldBe(exceedsFloor ? 1 : 0, result.Error);
+        if (exceedsFloor)
+        {
+            result.Error.ShouldContain($"exceed the release tag floor {floorTag}");
+            result.Error.ShouldContain($"{packageId} {version}");
+        }
+        else
+        {
+            result.Output.ShouldContain($"Release tag floor {floorTag} is at or above every published version");
+        }
+    }
+
     [Fact]
     public async Task Release_workflow_registry_drift_guard_fails_closed_on_every_unprovable_state() {
         string repoRoot = FindRepoRoot();

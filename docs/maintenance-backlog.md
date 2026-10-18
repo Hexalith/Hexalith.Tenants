@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-216 closure (2026-10-18):** Complete registry-version grammar, canonical Int32-bounded numeric cores, prerelease identifiers and the 64-character NuGet.org limit now validate before prerelease exclusion. Original production failed 64/116 cases; review length controls failed four/130 before correction. Independent review/recheck, final focused 130/130, full Contracts 333/333 and a zero-warning/error Debug source build pass. Only DW-216 closes: all 653 IDs remain, 365 done/288 open across 260 exact-covering maintenance rows. Historical findings, aliases and four-component ordering, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-216-validation-evidence.md). Release remains not ready.
+
 **DW-215 closure (2026-10-18):** Plain stable release tags now require canonical decimal components within semantic-release's safe-integer range before conversion, sorting or reachability requests. Initial production tests failed 24/36; independent review/recheck, final focused 49/49, full Contracts 203/203 and a zero-warning/error Debug source build pass. Actual selector/parser parity matches 5,832 candidates with zero admission/order differences; actionlint and story-gitlink checks pass. Only DW-215 closes: all 653 IDs remain, 364 done/289 open across 261 exact-covering maintenance rows. Historical findings, unrelated records, DW-216, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-215-validation-evidence.md). Release remains not ready.
 
 **DW-653 closure (2026-10-18):** Undecodable Unicode standard pagination cursors now return bare InvalidEnvelope before codec use in all four consumers, preserving existing gate/read order, valid cursors, parsing defaults and page-size bounds. Independent review, final focused 112/112 and full Server 1316/1316 pass with zero failures/skips; the final Debug source build succeeds with one transient copy-retry warning and zero errors. Original 54/64 failures, six review controls and exact commands remain in [complete evidence](../_bmad-output/implementation-artifacts/dw-653-validation-evidence.md). Only DW-653 closes: all 653 IDs remain, 363 done/290 open across 262 exact-covering rows. The disposition summary also incorporates DW-652's previously recorded closure. Historical findings, unrelated records, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
@@ -78,14 +80,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 364 |
-| actionable | 202 |
+| done | 365 |
+| actionable | 201 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 289 open records across 261 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 288 open records across 260 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -103,7 +105,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-325/DW-587 closure (2026-10-17):** Retained removal activity is separate from accepted child activity. Refused adoption recovers under both expiry orderings; modal focus, current replacement target/tenant, sibling activity and disposal are qualified by thirteen new cases and independent review/recheck. Final Debug source build has zero warnings/errors; focused 470/full UI 6137 pass with zero failures/skips. Only these duplicates and their shared action row close: 647 IDs, 348 done/299 open, 268 exact-covering rows. [Exact commands, initial failures, review and limits](../_bmad-output/implementation-artifacts/dw-325-587-validation-evidence.md) preserve the historical unmounted-child evidence limit, earlier findings, archive/sprint, dependencies and release holds. Release remains not ready.
 
-**Current implementation completed:** DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
+**Current implementation completed:** DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -121,7 +123,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
 | DW-121 | P2 | Defect / actionable | Hexalith.Builds | Hexalith.Builds owning workflow change | Align the input description/contract and callers with the recorded main-only policy. |
 | DW-128 | P2 | Defect / actionable | unassigned | coordinate DW-127 privacy contract | Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches. |
-| DW-216 | P2 | Defect / actionable | unassigned | none | Validate normalized NuGet grammar before stable/prerelease classification and cover malformed suffixes. |
 | DW-217 | P2 | Defect / actionable | unassigned | release-lineage policy | Align recovery guidance with authentic-tag-only lineage and reviewed recovery. |
 | DW-218 | P2 | Defect / actionable | unassigned | verified current release-line evidence | Correct current trigger/line guidance using committed release evidence; preserve historical observations. |
 | DW-225 | P2 | Defect / actionable | unassigned | DW-222 | Replace wall-clock qualification with exact command causation/sequence in coordination with DW-222. |
