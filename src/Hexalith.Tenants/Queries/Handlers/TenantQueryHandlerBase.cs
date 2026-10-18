@@ -334,16 +334,29 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
                 {
                     errorMessage = QueryAdapterFailureReason.InvalidEnvelope;
                 }
-                else if (!string.IsNullOrWhiteSpace(categoryEl.GetString()))
+                else
                 {
-                    string categoryValue = categoryEl.GetString()!;
-                    if (Enum.TryParse(categoryValue, ignoreCase: true, out AuditEventCategory parsed))
+                    string? categoryValue;
+                    try
                     {
-                        category = parsed;
+                        categoryValue = categoryEl.GetString();
                     }
-                    else
+                    catch (InvalidOperationException)
                     {
-                        errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit category: {categoryValue}";
+                        // JSON strings can contain escaped unpaired surrogates that fail only when decoded.
+                        return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(categoryValue))
+                    {
+                        if (Enum.TryParse(categoryValue, ignoreCase: true, out AuditEventCategory parsed))
+                        {
+                            category = parsed;
+                        }
+                        else
+                        {
+                            errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit category: {categoryValue}";
+                        }
                     }
                 }
             }

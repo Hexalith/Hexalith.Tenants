@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-650 closure and DW-651 review deferral (2026-10-18):** Malformed Unicode category decoding now returns InvalidEnvelope before cursor decoding or audit reads, preserving authorization precedence and existing category semantics. Independent review/recheck, final focused 119/119 and full Server 1070/1070 pass with zero failures/skips; the Debug source build passes with two transient copy-retry warnings and zero errors. Only DW-650 closes. Existing cursor/stream Unicode decoding exceptions are newly open as DW-651. All 650 original IDs remain plus DW-651: 651 IDs, 360 done/291 open across 263 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-650-validation-evidence.md). Release remains not ready.
+
 **DW-424 closure and DW-650 review deferral (2026-10-18):** Malformed supplied audit dates and non-string categories now return InvalidEnvelope before cursor decoding or audit reads. Independent review/recheck, 59 focused cases and full Server 1010/1010 pass with zero failures/skips; the final Debug source build passes with one transient copy-retry warning and zero errors. Only DW-424 closes. A separately reproduced pre-existing Unicode category string exception is newly open as DW-650. All 649 original IDs remain plus DW-650: 650 IDs, 359 done/291 open across 263 exact-covering maintenance rows. Historical findings, initial failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-424-validation-evidence.md). Release remains not ready.
 
 **DW-649 closure (2026-10-18):** The set-configuration page test now has matching caller/owner evidence and no unused unconditional-owner callback. A second case proves changed owner evidence makes the fresh submit-time preview refuse dispatch. Independent review corrections, the zero-warning/error Debug source build, focused 2/2 and final full UI 6264/6264 pass with zero failures/skips; the initial failed callback experiment and the page/safe-model distinction remain in [complete evidence](../_bmad-output/implementation-artifacts/dw-649-validation-evidence.md). Only DW-649 and its one action row close: 649 IDs, 358 done/291 open across 263 index rows. Unrelated records, archive/sprint, dependencies and release holds are preserved. Release remains not ready.
@@ -68,14 +70,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 357 |
-| actionable | 205 |
+| done | 360 |
+| actionable | 204 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 292 open records across 264 index rows.** Disposition counts now cover all 648 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 291 open records across 263 index rows.** Disposition counts now cover all 651 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -165,7 +167,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-619 | P2 | Defect / actionable | unassigned | Authorized search ordering contract | Move ordering before page selection or specify an honest current-window sorting UX. |
 | DW-621 | P2 | Defect / actionable | unassigned | SemVer prerelease classification | Set and verify GitHub prerelease metadata for suffix-bearing versions. |
 | DW-625 | P2 | Defect / awaiting-decision | global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7) | Platform MessageId lookup/idempotent redelivery capability | Choose an authorized MessageId status lookup or compatible same-ID resolution route that preserves the settled dispatch boundary. |
-| DW-650 | P2 | Defect / actionable | Tenants query handlers | Preserve existing optional and string-category compatibility semantics | Contain malformed Unicode category decoding with InvalidEnvelope and add direct handler tests for lone high/low surrogates, authorization precedence and no audit reads. |
+| DW-651 | P2 | Defect / actionable | Tenants query handlers | Preserve authorization precedence, opaque cursor scope, stream selection and successfully decoded strings | Contain malformed Unicode cursor/stream decoding, including mixed malformed payloads, with direct handler regressions and no audit reads. |
 | DW-104 | P2 | Gap / blocked | unassigned | healthy authenticated browser/API fixture | Capture the invalid-cursor problem-details response and browser width/forced-colors traces. |
 | DW-114 | P2 | Gap / blocked | unassigned | Memories owning contract/integration lane | Obtain a Memories server contract test for offset-before-filtering and untrimmed totals. |
 | DW-122 | P2 | Gap / blocked | Memories | Memories index uniqueness guarantee | Add an owning Memories uniqueness contract test across raw windows. |

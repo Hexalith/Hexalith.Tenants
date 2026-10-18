@@ -21,6 +21,194 @@ namespace Hexalith.Tenants.Server.Tests.Queries;
 /// <summary>Verifies direct audit filter validation through the production query handler.</summary>
 public sealed class GetTenantAuditQueryHandlerTests
 {
+    /// <summary>Gets malformed category Unicode sequences with cursor and authorization variants.</summary>
+    public static TheoryData<string, bool, string> MalformedUnicodeCategories
+    {
+        get
+        {
+            TheoryData<string, bool, string> cases = [];
+            foreach (string category in new[]
+            {
+                "\\ud800", "\\udbff", "\\udc00", "\\udfff",
+                "access\\ud800", "\\udc00access", "\\ud800x\\udc00", "\\udc00\\ud800",
+            })
+            {
+                foreach (bool withCursor in new[] { false, true })
+                {
+                    cases.Add(category, withCursor, "admin-1");
+                    cases.Add(category, withCursor, "non-admin");
+                }
+            }
+
+            return cases;
+        }
+    }
+
+    /// <summary>Contains Unicode decoding failures after authorization and before cursor or audit access.</summary>
+    [Theory]
+    [MemberData(nameof(MalformedUnicodeCategories))]
+    public async Task MalformedUnicodeCategoryReturnsFailureBeforeCursorOrAuditReadAsync(
+        string category,
+        bool withCursor,
+        string userId)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+        string cursor = withCursor ? ",\"cursor\":\"invalid-cursor\"" : string.Empty;
+
+        QueryResult result = await ExecuteAsync(store, codec, $"{{\"category\":\"{category}\"{cursor}}}", userId);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(userId == "admin-1"
+            ? QueryAdapterFailureReason.InvalidEnvelope
+            : QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Gets malformed UTF-8 category bytes without transcoding them through a string.</summary>
+    public static TheoryData<byte[], string> MalformedUtf8Categories
+    {
+        get
+        {
+            TheoryData<byte[], string> cases = [];
+            foreach (byte[] category in new byte[][]
+            {
+                [0x80], [0xc0, 0xaf], [0xed, 0xa0, 0x80], [0xf4, 0x90, 0x80, 0x80],
+            })
+            {
+                cases.Add(category, "admin-1");
+                cases.Add(category, "non-admin");
+            }
+
+            return cases;
+        }
+    }
+
+    /// <summary>Rejects raw malformed category bytes while preserving authority and cursor precedence.</summary>
+    [Theory]
+    [MemberData(nameof(MalformedUtf8Categories))]
+    public async Task MalformedUtf8CategoryReturnsFailureBeforeCursorOrAuditReadAsync(byte[] category, string userId)
+    {
+        ArgumentNullException.ThrowIfNull(category);
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+        byte[] payload =
+        [
+            .. Encoding.UTF8.GetBytes("{\"category\":\""),
+            .. category,
+            .. Encoding.UTF8.GetBytes("\",\"cursor\":\"invalid-cursor\"}"),
+        ];
+
+        QueryResult result = await ExecuteAsync(store, codec, payload, userId);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(userId == "admin-1"
+            ? QueryAdapterFailureReason.InvalidEnvelope
+            : QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Preserves filtering for successfully decoded escaped category names.</summary>
+    [Theory]
+    [InlineData("\\u0061ccess", "access")]
+    [InlineData("\\u0041CCESS", "access")]
+    [InlineData("\\u0030", "access")]
+    [InlineData("\\u0020\\u0009", "before,from,access,to,after")]
+    public async Task EscapedCategoryStringsRetainExistingFilteringAsync(string category, string expectedEventIds)
+    {
+        ArgumentNullException.ThrowIfNull(expectedEventIds);
+
+        QueryResult result = await ExecuteAsync(CreateStore(), CreateCursorCodec(), $"{{\"category\":\"{category}\"}}");
+
+        ReadEventIds(result).ShouldBe(expectedEventIds.Split(','));
+    }
+
+    /// <summary>Distinguishes valid Unicode strings from malformed surrogate decoding.</summary>
+    [Theory]
+    [InlineData("\\ud83d\\ude00", "\U0001F600")]
+    [InlineData("\\u00e9", "\u00e9")]
+    public async Task ValidUnicodeUnknownCategoryRetainsExistingDiagnosticAsync(string category, string decodedCategory)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+
+        QueryResult result = await ExecuteAsync(store, codec, $"{{\"category\":\"{category}\"}}");
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe($"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit category: {decodedCategory}");
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Validates only the effective final category without changing duplicate-property semantics.</summary>
+    [Theory]
+    [InlineData("{\"category\":\"\\ud800\",\"category\":\"access\"}", "access")]
+    [InlineData("{\"category\":\"\\udc00\",\"category\":\"access\"}", "access")]
+    [InlineData("{\"category\":\"access\",\"category\":\"\\ud800\"}", null)]
+    [InlineData("{\"category\":\"access\",\"category\":\"\\udc00\"}", null)]
+    [InlineData("{\"category\":\"\\ud800\",\"category\":null}", "before,from,access,to,after")]
+    [InlineData("{\"category\":\"\\udc00\",\"category\":null}", "before,from,access,to,after")]
+    [InlineData("{\"category\":\"\\ud800\",\"category\":\"   \"}", "before,from,access,to,after")]
+    [InlineData("{\"category\":\"\\udc00\",\"category\":\"   \"}", "before,from,access,to,after")]
+    [InlineData("{\"category\":\"\\ud800\",\"category\":\"0\"}", "access")]
+    [InlineData("{\"category\":\"\\udc00\",\"category\":\"0\"}", "access")]
+    [InlineData("{\"category\":\"\\ud800\",\"category\":\"99\"}", "")]
+    [InlineData("{\"category\":\"\\udc00\",\"category\":\"99\"}", "")]
+    public async Task DuplicateUnicodeCategoryRetainsLastValueSemanticsAsync(string payload, string? expectedEventIds)
+    {
+        IReadModelStore store = CreateStore();
+        bool expectedSuccess = expectedEventIds is not null;
+        IQueryCursorCodec codec = expectedSuccess ? CreateCursorCodec() : Substitute.For<IQueryCursorCodec>();
+
+        QueryResult result = await ExecuteAsync(store, codec, payload);
+
+        result.Success.ShouldBe(expectedSuccess);
+        if (expectedEventIds is not null)
+        {
+            ReadEventIds(result).ShouldBe(expectedEventIds.Split(',', StringSplitOptions.RemoveEmptyEntries));
+        }
+        else
+        {
+            result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.InvalidEnvelope);
+            result.PayloadBytes.ShouldBeNull();
+            codec.ReceivedCalls().ShouldBeEmpty();
+            await AssertOnlyAuthorityWasReadAsync(store);
+        }
+    }
+
+    /// <summary>Preserves protected cursor scope across equivalent escaped and plain category spellings.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task EquivalentCategorySpellingsResumeProtectedCursorAsync(bool escapedFirst)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = CreateCursorCodec();
+        string firstCategory = escapedFirst ? "\\u0061dministrative" : "administrative";
+        string secondCategory = escapedFirst ? "administrative" : "\\u0061dministrative";
+
+        QueryResult first = await ExecuteAsync(store, codec, $"{{\"category\":\"{firstCategory}\",\"pageSize\":2}}");
+
+        ReadEventIds(first).ShouldBe(["before", "from"]);
+        using JsonDocument firstPage = JsonDocument.Parse(first.PayloadBytes.ShouldNotBeNull());
+        firstPage.RootElement.GetProperty("hasMore").GetBoolean().ShouldBeTrue();
+        string cursor = firstPage.RootElement.GetProperty("cursor").GetString().ShouldNotBeNull();
+        cursor.ShouldNotBeNullOrWhiteSpace();
+
+        QueryResult second = await ExecuteAsync(store, codec,
+            $"{{\"category\":\"{secondCategory}\",\"cursor\":{JsonSerializer.Serialize(cursor)},\"pageSize\":2}}");
+
+        ReadEventIds(second).ShouldBe(["to", "after"]);
+        using JsonDocument secondPage = JsonDocument.Parse(second.PayloadBytes.ShouldNotBeNull());
+        secondPage.RootElement.GetProperty("hasMore").GetBoolean().ShouldBeFalse();
+        secondPage.RootElement.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
     /// <summary>Gets invalid timestamp strings and JSON kinds for both inclusive bounds.</summary>
     public static TheoryData<string, string> InvalidDateFilters
     {
@@ -215,12 +403,19 @@ public sealed class GetTenantAuditQueryHandlerTests
         IQueryCursorCodec codec,
         string payload,
         string userId = "admin-1")
+        => ExecuteAsync(store, codec, Encoding.UTF8.GetBytes(payload), userId);
+
+    private static Task<QueryResult> ExecuteAsync(
+        IReadModelStore store,
+        IQueryCursorCodec codec,
+        byte[] payload,
+        string userId = "admin-1")
         => TenantQueryTestHarness.ExecuteAsync(store, codec, new QueryEnvelope(
             "system",
             GetTenantAuditQuery.Domain,
             "tenant-1",
             GetTenantAuditQuery.QueryType,
-            Encoding.UTF8.GetBytes(payload),
+            payload,
             "audit-filter-validation",
             userId,
             "tenant-1"));
