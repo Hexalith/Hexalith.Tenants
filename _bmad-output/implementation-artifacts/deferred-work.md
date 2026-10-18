@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-639 closure (2026-10-18):** Existing missing/short signing-key diagnostics and real-host tests already name both accepted configuration alternatives. The fresh ordinary audit-enabled Debug source build has zero warnings/errors, and the maintained generated-controller class passes 44/44 with zero failures/skips, including five exact diagnostic cases. Only this stale record closes: all 655 IDs remain, 377 done/278 open across 250 maintenance rows. Historical findings, unrelated records, application/tests, dependencies and release holds remain preserved. See [exact commands and scope limits](dw-639-validation-evidence.md).
+
 **DW-640 closure (2026-10-18):** A real-host registration test pins the gateway readiness timeout to three seconds and its ready tag. The maintained readiness class passes 6/6; removing the production timeout through an isolated compile overlay makes the new case fail on the infinite default. Only DW-640 closes: all 655 IDs remain, 376 done/279 open across 251 maintenance rows. Runtime behavior, unrelated records, dependencies and release holds remain preserved. See [exact commands and scope limits](dw-640-validation-evidence.md).
 
 **DW-641 closure (2026-10-18):** Existing authentication tests already cover conflicting nonblank legacy/alias signing keys and authorities. Fresh precedence 2/2 and generated-controller 44/44 pass with zero failures/skips/errors; the Debug source fallback build has zero warnings/errors. The ordinary audit-enabled build remains blocked by Commons NU1902. Only this stale record closes: all 655 IDs remain, 375 done/280 open across 252 maintenance rows. Historical evidence, DW-639, unrelated work and release holds remain preserved. See [exact evidence and limits](dw-641-validation-evidence.md).
@@ -8666,16 +8668,24 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: low; the missing signing-key exception names only the legacy EventStore setting.\n  evidence: `src/Hexalith.Tenants.Api/Program.cs:60` throws that `EventStore:Authentication:SigningKey` is required when neither that value nor `Jwt:SigningKey` is configured. `FirstConfigured` was introduced by the independent bootstrap commit `6b6a35f0`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: API Program.cs missing-key exception still names only EventStore:Authentication:SigningKey even though FirstConfigured also accepts Jwt:SigningKey; generated-controller invalid-key tests pin the legacy-only wording.
-evidence-kind: verified-gap
+pre-dw-639-status: open
+status: done 2026-10-18
+pre-dw-639-disposition: actionable
+disposition: resolved
+pre-dw-639-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-639-verification: API Program.cs missing-key exception still names only EventStore:Authentication:SigningKey even though FirstConfigured also accepts Jwt:SigningKey; generated-controller invalid-key tests pin the legacy-only wording.
+verification: Production missing/short-key diagnostics already name EventStore:Authentication:SigningKey and Jwt:SigningKey. The existing real-host tests assert complete safe messages for null, empty, whitespace and short legacy keys plus a short alias key. Fresh ordinary audit-enabled Debug source build succeeds with zero warnings/errors; the maintained generated-controller class passes 44/44 with zero failures/skips, including all five diagnostic cases. Only this stale record closes; no application/test change or live topology qualification is claimed. Exact commands, receipts and preservation checks are in dw-639-validation-evidence.md.
+pre-dw-639-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: Supported auth configuration aliases
-next-action: Name both accepted configuration alternatives in the safe exception and align message tests.
+pre-dw-639-next-action: Name both accepted configuration alternatives in the safe exception and align message tests.
+next-action: Closed within DW-639; retain unrelated deferred work and existing release qualification holds.
 related: DW-632
+resolution-evidence: [Exact commands and reconciliation checks](dw-639-validation-evidence.md)
+resolution-spec: spec-dw-639-signing-key-diagnostic-closure.md
 
 
 ### DW-640: medium; the public API readiness registration does not prove its three-second gateway timeout.

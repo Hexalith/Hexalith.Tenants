@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-639 closure (2026-10-18):** Existing missing/short signing-key diagnostics and real-host tests already name both accepted configuration alternatives. The fresh ordinary audit-enabled Debug source build has zero warnings/errors, and the maintained generated-controller class passes 44/44 with zero failures/skips, including five exact diagnostic cases. Only this stale record closes: all 655 IDs remain, 377 done/278 open across 250 maintenance rows. Historical findings, unrelated records, application/tests, dependencies and release holds remain preserved. See [exact commands and scope limits](../_bmad-output/implementation-artifacts/dw-639-validation-evidence.md).
+
 **DW-640 closure (2026-10-18):** A real-host registration test pins the gateway readiness timeout to three seconds and its ready tag. The maintained readiness class passes 6/6; removing the production timeout through an isolated compile overlay makes the new case fail on the infinite default. Only DW-640 closes: all 655 IDs remain, 376 done/279 open across 251 maintenance rows. Runtime behavior, unrelated records, dependencies and release holds remain preserved. See [exact commands and scope limits](../_bmad-output/implementation-artifacts/dw-640-validation-evidence.md).
 
 **DW-641 closure (2026-10-18):** Existing authentication tests already cover conflicting nonblank legacy/alias signing keys and authorities. Fresh precedence 2/2 and generated-controller 44/44 pass with zero failures/skips/errors; the Debug source fallback build has zero warnings/errors. The ordinary audit-enabled build remains blocked by Commons NU1902. Only this stale record closes: all 655 IDs remain, 375 done/280 open across 252 maintenance rows. Historical evidence, DW-639, unrelated work and release holds remain preserved. See [exact evidence and limits](../_bmad-output/implementation-artifacts/dw-641-validation-evidence.md).
@@ -100,14 +102,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 376 |
-| actionable | 192 |
+| done | 377 |
+| actionable | 191 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 279 open records across 251 index rows.** Disposition counts now cover all 655 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 278 open records across 250 index rows.** Disposition counts now cover all 655 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -297,7 +299,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-606 | P3 | Gap / actionable | unassigned | Owning source formatting work | Normalize the affected C# files in a separate formatting-only change. |
 | DW-613 | P3 | Gap / actionable | unassigned | Existing FrontComposer not-found conventions | Add a framework-conforming in-app unmatched-route message and safe recovery link. |
 | DW-616 | P3 | Gap / actionable | unassigned | Interactive host/browser fixture | Navigate the running interactive router to a FrontComposer-owned route and assert correct shell content. |
-| DW-639 | P3 | Gap / actionable | unassigned | Supported auth configuration aliases | Name both accepted configuration alternatives in the safe exception and align message tests. |
 
 ## Unverified risks and recommendations
 
