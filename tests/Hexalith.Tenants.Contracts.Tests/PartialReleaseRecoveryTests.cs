@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 
 using Shouldly;
 
@@ -34,12 +35,15 @@ public class PartialReleaseRecoveryTests
     [InlineData("absent-release")]
     [InlineData("annotated-absent-release")]
     [InlineData("both-absent")]
+    [InlineData("existing-artifacts")]
     public async Task ConsistentInventoryCanPrepareRecovery(string scenario)
     {
         var result = await RunRecoveryAsync(scenario, expectInventory: true);
 
         result.ExitCode.ShouldBe(0, result.Error);
-        result.Output.ShouldContain("Validated recovery with 0 existing and 5 missing packages.");
+        result.Output.ShouldContain(scenario == "existing-artifacts"
+            ? "Validated recovery with 1 existing and 4 missing packages."
+            : "Validated recovery with 0 existing and 5 missing packages.");
     }
 
     /// <summary>
@@ -48,6 +52,7 @@ public class PartialReleaseRecoveryTests
     /// <param name="scenario">The invalid evidence supplied by the isolated API fixture.</param>
     /// <param name="diagnostic">The existing refusal that must remain observable.</param>
     [Theory]
+    [InlineData("invalid-source", "Source SHA must be an exact lowercase commit SHA.")]
     [InlineData("stale-source", "The requested source is not the live main tip.")]
     [InlineData("no-ci", "No successful push CI run exists for the exact source SHA.")]
     [InlineData("unknown-tag", "The release tag state could not be proved.")]
@@ -76,13 +81,33 @@ public class PartialReleaseRecoveryTests
         Directory.CreateDirectory(temporaryRoot);
         string stateDirectory = Path.Combine(temporaryRoot, "state");
         string callLog = Path.Combine(temporaryRoot, "calls");
+        string unexpectedLog = Path.Combine(temporaryRoot, "unexpected-calls");
         string manifest = Path.Combine(repoRoot, "tools/release-packages.json");
         try
         {
+            await File.WriteAllTextAsync(callLog, string.Empty);
+            await File.WriteAllTextAsync(unexpectedLog, string.Empty);
+            using var inventory = JsonDocument.Parse(await File.ReadAllTextAsync(manifest));
+            string[] ids = [.. inventory.RootElement.GetProperty("packages").EnumerateArray()
+                .Select(package => package.GetProperty("id").GetString()!)];
+            Dictionary<string, string> previousState = new(StringComparer.Ordinal)
+            {
+                ["source-sha"] = "previous source\n",
+                ["version"] = "0.1.0\n",
+                ["missing-packages"] = "previous inventory\n",
+                ["existing-packages"] = "previous package\n",
+                ["existing-package-sha256"] = "previous hash\n",
+                ["existing-package-count"] = "1\n",
+                ["package-state"] = "partial\n",
+                ["container-state"] = "present\n",
+            };
             if (existingState)
             {
                 Directory.CreateDirectory(stateDirectory);
-                await File.WriteAllTextAsync(Path.Combine(stateDirectory, "missing-packages"), "previous inventory\n");
+                foreach (var file in previousState)
+                {
+                    await File.WriteAllTextAsync(Path.Combine(stateDirectory, file.Key), file.Value);
+                }
             }
 
             // Functions shadow every external API client; unexpected requests fail locally.
@@ -94,7 +119,7 @@ public class PartialReleaseRecoveryTests
                     'api repos/fixture/recovery/git/ref/heads/main --jq .object.sha')
                       if [ "$FIXTURE_SCENARIO" = stale-source ]; then echo wrong-source; else echo "$FIXTURE_SHA"; fi ;;
                     "api --method GET repos/fixture/recovery/actions/workflows/ci.yml/runs -f branch=main -f event=push -f head_sha=$FIXTURE_SHA -f status=success -f per_page=100 --jq "*)
-                      if [ "$FIXTURE_SCENARIO" = no-ci ]; then echo 0; else echo 1; fi ;;
+                      printf '%s\n' "$FIXTURE_CI_RUNS" | jq -er "${!#}" ;;
                     'api --include repos/fixture/recovery/git/ref/tags/v1.2.3')
                       case "$FIXTURE_SCENARIO" in
                         missing-tag|both-absent) printf 'HTTP/2.0 404 Not Found\n'; return 1 ;;
@@ -112,7 +137,7 @@ public class PartialReleaseRecoveryTests
                       if [ "$FIXTURE_SCENARIO" = wrong-annotated-source ]; then echo wrong-source; else echo "$FIXTURE_SHA"; fi ;;
                     'api --include repos/fixture/recovery/releases/tags/v1.2.3')
                       case "$FIXTURE_SCENARIO" in
-                        absent-release|annotated-absent-release|both-absent) printf 'HTTP/2.0 404 Not Found\n'; return 1 ;;
+                        absent-release|annotated-absent-release|both-absent|existing-artifacts) printf 'HTTP/2.0 404 Not Found\n'; return 1 ;;
                         unknown-release) printf 'HTTP/2.0 503 Unavailable\n'; return 1 ;;
                         *) printf 'HTTP/2.0 200 OK\n' ;;
                       esac ;;
@@ -122,15 +147,28 @@ public class PartialReleaseRecoveryTests
                         wrong-release-tag) printf '{"draft":false,"tag_name":"v9.9.9"}\n' ;;
                         *) printf '{"draft":false,"tag_name":"v1.2.3"}\n' ;;
                       esac ;;
-                    *) echo "Unexpected gh request: $*" >&2; return 97 ;;
+                    *) printf 'gh %s\n' "$*" >> "$FIXTURE_UNEXPECTED_LOG"; echo "Unexpected gh request: $*" >&2; return 97 ;;
                   esac
                 }
                 curl() {
-                  printf 'curl %s\n' "${!#}" >> "$FIXTURE_CALL_LOG"
-                  case "${!#}" in
-                    https://api.nuget.org/v3-flatcontainer/*/1.2.3/*.1.2.3.nupkg|https://fixture.invalid/v2/tenants/manifests/1.2.3)
-                      printf 404 ;;
-                    *) echo "Unexpected curl request: $*" >&2; return 97 ;;
+                  local url='' output_file=''
+                  while [ "$#" -gt 0 ]; do
+                    case "$1" in
+                      --output) output_file="$2"; shift 2 ;;
+                      https://*) url="$1"; shift ;;
+                      *) shift ;;
+                    esac
+                  done
+                  printf 'curl %s\n' "$url" >> "$FIXTURE_CALL_LOG"
+                  case "$url" in
+                    "https://api.nuget.org/v3-flatcontainer/$FIXTURE_EXISTING_ID/1.2.3/$FIXTURE_EXISTING_ID.1.2.3.nupkg")
+                      if [ "$FIXTURE_SCENARIO" = existing-artifacts ]; then
+                        if [ "$output_file" = /dev/null ]; then printf 200; else printf 'existing fixture package\n' > "$output_file"; fi
+                      else printf 404; fi ;;
+                    https://api.nuget.org/v3-flatcontainer/*/1.2.3/*.1.2.3.nupkg) printf 404 ;;
+                    https://fixture.invalid/v2/tenants/manifests/1.2.3)
+                      if [ "$FIXTURE_SCENARIO" = existing-artifacts ]; then printf 200; else printf 404; fi ;;
+                    *) printf 'curl %s\n' "$url" >> "$FIXTURE_UNEXPECTED_LOG"; echo "Unexpected curl request: $url" >&2; return 97 ;;
                   esac
                 }
                 source "$FIXTURE_VALIDATOR" 1.2.3 "$FIXTURE_SHA"
@@ -150,8 +188,22 @@ public class PartialReleaseRecoveryTests
             process.StartInfo.ArgumentList.Add(fixture.ReplaceLineEndings("\n"));
             var environment = process.StartInfo.Environment;
             environment["FIXTURE_SCENARIO"] = scenario;
-            environment["FIXTURE_SHA"] = sourceSha;
+            environment["FIXTURE_SHA"] = scenario == "invalid-source" ? "main" : sourceSha;
             environment["FIXTURE_CALL_LOG"] = callLog;
+            environment["FIXTURE_UNEXPECTED_LOG"] = unexpectedLog;
+            environment["FIXTURE_EXISTING_ID"] = ids[0].ToLowerInvariant();
+            string[] ciCases = ["valid", "wrong-sha", "wrong-branch", "wrong-event", "running", "failed"];
+            environment["FIXTURE_CI_RUNS"] = JsonSerializer.Serialize(new
+            {
+                workflow_runs = ciCases.Where(item => scenario != "no-ci" || item != "valid").Select(item => new
+                {
+                    head_sha = item == "wrong-sha" ? "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" : sourceSha,
+                    head_branch = item == "wrong-branch" ? "feature" : "main",
+                    @event = item == "wrong-event" ? "pull_request" : "push",
+                    status = item == "running" ? "in_progress" : "completed",
+                    conclusion = item == "failed" ? "failure" : "success",
+                }),
+            });
             environment["FIXTURE_VALIDATOR"] = Path.Combine(repoRoot, "scripts/validate-partial-release-recovery.sh");
             environment["GITHUB_REPOSITORY"] = "fixture/recovery";
             environment["HEXALITH_RELEASE_SOURCE_BRANCH"] = "main";
@@ -183,23 +235,51 @@ public class PartialReleaseRecoveryTests
 
             string stdout = await output;
             string stderr = await error;
+            (await File.ReadAllTextAsync(unexpectedLog)).ShouldBeEmpty(stdout + stderr);
             stderr.ShouldNotContain("Unexpected", customMessage: stdout + stderr);
             string[] calls = await File.ReadAllLinesAsync(callLog);
+            if (scenario == "invalid-source")
+            {
+                calls.ShouldBeEmpty();
+            }
             string[] destinationReads = [.. calls.Where(call => call.StartsWith("curl ", StringComparison.Ordinal))];
             if (expectInventory)
             {
-                using var inventory = System.Text.Json.JsonDocument.Parse(await File.ReadAllTextAsync(manifest));
-                string[] ids = [.. inventory.RootElement.GetProperty("packages").EnumerateArray()
-                    .Select(package => package.GetProperty("id").GetString()!)];
-                destinationReads.ShouldBe([.. ids.Select(id =>
-                    $"curl https://api.nuget.org/v3-flatcontainer/{id.ToLowerInvariant()}/1.2.3/{id.ToLowerInvariant()}.1.2.3.nupkg"),
-                    "curl https://fixture.invalid/v2/tenants/manifests/1.2.3"]);
-                (await File.ReadAllLinesAsync(Path.Combine(stateDirectory, "missing-packages"))).ShouldBe(ids);
+                bool hasExistingArtifacts = scenario == "existing-artifacts";
+                List<string> expectedReads = [];
+                foreach (string id in ids)
+                {
+                    string read = $"curl https://api.nuget.org/v3-flatcontainer/{id.ToLowerInvariant()}/1.2.3/{id.ToLowerInvariant()}.1.2.3.nupkg";
+                    expectedReads.Add(read);
+                    if (hasExistingArtifacts && id == ids[0])
+                    {
+                        expectedReads.Add(read);
+                    }
+                }
+
+                expectedReads.Add("curl https://fixture.invalid/v2/tenants/manifests/1.2.3");
+                destinationReads.ShouldBe(expectedReads);
+                (await File.ReadAllLinesAsync(Path.Combine(stateDirectory, "missing-packages")))
+                    .ShouldBe(hasExistingArtifacts ? ids[1..] : ids);
                 (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "source-sha"))).ShouldBe(sourceSha + "\n");
                 (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "version"))).ShouldBe("1.2.3\n");
                 (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "package-state"))).ShouldBe("partial\n");
-                (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "container-state"))).ShouldBe("absent\n");
-                (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "existing-packages"))).ShouldBeEmpty();
+                (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "container-state")))
+                    .ShouldBe(hasExistingArtifacts ? "present\n" : "absent\n");
+                (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "existing-package-count")))
+                    .ShouldBe(hasExistingArtifacts ? "1\n" : "0\n");
+                (await File.ReadAllLinesAsync(Path.Combine(stateDirectory, "existing-packages")))
+                    .ShouldBe(hasExistingArtifacts ? [ids[0]] : []);
+                string expectedHash = string.Empty;
+                if (hasExistingArtifacts)
+                {
+                    const string packageContent = "existing fixture package\n";
+                    (await File.ReadAllTextAsync(Path.Combine(stateDirectory, $"{ids[0]}.1.2.3.nupkg"))).ShouldBe(packageContent);
+                    expectedHash = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(
+                        System.Text.Encoding.UTF8.GetBytes(packageContent))) + $" {ids[0]}\n";
+                }
+
+                (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "existing-package-sha256"))).ShouldBe(expectedHash);
             }
             else
             {
@@ -207,8 +287,12 @@ public class PartialReleaseRecoveryTests
                 Directory.Exists(stateDirectory).ShouldBe(existingState, stdout + stderr);
                 if (existingState)
                 {
-                    Directory.GetFiles(stateDirectory).ShouldBe([Path.Combine(stateDirectory, "missing-packages")]);
-                    (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "missing-packages"))).ShouldBe("previous inventory\n");
+                    Directory.GetFileSystemEntries(stateDirectory).Order(StringComparer.Ordinal)
+                        .ShouldBe(previousState.Keys.Select(name => Path.Combine(stateDirectory, name)).Order(StringComparer.Ordinal));
+                    foreach (var file in previousState)
+                    {
+                        (await File.ReadAllTextAsync(Path.Combine(stateDirectory, file.Key))).ShouldBe(file.Value);
+                    }
                 }
             }
 

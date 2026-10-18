@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-588 closure (2026-10-18):** Recovery preflight now rejects an existing GitHub Release whose matching tag is missing before destination reads or recovery-state preparation. Original production failed both new defect cases; independent review/recheck, a zero-warning/error Debug source build, focused 18/18 and full Contracts 351/351 pass with zero failures/skips. Only DW-588 closes: all 653 IDs remain, 369 done/284 open across 256 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint and release holds remain preserved. Concurrent external pointer commits and the failing historical attribution gate are recorded in [complete evidence](../_bmad-output/implementation-artifacts/dw-588-validation-evidence.md). Release remains not ready.
+
 **DW-218 closure (2026-10-18):** Contributor and agent release guidance now follows explicit dispatch and exact-source CI/publication checks, with date-bound reachable v5.8.0 history distinguished from the unchanged 4.0.0 safety minimum. Historical recovery/consumer observations and changelog entries remain. Independent review/recheck, final zero-warning/error Debug source build and full Contracts 333/333 pass with zero failures/skips. Only DW-218 closes: all 653 IDs remain, 368 done/285 open across 257 exact-covering maintenance rows. Original fields, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-218-validation-evidence.md). Release remains not ready.
 
 **DW-217/DW-219 closure (2026-10-18):** Preflight and contributor recovery guidance now require authentic producing-commit and reachable-tag evidence or separately reviewed recovery; registry-floor diagnostics describe unproven lineage and collision risk without claiming a computed proposal. Original-production checks failed 2/214; independent review/recheck, three rejected harmful mutations, final full Contracts 333/333 and a zero-warning/error Debug source build pass. Only these two records close: all 653 IDs remain, 367 done/286 open across 258 exact-covering maintenance rows. Historical findings, DW-218, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-217-219-validation-evidence.md). Release remains not ready.
@@ -84,14 +86,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 368 |
-| actionable | 198 |
+| done | 369 |
+| actionable | 197 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 285 open records across 257 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 284 open records across 256 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -109,7 +111,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-325/DW-587 closure (2026-10-17):** Retained removal activity is separate from accepted child activity. Refused adoption recovers under both expiry orderings; modal focus, current replacement target/tenant, sibling activity and disposal are qualified by thirteen new cases and independent review/recheck. Final Debug source build has zero warnings/errors; focused 470/full UI 6137 pass with zero failures/skips. Only these duplicates and their shared action row close: 647 IDs, 348 done/299 open, 268 exact-covering rows. [Exact commands, initial failures, review and limits](../_bmad-output/implementation-artifacts/dw-325-587-validation-evidence.md) preserve the historical unmounted-child evidence limit, earlier findings, archive/sprint, dependencies and release holds. Release remains not ready.
 
-**Current implementation completed:** DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
+**Current implementation completed:** DW-588; DW-216; DW-215; DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -165,7 +167,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-575 | P2 | Defect / actionable | Tenants bootstrap and quickstart documentation | DW-567 bootstrap identity boundary | Require configured administrator verification before optional bootstrap checks, and replace the wrong-subject command example. |
 | DW-581 | P2 | Defect / actionable | unassigned | Release asset inventory | Upload verified missing assets to existing releases without replacing matching assets. |
 | DW-586 | P2 | Defect / actionable | unassigned | Pending-status UX contract | Preserve a polite waiting lifecycle for Pending status and cover 404-before-first-status. |
-| DW-588 | P2 | Defect / actionable | unassigned | Validated GitHub tag/release inventory | Reject existing-release/missing-tag recovery before any publication. |
 | DW-594 | P2 | Defect / actionable | Tenants integration-test fixture | Runner TLS trust or selected HTTP endpoint | Expose safe inner TLS cause, repair endpoint/trust, then require this exact live test to pass in CI. |
 | DW-595 | P2 | Defect / blocked | EventStore (Story 6.1-P1R evidence, contracts packaging) | EventStore-maintainer fixes at adopted source revision | Route current failing upstream tests to EventStore and capture a green exact-pin CI result. |
 | DW-597 | P2 | Defect / actionable | unassigned | Multitenant claim normalization contract | Allow explicit unambiguous system membership within valid multivalued claims and add the shipped-realm principal regression. |

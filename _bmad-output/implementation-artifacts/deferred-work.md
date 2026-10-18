@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-588 closure (2026-10-18):** Recovery preflight now rejects an existing GitHub Release whose matching tag is missing before destination reads or recovery-state preparation. Original production failed both new defect cases; independent review/recheck, a zero-warning/error Debug source build, focused 18/18 and full Contracts 351/351 pass with zero failures/skips. Only DW-588 closes: all 653 IDs remain, 369 done/284 open across 256 exact-covering maintenance rows. Original findings, unrelated records, archive/sprint and release holds remain preserved. Concurrent external pointer commits and the failing historical attribution gate are recorded in [complete evidence](dw-588-validation-evidence.md). Release remains not ready.
+
 **DW-218 closure (2026-10-18):** Contributor and agent release guidance now follows explicit dispatch and exact-source CI/publication checks, with date-bound reachable v5.8.0 history distinguished from the unchanged 4.0.0 safety minimum. Historical recovery/consumer observations and changelog entries remain. Independent review/recheck, final zero-warning/error Debug source build and full Contracts 333/333 pass with zero failures/skips. Only DW-218 closes: all 653 IDs remain, 368 done/285 open across 257 exact-covering maintenance rows. Original fields, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-218-validation-evidence.md). Release remains not ready.
 
 **DW-217/DW-219 closure (2026-10-18):** Preflight and contributor recovery guidance now require authentic producing-commit and reachable-tag evidence or separately reviewed recovery; registry-floor diagnostics describe unproven lineage and collision risk without claiming a computed proposal. Original-production checks failed 2/214; independent review/recheck, three rejected harmful mutations, final full Contracts 333/333 and a zero-warning/error Debug source build pass. Only these two records close: all 653 IDs remain, 367 done/286 open across 258 exact-covering maintenance rows. Historical findings, DW-218, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-217-219-validation-evidence.md). Release remains not ready.
@@ -7669,17 +7671,26 @@ location: scripts/validate-partial-release-recovery.sh
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Reject a recovery state with an existing GitHub Release and missing tag.\n  evidence: The recovery validator independently permits a 404 tag and a 200 release, then later tag verification cannot succeed."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: validate-partial-release-recovery.sh permits tag=404 independently of release=200; publisher leaves an existing release untouched and verifier requires a resolving tag. The inconsistent state remains admissible.
-verification-files: scripts/validate-partial-release-recovery.sh
-evidence-kind: verified-defect
+pre-dw-588-status: open
+status: done 2026-10-18
+pre-dw-588-disposition: actionable
+disposition: done
+pre-dw-588-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-588-verification: validate-partial-release-recovery.sh permits tag=404 independently of release=200; publisher leaves an existing release untouched and verifier requires a resolving tag. The inconsistent state remains admissible.
+verification: Recovery preflight now rejects an existing GitHub Release when the matching tag is absent, before destination reads or recovery-state preparation. Original production failed both new defect cases; independent review/recheck resolved five fixture findings. Final Debug source build has zero warnings/errors; focused 18/18 and maintained Contracts 351/351 pass with zero failures/skips. Existing lightweight/annotated tag, source/CI, draft/tag-name and absent-release paths remain covered, including persisted existing-artifact hashes. The historical story-gitlink gate separately fails on six concurrent external pointer updates; no task pointer movement is claimed. Exact commands, initial failures and limits remain in dw-588-validation-evidence.md.
+pre-dw-588-verification-files: scripts/validate-partial-release-recovery.sh
+verification-files: scripts/validate-partial-release-recovery.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryTests.cs
+pre-dw-588-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Validated GitHub tag/release inventory
-next-action: Reject existing-release/missing-tag recovery before any publication.
+pre-dw-588-next-action: Reject existing-release/missing-tag recovery before any publication.
+next-action: Closed within DW-588; preserve separate release-recovery work and existing qualification holds.
 related: DW-581,DW-607
+resolution-evidence: [Exact commands, independent review and validation limits](dw-588-validation-evidence.md)
+resolution-spec: spec-dw-588-recovery-release-without-tag.md
 
 
 ### DW-589: Check OCI index handling in the recovery container manifest probe.
