@@ -925,14 +925,32 @@ public class PackageGovernanceTests {
         bridge.ShouldContain("minimum_release_version=4.0.0");
         contributing.ShouldContain("Nothing at or below `4.0.0` can be released again");
 
-        // Every version at or below 3.15.1 is published, so a version line that drops back into that
-        // range must fail here rather than on a NuGet destination probe. The message must name both
-        // causes, because a restored tag line with no major in range fails the same way.
+        // Below-floor proposals must fail before any destination probe, with the same authentic
+        // producing-commit and reachability policy as the earlier registry/tag-floor guard.
         (int ExitCode, string Error) collided = await RunPublicationPreflightAsync(repoRoot, "3.3.0", "verify");
         collided.ExitCode.ShouldBe(1);
         collided.Error.ShouldContain("below the 4.0.0 release floor");
-        collided.Error.ShouldContain("restore the deleted tags");
-        collided.Error.ShouldContain("BREAKING CHANGE");
+        string normalizedContributing = Regex.Replace(contributing, @"\s+", " ");
+        foreach (string guidance in new string[]
+        {
+            "Restore a missing release tag only when it is the authentic tag for that published version, "
+                + "points to the commit that actually produced it, and is reachable from the dispatched source.",
+            "If that provenance or reachability cannot be established, stop and use a "
+                + "separately reviewed release-lineage recovery procedure; never create or move a tag merely to clear this guard.",
+        })
+        {
+            collided.Error.ShouldContain(guidance);
+            normalizedContributing.ShouldContain(guidance);
+        }
+        collided.Error.ShouldNotContain("restore the deleted tags");
+        collided.Error.ShouldNotContain("BREAKING CHANGE");
+        collided.Error.ShouldNotContain("Everything at or below 3.15.1 is published");
+        normalizedContributing.ShouldNotContain("restore the deleted tags until semantic-release resumes above the floor");
+        normalizedContributing.ShouldNotContain("major bump, so the change needs a `BREAKING CHANGE` footer");
+
+        (int ExitCode, string Error) publishBlocked = await RunPublicationPreflightAsync(repoRoot, "3.3.0", "publish");
+        publishBlocked.ExitCode.ShouldBe(1);
+        publishBlocked.Error.ShouldBe(collided.Error);
 
         (int ExitCode, string Error) highestConsumed = await RunPublicationPreflightAsync(repoRoot, "3.15.1", "verify");
         highestConsumed.ExitCode.ShouldBe(1);
@@ -1126,9 +1144,9 @@ public class PackageGovernanceTests {
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/release.yml"));
         string verifySourceJob = GetYamlJobBlock(workflow, "verify-source");
 
-        // Semantic Release derives the next version from the highest reachable release tag, so a
-        // published version above that floor makes every proposal collide. The guard must live in
-        // the unprotected job, where an invalid dispatch cannot reach approval or release secrets.
+        // Published versions above the highest reachable release tag leave lineage unproven and
+        // risk a collision; the guard does not compute Semantic Release's proposal. It must remain
+        // in the unprotected job, before an invalid dispatch reaches approval or release secrets.
         verifySourceJob.ShouldContain($"- name: {RegistryDriftGuardStepName}");
         verifySourceJob.ShouldContain("authentic tag for that published version");
         verifySourceJob.ShouldContain("commit that actually produced it");
@@ -1573,6 +1591,34 @@ public class PackageGovernanceTests {
         drifted.Error.ShouldContain("separately reviewed release-lineage recovery procedure");
         drifted.Error.ShouldContain("never create or move a tag merely to clear this guard");
         drifted.Error.ShouldNotContain("tag at or above the highest published version");
+        drifted.Error.ShouldContain("Release lineage is unproven and a proposed version may collide");
+        drifted.Error.ShouldContain("This guard does not compute the proposed release version");
+        drifted.Error.ShouldNotContain("would propose a version that already exists");
+
+        // A sparse registry still fails lineage validation even though it leaves version gaps.
+        // No release proposal is computed, so neither a specific collision nor its absence is known.
+        (int ExitCode, string Output, string Error) sparseRegistry = await RunTagFloorGuardAsync(
+            workflow,
+            GitHubResponses(
+                (TagRefsEndpoint, 0, TagRefsResponse("v3.2.18")),
+                (CompareEndpoint("v3.2.18"), 0, CompareResponse("ahead")),
+                (ManifestEndpoint, 0, ManifestResponse("Hexalith.Tenants.Contracts"))),
+            RegistryResponses(("Hexalith.Tenants.Contracts", 0, "200", PublishedVersions("3.2.18", "3.15.1"))),
+            [
+                $"api --paginate {TagRefsEndpoint}",
+                $"api {CompareEndpoint("v3.2.18")}",
+                $"api {ManifestEndpoint}",
+                $"curl {RegistryUrl("Hexalith.Tenants.Contracts")}",
+            ]);
+        sparseRegistry.ExitCode.ShouldBe(1, sparseRegistry.Output);
+        sparseRegistry.Error.ShouldContain("exceed the release tag floor v3.2.18");
+        sparseRegistry.Error.ShouldContain("Hexalith.Tenants.Contracts 3.15.1");
+        sparseRegistry.Error.ShouldContain("Release lineage is unproven and a proposed version may collide");
+        sparseRegistry.Error.ShouldContain("This guard does not compute the proposed release version");
+        sparseRegistry.Error.ShouldNotContain("would propose a version that already exists");
+        sparseRegistry.Error.ShouldContain("authentic tag for that published version");
+        sparseRegistry.Error.ShouldContain("separately reviewed release-lineage recovery procedure");
+        sparseRegistry.Output.ShouldNotContain("Release tag floor v3.2.18 is at or above");
 
         // 3.15.1 is above 3.2.18. A lexical comparison reverses that and reports no drift at all.
         (int ExitCode, string Output, string Error) lexical = await RunTagFloorGuardAsync(

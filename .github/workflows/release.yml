@@ -80,8 +80,9 @@ jobs:
         run: |
           set -euo pipefail
           # Semantic Release derives the next version from the highest release tag reachable from
-          # the released branch, so a published package version above that floor makes every
-          # proposal land on an occupied version. That happened once already: the v3.3.0..v3.15.1
+          # the released branch. Published package versions above that floor leave release lineage
+          # unproven and risk a collision; this guard does not compute the proposed version.
+          # A collision happened once already: the v3.3.0..v3.15.1
           # tags were deleted while nuget.org kept those versions, and the collision surfaced only
           # inside the protected release job, after approval. Prove the floor covers the registry
           # here, in the unprotected job, before any secret is reachable.
@@ -272,7 +273,7 @@ jobs:
           if [ -n "$violations" ]; then
             echo "Published package versions exceed the release tag floor ${floor_tag}:" >&2
             printf '%s' "$violations" >&2
-            echo "Semantic Release would propose a version that already exists, and the publication preflight would reject it." >&2
+            echo "Release lineage is unproven and a proposed version may collide with a published version. This guard does not compute the proposed release version." >&2
             if [[ "$highest_violation" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.([0-9]+)$ ]] && [ "${BASH_REMATCH[1]}" -ne 0 ]; then
               echo "The highest offending version ${highest_violation} has a nonzero NuGet revision and cannot be represented by this repository's three-part release tags." >&2
               echo "Stop and use a separately reviewed release-lineage recovery procedure; never create or move a tag merely to clear this guard." >&2

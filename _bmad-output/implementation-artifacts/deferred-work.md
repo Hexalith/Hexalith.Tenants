@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-217/DW-219 closure (2026-10-18):** Preflight and contributor recovery guidance now require authentic producing-commit and reachable-tag evidence or separately reviewed recovery; registry-floor diagnostics describe unproven lineage and collision risk without claiming a computed proposal. Original-production checks failed 2/214; independent review/recheck, three rejected harmful mutations, final full Contracts 333/333 and a zero-warning/error Debug source build pass. Only these two records close: all 653 IDs remain, 367 done/286 open across 258 exact-covering maintenance rows. Historical findings, DW-218, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-217-219-validation-evidence.md). Release remains not ready.
+
 **DW-216 closure (2026-10-18):** Registry versions now validate complete grammar, canonical decimal cores within NuGet's Int32 range, prerelease identifiers and the 64-character NuGet.org limit before prerelease exclusion. Existing aliases, valid prereleases and four-component numeric ordering remain covered. Original production failed 64/116 cases; review length controls failed four/130 before correction. Independent review/recheck, final focused 130/130, full Contracts 333/333 and a zero-warning/error Debug source build pass. Only DW-216 closes: all 653 IDs remain, 365 done/288 open across 260 exact-covering maintenance rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-216-validation-evidence.md). Release remains not ready.
 
 **DW-215 closure (2026-10-18):** Plain stable release tags now require canonical decimal components within semantic-release's safe-integer range before conversion, sorting or reachability requests. Initial production tests failed 24/36; independent review/recheck, final focused 49/49, full Contracts 203/203 and a zero-warning/error Debug source build pass. Actual selector/parser parity matches 5,832 candidates with zero admission/order differences; actionlint and story-gitlink checks pass. Only DW-215 closes: all 653 IDs remain, 364 done/289 open across 261 exact-covering maintenance rows. Historical findings, unrelated records, DW-216, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-215-validation-evidence.md). Release remains not ready.
@@ -1962,17 +1964,27 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 reason: The legacy ledger defers this issue: Reconcile publication-preflight and contributor recovery guidance with authentic-tag-only provenance policy. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Reconcile publication-preflight and contributor recovery guidance with authentic-tag-only provenance policy. evidence: Existing script and CONTRIBUTING guidance still recommends restoring deleted tags or advancing via a breaking footer without the producing-commit and reachability safeguards adopted by this spec.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: scripts/validate-publication-preflight.sh floor failure text and CONTRIBUTING.md still suggest restoring deleted tags or a breaking footer without the authentic producing-commit/reachability safeguards in .github/workflows/release.yml.
-verification-files: scripts/validate-publication-preflight.sh; .github/workflows/release.yml
-evidence-kind: verified-defect
+pre-dw-217-status: open
+status: done 2026-10-18
+pre-dw-217-disposition: actionable
+disposition: resolved
+pre-dw-217-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-217-verification: scripts/validate-publication-preflight.sh floor failure text and CONTRIBUTING.md still suggest restoring deleted tags or a breaking footer without the authentic producing-commit/reachability safeguards in .github/workflows/release.yml.
+verification: Publication-preflight verify/publish failures and contributor recovery guidance now require an authentic published-version tag at its actual producing commit, reachable from dispatched source, or separately reviewed recovery. Original-production tests failed 2/214 across this bundle; independent review/recheck and three rejected policy/advice mutations qualify the correction. Final Debug source build has zero warnings/errors; final full Contracts 333/333 passes with zero failures/skips. DW-218 remains open; exact commands, earlier failures and unchanged-line formatter blocker are retained in dw-217-219-validation-evidence.md.
+pre-dw-217-verification-files: scripts/validate-publication-preflight.sh; .github/workflows/release.yml
+verification-files: scripts/validate-publication-preflight.sh; CONTRIBUTING.md; .github/workflows/release.yml; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
+pre-dw-217-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: release-lineage policy
-next-action: Align recovery guidance with authentic-tag-only lineage and reviewed recovery.
+pre-dw-217-next-action: Align recovery guidance with authentic-tag-only lineage and reviewed recovery.
+next-action: Closed within DW-217/DW-219; retain DW-218, unrelated deferred work and existing release qualification holds.
 related: DW-218, DW-219
+resolution-evidence: [Exact validation, initial failures and independent review](dw-217-219-validation-evidence.md)
+resolution-spec: spec-dw-217-219-release-recovery-guidance.md
+
 
 ### DW-218: Correct stale release trigger and current release-line documentation
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1998,17 +2010,27 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 reason: The legacy ledger defers this issue: Replace absolute collision wording with an accurate unproven-lineage risk statement. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Replace absolute collision wording with an accurate unproven-lineage risk statement. evidence: The existing guard message says semantic-release would certainly propose an occupied version even though it does not compute the proposal and the registry range may contain gaps.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/release.yml still says semantic-release would certainly propose an occupied version, although the guard compares registry/tag floors without computing the proposed version.
-verification-files: .github/workflows/release.yml
-evidence-kind: verified-defect
+pre-dw-219-status: open
+status: done 2026-10-18
+pre-dw-219-disposition: actionable
+disposition: resolved
+pre-dw-219-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-219-verification: .github/workflows/release.yml still says semantic-release would certainly propose an occupied version, although the guard compares registry/tag floors without computing the proposed version.
+verification: Registry-floor failure now reports unproven release lineage and possible collision while explicitly stating that no release proposal is computed. Sparse-registry and existing drift/four-component controls execute actual workflow Bash with unchanged read-only probes. Independent review/recheck, zero-warning/error final Debug source build and final full Contracts 333/333 pass with zero failures/skips. Exact commands, initial failures and limits are retained in dw-217-219-validation-evidence.md.
+pre-dw-219-verification-files: .github/workflows/release.yml
+verification-files: .github/workflows/release.yml; CONTRIBUTING.md; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
+pre-dw-219-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Describe the proven lineage/floor gap and collision risk without claiming an uncomputed collision.
+pre-dw-219-next-action: Describe the proven lineage/floor gap and collision risk without claiming an uncomputed collision.
+next-action: Closed within DW-217/DW-219; retain DW-218, unrelated deferred work and existing release qualification holds.
 related: DW-217
+resolution-evidence: [Exact validation, initial failures and independent review](dw-217-219-validation-evidence.md)
+resolution-spec: spec-dw-217-219-release-recovery-guidance.md
+
 
 ### DW-220: Remove default set/remove projection-proof implementations from ITenantQueryGateway so every gateway and decorator must implement the security-sensitive proof contract explicitly
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25

@@ -112,10 +112,24 @@ five packages share one version and part of the range is already published and i
 
 `scripts/validate-publication-preflight.sh` declares `minimum_release_version` and fails closed —
 locally, before the shared preflight probes any destination — when a proposal falls below it. The
-check firing means one of two things: the tag line lost its history again, so restore the deleted
-tags until semantic-release resumes above the floor; or the analyzed commits do not justify the
-major bump, so the change needs a `BREAKING CHANGE` footer. Never lower the floor to make a release
-pass, and never publish into the consumed range.
+check firing requires release-lineage investigation; it does not establish the cause by itself.
+Restore a missing release tag only when it is the authentic tag for that published version,
+points to the commit that actually produced it, and is reachable from the dispatched source.
+If that provenance or reachability cannot be established, stop and use a
+separately reviewed release-lineage recovery procedure; never create or move a tag merely to clear this guard.
+A version-line bump does not repair unproven lineage, and the earlier registry-floor guard blocks
+before semantic-release computes a proposal. Published versions above the highest reachable tag
+establish a lineage gap and collision risk, not a guaranteed collision with an uncomputed proposal.
+Never lower the floor to make a release pass, and never publish into the consumed range.
+
+For recovery review, collect the original successful publication run and its exact source commit,
+tie the published version to that run's artifacts, and establish that the producing commit is an
+ancestor of the dispatched source. A tag name alone does not establish that provenance. Send the
+evidence to repository maintainers through a
+[release-lineage recovery issue](https://github.com/Hexalith/Hexalith.Tenants/issues/new).
+Keep publication blocked while that evidence is incomplete. A published version with a nonzero
+fourth NuGet revision cannot be represented by the repository's three-part release tags and also
+requires a separately reviewed recovery procedure.
 
 **Consumers.** Sibling Hexalith repositories pin `Hexalith.Tenants.*` at `3.2.x`. Moving to `4.0.0`
 requires a coordinated package-reference bump. A consumer coming from `3.2.18` gets no API break —

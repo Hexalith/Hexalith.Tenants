@@ -44,7 +44,7 @@ fail() {
 version_core="${version%%-*}"
 lowest_version="$(printf '%s\n%s\n' "$minimum_release_version" "$version_core" | sort -V | head -n 1)"
 [[ "$lowest_version" = "$minimum_release_version" ]] ||
-  fail "Version $version is below the $minimum_release_version release floor. Everything at or below 3.15.1 is published and immutable. Either the tag line lost its release history, in which case restore the deleted tags so semantic-release resumes above the floor, or the analyzed commits do not justify the major bump out of the 3.x line, in which case land the change with a BREAKING CHANGE footer. Never lower the floor to make a release pass."
+  fail "Version $version is below the $minimum_release_version release floor. Previously published versions are immutable. Restore a missing release tag only when it is the authentic tag for that published version, points to the commit that actually produced it, and is reachable from the dispatched source. If that provenance or reachability cannot be established, stop and use a separately reviewed release-lineage recovery procedure; never create or move a tag merely to clear this guard. A version-line bump does not repair unproven lineage. Never lower the floor to make a release pass."
 [[ "$phase" =~ ^(verify|publish)$ ]] ||
   fail "Publication phase must be verify or publish."
 [[ "$builds_execution_sha" =~ ^[0-9a-f]{40}$ ]] ||
