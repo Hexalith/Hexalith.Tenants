@@ -38,6 +38,8 @@ jobs:
     name: validate-remove-focus-in-chromium
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      CHROME_FOR_TESTING_VERSION: 153.0.8010.52
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -62,7 +64,28 @@ jobs:
         id: chrome
         uses: browser-actions/setup-chrome@39ce663831f86d2ea36cbda0a8143709cdfcc410 # v2.2.0
         with:
-          chrome-version: 153.0.8010.52
+          chrome-version: ${{ env.CHROME_FOR_TESTING_VERSION }}
+      - name: Install the matching Chrome headless shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$CHROME_FOR_TESTING_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "CHROME_FOR_TESTING_VERSION must be a four-part Chrome for Testing version." >&2
+            exit 1
+          fi
+          archive_dir="${RUNNER_TEMP}/chrome-headless-shell"
+          mkdir -p "$archive_dir"
+          curl --fail --silent --show-error --location \
+            --output "$archive_dir/chrome-headless-shell.zip" \
+            "https://storage.googleapis.com/chrome-for-testing-public/${CHROME_FOR_TESTING_VERSION}/linux64/chrome-headless-shell-linux64.zip"
+          unzip -q "$archive_dir/chrome-headless-shell.zip" -d "$archive_dir"
+          shell_path="$archive_dir/chrome-headless-shell-linux64/chrome-headless-shell"
+          if [[ ! -x "$shell_path" ]]; then
+            echo "Chrome headless shell was not installed at ${shell_path}." >&2
+            exit 1
+          fi
+          "$shell_path" --version
+          echo "TENANTS_HEADLESS_SHELL=${shell_path}" >> "$GITHUB_ENV"
       - name: Validate the shipped removal focus module in Chromium
         env:
           CHROMIUM_BIN: ${{ steps.chrome.outputs.chrome-path }}

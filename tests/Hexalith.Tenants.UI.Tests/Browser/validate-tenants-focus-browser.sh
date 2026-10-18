@@ -349,12 +349,31 @@ if [[ ! "$browser_timeout_seconds" =~ ^[1-9][0-9]*$ ]]; then
     echo "TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS must be a positive whole number." >&2
     exit 1
 fi
+# The full Chrome binary's --headless=new mode does not exit from --dump-dom on the
+# hosted runner (pinned Chrome for Testing 153). chrome-headless-shell is the
+# dump-dom binary. Local Chrome keeps --headless=new when the shell is unset.
+dump_browser_path="$browser_path"
+dump_headless_arguments=(--headless=new)
+if [[ -n "${TENANTS_HEADLESS_SHELL:-}" ]]; then
+    if [[ ! -x "$TENANTS_HEADLESS_SHELL" ]]; then
+        echo "TENANTS_HEADLESS_SHELL is not executable: $TENANTS_HEADLESS_SHELL" >&2
+        exit 1
+    fi
+    dump_browser_path="$TENANTS_HEADLESS_SHELL"
+    dump_headless_arguments=()
+fi
+chromium_executable="$browser_path"
+if (( browser_timeout_seconds > 2 )); then
+    dump_timeout_ms=$(( (browser_timeout_seconds - 2) * 1000 ))
+else
+    dump_timeout_ms=$(( browser_timeout_seconds * 1000 ))
+fi
 run_chromium() {
     local scenario_name="$1"
     local output_path="$2"
     shift 2
     local exit_status
-    if timeout --kill-after=5s "${browser_timeout_seconds}s" "$browser_path" "$@" \
+    if timeout --kill-after=5s "${browser_timeout_seconds}s" "$chromium_executable" "$@" \
         >"$output_path" 2>"${output_path}.stderr"; then
         return 0
     else
@@ -363,6 +382,24 @@ run_chromium() {
         sed -n '1,120p' "${output_path}.stderr" >&2
         return "$exit_status"
     fi
+}
+
+dump_dom() {
+    local scenario_name="$1"
+    local output_path="$2"
+    shift 2
+    chromium_executable="$dump_browser_path"
+    run_chromium "$scenario_name" "$output_path" \
+        --no-sandbox \
+        "${dump_headless_arguments[@]}" \
+        --disable-dev-shm-usage \
+        --disable-gpu \
+        --disable-background-networking \
+        --no-default-browser-check \
+        --no-first-run \
+        --timeout="${dump_timeout_ms}" \
+        "$@"
+    chromium_executable="$browser_path"
 }
 
 run_browser() {
@@ -382,13 +419,7 @@ run_browser() {
     if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
         printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
     fi
-    run_chromium "$profile_name" "$output_path" \
-        --no-sandbox \
-        --headless=new \
-        --disable-dev-shm-usage \
-        --disable-gpu \
-        --no-default-browser-check \
-        --no-first-run \
+    dump_dom "$profile_name" "$output_path" \
         "${forced_color_arguments[@]}" \
         "$window_size_argument" \
         --user-data-dir="$validation_tmp/$profile_name" \
@@ -415,7 +446,7 @@ if ! grep -q 'data-validation-status="passed"' "$positive_output"; then
 fi
 
 identity_output="$validation_tmp/identity.html.output"
-run_chromium "rendered tenant identity" "$identity_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+dump_dom "rendered tenant identity" "$identity_output" \
     --window-size=1024,800 --user-data-dir="$validation_tmp/profile-identity" \
     --virtual-time-budget=3000 --dump-dom "http://127.0.0.1:${validation_port}/identity.html"
 if ! grep -q 'data-validation-status="passed"' "$identity_output"; then
@@ -425,7 +456,7 @@ if ! grep -q 'data-validation-status="passed"' "$identity_output"; then
 fi
 grep -o '<output id="validation-report">[^<]*' "$identity_output"
 identity_mutation_output="$validation_tmp/identity-wrong-row.html"
-run_chromium "tenant identity wrong row control" "$identity_mutation_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+dump_dom "tenant identity wrong row control" "$identity_mutation_output" \
     --window-size=1024,800 --user-data-dir="$validation_tmp/profile-identity-wrong-row" \
     --virtual-time-budget=3000 --dump-dom "http://127.0.0.1:${validation_port}/identity.html?mutation=wrong-row"
 if ! grep -q 'data-validation-status="failed"' "$identity_mutation_output" \
@@ -499,7 +530,7 @@ for culture in en fr; do
         if [[ "$scenario" != desktop ]]; then start_width=390; fi
         if [[ "$scenario" == forced-colors ]]; then start_color_args+=(--force-high-contrast); start_colors=active; fi
         start_output="$validation_tmp/start-${culture}-${scenario}.html"
-        run_chromium "correction start ${culture}/${scenario}" "$start_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+        dump_dom "correction start ${culture}/${scenario}" "$start_output" \
             "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-start-${culture}-${scenario}" \
             --virtual-time-budget=3000 --dump-dom \
             "http://127.0.0.1:${validation_port}/start.html?culture=${culture}&forcedColors=${start_colors}"
@@ -509,7 +540,7 @@ for culture in en fr; do
             exit 1
         fi
         preview_output="$validation_tmp/preview-${culture}-${scenario}.html"
-        run_chromium "correction preview ${culture}/${scenario}" "$preview_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+        dump_dom "correction preview ${culture}/${scenario}" "$preview_output" \
             "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-preview-${culture}-${scenario}" \
             --virtual-time-budget=3000 --dump-dom \
             "http://127.0.0.1:${validation_port}/preview.html?culture=${culture}&forcedColors=${start_colors}"
@@ -519,7 +550,7 @@ for culture in en fr; do
             exit 1
         fi
         global_output="$validation_tmp/global-${culture}-${scenario}.html"
-        run_chromium "global correction ${culture}/${scenario}" "$global_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+        dump_dom "global correction ${culture}/${scenario}" "$global_output" \
             "${start_color_args[@]}" --window-size="${start_width},800" --user-data-dir="$validation_tmp/profile-global-${culture}-${scenario}" \
             --virtual-time-budget=3000 --dump-dom \
             "http://127.0.0.1:${validation_port}/global-correction.html?culture=${culture}&viewport=$([[ "$scenario" == desktop ]] && echo desktop || echo narrow)&forcedColors=${start_colors}"
@@ -531,7 +562,7 @@ for culture in en fr; do
     done
 done
 recovery_mutation_output="$validation_tmp/recovery-no-tabindex.html"
-run_chromium "recovery missing tabindex mutation" "$recovery_mutation_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+dump_dom "recovery missing tabindex mutation" "$recovery_mutation_output" \
     --window-size=1024,800 --user-data-dir="$validation_tmp/profile-recovery-no-tabindex" \
     --virtual-time-budget=3000 --dump-dom \
     "http://127.0.0.1:${validation_port}/preview.html?culture=en&missingRecoveryTabindex=true"
@@ -545,7 +576,7 @@ printf '%s\n' "Rendered global correction preview and paired receipt EN/FR: desk
 
 for culture in en fr; do
     live_output="$validation_tmp/live-admission-${culture}.html"
-    run_chromium "live admission ${culture}" "$live_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+    dump_dom "live admission ${culture}" "$live_output" \
         --run-all-compositor-stages-before-draw --window-size=1366,1000 --user-data-dir="$validation_tmp/profile-live-admission-${culture}" \
         --virtual-time-budget=3000 --dump-dom \
         "http://127.0.0.1:${validation_port}/tenant-live-admission-browser-validation.html?culture=${culture}"
@@ -556,7 +587,7 @@ for culture in en fr; do
     fi
 done
 live_mutation_output="$validation_tmp/live-admission-stuck-measurement.html"
-run_chromium "live admission stuck measurement control" "$live_mutation_output" --no-sandbox --headless=new --disable-dev-shm-usage --disable-gpu --no-default-browser-check --no-first-run \
+dump_dom "live admission stuck measurement control" "$live_mutation_output" \
     --run-all-compositor-stages-before-draw --window-size=1366,1000 --user-data-dir="$validation_tmp/profile-live-admission-mutation" \
     --virtual-time-budget=3000 --dump-dom \
     "http://127.0.0.1:${validation_port}/tenant-live-admission-browser-validation.html?culture=en&mutation=true"
