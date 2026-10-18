@@ -59,6 +59,7 @@ release_endpoint="repos/${repository}/releases/tags/v${version}"
 release_status="$(api_status "$release_endpoint")"
 case "$release_status" in
   200)
+    [ "$tag_status" = 200 ] || fail "The existing GitHub Release has no matching release tag."
     release_json="$(gh api "$release_endpoint")"
     [ "$(printf '%s' "$release_json" | jq -r '.draft')" = false ] || fail "The existing GitHub Release is a draft."
     [ "$(printf '%s' "$release_json" | jq -r '.tag_name')" = "v${version}" ] || fail "The existing GitHub Release tag is inconsistent."

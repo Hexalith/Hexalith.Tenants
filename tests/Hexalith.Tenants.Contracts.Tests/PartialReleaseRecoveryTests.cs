@@ -183,7 +183,7 @@ public class PartialReleaseRecoveryTests
 
             string stdout = await output;
             string stderr = await error;
-            stderr.ShouldNotContain("Unexpected", stdout + stderr);
+            stderr.ShouldNotContain("Unexpected", customMessage: stdout + stderr);
             string[] calls = await File.ReadAllLinesAsync(callLog);
             string[] destinationReads = [.. calls.Where(call => call.StartsWith("curl ", StringComparison.Ordinal))];
             if (expectInventory)
