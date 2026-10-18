@@ -349,25 +349,23 @@ if [[ ! "$browser_timeout_seconds" =~ ^[1-9][0-9]*$ ]]; then
     echo "TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS must be a positive whole number." >&2
     exit 1
 fi
-# The full Chrome binary's --headless=new mode does not exit from --dump-dom on the
-# hosted runner (pinned Chrome for Testing 153). chrome-headless-shell is the
-# dump-dom binary. Local Chrome keeps --headless=new when the shell is unset.
+# Hosted Chrome 153 never returns from --dump-dom. Capture through DevTools after
+# the page reports its validation status. The matching headless shell is used when
+# the workflow provides one; local Chrome remains the fallback.
 dump_browser_path="$browser_path"
-dump_headless_arguments=(--headless=new)
 if [[ -n "${TENANTS_HEADLESS_SHELL:-}" ]]; then
     if [[ ! -x "$TENANTS_HEADLESS_SHELL" ]]; then
         echo "TENANTS_HEADLESS_SHELL is not executable: $TENANTS_HEADLESS_SHELL" >&2
         exit 1
     fi
     dump_browser_path="$TENANTS_HEADLESS_SHELL"
-    dump_headless_arguments=()
+fi
+node_bin="$(command -v node || true)"
+if [[ -z "$node_bin" ]]; then
+    echo "Node is required to capture the validation DOM." >&2
+    exit 1
 fi
 chromium_executable="$browser_path"
-if (( browser_timeout_seconds > 2 )); then
-    dump_timeout_ms=$(( (browser_timeout_seconds - 2) * 1000 ))
-else
-    dump_timeout_ms=$(( browser_timeout_seconds * 1000 ))
-fi
 run_chromium() {
     local scenario_name="$1"
     local output_path="$2"
@@ -388,17 +386,21 @@ dump_dom() {
     local scenario_name="$1"
     local output_path="$2"
     shift 2
-    chromium_executable="$dump_browser_path"
+    local url="${*: -1}"
+    local chrome_args=()
+    local arg
+    for arg in "$@"; do
+        if [[ "$arg" == "$url" || "$arg" == "--dump-dom" || "$arg" == --virtual-time-budget=* || "$arg" == --timeout=* ]]; then
+            continue
+        fi
+        chrome_args+=("$arg")
+    done
+    chromium_executable="$node_bin"
     run_chromium "$scenario_name" "$output_path" \
-        --no-sandbox \
-        "${dump_headless_arguments[@]}" \
-        --disable-dev-shm-usage \
-        --disable-gpu \
-        --disable-background-networking \
-        --no-default-browser-check \
-        --no-first-run \
-        --timeout="${dump_timeout_ms}" \
-        "$@"
+        "$script_dir/dump-validation-dom.mjs" \
+        "$dump_browser_path" \
+        "$url" \
+        "${chrome_args[@]}"
     chromium_executable="$browser_path"
 }
 
@@ -614,4 +616,4 @@ printf '%s\n' "Removal-dialog in-flow and hidden CSS mutations: correctly reject
 printf '%s\n' "Unstacked availability recoveries at 390px: correctly rejected"
 
 # Check the real Fluent status selector names using Chromium's accessibility tree.
-node "$script_dir/validate-status-filter-label-browser.mjs" "$build_configuration" "$browser_path" "$browser_timeout_seconds"
+node "$script_dir/validate-status-filter-label-browser.mjs" "$build_configuration" "$dump_browser_path" "$browser_timeout_seconds"
