@@ -109,6 +109,34 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task DisposedCorrectionPanelDoesNotReactToPrincipalChange()
+    {
+        var authentication = new StubAuthenticationStateProvider();
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+            .Add(component => component.Intent, RestoreIntent())
+            .Add(component => component.CurrentProjection, Projection("other-admin")));
+        GlobalAdministratorCorrectionPanel instance = cut.Instance;
+        long generationBeforeChange = PrivateField<long>(instance, "_authorizationGeneration");
+
+        await cut.InvokeAsync(() => authentication.Publish(Task.FromResult(StubAuthenticationStateProvider.AuthenticatedState())));
+        cut.WaitForAssertion(() =>
+        {
+            PrivateField<long>(instance, "_authorizationGeneration").ShouldBe(generationBeforeChange + 1);
+            cut.Find("[data-testid='tenants-correction-panel']");
+        });
+
+        await DisposeComponentsAsync();
+        PrivateField<bool>(instance, "_disposed").ShouldBeTrue();
+        long generationAfterDispose = PrivateField<long>(instance, "_authorizationGeneration");
+        authentication.Publish(Task.FromResult(new AuthenticationState(new ClaimsPrincipal())));
+
+        PrivateField<long>(instance, "_authorizationGeneration").ShouldBe(generationAfterDispose);
+    }
+
+    [Fact]
     public void Initial_correction_authorization_ignores_non_authoritative_synchronous_reflection_until_resolver_completes()
     {
         var pendingAuthorization = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(

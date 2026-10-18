@@ -103,6 +103,43 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task DisposedAdministratorsPageDoesNotReactToPrincipalChange()
+    {
+        var authentication = new MutableAuthenticationStateProvider(GlobalAdministratorPrincipal());
+        var gateway = new StubTenantQueryGateway(ComponentReady("projection-v1", "admin-a"))
+        {
+            RepeatLastResponse = true,
+        };
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
+            TenantLifecycleAuthorizationReflectionState.Authorized,
+            principalSource: authentication));
+        Services.AddSingleton<ITenantQueryGateway>(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+        cut.Find("[data-testid='tenants-global-admins-list']");
+        GlobalAdministratorsPage instance = cut.Instance;
+        long versionBeforeChange = PrivateField<long>(instance, "_authorizationTransitionVersion");
+
+        await cut.InvokeAsync(() => authentication.Set(NonAdministratorPrincipal()));
+        cut.WaitForAssertion(() =>
+        {
+            PrivateField<long>(instance, "_authorizationTransitionVersion").ShouldBe(versionBeforeChange + 1);
+            cut.Find("[data-testid='tenants-global-admins-unavailable']");
+        });
+
+        await DisposeComponentsAsync();
+        PrivateField<bool>(instance, "_disposed").ShouldBeTrue();
+        long versionAfterDispose = PrivateField<long>(instance, "_authorizationTransitionVersion");
+        int readsAfterDispose = gateway.GlobalAdministratorCalls;
+        authentication.Set(GlobalAdministratorPrincipal());
+
+        PrivateField<long>(instance, "_authorizationTransitionVersion").ShouldBe(versionAfterDispose);
+        gateway.GlobalAdministratorCalls.ShouldBe(readsAfterDispose);
+    }
+
+    [Fact]
     public void Authentication_revocation_collapses_privileged_state_without_another_query()
     {
         var authentication = new MutableAuthenticationStateProvider(GlobalAdministratorPrincipal());
