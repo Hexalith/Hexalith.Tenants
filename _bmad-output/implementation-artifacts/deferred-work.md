@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-653 closure (2026-10-18):** Undecodable Unicode standard pagination cursors now return bare InvalidEnvelope before cursor-codec use in all four consumers, preserving their existing authorization/read order, valid protected cursors, parsing defaults and page-size bounds. Original-production tests failed 54/64; independent review added six compatibility controls, and final focused 112/112 plus full Server 1316/1316 pass with zero failures/skips. Final Debug source build succeeds with one transient copy-retry warning and zero errors. Only DW-653 closes: all 653 IDs remain, 363 done/290 open across 262 exact-covering maintenance rows. Original findings and earlier failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-653-validation-evidence.md). Release remains not ready.
+
 **DW-652 closure (2026-10-18):** Embedded unpaired-surrogate audit dates now return bare InvalidEnvelope before cursor decoding or audit reads, preserving authorization and valid date semantics. Initial production tests failed 44/261; independent review led to six compatibility controls, and final focused 267/267 plus full Server 1218/1218 pass with zero failures/skips. The final Debug source build has zero warnings/errors. Only DW-652 closes: all 653 IDs remain, 362 done/291 open across 263 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint and release holds remain preserved. DW-653 remains open. See [complete evidence](dw-652-validation-evidence.md). Release remains not ready.
 
 **DW-651 closure and DW-652/DW-653 review deferrals (2026-10-18):** Malformed Unicode audit cursor and stream strings now return InvalidEnvelope before codec use or audit reads, preserving authorization precedence, opaque cursor scope, and stream selection. Original production tests failed 16/155; independent review, final focused 155/155 and full Server 1106/1106 pass with zero failures/skips. The Debug source build passes with one transient copy-retry warning and zero errors. Only DW-651 closes. Embedded unpaired surrogates in audit dates and malformed Unicode cursors on the standard pagination parser remain open as DW-652 and DW-653. All 651 original IDs remain plus those two records: 653 IDs, 361 done/292 open across 264 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-651-validation-evidence.md). Release remains not ready.
@@ -8833,15 +8835,24 @@ resolution-spec: spec-dw-652-malformed-unicode-audit-dates.md
   evidence: `TenantQueryPaginationPayloadParser.DeserializeStandardPayload` calls cursor `GetString()` inside a `JsonException`-only catch. `InvalidOperationException` from unpaired surrogates or ill-formed UTF-8 therefore leaves the parser, and `ExecuteAsync` rethrows it. DW-651 left this parser unchanged; the audit parser catch does not cover it. No standard-query handler execution is claimed.
 origin: DW-651 independent review, 2026-10-18
 location: src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs::DeserializeStandardPayload
-status: open
-disposition: actionable
+pre-dw-653-status: open
+status: done 2026-10-18
+pre-dw-653-disposition: actionable
+disposition: resolved
+pre-dw-653-verification-date: 2026-10-18
 verification-date: 2026-10-18
-verification: Source inspection of the parser and the shared `ExecuteAsync` catch. No standard-query handler run is claimed.
-verification-files: src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs; src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
-evidence-kind: verified-defect
+pre-dw-653-verification: Source inspection of the parser and the shared `ExecuteAsync` catch. No standard-query handler run is claimed.
+verification: Cursor GetString now locally contains InvalidOperationException and returns a validation error propagated by all four standard handlers as bare InvalidEnvelope before codec use. Original-production tests failed 54/64; independent review prompted six compatibility controls, and final focused 112/112 plus full Server 1316/1316 pass with zero failures/skips. Final Debug source build succeeds with one transient MSB3026 copy-retry warning and zero errors. Existing identity/route precedence, self/cross-user pre-parsing reads, protected continuation/scope rejection, final duplicates, ignored fields, malformed-JSON defaults, decoded Unicode and page-size bounds remain covered; downstream codec exceptions still propagate. Exact commands, earlier results and limits are in dw-653-validation-evidence.md.
+pre-dw-653-verification-files: src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs; src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
+verification-files: src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs; src/Hexalith.Tenants/Queries/TenantQueryPaginationPayload.cs; src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; src/Hexalith.Tenants/Queries/Handlers/ListTenantsQueryHandler.cs; src/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs; src/Hexalith.Tenants/Queries/Handlers/GetUserTenantsQueryHandler.cs; src/Hexalith.Tenants/Queries/Handlers/GetGlobalAdministratorsQueryHandler.cs; tests/Hexalith.Tenants.Server.Tests/Queries/StandardTenantQueryPaginationTests.cs; tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPayloadParserTests.cs; _bmad-output/implementation-artifacts/dw-653-validation-evidence.md
+pre-dw-653-evidence-kind: verified-defect
+evidence-kind: executed-regression
 severity: medium
 priority: P2
 owner: Tenants query handlers
 dependencies: Preserve successfully decoded standard cursors and existing page-size clamping
-next-action: Contain malformed Unicode standard-query cursors with a validation result and direct regressions, without changing decoded cursor or page-size behavior.
+pre-dw-653-next-action: Contain malformed Unicode standard-query cursors with a validation result and direct regressions, without changing decoded cursor or page-size behavior.
+next-action: Closed within DW-653; retain unrelated deferred work and existing release qualification holds.
 related: DW-651
+resolution-evidence: [Exact validation, initial failures and independent review](dw-653-validation-evidence.md)
+resolution-spec: spec-dw-653-malformed-unicode-standard-cursors.md

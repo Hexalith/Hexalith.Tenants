@@ -183,9 +183,13 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             : RejectionOutcome;
     }
 
-    private protected static (string? Cursor, int PageSize) DeserializePaginationPayload(byte[]? payload) {
+    /// <summary>Parses standard pagination fields and carries cursor decoding failures to the handler.</summary>
+    /// <param name="payload">The serialized pagination payload.</param>
+    /// <returns>The cursor, bounded page size and optional validation error.</returns>
+    private protected static (string? Cursor, int PageSize, string? ErrorMessage) DeserializePaginationPayload(byte[]? payload)
+    {
         TenantQueryPaginationPayload pagination = TenantQueryPaginationPayloadParser.DeserializeStandardPayload(payload);
-        return (pagination.Cursor, pagination.PageSize);
+        return (pagination.Cursor, pagination.PageSize, pagination.ErrorMessage);
     }
 
     private protected static bool IsConcreteTenantRole(TenantRole role)

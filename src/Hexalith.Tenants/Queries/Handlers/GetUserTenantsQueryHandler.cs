@@ -44,7 +44,12 @@ public sealed class GetUserTenantsQueryHandler(
         bool canViewAllTargetTenants = isSelfLookup
             || await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false);
 
-        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        (string? protectedCursor, int pageSize, string? payloadError) = DeserializePaginationPayload(envelope.Payload);
+        if (payloadError is not null)
+        {
+            return new QueryResult(false, default, ErrorMessage: payloadError);
+        }
+
         string scope = TenantQueryCursorScopes.GetUserTenants(envelope.UserId, targetUserId);
         if (!CursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(GetUserTenantsQuery.QueryType, "get-user-tenants", envelope.AggregateId, envelope.UserId, failureReason);

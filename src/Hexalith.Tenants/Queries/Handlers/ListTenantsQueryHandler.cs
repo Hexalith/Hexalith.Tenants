@@ -28,7 +28,12 @@ public sealed class ListTenantsQueryHandler(
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteCoreAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        (string? protectedCursor, int pageSize, string? payloadError) = DeserializePaginationPayload(envelope.Payload);
+        if (payloadError is not null)
+        {
+            return new QueryResult(false, default, ErrorMessage: payloadError);
+        }
+
         string scope = TenantQueryCursorScopes.ListTenants(envelope.UserId);
         if (!CursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(ListTenantsQuery.QueryType, "list-tenants", envelope.AggregateId, envelope.UserId, failureReason);

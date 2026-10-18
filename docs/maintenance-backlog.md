@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-653 closure (2026-10-18):** Undecodable Unicode standard pagination cursors now return bare InvalidEnvelope before codec use in all four consumers, preserving existing gate/read order, valid cursors, parsing defaults and page-size bounds. Independent review, final focused 112/112 and full Server 1316/1316 pass with zero failures/skips; the final Debug source build succeeds with one transient copy-retry warning and zero errors. Original 54/64 failures, six review controls and exact commands remain in [complete evidence](../_bmad-output/implementation-artifacts/dw-653-validation-evidence.md). Only DW-653 closes: all 653 IDs remain, 363 done/290 open across 262 exact-covering rows. The disposition summary also incorporates DW-652's previously recorded closure. Historical findings, unrelated records, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
+
 **DW-652 closure (2026-10-18):** Embedded unpaired-surrogate audit dates now return bare InvalidEnvelope before cursor decoding or audit reads, preserving authorization and valid date semantics. Initial production tests failed 44/261; independent review led to six compatibility controls, and final focused 267/267 plus full Server 1218/1218 pass with zero failures/skips. The final Debug source build has zero warnings/errors. Only DW-652 closes: all 653 IDs remain, 362 done/291 open across 263 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint and release holds remain preserved. DW-653 remains open. See [complete evidence](../_bmad-output/implementation-artifacts/dw-652-validation-evidence.md). Release remains not ready.
 
 **DW-651 closure and DW-652/DW-653 review deferrals (2026-10-18):** Malformed Unicode audit cursor and stream strings now return InvalidEnvelope before codec use or audit reads, preserving authorization precedence, opaque cursor scope, and stream selection. Original production tests failed 16/155; independent review, final focused 155/155 and full Server 1106/1106 pass with zero failures/skips. The Debug source build passes with one transient copy-retry warning and zero errors. Only DW-651 closes. Embedded unpaired surrogates in audit dates and malformed Unicode cursors on the standard pagination parser remain open as DW-652 and DW-653. All 651 original IDs remain plus those two records: 653 IDs, 361 done/292 open across 264 exact-covering maintenance rows. Original findings, initial failures, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](../_bmad-output/implementation-artifacts/dw-651-validation-evidence.md). Release remains not ready.
@@ -74,14 +76,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 361 |
-| actionable | 205 |
+| done | 363 |
+| actionable | 203 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 37 |
 
-**Remaining: 292 open records across 264 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 290 open records across 262 index rows.** Disposition counts now cover all 653 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -99,7 +101,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 **DW-325/DW-587 closure (2026-10-17):** Retained removal activity is separate from accepted child activity. Refused adoption recovers under both expiry orderings; modal focus, current replacement target/tenant, sibling activity and disposal are qualified by thirteen new cases and independent review/recheck. Final Debug source build has zero warnings/errors; focused 470/full UI 6137 pass with zero failures/skips. Only these duplicates and their shared action row close: 647 IDs, 348 done/299 open, 268 exact-covering rows. [Exact commands, initial failures, review and limits](../_bmad-output/implementation-artifacts/dw-325-587-validation-evidence.md) preserve the historical unmounted-child evidence limit, earlier findings, archive/sprint, dependencies and release holds. Release remains not ready.
 
-**Current implementation completed:** DW-652; DW-651 (separate DW-653 follow-up open); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
+**Current implementation completed:** DW-653; DW-652; DW-651 (separate DW-653 follow-up now closed above); DW-424 (separate DW-650 follow-up open); DW-308/DW-314; DW-648; DW-545; DW-528/DW-542; prior DW-243/DW-262/DW-612; prior DW-325/DW-587; prior DW-647; prior DW-646, DW-645, DW-644, DW-480, DW-468, DW-331, DW-470 and DW-285 closures are preserved. Release remains not ready.
 
 **Decisions needed:** authoritative/version-bounded global-administrator revocation (DW-562/DW-617); direct API configuration filtering (DW-599); safe resolution of a committed ambiguous global command (DW-625); hidden-search privacy/completeness (DW-127); release workflow gates and recovery tooling provenance (DW-584, DW-593); historical story ranges (DW-461/DW-467/DW-478, DW-549). Lower-priority UX, manifest and bootstrap-provider choices appear in the index. Previously recorded decisions remain settled and are actionable work, not new approval requests.
 
@@ -171,7 +173,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-619 | P2 | Defect / actionable | unassigned | Authorized search ordering contract | Move ordering before page selection or specify an honest current-window sorting UX. |
 | DW-621 | P2 | Defect / actionable | unassigned | SemVer prerelease classification | Set and verify GitHub prerelease metadata for suffix-bearing versions. |
 | DW-625 | P2 | Defect / awaiting-decision | global-administrator command lifecycle (Stories 4.2/4.3 policy, reused by 5.7) | Platform MessageId lookup/idempotent redelivery capability | Choose an authorized MessageId status lookup or compatible same-ID resolution route that preserves the settled dispatch boundary. |
-| DW-653 | P2 | Defect / actionable | Tenants query handlers | Preserve successfully decoded standard cursors and page-size clamping | Contain malformed Unicode standard-query cursors with a validation result and direct regressions. |
 | DW-104 | P2 | Gap / blocked | unassigned | healthy authenticated browser/API fixture | Capture the invalid-cursor problem-details response and browser width/forced-colors traces. |
 | DW-114 | P2 | Gap / blocked | unassigned | Memories owning contract/integration lane | Obtain a Memories server contract test for offset-before-filtering and untrimmed totals. |
 | DW-122 | P2 | Gap / blocked | Memories | Memories index uniqueness guarantee | Add an owning Memories uniqueness contract test across raw windows. |

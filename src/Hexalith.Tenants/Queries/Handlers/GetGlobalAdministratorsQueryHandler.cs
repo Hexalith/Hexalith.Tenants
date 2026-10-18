@@ -37,7 +37,12 @@ public sealed class GetGlobalAdministratorsQueryHandler(
             return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
         }
 
-        (string? protectedCursor, int pageSize) = DeserializePaginationPayload(envelope.Payload);
+        (string? protectedCursor, int pageSize, string? payloadError) = DeserializePaginationPayload(envelope.Payload);
+        if (payloadError is not null)
+        {
+            return new QueryResult(false, default, ErrorMessage: payloadError);
+        }
+
         string scope = TenantQueryCursorScopes.GetGlobalAdministrators(envelope.UserId);
         if (!CursorCodec.TryDecode(protectedCursor, GetGlobalAdministratorsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(
