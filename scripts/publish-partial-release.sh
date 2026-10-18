@@ -16,7 +16,7 @@ python3 scripts/pack-release-packages.py ./nupkgs "$version"
 python3 scripts/validate-nuget-packages.py ./nupkgs
 python3 scripts/validate-consumer-package-references.py ./nupkgs
 
-while IFS= read -r package_id; do
+while IFS= read -r package_id || [ -n "$package_id" ]; do
   [ -n "$package_id" ] || continue
   package_file="nupkgs/${package_id}.${version}.nupkg"
   expected_hash="$(awk -v id="$package_id" '$2 == id { print $1 }' "$state_directory/existing-package-sha256")"

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-655 closure (2026-10-18):** Recovery verifies the final unterminated existing-package ID before publication. Twenty-six new cases, independent review/recheck, a zero-warning/error Debug source build, focused 142/142 and maintained Contracts 506/506 pass with zero failures/skips. Isolated replay reproduces all 26 baseline failures through actual publication calls, rejects blanket refusal in six matching controls and proves checks survive Python optimization. Only DW-655 closes: all 655 IDs remain, 374 done/281 open across 253 exactly covering maintenance rows. Original fields, historical evidence, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-655-validation-evidence.md). Release remains not ready.
+
 **DW-654 closure and DW-655 review deferral (2026-10-18):** Existing-package recovery now refuses missing expected hashes before publication. Forty new cases, independent review corrections, a zero-warning/error Debug source build, focused 116/116 and maintained Contracts 480/480 pass with zero failures/skips. Isolated replay reproduces all 35 baseline failures and rejects an unconditional hash-file requirement. The separate pre-existing unterminated-inventory omission is reproduced and retained as DW-655. Only DW-654 closes: all 654 original IDs remain plus DW-655, 655 total/373 done/282 open across 254 exactly covering maintenance rows. Historical fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact evidence and replay](dw-654-validation-evidence.md). Release remains not ready.
 
 **DW-608 closure and DW-654 review deferral (2026-10-18):** Existing-package recovery hash refusals are independently qualified against supplied reviewed hashes at every package position and destination. Independent review/recheck, zero-warning/error Debug source build, focused 76/76 and maintained Contracts 440/440 pass with zero failures/skips; four mutations and two replay-failure controls are verified. The unchanged publisher's missing-expected-hash continuation is separately reproduced and retained as DW-654. Only DW-608 closes: all 653 original IDs remain plus DW-654, 654 total/372 done/282 open across 254 exactly covering maintenance rows. Historical fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact evidence and reproduction](dw-608-validation-evidence.md). Release remains not ready.
@@ -8991,14 +8993,20 @@ related: DW-608,DW-620
   evidence: Independent DW-654 review and the tracked replay probe reproduce current production exiting 0 and reaching four intercepted package pushes, container login/publication and release creation when existing-packages contains an unterminated Contracts ID and expected hashes are empty. Normal preflight emits terminated lines; the existing while-read loop skips malformed or truncated final state. No remote publication occurs.
 origin: DW-654 independent review, 2026-10-18
 location: scripts/publish-partial-release.sh::existing-packages read loop
-status: open
-disposition: actionable
+pre-dw-655-status: open
+status: done 2026-10-18
+pre-dw-655-disposition: actionable
+disposition: done
+pre-dw-655-verification-date: 2026-10-18
 verification-date: 2026-10-18
-verification: python3 _bmad-output/implementation-artifacts/dw-654-check-variants.py --output-directory /tmp/dw-654/variants --probe-truncated-inventory exits 0 after validating the exact intercepted publication sequence for an unterminated inventory and empty hashes. The optional probe changes only the historical probe's project-root binding and final inventory newline; the production publisher remains untouched.
-verification-files: scripts/publish-partial-release.sh; _bmad-output/implementation-artifacts/dw-654-check-variants.py; _bmad-output/implementation-artifacts/dw-654-validation-evidence.md
+pre-dw-655-verification: python3 _bmad-output/implementation-artifacts/dw-654-check-variants.py --output-directory /tmp/dw-654/variants --probe-truncated-inventory exits 0 after validating the exact intercepted publication sequence for an unterminated inventory and empty hashes. The optional probe changes only the historical probe's project-root binding and final inventory newline; the production publisher remains untouched.
+verification: The final nonempty existing-package ID is processed at EOF before any recovery publication. Twenty-six new cases cover omitted/absent hash evidence, differing/matching bytes and live-main advancement at the final hash, preserving exact calls and state. Independent review/recheck confirms a zero-warning/error Debug source build, focused 142/142 and maintained Contracts 506/506 with zero failures/skips. Corrected isolated replay passes 34/34, reproduces all 26 intended baseline failures through actual intercepted publication, rejects blanket refusal in six matching controls, and cannot bypass failure under Python optimization. Exact commands, historical results and limits are retained in dw-655-validation-evidence.md.
+pre-dw-655-verification-files: scripts/publish-partial-release.sh; _bmad-output/implementation-artifacts/dw-654-check-variants.py; _bmad-output/implementation-artifacts/dw-654-validation-evidence.md
+verification-files: scripts/publish-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs; _bmad-output/implementation-artifacts/dw-655-check-variants.py; _bmad-output/implementation-artifacts/dw-655-validation-evidence.md
 evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: Recovery-state inventory completeness and line parsing
-next-action: Process the final unterminated package ID or refuse malformed inventory, with executable no-publication and canonical-state controls.
+pre-dw-655-next-action: Process the final unterminated package ID or refuse malformed inventory, with executable no-publication and canonical-state controls.
+next-action: Closed within DW-655; retain DW-620, unrelated deferred work and all release qualification holds.
 related: DW-654

@@ -223,6 +223,73 @@ public class PartialReleasePublicationTests
         await RunPublisherAsync("all-missing", "stable", omitHashFile: true);
     }
 
+    /// <summary>
+    /// A final existing package without a newline still needs reviewed hash evidence.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    /// <param name="response">The missing hash evidence for the final existing package.</param>
+    [Theory]
+    [InlineData("package", "hash-record-absent")]
+    [InlineData("mixed", "hash-record-absent")]
+    [InlineData("package-existing", "hash-record-absent")]
+    [InlineData("container", "hash-record-absent")]
+    [InlineData("release", "hash-record-absent")]
+    [InlineData("mixed-existing", "hash-record-absent")]
+    [InlineData("package", "hash-file-absent")]
+    [InlineData("mixed", "hash-file-absent")]
+    public async Task UnterminatedFinalPackageWithoutReviewedHashPreventsEveryPublication(string inventory, string response)
+    {
+        await RunPublisherAsync(inventory, response, terminateExistingInventory: false);
+    }
+
+    /// <summary>
+    /// Different bytes for the final unterminated package stop every recovery destination.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    [Theory]
+    [InlineData("package")]
+    [InlineData("mixed")]
+    [InlineData("package-existing")]
+    [InlineData("container")]
+    [InlineData("release")]
+    [InlineData("mixed-existing")]
+    public async Task UnterminatedFinalPackageHashMismatchPreventsEveryPublication(string inventory)
+    {
+        await RunPublisherAsync(inventory, "hash-mismatch", terminateExistingInventory: false);
+    }
+
+    /// <summary>
+    /// Matching hashes allow publication after every unterminated inventory entry is checked.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    [Theory]
+    [InlineData("package")]
+    [InlineData("mixed")]
+    [InlineData("package-existing")]
+    [InlineData("container")]
+    [InlineData("release")]
+    [InlineData("mixed-existing")]
+    public async Task UnterminatedInventoryWithMatchingHashesCanPublish(string inventory)
+    {
+        await RunPublisherAsync(inventory, "stable", terminateExistingInventory: false);
+    }
+
+    /// <summary>
+    /// Main advancement during the final unterminated hash still stops every publication.
+    /// </summary>
+    /// <param name="inventory">The destinations requiring publication.</param>
+    [Theory]
+    [InlineData("package")]
+    [InlineData("mixed")]
+    [InlineData("package-existing")]
+    [InlineData("container")]
+    [InlineData("release")]
+    [InlineData("mixed-existing")]
+    public async Task MainAdvancementDuringUnterminatedFinalHashRefusesPublication(string inventory)
+    {
+        await RunPublisherAsync(inventory, "changed", stage: "hash", terminateExistingInventory: false);
+    }
+
     private static async Task RunPublisherAsync(
         string inventory,
         string response,
@@ -230,7 +297,8 @@ public class PartialReleasePublicationTests
         string version = "1.2.3",
         bool prerelease = false,
         int mismatchIndex = 0,
-        bool omitHashFile = false)
+        bool omitHashFile = false,
+        bool terminateExistingInventory = true)
     {
         ArgumentNullException.ThrowIfNull(response);
         const string sourceSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -255,7 +323,7 @@ public class PartialReleasePublicationTests
                 _ => [],
             };
             string[] existingIds = [.. ids.Except(missingIds, StringComparer.Ordinal)];
-            if (response is "hash-wrong-id" or "hash-record-blank")
+            if (response is "hash-wrong-id" or "hash-record-blank" || (!terminateExistingInventory && existingIds.Length > 0))
             {
                 mismatchIndex = existingIds.Length - 1;
             }
@@ -266,7 +334,7 @@ public class PartialReleasePublicationTests
                 ["source-sha"] = response == "source-mismatch" ? new string('b', 40) + "\n" : sourceSha + "\n",
                 ["version"] = response == "version-mismatch" ? "9.9.9\n" : version + "\n",
                 ["missing-packages"] = missingIds.Length == 0 ? string.Empty : string.Join('\n', missingIds) + "\n",
-                ["existing-packages"] = existingIds.Length == 0 ? string.Empty : string.Join('\n', existingIds) + "\n",
+                ["existing-packages"] = existingIds.Length == 0 ? string.Empty : string.Join('\n', existingIds) + (terminateExistingInventory ? "\n" : string.Empty),
                 ["existing-package-sha256"] = string.Concat(existingIds.Reverse().Select(id =>
                     $"{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(packageContents[id])))} {id}\n")),
                 ["container-state"] = inventory is "container" or "mixed" or "mixed-existing" or "all-missing" ? "absent\n" : "present\n",
