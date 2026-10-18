@@ -209,6 +209,175 @@ public sealed class GetTenantAuditQueryHandlerTests
         secondPage.RootElement.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
+    /// <summary>Gets malformed cursor and stream Unicode sequences with authorization variants.</summary>
+    public static TheoryData<string, string, string> MalformedUnicodeCursorsAndStreams
+    {
+        get
+        {
+            TheoryData<string, string, string> cases = [];
+            foreach (string propertyName in new[] { "cursor", "stream" })
+            {
+                foreach (string value in new[] { "\\ud800", "\\udc00" })
+                {
+                    cases.Add(propertyName, value, "admin-1");
+                    cases.Add(propertyName, value, "non-admin");
+                }
+            }
+
+            return cases;
+        }
+    }
+
+    /// <summary>Contains cursor and stream Unicode failures after authorization and before codec or audit access.</summary>
+    [Theory]
+    [MemberData(nameof(MalformedUnicodeCursorsAndStreams))]
+    public async Task MalformedUnicodeCursorOrStreamReturnsFailureBeforeCodecOrAuditReadAsync(
+        string propertyName,
+        string value,
+        string userId)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+
+        QueryResult result = await ExecuteAsync(
+            store,
+            codec,
+            $"{{\"category\":\"access\",\"{propertyName}\":\"{value}\"}}",
+            userId);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(userId == "admin-1"
+            ? QueryAdapterFailureReason.InvalidEnvelope
+            : QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Gets malformed UTF-8 cursor and stream bytes without transcoding them through a string.</summary>
+    public static TheoryData<string, byte[], string> MalformedUtf8CursorsAndStreams
+    {
+        get
+        {
+            TheoryData<string, byte[], string> cases = [];
+            foreach (string propertyName in new[] { "cursor", "stream" })
+            {
+                foreach (byte[] value in new byte[][]
+                {
+                    [0x80], [0xc0, 0xaf], [0xed, 0xa0, 0x80], [0xf4, 0x90, 0x80, 0x80],
+                })
+                {
+                    cases.Add(propertyName, value, "admin-1");
+                    cases.Add(propertyName, value, "non-admin");
+                }
+            }
+
+            return cases;
+        }
+    }
+
+    /// <summary>Rejects raw malformed cursor and stream bytes before codec use or audit reads.</summary>
+    [Theory]
+    [MemberData(nameof(MalformedUtf8CursorsAndStreams))]
+    public async Task MalformedUtf8CursorOrStreamReturnsFailureBeforeCodecOrAuditReadAsync(
+        string propertyName,
+        byte[] value,
+        string userId)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+        byte[] payload =
+        [
+            .. Encoding.UTF8.GetBytes($"{{\"category\":\"access\",\"{propertyName}\":\""),
+            .. value,
+            .. Encoding.UTF8.GetBytes("\"}"),
+        ];
+
+        QueryResult result = await ExecuteAsync(store, codec, payload, userId);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(userId == "admin-1"
+            ? QueryAdapterFailureReason.InvalidEnvelope
+            : QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Contains mixed malformed cursor and stream payloads without changing authorization precedence.</summary>
+    [Theory]
+    [InlineData("{\"category\":\"\\ud800\",\"cursor\":\"\\udc00\"}", "admin-1")]
+    [InlineData("{\"category\":\"\\udc00\",\"cursor\":\"\\ud800\"}", "admin-1")]
+    [InlineData("{\"category\":\"\\ud800\",\"stream\":\"\\udc00\"}", "admin-1")]
+    [InlineData("{\"category\":\"\\udc00\",\"stream\":\"\\ud800\"}", "admin-1")]
+    [InlineData("{\"stream\":\"\\ud800\",\"cursor\":\"invalid-cursor\"}", "admin-1")]
+    [InlineData("{\"stream\":\"\\udc00\",\"cursor\":\"invalid-cursor\"}", "admin-1")]
+    [InlineData("{\"category\":\"\\ud800\",\"cursor\":\"\\udc00\"}", "non-admin")]
+    [InlineData("{\"category\":\"\\ud800\",\"stream\":\"\\udc00\"}", "non-admin")]
+    [InlineData("{\"stream\":\"\\ud800\",\"cursor\":\"invalid-cursor\"}", "non-admin")]
+    public async Task MixedMalformedCursorOrStreamReturnsFailureBeforeCodecOrAuditReadAsync(string payload, string userId)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = Substitute.For<IQueryCursorCodec>();
+
+        QueryResult result = await ExecuteAsync(store, codec, payload, userId);
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(userId == "admin-1"
+            ? QueryAdapterFailureReason.InvalidEnvelope
+            : QueryAdapterFailureReason.Forbidden);
+        result.PayloadBytes.ShouldBeNull();
+        codec.ReceivedCalls().ShouldBeEmpty();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
+    /// <summary>Preserves stream selection and protected cursor scope across equivalent spellings.</summary>
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task EquivalentStreamSpellingsResumeProtectedCursorAsync(bool escapedFirst)
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = CreateCursorCodec();
+        string firstStream = escapedFirst ? "\\u0074enant" : "tenant";
+        string secondStream = escapedFirst ? "tenant" : "\\u0074enant";
+
+        QueryResult first = await ExecuteAsync(store, codec, $"{{\"stream\":\"{firstStream}\",\"pageSize\":3}}");
+
+        ReadEventIds(first).ShouldBe(["before", "from", "access"]);
+        using JsonDocument firstPage = JsonDocument.Parse(first.PayloadBytes.ShouldNotBeNull());
+        firstPage.RootElement.GetProperty("hasMore").GetBoolean().ShouldBeTrue();
+        string cursor = firstPage.RootElement.GetProperty("cursor").GetString().ShouldNotBeNull();
+        cursor.ShouldNotBeNullOrWhiteSpace();
+        string cursorJson = escapedFirst ? "\"" + ToJsonUnicodeEscapes(cursor) + "\"" : JsonSerializer.Serialize(cursor);
+
+        QueryResult second = await ExecuteAsync(
+            store,
+            codec,
+            $"{{\"stream\":\"{secondStream}\",\"cursor\":{cursorJson},\"pageSize\":3}}");
+
+        ReadEventIds(second).ShouldBe(["to", "after"]);
+        using JsonDocument secondPage = JsonDocument.Parse(second.PayloadBytes.ShouldNotBeNull());
+        secondPage.RootElement.GetProperty("hasMore").GetBoolean().ShouldBeFalse();
+        secondPage.RootElement.GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    /// <summary>Sends a successfully decoded unprotected cursor to the existing codec rejection.</summary>
+    [Fact]
+    public async Task DecodedSurrogatePairCursorReturnsInvalidCursorBeforeAuditReadAsync()
+    {
+        IReadModelStore store = CreateStore();
+        IQueryCursorCodec codec = CreateCursorCodec();
+
+        QueryResult result = await ExecuteAsync(store, codec, "{\"cursor\":\"\\ud83d\\ude00\"}");
+
+        result.Success.ShouldBeFalse();
+        result.ErrorMessage.ShouldBe(QueryAdapterFailureReason.InvalidCursor);
+        result.PayloadBytes.ShouldBeNull();
+        await AssertOnlyAuthorityWasReadAsync(store);
+    }
+
     /// <summary>Gets invalid timestamp strings and JSON kinds for both inclusive bounds.</summary>
     public static TheoryData<string, string> InvalidDateFilters
     {
@@ -427,6 +596,18 @@ public sealed class GetTenantAuditQueryHandlerTests
             TenantQueryHandlerBase.GlobalAdminProjectionKey,
             Arg.Any<CancellationToken>());
         store.ReceivedCalls().Count().ShouldBe(1);
+    }
+
+    private static string ToJsonUnicodeEscapes(string value)
+    {
+        var builder = new StringBuilder(value.Length * 6);
+        foreach (char character in value)
+        {
+            _ = builder.Append("\\u");
+            _ = builder.Append(((int)character).ToString("x4", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        return builder.ToString();
     }
 
     private static string[] ReadEventIds(QueryResult result)

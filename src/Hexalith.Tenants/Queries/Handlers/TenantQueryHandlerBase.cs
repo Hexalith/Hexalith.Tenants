@@ -313,9 +313,19 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             {
                 return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
             }
-            string? cursor = root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String
-                ? cursorEl.GetString()
-                : null;
+            string? cursor = null;
+            if (root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String)
+            {
+                try
+                {
+                    cursor = cursorEl.GetString();
+                }
+                catch (InvalidOperationException)
+                {
+                    // JSON strings can contain escaped unpaired surrogates that fail only when decoded.
+                    return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
+                }
+            }
             int pageSize = TenantQueryPaginationPolicy.AuditDefaultPageSize;
             if (root.TryGetProperty("pageSize", out JsonElement pageSizeEl)
                 && pageSizeEl.ValueKind == JsonValueKind.Number
@@ -370,7 +380,15 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             {
                 if (streamElement.ValueKind == JsonValueKind.String)
                 {
-                    stream = streamElement.GetString();
+                    try
+                    {
+                        stream = streamElement.GetString();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // JSON strings can contain escaped unpaired surrogates that fail only when decoded.
+                        return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
+                    }
                 }
                 else
                 {
