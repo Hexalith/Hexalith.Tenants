@@ -920,10 +920,11 @@ public class PackageGovernanceTests {
         string bridge = File.ReadAllText(Path.Combine(repoRoot, "scripts/validate-publication-preflight.sh"));
         string contributing = File.ReadAllText(Path.Combine(repoRoot, "CONTRIBUTING.md"));
 
-        // The floor is declared beside the package count, and the documented version line must carry
-        // the same value: raising one without the other leaves operators a stale remedy.
+        // The documented static minimum must match the guard, independently of the current
+        // reachable release line. A proposal at the minimum still needs the other preflight proofs.
         bridge.ShouldContain("minimum_release_version=4.0.0");
-        contributing.ShouldContain("Nothing at or below `4.0.0` can be released again");
+        contributing.ShouldContain("`minimum_release_version=4.0.0`");
+        contributing.ShouldContain("**static safety minimum**");
 
         // Below-floor proposals must fail before any destination probe, with the same authentic
         // producing-commit and reachability policy as the earlier registry/tag-floor guard.

@@ -60,7 +60,7 @@ dotnet run --project src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.cspro
 
 ## Commit Message Conventions
 
-All commits **must** follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. This is required — semantic-release uses commit messages to determine version bumps and generate changelogs automatically.
+All commits **must** follow the [Conventional Commits](https://www.conventionalcommits.org/) specification. This is required — semantic-release uses commit messages to determine version bumps and generate release notes.
 
 Format: `<type>(<optional scope>): <description>`
 
@@ -94,12 +94,29 @@ feat!: rename TenantAggregate state shape
 4. Open a PR against `main` with a description of changes
 5. CI will run automatically, including package metadata and package-only consumer validation — PR must pass before merge
 6. PRs require at least one approval
-7. On merge to `main`, semantic-release automatically determines the version, publishes NuGet packages, and creates a GitHub Release
+7. Merging to `main` runs CI. Publication requires an operator to manually dispatch the [Release workflow](.github/workflows/release.yml) from the current `main` tip after a successful push CI run for that exact source SHA. The workflow checks release lineage before entering the protected `production` environment, rechecks the source before publication, and verifies that the published release tag resolves to the dispatched source. The release path does not rerun the test tiers.
+
+If the source becomes stale during setup, dispatch again from the new `main` tip after its exact-source
+push CI succeeds. If there are no releasable commits, the final publication check fails and
+redispatching the unchanged source does not help; inspect the release output and releasable changes
+before attempting another release.
 
 ## Release Version Line
 
-Releases run on the **4.x** line. Nothing at or below `4.0.0` can be released again, because the
-five packages share one version and part of the range is already published and immutable:
+Versioning follows release tags reachable from `main` and the committed
+[semantic-release configuration](.releaserc.json). At local inspection on **2026-10-18**, recorded
+reachable history extends through **5.x**, with highest locally available merged tag `v5.8.0`
+at commit [`032573384d3df4bc7a5bc0e69945ecca4e00967f`](https://github.com/Hexalith/Hexalith.Tenants/commit/032573384d3df4bc7a5bc0e69945ecca4e00967f)
+(2026-10-08). This repository snapshot does not prove current registry contents, the next release
+version, or release readiness. Check the dispatch-time lineage and publication preflights for the
+intended source; never reuse a published package version.
+
+The configured `minimum_release_version=4.0.0` is a **static safety minimum**, not the current
+release version. Proposals below `4.0.0` fail locally; meeting that minimum alone does not make a
+version publishable. The five packages share one version, so an occupied version for any one
+package prevents publication of the complete set.
+
+**Historical 3.x/4.0 recovery context (July 2026):**
 
 - `Hexalith.Tenants.Contracts`, `.Server` and `.Aspire` occupy `3.3.0` through `3.15.1`, published
   from this repository in May 2026 (`3.15.1` was built from `5469a6b`).
@@ -131,11 +148,18 @@ Keep publication blocked while that evidence is incomplete. A published version 
 fourth NuGet revision cannot be represented by the repository's three-part release tags and also
 requires a separately reviewed recovery procedure.
 
-**Consumers.** Sibling Hexalith repositories pin `Hexalith.Tenants.*` at `3.2.x`. Moving to `4.0.0`
-requires a coordinated package-reference bump. A consumer coming from `3.2.18` gets no API break —
-the breaking commits it names are already in `3.2.x`. A consumer still on the May `3.15.1` line does:
-`09699ca` (container release moved to zot) and `f46264a` (fail-safe role/status enum defaults and
-consumer-contract hardening).
+**Historical consumer migration to 4.0.0.** At the time of that recovery, sibling Hexalith
+repositories pinned `Hexalith.Tenants.*` at `3.2.x`; migration required a coordinated
+package-reference bump. The recorded comparison from `3.2.18` identified no additional API break
+because the breaking commits were already in `3.2.x`. The comparison from the May `3.15.1` line
+identified `09699ca` (container release moved to zot) and `f46264a` (fail-safe role/status enum
+defaults and consumer-contract hardening). These are historical observations, not an inventory
+of current consumer pins or a compatibility guarantee for upgrading to later releases.
+
+Read [GitHub Releases](https://github.com/Hexalith/Hexalith.Tenants/releases) for generated release
+notes and assess compatibility from the consumer's actual pinned version. The current
+semantic-release configuration does not update the repository's `CHANGELOG.md`; its existing
+entries remain historical.
 
 ## Release Publication Credentials
 

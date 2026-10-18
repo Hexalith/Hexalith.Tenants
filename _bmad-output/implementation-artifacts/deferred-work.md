@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-218 closure (2026-10-18):** Contributor and agent release guidance now follows explicit dispatch and exact-source CI/publication checks, with date-bound reachable v5.8.0 history distinguished from the unchanged 4.0.0 safety minimum. Historical recovery/consumer observations and changelog entries remain. Independent review/recheck, final zero-warning/error Debug source build and full Contracts 333/333 pass with zero failures/skips. Only DW-218 closes: all 653 IDs remain, 368 done/285 open across 257 exact-covering maintenance rows. Original fields, unrelated records, archive/sprint, dependencies and release holds are preserved. See [complete evidence](dw-218-validation-evidence.md). Release remains not ready.
+
 **DW-217/DW-219 closure (2026-10-18):** Preflight and contributor recovery guidance now require authentic producing-commit and reachable-tag evidence or separately reviewed recovery; registry-floor diagnostics describe unproven lineage and collision risk without claiming a computed proposal. Original-production checks failed 2/214; independent review/recheck, three rejected harmful mutations, final full Contracts 333/333 and a zero-warning/error Debug source build pass. Only these two records close: all 653 IDs remain, 367 done/286 open across 258 exact-covering maintenance rows. Historical findings, DW-218, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-217-219-validation-evidence.md). Release remains not ready.
 
 **DW-216 closure (2026-10-18):** Registry versions now validate complete grammar, canonical decimal cores within NuGet's Int32 range, prerelease identifiers and the 64-character NuGet.org limit before prerelease exclusion. Existing aliases, valid prereleases and four-component numeric ordering remain covered. Original production failed 64/116 cases; review length controls failed four/130 before correction. Independent review/recheck, final focused 130/130, full Contracts 333/333 and a zero-warning/error Debug source build pass. Only DW-216 closes: all 653 IDs remain, 365 done/288 open across 260 exact-covering maintenance rows. Historical findings, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-216-validation-evidence.md). Release remains not ready.
@@ -1992,17 +1994,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 reason: The legacy ledger defers this issue: Correct stale release trigger and current release-line documentation. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Correct stale release trigger and current release-line documentation. evidence: Existing project context and contributor docs describe automatic workflow-run publication and a 4.x current line, while release is manually dispatched and reachable history extends through 5.x.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/project-context.md still says workflow_run publication; .github/workflows/release.yml actually uses workflow_dispatch. CONTRIBUTING.md still calls 4.x current, while later release artifacts describe newer lines.
-verification-files: .github/workflows/release.yml
-evidence-kind: verified-defect
+pre-dw-218-status: open
+status: done 2026-10-18
+pre-dw-218-disposition: actionable
+disposition: done
+pre-dw-218-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-218-verification: _bmad-output/project-context.md still says workflow_run publication; .github/workflows/release.yml actually uses workflow_dispatch. CONTRIBUTING.md still calls 4.x current, while later release artifacts describe newer lines.
+verification: Contributor and agent guidance now describe explicit dispatch from the current main tip with successful exact-SHA push CI, source recheck and exact-source publication verification. Date-bound local v5.8.0 ancestry evidence is distinguished from the unchanged 4.0.0 static minimum and registry/readiness proof; historical observations and changelog entries are preserved. Independent review/recheck resolves four findings; final Debug source build has zero warnings/errors and all 333 Contracts tests pass with zero failures/skips. Exact commands, initial stale assertion failure, formatter baseline and maintenance accounting remain in dw-218-validation-evidence.md.
+pre-dw-218-verification-files: .github/workflows/release.yml
+verification-files: CONTRIBUTING.md; _bmad-output/project-context.md; scripts/validate-publication-preflight.sh; .github/workflows/release.yml; .releaserc.json; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
+pre-dw-218-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: verified current release-line evidence
-next-action: Correct current trigger/line guidance using committed release evidence; preserve historical observations.
+pre-dw-218-next-action: Correct current trigger/line guidance using committed release evidence; preserve historical observations.
+next-action: Closed within DW-218; preserve unrelated deferred work, authentic-lineage safeguards and existing release qualification holds.
 related: DW-217
+resolution-evidence: [Exact commands, independent review and validation limits](dw-218-validation-evidence.md)
+resolution-spec: spec-dw-218-release-trigger-and-line-guidance.md
 
 ### DW-219: Replace absolute collision wording with an accurate unproven-lineage risk statement
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25

@@ -24,10 +24,12 @@ expected_package_count=5
 # Testing reach 3.2.18. All five ship one shared version, so one occupied ID is enough to
 # block the release. Tags v3.2.0 through v3.15.1 were deleted afterwards, which is how
 # semantic-release came to resume inside that range and propose 3.3.0 in run 30291329462.
-# 4.x is the authoritative line. Declaring the floor here, beside the package count, turns
-# a version line that slips back below it into an actionable local failure instead of a
-# NuGet destination collision. Raise it only alongside a deliberate version-line decision,
-# and update the "Release Version Line" section of CONTRIBUTING.md with it.
+# 4.0.0 is the static safety minimum, not the current release line. Declaring the floor
+# here, beside the package count, rejects proposals below that minimum locally. Reachable
+# release tags and the registry/tag-floor guard check ancestry and numeric coverage;
+# those checks do not prove which commit produced a published package.
+# Raise this minimum only alongside a deliberate version-line decision, and update the
+# "Release Version Line" section of CONTRIBUTING.md with it.
 minimum_release_version=4.0.0
 
 fail() {
