@@ -3344,26 +3344,25 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         }
     }
 
-    [Fact]
-    public void Detail_page_set_configuration_completes_preview_dispatch_status_and_projection_proof()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Detail_page_set_configuration_requires_current_authorized_preview_before_dispatch(bool stillOwnerAtSubmit)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
+        TenantDetail ownerDetail = Detail(
+            "tenant.alpha",
+            new Dictionary<string, string> { ["billing.mode"] = "trial" },
+            TenantStatus.Active,
+            [new TenantMember("operator.alpha", TenantRole.TenantOwner)]);
+        TenantDetail currentPreviewDetail = ownerDetail;
+        int refusedPreviewCalls = 0;
         StubTenantCommandGateway gateway = new()
         {
             SetConfigurationSubmission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-config"),
             Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 },
         };
-        StubTenantsBffComposition composition = new()
-        {
-            ReauthorizeConfigurationManagement = static (tenantId, status, safeModel)
-                => TenantConfigurationManagementContext.Available(
-                    tenantId,
-                    status,
-                    isGlobalAdministrator: false,
-                    ["billing"],
-                    safeModel.Rows,
-                    TenantConfigurationAuthorityState.TenantOwner),
-        };
+        StubTenantsBffComposition composition = new();
         ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
         queryGateway.SupportsSetConfigurationPreview.Returns(true);
         queryGateway.GetTenantAsync(
@@ -3371,19 +3370,26 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 Arg.Any<TenantDetailSnapshot?>(),
                 Arg.Any<CancellationToken>())
             .Returns(_ => Task.FromResult(ReadyWithSafeConfiguration(
-                Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }),
+                ownerDetail,
                 projectionVersion: "tenant-sequence:41")));
         queryGateway.GetTenantUsersAsync(
                 Arg.Any<TenantUsersRequest>(),
                 Arg.Any<TenantUsersSnapshot?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(_ => Task.FromResult(MemberSnapshot(Detail("tenant.alpha"))));
+            .Returns(_ => Task.FromResult(MemberSnapshot(ownerDetail)));
         queryGateway.GetSetConfigurationPreviewAsync(
                 Arg.Any<TenantSetConfigurationIntent>(),
                 Arg.Any<CancellationToken>())
             .Returns(call =>
             {
                 TenantSetConfigurationIntent intent = call.Arg<TenantSetConfigurationIntent>();
+                if (!currentPreviewDetail.Members.Any(member => member.UserId == "operator.alpha"
+                    && member.Role == TenantRole.TenantOwner))
+                {
+                    refusedPreviewCalls++;
+                    return Task.FromResult(TenantSetConfigurationPreview.Unavailable(intent));
+                }
+
                 return Task.FromResult(TenantSetConfigurationPreview.Create(
                     intent,
                     TenantStatus.Active,
@@ -3420,7 +3426,28 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-config-set-submit']")
             .GetAttribute("disabled").ShouldBeNull());
 
+        if (!stillOwnerAtSubmit)
+        {
+            currentPreviewDetail = ownerDetail with
+            {
+                Members = [new TenantMember("owner-user", TenantRole.TenantOwner)],
+            };
+        }
+
         cut.Find("[data-testid='tenants-config-set-flow'] form").Submit();
+
+        if (!stillOwnerAtSubmit)
+        {
+            cut.WaitForAssertion(() => cut.FindComponent<SetTenantConfigurationFlow>()
+                .Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify));
+            refusedPreviewCalls.ShouldBeGreaterThan(0);
+            gateway.SetConfigurationCallCount.ShouldBe(0);
+            gateway.StatusCallCount.ShouldBe(0);
+            _ = queryGateway.DidNotReceive().GetSetConfigurationProjectionProofAsync(
+                Arg.Any<TenantSetConfigurationIntent>(),
+                Arg.Any<CancellationToken>());
+            return;
+        }
 
         cut.WaitForAssertion(() => cut.FindComponent<SetTenantConfigurationFlow>()
             .Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
@@ -3439,22 +3466,17 @@ public sealed class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
-    public void Detail_page_requires_fresh_safe_preview_evidence_on_set_submit()
+    public void Detail_page_requires_fresh_preview_evidence_on_set_submit()
     {
-        // The page must call BffComposition.ReauthorizeConfigurationManagementAsync rather than returning
-        // the render-time snapshot context. Returning `_snapshot.ConfigurationManagement` would fail open:
-        // the render-time grant would authorize the submit even after policy revoked it.
+        // The submit-time preview must be fresh. A render-time management grant cannot authorize
+        // dispatch when current preview evidence is unavailable.
         JSInterop.Mode = JSRuntimeMode.Loose;
         StubTenantCommandGateway gateway = new()
         {
             SetConfigurationSubmission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-config"),
             Status = new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 },
         };
-        StubTenantsBffComposition composition = new()
-        {
-            ReauthorizeConfigurationManagement = static (tenantId, status, _)
-                => TenantConfigurationManagementContext.Unavailable(tenantId, status),
-        };
+        StubTenantsBffComposition composition = new();
         ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
         queryGateway.SupportsSetConfigurationPreview.Returns(true);
         queryGateway.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
@@ -8893,15 +8915,6 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         public bool IsCommandSurfaceConnected => commandSurfaceConnected;
 
-        public int ReauthorizeConfigurationManagementCallCount { get; private set; }
-
-        public Func<string, TenantStatus, TenantConfigurationSafeModel, TenantConfigurationManagementContext>?
-            ReauthorizeConfigurationManagement { get; set; }
-
-        /// <summary>Gets the last member-bearing detail passed to reauthorization, or <see langword="null"/>
-        /// if the caller only ever reached the tenantId/status overload.</summary>
-        public TenantDetail? LastReauthorizeSanitizedDetail { get; private set; }
-
         /// <summary>Arms a one-shot suspension of the next lifecycle authorization resolve.</summary>
         public TaskCompletionSource? ResolutionGate { get; set; }
 
@@ -8947,30 +8960,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             TenantStatus tenantStatus,
             TenantConfigurationSafeModel safeModel,
             CancellationToken cancellationToken = default)
-        {
-            ReauthorizeConfigurationManagementCallCount++;
-            if (ReauthorizeConfigurationManagement is not null)
-            {
-                return ValueTask.FromResult(ReauthorizeConfigurationManagement(tenantId, tenantStatus, safeModel));
-            }
-
-            return ValueTask.FromResult(TenantConfigurationManagementContext.Unavailable(tenantId, tenantStatus));
-        }
-
-        // Overrides the interface's Members-discarding default so a caller that reauthorizes from live,
-        // member-bearing detail (rather than only tenantId/status) is distinguishable in assertions.
-        public ValueTask<TenantConfigurationManagementContext> ReauthorizeConfigurationManagementAsync(
-            TenantDetail sanitizedDetail,
-            TenantConfigurationSafeModel safeModel,
-            CancellationToken cancellationToken = default)
-        {
-            LastReauthorizeSanitizedDetail = sanitizedDetail;
-            return ReauthorizeConfigurationManagementAsync(
-                sanitizedDetail.TenantId,
-                sanitizedDetail.Status,
-                safeModel,
-                cancellationToken);
-        }
+            => ValueTask.FromResult(TenantConfigurationManagementContext.Unavailable(tenantId, tenantStatus));
     }
 
     private sealed class MutableAuthenticationStateProvider : AuthenticationStateProvider
