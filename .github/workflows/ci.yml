@@ -33,6 +33,7 @@ jobs:
         tests/Hexalith.Tenants.AppHost.Tests
         tests/Hexalith.Tenants.Server.Tests
       aspire-test-project: tests/Hexalith.Tenants.IntegrationTests
+      aspire-timeout-minutes: 20
       coverage-minimum-line: 80
       coverage-required-branch: 100
       coverage-line-scope: |
