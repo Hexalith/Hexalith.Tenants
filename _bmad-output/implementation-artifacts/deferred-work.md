@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-641 closure (2026-10-18):** Existing authentication tests already cover conflicting nonblank legacy/alias signing keys and authorities. Fresh precedence 2/2 and generated-controller 44/44 pass with zero failures/skips/errors; the Debug source fallback build has zero warnings/errors. The ordinary audit-enabled build remains blocked by Commons NU1902. Only this stale record closes: all 655 IDs remain, 375 done/280 open across 252 maintenance rows. Historical evidence, DW-639, unrelated work and release holds remain preserved. See [exact evidence and limits](dw-641-validation-evidence.md).
+
 **DW-655 closure (2026-10-18):** Recovery verifies the final unterminated existing-package ID before publication. Twenty-six new cases, independent review/recheck, a zero-warning/error Debug source build, focused 142/142 and maintained Contracts 506/506 pass with zero failures/skips. Isolated replay reproduces all 26 baseline failures through actual publication calls, rejects blanket refusal in six matching controls and proves checks survive Python optimization. Only DW-655 closes: all 655 IDs remain, 374 done/281 open across 253 exactly covering maintenance rows. Original fields, historical evidence, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [complete evidence](dw-655-validation-evidence.md). Release remains not ready.
 
 **DW-654 closure and DW-655 review deferral (2026-10-18):** Existing-package recovery now refuses missing expected hashes before publication. Forty new cases, independent review corrections, a zero-warning/error Debug source build, focused 116/116 and maintained Contracts 480/480 pass with zero failures/skips. Isolated replay reproduces all 35 baseline failures and rejects an unconditional hash-file requirement. The separate pre-existing unterminated-inventory omission is reproduced and retained as DW-655. Only DW-654 closes: all 654 original IDs remain plus DW-655, 655 total/373 done/282 open across 254 exactly covering maintenance rows. Historical fields, unrelated records, archive/sprint, dependencies and release holds remain preserved. See [exact evidence and replay](dw-654-validation-evidence.md). Release remains not ready.
@@ -8700,16 +8702,25 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; legacy authentication settings are not tested against a different non-blank alias.\n  evidence: `FirstConfigured` in `src/Hexalith.Tenants.Api/Program.cs:104` keeps a non-blank legacy value over `Oidc:Authority` or `Jwt:SigningKey`. The alias tests in `tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs` set only the alias, or a blank legacy value. Those settings come from `6b6a35f0`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Program.FirstConfigured preserves nonblank legacy value; generated-controller tests cover alias-only and blank-legacy fallback but no different nonblank legacy and alias values. Alias coverage added earlier does not cover precedence.
-evidence-kind: verified-gap
+pre-dw-641-status: open
+status: done 2026-10-18
+pre-dw-641-disposition: actionable
+disposition: done
+pre-dw-641-verification-date: 2026-10-12
+verification-date: 2026-10-18
+pre-dw-641-verification: Program.FirstConfigured preserves nonblank legacy value; generated-controller tests cover alias-only and blank-legacy fallback but no different nonblank legacy and alias values. Alias coverage added earlier does not cover precedence.
+verification: Commit b185ae80de474bedc6c60af38bacc5550d4e8cd7 already added distinct nonblank legacy/alias key and authority tests. Fresh Debug source execution passes both exact precedence tests (2/2) and the complete generated-controller class (44/44), with zero failures/skips/errors. The factory clears ambient configuration and assertions inspect actual host authentication options. The fallback source build has zero warnings/errors; the normal audit-enabled build remains blocked by Commons NU1902. No production/test changes or deployed-topology qualification are claimed. Exact commands and limits are in dw-641-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.Api/Program.cs; tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs; _bmad-output/implementation-artifacts/dw-641-validation-evidence.md
+pre-dw-641-evidence-kind: verified-gap
+evidence-kind: executed-existing-regression
 priority: P2
 owner: unassigned
 dependencies: Conflicting auth configuration fixture
-next-action: Test distinct nonblank legacy/alias authority and signing keys and assert legacy precedence.
+pre-dw-641-next-action: Test distinct nonblank legacy/alias authority and signing keys and assert legacy precedence.
+next-action: Closed as already implemented and freshly verified; retain DW-639, unrelated deferred work and existing release qualification holds.
 related: DW-632
+resolution-evidence: [Exact validation and scope limits](dw-641-validation-evidence.md)
+resolution-spec: spec-dw-641-authentication-alias-precedence-closure.md
 
 
 ## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, range `2315aad9..9345d9d0` (2026-10-12)
