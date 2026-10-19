@@ -13,10 +13,12 @@ naming the path alone let that pass. Stated SHAs are matched by prefix, so both
 short and full forms are accepted.
 
 Long-lived stories may record full commit IDs in `Story-Owned Gitlink Commits`.
-That record validates each pointer-bearing story commit while excluding later
-committed dependency updates. Stories without that record use the original
-baseline-to-tree check. Both modes fail on new working-tree pointer movement.
-The check is fail-closed when the baseline or a recorded commit is unusable.
+That record validates each pointer-bearing story commit and requires the compared
+revision to retain the final recorded targets, with other gitlinks unchanged
+from baseline. Use `--ref <story-endpoint>` to audit a historical story before
+later independent dependency updates. Stories without that record use the
+original baseline-to-tree check. Both modes fail on new working-tree pointer
+movement. The check fails closed for unusable baselines or recorded commits.
 """
 
 from __future__ import annotations
@@ -296,7 +298,7 @@ def gitlink_changes(baseline: str, ref: str | None) -> list[tuple[str, str, str]
     ones at completion time: a later `git add -A` sweeps them into an unrelated
     commit, which is exactly how this drift keeps happening.
     """
-    diff_args = ["diff", "--ignore-submodules=dirty", "--no-abbrev", "--raw", baseline]
+    diff_args = ["diff", "--no-renames", "--ignore-submodules=dirty", "--no-abbrev", "--raw", baseline]
     if ref is not None:
         diff_args.append(ref)
     raw = run_git(*diff_args, "--", SUBMODULE_ROOT)
@@ -425,7 +427,7 @@ def check(story_path: Path, ref: str) -> int:
                 failures.append(f"  [NO GITLINK] {commit} has no references/ pointer change")
             print(f"  {commit}")
             for path, old_sha, new_sha in changes_in_commit:
-                expected_old = owned_targets.get(path, current_pointer(path, baseline))
+                expected_old = owned_targets.get(path, current_pointer(path, baseline) or "0" * 40)
                 if expected_old != old_sha:
                     failures.append(
                         f"  [CHAIN GAP] {path} in {commit} starts at {old_sha}, expected {expected_old}"
@@ -444,6 +446,26 @@ def check(story_path: Path, ref: str) -> int:
         for path in sorted(stated.keys() - owned_targets.keys()):
             failures.append(f"  [UNOWNED CLAIM] {path} has a target SHA but no recorded story-owned pointer commit")
 
+        endpoint_changes = {
+            path: (old_sha, new_sha)
+            for path, old_sha, new_sha in gitlink_changes(baseline, head)
+        }
+        endpoint_mismatch = False
+        # Include owned paths even when a later commit reverts them to baseline:
+        # those disappear from the net diff but still contradict the story.
+        for path in sorted(owned_targets.keys() | endpoint_changes.keys()):
+            if path in owned_targets:
+                expected = owned_targets[path]
+                actual = current_pointer(path, head) or "0" * 40
+            else:
+                expected, actual = endpoint_changes[path]
+            if actual != expected:
+                endpoint_mismatch = True
+                failures.append(
+                    f"  [UNRECORDED ENDPOINT] {path} expected {expected if not is_null_sha(expected) else 'absent'}, "
+                    f"but {ref} records {actual if not is_null_sha(actual) else 'absent'}"
+                )
+
         if compare_worktree:
             worktree_changes = gitlink_changes(head, None)
             for path, old_sha, new_sha in worktree_changes:
@@ -452,7 +474,9 @@ def check(story_path: Path, ref: str) -> int:
             print("\n" + "\n".join(failures))
         for warning in warnings:
             print(f"\nWARNING: {warning}")
-        print("\nLater committed pointer updates are outside the recorded story-owned commits.")
+        print("\nCompared gitlink endpoints must match the recorded story targets or unchanged baseline.")
+        if endpoint_mismatch:
+            print("For a historical story before later dependency updates, use --ref <story-endpoint>.")
         print("\nRESULT: FAIL" if failures else "\nRESULT: PASS")
         return EXIT_FAIL if failures else EXIT_PASS
 

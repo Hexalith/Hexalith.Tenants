@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-643 closure (2026-10-19):** The story gitlink guard now rejects unrecorded endpoints at the audited revision, including reversions to baseline and unowned additions/removals/renames. Existing historical `--ref` audits and recorded-chain/working-tree checks remain covered. The original script produces eight unsafe PASS failures; final guard tests pass 39/39. Only DW-643 closes: all 655 IDs remain, 380 done/275 open across 247 maintenance rows. Original fields, unrelated records, dependency pointers and release holds are preserved. See [exact commands and review](dw-643-validation-evidence.md).
+
 **DW-634 closure (2026-10-18):** Disabled bootstrap now has deterministic proof that it never obtains ApplicationStarted or ApplicationStopping tokens for deferred registration; an enabled control observes token access and actual HTTP delivery after startup. The missing-return mutation fails only the disabled test. Final bootstrap 85/85 and full Server 1316/1316 pass with zero failures/skips; the Debug source build has zero warnings/errors. Only DW-634 closes: all 655 IDs remain, 379 done/276 open across 248 maintenance rows. Original fields, unrelated records, dependencies and release holds remain preserved. See [exact commands and review](dw-634-validation-evidence.md).
 
 **DW-637 closure (2026-10-18):** Two deterministic component regressions now prove mounted authentication notifications are received and post-disposal notifications cannot reach the global-administrator correction panel or page handlers. Each independent unsubscribe-removal control fails only its matching test. A zero-warning/error Debug source rebuild, focused 391/391 and full UI 6266/6266 pass with zero failures/skips. Only DW-637 closes: all 655 IDs remain, 378 done/277 open across 249 maintenance rows. Original fields, unrelated records, production sources, dependencies and release holds remain preserved; the existing formatting blocker is recorded in [complete evidence](dw-637-validation-evidence.md).
@@ -8796,17 +8798,28 @@ location: scripts/validate-story-gitlinks.py
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; the story gitlink guard ignores pointer moves in unrecorded commits once a story records a Story-Owned Gitlink Commits section.\n  evidence: In that branch, `check()` in `scripts/validate-story-gitlinks.py` (`:412-457`) validates only the listed commits' chain, their stated targets and working-tree movement, and never compares baseline pointers with HEAD. A later unrecorded pointer-moving commit therefore passes, which is how Story 5.7's `6869ec4a` and `3440ff01` passed the `2315aad9..9345d9d0` review. Pre-existing tooling, not changed by the reviewed range; at `6a81aee1` all five pointer-moving commits are recorded and net endpoints match. Fix: in that branch, also fail when `gitlink_changes(baseline, head)` has a path whose HEAD pointer differs from its last owned target, or from the baseline when the path has no owned target."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: validate-story-gitlinks.py check owned_commits branch still verifies listed commit chains/claims/worktree only and explicitly excludes later committed moves; it does not compare baseline-to-HEAD endpoints to final owned targets. Historical regression results do not prove unrecorded moves are rejected.
-verification-files: scripts/validate-story-gitlinks.py
-evidence-kind: verified-gap
+pre-dw-643-status: open
+status: done 2026-10-19
+pre-dw-643-disposition: actionable
+disposition: done
+pre-dw-643-verification-date: 2026-10-12
+verification-date: 2026-10-19
+pre-dw-643-verification: validate-story-gitlinks.py check owned_commits branch still verifies listed commit chains/claims/worktree only and explicitly excludes later committed moves; it does not compare baseline-to-HEAD endpoints to final owned targets. Historical regression results do not prove unrecorded moves are rejected.
+verification: The guard now reconciles recorded targets and all other baseline-to-audited-ref gitlink endpoints, including owned reversions to baseline and path additions/removals/renames. Historical audits retain the existing explicit --ref option. Final real-Git regression tests pass 39/39; the original production script with those tests reproduces eight unsafe PASS failures. Existing declaration, target, chain and working-tree checks remain; complete evidence and independent review are recorded in dw-643-validation-evidence.md.
+pre-dw-643-verification-files: scripts/validate-story-gitlinks.py
+verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/dw-643-validation-evidence.md
+pre-dw-643-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Story-owned commit guard policy; later independent-pointer attribution
-next-action: Cover an unrecorded later pointer-moving commit and enforce the approved endpoint/attribution rule.
+pre-dw-643-next-action: Cover an unrecorded later pointer-moving commit and enforce the approved endpoint/attribution rule.
+next-action: Closed with audited-endpoint enforcement and historical-reference controls; preserve unrelated deferred work, DW-585 CI scope and release qualification holds.
 related: DW-585
+resolution-evidence: [Exact commands, review and scope](dw-643-validation-evidence.md)
+resolution-spec: spec-dw-643-story-gitlink-endpoints.md
+
+
 ### DW-644: A non-lease pre-dispatch freshness refusal cannot resume after freshness becomes current.
 
 status: done 2026-10-17

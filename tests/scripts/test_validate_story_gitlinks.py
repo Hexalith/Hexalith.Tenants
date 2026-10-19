@@ -230,13 +230,96 @@ class GuardCommandIntegrationTests(unittest.TestCase):
         self.assertIn("[MISSTATED] references/Dependency", result.stdout)
         self.assertIn("RESULT: FAIL", result.stdout)
 
-    def test_recorded_story_commit_passes_after_later_unrelated_committed_pointer_update(self):
+    def test_recorded_story_commit_rejects_unrecorded_later_pointer_update(self):
         (self.repo / "seed.txt").write_text("later\n", encoding="utf-8")
         self._git("add", "seed.txt")
         self._git("commit", "--quiet", "-m", "later dependency target")
         later_target = self._git("rev-parse", "HEAD").stdout.strip()
         self._git("update-index", "--cacheinfo", f"160000,{later_target},references/Dependency")
         self._git("commit", "--quiet", "-m", "later unrelated pointer refresh")
+
+        for include_worktree in (False, True):
+            with self.subTest(include_worktree=include_worktree):
+                result = self._run_guard(
+                    "- `references/Dependency`",
+                    f"- `references/Dependency` {self.baseline} -> {self.target}",
+                    owned_commits=[self.pointer_commit],
+                    include_worktree=include_worktree,
+                )
+
+                self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                self.assertIn(self.pointer_commit, result.stdout)
+                self.assertIn("[UNRECORDED ENDPOINT] references/Dependency", result.stdout)
+                self.assertIn(self.target, result.stdout)
+                self.assertIn(later_target, result.stdout)
+                self.assertIn("RESULT: FAIL", result.stdout)
+                self.assertIn("use --ref <story-endpoint>", result.stdout)
+
+        historical = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+            ref=self.pointer_commit,
+        )
+        self.assertEqual(historical.returncode, guard.EXIT_PASS, historical.stdout + historical.stderr)
+        self.assertIn("RESULT: PASS", historical.stdout)
+
+    def test_recorded_story_commit_passes_matching_endpoint(self):
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_story_commit_rejects_pointer_reverted_to_baseline(self):
+        original = self._git("rev-parse", f"{self.baseline}:references/Dependency").stdout.strip()
+        self._commit_pointer("references/Dependency", original)
+        self.assertEqual(self._git("diff", self.baseline, "HEAD", "--", "references/").stdout, "")
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {original} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[UNRECORDED ENDPOINT] references/Dependency", result.stdout)
+        self.assertIn(original, result.stdout)
+        self.assertIn(self.target, result.stdout)
+
+    def test_recorded_story_commit_rejects_unrecorded_removal(self):
+        self._git("update-index", "--force-remove", "references/Dependency")
+        self._git("commit", "--quiet", "-m", "test: remove fixture dependency pointer")
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[UNRECORDED ENDPOINT] references/Dependency", result.stdout)
+        self.assertIn("absent", result.stdout)
+
+    def test_recorded_story_commit_rejects_new_unowned_path_even_when_declared(self):
+        self._commit_pointer("references/Other", self.target)
+
+        result = self._run_guard(
+            "- `references/Dependency`\n- `references/Other`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[UNRECORDED ENDPOINT] references/Other", result.stdout)
+        self.assertIn("absent", result.stdout)
+
+    def test_recorded_story_commit_passes_after_unrecorded_move_is_reverted(self):
+        self._commit_pointer("references/Dependency", self.baseline)
+        self._commit_pointer("references/Dependency", self.target)
 
         result = self._run_guard(
             "- `references/Dependency`",
@@ -245,7 +328,146 @@ class GuardCommandIntegrationTests(unittest.TestCase):
         )
 
         self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
-        self.assertIn(self.pointer_commit, result.stdout)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_story_commit_passes_later_commit_without_pointer_changes(self):
+        (self.repo / "seed.txt").write_text("unrelated change\n", encoding="utf-8")
+        self._git("add", "seed.txt")
+        self._git("commit", "--quiet", "-m", "test: change non-pointer fixture file")
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+
+    def test_recorded_story_commit_rejects_change_to_existing_unowned_path(self):
+        self._prepare_other_baseline_pointer()
+        original_other = self._git("rev-parse", f"{self.baseline}:references/Other").stdout.strip()
+        self._commit_pointer("references/Other", self.target)
+
+        result = self._run_guard(
+            "- `references/Dependency`\n- `references/Other`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[UNRECORDED ENDPOINT] references/Other", result.stdout)
+        self.assertIn(f"expected {original_other}", result.stdout)
+        self.assertIn(f"records {self.target}", result.stdout)
+
+    def test_recorded_story_commit_passes_unchanged_existing_unowned_path(self):
+        self._prepare_other_baseline_pointer()
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_story_commit_rejects_removal_of_existing_unowned_path(self):
+        self._prepare_other_baseline_pointer()
+        self._git("update-index", "--force-remove", "references/Other")
+        self._git("commit", "--quiet", "-m", "test: remove unowned fixture dependency")
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[UNRECORDED ENDPOINT] references/Other", result.stdout)
+
+    def test_recorded_story_commit_rejects_unrecorded_gitlink_rename(self):
+        self._git("update-index", "--force-remove", "references/Dependency")
+        self._commit_pointer("references/Renamed", self.target)
+
+        result = self._run_guard(
+            "- `references/Dependency`\n- `references/Renamed`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[UNRECORDED ENDPOINT] references/Renamed", result.stdout)
+        self.assertIn("[UNRECORDED ENDPOINT] references/Dependency", result.stdout)
+
+    def test_recorded_story_commits_pass_recorded_addition(self):
+        self._commit_pointer("references/Other", self.target)
+        addition_commit = self._git("rev-parse", "HEAD").stdout.strip()
+
+        result = self._run_guard(
+            "- `references/Dependency`\n- `references/Other`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}\n"
+            f"- `references/Other` {'0' * 40} -> {self.target}",
+            owned_commits=[self.pointer_commit, addition_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_story_commits_pass_recorded_rename(self):
+        self._git("update-index", "--force-remove", "references/Dependency")
+        self._commit_pointer("references/Renamed", self.target)
+        rename_commit = self._git("rev-parse", "HEAD").stdout.strip()
+
+        result = self._run_guard(
+            "- `references/Dependency`\n- `references/Renamed`",
+            f"- `references/Dependency` {self.target} -> {'0' * 40}\n"
+            f"- `references/Renamed` {'0' * 40} -> {self.target}",
+            owned_commits=[self.pointer_commit, rename_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_story_commits_pass_complete_multi_commit_chain(self):
+        self._commit_pointer("references/Dependency", self.baseline)
+        second_commit = self._git("rev-parse", "HEAD").stdout.strip()
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.target} -> {self.baseline}",
+            owned_commits=[self.pointer_commit, second_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_story_commits_still_reject_missing_intermediate_commit(self):
+        self._commit_pointer("references/Dependency", self.baseline)
+        self._commit_pointer("references/Dependency", self.pointer_commit)
+        last_commit = self._git("rev-parse", "HEAD").stdout.strip()
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.target} -> {self.pointer_commit}",
+            owned_commits=[self.pointer_commit, last_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[CHAIN GAP]", result.stdout)
+        self.assertNotIn("use --ref <story-endpoint>", result.stdout)
+
+    def test_recorded_story_commits_pass_recorded_removal(self):
+        self._git("update-index", "--force-remove", "references/Dependency")
+        self._git("commit", "--quiet", "-m", "test: record fixture dependency removal")
+        removal_commit = self._git("rev-parse", "HEAD").stdout.strip()
+
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.target} -> {'0' * 40}",
+            owned_commits=[self.pointer_commit, removal_commit],
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
         self.assertIn("RESULT: PASS", result.stdout)
 
     def test_recorded_story_commit_rejects_misstated_or_undeclared_pointer(self):
@@ -261,6 +483,7 @@ class GuardCommandIntegrationTests(unittest.TestCase):
                 )
                 self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
                 self.assertIn(expected, result.stdout)
+                self.assertNotIn("use --ref <story-endpoint>", result.stdout)
 
     def test_recorded_story_commit_rejects_missing_and_short_commit_ids(self):
         for commit_ids in ([], [self.pointer_commit[:7]]):
@@ -283,6 +506,34 @@ class GuardCommandIntegrationTests(unittest.TestCase):
 
         self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
         self.assertIn("[WORKTREE MOVE]", result.stdout)
+        self.assertNotIn("use --ref <story-endpoint>", result.stdout)
+
+    def test_recorded_story_commit_rejects_unstaged_submodule_checkout_movement(self):
+        dependency = self.repo / "references/Dependency"
+        self._git("clone", "--quiet", "--no-checkout", str(self.repo), str(dependency))
+        self._git("-C", "references/Dependency", "checkout", "--quiet", "--detach", self.target)
+
+        unchanged = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+            include_worktree=True,
+        )
+        self.assertEqual(unchanged.returncode, guard.EXIT_PASS, unchanged.stdout + unchanged.stderr)
+
+        self._git("-C", "references/Dependency", "checkout", "--quiet", "--detach", self.baseline)
+        self.assertEqual(self._git("diff", "--cached", "--raw").stdout, "")
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"- `references/Dependency` {self.baseline} -> {self.target}",
+            owned_commits=[self.pointer_commit],
+            include_worktree=True,
+        )
+
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[WORKTREE MOVE] references/Dependency", result.stdout)
+        self.assertIn(f"{self.target[:7]} -> {self.baseline[:7]}", result.stdout)
+        self.assertNotIn("use --ref <story-endpoint>", result.stdout)
 
     def _git(self, *args):
         return subprocess.run(
@@ -293,9 +544,20 @@ class GuardCommandIntegrationTests(unittest.TestCase):
             check=True,
         )
 
-    def _run_guard(self, file_list_entry, completion_entry=None, owned_commits=None, include_worktree=False):
+    def _commit_pointer(self, path, target):
+        self._git("update-index", "--add", "--cacheinfo", f"160000,{target},{path}")
+        self._git("commit", "--quiet", "-m", "test: change fixture dependency pointer")
+
+    def _prepare_other_baseline_pointer(self):
+        self._commit_pointer("references/Other", self.baseline)
+        self.baseline = self._git("rev-parse", "HEAD").stdout.strip()
+        self.target = self.pointer_commit
+        self._commit_pointer("references/Dependency", self.target)
+        self.pointer_commit = self._git("rev-parse", "HEAD").stdout.strip()
+
+    def _run_guard(self, file_list_entry, completion_entry=None, owned_commits=None, include_worktree=False, ref=None):
         story = self.repo / "story.md"
-        head = self._git("rev-parse", "HEAD").stdout.strip()
+        head = ref or self._git("rev-parse", "HEAD").stdout.strip()
         completion = (
             "\n## Completion Notes List\n\n" + completion_entry + "\n"
             if completion_entry is not None
