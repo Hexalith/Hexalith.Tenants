@@ -74,6 +74,10 @@ class DeclaredPathsTests(unittest.TestCase):
         story = "## File List\n- `references/Hexalith.Builds` was left untouched\n"
         self.assertEqual(guard.declared_paths(story), set())
 
+    def test_a_dependency_table_does_not_replace_an_explicit_declaration(self):
+        story = "## File List\n| references/Hexalith.Builds | 1111111 | 2222222 |\n"
+        self.assertEqual(guard.declared_paths(story), set())
+
     def test_completion_notes_stop_at_the_first_subheading(self):
         """Retained historical tables under `### Review Findings` are not declarations."""
         story = (
@@ -138,6 +142,108 @@ class StatedTargetsTests(unittest.TestCase):
             "- `references/Hexalith.Builds` 53d53ae -> deadbee\n"
         )
         self.assertEqual(guard.stated_targets(story).get("references/Hexalith.Builds"), "b529b66")
+
+    def test_three_column_tables_bind_short_and_full_targets(self):
+        for target in ("b529b66", "b529b66" + "a" * 33):
+            for row in (
+                f"| references/Hexalith.Builds | 53d53ae | {target} |",
+                f"references/Hexalith.Builds | 53d53ae | {target}",
+                f"| `references/Hexalith.Builds` | `53D53AE` | `{target.upper()}` |",
+            ):
+                with self.subTest(row=row):
+                    self.assertEqual(self._file_list(row), {"references/Hexalith.Builds": target})
+
+    def test_three_column_tables_accept_absent_baselines_and_zero_removal_targets(self):
+        for base, target in (("absent", "b529b66"), ("53d53ae", "0" * 40)):
+            with self.subTest(base=base, target=target):
+                self.assertEqual(
+                    self._file_list(f"| references/Hexalith.Builds | {base} | {target} |"),
+                    {"references/Hexalith.Builds": target},
+                )
+
+    def test_three_column_tables_use_existing_unicode_normalization(self):
+        row = f"|{NBSP}`references/Hexalith.Builds{ZWSP}` | `53d53ae` | `b52{ZWSP}9b66`{NBSP}|"
+        self.assertEqual(self._file_list(row), {"references/Hexalith.Builds": "b529b66"})
+
+    def test_the_last_claim_wins_across_arrow_and_table_forms(self):
+        arrow = "- `references/Hexalith.Builds` 53d53ae -> aaaaaaa"
+        table = "| references/Hexalith.Builds | 53d53ae | b529b66 |"
+        for body, target in (
+            (f"{arrow}\n{table}", "b529b66"),
+            (f"{table}\n{arrow}", "aaaaaaa"),
+            (f"{table}\n| references/Hexalith.Builds | 53d53ae | deadbee |", "deadbee"),
+        ):
+            with self.subTest(body=body):
+                self.assertEqual(self._file_list(body), {"references/Hexalith.Builds": target})
+
+    def test_table_rows_bind_each_dependency_without_crossing_cells(self):
+        body = (
+            "| Dependency | Baseline | Target |\n| --- | --- | --- |\n"
+            "| references/Hexalith.Builds | 1111111 | 2222222 |\n"
+            "| references/Hexalith.Memories | 3333333 | 4444444 |"
+        )
+        self.assertEqual(self._file_list(body), {
+            "references/Hexalith.Builds": "2222222",
+            "references/Hexalith.Memories": "4444444",
+        })
+
+    def test_table_claims_obey_existing_section_and_subheading_boundaries(self):
+        story = (
+            "## File List\n### Dependencies\n"
+            "| references/Hexalith.Builds | 1111111 | 2222222 |\n"
+            "## Completion Notes List\n"
+            "| references/Hexalith.Builds | 2222222 | 3333333 |\n"
+            "### Review Findings\n"
+            "| references/Hexalith.Builds | 3333333 | deadbee |\n"
+            "## Historical Evidence\n"
+            "| references/Hexalith.Builds | 3333333 | aaaaaaa |\n"
+        )
+        self.assertEqual(guard.stated_targets(story), {"references/Hexalith.Builds": "3333333"})
+
+    def test_other_table_shapes_and_prose_do_not_create_table_claims(self):
+        for row in (
+            "| Dependency | Baseline | Target |",
+            "| --- | --- | --- |",
+            "| references/Hexalith.Builds | 2222222 |",
+            "| references/Hexalith.Builds | 1111111 | 2222222 | explanation |",
+            "| references/Hexalith.Builds was untouched | 1111111 | 2222222 |",
+            "| src/Thing.cs | 1111111 | 2222222 |",
+            "| references/Hexalith.Builds | unknown | 2222222 |",
+            "| references/Hexalith.Builds | 1111111 | 222222 |",
+            "| references/Hexalith.Builds | 1111111 | " + "2" * 41 + " |",
+            "| references/Hexalith.Builds | 1111111 | not-a-sha |",
+        ):
+            with self.subTest(row=row):
+                self.assertEqual(self._file_list(row), {})
+
+    def test_existing_arrow_tables_remain_binding(self):
+        row = "| references/Hexalith.Builds | 1111111 -> 2222222 | reviewed |"
+        self.assertEqual(self._file_list(row), {"references/Hexalith.Builds": "2222222"})
+
+    def test_code_examples_do_not_override_live_table_claims(self):
+        live = "| references/Hexalith.Builds | 1111111 | deadbee |"
+        example = "references/Hexalith.Builds | 1111111 | 2222222"
+        for code in (
+            f"```markdown\n{example}\n```",
+            f"~~~markdown\n{example}\n~~~",
+            f"````markdown\n```\n{example}\n````",
+            f"~~~markdown\n```\n{example}\n~~~",
+            f"    {example}",
+            f"\t{example}",
+            f" \t{example}",
+            f"`{example}`",
+        ):
+            with self.subTest(code=code):
+                self.assertEqual(self._file_list(f"{live}\n{code}"), {"references/Hexalith.Builds": "deadbee"})
+
+    def test_table_claims_resume_after_a_matching_fence_closes(self):
+        for opening, closing in (("```markdown", "```"), ("~~~markdown", "~~~~")):
+            with self.subTest(opening=opening):
+                body = (
+                    f"{opening}\n| references/Hexalith.Builds | 1111111 | deadbee |\n{closing}\n"
+                    "| references/Hexalith.Builds | 1111111 | 2222222 |"
+                )
+                self.assertEqual(self._file_list(body), {"references/Hexalith.Builds": "2222222"})
 
 
 class PathTokenOffsetTests(unittest.TestCase):
@@ -229,6 +335,151 @@ class GuardCommandIntegrationTests(unittest.TestCase):
         self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
         self.assertIn("[MISSTATED] references/Dependency", result.stdout)
         self.assertIn("RESULT: FAIL", result.stdout)
+
+    def test_matching_table_targets_pass_in_both_provenance_modes(self):
+        self._git("clone", "--quiet", "--no-checkout", str(self.repo), str(self.repo / "references/Dependency"))
+        self._git("-C", "references/Dependency", "checkout", "--quiet", "--detach", self.target)
+        for owned in (None, [self.pointer_commit]):
+            for include_worktree in (False, True):
+                with self.subTest(owned=owned, include_worktree=include_worktree):
+                    result = self._run_guard(
+                        "- `references/Dependency`",
+                        f"| references/Dependency | {self.baseline} | {self.target} |",
+                        owned_commits=owned,
+                        include_worktree=include_worktree,
+                    )
+                    self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+                    self.assertIn("RESULT: PASS", result.stdout)
+                    self.assertNotIn("[MISSTATED]", result.stdout)
+
+    def test_stale_table_targets_fail_in_both_provenance_modes(self):
+        self._git("clone", "--quiet", "--no-checkout", str(self.repo), str(self.repo / "references/Dependency"))
+        self._git("-C", "references/Dependency", "checkout", "--quiet", "--detach", self.target)
+        for owned in (None, [self.pointer_commit]):
+            for include_worktree in (False, True):
+                with self.subTest(owned=owned, include_worktree=include_worktree):
+                    result = self._run_guard(
+                        "- `references/Dependency`",
+                        f"| references/Dependency | {self.baseline} | deadbee |",
+                        owned_commits=owned,
+                        include_worktree=include_worktree,
+                    )
+                    self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                    self.assertIn("[MISSTATED] references/Dependency", result.stdout)
+                    self.assertIn(self.target, result.stdout)
+                    self.assertIn("deadbee", result.stdout)
+                    self.assertIn("RESULT: FAIL", result.stdout)
+
+    def test_table_claims_cannot_declare_a_pointer_implicitly(self):
+        for owned in (None, [self.pointer_commit]):
+            with self.subTest(owned=owned):
+                result = self._run_guard(
+                    f"| references/Dependency | {self.baseline} | {self.target} |",
+                    owned_commits=owned,
+                )
+                self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                self.assertIn("[UNDECLARED] references/Dependency", result.stdout)
+
+    def test_explicit_commit_table_targets_are_checked_when_the_pointer_did_not_move(self):
+        self.baseline = self.pointer_commit
+        for target, verdict in ((self.target, guard.EXIT_PASS), ("deadbee", guard.EXIT_FAIL)):
+            with self.subTest(target=target):
+                result = self._run_guard(
+                    "- `references/Dependency`",
+                    f"| references/Dependency | {self.target} | {target} |",
+                )
+                self.assertEqual(result.returncode, verdict, result.stdout + result.stderr)
+                if verdict == guard.EXIT_FAIL:
+                    self.assertIn("[MISSTATED] references/Dependency", result.stdout)
+
+    def test_recorded_table_claims_still_reject_an_unchanged_unowned_pointer(self):
+        self._prepare_other_baseline_pointer()
+        other = self._git("rev-parse", f"{self.baseline}:references/Other").stdout.strip()
+        result = self._run_guard(
+            "- `references/Dependency`\n- `references/Other`",
+            f"| references/Dependency | {self.baseline} | {self.target} |\n"
+            f"| references/Other | {other} | {other} |",
+            owned_commits=[self.pointer_commit],
+        )
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[UNOWNED CLAIM] references/Other", result.stdout)
+
+    def test_code_examples_cannot_exonerate_a_stale_table(self):
+        for owned in (None, [self.pointer_commit]):
+            for example in (
+                f"```markdown\n| references/Dependency | {self.baseline} | {self.target} |\n```",
+                f"~~~markdown\n| references/Dependency | {self.baseline} | {self.target} |\n~~~",
+                f"`references/Dependency | {self.baseline} | {self.target}`",
+                f"    references/Dependency | {self.baseline} | {self.target}",
+            ):
+                with self.subTest(owned=owned, example=example):
+                    result = self._run_guard(
+                        "- `references/Dependency`",
+                        f"| references/Dependency | {self.baseline} | deadbee |\n{example}",
+                        owned_commits=owned,
+                    )
+                    self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                    self.assertIn("[MISSTATED] references/Dependency", result.stdout)
+                    self.assertIn("deadbee", result.stdout)
+
+    def test_recorded_addition_accepts_an_absent_table_baseline(self):
+        self._commit_pointer("references/Added", self.target)
+        addition = self._git("rev-parse", "HEAD").stdout.strip()
+        result = self._run_guard(
+            "- `references/Dependency`\n- `references/Added`",
+            f"| references/Dependency | {self.baseline} | {self.target} |\n"
+            f"| references/Added | absent | {self.target} |",
+            owned_commits=[self.pointer_commit, addition],
+        )
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_removal_accepts_a_zero_table_target(self):
+        self._git("update-index", "--force-remove", "references/Dependency")
+        self._git("commit", "--quiet", "-m", "test: remove fixture dependency")
+        removal = self._git("rev-parse", "HEAD").stdout.strip()
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"| references/Dependency | {self.target} | {'0' * 40} |",
+            owned_commits=[self.pointer_commit, removal],
+        )
+        self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_recorded_addition_rejects_a_stale_target_after_an_absent_baseline(self):
+        self._commit_pointer("references/Added", self.target)
+        addition = self._git("rev-parse", "HEAD").stdout.strip()
+        result = self._run_guard(
+            "- `references/Dependency`\n- `references/Added`",
+            f"| references/Dependency | {self.baseline} | {self.target} |\n"
+            "| references/Added | absent | deadbee |",
+            owned_commits=[self.pointer_commit, addition],
+        )
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[MISSTATED] references/Added", result.stdout)
+
+    def test_zero_table_target_is_rejected_while_the_pointer_remains_present(self):
+        for owned in (None, [self.pointer_commit]):
+            with self.subTest(owned=owned):
+                result = self._run_guard(
+                    "- `references/Dependency`",
+                    f"| references/Dependency | {self.baseline} | {'0' * 40} |",
+                    owned_commits=owned,
+                )
+                self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                self.assertIn("[MISSTATED] references/Dependency", result.stdout)
+
+    def test_nonzero_table_target_is_rejected_after_recorded_removal(self):
+        self._git("update-index", "--force-remove", "references/Dependency")
+        self._git("commit", "--quiet", "-m", "test: remove fixture dependency")
+        removal = self._git("rev-parse", "HEAD").stdout.strip()
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"| references/Dependency | {self.target} | {self.target} |",
+            owned_commits=[self.pointer_commit, removal],
+        )
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn("[MISSTATED] references/Dependency", result.stdout)
 
     def test_recorded_story_commit_rejects_unrecorded_later_pointer_update(self):
         (self.repo / "seed.txt").write_text("later\n", encoding="utf-8")

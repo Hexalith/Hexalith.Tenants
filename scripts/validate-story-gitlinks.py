@@ -10,7 +10,8 @@ Declaring a path is necessary but not sufficient. Where the story also states a
 target SHA for that path, the stated SHA must match the tree: a story whose own
 pointer table has gone stale asserts a state that is not the one it ships, and
 naming the path alone let that pass. Stated SHAs are matched by prefix, so both
-short and full forms are accepted.
+short and full forms are accepted. Claims may use arrows or three-column
+`path | baseline | target` rows; tables still require explicit path declarations.
 
 Long-lived stories may record full commit IDs in `Story-Owned Gitlink Commits`.
 That record validates each pointer-bearing story commit and requires the compared
@@ -207,12 +208,37 @@ def _path_tokens(normalized: str) -> list[tuple[int, str]]:
     return found
 
 
-def stated_targets(story_text: str) -> dict[str, str]:
-    """Return the target SHA each `X -> Y` statement claims for a `references/` path.
+def _table_target(normalized: str) -> tuple[str, str] | None:
+    """Read a strict path/base/target row, with optional Markdown outer pipes.
 
-    Only the arrow form is read, and only its right-hand side: that is the shape
-    the story's own pointer tables use to state where a submodule ended up, and it
-    is the half that goes stale when a later commit moves the pointer again.
+    The baseline cell must be a SHA or `absent`, as used by addition records;
+    only the target is a binding claim. Headers, prose and other table shapes
+    are ignored. A full zero SHA is the existing removal-target representation.
+    """
+    if normalized.startswith("    "):
+        return None  # Indented code is an example, not a Markdown table row.
+    row = normalized.strip().removeprefix("|").removesuffix("|")
+    cells = [cell.strip() for cell in row.split("|")]
+    if len(cells) != 3:
+        return None
+    # Backticks must enclose individual cells, not one span around the whole row.
+    cells = [cell[1:-1].strip() if cell.startswith("`") and cell.endswith("`") else cell for cell in cells]
+    path, baseline, target = cells
+    if not re.fullmatch(r"references/[^\s`|]+", path):
+        return None
+    if not re.fullmatch(r"(?:[0-9a-f]{7,40}|absent)", baseline, re.IGNORECASE):
+        return None
+    if not re.fullmatch(r"[0-9a-f]{7,40}", target, re.IGNORECASE):
+        return None
+    return path.rstrip("/"), target.lower()
+
+
+def stated_targets(story_text: str) -> dict[str, str]:
+    """Return the target SHA each arrow or three-column table claims for a path.
+
+    Read an arrow's right-hand side or the target cell of a path/base/target row:
+    these state where a submodule ended up, and go stale when a later commit
+    moves the pointer again. Table rows do not implicitly declare a path.
 
     Three rules make this match how stories are actually written:
 
@@ -234,14 +260,31 @@ def stated_targets(story_text: str) -> dict[str, str]:
         extract_section(story_text, "Completion Notes List", stop_at_subheading=True),
     )
     for section in sections:
+        table_fence: str | None = None
         for line in section.splitlines():
+            normalized = normalize_line(line)
+            expanded = line.expandtabs(4)
+            fence = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", expanded)
+            if fence is not None:
+                marker, suffix = fence.groups()
+                if table_fence is None:
+                    table_fence = marker
+                elif marker[0] == table_fence[0] and len(marker) >= len(table_fence) and not suffix.strip():
+                    table_fence = None
+            # Keep inherited arrow handling intact; only the new table form must
+            # ignore fenced/indented examples when selecting binding table rows.
+            table_target = _table_target(normalize_line(expanded)) if table_fence is None else None
+            if table_target is not None:
+                path, target = table_target
+                targets[path] = target
+                continue
             # Normalized once, here, so the arrow scan below reads the same string the tokenizer does.
             # Scanning the raw line instead meant a `Cf` character next to the arrow -- `53d53ae<ZWSP> -> x`
             # -- produced no match at all, because `\s` does not match U+200B. `stated_targets` then recorded
             # nothing for that path, `record_if_misstated` was never called, and the run printed `[declared]`
             # and PASSED while the stated SHA was stale: the exact failure this check exists to catch,
             # reachable by an invisible character.
-            cleaned = normalize_line(line).replace("`", " ").replace("|", " ")
+            cleaned = normalized.replace("`", " ").replace("|", " ")
             paths = _path_tokens(cleaned)
             if not paths:
                 continue

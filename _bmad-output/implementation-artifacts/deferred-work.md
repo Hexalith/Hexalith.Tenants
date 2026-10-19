@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-520 closure and DW-656 review deferral (2026-10-19):** The story gitlink guard now binds three-column dependency targets while preserving explicit declarations, provenance and arrow behavior. Code examples cannot override live table claims. The 61-test lane passes after independent review corrections; original production with final tests reproduces 45 assertion/subtest failures. Only DW-520 closes; the inherited default-HEAD empty-checkout resolution defect remains open as DW-656. All 655 original IDs remain plus DW-656: 656 total, 382 done/274 open across 246 maintenance rows. Historical fields, unrelated records, dependencies and release holds are preserved. See [exact commands, review and limitations](dw-520-validation-evidence.md).
+
 **DW-622 closure (2026-10-18):** Two AppHost model regressions verify the UI read endpoint in both authentication modes after environment callbacks. Five later wrong-resource, HTTP, alias and allocation-dependent overrides are rejected; the restored maintained AppHost suite passes 8/8 with zero failures/skips and the Debug source build has zero warnings/errors. Only DW-622 closes: all 655 IDs remain, 381 done/274 open across 246 maintenance rows. Original fields, unrelated records, existing user changes, dependencies and release holds remain preserved. See [exact commands and review](dw-622-validation-evidence.md).
 
 **DW-643 closure (2026-10-19):** The story gitlink guard now rejects unrecorded endpoints at the audited revision, including reversions to baseline and unowned additions/removals/renames. Existing historical `--ref` audits and recorded-chain/working-tree checks remain covered. The original script produces eight unsafe PASS failures; final guard tests pass 39/39. Only DW-643 closes: all 655 IDs remain, 380 done/275 open across 247 maintenance rows. Original fields, unrelated records, dependency pointers and release holds are preserved. See [exact commands and review](dw-643-validation-evidence.md).
@@ -6345,17 +6347,26 @@ location: scripts/validate-story-gitlinks.py
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Teach `scripts/validate-story-gitlinks.py` to bind three-column dependency-table rows, or document that tables are non-binding.\n  evidence: `stated_targets()` (`:208`) matches only `ARROW_CHAIN` (`X -> Y`). For the 5.6 spec at `5a519cd7` it returns `{}`, so the run PASSes while four `| references/X | base | target |` rows are stale (EventStore `8f34b395` vs shipped `55b2982e`, FrontComposer, McpCli, Memories). The docstring says a stale pointer table is exactly what the guard catches. `tests/scripts/test_validate_story_gitlinks.py` has no pipe-table fixture. Add one that expects `[MISSTATED]`. Pre-existing; not caused by Story 5.6."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Executed an import-only parser probe: stated_targets on a File List row “| references/Hexalith.Builds | 1111111 | 2222222 |” returned {}; the arrow form returned target 2222222. scripts/validate-story-gitlinks.py:208-256 remains ARROW_CHAIN-only, so stale three-column targets are not bound.
-verification-files: scripts/validate-story-gitlinks.py
-evidence-kind: verified-defect
+pre-dw-520-status: open
+status: done 2026-10-19
+pre-dw-520-disposition: actionable
+disposition: resolved
+pre-dw-520-verification-date: 2026-10-12
+verification-date: 2026-10-19
+pre-dw-520-verification: Executed an import-only parser probe: stated_targets on a File List row “| references/Hexalith.Builds | 1111111 | 2222222 |” returned {}; the arrow form returned target 2222222. scripts/validate-story-gitlinks.py:208-256 remains ARROW_CHAIN-only, so stale three-column targets are not bound.
+verification: Strict three-column table targets now bind alongside arrow claims, with explicit declarations and existing section/provenance rules retained. Fenced, indented and whole-inline-code examples cannot replace live table claims. Independent review corrections and the final 61-test lane pass; original production with final tests reproduces 45 assertion/subtest failures. Matching and stale targets, both CLI modes, additions/removals and unowned claims are covered. The unchanged-pointer explicit-ref evidence is qualified; the inherited default-HEAD empty-checkout defect is separately open as DW-656. Exact commands, historical failures and review are in dw-520-validation-evidence.md.
+pre-dw-520-verification-files: scripts/validate-story-gitlinks.py
+verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/spec-dw-520-gitlink-table-targets.md; _bmad-output/implementation-artifacts/dw-520-validation-evidence.md
+pre-dw-520-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Gitlink declaration format policy
-next-action: Support three-column base/target rows with a negative MISSTATED fixture, or explicitly declare and enforce their nonbinding status.
+pre-dw-520-next-action: Support three-column base/target rows with a negative MISSTATED fixture, or explicitly declare and enforce their nonbinding status.
+next-action: Closed within DW-520; retain DW-656, unrelated deferred work, CI scope and release qualification holds.
 related: DW-534
+resolution-evidence: [Exact validation, original-production replay and independent review](dw-520-validation-evidence.md)
+resolution-spec: spec-dw-520-gitlink-table-targets.md
 
 
 ### DW-521: A caller-chosen correlation ID in one tenant can force a 409 on another tenant's `messageId` status lookup.
@@ -9085,3 +9096,23 @@ dependencies: Recovery-state inventory completeness and line parsing
 pre-dw-655-next-action: Process the final unterminated package ID or refuse malformed inventory, with executable no-publication and canonical-state controls.
 next-action: Closed within DW-655; retain DW-620, unrelated deferred work and all release qualification holds.
 related: DW-654
+
+### DW-656: Default-HEAD unchanged-pointer claims can resolve an empty dependency directory to the superproject HEAD.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-520-gitlink-table-targets.md`
+  summary: Resolve unchanged gitlink claims safely when a dependency checkout is empty or deinitialized.
+  evidence: Independent review and isolated CLI reproduction set baseline to the current pointer-bearing root commit, retain an empty references/Dependency directory, and state the matching dependency target. Default HEAD reports MISSTATED using the root HEAD instead of the gitlink. The current table and arrow forms reproduce; replacing only the isolated script with original production at c4c781791b0b50eabeb0b58505d943be40538e7f reproduces the same arrow failure. Explicit --ref resolves the recorded pointer correctly. No real workspace submodule is changed.
+origin: DW-520 independent review, 2026-10-19
+location: scripts/validate-story-gitlinks.py::current_pointer
+status: open
+disposition: actionable
+verification-date: 2026-10-19
+verification: The default-HEAD current_pointer branch invokes git -C path rev-parse HEAD without verifying that path owns a checkout. Git ascends from an empty directory to the superproject, so a matching unchanged-pointer claim fails. Current table/arrow and original-production arrow CLI controls each exit 1 with the incorrect superproject SHA and MISSTATED. Exact isolated reproduction is in dw-520-validation-evidence.md.
+verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/dw-520-validation-evidence.md
+evidence-kind: verified-defect
+severity: medium
+priority: P2
+owner: Tenants developer tooling
+dependencies: Preserve actual checked-out pointer movement detection and explicit-ref auditing
+next-action: Distinguish a real dependency checkout from an empty/deinitialized path and resolve unchanged claims from the recorded gitlink when appropriate, with default-HEAD positive and movement-refusal controls.
+related: DW-520
