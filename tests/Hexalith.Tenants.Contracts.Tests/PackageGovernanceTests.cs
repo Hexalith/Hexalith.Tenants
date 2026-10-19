@@ -354,6 +354,7 @@ public class PackageGovernanceTests {
         (string ProjectPath, string PackageId, string SourceProperty)[] expectedEdges =
         [
             ("src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj", "Hexalith.Commons.Aspire", "HexalithCommonsFromSource"),
+            ("src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj", "Hexalith.McpCli.Abstractions", "HexalithMcpCliFromSource"),
             ("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj", "Hexalith.FrontComposer.Contracts", "HexalithFrontComposerFromSource"),
             ("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj", "Hexalith.FrontComposer.Shell", "HexalithFrontComposerFromSource"),
             ("tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj", "Hexalith.FrontComposer.Contracts", "HexalithFrontComposerFromSource"),
@@ -434,6 +435,7 @@ public class PackageGovernanceTests {
             properties["HexalithCommonsFromSource"].ShouldNotBe("true");
             properties["HexalithEventStoreFromSource"].ShouldNotBe("true");
             properties["HexalithMemoriesFromSource"].ShouldNotBe("true");
+            properties["HexalithMcpCliFromSource"].ShouldNotBe("true");
         }
         finally {
             if (Directory.Exists(sourceRoot)) {
@@ -542,7 +544,7 @@ public class PackageGovernanceTests {
         startInfo.ArgumentList.Add("msbuild");
         startInfo.ArgumentList.Add("src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj");
         startInfo.ArgumentList.Add("-nologo");
-        startInfo.ArgumentList.Add("-getProperty:HexalithFrontComposerFromSource,HexalithCommonsFromSource,HexalithEventStoreFromSource,HexalithMemoriesFromSource");
+        startInfo.ArgumentList.Add("-getProperty:HexalithFrontComposerFromSource,HexalithCommonsFromSource,HexalithEventStoreFromSource,HexalithMemoriesFromSource,HexalithMcpCliFromSource");
         startInfo.ArgumentList.Add("-property:UseHexalithProjectReferences=false");
         startInfo.ArgumentList.Add($"-property:HexalithFrontComposerRoot={frontComposerRoot}");
         if (sourceOverride is not null) {

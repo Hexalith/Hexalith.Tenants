@@ -4,6 +4,9 @@
     <!-- Debug source when available; Release uses the published EventStore Contracts package. -->
     <ProjectReference Include="$(HexalithEventStoreRoot)\src\Hexalith.EventStore.Contracts\Hexalith.EventStore.Contracts.csproj" AdditionalProperties="Version=$(HexalithEventStoreVersion)" Condition="'$(HexalithEventStoreFromSource)' == 'true'" />
     <PackageReference Include="Hexalith.EventStore.Contracts" Condition="'$(HexalithEventStoreFromSource)' != 'true'" />
+    <!-- McpCli Decoration Package: declares the gateway-ready operations; source when available, otherwise the pinned package. -->
+    <ProjectReference Include="$(HexalithMcpCliRoot)\src\Hexalith.McpCli.Abstractions\Hexalith.McpCli.Abstractions.csproj" AdditionalProperties="Version=$(HexalithMcpCliVersion)" Condition="'$(HexalithMcpCliFromSource)' == 'true'" />
+    <PackageReference Include="Hexalith.McpCli.Abstractions" Condition="'$(HexalithMcpCliFromSource)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>

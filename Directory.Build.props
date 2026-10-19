@@ -45,6 +45,14 @@
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\Hexalith.Memories</HexalithMemoriesRoot>
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.Memories\src\Hexalith.Memories.Contracts')">$(MSBuildThisFileDirectory)..\references\Hexalith.Memories</HexalithMemoriesRoot>
         <HexalithMemoriesRoot Condition="'$(HexalithMemoriesRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.Memories</HexalithMemoriesRoot>
+        <!-- Auto-detect Hexalith.McpCli location for the Contracts decoration attributes:
+             1. McpCli is a references/ submodule inside Tenants (standalone)
+             2. McpCli and Tenants are sibling submodules in a references/ folder or app repo
+             3. Fallback: assume submodule inside Tenants references/ -->
+        <HexalithMcpCliRoot Condition="'$(HexalithMcpCliRoot)' == '' and Exists('$(MSBuildThisFileDirectory)references\Hexalith.McpCli\src\Hexalith.McpCli.Abstractions')">$(MSBuildThisFileDirectory)references\Hexalith.McpCli</HexalithMcpCliRoot>
+        <HexalithMcpCliRoot Condition="'$(HexalithMcpCliRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\Hexalith.McpCli\src\Hexalith.McpCli.Abstractions')">$(MSBuildThisFileDirectory)..\Hexalith.McpCli</HexalithMcpCliRoot>
+        <HexalithMcpCliRoot Condition="'$(HexalithMcpCliRoot)' == '' and Exists('$(MSBuildThisFileDirectory)..\references\Hexalith.McpCli\src\Hexalith.McpCli.Abstractions')">$(MSBuildThisFileDirectory)..\references\Hexalith.McpCli</HexalithMcpCliRoot>
+        <HexalithMcpCliRoot Condition="'$(HexalithMcpCliRoot)' == ''">$(MSBuildThisFileDirectory)references\Hexalith.McpCli</HexalithMcpCliRoot>
         <!-- Cross-repo Hexalith dependencies use centrally pinned NuGet packages by default so
              restore/build graphs stay consistent even when CI restores without an explicit
              configuration and then builds Release without restoring again. Override
@@ -67,6 +75,7 @@
         <HexalithFrontComposerFromSource Condition="'$(HexalithFrontComposerFromSource)' == '' and '$(HexalithFrontComposerSourceConsumer)' == 'true' and '$(HexalithFrontComposerSourceAvailable)' == 'true'">true</HexalithFrontComposerFromSource>
         <HexalithFrontComposerFromSource Condition="'$(HexalithFrontComposerFromSource)' == ''">false</HexalithFrontComposerFromSource>
         <HexalithMemoriesFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
+        <HexalithMcpCliFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMcpCliRoot)\src\Hexalith.McpCli.Abstractions\Hexalith.McpCli.Abstractions.csproj')">true</HexalithMcpCliFromSource>
     </PropertyGroup>
 
     <!-- Deliberate exception to the "centralized build config" convention: this module
