@@ -341,6 +341,12 @@ def gitlink_changes(baseline: str, ref: str | None) -> list[tuple[str, str, str]
     ones at completion time: a later `git add -A` sweeps them into an unrelated
     commit, which is exactly how this drift keeps happening.
     """
+    if ref is None:
+        unmerged = run_git("ls-files", "--unmerged", "-z", "--", SUBMODULE_ROOT)
+        for entry in unmerged.split("\0"):
+            metadata, _, path = entry.partition("\t")
+            if metadata.split()[:1] == ["160000"]:
+                raise CheckError(f"Unmerged gitlink {path}; resolve the index conflict before validation.")
     diff_args = ["diff", "--no-renames", "--ignore-submodules=dirty", "--no-abbrev", "--raw", baseline]
     if ref is not None:
         diff_args.append(ref)
@@ -375,10 +381,31 @@ def current_pointer(path: str, ref: str | None) -> str | None:
     Needed for paths a story states a target for but never moved. The changed-
     pointer diff cannot see those, so a story claiming a bump it never made -- or
     made and then reverted to baseline -- passed with "no pointer changes".
+
+    Default runs prefer a dependency's own checkout. Git ascends from an empty
+    directory to the superproject, so verify ownership before reading its HEAD.
+    Without a checkout, the index supplies the working-tree comparison's pointer,
+    including staged changes. Explicit refs always read their recorded tree.
     """
+    if ref is None:
+        raw = run_git("ls-files", "--stage", "-z", "--", path)
+        indexed_pointer = None
+        for entry in raw.split("\0"):
+            metadata, _, entry_path = entry.partition("\t")
+            fields = metadata.split()
+            if entry_path == path and len(fields) == 3:
+                if fields[2] != "0":
+                    raise CheckError(f"Unmerged gitlink claim for {path}; resolve the index conflict before validation.")
+                if fields[0] == "160000":
+                    indexed_pointer = fields[1]
+        try:
+            checkout_root = run_git("-C", path, "rev-parse", "--show-toplevel").strip()
+            if Path(checkout_root).resolve() == (REPO_ROOT / path).resolve():
+                return run_git("-C", path, "rev-parse", "HEAD").strip()
+        except CheckError:
+            pass
+        return indexed_pointer
     try:
-        if ref is None:
-            return run_git("-C", path, "rev-parse", "HEAD").strip()
         raw = run_git("ls-tree", ref, "--", path)
     except CheckError:
         return None
@@ -562,9 +589,8 @@ def check(story_path: Path, ref: str) -> int:
     for path in sorted(stated):
         if path in changed_paths:
             continue
-        actual = current_pointer(path, compare_ref)
-        if actual is not None:
-            record_if_misstated(path, actual)
+        actual = current_pointer(path, compare_ref) or "0" * 40
+        record_if_misstated(path, actual)
 
     for path, actual, claim in misstated:
         print(

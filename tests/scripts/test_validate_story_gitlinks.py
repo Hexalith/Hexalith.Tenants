@@ -17,6 +17,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 
 _SCRIPT = pathlib.Path(__file__).resolve().parents[2] / "scripts" / "validate-story-gitlinks.py"
 _spec = importlib.util.spec_from_file_location("validate_story_gitlinks", _SCRIPT)
@@ -391,6 +392,196 @@ class GuardCommandIntegrationTests(unittest.TestCase):
                 self.assertEqual(result.returncode, verdict, result.stdout + result.stderr)
                 if verdict == guard.EXIT_FAIL:
                     self.assertIn("[MISSTATED] references/Dependency", result.stdout)
+
+    def test_default_head_empty_checkout_checks_unchanged_claims_against_the_gitlink(self):
+        self.baseline = self.pointer_commit
+        (self.repo / "references/Dependency").mkdir()
+        parent_head = self._git("rev-parse", "HEAD").stdout.strip()
+        for form in ("table", "arrow"):
+            for claim, verdict in ((self.target, guard.EXIT_PASS), ("deadbee", guard.EXIT_FAIL), (parent_head, guard.EXIT_FAIL)):
+                with self.subTest(form=form, claim=claim):
+                    entry = (
+                        f"| references/Dependency | {self.target} | {claim} |"
+                        if form == "table"
+                        else f"- `references/Dependency` {self.target} -> {claim}"
+                    )
+                    result = self._run_guard("- `references/Dependency`", entry, include_worktree=True)
+                    self.assertEqual(result.returncode, verdict, result.stdout + result.stderr)
+                    self.assertIn("No references/ pointer changes in range.", result.stdout)
+                    if verdict == guard.EXIT_FAIL:
+                        self.assertIn(f"[MISSTATED] references/Dependency is {self.target} in the tree", result.stdout)
+                    else:
+                        self.assertIn("RESULT: PASS", result.stdout)
+
+    def test_default_head_empty_checkout_uses_the_staged_pointer_when_the_net_diff_is_empty(self):
+        staged = self._git("rev-parse", f"{self.baseline}:references/Dependency").stdout.strip()
+        self._git("update-index", "--cacheinfo", f"160000,{staged},references/Dependency")
+        (self.repo / "references/Dependency").mkdir()
+        for claim, verdict in ((staged, guard.EXIT_PASS), (self.target, guard.EXIT_FAIL)):
+            with self.subTest(claim=claim):
+                result = self._run_guard(
+                    "- `references/Dependency`",
+                    f"| references/Dependency | {staged} | {claim} |",
+                    include_worktree=True,
+                )
+                self.assertEqual(result.returncode, verdict, result.stdout + result.stderr)
+                self.assertIn("No references/ pointer changes in range.", result.stdout)
+                if verdict == guard.EXIT_FAIL:
+                    self.assertIn(f"[MISSTATED] references/Dependency is {staged} in the tree", result.stdout)
+
+    def test_default_head_own_checkouts_preserve_matching_claims_and_movement_refusals(self):
+        self.baseline = self.pointer_commit
+        for gitfile in (False, True):
+            dependency = self._clone_dependency(gitfile)
+            self.assertEqual((dependency / ".git").is_file(), gitfile)
+            try:
+                for checkout, verdict in ((self.target, guard.EXIT_PASS), (self.baseline, guard.EXIT_FAIL)):
+                    self._git("-C", "references/Dependency", "checkout", "--quiet", "--detach", checkout)
+                    for include_worktree in (True, False):
+                        with self.subTest(gitfile=gitfile, checkout=checkout, include_worktree=include_worktree):
+                            result = self._run_guard(
+                                "- `references/Dependency`",
+                                f"| references/Dependency | {self.target} | {self.target} |",
+                                include_worktree=include_worktree,
+                            )
+                            expected = verdict if include_worktree else guard.EXIT_PASS
+                            self.assertEqual(result.returncode, expected, result.stdout + result.stderr)
+                            if expected == guard.EXIT_FAIL:
+                                self.assertIn("[MISSTATED] references/Dependency", result.stdout)
+                                self.assertIn(f"{self.target[:7]} -> {checkout[:7]}", result.stdout)
+                # Removing the checkout leaves a deinitialized directory. Git
+                # must use the index rather than ascending to the parent HEAD.
+                shutil.rmtree(dependency)
+                dependency.mkdir()
+                result = self._run_guard(
+                    "- `references/Dependency`",
+                    f"- `references/Dependency` {self.target} -> {self.target}",
+                    include_worktree=True,
+                )
+                self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+            finally:
+                shutil.rmtree(dependency)
+
+    def test_default_head_own_checkout_wins_over_the_index_when_it_returns_to_baseline(self):
+        checkout = self._git("rev-parse", f"{self.baseline}:references/Dependency").stdout.strip()
+        for gitfile in (False, True):
+            dependency = self._clone_dependency(gitfile)
+            try:
+                self._git("-C", "references/Dependency", "checkout", "--quiet", "--detach", checkout)
+                with patch.object(guard, "REPO_ROOT", self.repo):
+                    self.assertEqual(guard.current_pointer("references/Dependency", None), checkout)
+                for claim, verdict in ((checkout, guard.EXIT_PASS), (self.target, guard.EXIT_FAIL)):
+                    with self.subTest(gitfile=gitfile, claim=claim):
+                        result = self._run_guard(
+                            "- `references/Dependency`",
+                            f"| references/Dependency | {checkout} | {claim} |",
+                            include_worktree=True,
+                        )
+                        self.assertEqual(result.returncode, verdict, result.stdout + result.stderr)
+                        if verdict == guard.EXIT_FAIL:
+                            self.assertIn(f"[MISSTATED] references/Dependency is {checkout} in the tree", result.stdout)
+            finally:
+                shutil.rmtree(dependency)
+                if gitfile:
+                    shutil.rmtree(self.repo / ".git/modules/Dependency")
+
+    def test_default_head_missing_directory_still_reports_removal(self):
+        self.baseline = self.pointer_commit
+        result = self._run_guard(
+            "- `references/Dependency`",
+            f"| references/Dependency | {self.target} | {self.target} |",
+            include_worktree=True,
+        )
+        self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+        self.assertIn(f"{self.target[:7]} -> removed", result.stdout)
+        self.assertIn("[MISSTATED] references/Dependency", result.stdout)
+
+    def test_claims_for_empty_or_ordinary_directories_require_an_actual_gitlink(self):
+        self.baseline = self.pointer_commit
+        (self.repo / "references/Dependency").mkdir()
+        ordinary = self.repo / "references/Typo"
+        ordinary.mkdir()
+        for tracked in (False, True):
+            if tracked:
+                (ordinary / "file.txt").write_text("ordinary tracked content\n", encoding="utf-8")
+                self._git("add", "references/Typo/file.txt")
+                self._git("commit", "--quiet", "-m", "test: track ordinary fixture directory")
+            for include_worktree in (True, False):
+                for claim, verdict in (("deadbee", guard.EXIT_FAIL), ("0" * 40, guard.EXIT_PASS)):
+                    with self.subTest(tracked=tracked, include_worktree=include_worktree, claim=claim):
+                        result = self._run_guard(
+                            "- `references/Typo`",
+                            f"| references/Typo | absent | {claim} |",
+                            include_worktree=include_worktree,
+                        )
+                        self.assertEqual(result.returncode, verdict, result.stdout + result.stderr)
+                        if verdict == guard.EXIT_FAIL:
+                            self.assertIn("[MISSTATED] references/Typo", result.stdout)
+
+    def test_default_head_unmerged_gitlink_refuses_all_claims_instead_of_treating_it_as_absent(self):
+        other = self._git("rev-parse", f"{self.baseline}:references/Dependency").stdout.strip()
+        self.baseline = self.pointer_commit
+        (self.repo / "references/Dependency").mkdir()
+        self._git("update-index", "--force-remove", "references/Dependency")
+        subprocess.run(
+            ["git", "update-index", "--index-info"],
+            input="".join(f"160000 {sha} {stage}\treferences/Dependency\n" for stage, sha in ((1, self.target), (2, self.target), (3, other))),
+            cwd=self.repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        for initialized in (False, True):
+            if initialized:
+                (self.repo / "references/Dependency").rmdir()
+                self._clone_dependency(False)
+                self._git("-C", "references/Dependency", "checkout", "--quiet", "--detach", self.target)
+            for claim in ("deadbee", "0" * 40, self.target):
+                with self.subTest(initialized=initialized, claim=claim):
+                    result = self._run_guard(
+                        "- `references/Dependency`",
+                        f"| references/Dependency | {self.target} | {claim} |",
+                        include_worktree=True,
+                    )
+                    self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                    self.assertIn("Unmerged gitlink", result.stdout)
+                    self.assertIn("RESULT: FAIL", result.stdout)
+        explicit = self._run_guard(
+            "- `references/Dependency`",
+            f"| references/Dependency | {self.target} | {self.target} |",
+        )
+        self.assertEqual(explicit.returncode, guard.EXIT_PASS, explicit.stdout + explicit.stderr)
+
+    def test_changed_unmerged_gitlink_refuses_stage_one_claims_in_both_provenance_modes(self):
+        original_baseline = self.baseline
+        stage_one = self._git("rev-parse", f"{original_baseline}:references/Dependency").stdout.strip()
+        (self.repo / "references/Dependency").mkdir()
+        self._git("update-index", "--force-remove", "references/Dependency")
+        subprocess.run(
+            ["git", "update-index", "--index-info"],
+            input="".join(f"160000 {sha} {stage}\treferences/Dependency\n" for stage, sha in ((1, stage_one), (2, self.target), (3, self.pointer_commit))),
+            cwd=self.repo,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        for owned in (None, [self.pointer_commit]):
+            self.baseline = self.pointer_commit if owned is None else original_baseline
+            with self.subTest(owned=owned):
+                result = self._run_guard(
+                    "- `references/Dependency`",
+                    f"| references/Dependency | {self.target} | {stage_one} |",
+                    owned_commits=owned,
+                    include_worktree=True,
+                )
+                self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                self.assertIn("Unmerged gitlink", result.stdout)
+                explicit = self._run_guard(
+                    "- `references/Dependency`",
+                    f"| references/Dependency | {self.target} | {self.target} |",
+                    owned_commits=owned,
+                )
+                self.assertEqual(explicit.returncode, guard.EXIT_PASS, explicit.stdout + explicit.stderr)
 
     def test_recorded_table_claims_still_reject_an_unchanged_unowned_pointer(self):
         self._prepare_other_baseline_pointer()
@@ -785,6 +976,16 @@ class GuardCommandIntegrationTests(unittest.TestCase):
         self.assertIn("[WORKTREE MOVE] references/Dependency", result.stdout)
         self.assertIn(f"{self.target[:7]} -> {self.baseline[:7]}", result.stdout)
         self.assertNotIn("use --ref <story-endpoint>", result.stdout)
+
+    def _clone_dependency(self, gitfile):
+        dependency = self.repo / "references/Dependency"
+        options = []
+        if gitfile:
+            git_directory = self.repo / ".git/modules/Dependency"
+            git_directory.parent.mkdir(parents=True, exist_ok=True)
+            options = ["--separate-git-dir", str(git_directory)]
+        self._git("clone", "--quiet", "--no-checkout", *options, str(self.repo), str(dependency))
+        return dependency
 
     def _git(self, *args):
         return subprocess.run(

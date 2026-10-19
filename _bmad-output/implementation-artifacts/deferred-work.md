@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-656 closure (2026-10-19):** Default-HEAD unchanged-pointer claims now distinguish real dependency checkouts from empty/deinitialized directories and use the indexed gitlink when appropriate. Review corrections reject absent-pointer nonzero claims and unresolved index conflicts. The maintained lane passes 69/69; entry-production replay reproduces 21 assertion/subtest failures. Only DW-656 closes: all 656 IDs remain, 383 done/273 open across 245 maintenance rows. Historical fields, unrelated records, dependency pointers and release holds are preserved. See [exact commands, review and limits](dw-656-validation-evidence.md).
+
 **DW-520 closure and DW-656 review deferral (2026-10-19):** The story gitlink guard now binds three-column dependency targets while preserving explicit declarations, provenance and arrow behavior. Code examples cannot override live table claims. The 61-test lane passes after independent review corrections; original production with final tests reproduces 45 assertion/subtest failures. Only DW-520 closes; the inherited default-HEAD empty-checkout resolution defect remains open as DW-656. All 655 original IDs remain plus DW-656: 656 total, 382 done/274 open across 246 maintenance rows. Historical fields, unrelated records, dependencies and release holds are preserved. See [exact commands, review and limitations](dw-520-validation-evidence.md).
 
 **DW-622 closure (2026-10-18):** Two AppHost model regressions verify the UI read endpoint in both authentication modes after environment callbacks. Five later wrong-resource, HTTP, alias and allocation-dependent overrides are rejected; the restored maintained AppHost suite passes 8/8 with zero failures/skips and the Debug source build has zero warnings/errors. Only DW-622 closes: all 655 IDs remain, 381 done/274 open across 246 maintenance rows. Original fields, unrelated records, existing user changes, dependencies and release holds remain preserved. See [exact commands and review](dw-622-validation-evidence.md).
@@ -9104,15 +9106,23 @@ related: DW-654
   evidence: Independent review and isolated CLI reproduction set baseline to the current pointer-bearing root commit, retain an empty references/Dependency directory, and state the matching dependency target. Default HEAD reports MISSTATED using the root HEAD instead of the gitlink. The current table and arrow forms reproduce; replacing only the isolated script with original production at c4c781791b0b50eabeb0b58505d943be40538e7f reproduces the same arrow failure. Explicit --ref resolves the recorded pointer correctly. No real workspace submodule is changed.
 origin: DW-520 independent review, 2026-10-19
 location: scripts/validate-story-gitlinks.py::current_pointer
-status: open
-disposition: actionable
+pre-dw-656-status: open
+status: done 2026-10-19
+pre-dw-656-disposition: actionable
+disposition: resolved
 verification-date: 2026-10-19
-verification: The default-HEAD current_pointer branch invokes git -C path rev-parse HEAD without verifying that path owns a checkout. Git ascends from an empty directory to the superproject, so a matching unchanged-pointer claim fails. Current table/arrow and original-production arrow CLI controls each exit 1 with the incorrect superproject SHA and MISSTATED. Exact isolated reproduction is in dw-520-validation-evidence.md.
-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/dw-520-validation-evidence.md
-evidence-kind: verified-defect
+pre-dw-656-verification: The default-HEAD current_pointer branch invokes git -C path rev-parse HEAD without verifying that path owns a checkout. Git ascends from an empty directory to the superproject, so a matching unchanged-pointer claim fails. Current table/arrow and original-production arrow CLI controls each exit 1 with the incorrect superproject SHA and MISSTATED. Exact isolated reproduction is in dw-520-validation-evidence.md.
+verification: The resolver verifies checkout ownership and otherwise reads the exact stage-zero index gitlink. Review corrections reject nonzero absent-pointer claims and unresolved index conflicts. The final maintained lane passes 69/69 with zero failures/skips; isolated entry-production replay reproduces 21 assertion/subtest failures. Explicit-ref audits, own checkouts, gitfiles, staged reversions and directory-removal detection remain covered. Exact commands, review dispositions and limits are in dw-656-validation-evidence.md.
+pre-dw-656-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/dw-520-validation-evidence.md
+verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/dw-656-validation-evidence.md
+pre-dw-656-evidence-kind: verified-defect
+evidence-kind: executed-regression
 severity: medium
 priority: P2
 owner: Tenants developer tooling
 dependencies: Preserve actual checked-out pointer movement detection and explicit-ref auditing
-next-action: Distinguish a real dependency checkout from an empty/deinitialized path and resolve unchanged claims from the recorded gitlink when appropriate, with default-HEAD positive and movement-refusal controls.
+pre-dw-656-next-action: Distinguish a real dependency checkout from an empty/deinitialized path and resolve unchanged claims from the recorded gitlink when appropriate, with default-HEAD positive and movement-refusal controls.
+next-action: Closed within DW-656; preserve unrelated deferred work, dependency pointers and existing release qualification holds.
 related: DW-520
+resolution-evidence: [Exact validation, original-production replay and independent review](dw-656-validation-evidence.md)
+resolution-spec: spec-dw-656-uninitialized-gitlink-resolution.md
