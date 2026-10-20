@@ -522,6 +522,31 @@ public sealed class TenantsRestQueryClientTests
     }
 
     [Theory]
+    [InlineData("list")]
+    [InlineData("global-administrators")]
+    public async Task Unrecognized_reason_does_not_infer_cursor_recovery_from_unsafe_detail(string surface)
+    {
+        var handler = new RecordingHandler(new HttpResponseMessage(HttpStatusCode.BadRequest)
+        {
+            Content = new StringContent(
+                "{\"reason\":\"validation-failed\",\"detail\":\"invalid-cursor appears only in unsafe detail\"}",
+                Encoding.UTF8,
+                "application/problem+json"),
+        });
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+
+        TenantsRestQueryFailureKind failure = surface == "list"
+            ? (await client.ListTenantsAsync(new ListTenantsQuery { Cursor = "expired" }, null,
+                TestContext.Current.CancellationToken)).FailureKind
+            : (await client.GetGlobalAdministratorsAsync(new GetGlobalAdministratorsQuery { Cursor = "expired" }, null,
+                TestContext.Current.CancellationToken)).FailureKind;
+
+        failure.ShouldBe(TenantsRestQueryFailureKind.InvalidRequest);
+        handler.Requests.ShouldHaveSingleItem();
+    }
+
+    [Theory]
     [InlineData("cancel", TenantsRestQueryFailureKind.Timeout)]
     [InlineData("http", TenantsRestQueryFailureKind.Unavailable)]
     [InlineData("io", TenantsRestQueryFailureKind.Unavailable)]
@@ -777,7 +802,7 @@ public sealed class TenantsRestQueryClientTests
     {
         var handler = new RecordingHandler(new HttpResponseMessage(statusCode)
         {
-            Content = new StringContent("{\"detail\":\"unsafe-secret\"}", Encoding.UTF8, "application/problem+json"),
+            Content = new StringContent("{\"detail\":\"raw payload token secret stack trace correlation-123\"}", Encoding.UTF8, "application/problem+json"),
         });
         using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
         var client = new TenantsRestQueryClient(httpClient);
@@ -971,7 +996,7 @@ public sealed class TenantsRestQueryClientTests
     {
         var handler = new RecordingHandler(new HttpResponseMessage(
             badRequest ? HttpStatusCode.BadRequest : HttpStatusCode.OK)
-    {
+        {
             Content = new StreamContent(new BlockingReadStream()),
         });
         using var httpClient = new HttpClient(handler)
@@ -1651,7 +1676,7 @@ public sealed class TenantsRestQueryClientTests
         public override ValueTask<int> ReadAsync(
             Memory<byte> buffer,
             CancellationToken cancellationToken = default)
-            {
+        {
             cancellationToken.ThrowIfCancellationRequested();
             int read = (int)Math.Min(buffer.Length, _remaining);
             buffer.Span[..read].Fill((byte)'x');
@@ -1692,7 +1717,7 @@ public sealed class TenantsRestQueryClientTests
         public override async ValueTask<int> ReadAsync(
             Memory<byte> buffer,
             CancellationToken cancellationToken = default)
-            {
+        {
             await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
             return 0;
         }

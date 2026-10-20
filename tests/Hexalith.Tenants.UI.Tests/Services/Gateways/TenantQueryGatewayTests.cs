@@ -6,10 +6,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
-using Hexalith.EventStore.Client.Gateway;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Queries;
-using Hexalith.EventStore.Contracts.Streams;
 using Hexalith.FrontComposer.Contracts.Rendering;
 using Hexalith.FrontComposer.Shell.Services.Auth;
 using Hexalith.Memories.Client.Rest;
@@ -1048,7 +1046,8 @@ public sealed class TenantQueryGatewayTests
                 retainedETag,
                 "members-v1",
                 ReadModelFreshnessState.Current,
-                ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") },
+                ProjectionLifecycleState.Current) with
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") },
             CancellationToken.None);
         UserTenantMembershipSnapshot memberships = await gateway.GetUserTenantsAsync(
             new UserTenantMembershipRequest("target.user", ETag: requestETag),
@@ -1063,7 +1062,8 @@ public sealed class TenantQueryGatewayTests
                 false,
                 retainedETag,
                 ReadModelFreshnessState.Current,
-                "target.user") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") },
+                "target.user") with
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") },
             CancellationToken.None);
         GlobalAdministratorsSnapshot administrators = await gateway.GetGlobalAdministratorsAsync(
             new GlobalAdministratorsRequest(ETag: requestETag),
@@ -1072,7 +1072,8 @@ public sealed class TenantQueryGatewayTests
                 null,
                 false,
                 retainedETag,
-                ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") },
+                ReadModelFreshnessState.Current) with
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") },
             CancellationToken.None);
         TenantAuditSnapshot audit = await gateway.GetTenantAuditAsync(
             auditRequest,
@@ -1095,7 +1096,8 @@ public sealed class TenantQueryGatewayTests
                 false,
                 retainedETag,
                 ReadModelFreshnessState.Current,
-                isDegraded: false) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") },
+                isDegraded: false) with
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") },
             CancellationToken.None);
 
         detail.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
@@ -1489,8 +1491,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_users_uses_dedicated_typed_read_and_retains_independent_evidence()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantMember>(
                 [new TenantMember("member-user", TenantRole.TenantReader)],
                 "next-page",
@@ -1508,11 +1510,10 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        SubmittedQuery submitted = client.SubmittedQueries.ShouldHaveSingleItem();
-        submitted.Request.AggregateId.ShouldBe("tenant/alpha");
-        submitted.Request.EntityId.ShouldBe("tenant/alpha");
-        submitted.Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("cursor-value");
-        submitted.Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(12);
+        NSubstitute.Core.ICall submitted = ReadCalls(client).ShouldHaveSingleItem();
+        ((GetTenantUsersQuery)submitted.GetArguments()[0]!).TenantId.ShouldBe("tenant/alpha");
+        ((GetTenantUsersQuery)submitted.GetArguments()[0]!).Cursor.ShouldBe("cursor-value");
+        ((GetTenantUsersQuery)submitted.GetArguments()[0]!).PageSize.ShouldBe(12);
         snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("member-user");
         snapshot.ETag.ShouldBe("members-etag");
         snapshot.ProjectionVersion.ShouldBe("members-v7");
@@ -1531,9 +1532,10 @@ public sealed class TenantQueryGatewayTests
             eTag: "members-old",
             projectionVersion: "members-v6",
             ReadModelFreshnessState.Current,
-            ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueTenantUsersNotModified("members-new", "members-v7");
+            ProjectionLifecycleState.Current) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueTenantUsersNotModified(clientResponses, "members-old", "members-v7");
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantUsersSnapshot snapshot = await gateway.GetTenantUsersAsync(
@@ -1836,21 +1838,21 @@ public sealed class TenantQueryGatewayTests
     [InlineData("   ")]
     public async Task Get_tenant_without_authenticated_user_fails_closed_without_querying_event_store(string? userId)
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(client, userId);
 
         TenantDetailSnapshot snapshot = await gateway
             .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unauthorized);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Get_tenant_submits_literal_detail_query_and_maps_counts_source()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -1862,11 +1864,10 @@ public sealed class TenantQueryGatewayTests
         TenantDetailSnapshot snapshot = await gateway
             .GetTenantAsync(new TenantDetailRequest("tenant.alpha", ETag: "known"), null, CancellationToken.None);
 
-        SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.AggregateId.ShouldBe("tenant.alpha");
-        query.Request.EntityId.ShouldBe("tenant.alpha");
-        query.IfNoneMatch.ShouldBeNull();
-        client.SubmittedQueries.Count.ShouldBe(1);
+        NSubstitute.Core.ICall query = ReadCalls(client)[0];
+        ((GetTenantQuery)query.GetArguments()[0]!).TenantId.ShouldBe("tenant.alpha");
+        query.GetArguments()[1].ShouldBeNull();
+        ReadCalls(client).Count.ShouldBe(1);
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
@@ -1940,8 +1941,8 @@ public sealed class TenantQueryGatewayTests
         QueryResponseProvenance provenance,
         bool isStale)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             metadata: new QueryResponseMetadata(IsStale: isStale)
             {
@@ -1971,8 +1972,8 @@ public sealed class TenantQueryGatewayTests
         ReadModelFreshnessState expectedFreshness,
         TenantDetailSurfaceKind expectedKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             metadata: ProjectionBackedMetadata(isStale: isStale, lifecycle: lifecycle));
 
@@ -2000,9 +2001,9 @@ public sealed class TenantQueryGatewayTests
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
             projectionVersion: "detail-v6").WithCallerScope(TenantQueryGateway.AuditCallerScope("operator-user"));
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("known");
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailNotModified(clientResponses, "known");
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             eTag: "fresh",
             metadata: ProjectionBackedMetadata(
@@ -2019,9 +2020,9 @@ public sealed class TenantQueryGatewayTests
         snapshot.Detail.ShouldNotBeNull().TenantId.ShouldBe("tenant.alpha");
         snapshot.ETag.ShouldBe("fresh");
         snapshot.ProjectionVersion.ShouldBe("detail-v7");
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("known");
-        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client).Count.ShouldBe(2);
+        ReadCalls(client)[0].GetArguments()[1].ShouldBe("known");
+        ReadCalls(client)[1].GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
@@ -2037,9 +2038,9 @@ public sealed class TenantQueryGatewayTests
             freshness: ReadModelFreshnessState.Current,
             lifecycle: ProjectionLifecycleState.Current,
             projectionVersion: "detail-v6").WithCallerScope(TenantQueryGateway.AuditCallerScope("operator-user"));
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("known", isStale: null, lifecycle: ProjectionLifecycleState.Unknown);
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailNotModified(clientResponses, "known", isStale: null, lifecycle: ProjectionLifecycleState.Unknown);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             eTag: "fresh",
             metadata: ProjectionBackedMetadata(
@@ -2060,9 +2061,9 @@ public sealed class TenantQueryGatewayTests
             Detail("tenant.alpha"),
             eTag: "known",
             freshness: ReadModelFreshnessState.Current).WithCallerScope(TenantQueryGateway.AuditCallerScope("operator-user"));
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailNotModified(clientResponses, "known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             eTag: "known",
             metadata: ProjectionBackedMetadata(isStale: true));
@@ -2080,9 +2081,9 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_not_modified_without_matching_snapshot_refetches_unconditionally()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("known", isStale: false, lifecycle: ProjectionLifecycleState.Current);
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailNotModified(clientResponses, "known", isStale: false, lifecycle: ProjectionLifecycleState.Current);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             eTag: "known",
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
@@ -2094,16 +2095,16 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Ready);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client).Count.ShouldBe(2);
+        ReadCalls(client)[1].GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
     public async Task Get_tenant_double_not_modified_without_matching_snapshot_is_unknown()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("known");
-        client.EnqueueDetailNotModified("still-known");
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailNotModified(clientResponses, "known");
+        EnqueueDetailNotModified(clientResponses, "still-known");
 
         TenantDetailSnapshot snapshot = await CreateGateway(client).GetTenantAsync(
             new TenantDetailRequest("tenant.alpha", ETag: "known"),
@@ -2113,17 +2114,17 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unknown);
         snapshot.Detail.ShouldBeNull();
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client).Count.ShouldBe(2);
+        ReadCalls(client)[1].GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
     public async Task Get_tenant_not_modified_refetches_raw_detail_so_current_policy_can_approve_a_new_row()
     {
         TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("prior");
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailNotModified(clientResponses, "prior");
+        EnqueueQueryResult(clientResponses,
             Detail(
                 "tenant.alpha",
                 new Dictionary<string, string>(StringComparer.Ordinal)
@@ -2160,8 +2161,8 @@ public sealed class TenantQueryGatewayTests
             .ShouldBe(["billing.mode", "billing.region"]);
         snapshot.Configuration.Rows.Single(static row => row.Key == "billing.region").Value
             .ShouldBe("newly-approved");
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client).Count.ShouldBe(2);
+        ReadCalls(client)[1].GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
@@ -2181,12 +2182,12 @@ public sealed class TenantQueryGatewayTests
             ["billing.mode"] = "trial",
             ["billing.region"] = "eu-west",
         };
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(
             client,
             bffComposition: ConfigurationComposition(configuration));
 
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", raw),
             eTag: "v1",
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
@@ -2198,8 +2199,8 @@ public sealed class TenantQueryGatewayTests
 
         configuration["Tenants:ConfigurationReadPolicy:DisplaySafe:1"] = "billing.region";
         configuration.Reload();
-        client.EnqueueDetailNotModified("v1");
-        client.EnqueueQueryResult(
+        EnqueueDetailNotModified(clientResponses, "v1");
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", raw),
             eTag: "v2",
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
@@ -2212,8 +2213,8 @@ public sealed class TenantQueryGatewayTests
 
         configuration["Tenants:ConfigurationReadPolicy:PrefixGrants:0:Subject"] = "operator.other";
         configuration.Reload();
-        client.EnqueueDetailNotModified("v2");
-        client.EnqueueQueryResult(
+        EnqueueDetailNotModified(clientResponses, "v2");
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", raw),
             eTag: "v3",
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
@@ -2226,8 +2227,8 @@ public sealed class TenantQueryGatewayTests
 
         configuration["Tenants:ConfigurationReadPolicy:PrefixGrants"] = "invalid-scalar";
         configuration.Reload();
-        client.EnqueueDetailNotModified("v3");
-        client.EnqueueQueryResult(
+        EnqueueDetailNotModified(clientResponses, "v3");
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", raw),
             eTag: "v4",
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
@@ -2238,15 +2239,15 @@ public sealed class TenantQueryGatewayTests
         invalid.Configuration.IsAvailable.ShouldBeFalse();
         invalid.Configuration.Rows.ShouldBeEmpty();
 
-        client.SubmittedQueries.Count.ShouldBe(7);
-        client.SubmittedQueries.Where(static query => query.IfNoneMatch is null).Count().ShouldBe(4);
+        ReadCalls(client).Count.ShouldBe(7);
+        ReadCalls(client).Where(static query => query.GetArguments()[1] is null).Count().ShouldBe(4);
     }
 
     [Fact]
     public async Task Get_tenant_filters_raw_configuration_before_constructing_snapshot_state()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail(
             "tenant.alpha",
             new Dictionary<string, string>(StringComparer.Ordinal)
             {
@@ -2290,8 +2291,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_initial_composition_failure_is_unavailable_without_raw_fallback()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             metadata: ProjectionBackedMetadata(lifecycle: ProjectionLifecycleState.Current));
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
@@ -2316,8 +2317,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_initial_composition_propagates_caller_cancellation()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha"));
         using var cancellation = new CancellationTokenSource();
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
         composition
@@ -2335,7 +2336,7 @@ public sealed class TenantQueryGatewayTests
             cancellation.Token));
 
         cancellation.IsCancellationRequested.ShouldBeTrue();
-        client.SubmittedQueries.ShouldHaveSingleItem();
+        ReadCalls(client).ShouldHaveSingleItem();
         _ = composition.Received(1).ComposeTenantDetailAsync(Arg.Any<TenantDetail>(), cancellation.Token);
     }
 
@@ -2357,8 +2358,8 @@ public sealed class TenantQueryGatewayTests
             priorComposition,
             "prior",
             ReadModelFreshnessState.Current).WithCallerScope(TenantQueryGateway.AuditCallerScope("operator-user"));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new InvalidOperationException("gateway unavailable"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueException(clientResponses, new InvalidOperationException("raw payload token secret stack trace correlation-123"));
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantDetailSnapshot snapshot = await gateway.GetTenantAsync(
@@ -2368,6 +2369,10 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
+        string errorMessage = snapshot.ErrorMessage.ShouldNotBeNull();
+        errorMessage.ShouldNotContain("raw payload", Case.Insensitive);
+        errorMessage.ShouldNotContain("token", Case.Insensitive);
+        errorMessage.ShouldNotContain("correlation-123", Case.Insensitive);
         snapshot.Configuration.IsAvailable.ShouldBeFalse();
         snapshot.ToString().ShouldBe(
             "TenantDetailSnapshot { Kind = Unavailable, HasDetail = False, Freshness = Unknown, "
@@ -2392,8 +2397,8 @@ public sealed class TenantQueryGatewayTests
             priorComposition,
             "prior",
             ReadModelFreshnessState.Current).WithCallerScope(TenantQueryGateway.AuditCallerScope("operator-user"));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new InvalidOperationException("gateway unavailable"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueException(clientResponses, new InvalidOperationException("gateway unavailable"));
 
         TenantDetailSnapshot snapshot = await CreateGateway(client).GetTenantAsync(
             new TenantDetailRequest("tenant.alpha"),
@@ -2408,8 +2413,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_wrong_tenant_payload_without_same_tenant_prior_is_unavailable()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail(
             "tenant.other",
             new Dictionary<string, string> { ["billing.mode"] = "wrong-tenant-value" }));
         TenantQueryGateway gateway = CreateGateway(client);
@@ -2445,8 +2450,8 @@ public sealed class TenantQueryGatewayTests
             priorComposition,
             "prior",
             ReadModelFreshnessState.Current).WithCallerScope(TenantQueryGateway.AuditCallerScope("operator-user"));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", new Dictionary<string, string> { ["billing.secret"] = "new-raw-secret" }),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -2487,8 +2492,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_retained_reauthorization_failure_makes_configuration_unavailable()
     {
         TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", new Dictionary<string, string> { ["billing.secret"] = "new-raw-secret" }),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -2525,8 +2530,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_compose_and_reauthorization_failure_drops_prior_safe_rows()
     {
         TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "fresh" }),
             metadata: ProjectionBackedMetadata(isStale: false, isDegraded: false));
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
@@ -2561,8 +2566,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_wrong_tenant_payload_with_same_tenant_prior_retains_reauthorized_safe_rows()
     {
         TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail(
             "tenant.other",
             new Dictionary<string, string> { ["billing.mode"] = "wrong-tenant-value" }));
         TenantQueryGateway gateway = CreateGateway(
@@ -2587,8 +2592,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_transient_gateway_failure_with_same_tenant_prior_retains_reauthorized_safe_rows()
     {
         TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(503, "Service unavailable"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, 503);
         TenantQueryGateway gateway = CreateGateway(
             client,
             bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
@@ -2609,8 +2614,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_retained_reauthorization_propagates_caller_cancellation()
     {
         TenantDetailSnapshot previous = ReadyConfigurationSnapshot();
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
         using var cancellation = new CancellationTokenSource();
@@ -2634,7 +2639,7 @@ public sealed class TenantQueryGatewayTests
             cancellation.Token));
 
         cancellation.IsCancellationRequested.ShouldBeTrue();
-        client.SubmittedQueries.ShouldHaveSingleItem();
+        ReadCalls(client).ShouldHaveSingleItem();
         _ = composition.Received(1).ReauthorizeTenantDetailAsync(
             Arg.Any<TenantDetail>(),
             Arg.Any<TenantConfigurationSafeModel>(),
@@ -2649,8 +2654,8 @@ public sealed class TenantQueryGatewayTests
         string expectedValue,
         TenantConfigurationProjectionProofKind expectedKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }),
             metadata: ProjectionBackedMetadata(eTag: "etag", isStale: false, lifecycle: ProjectionLifecycleState.Current));
         TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
@@ -2661,15 +2666,15 @@ public sealed class TenantQueryGatewayTests
 
         proof.TenantId.ShouldBe("tenant.alpha");
         proof.Kind.ShouldBe(expectedKind);
-        SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
-        query.Request.AggregateId.ShouldBe("tenant.alpha");
-        query.IfNoneMatch.ShouldBeNull();
+        NSubstitute.Core.ICall query = ReadCalls(client).ShouldHaveSingleItem();
+        ((GetTenantQuery)query.GetArguments()[0]!).TenantId.ShouldBe("tenant.alpha");
+        query.GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
     public async Task Safe_set_preview_and_proof_share_exact_fingerprint_and_ordered_projection_version()
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         QueryResponseMetadata metadata = ProjectionBackedMetadata(
             isStale: false,
             lifecycle: ProjectionLifecycleState.Current,
@@ -2680,10 +2685,10 @@ public sealed class TenantQueryGatewayTests
         {
             Members = [new TenantMember("operator-user", TenantRole.TenantOwner)],
         };
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             detail,
             metadata: metadata);
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             detail,
             metadata: metadata);
         TenantQueryGateway gateway = CreateGateway(
@@ -2704,14 +2709,14 @@ public sealed class TenantQueryGatewayTests
         proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.SetConfirmed);
         proof.ProjectionVersion.ShouldBe("tenant-sequence:41");
         proof.Matches(intent).ShouldBeTrue();
-        client.SubmittedQueries.All(query => query.IfNoneMatch is null).ShouldBeTrue();
+        ReadCalls(client).All(query => query.GetArguments()[1] is null).ShouldBeTrue();
     }
 
     [Fact]
     public async Task Safe_remove_preview_and_proof_share_exact_fingerprint_and_ordered_projection_version()
     {
         const string rawValue = "raw-remove-secret";
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantDetail present = Detail(
             "tenant.alpha",
             new Dictionary<string, string>(StringComparer.Ordinal) { ["Billing.Mode"] = rawValue }) with
@@ -2725,13 +2730,13 @@ public sealed class TenantQueryGatewayTests
                 ["Billing.Other"] = rawValue,
             },
         };
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             present,
             metadata: ProjectionBackedMetadata(
                 isStale: false,
                 lifecycle: ProjectionLifecycleState.Current,
                 projectionVersion: "tenant-sequence:41"));
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             absent,
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -2756,20 +2761,20 @@ public sealed class TenantQueryGatewayTests
         proof.Matches(intent).ShouldBeTrue();
         proof.Matches(intent with { FullKey = "Billing.Other" }).ShouldBeFalse();
         proof.Matches(intent with { NamespacePrefix = "Other" }).ShouldBeFalse();
-        client.SubmittedQueries.All(query => query.IfNoneMatch is null).ShouldBeTrue();
+        ReadCalls(client).All(query => query.GetArguments()[1] is null).ShouldBeTrue();
     }
 
     [Fact]
     public async Task Remove_configuration_projection_proof_reports_matching_present_key_as_not_confirmed()
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantDetail present = Detail(
             "tenant.alpha",
             new Dictionary<string, string>(StringComparer.Ordinal) { ["Billing.Mode"] = "raw-remove-secret" }) with
         {
             Members = [new TenantMember("operator-user", TenantRole.TenantOwner)],
         };
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             present,
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -2797,14 +2802,14 @@ public sealed class TenantQueryGatewayTests
     public async Task Remove_configuration_projection_proof_fails_closed_for_mismatched_or_unavailable_evidence(
         string outcome)
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantDetail detail = Detail(
             outcome == "wrong-tenant" ? "tenant.beta" : "tenant.alpha",
             new Dictionary<string, string>(StringComparer.Ordinal) { ["billing.other"] = "raw-remove-secret" }) with
         {
             Members = [new TenantMember("operator-user", TenantRole.TenantOwner)],
         };
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             detail,
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -2838,8 +2843,8 @@ public sealed class TenantQueryGatewayTests
         // Freshness alone is not proof. Both command flows and the read landmark refuse to act unless the
         // lifecycle is Current; without the same clause here a rebuilding projection reporting Current
         // freshness still produced SetConfirmed, making confirmation weaker than the submission gate.
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }),
             metadata: ProjectionBackedMetadata(eTag: "etag", isStale: false, lifecycle: lifecycle));
         TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
@@ -2856,11 +2861,11 @@ public sealed class TenantQueryGatewayTests
     [InlineData(false, TenantConfigurationProjectionProofKind.RemoveConfirmed)]
     public async Task Remove_configuration_projection_proof_reports_only_key_presence(bool containsTarget, TenantConfigurationProjectionProofKind expectedKind)
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         IReadOnlyDictionary<string, string> configuration = containsTarget
             ? new Dictionary<string, string> { ["billing.mode"] = "trial" }
             : new Dictionary<string, string> { ["billing.other"] = "kept" };
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha", configuration),
             metadata: ProjectionBackedMetadata(eTag: "etag", isStale: false, lifecycle: ProjectionLifecycleState.Current));
         TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
@@ -2884,8 +2889,8 @@ public sealed class TenantQueryGatewayTests
         // Without a policy gate on this path the method answers "does key K exist" and "is K equal to
         // V" for any key a caller supplies. The submitted-query assertion is the load-bearing one: the
         // gate must run before the backend read, so no oracle response is produced at all.
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { [key] = "hidden" }));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha", new Dictionary<string, string> { [key] = "hidden" }));
         TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
 
         TenantConfigurationProjectionProof proof = await gateway.GetRemoveConfigurationProjectionProofAsync(
@@ -2893,14 +2898,14 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Configuration_projection_proof_fails_closed_without_a_composition_seam()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
@@ -2908,14 +2913,14 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Configuration_projection_proof_fails_closed_when_policy_is_unavailable()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
         TenantQueryGateway gateway = CreateGateway(
             client,
             bffComposition: ConfigurationComposition("{ \"Tenants\": { \"ConfigurationReadPolicy\": { \"PrefixGrants\": \"scalar\", \"DisplaySafe\": [] } } }"));
@@ -2925,14 +2930,14 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Configuration_projection_proof_contains_policy_authorization_failure()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha"));
         ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
         composition
             .IsConfigurationKeyAuthorizedAsync(
@@ -2948,7 +2953,7 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
@@ -2957,8 +2962,8 @@ public sealed class TenantQueryGatewayTests
         // AC5 requires unknown and degraded to stay distinct. Routing a null payload through the
         // retention path labelled the surface degraded, which tells the user last-confirmed evidence is
         // being shown when there is none to show.
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult<TenantDetail>(null!);
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult<TenantDetail>(clientResponses, null!);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantDetailSnapshot snapshot = await gateway
@@ -2971,8 +2976,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Configuration_projection_proof_rejects_wrong_tenant_payload()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("tenant.other", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("tenant.other", new Dictionary<string, string> { ["billing.mode"] = "trial" }));
         TenantQueryGateway gateway = CreateGateway(client, bffComposition: ConfigurationComposition(BillingGrantPolicyJson));
 
         TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
@@ -2992,26 +2997,26 @@ public sealed class TenantQueryGatewayTests
     [InlineData("exception")]
     public async Task Configuration_projection_proof_fails_closed_without_current_payload(string outcome)
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         switch (outcome)
         {
             case "missing":
-                client.EnqueueDetailResult(null, ProjectionBackedMetadata(isStale: false));
+                EnqueueDetailResult(clientResponses, null, ProjectionBackedMetadata(isStale: false));
                 break;
             case "not-modified":
-                client.EnqueueDetailNotModified("etag");
+                EnqueueDetailNotModified(clientResponses, "etag");
                 break;
             case "stale":
-                client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: ProjectionBackedMetadata(isStale: true));
+                EnqueueQueryResult(clientResponses, Detail("tenant.alpha"), metadata: ProjectionBackedMetadata(isStale: true));
                 break;
             case "degraded":
-                client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
+                EnqueueQueryResult(clientResponses, Detail("tenant.alpha"), metadata: ProjectionBackedMetadata(isStale: false, isDegraded: true));
                 break;
             case "unknown":
-                client.EnqueueQueryResult(Detail("tenant.alpha"), metadata: new QueryResponseMetadata(IsStale: false));
+                EnqueueQueryResult(clientResponses, Detail("tenant.alpha"), metadata: new QueryResponseMetadata(IsStale: false));
                 break;
             case "exception":
-                client.EnqueueException(new InvalidOperationException("raw projection secret"));
+                EnqueueException(clientResponses, new InvalidOperationException("raw projection secret"));
                 break;
         }
 
@@ -3028,7 +3033,7 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Configuration_projection_proof_without_authenticated_user_does_not_query()
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(client, userId: null);
 
         TenantConfigurationProjectionProof proof = await gateway.GetSetConfigurationProjectionProofAsync(
@@ -3036,15 +3041,15 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         proof.Kind.ShouldBe(TenantConfigurationProjectionProofKind.Unavailable);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Get_tenant_without_previous_snapshot_reports_unavailable_when_second_request_fails()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailNotModified("known");
-        client.EnqueueException(new InvalidOperationException("unconditional read failed with secret"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailNotModified(clientResponses, "known");
+        EnqueueException(clientResponses, new InvalidOperationException("unconditional read failed with secret"));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -3054,15 +3059,15 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantDetailSurfaceKind.Unavailable);
         snapshot.Detail.ShouldBeNull();
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Unknown);
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client).Count.ShouldBe(2);
+        ReadCalls(client)[1].GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
     public async Task Get_tenant_with_etag_but_no_freshness_metadata_reports_unknown()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             eTag: "tenant-etag",
             metadata: new QueryResponseMetadata(ETag: "tenant-etag"));
@@ -3077,30 +3082,27 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(401, TenantDetailSurfaceKind.Unauthorized)]
-    [InlineData(403, TenantDetailSurfaceKind.Unauthorized)]
-    [InlineData(404, TenantDetailSurfaceKind.NotFound)]
-    [InlineData(503, TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(401, TenantDetailSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Unauthorized)]
+    [InlineData(403, TenantDetailSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Forbidden)]
+    [InlineData(404, TenantDetailSurfaceKind.NotFound, TenantsRestQueryFailureKind.NotFound)]
+    [InlineData(503, TenantDetailSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
     // Decision D3 stopped flattening every 5xx to 503, so the raw status now reaches this mapper. It must
     // treat the whole range as an outage: 500/502/504 were enumerated but 501, 505, 506, 507, 508, 510 and
     // 511 fell to the Degraded default arm, which claims retained evidence on a first load that has none.
     // Deleting the `>= 500 and < 600` arm sends every row below to Degraded.
-    [InlineData(500, TenantDetailSurfaceKind.Unavailable)]
-    [InlineData(501, TenantDetailSurfaceKind.Unavailable)]
-    [InlineData(502, TenantDetailSurfaceKind.Unavailable)]
-    [InlineData(504, TenantDetailSurfaceKind.Unavailable)]
-    [InlineData(507, TenantDetailSurfaceKind.Unavailable)]
-    [InlineData(511, TenantDetailSurfaceKind.Unavailable)]
+    [InlineData(500, TenantDetailSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(501, TenantDetailSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(502, TenantDetailSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(504, TenantDetailSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(507, TenantDetailSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(511, TenantDetailSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
     // Decision D-I distinguishes a route identity rejected locally from a 400 returned by the server. This
-    // reasonless exception models the latter: a server rejection is not proof that the tenant does not exist.
-    [InlineData(400, TenantDetailSurfaceKind.Unavailable)]
-    public async Task Get_tenant_maps_gateway_status_to_safe_detail_state(int statusCode, TenantDetailSurfaceKind expected)
+    // native InvalidRequest models the latter: a server rejection is not proof that the tenant does not exist.
+    [InlineData(400, TenantDetailSurfaceKind.Unavailable, TenantsRestQueryFailureKind.InvalidRequest)]
+    public async Task Get_tenant_maps_gateway_status_to_safe_detail_state(int statusCode, TenantDetailSurfaceKind expected, TenantsRestQueryFailureKind failureKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            statusCode,
-            "Problem title",
-            detail: "raw payload token secret stack trace correlation-123"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, failureKind, statusCode);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -3108,10 +3110,7 @@ public sealed class TenantQueryGatewayTests
             .GetTenantAsync(new TenantDetailRequest("tenant.alpha"), null, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(expected);
-        string errorMessage = snapshot.ErrorMessage.ShouldNotBeNull();
-        errorMessage.ShouldNotContain("raw payload", Case.Insensitive);
-        errorMessage.ShouldNotContain("token", Case.Insensitive);
-        errorMessage.ShouldNotContain("correlation-123", Case.Insensitive);
+        snapshot.ErrorMessage.ShouldNotBeNullOrWhiteSpace();
     }
 
     [Theory]
@@ -3123,8 +3122,8 @@ public sealed class TenantQueryGatewayTests
         TenantDetailSurfaceKind expectedKind,
         ReadModelFreshnessState expectedFreshness)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             metadata: ProjectionBackedMetadata(isStale: isStale, isDegraded: isDegraded));
 
@@ -3151,25 +3150,25 @@ public sealed class TenantQueryGatewayTests
     [InlineData("   ")]
     public async Task List_tenants_without_authenticated_user_fails_closed_without_querying_dependencies(string? userId)
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(client, userId);
 
         TenantListSnapshot snapshot = await gateway
             .ListTenantsAsync(new TenantListRequest(Search: "term"), null, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Unauthorized);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task List_tenants_passes_cursor_without_offset_conversion()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
             "next-cursor",
             true));
-        client.EnqueueQueryResult(new TenantDetail(
+        EnqueueQueryResult(clientResponses, new TenantDetail(
             "tenant.alpha",
             "Alpha",
             null,
@@ -3186,10 +3185,9 @@ public sealed class TenantQueryGatewayTests
         TenantListSnapshot snapshot = await gateway
             .ListTenantsAsync(new TenantListRequest(Cursor: "opaque-cursor", PageSize: 10), null, CancellationToken.None);
 
-        SubmittedQuery listQuery = client.SubmittedQueries[0];
-        JsonElement payload = listQuery.Request.Payload.ShouldNotBeNull();
-        payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
-        payload.TryGetProperty("offset", out _).ShouldBeFalse();
+        NSubstitute.Core.ICall listQuery = ReadCalls(client)[0];
+        ListTenantsQuery payload = (ListTenantsQuery)listQuery.GetArguments()[0]!;
+        payload.Cursor.ShouldBe("opaque-cursor");
         snapshot.NextCursor.ShouldBe("next-cursor");
         snapshot.Rows.ShouldHaveSingleItem().MemberCount.ShouldBe(TenantCountValue.Known(2));
         snapshot.Rows[0].OwnerCount.ShouldBe(TenantCountValue.Known(1));
@@ -3198,17 +3196,13 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_tenants_requeries_page_one_once_for_safe_invalid_cursor_reason()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            400,
-            "Bad request",
-            reasonCode: "invalid-cursor",
-            detail: "expired-protected-cursor token correlation-123"));
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.InvalidCursor, 400);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
             "fresh-protected-cursor",
             true));
-        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha"));
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -3219,12 +3213,12 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.Count.ShouldBe(3);
-        client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("expired-protected-cursor");
-        client.SubmittedQueries[0].IfNoneMatch.ShouldBeNull();
-        client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
-        client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(50);
-        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client).Count.ShouldBe(3);
+        ((ListTenantsQuery)ReadCalls(client)[0].GetArguments()[0]!).Cursor.ShouldBe("expired-protected-cursor");
+        ReadCalls(client)[0].GetArguments()[1].ShouldBeNull();
+        ((ListTenantsQuery)ReadCalls(client)[1].GetArguments()[0]!).Cursor.ShouldBeNull();
+        ((ListTenantsQuery)ReadCalls(client)[1].GetArguments()[0]!).PageSize.ShouldBe(50);
+        ReadCalls(client)[1].GetArguments()[1].ShouldBeNull();
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         snapshot.NextCursor.ShouldBe("fresh-protected-cursor");
         snapshot.Notice.ShouldBe(TenantListReason.ListRefreshed);
@@ -3280,12 +3274,9 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_tenants_invalid_cursor_retry_failure_is_sanitized_and_not_retried_again()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(400, "Bad request", reasonCode: "invalid-cursor"));
-        client.EnqueueException(new EventStoreGatewayException(
-            503,
-            "Unavailable",
-            detail: "raw cursor token stack trace correlation-123"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.InvalidCursor, 400);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, 503);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -3293,7 +3284,7 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.Count.ShouldBe(2);
+        ReadCalls(client).Count.ShouldBe(2);
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Error);
         snapshot.Reason.ShouldBe(TenantListReason.GatewayUnavailable);
         snapshot.Notice.ShouldBe(TenantListReason.None);
@@ -3302,12 +3293,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_tenants_does_not_retry_unrecognized_bad_request_as_invalid_cursor()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            400,
-            "Bad request",
-            reasonCode: "validation-failed",
-            detail: "invalid-cursor appears only in unsafe detail"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.InvalidRequest, 400);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -3315,7 +3302,7 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.Count.ShouldBe(1);
+        ReadCalls(client).Count.ShouldBe(1);
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Error);
         snapshot.Reason.ShouldBe(TenantListReason.GatewayUnavailable);
         snapshot.Notice.ShouldBe(TenantListReason.None);
@@ -3324,8 +3311,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_tenants_maps_authorized_empty_without_error()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>([], null, false));
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -3340,8 +3327,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_global_administrators_submits_fixed_platform_scope_query()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<GlobalAdministratorSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<GlobalAdministratorSummary>(
             [new GlobalAdministratorSummary("admin-1")],
             "next-cursor",
             true));
@@ -3351,11 +3338,11 @@ public sealed class TenantQueryGatewayTests
         GlobalAdministratorsSnapshot snapshot = await gateway
             .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(Cursor: "opaque-cursor", PageSize: 10, ETag: "known"), null, CancellationToken.None);
 
-        SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
-        query.IfNoneMatch.ShouldBeNull();
-        JsonElement payload = query.Request.Payload.ShouldNotBeNull();
-        payload.GetProperty("cursor").GetString().ShouldBe("opaque-cursor");
-        payload.GetProperty("pageSize").GetInt32().ShouldBe(10);
+        NSubstitute.Core.ICall query = ReadCalls(client).ShouldHaveSingleItem();
+        query.GetArguments()[1].ShouldBeNull();
+        GetGlobalAdministratorsQuery payload = (GetGlobalAdministratorsQuery)query.GetArguments()[0]!;
+        payload.Cursor.ShouldBe("opaque-cursor");
+        payload.PageSize.ShouldBe(10);
         snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
         snapshot.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin-1");
         snapshot.NextCursor.ShouldBe("next-cursor");
@@ -3370,9 +3357,10 @@ public sealed class TenantQueryGatewayTests
             nextCursor: null,
             hasMore: false,
             eTag: "known",
-            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueGlobalAdministratorsNotModified("known");
+            freshness: ReadModelFreshnessState.Current) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueGlobalAdministratorsNotModified(clientResponses, "known");
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -3393,9 +3381,10 @@ public sealed class TenantQueryGatewayTests
             nextCursor: null,
             hasMore: false,
             eTag: "known",
-            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueGlobalAdministratorsNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
+            freshness: ReadModelFreshnessState.Current) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueGlobalAdministratorsNotModified(clientResponses, "known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -3423,8 +3412,8 @@ public sealed class TenantQueryGatewayTests
             CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
             ProjectionVersion = "projection-old",
         };
-        CapturingGatewayClient client = new();
-        client.EnqueueGlobalAdministratorsNotModified(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueGlobalAdministratorsNotModified(clientResponses,
             "known",
             isStale: false,
             lifecycle: ProjectionLifecycleState.Current,
@@ -3473,15 +3462,19 @@ public sealed class TenantQueryGatewayTests
             nextCursor: null,
             hasMore: false,
             eTag: "known",
-            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueGlobalAdministratorsNotModified("known", isStale, lifecycle, provenance, emitMetadata);
+            freshness: ReadModelFreshnessState.Current) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueGlobalAdministratorsNotModified(clientResponses, "known", isStale, lifecycle, provenance, emitMetadata);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         GlobalAdministratorsSnapshot snapshot = await gateway
             .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(ETag: "known"), previous, CancellationToken.None);
 
+        // Matching retained evidence with a missing version degrades without an unconditional refetch.
+        ReadCalls(client).ShouldHaveSingleItem();
+        clientResponses.ShouldBeEmpty();
         snapshot.Freshness.ShouldBe(expectedFreshness);
         snapshot.Lifecycle.ShouldBe(expectedLifecycle);
         snapshot.Kind.ShouldBe(expectedKind);
@@ -3499,8 +3492,8 @@ public sealed class TenantQueryGatewayTests
         ReadModelFreshnessState expectedFreshness,
         GlobalAdministratorsSurfaceKind expectedKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
             metadata: ProjectionBackedMetadata(isStale: isStale, lifecycle: lifecycle));
 
@@ -3520,8 +3513,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_global_administrators_first_load_failure_cannot_be_retained_as_degraded()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(503, "Service unavailable"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, 503);
 
         TenantQueryGateway gateway = CreateGateway(client);
         GlobalAdministratorsSnapshot first = await gateway
@@ -3532,7 +3525,7 @@ public sealed class TenantQueryGatewayTests
 
         // Retry with the same scope and no validator, still failing. The empty prior snapshot must not be
         // promoted into "last confirmed" evidence.
-        client.EnqueueException(new EventStoreGatewayException(503, "Service unavailable"));
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, 503);
         GlobalAdministratorsSnapshot retried = await gateway
             .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), first, CancellationToken.None);
 
@@ -3545,8 +3538,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_global_administrators_retains_confirmed_rows_as_degraded_on_a_later_failure()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -3558,7 +3551,7 @@ public sealed class TenantQueryGatewayTests
             .GetGlobalAdministratorsAsync(new GlobalAdministratorsRequest(), null, CancellationToken.None);
         confirmed.Rows.ShouldHaveSingleItem();
 
-        client.EnqueueException(new EventStoreGatewayException(503, "Service unavailable"));
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, 503);
         GlobalAdministratorsSnapshot degraded = await gateway
             .GetGlobalAdministratorsAsync(
                 new GlobalAdministratorsRequest(ETag: confirmed.ETag),
@@ -3581,8 +3574,8 @@ public sealed class TenantQueryGatewayTests
         GlobalAdministratorsSurfaceKind expectedKind,
         ReadModelFreshnessState expectedFreshness)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
             metadata: ProjectionBackedMetadata(isStale: isStale, isDegraded: isDegraded));
 
@@ -3603,8 +3596,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_global_administrators_non_projection_stale_evidence_remains_unknown(
         QueryResponseProvenance provenance)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
             metadata: new QueryResponseMetadata(IsStale: true)
             {
@@ -3624,14 +3617,14 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_global_administrators_only_marks_current_first_page_without_more_rows_complete()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
                 lifecycle: ProjectionLifecycleState.Current,
                 projectionVersion: "global-admin-v7"));
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-2")], null, false),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -3659,8 +3652,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_global_administrators_requires_a_non_blank_projection_version_for_complete_evidence(
         string? projectionVersion)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -3804,8 +3797,8 @@ public sealed class TenantQueryGatewayTests
         // Delete `lifecycle == ProjectionLifecycleState.Current` from that predicate and such a producer can
         // have the absence of a row reported to the operator as a *confirmed* removal of a global
         // administrator. Decision D-F (2026-07-31) reversed D6 for exactly this class of evidence.
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -3828,9 +3821,9 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_global_administrators_invalid_later_cursor_recovers_to_page_one_honestly()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(400, "Invalid request", reasonCode: "invalid-cursor"));
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.InvalidCursor, 400);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("admin-1")], null, false),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -3842,8 +3835,8 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        ReadCalls(client).Count.ShouldBe(2);
+        ((GetGlobalAdministratorsQuery)ReadCalls(client)[1].GetArguments()[0]!).Cursor.ShouldBeNull();
         snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
         snapshot.PagingRecovered.ShouldBeTrue();
         snapshot.Reason.ShouldBe(GlobalAdministratorsReason.PageRecovered);
@@ -3851,25 +3844,25 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(500, GlobalAdministratorsSurfaceKind.Error, GlobalAdministratorsReason.GatewayFailure)]
-    [InlineData(400, GlobalAdministratorsSurfaceKind.Invalid, GlobalAdministratorsReason.GatewayFailure)]
-    [InlineData(503, GlobalAdministratorsSurfaceKind.Unavailable, GlobalAdministratorsReason.GatewayUnavailable)]
-    [InlineData(403, GlobalAdministratorsSurfaceKind.Unauthorized, GlobalAdministratorsReason.Unauthorized)]
+    [InlineData(500, GlobalAdministratorsSurfaceKind.Error, GlobalAdministratorsReason.GatewayFailure, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(400, GlobalAdministratorsSurfaceKind.Invalid, GlobalAdministratorsReason.GatewayFailure, TenantsRestQueryFailureKind.InvalidRequest)]
+    [InlineData(503, GlobalAdministratorsSurfaceKind.Unavailable, GlobalAdministratorsReason.GatewayUnavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(403, GlobalAdministratorsSurfaceKind.Unauthorized, GlobalAdministratorsReason.Unauthorized, TenantsRestQueryFailureKind.Forbidden)]
     public async Task Get_global_administrators_failed_first_page_retry_preserves_the_real_failure(
         int retryStatus,
         GlobalAdministratorsSurfaceKind expectedKind,
-        GlobalAdministratorsReason expectedReason)
+        GlobalAdministratorsReason expectedReason, TenantsRestQueryFailureKind failureKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(400, "Invalid request", reasonCode: "invalid-cursor"));
-        client.EnqueueException(new EventStoreGatewayException(retryStatus, "Retry failed", reasonCode: "retry-failed"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.InvalidCursor, 400);
+        EnqueueFailure(clientResponses, failureKind, retryStatus);
 
         GlobalAdministratorsSnapshot snapshot = await CreateGateway(client).GetGlobalAdministratorsAsync(
             new GlobalAdministratorsRequest(Cursor: "expired-protected-cursor"),
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.Count.ShouldBe(2);
+        ReadCalls(client).Count.ShouldBe(2);
         snapshot.Kind.ShouldBe(expectedKind);
         snapshot.Reason.ShouldBe(expectedReason);
         snapshot.PagingRecovered.ShouldBeFalse();
@@ -3879,8 +3872,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Incomplete_gateway_page_cannot_confirm_absence_for_a_remove_consumer()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<GlobalAdministratorSummary>([new GlobalAdministratorSummary("other-admin")], "next-page", true),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -3928,19 +3921,15 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_global_administrators_does_not_recover_an_unrecognized_bad_request()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            400,
-            "Invalid request",
-            reasonCode: "validation-failed",
-            detail: "invalid-cursor appears only in unsafe detail"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.InvalidRequest, 400);
 
         GlobalAdministratorsSnapshot snapshot = await CreateGateway(client).GetGlobalAdministratorsAsync(
             new GlobalAdministratorsRequest(Cursor: "protected-cursor"),
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.ShouldHaveSingleItem();
+        ReadCalls(client).ShouldHaveSingleItem();
         snapshot.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Invalid);
         snapshot.PagingRecovered.ShouldBeFalse();
         snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
@@ -3971,22 +3960,19 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(401, GlobalAdministratorsSurfaceKind.Unauthorized)]
-    [InlineData(403, GlobalAdministratorsSurfaceKind.Unauthorized)]
-    [InlineData(400, GlobalAdministratorsSurfaceKind.Invalid)]
-    [InlineData(404, GlobalAdministratorsSurfaceKind.Unavailable)]
-    [InlineData(501, GlobalAdministratorsSurfaceKind.Unavailable)]
-    [InlineData(503, GlobalAdministratorsSurfaceKind.Unavailable)]
-    [InlineData(500, GlobalAdministratorsSurfaceKind.Error)]
+    [InlineData(401, GlobalAdministratorsSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Unauthorized)]
+    [InlineData(403, GlobalAdministratorsSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Forbidden)]
+    [InlineData(400, GlobalAdministratorsSurfaceKind.Invalid, TenantsRestQueryFailureKind.InvalidRequest)]
+    [InlineData(404, GlobalAdministratorsSurfaceKind.Unavailable, TenantsRestQueryFailureKind.NotFound)]
+    [InlineData(501, GlobalAdministratorsSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(503, GlobalAdministratorsSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(500, GlobalAdministratorsSurfaceKind.Error, TenantsRestQueryFailureKind.Unavailable)]
     public async Task Get_global_administrators_maps_gateway_status_to_safe_snapshot_state(
         int statusCode,
-        GlobalAdministratorsSurfaceKind expected)
+        GlobalAdministratorsSurfaceKind expected, TenantsRestQueryFailureKind failureKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            statusCode,
-            "Problem title",
-            detail: "raw payload token secret stack trace correlation-123 cursor etag"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, failureKind, statusCode);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -3999,11 +3985,8 @@ public sealed class TenantQueryGatewayTests
         {
             snapshot.Reason.ShouldBe(GlobalAdministratorsReason.GatewayFailure);
         }
-        client.SubmittedQueries.Count.ShouldBe(1);
-        string[] tenantSubstituteQueries = ["list-tenants", "get-tenant", "get-user-tenants", "get-tenant-users"];
-        client.SubmittedQueries
-            .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
-            .ShouldBeFalse();
+        ReadCalls(client).Count.ShouldBe(1);
+        ReadCalls(client).ShouldAllBe(call => call.GetArguments()[0] is GetGlobalAdministratorsQuery);
     }
 
     [Theory]
@@ -4012,21 +3995,21 @@ public sealed class TenantQueryGatewayTests
     [InlineData("   ")]
     public async Task Get_tenant_audit_without_authenticated_user_fails_closed_without_querying_event_store(string? userId)
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(client, userId);
 
         TenantAuditSnapshot snapshot = await gateway
             .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha"), null, CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Unauthorized);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Get_tenant_audit_submits_exact_audit_query_shape_and_preserves_opaque_cursor()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [AuditEntry(
                 "event-1",
                 AuditEventCategory.Access,
@@ -4052,18 +4035,15 @@ public sealed class TenantQueryGatewayTests
                 null,
                 CancellationToken.None);
 
-        SubmittedQuery query = client.SubmittedQueries.ShouldHaveSingleItem();
-        query.Request.AggregateId.ShouldBe("tenant.alpha");
-        query.Request.EntityId.ShouldBe("tenant.alpha");
-        query.IfNoneMatch.ShouldBeNull();
-        JsonElement payload = query.Request.Payload.ShouldNotBeNull();
-        payload.GetProperty("from").GetDateTimeOffset().ShouldBe(DateTimeOffset.Parse("2026-06-01T00:00:00Z", CultureInfo.InvariantCulture));
-        payload.GetProperty("to").GetDateTimeOffset().ShouldBe(DateTimeOffset.Parse("2026-06-02T00:00:00Z", CultureInfo.InvariantCulture));
-        payload.GetProperty("category").GetString().ShouldBe(nameof(AuditEventCategory.Access));
-        payload.GetProperty("cursor").GetString().ShouldBe("opaque-audit-cursor");
-        payload.GetProperty("pageSize").GetInt32().ShouldBe(25);
-        payload.TryGetProperty("offset", out _).ShouldBeFalse();
-        payload.TryGetProperty("limit", out _).ShouldBeFalse();
+        NSubstitute.Core.ICall query = ReadCalls(client).ShouldHaveSingleItem();
+        ((GetTenantAuditQuery)query.GetArguments()[0]!).TenantId.ShouldBe("tenant.alpha");
+        query.GetArguments()[1].ShouldBeNull();
+        GetTenantAuditQuery payload = (GetTenantAuditQuery)query.GetArguments()[0]!;
+        payload.From.ShouldBe(DateTimeOffset.Parse("2026-06-01T00:00:00Z", CultureInfo.InvariantCulture));
+        payload.To.ShouldBe(DateTimeOffset.Parse("2026-06-02T00:00:00Z", CultureInfo.InvariantCulture));
+        payload.Category.ToString().ShouldBe(nameof(AuditEventCategory.Access));
+        payload.Cursor.ShouldBe("opaque-audit-cursor");
+        payload.PageSize.ShouldBe(25);
         snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
         snapshot.Rows.ShouldHaveSingleItem().CommandCorrelationId.ShouldBeNull();
         snapshot.Rows.ShouldHaveSingleItem().AggregateSequence.ShouldBeNull();
@@ -4075,13 +4055,9 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_audit_requeries_page_one_for_invalid_cursor_and_reports_list_refreshed()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            400,
-            "Bad request",
-            reasonCode: "invalid-cursor",
-            detail: "cursor raw payload token correlation-123"));
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.InvalidCursor, 400);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [AuditEntry("event-2", AuditEventCategory.Administrative)],
             "fresh-cursor",
             true));
@@ -4097,9 +4073,9 @@ public sealed class TenantQueryGatewayTests
                 null,
                 CancellationToken.None);
 
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("expired-protected-cursor");
-        client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").ValueKind.ShouldBe(JsonValueKind.Null);
+        ReadCalls(client).Count.ShouldBe(2);
+        ((GetTenantAuditQuery)ReadCalls(client)[0].GetArguments()[0]!).Cursor.ShouldBe("expired-protected-cursor");
+        ((GetTenantAuditQuery)ReadCalls(client)[1].GetArguments()[0]!).Cursor.ShouldBeNull();
         snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.ListRefreshed);
         snapshot.Reason.ShouldBe(TenantAuditReason.ListRefreshed);
         snapshot.NextCursor.ShouldBe("fresh-cursor");
@@ -4114,8 +4090,8 @@ public sealed class TenantQueryGatewayTests
         TenantAuditSurfaceKind expectedKind,
         ReadModelFreshnessState expectedFreshness)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantAuditEntry>([AuditEntry("event-3", AuditEventCategory.Access)], null, false),
             metadata: ProjectionBackedMetadata(isStale: isStale, isDegraded: isDegraded));
         TenantQueryGateway gateway = CreateGateway(client);
@@ -4135,8 +4111,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_tenant_audit_non_projection_stale_evidence_remains_unknown(
         QueryResponseProvenance provenance)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantAuditEntry>([AuditEntry("event-3", AuditEventCategory.Access)], null, false),
             metadata: new QueryResponseMetadata(IsStale: true)
             {
@@ -4166,10 +4142,10 @@ public sealed class TenantQueryGatewayTests
         {
             CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
         };
-        CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("known");
-        client.EnqueueAuditNotModified("known");
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueAuditNotModified(clientResponses, "known");
+        EnqueueAuditNotModified(clientResponses, "known");
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [AuditEntry("event-5", AuditEventCategory.Administrative)],
             Cursor: null,
             HasMore: false));
@@ -4183,7 +4159,7 @@ public sealed class TenantQueryGatewayTests
         sameScope.Rows.ShouldHaveSingleItem().EventReference.ShouldBe("event-4");
         differentScope.Kind.ShouldBe(TenantAuditSurfaceKind.Ready);
         differentScope.Rows.ShouldHaveSingleItem().EventReference.ShouldBe("event-5");
-        client.SubmittedQueries[2].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client)[2].GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
@@ -4200,8 +4176,8 @@ public sealed class TenantQueryGatewayTests
         {
             CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
         };
-        CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueAuditNotModified(clientResponses, "known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -4242,8 +4218,8 @@ public sealed class TenantQueryGatewayTests
         {
             CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
         };
-        CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("known", isStale, lifecycle, provenance, emitMetadata);
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueAuditNotModified(clientResponses, "known", isStale, lifecycle, provenance, emitMetadata);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -4268,8 +4244,8 @@ public sealed class TenantQueryGatewayTests
         TenantAuditSurfaceKind expectedKind)
     {
         TenantAuditRequest request = new("tenant.alpha");
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantAuditEntry>([AuditEntry("event-lifecycle", AuditEventCategory.Access)], null, false),
             metadata: ProjectionBackedMetadata(isStale: isStale, lifecycle: lifecycle));
 
@@ -4298,8 +4274,8 @@ public sealed class TenantQueryGatewayTests
         // Audit rows carry the declared route provenance so a consumer mutation gate can apply
         // ProjectionLifecyclePolicy against real evidence instead of re-deriving it from freshness.
         // Lifecycle still normalizes to Unknown off a projection-backed route (Story 2.11).
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantAuditEntry>([AuditEntry("event-provenance", AuditEventCategory.Access)], null, false),
             metadata: emitMetadata
                 ? ProjectionBackedMetadata(isStale: false, lifecycle: lifecycle, provenance: provenance)
@@ -4333,8 +4309,8 @@ public sealed class TenantQueryGatewayTests
         {
             CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
         };
-        CapturingGatewayClient client = new();
-        client.EnqueueAuditNotModified("known", provenance: QueryResponseProvenance.HandlerComputed);
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueAuditNotModified(clientResponses, "known", provenance: QueryResponseProvenance.HandlerComputed);
 
         TenantAuditSnapshot snapshot = await CreateGateway(client)
             .GetTenantAuditAsync(request, previous, CancellationToken.None);
@@ -4347,8 +4323,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_audit_maps_missing_payload_without_retained_rows_to_safe_error_state()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult<PaginatedResult<TenantAuditEntry>?>(null, metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult<PaginatedResult<TenantAuditEntry>?>(clientResponses, null, metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -4357,18 +4333,15 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantAuditSurfaceKind.Error);
         snapshot.Reason.ShouldBe(TenantAuditReason.GatewayFailure);
         snapshot.Rows.ShouldBeEmpty();
-        client.SubmittedQueries.ShouldHaveSingleItem();
-        string[] tenantSubstituteQueries = ["list-tenants", "get-tenant", "get-user-tenants", "get-tenant-users"];
-        client.SubmittedQueries
-            .Any(q => tenantSubstituteQueries.Contains(q.Request.QueryType, StringComparer.Ordinal))
-            .ShouldBeFalse();
+        ReadCalls(client).ShouldHaveSingleItem();
+        ReadCalls(client).ShouldAllBe(call => call.GetArguments()[0] is GetTenantAuditQuery);
     }
 
     [Fact]
     public async Task Get_tenant_audit_maps_wrong_persisted_projection_shape_without_retained_rows_to_safe_error_state()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantAuditEntry>(null!, null, false),
             metadata: ProjectionBackedMetadata(
                 isStale: false,
@@ -4402,8 +4375,8 @@ public sealed class TenantQueryGatewayTests
         {
             CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
         };
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult<PaginatedResult<TenantAuditEntry>?>(null, metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult<PaginatedResult<TenantAuditEntry>?>(clientResponses, null, metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -4419,18 +4392,15 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(401, TenantAuditSurfaceKind.Unauthorized)]
-    [InlineData(403, TenantAuditSurfaceKind.Unauthorized)]
-    [InlineData(404, TenantAuditSurfaceKind.Unavailable)]
-    [InlineData(503, TenantAuditSurfaceKind.Unavailable)]
-    [InlineData(500, TenantAuditSurfaceKind.Error)]
-    public async Task Get_tenant_audit_maps_gateway_status_to_safe_snapshot_state(int statusCode, TenantAuditSurfaceKind expected)
+    [InlineData(401, TenantAuditSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Unauthorized)]
+    [InlineData(403, TenantAuditSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Forbidden)]
+    [InlineData(404, TenantAuditSurfaceKind.Unavailable, TenantsRestQueryFailureKind.NotFound)]
+    [InlineData(503, TenantAuditSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    [InlineData(500, TenantAuditSurfaceKind.Error, TenantsRestQueryFailureKind.Unavailable)]
+    public async Task Get_tenant_audit_maps_gateway_status_to_safe_snapshot_state(int statusCode, TenantAuditSurfaceKind expected, TenantsRestQueryFailureKind failureKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            statusCode,
-            "Problem title",
-            detail: "raw payload token secret stack trace correlation-123 EventStore metadata cursor etag"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, failureKind, statusCode);
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantAuditSnapshot snapshot = await gateway
@@ -4443,8 +4413,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_audit_maps_only_support_safe_narrative_fields()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [
                 new TenantAuditEntry(
                     "event-safe-reference",
@@ -4487,8 +4457,8 @@ public sealed class TenantQueryGatewayTests
     [InlineData("user\u2502spoof")]
     public async Task Get_tenant_audit_rejects_pii_and_boundary_user_ids_before_target_fallback(string unsafeUserId)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [new TenantAuditEntry("event-safe-reference", "TenantConfigurationSet", AuditEventCategory.Administrative,
                 "actor-user", DateTimeOffset.UtcNow, "tenant.alpha",
                 new Dictionary<string, string> { ["userId"] = unsafeUserId, ["key"] = "billing.mode" })],
@@ -4506,8 +4476,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_audit_scrubs_unsafe_row_fields_before_rendering()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [
                 new TenantAuditEntry(
                     "event-safe-reference",
@@ -4559,7 +4529,7 @@ public sealed class TenantQueryGatewayTests
             "unknown-category" => new("tenant.alpha", Category: (AuditEventCategory)999),
             _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null),
         };
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
 
         TenantAuditSnapshot snapshot = await CreateGateway(client)
             .GetTenantAuditAsync(request, null, CancellationToken.None);
@@ -4568,7 +4538,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.Reason.ShouldBe(TenantAuditReason.InvalidFilters);
         snapshot.Rows.ShouldBeEmpty();
         snapshot.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("operator-user"));
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Theory]
@@ -4600,8 +4570,8 @@ public sealed class TenantQueryGatewayTests
         AuditEventCategory category,
         bool expectedReady)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [AuditEntry("event-matrix", category, eventType: eventType)],
             null,
             false));
@@ -4616,8 +4586,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_audit_preserves_authoritative_response_order()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [
                 AuditEntry("event-z", AuditEventCategory.Access),
                 AuditEntry("event-a", AuditEventCategory.Access),
@@ -4644,8 +4614,8 @@ public sealed class TenantQueryGatewayTests
     [InlineData("event-%ZZ")]
     public async Task Get_tenant_audit_rejects_missing_or_unsafe_event_references(string eventReference)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [AuditEntry(eventReference, AuditEventCategory.Access)],
             null,
             false));
@@ -4674,8 +4644,8 @@ public sealed class TenantQueryGatewayTests
     [InlineData(true, " ")]
     public async Task Get_tenant_audit_rejects_inconsistent_next_cursor_metadata(bool hasMore, string? cursor)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [AuditEntry("event-safe", AuditEventCategory.Access)], cursor, hasMore));
 
         TenantAuditSnapshot snapshot = await CreateGateway(client)
@@ -4696,8 +4666,8 @@ public sealed class TenantQueryGatewayTests
         IReadOnlyList<TenantAuditEntry> items = emptyPage
             ? []
             : [AuditEntry("event-safe", AuditEventCategory.Access)];
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(items, nextCursor, true));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(items, nextCursor, true));
 
         TenantAuditSnapshot snapshot = await CreateGateway(client)
             .GetTenantAuditAsync(new TenantAuditRequest("tenant.alpha", Cursor: requestCursor), null, CancellationToken.None);
@@ -4709,8 +4679,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_tenant_audit_rejects_duplicate_event_references()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [
                 AuditEntry("event-duplicate", AuditEventCategory.Access),
                 AuditEntry("event-duplicate", AuditEventCategory.Access),
@@ -4758,8 +4728,8 @@ public sealed class TenantQueryGatewayTests
             "tenant" => [AuditEntry("event-1", AuditEventCategory.Access, from, tenantId: "tenant.beta")],
             _ => throw new ArgumentOutOfRangeException(nameof(scenario), scenario, null),
         };
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(entries, null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(entries, null, false));
 
         TenantAuditSnapshot snapshot = await CreateGateway(client)
             .GetTenantAuditAsync(request, null, CancellationToken.None);
@@ -4938,8 +4908,8 @@ public sealed class TenantQueryGatewayTests
             ["newRole"] = "TenantContributor",
             ["role"] = "not-a-role",
         };
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [AuditEntry("event-role", AuditEventCategory.Access, eventType: "UserRoleChanged", narrative: narrative)],
             null,
             false));
@@ -4964,8 +4934,8 @@ public sealed class TenantQueryGatewayTests
     [InlineData("actor-connection_string")]
     public async Task Get_tenant_audit_blanks_unsafe_actor_identifiers_without_rejecting_safe_evidence(string actorId)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantAuditEntry>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantAuditEntry>(
             [
                 new TenantAuditEntry(
                     "event-safe-reference",
@@ -4989,8 +4959,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_tenants_reports_unknown_freshness_when_no_evidence_exists()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantSummary>([], null, false),
             eTag: null,
             metadata: null,
@@ -5008,8 +4978,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_tenants_does_not_treat_served_at_as_freshness_evidence()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantSummary>([], null, false),
             eTag: null,
             metadata: new QueryResponseMetadata(ServedAt: DateTimeOffset.UtcNow));
@@ -5032,16 +5002,17 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            isDegraded: false) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"), RequestPageSize = 10 };
-        CapturingGatewayClient client = new();
-        client.EnqueueNotModified("known");
+            isDegraded: false) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"), RequestPageSize = 10 };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueNotModified(clientResponses, "known");
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway
             .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "known"), previous, CancellationToken.None);
 
-        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("known");
+        ReadCalls(client)[0].GetArguments()[1].ShouldBe("known");
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
     }
@@ -5070,15 +5041,19 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            isDegraded: false) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"), RequestPageSize = 10 };
-        CapturingGatewayClient client = new();
-        client.EnqueueNotModified("known", isStale, lifecycle, provenance, emitMetadata);
+            isDegraded: false) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"), RequestPageSize = 10 };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueNotModified(clientResponses, "known", isStale, lifecycle, provenance, emitMetadata);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway
             .ListTenantsAsync(new TenantListRequest(PageSize: 10, ETag: "known"), previous, CancellationToken.None);
 
+        // Matching retained evidence with a missing version degrades without an unconditional refetch.
+        ReadCalls(client).ShouldHaveSingleItem();
+        clientResponses.ShouldBeEmpty();
         snapshot.Freshness.ShouldBe(expectedFreshness);
         snapshot.Lifecycle.ShouldBe(expectedLifecycle);
         snapshot.Kind.ShouldBe(expectedKind);
@@ -5096,11 +5071,11 @@ public sealed class TenantQueryGatewayTests
         ReadModelFreshnessState expectedFreshness,
         TenantListSurfaceKind expectedKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantSummary>([new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)], null, false),
             metadata: ProjectionBackedMetadata(isStale: isStale, lifecycle: lifecycle));
-        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha"));
 
         TenantListSnapshot snapshot = await CreateGateway(client)
             .ListTenantsAsync(new TenantListRequest(PageSize: 10), null, CancellationToken.None);
@@ -5119,8 +5094,8 @@ public sealed class TenantQueryGatewayTests
     [InlineData((QueryResponseProvenance)999)]
     public async Task List_tenants_rejects_non_projection_backed_provenance(QueryResponseProvenance provenance)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantSummary>([], null, false),
             metadata: ProjectionBackedMetadata(isStale: false, provenance: provenance));
 
@@ -5143,12 +5118,13 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Unknown,
-            isDegraded: false) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"), RequestPageSize = 10 };
-        CapturingGatewayClient client = new();
+            isDegraded: false) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"), RequestPageSize = 10 };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
 
         // Deliberately the metadata-deficient shape: no freshness header and no lifecycle. The helper's
         // default is now the deliverable Current shape, so this case states its own inputs.
-        client.EnqueueNotModified("known", isStale: null, lifecycle: ProjectionLifecycleState.Unknown);
+        EnqueueNotModified(clientResponses, "known", isStale: null, lifecycle: ProjectionLifecycleState.Unknown);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -5168,9 +5144,10 @@ public sealed class TenantQueryGatewayTests
             hasMore: true,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            isDegraded: false) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"), RequestPageSize = 10 };
-        CapturingGatewayClient client = new();
-        client.EnqueueNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
+            isDegraded: false) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"), RequestPageSize = 10 };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueNotModified(clientResponses, "known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -5186,8 +5163,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_tenants_stale_empty_response_surfaces_stale_state()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<TenantSummary>([], null, false),
             metadata: ProjectionBackedMetadata(isStale: true));
 
@@ -5203,12 +5180,12 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Detail_enrichment_failure_keeps_unknown_counts_and_degraded_state()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
             null,
             false));
-        client.EnqueueException(new EventStoreGatewayException(403, "Forbidden"));
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, 403);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -5221,17 +5198,14 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(401, TenantListSurfaceKind.Unauthorized)]
-    [InlineData(403, TenantListSurfaceKind.Unauthorized)]
-    [InlineData(400, TenantListSurfaceKind.Error)]
-    [InlineData(503, TenantListSurfaceKind.Error)]
-    public async Task List_tenants_maps_gateway_status_to_safe_state(int statusCode, TenantListSurfaceKind expected)
+    [InlineData(401, TenantListSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Unauthorized)]
+    [InlineData(403, TenantListSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Forbidden)]
+    [InlineData(400, TenantListSurfaceKind.Error, TenantsRestQueryFailureKind.InvalidRequest)]
+    [InlineData(503, TenantListSurfaceKind.Error, TenantsRestQueryFailureKind.Unavailable)]
+    public async Task List_tenants_maps_gateway_status_to_safe_state(int statusCode, TenantListSurfaceKind expected, TenantsRestQueryFailureKind failureKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            statusCode,
-            "Problem title",
-            detail: "raw payload token secret stack trace correlation-123"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, failureKind, statusCode);
 
         TenantQueryGateway gateway = CreateGateway(client);
 
@@ -5244,8 +5218,8 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_my_tenants_submits_self_user_query_with_cursor_payload()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<UserTenantMembership>(
             [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantOwner)],
             "opaque-next",
             true));
@@ -5254,12 +5228,11 @@ public sealed class TenantQueryGatewayTests
         UserTenantMembershipSnapshot snapshot = await gateway
             .GetMyTenantsAsync(new UserTenantMembershipRequest(Cursor: "signed-cursor", PageSize: 12), null, CancellationToken.None);
 
-        SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.EntityId.ShouldBe("user.self");
-        JsonElement payload = query.Request.Payload.ShouldNotBeNull();
-        payload.GetProperty("cursor").GetString().ShouldBe("signed-cursor");
-        payload.GetProperty("pageSize").GetInt32().ShouldBe(12);
-        payload.TryGetProperty("offset", out _).ShouldBeFalse();
+        NSubstitute.Core.ICall query = ReadCalls(client)[0];
+        ((GetUserTenantsQuery)query.GetArguments()[0]!).UserId.ShouldBe("user.self");
+        GetUserTenantsQuery payload = (GetUserTenantsQuery)query.GetArguments()[0]!;
+        payload.Cursor.ShouldBe("signed-cursor");
+        payload.PageSize.ShouldBe(12);
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Ready);
         snapshot.NextCursor.ShouldBe("opaque-next");
         snapshot.Rows.ShouldHaveSingleItem().Role.ShouldBe(TenantRole.TenantOwner);
@@ -5268,23 +5241,23 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_my_tenants_keeps_signed_in_user_as_target_even_when_request_has_target()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<UserTenantMembership>([], null, false));
         TenantQueryGateway gateway = CreateGateway(client, "user.self");
 
         UserTenantMembershipSnapshot snapshot = await gateway
             .GetMyTenantsAsync(new UserTenantMembershipRequest(TargetUserId: "user.other"), null, CancellationToken.None);
 
-        SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.EntityId.ShouldBe("user.self");
+        NSubstitute.Core.ICall query = ReadCalls(client)[0];
+        ((GetUserTenantsQuery)query.GetArguments()[0]!).UserId.ShouldBe("user.self");
         snapshot.TargetUserId.ShouldBe("user.self");
     }
 
     [Fact]
     public async Task Get_user_tenants_submits_authenticated_requester_and_explicit_target_user_query()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<UserTenantMembership>(
             [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader)],
             "opaque-next",
             true));
@@ -5300,13 +5273,12 @@ public sealed class TenantQueryGatewayTests
                 null,
                 CancellationToken.None);
 
-        SubmittedQuery query = client.SubmittedQueries[0];
-        query.Request.EntityId.ShouldBe("target.user@example");
-        query.IfNoneMatch.ShouldBeNull();
-        JsonElement payload = query.Request.Payload.ShouldNotBeNull();
-        payload.GetProperty("cursor").GetString().ShouldBe("signed-target-cursor");
-        payload.GetProperty("pageSize").GetInt32().ShouldBe(12);
-        payload.TryGetProperty("offset", out _).ShouldBeFalse();
+        NSubstitute.Core.ICall query = ReadCalls(client)[0];
+        ((GetUserTenantsQuery)query.GetArguments()[0]!).UserId.ShouldBe("target.user@example");
+        query.GetArguments()[1].ShouldBeNull();
+        GetUserTenantsQuery payload = (GetUserTenantsQuery)query.GetArguments()[0]!;
+        payload.Cursor.ShouldBe("signed-target-cursor");
+        payload.PageSize.ShouldBe(12);
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Ready);
         snapshot.TargetUserId.ShouldBe("target.user@example");
         snapshot.NextCursor.ShouldBe("opaque-next");
@@ -5321,11 +5293,12 @@ public sealed class TenantQueryGatewayTests
             hasMore: true,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            targetUserId: "target.one") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("known");
-        client.EnqueueUserTenantsNotModified("known");
-        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>(
+            targetUserId: "target.one") with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueUserTenantsNotModified(clientResponses, "known");
+        EnqueueUserTenantsNotModified(clientResponses, "known");
+        EnqueueQueryResult(clientResponses, new PaginatedResult<UserTenantMembership>(
             [new UserTenantMembership("tenant.beta", "Beta", TenantStatus.Active, TenantRole.TenantReader)],
             Cursor: null,
             HasMore: false));
@@ -5341,7 +5314,7 @@ public sealed class TenantQueryGatewayTests
         differentTarget.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Ready);
         differentTarget.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.beta");
         differentTarget.TargetUserId.ShouldBe("target.two");
-        client.SubmittedQueries[2].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client)[2].GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
@@ -5353,9 +5326,10 @@ public sealed class TenantQueryGatewayTests
             hasMore: true,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            targetUserId: "target.one") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
+            targetUserId: "target.one") with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueUserTenantsNotModified(clientResponses, "known", isStale: true, lifecycle: ProjectionLifecycleState.Stale);
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -5369,7 +5343,7 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_user_tenants_rejects_missing_target_without_backend_call()
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -5377,14 +5351,14 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Invalid);
         snapshot.Reason.ShouldBe(UserTenantMembershipReason.MissingTargetUser);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Get_user_tenants_maps_authorization_scoped_empty_without_disclosing_hidden_memberships()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<UserTenantMembership>([], null, false));
         TenantQueryGateway gateway = CreateGateway(client, "operator-user");
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -5406,8 +5380,8 @@ public sealed class TenantQueryGatewayTests
         ReadModelFreshnessState expectedFreshness,
         UserTenantMembershipReason expectedReason)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<UserTenantMembership>(
                 [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader)],
                 "next",
@@ -5434,8 +5408,8 @@ public sealed class TenantQueryGatewayTests
     public async Task Get_user_tenants_non_projection_stale_evidence_remains_unknown(
         QueryResponseProvenance provenance)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<UserTenantMembership>(
                 [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader)],
                 "next",
@@ -5456,25 +5430,22 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(401, UserTenantMembershipSurfaceKind.Unauthorized)]
-    [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized)]
-    [InlineData(400, UserTenantMembershipSurfaceKind.Invalid)]
-    [InlineData(503, UserTenantMembershipSurfaceKind.Unavailable)]
+    [InlineData(401, UserTenantMembershipSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Unauthorized)]
+    [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Forbidden)]
+    [InlineData(400, UserTenantMembershipSurfaceKind.Invalid, TenantsRestQueryFailureKind.InvalidRequest)]
+    [InlineData(503, UserTenantMembershipSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
     // Review loop 9, decision D3: 500 now maps to Unavailable, not Degraded. The old expectation was a
     // harness artifact -- it reached MapUserTenantException directly with a raw 500, but through the
     // production path ToEventStoreResult forced every 5xx to 503, so this surface never actually
     // produced Degraded for a server error. The mapper now agrees with what production always did, and
     // a first-load server error stays fail-closed instead of rendering as retained degradation.
-    [InlineData(500, UserTenantMembershipSurfaceKind.Unavailable)]
+    [InlineData(500, UserTenantMembershipSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
     public async Task Get_user_tenants_maps_target_lookup_gateway_failures_to_sanitized_states(
         int statusCode,
-        UserTenantMembershipSurfaceKind expected)
+        UserTenantMembershipSurfaceKind expected, TenantsRestQueryFailureKind failureKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            statusCode,
-            "Problem title",
-            detail: "raw payload token secret stack trace correlation-123 EventStore metadata"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, failureKind, statusCode);
         TenantQueryGateway gateway = CreateGateway(client, "operator-user");
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -5487,7 +5458,7 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_my_tenants_requires_authenticated_user_context()
     {
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(client, userId: null);
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -5495,14 +5466,14 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Unauthorized);
         snapshot.Reason.ShouldBe(UserTenantMembershipReason.MissingAuthenticatedUser);
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
     public async Task Get_my_tenants_maps_authorized_empty_without_error()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<UserTenantMembership>([], null, false));
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -5523,15 +5494,16 @@ public sealed class TenantQueryGatewayTests
             hasMore: true,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            targetUserId: "operator-user") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("known");
+            targetUserId: "operator-user") with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueUserTenantsNotModified(clientResponses, "known");
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
             .GetMyTenantsAsync(new UserTenantMembershipRequest(ETag: "known"), previous, CancellationToken.None);
 
-        client.SubmittedQueries[0].IfNoneMatch.ShouldBe("known");
+        ReadCalls(client)[0].GetArguments()[1].ShouldBe("known");
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         snapshot.NextCursor.ShouldBe("next");
         snapshot.HasMore.ShouldBeTrue();
@@ -5562,9 +5534,10 @@ public sealed class TenantQueryGatewayTests
             hasMore: false,
             eTag: "known",
             freshness: ReadModelFreshnessState.Current,
-            targetUserId: "operator-user") with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("known", isStale, lifecycle, provenance, emitMetadata);
+            targetUserId: "operator-user") with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueUserTenantsNotModified(clientResponses, "known", isStale, lifecycle, provenance, emitMetadata);
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -5587,8 +5560,8 @@ public sealed class TenantQueryGatewayTests
         ReadModelFreshnessState expectedFreshness,
         UserTenantMembershipSurfaceKind expectedKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<UserTenantMembership>(
                 [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader)],
                 null,
@@ -5607,9 +5580,9 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Get_my_tenants_without_previous_snapshot_refetches_not_modified_unconditionally()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueUserTenantsNotModified("known");
-        client.EnqueueQueryResult(new PaginatedResult<UserTenantMembership>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueUserTenantsNotModified(clientResponses, "known");
+        EnqueueQueryResult(clientResponses, new PaginatedResult<UserTenantMembership>(
             [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader)],
             Cursor: null,
             HasMore: false));
@@ -5620,8 +5593,8 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.Kind.ShouldBe(UserTenantMembershipSurfaceKind.Ready);
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(client).Count.ShouldBe(2);
+        ReadCalls(client)[1].GetArguments()[1].ShouldBeNull();
     }
 
     [Theory]
@@ -5634,8 +5607,8 @@ public sealed class TenantQueryGatewayTests
         ReadModelFreshnessState expectedFreshness,
         UserTenantMembershipReason expectedReason)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             new PaginatedResult<UserTenantMembership>(
                 [new UserTenantMembership("tenant.alpha", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader)],
                 "next",
@@ -5655,23 +5628,20 @@ public sealed class TenantQueryGatewayTests
     }
 
     [Theory]
-    [InlineData(401, UserTenantMembershipSurfaceKind.Unauthorized)]
-    [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized)]
-    [InlineData(400, UserTenantMembershipSurfaceKind.Invalid)]
-    [InlineData(503, UserTenantMembershipSurfaceKind.Unavailable)]
+    [InlineData(401, UserTenantMembershipSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Unauthorized)]
+    [InlineData(403, UserTenantMembershipSurfaceKind.Unauthorized, TenantsRestQueryFailureKind.Forbidden)]
+    [InlineData(400, UserTenantMembershipSurfaceKind.Invalid, TenantsRestQueryFailureKind.InvalidRequest)]
+    [InlineData(503, UserTenantMembershipSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
     // Review loop 9, decision D3: 500 now maps to Unavailable, not Degraded. The old expectation was a
     // harness artifact -- it reached MapUserTenantException directly with a raw 500, but through the
     // production path ToEventStoreResult forced every 5xx to 503, so this surface never actually
     // produced Degraded for a server error. The mapper now agrees with what production always did, and
     // a first-load server error stays fail-closed instead of rendering as retained degradation.
-    [InlineData(500, UserTenantMembershipSurfaceKind.Unavailable)]
-    public async Task Get_my_tenants_maps_gateway_failures_to_sanitized_states(int statusCode, UserTenantMembershipSurfaceKind expected)
+    [InlineData(500, UserTenantMembershipSurfaceKind.Unavailable, TenantsRestQueryFailureKind.Unavailable)]
+    public async Task Get_my_tenants_maps_gateway_failures_to_sanitized_states(int statusCode, UserTenantMembershipSurfaceKind expected, TenantsRestQueryFailureKind failureKind)
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            statusCode,
-            "Problem title",
-            detail: "raw payload token secret stack trace correlation-123"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, failureKind, statusCode);
         TenantQueryGateway gateway = CreateGateway(client);
 
         UserTenantMembershipSnapshot snapshot = await gateway
@@ -5683,9 +5653,9 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_empty_search_uses_ordinary_cursor_path_without_notice()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([new TenantSummary("alpha", "Alpha", TenantStatus.Active)], null, false));
-        client.EnqueueQueryResult(Detail("alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>([new TenantSummary("alpha", "Alpha", TenantStatus.Active)], null, false));
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
         StubMemoriesClient memories = new();
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
@@ -5700,12 +5670,12 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task List_non_empty_search_uses_ordinary_cursor_list_without_memories_or_plaintext_cursor()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
             "opaque-protected-next-cursor",
             true));
-        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha"));
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -5713,9 +5683,8 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.Count.ShouldBe(2);
-        client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().GetProperty("pageSize").GetInt32().ShouldBe(50);
-        client.SubmittedQueries[0].Request.Payload.ShouldNotBeNull().TryGetProperty("offset", out _).ShouldBeFalse();
+        ReadCalls(client).Count.ShouldBe(2);
+        ((ListTenantsQuery)ReadCalls(client)[0].GetArguments()[0]!).PageSize.ShouldBe(50);
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
         snapshot.NextCursor.ShouldBe("opaque-protected-next-cursor");
@@ -5734,10 +5703,10 @@ public sealed class TenantQueryGatewayTests
             Hit("tenant:alpha"),
             Hit("tenant:hidden"),
             Hit("tenant:gamma")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha") with { Name = "Authoritative Alpha" });
-        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "hidden"));
-        client.EnqueueQueryResult(Detail("gamma") with { Name = "Authoritative Gamma" });
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha") with { Name = "Authoritative Alpha" });
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
+        EnqueueQueryResult(clientResponses, Detail("gamma") with { Name = "Authoritative Gamma" });
         var codec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
@@ -5760,7 +5729,7 @@ public sealed class TenantQueryGatewayTests
         request.Explain.ShouldBeFalse();
         request.TokenBudget.ShouldBeNull();
         request.AttributeFilters.ShouldNotBeNull()["status"].ShouldBe(nameof(TenantStatus.Active));
-        client.SubmittedQueries.Select(query => query.Request.AggregateId).ShouldBe(["alpha", "hidden", "gamma"]);
+        ReadCalls(client).Select(query => ((GetTenantQuery)query.GetArguments()[0]!).TenantId).ShouldBe(["alpha", "hidden", "gamma"]);
         snapshot.IsAuthoritativeSearch.ShouldBeTrue();
         snapshot.Rows.Select(row => row.TenantId).ShouldBe(["gamma", "alpha"]);
         snapshot.Rows.ShouldAllBe(row => row.PendingState == TenantPendingState.Unknown);
@@ -5784,9 +5753,9 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 2, Hit("tenant:alpha"), Hit("tenant:beta")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
-        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.ServiceUnavailable, "raw secret"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, (int)HttpStatusCode.ServiceUnavailable);
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -5805,13 +5774,13 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 1, Hit("tenant:alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.ServiceUnavailable, "unavailable"));
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, (int)HttpStatusCode.ServiceUnavailable);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("fallback", "Fallback", TenantStatus.Active)],
             "ordinary-next",
             true));
-        client.EnqueueQueryResult(Detail("fallback"));
+        EnqueueQueryResult(clientResponses, Detail("fallback"));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -5822,8 +5791,8 @@ public sealed class TenantQueryGatewayTests
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("fallback");
-        client.SubmittedQueries.Count.ShouldBe(3);
-        client.SubmittedQueries[1].Request.Payload.ShouldNotBeNull().GetProperty("cursor").GetString().ShouldBe("ordinary-current");
+        ReadCalls(client).Count.ShouldBe(3);
+        ((ListTenantsQuery)ReadCalls(client)[1].GetArguments()[0]!).Cursor.ShouldBe("ordinary-current");
     }
 
     [Fact]
@@ -5841,8 +5810,8 @@ public sealed class TenantQueryGatewayTests
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 1));
         memories.Enqueue(SearchResult("needle", 1, Hit("tenant:alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -5868,8 +5837,8 @@ public sealed class TenantQueryGatewayTests
             OmittedReason = Hexalith.Memories.Contracts.V1.OmittedReason.Combined,
             UnavailableAxes = ["semantic"],
         });
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>([], null, false));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -5877,7 +5846,7 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.ShouldHaveSingleItem();
+        ReadCalls(client).ShouldHaveSingleItem();
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
     }
@@ -5889,7 +5858,7 @@ public sealed class TenantQueryGatewayTests
         cancellation.Cancel();
         StubMemoriesClient memories = new();
         memories.Enqueue(new OperationCanceledException(cancellation.Token));
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         await Should.ThrowAsync<OperationCanceledException>(() => gateway.ListTenantsAsync(
@@ -5897,7 +5866,7 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             cancellation.Token));
 
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Fact]
@@ -5919,10 +5888,10 @@ public sealed class TenantQueryGatewayTests
             .Select(static index => Hit($"tenant:tenant-{index:D2}"))
             .ToArray();
         memories.Enqueue(SearchResult("needle", totalCount: 25, shortPage));
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         foreach (int index in Enumerable.Range(0, 18))
         {
-            client.EnqueueQueryResult(Detail($"tenant-{index:D2}"));
+            EnqueueQueryResult(clientResponses, Detail($"tenant-{index:D2}"));
         }
 
         CapturingLogger logger = new();
@@ -5953,9 +5922,9 @@ public sealed class TenantQueryGatewayTests
         var codec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 5, Hit("tenant:a0"), Hit("tenant:a2")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("a0"));
-        client.EnqueueQueryResult(Detail("a2"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("a0"));
+        EnqueueQueryResult(clientResponses, Detail("a2"));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
         TenantListSnapshot first = await gateway.ListTenantsAsync(
@@ -5968,9 +5937,9 @@ public sealed class TenantQueryGatewayTests
 
         StubMemoriesClient secondMemories = new();
         secondMemories.Enqueue(SearchResult("needle", totalCount: 5, Hit("tenant:a3"), Hit("tenant:a4")));
-        CapturingGatewayClient secondClient = new();
-        secondClient.EnqueueQueryResult(Detail("a3"));
-        secondClient.EnqueueQueryResult(Detail("a4"));
+        ITenantsRestQueryClient secondClient = CreateReadClient(out Queue<object> secondClientResponses);
+        EnqueueQueryResult(secondClientResponses, Detail("a3"));
+        EnqueueQueryResult(secondClientResponses, Detail("a4"));
         TenantQueryGateway secondGateway = CreateGateway(
             secondClient,
             memoriesClient: secondMemories,
@@ -6006,8 +5975,8 @@ public sealed class TenantQueryGatewayTests
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 20));
         memories.Enqueue(SearchResult("needle", 1, Hit("tenant:alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6039,10 +6008,10 @@ public sealed class TenantQueryGatewayTests
             .ToArray();
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 25, hits));
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         foreach (int index in Enumerable.Range(20, 5))
         {
-            client.EnqueueQueryResult(Detail($"tenant-{index}"));
+            EnqueueQueryResult(clientResponses, Detail($"tenant-{index}"));
         }
 
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
@@ -6059,7 +6028,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.Count.ShouldBe(5);
         snapshot.HasMore.ShouldBeFalse();
         snapshot.NextCursor.ShouldBeNull();
-        client.SubmittedQueries.ShouldAllBe(static query => query.Request.QueryType == GetTenantQuery.QueryType);
+        ReadCalls(client).ShouldAllBe(static query => query.GetArguments()[0] is GetTenantQuery);
     }
 
     [Fact]
@@ -6067,9 +6036,9 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 2, Hit("tenant:alpha"), Hit("tenant:beta")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
-        client.EnqueueQueryResult(Detail("beta") with { Members = [null!] });
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
+        EnqueueQueryResult(clientResponses, Detail("beta") with { Members = [null!] });
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6108,17 +6077,17 @@ public sealed class TenantQueryGatewayTests
 
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("alpha", 1, Hit("tenant:alpha")));
-        CapturingGatewayClient searchClient = new();
-        searchClient.EnqueueQueryResult(Detail("alpha") with { Members = malformedMembers });
+        ITenantsRestQueryClient searchClient = CreateReadClient(out Queue<object> searchClientResponses);
+        EnqueueQueryResult(searchClientResponses, Detail("alpha") with { Members = malformedMembers });
         TenantListSnapshot searchSnapshot = await CreateGateway(searchClient, memoriesClient: memories)
             .ListTenantsAsync(new TenantListRequest(Search: "alpha", PageSize: 1), previous: null, CancellationToken.None);
 
-        CapturingGatewayClient listClient = new();
-        listClient.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient listClient = CreateReadClient(out Queue<object> listClientResponses);
+        EnqueueQueryResult(listClientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("alpha", "Alpha", TenantStatus.Active)],
             null,
             false));
-        listClient.EnqueueQueryResult(Detail("alpha") with { Members = malformedMembers });
+        EnqueueQueryResult(listClientResponses, Detail("alpha") with { Members = malformedMembers });
         TenantListSnapshot listSnapshot = await CreateGateway(listClient)
             .ListTenantsAsync(new TenantListRequest(PageSize: 1), previous: null, CancellationToken.None);
 
@@ -6136,9 +6105,9 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 2, Hit("tenant:alpha"), Hit("tenant:beta")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha") with { Members = [null!] });
-        client.EnqueueQueryResult(Detail("beta") with { Members = [null!] });
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha") with { Members = [null!] });
+        EnqueueQueryResult(clientResponses, Detail("beta") with { Members = [null!] });
         CapturingLogger logger = new();
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, logger: logger);
 
@@ -6152,7 +6121,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.Notice.ShouldBe(TenantListReason.None);
         snapshot.Rows.Select(static row => row.TenantId).ShouldBe(["alpha", "beta"]);
         snapshot.Rows.ShouldAllBe(static row => !row.MemberCount.IsKnown && !row.OwnerCount.IsKnown);
-        client.SubmittedQueries.ShouldAllBe(static query => query.Request.QueryType == GetTenantQuery.QueryType);
+        ReadCalls(client).ShouldAllBe(static query => query.GetArguments()[0] is GetTenantQuery);
         logger.Messages.ShouldBeEmpty();
     }
 
@@ -6169,7 +6138,7 @@ public sealed class TenantQueryGatewayTests
         // the surfacing set before any base-type match. A torn-down provider must look like a torn-down
         // provider, not like a tampered cursor.
         StubMemoriesClient memories = new();
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(
             client,
             memoriesClient: memories,
@@ -6182,7 +6151,7 @@ public sealed class TenantQueryGatewayTests
 
         thrown.GetType().ShouldBe(SurfacingCodecDefect(exceptionKind).GetType());
         memories.SearchRequests.ShouldBeEmpty();
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
     }
 
     [Theory]
@@ -6197,8 +6166,8 @@ public sealed class TenantQueryGatewayTests
         // also lists InvalidOperationException as a contained base type.
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 2, Hit("tenant:alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
         TenantQueryGateway gateway = CreateGateway(
             client,
             memoriesClient: memories,
@@ -6210,18 +6179,18 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None));
 
         thrown.GetType().ShouldBe(SurfacingCodecDefect(exceptionKind).GetType());
-        client.SubmittedQueries.ShouldAllBe(static query => query.Request.QueryType == GetTenantQuery.QueryType);
+        ReadCalls(client).ShouldAllBe(static query => query.GetArguments()[0] is GetTenantQuery);
     }
 
     [Fact]
     public async Task List_ordinary_path_degrades_safely_for_the_same_null_member_detail_shape()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
             null,
             false));
-        client.EnqueueQueryResult(Detail("tenant.alpha") with { Members = [null!] });
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha") with { Members = [null!] });
         TenantQueryGateway gateway = CreateGateway(client);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6239,17 +6208,13 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(new HttpRequestException("Memories unavailable."));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            (int)HttpStatusCode.BadRequest,
-            "Bad request",
-            reasonCode: "invalid-cursor",
-            detail: "ordinary-expired-cursor raw token"));
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.InvalidCursor, (int)HttpStatusCode.BadRequest);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
             null,
             false));
-        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha"));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6278,12 +6243,12 @@ public sealed class TenantQueryGatewayTests
         string cursor = codec.Encode(foreignScope, 40);
         StubMemoriesClient memories = new();
         memories.Enqueue(new HttpRequestException("Memories unavailable."));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>(
             [new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active)],
             null,
             false));
-        client.EnqueueQueryResult(Detail("tenant.alpha"));
+        EnqueueQueryResult(clientResponses, Detail("tenant.alpha"));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6313,8 +6278,8 @@ public sealed class TenantQueryGatewayTests
         string cursor = codec.Encode(firstUserScope, 20);
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 1, Hit("tenant:alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
         TenantQueryGateway gateway = CreateGateway(
             client,
             userId: "user.two",
@@ -6394,8 +6359,8 @@ public sealed class TenantQueryGatewayTests
 
         StubMemoriesClient memories = new();
         memories.EnqueueNullable(response);
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>([], null, false));
         CapturingLogger logger = new();
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, logger: logger);
 
@@ -6406,7 +6371,7 @@ public sealed class TenantQueryGatewayTests
 
         snapshot.IsAuthoritativeSearch.ShouldBeFalse();
         snapshot.Notice.ShouldBe(TenantListReason.SearchUnavailable);
-        client.SubmittedQueries.ShouldHaveSingleItem();
+        ReadCalls(client).ShouldHaveSingleItem();
         logger.Messages.ShouldHaveSingleItem().ShouldContain(TenantQueryGateway.SearchResponseInvalidReasonCode);
     }
 
@@ -6431,10 +6396,10 @@ public sealed class TenantQueryGatewayTests
             Hit("tenant:zeta"),
             Hit("tenant:alpha"),
             Hit("tenant:beta")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("zeta") with { Name = "Same", Status = TenantStatus.Disabled });
-        client.EnqueueQueryResult(Detail("alpha") with { Name = "Zed", Status = TenantStatus.Active });
-        client.EnqueueQueryResult(Detail("beta") with { Name = "same", Status = TenantStatus.Active });
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("zeta") with { Name = "Same", Status = TenantStatus.Disabled });
+        EnqueueQueryResult(clientResponses, Detail("alpha") with { Name = "Zed", Status = TenantStatus.Active });
+        EnqueueQueryResult(clientResponses, Detail("beta") with { Name = "same", Status = TenantStatus.Active });
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6460,10 +6425,10 @@ public sealed class TenantQueryGatewayTests
             Hit("tenant:current"),
             Hit("tenant:stale"),
             Hit("tenant:changed-status")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("current"), metadata: ProjectionBackedMetadata(isStale: false));
-        client.EnqueueQueryResult(Detail("stale"), metadata: ProjectionBackedMetadata(isStale: true));
-        client.EnqueueQueryResult(Detail("changed-status") with { Status = TenantStatus.Disabled });
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("current"), metadata: ProjectionBackedMetadata(isStale: false));
+        EnqueueQueryResult(clientResponses, Detail("stale"), metadata: ProjectionBackedMetadata(isStale: true));
+        EnqueueQueryResult(clientResponses, Detail("changed-status") with { Status = TenantStatus.Disabled });
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6497,8 +6462,8 @@ public sealed class TenantQueryGatewayTests
         };
         StubMemoriesClient memories = new();
         memories.Enqueue(exception);
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>([], null, false));
         CapturingLogger logger = new();
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, logger: logger);
 
@@ -6530,13 +6495,13 @@ public sealed class TenantQueryGatewayTests
             Hit("tenant:mismatch"),
             Hit("tenant:degraded"),
             Hit("tenant:stale")));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "forbidden raw detail"));
-        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.NotFound, "missing raw detail"));
-        client.EnqueueDetailResult(payload: null);
-        client.EnqueueQueryResult(Detail("different-tenant"));
-        client.EnqueueQueryResult(Detail("degraded"), metadata: ProjectionBackedMetadata(isDegraded: true));
-        client.EnqueueQueryResult(Detail("stale"), metadata: ProjectionBackedMetadata(isStale: true));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.NotFound, (int)HttpStatusCode.NotFound);
+        EnqueueDetailResult(clientResponses, payload: null);
+        EnqueueQueryResult(clientResponses, Detail("different-tenant"));
+        EnqueueQueryResult(clientResponses, Detail("degraded"), metadata: ProjectionBackedMetadata(isDegraded: true));
+        EnqueueQueryResult(clientResponses, Detail("stale"), metadata: ProjectionBackedMetadata(isStale: true));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6544,7 +6509,7 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        client.SubmittedQueries.Select(static query => query.Request.AggregateId).ShouldBe(
+        ReadCalls(client).Select(static query => ((GetTenantQuery)query.GetArguments()[0]!).TenantId).ShouldBe(
             ["forbidden", "missing", "null-detail", "mismatch", "degraded", "stale"]);
         snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("stale");
         snapshot.Rows[0].Freshness.ShouldBe(ReadModelFreshnessState.Stale);
@@ -6571,16 +6536,16 @@ public sealed class TenantQueryGatewayTests
             .ToArray();
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", candidateCount, hits));
-        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         int active = 0;
         int maximum = 0;
-        client.SubmitQueryAsync<TenantDetail>(
-                Arg.Any<SubmitQueryRequest>(),
+        client.GetTenantAsync(
+                Arg.Any<GetTenantQuery>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
             .Returns(async call =>
             {
-                SubmitQueryRequest query = call.ArgAt<SubmitQueryRequest>(0);
+                GetTenantQuery query = call.ArgAt<GetTenantQuery>(0);
                 CancellationToken cancellationToken = call.ArgAt<CancellationToken>(2);
                 ObserveMaximum(ref maximum, Interlocked.Increment(ref active));
 
@@ -6588,14 +6553,11 @@ public sealed class TenantQueryGatewayTests
                 // limit fails this assertion instead of deadlocking the suite.
                 await Task.Delay(TimeSpan.FromMilliseconds(40), cancellationToken);
                 _ = Interlocked.Decrement(ref active);
-                return new EventStoreQueryResult<TenantDetail>(
-                    "correlation",
-                    Detail(query.AggregateId) with { Name = query.AggregateId },
-                    IsNotModified: false,
-                    ETag: null)
-                {
-                    Metadata = ProjectionBackedMetadata(isStale: false),
-                };
+                return new TenantsRestQueryResponse<TenantDetail>(
+                    Detail(query.TenantId) with { Name = query.TenantId },
+                    ProjectionBackedMetadata(isStale: false),
+                    TenantsRestQueryFailureKind.None,
+                    (int)HttpStatusCode.OK);
             });
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
@@ -6627,11 +6589,11 @@ public sealed class TenantQueryGatewayTests
             2,
             Hit("tenant:alpha"),
             Hit("tenant:beta")));
-        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         int queryCount = 0;
-        client.SubmitQueryAsync<TenantDetail>(
-                Arg.Any<SubmitQueryRequest>(),
+        client.GetTenantAsync(
+                Arg.Any<GetTenantQuery>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
             .Returns(async call =>
@@ -6640,11 +6602,7 @@ public sealed class TenantQueryGatewayTests
                 started.TrySetResult();
                 CancellationToken cancellationToken = call.ArgAt<CancellationToken>(2);
                 await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
-                return new EventStoreQueryResult<TenantDetail>(
-                    "unreachable-correlation",
-                    Detail("unreachable"),
-                    IsNotModified: false,
-                    ETag: null);
+                return DirectResponse(Detail("unreachable"));
             });
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
         using var cancellation = new CancellationTokenSource();
@@ -6673,8 +6631,8 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 1, Hit("tenant:alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
         TenantQueryGateway gateway = CreateGateway(
             client,
             memoriesClient: memories,
@@ -6696,8 +6654,8 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 1, Hit("tenant:alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
         TenantQueryGateway gateway = CreateGateway(
             client,
             memoriesClient: memories,
@@ -6726,9 +6684,9 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", 2, Hit("tenant:alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(Detail("alpha"));
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, Detail("alpha"));
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>([], null, false));
         CapturingLogger logger = new();
         TenantQueryGateway gateway = CreateGateway(
             client,
@@ -6760,8 +6718,8 @@ public sealed class TenantQueryGatewayTests
 
         StubMemoriesClient healthy = new();
         healthy.Enqueue(SearchResult(query, 1, Hit($"tenant:{tenantId}")));
-        CapturingGatewayClient healthyClient = new();
-        healthyClient.EnqueueQueryResult(Detail(tenantId));
+        ITenantsRestQueryClient healthyClient = CreateReadClient(out Queue<object> healthyClientResponses);
+        EnqueueQueryResult(healthyClientResponses, Detail(tenantId));
         _ = await CreateGateway(healthyClient, memoriesClient: healthy, logger: logger).ListTenantsAsync(
             new TenantListRequest(Search: query),
             previous: null,
@@ -6770,8 +6728,8 @@ public sealed class TenantQueryGatewayTests
 
         StubMemoriesClient outage = new();
         outage.Enqueue(new HttpRequestException($"GET /search?query={query}&offset=40"));
-        CapturingGatewayClient outageClient = new();
-        outageClient.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient outageClient = CreateReadClient(out Queue<object> outageClientResponses);
+        EnqueueQueryResult(outageClientResponses, new PaginatedResult<TenantSummary>([], null, false));
         _ = await CreateGateway(outageClient, memoriesClient: outage, logger: logger).ListTenantsAsync(
             new TenantListRequest(Search: query),
             previous: null,
@@ -6779,8 +6737,8 @@ public sealed class TenantQueryGatewayTests
 
         StubMemoriesClient invalid = new();
         invalid.Enqueue(SearchResult(query, 1, Hit($"tenant:{tenantId}")) with { Degraded = true });
-        CapturingGatewayClient invalidClient = new();
-        invalidClient.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient invalidClient = CreateReadClient(out Queue<object> invalidClientResponses);
+        EnqueueQueryResult(invalidClientResponses, new PaginatedResult<TenantSummary>([], null, false));
         _ = await CreateGateway(invalidClient, memoriesClient: invalid, logger: logger).ListTenantsAsync(
             new TenantListRequest(Search: query),
             previous: null,
@@ -6790,8 +6748,8 @@ public sealed class TenantQueryGatewayTests
         // authoritatively, so the surface never resolved to the ordinary list and nothing may be emitted.
         StubMemoriesClient recoveredKeyRing = new();
         recoveredKeyRing.Enqueue(SearchResult(query, 1, Hit($"tenant:{tenantId}")));
-        CapturingGatewayClient recoveredKeyRingClient = new();
-        recoveredKeyRingClient.EnqueueQueryResult(Detail(tenantId));
+        ITenantsRestQueryClient recoveredKeyRingClient = CreateReadClient(out Queue<object> recoveredKeyRingClientResponses);
+        EnqueueQueryResult(recoveredKeyRingClientResponses, Detail(tenantId));
         TenantListSnapshot recovered = await CreateGateway(
                 recoveredKeyRingClient,
                 memoriesClient: recoveredKeyRing,
@@ -6809,9 +6767,9 @@ public sealed class TenantQueryGatewayTests
         // reported: this is the signal that distinguishes a dead key ring from a healthy index.
         StubMemoriesClient deadKeyRing = new();
         deadKeyRing.Enqueue(SearchResult(query, totalCount: 40, Hit($"tenant:{tenantId}")));
-        CapturingGatewayClient deadKeyRingClient = new();
-        deadKeyRingClient.EnqueueQueryResult(Detail(tenantId));
-        deadKeyRingClient.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient deadKeyRingClient = CreateReadClient(out Queue<object> deadKeyRingClientResponses);
+        EnqueueQueryResult(deadKeyRingClientResponses, Detail(tenantId));
+        EnqueueQueryResult(deadKeyRingClientResponses, new PaginatedResult<TenantSummary>([], null, false));
         _ = await CreateGateway(
                 deadKeyRingClient,
                 memoriesClient: deadKeyRing,
@@ -6848,10 +6806,8 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(new HttpRequestException("Memories unavailable."));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            (int)HttpStatusCode.ServiceUnavailable,
-            "Ordinary list unavailable."));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, (int)HttpStatusCode.ServiceUnavailable);
         CapturingLogger logger = new();
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, logger: logger);
 
@@ -6861,8 +6817,14 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.Error);
-        logger.Events.ShouldHaveSingleItem().ShouldBe(TenantQueryGateway.SearchAndOrdinaryListUnavailableEvent);
-        logger.Messages.ShouldHaveSingleItem().ShouldContain("also unavailable");
+        logger.Events.ShouldBe([
+            TenantQueryGateway.DirectTenantsReadFailedEvent,
+            TenantQueryGateway.SearchAndOrdinaryListUnavailableEvent,
+        ]);
+        logger.Messages.Count.ShouldBe(2);
+        logger.Messages[0].ShouldContain("FailureKind=Unavailable");
+        logger.Messages[1].ShouldContain("also unavailable");
+        logger.Exceptions.ShouldAllBe(static exception => exception == null);
     }
 
     [Fact]
@@ -6879,10 +6841,8 @@ public sealed class TenantQueryGatewayTests
         string cursor = codec.Encode(foreignScope, 40);
         StubMemoriesClient memories = new();
         memories.Enqueue(new HttpRequestException("Memories unavailable."));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            (int)HttpStatusCode.ServiceUnavailable,
-            "Ordinary list unavailable."));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, (int)HttpStatusCode.ServiceUnavailable);
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6908,10 +6868,8 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(new HttpRequestException("Memories unavailable."));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(
-            (int)HttpStatusCode.Unauthorized,
-            "Bearer token expired."));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unauthorized, (int)HttpStatusCode.Unauthorized);
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6941,8 +6899,8 @@ public sealed class TenantQueryGatewayTests
         string cursor = codec.Encode(foreignScope, 40);
         StubMemoriesClient memories = new();
         memories.Enqueue(new HttpRequestException("Memories unavailable."));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>([], null, false));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6965,7 +6923,7 @@ public sealed class TenantQueryGatewayTests
 
         // The index fully omitted this window while still reporting more total results.
         memories.Enqueue(SearchResult("needle", totalCount: 30));
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -6977,7 +6935,7 @@ public sealed class TenantQueryGatewayTests
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.SearchPageEmpty);
         snapshot.Kind.ShouldNotBe(TenantListSurfaceKind.FilteredEmpty);
         snapshot.Rows.ShouldBeEmpty();
-        client.SubmittedQueries.ShouldBeEmpty();
+        ReadCalls(client).ShouldBeEmpty();
 
         // The index omitted its own unusable entries: no candidate was hidden from this operator, so paging
         // must keep advancing. Collapsing here would strand accessible matches sitting past this window
@@ -6996,9 +6954,9 @@ public sealed class TenantQueryGatewayTests
             totalCount: 30,
             Hit("tenant:tenant.alpha"),
             Hit("tenant:tenant.beta")));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "Hidden."));
-        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.NotFound, "Absent."));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.NotFound, (int)HttpStatusCode.NotFound);
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -7009,7 +6967,7 @@ public sealed class TenantQueryGatewayTests
         // Both candidates were hydrated and both were hidden or absent, so TotalCount = 30 is entirely
         // pre-authorization knowledge. Advertising a further page would disclose the existence and a
         // page-granular count of tenants this operator is not permitted to see.
-        client.SubmittedQueries.Count.ShouldBe(2);
+        ReadCalls(client).Count.ShouldBe(2);
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.SearchPageEmpty);
         snapshot.Rows.ShouldBeEmpty();
         snapshot.HasMore.ShouldBeFalse();
@@ -7028,8 +6986,8 @@ public sealed class TenantQueryGatewayTests
             totalCount: 30,
             hidden,
             duplicate ? Hit("tenant:tenant.hidden") : Hit("not-a-tenant-source")));
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "Hidden."));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -7040,7 +6998,7 @@ public sealed class TenantQueryGatewayTests
         // A duplicate or malformed raw hit is not an authorization outcome. If either shares a window with
         // a hidden candidate, the gateway cannot truthfully classify every raw hit as hidden or absent and
         // must keep later authorized matches reachable.
-        client.SubmittedQueries.Count.ShouldBe(1);
+        ReadCalls(client).Count.ShouldBe(1);
         snapshot.Kind.ShouldBe(TenantListSurfaceKind.SearchPageEmpty);
         snapshot.Rows.ShouldBeEmpty();
         snapshot.HasMore.ShouldBeTrue();
@@ -7056,9 +7014,9 @@ public sealed class TenantQueryGatewayTests
             totalCount: 30,
             Hit("tenant:tenant.alpha"),
             Hit("tenant:tenant.beta")));
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailResult(Detail("tenant.alpha"), ProjectionBackedMetadata());
-        client.EnqueueDetailResult(Detail("tenant.beta"), ProjectionBackedMetadata());
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailResult(clientResponses, Detail("tenant.alpha"), ProjectionBackedMetadata());
+        EnqueueDetailResult(clientResponses, Detail("tenant.beta"), ProjectionBackedMetadata());
 
         // Both hydrate as Active; the operator asked for Disabled, so the authoritative recheck drops both.
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
@@ -7081,10 +7039,10 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 30, Hit("tenant:tenant.alpha")));
-        CapturingGatewayClient client = new();
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
 
         // Name is non-nullable on the contract, so only a malformed projection can produce this.
-        client.EnqueueDetailResult(
+        EnqueueDetailResult(clientResponses,
             Detail("tenant.alpha") with { Name = null! },
             ProjectionBackedMetadata());
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
@@ -7108,8 +7066,8 @@ public sealed class TenantQueryGatewayTests
     {
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 30, Hit("tenant:tenant.alpha")));
-        CapturingGatewayClient client = new();
-        client.EnqueueDetailResult(Detail("tenant.alpha"), ProjectionBackedMetadata());
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueDetailResult(clientResponses, Detail("tenant.alpha"), ProjectionBackedMetadata());
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
@@ -7138,8 +7096,8 @@ public sealed class TenantQueryGatewayTests
         string term = new('a', length);
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult(term, totalCount: 0));
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], null, false));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses, new PaginatedResult<TenantSummary>([], null, false));
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
         _ = await gateway.ListTenantsAsync(
@@ -7164,7 +7122,7 @@ public sealed class TenantQueryGatewayTests
         // Untrimmed, "acme " and "acme" hash to different cursor scopes and silently restart paging.
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 0));
-        TenantQueryGateway gateway = CreateGateway(new CapturingGatewayClient(), memoriesClient: memories);
+        TenantQueryGateway gateway = CreateGateway(CreateReadClient(out _), memoriesClient: memories);
 
         _ = await gateway.ListTenantsAsync(
             new TenantListRequest(Search: "  needle  "),
@@ -7193,11 +7151,11 @@ public sealed class TenantQueryGatewayTests
                     Hit("tenant:tenant.alpha"),
                     Hit("tenant:tenant.beta"))
                 : SearchResult("needle", totalCount: totalCount));
-            CapturingGatewayClient client = new();
+            ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
             if (withHiddenCandidates)
             {
-                client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.Forbidden, "Hidden."));
-                client.EnqueueException(new EventStoreGatewayException((int)HttpStatusCode.NotFound, "Absent."));
+                EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
+                EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.NotFound, (int)HttpStatusCode.NotFound);
             }
 
             return await CreateGateway(
@@ -7339,12 +7297,7 @@ public sealed class TenantQueryGatewayTests
     /// Returns one fixed failure for every read, at the real <see cref="ITenantsRestQueryClient"/> seam.
     /// </summary>
     /// <remarks>
-    /// Review loop 9, decision D1 (first increment). Unlike <c>RestQueryClientAdapter</c>, this substitutes
-    /// the production interface directly, so a failure actually flows through
-    /// <c>TenantQueryGateway.ToEventStoreResult</c> -- the code that decides which HTTP status each mapper
-    /// sees. The adapter cannot express this at all: it hardcodes <c>TenantsRestQueryFailureKind.None</c> and
-    /// failures can only be injected by throwing <c>EventStoreGatewayException</c> straight at the mapper,
-    /// which skips the status normalization entirely. New failure-mapping coverage belongs here.
+    /// Failures flow through TenantQueryGateway.ToEventStoreResult before surface-specific mapping.
     /// </remarks>
     private sealed class FixedFailureRestQueryClient(TenantsRestQueryFailureKind failureKind, int statusCode)
         : ITenantsRestQueryClient
@@ -7378,15 +7331,6 @@ public sealed class TenantQueryGatewayTests
     }
 
     private static TenantQueryGateway CreateGateway(
-        CapturingGatewayClient client,
-        string? userId = "operator-user",
-        StubMemoriesClient? memoriesClient = null,
-        ITenantSearchCursorCodec? searchCursorCodec = null,
-        ITenantsBffComposition? bffComposition = null,
-        CapturingLogger? logger = null)
-        => CreateGateway((IEventStoreGatewayClient)client, userId, memoriesClient, searchCursorCodec, bffComposition, logger);
-
-    private static TenantQueryGateway CreateGateway(
         ITenantsRestQueryClient client,
         string? userId = "operator-user",
         StubMemoriesClient? memoriesClient = null,
@@ -7415,27 +7359,6 @@ public sealed class TenantQueryGatewayTests
             enrichmentDeadline,
             circuitServicesAccessor,
             authenticationStateProvider);
-    }
-
-    private static TenantQueryGateway CreateGateway(
-        IEventStoreGatewayClient client,
-        string? userId = "operator-user",
-        StubMemoriesClient? memoriesClient = null,
-        ITenantSearchCursorCodec? searchCursorCodec = null,
-        ITenantsBffComposition? bffComposition = null,
-        CapturingLogger? logger = null)
-    {
-        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
-        userContext.UserId.Returns(userId);
-        userContext.TenantId.Returns("tenant.context");
-
-        return new TenantQueryGateway(
-            new RestQueryClientAdapter(client),
-            userContext,
-            memoriesClient ?? new StubMemoriesClient(),
-            searchCursorCodec ?? new TenantSearchCursorCodec(new EphemeralDataProtectionProvider()),
-            bffComposition,
-            logger);
     }
 
     private static TenantDetailSnapshot ReadyConfigurationSnapshot()
@@ -7513,11 +7436,11 @@ public sealed class TenantQueryGatewayTests
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 2, Hit("tenant:tenant.alpha"), Hit("tenant:tenant.beta")));
 
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.beta"),
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
 
@@ -7539,11 +7462,11 @@ public sealed class TenantQueryGatewayTests
         StubMemoriesClient memories = new();
         memories.Enqueue(SearchResult("needle", totalCount: 2, Hit("tenant:tenant.alpha"), Hit("tenant:tenant.beta")));
 
-        CapturingGatewayClient client = new();
-        client.EnqueueQueryResult(
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.alpha"),
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Current));
-        client.EnqueueQueryResult(
+        EnqueueQueryResult(clientResponses,
             Detail("tenant.beta"),
             metadata: ProjectionBackedMetadata(isStale: false, lifecycle: ProjectionLifecycleState.Rebuilding));
 
@@ -7575,9 +7498,10 @@ public sealed class TenantQueryGatewayTests
             nextCursor: null,
             hasMore: false,
             eTag: "known",
-            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(503, "Tenants read unavailable"));
+            freshness: ReadModelFreshnessState.Current) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, 503);
 
         GlobalAdministratorsSnapshot snapshot = await CreateGateway(client)
             .GetGlobalAdministratorsAsync(
@@ -7601,9 +7525,10 @@ public sealed class TenantQueryGatewayTests
             nextCursor: null,
             hasMore: false,
             eTag: "known",
-            freshness: ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
-        CapturingGatewayClient client = new();
-        client.EnqueueException(new EventStoreGatewayException(503, "Tenants read unavailable"));
+            freshness: ReadModelFreshnessState.Current) with
+        { CallerScope = TenantQueryGateway.AuditCallerScope("operator-user") };
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Unavailable, 503);
 
         GlobalAdministratorsSnapshot snapshot = await CreateGateway(client)
             .GetGlobalAdministratorsAsync(
@@ -7719,17 +7644,17 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task Paginated_not_modified_without_matching_evidence_refetches_unconditionally()
     {
-        CapturingGatewayClient listClient = new();
-        listClient.EnqueueNotModified("list-etag");
-        listClient.EnqueueQueryResult(new PaginatedResult<TenantSummary>([], Cursor: null, HasMore: false));
+        ITenantsRestQueryClient listClient = CreateReadClient(out Queue<object> listClientResponses);
+        EnqueueNotModified(listClientResponses, "list-etag");
+        EnqueueQueryResult(listClientResponses, new PaginatedResult<TenantSummary>([], Cursor: null, HasMore: false));
         TenantListSnapshot list = await CreateGateway(listClient).ListTenantsAsync(
             new TenantListRequest(ETag: "list-etag"),
             previous: null,
             CancellationToken.None);
 
-        CapturingGatewayClient administratorClient = new();
-        administratorClient.EnqueueGlobalAdministratorsNotModified("admin-etag");
-        administratorClient.EnqueueQueryResult(new PaginatedResult<GlobalAdministratorSummary>(
+        ITenantsRestQueryClient administratorClient = CreateReadClient(out Queue<object> administratorClientResponses);
+        EnqueueGlobalAdministratorsNotModified(administratorClientResponses, "admin-etag");
+        EnqueueQueryResult(administratorClientResponses, new PaginatedResult<GlobalAdministratorSummary>(
             [new GlobalAdministratorSummary("admin.alpha")],
             Cursor: null,
             HasMore: false));
@@ -7741,10 +7666,10 @@ public sealed class TenantQueryGatewayTests
 
         list.Kind.ShouldBe(TenantListSurfaceKind.Empty);
         list.Rows.ShouldBeEmpty();
-        listClient.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(listClient)[1].GetArguments()[1].ShouldBeNull();
         administrators.Kind.ShouldBe(GlobalAdministratorsSurfaceKind.Ready);
         administrators.Rows.ShouldHaveSingleItem().UserId.ShouldBe("admin.alpha");
-        administratorClient.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+        ReadCalls(administratorClient)[1].GetArguments()[1].ShouldBeNull();
     }
 
     [Fact]
@@ -7791,9 +7716,9 @@ public sealed class TenantQueryGatewayTests
     [Fact]
     public async Task A_not_modified_response_with_nothing_retained_has_its_own_reason_on_every_paged_read()
     {
-        CapturingGatewayClient client = new();
-        client.EnqueueNotModified("unknown-etag");
-        client.EnqueueNotModified("unknown-etag");
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueNotModified(clientResponses, "unknown-etag");
+        EnqueueNotModified(clientResponses, "unknown-etag");
         TenantQueryGateway gateway = CreateGateway(client);
         TenantListSnapshot list = await gateway.ListTenantsAsync(
             new TenantListRequest(ETag: "unknown-etag"),
@@ -7802,9 +7727,9 @@ public sealed class TenantQueryGatewayTests
         list.Reason.ShouldBe(TenantListReason.NotModifiedWithoutSnapshot);
         AssertUnconditionalRetry(client);
 
-        CapturingGatewayClient userTenantsClient = new();
-        userTenantsClient.EnqueueUserTenantsNotModified("unknown-etag");
-        userTenantsClient.EnqueueUserTenantsNotModified("unknown-etag");
+        ITenantsRestQueryClient userTenantsClient = CreateReadClient(out Queue<object> userTenantsClientResponses);
+        EnqueueUserTenantsNotModified(userTenantsClientResponses, "unknown-etag");
+        EnqueueUserTenantsNotModified(userTenantsClientResponses, "unknown-etag");
         UserTenantMembershipSnapshot memberships = await CreateGateway(userTenantsClient).GetUserTenantsAsync(
             new UserTenantMembershipRequest("target.user", ETag: "unknown-etag"),
             previous: null,
@@ -7812,9 +7737,9 @@ public sealed class TenantQueryGatewayTests
         memberships.Reason.ShouldBe(UserTenantMembershipReason.NotModifiedWithoutSnapshot);
         AssertUnconditionalRetry(userTenantsClient);
 
-        CapturingGatewayClient administratorsClient = new();
-        administratorsClient.EnqueueGlobalAdministratorsNotModified("unknown-etag");
-        administratorsClient.EnqueueGlobalAdministratorsNotModified("unknown-etag");
+        ITenantsRestQueryClient administratorsClient = CreateReadClient(out Queue<object> administratorsClientResponses);
+        EnqueueGlobalAdministratorsNotModified(administratorsClientResponses, "unknown-etag");
+        EnqueueGlobalAdministratorsNotModified(administratorsClientResponses, "unknown-etag");
         GlobalAdministratorsSnapshot administrators = await CreateGateway(administratorsClient)
             .GetGlobalAdministratorsAsync(
                 new GlobalAdministratorsRequest(ETag: "unknown-etag"),
@@ -7823,9 +7748,9 @@ public sealed class TenantQueryGatewayTests
         administrators.Reason.ShouldBe(GlobalAdministratorsReason.NotModifiedWithoutSnapshot);
         AssertUnconditionalRetry(administratorsClient);
 
-        CapturingGatewayClient auditClient = new();
-        auditClient.EnqueueAuditNotModified("unknown-etag");
-        auditClient.EnqueueAuditNotModified("unknown-etag");
+        ITenantsRestQueryClient auditClient = CreateReadClient(out Queue<object> auditClientResponses);
+        EnqueueAuditNotModified(auditClientResponses, "unknown-etag");
+        EnqueueAuditNotModified(auditClientResponses, "unknown-etag");
         TenantAuditSnapshot audit = await CreateGateway(auditClient).GetTenantAuditAsync(
             new TenantAuditRequest("tenant.alpha", ETag: "unknown-etag"),
             previous: null,
@@ -7833,11 +7758,11 @@ public sealed class TenantQueryGatewayTests
         audit.Reason.ShouldBe(TenantAuditReason.NotModifiedWithoutSnapshot);
         AssertUnconditionalRetry(auditClient);
 
-        static void AssertUnconditionalRetry(CapturingGatewayClient client)
+        static void AssertUnconditionalRetry(ITenantsRestQueryClient client)
         {
-            client.SubmittedQueries.Count.ShouldBe(2);
-            client.SubmittedQueries[0].IfNoneMatch.ShouldBeNull();
-            client.SubmittedQueries[1].IfNoneMatch.ShouldBeNull();
+            ReadCalls(client).Count.ShouldBe(2);
+            ReadCalls(client)[0].GetArguments()[1].ShouldBeNull();
+            ReadCalls(client)[1].GetArguments()[1].ShouldBeNull();
         }
     }
 
@@ -8670,361 +8595,134 @@ public sealed class TenantQueryGatewayTests
             Axis = "syntactic",
         };
 
-    private sealed class CapturingGatewayClient : IEventStoreGatewayClient
+    // Native fixtures include deliberately malformed metadata for gateway defense tests.
+    // HTTP parsing, body redaction and supported-304 validation belong to TenantsRestQueryClientTests.
+    private static ITenantsRestQueryClient CreateReadClient(out Queue<object> responses)
     {
-        private readonly Queue<object> _responses = new();
-
-        public List<SubmittedQuery> SubmittedQueries { get; } = [];
-
-        public Task<EventStoreQueryResult<T>> SubmitQueryAsync<T>(
-            SubmitQueryRequest request,
-            string? ifNoneMatch = null,
-            CancellationToken cancellationToken = default)
-        {
-            SubmittedQueries.Add(new SubmittedQuery(request, ifNoneMatch));
-            object next = _responses.Dequeue();
-            if (next is Exception exception)
-            {
-                throw exception;
-            }
-
-            return Task.FromResult((EventStoreQueryResult<T>)next);
-        }
-
-        public Task<SubmitCommandResponse> SubmitCommandAsync(SubmitCommandRequest request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public Task<EventStoreQueryResult> SubmitQueryAsync(
-            SubmitQueryRequest request,
-            string? ifNoneMatch = null,
-            CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public Task<StreamReadPage> ReadStreamAsync(StreamReadRequest request, CancellationToken cancellationToken = default)
-            => throw new NotSupportedException();
-
-        public void EnqueueQueryResult<T>(
-            T payload,
-            string? eTag = "etag",
-            QueryResponseMetadata? metadata = null,
-            bool emitDefaultMetadata = true)
-            => _responses.Enqueue(new EventStoreQueryResult<T>(
-                "correlation",
-                payload,
-                IsNotModified: false,
-                eTag)
-            {
-                Metadata = metadata ?? (emitDefaultMetadata
-                    ? ProjectionBackedMetadata(eTag: eTag, isStale: false)
-                    : null),
-            });
-
-        /// <summary>
-        /// Enqueues a 304 in the shape the production client can actually deliver.
-        /// </summary>
-        /// <remarks>
-        /// The defaults used to be <c>isStale: null, lifecycle: Unknown</c>, which
-        /// <c>TenantsRestQueryClient.IsSupportedNotModified</c> rejects outright as <c>InvalidMetadata</c> --
-        /// so the whole 304-retention surface was proven against an input production cannot produce, while
-        /// the input it does produce had no gateway test at all. Callers that want a rejected shape now say
-        /// so explicitly.
-        /// </remarks>
-        public void EnqueueNotModified(
-            string? eTag,
-            bool? isStale = false,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
-            QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
-            bool emitMetadata = true)
-            => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<TenantSummary>>(
-                null,
-                null,
-                IsNotModified: true,
-                eTag)
-            {
-                Metadata = emitMetadata
-                    ? ProjectionBackedMetadata(
-                        eTag: eTag,
-                        isNotModified: true,
-                        isStale: isStale,
-                        lifecycle: lifecycle,
-                        provenance: provenance,
-                        projectionVersion: "projection-v1")
-                    : null,
-            });
-
-        /// <inheritdoc cref="EnqueueNotModified" />
-        public void EnqueueDetailNotModified(
-            string? eTag,
-            bool? isStale = false,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current)
-            => _responses.Enqueue(new EventStoreQueryResult<TenantDetail>(
-                null,
-                null,
-                IsNotModified: true,
-                eTag)
-            {
-                Metadata = ProjectionBackedMetadata(
-                    eTag: eTag,
-                    isNotModified: true,
-                    isStale: isStale,
-                    lifecycle: lifecycle,
-                    projectionVersion: "projection-v1"),
-            });
-
-        public void EnqueueDetailResult(TenantDetail? payload, QueryResponseMetadata? metadata = null)
-            => _responses.Enqueue(new EventStoreQueryResult<TenantDetail>(
-                "correlation",
-                payload,
-                IsNotModified: false,
-                ETag: metadata?.ETag)
-            {
-                Metadata = metadata,
-            });
-
-        /// <inheritdoc cref="EnqueueNotModified" />
-        public void EnqueueUserTenantsNotModified(
-            string? eTag,
-            bool? isStale = false,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
-            QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
-            bool emitMetadata = true)
-            => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<UserTenantMembership>>(
-                null,
-                null,
-                IsNotModified: true,
-                eTag)
-            {
-                Metadata = emitMetadata
-                    ? ProjectionBackedMetadata(
-                        eTag: eTag,
-                        isNotModified: true,
-                        isStale: isStale,
-                        lifecycle: lifecycle,
-                        provenance: provenance,
-                        projectionVersion: "projection-v1")
-                    : null,
-            });
-
-        public void EnqueueTenantUsersNotModified(string eTag, string projectionVersion)
-            => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<TenantMember>>(
-                null,
-                null,
-                IsNotModified: true,
-                eTag)
-            {
-                Metadata = ProjectionBackedMetadata(
-                    eTag: eTag,
-                    isNotModified: true,
-                    isStale: false,
-                    lifecycle: ProjectionLifecycleState.Current,
-                    projectionVersion: projectionVersion),
-            });
-
-        public void EnqueueGlobalAdministratorsNotModified(
-            string? eTag,
-            bool? isStale = false,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
-            QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
-            bool emitMetadata = true,
-            string? projectionVersion = "projection-v1")
-            => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<GlobalAdministratorSummary>>(
-                null,
-                null,
-                IsNotModified: true,
-                eTag)
-            {
-                Metadata = emitMetadata
-                    ? ProjectionBackedMetadata(
-                        eTag: eTag,
-                        isNotModified: true,
-                        isStale: isStale,
-                        lifecycle: lifecycle,
-                        provenance: provenance,
-                        projectionVersion: projectionVersion)
-                    : null,
-            });
-
-        public void EnqueueAuditNotModified(
-            string? eTag,
-            bool? isStale = false,
-            ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
-            QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
-            bool emitMetadata = true)
-            => _responses.Enqueue(new EventStoreQueryResult<PaginatedResult<TenantAuditEntry>>(
-                null,
-                null,
-                IsNotModified: true,
-                eTag)
-            {
-                Metadata = emitMetadata
-                    ? ProjectionBackedMetadata(
-                        eTag: eTag,
-                        isNotModified: true,
-                        isStale: isStale,
-                        lifecycle: lifecycle,
-                        provenance: provenance,
-                        projectionVersion: "projection-v1")
-                    : null,
-            });
-
-        public void EnqueueException(Exception exception)
-            => _responses.Enqueue(exception);
+        responses = new Queue<object>();
+        Queue<object> queue = responses;
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.ListTenantsAsync(Arg.Any<ListTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => NextReadResponse<PaginatedResult<TenantSummary>>(queue));
+        client.GetTenantAsync(Arg.Any<GetTenantQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => NextReadResponse<TenantDetail>(queue));
+        client.GetTenantUsersAsync(Arg.Any<GetTenantUsersQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => NextReadResponse<PaginatedResult<TenantMember>>(queue));
+        client.GetUserTenantsAsync(Arg.Any<GetUserTenantsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => NextReadResponse<PaginatedResult<UserTenantMembership>>(queue));
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => NextReadResponse<PaginatedResult<TenantAuditEntry>>(queue));
+        client.GetGlobalAdministratorsAsync(Arg.Any<GetGlobalAdministratorsQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => NextReadResponse<PaginatedResult<GlobalAdministratorSummary>>(queue));
+        return client;
     }
 
-    /// <summary>
-    /// Drives gateway tests by translating typed read calls into recorded <c>SubmitQueryRequest</c>s.
-    /// </summary>
-    /// <remarks>
-    /// This is a RESPONSE-DRIVING harness, not a contract check. Production no longer builds
-    /// <c>SubmitQueryRequest</c> at all -- <c>grep SubmitQueryRequest TenantQueryGateway.cs</c> returns
-    /// nothing -- so the aggregate id, query type, projection type and payload shape below are this class's
-    /// own invention. Assertions that pin those hardcoded values cannot fail for any production change.
-    /// Every assertion that pinned this class's invented values is now gone: the <c>ProjectionType</c> and
-    /// hardcoded <c>AggregateId</c> assertions were removed earlier, and review loop 10 removed the
-    /// remaining 23 -- 7 <c>Request.Tenant</c>, 11 <c>Request.QueryType</c> and 5 <c>Request.Domain</c>.
-    /// Where such an assertion was the only thing establishing that a read happened, it was replaced with
-    /// the call-count assertion it was standing in for (<c>ShouldHaveSingleItem</c> / <c>ShouldNotBeEmpty</c>)
-    /// rather than dropped outright.
-    /// <para>
-    /// What remains observable through this seam IS real: the values the gateway passed in -- tenant ids,
-    /// cursors, page sizes, ETags -- and the number of reads it issued. New coverage of transport behaviour
-    /// belongs on the real typed-client substitute instead; see <c>FixedFailureRestQueryClient</c> and
-    /// <c>TenantsRestQueryClientTests</c>.
-    /// </para>
-    /// <para>
-    /// Replacing this adapter wholesale with an <c>ITenantsRestQueryClient</c> substitute -- the rest of
-    /// decision D1 -- is deliberately NOT done here. It rewrites the fixture of roughly sixty tests at once,
-    /// which is a change that deserves its own pass and its own review rather than riding along with
-    /// unrelated repairs. The misleading half of D1 (assertions that could not fail) is closed; the
-    /// harness-replacement half is reopened as its own item.
-    /// </para>
-    /// </remarks>
-    private sealed class RestQueryClientAdapter(IEventStoreGatewayClient client) : ITenantsRestQueryClient
+    private static IReadOnlyList<NSubstitute.Core.ICall> ReadCalls(ITenantsRestQueryClient client)
+        => client.ReceivedCalls().ToArray();
+
+    private static TenantsRestQueryResponse<T> NextReadResponse<T>(Queue<object> responses)
     {
-        public Task<TenantsRestQueryResponse<PaginatedResult<TenantSummary>>> ListTenantsAsync(
-            ListTenantsQuery query,
-            string? eTag,
-            CancellationToken cancellationToken = default)
-            => ConvertAsync(client.SubmitQueryAsync<PaginatedResult<TenantSummary>>(
-                new SubmitQueryRequest(
-                    "system",
-                    ListTenantsQuery.Domain,
-                    "index",
-                    ListTenantsQuery.QueryType,
-                    ListTenantsQuery.ProjectionType,
-                    JsonSerializer.SerializeToElement(new { cursor = query.Cursor, pageSize = query.PageSize }),
-                    EntityId: null),
-                eTag,
-                cancellationToken));
-
-        public Task<TenantsRestQueryResponse<TenantDetail>> GetTenantAsync(
-            GetTenantQuery query,
-            string? eTag,
-            CancellationToken cancellationToken = default)
-            => ConvertAsync(client.SubmitQueryAsync<TenantDetail>(
-                new SubmitQueryRequest(
-                    "system",
-                    GetTenantQuery.Domain,
-                    query.TenantId,
-                    GetTenantQuery.QueryType,
-                    GetTenantQuery.ProjectionType,
-                    Payload: null,
-                    EntityId: query.TenantId),
-                eTag,
-                cancellationToken));
-
-        public Task<TenantsRestQueryResponse<PaginatedResult<TenantMember>>> GetTenantUsersAsync(
-            GetTenantUsersQuery query,
-            string? eTag,
-            CancellationToken cancellationToken = default)
-            => ConvertAsync(client.SubmitQueryAsync<PaginatedResult<TenantMember>>(
-                new SubmitQueryRequest(
-                    "system",
-                    GetTenantUsersQuery.Domain,
-                    query.TenantId,
-                    GetTenantUsersQuery.QueryType,
-                    GetTenantUsersQuery.ProjectionType,
-                    JsonSerializer.SerializeToElement(new { cursor = query.Cursor, pageSize = query.PageSize }),
-                    EntityId: query.TenantId),
-                eTag,
-                cancellationToken));
-
-        public Task<TenantsRestQueryResponse<PaginatedResult<UserTenantMembership>>> GetUserTenantsAsync(
-            GetUserTenantsQuery query,
-            string? eTag,
-            CancellationToken cancellationToken = default)
-            => ConvertAsync(client.SubmitQueryAsync<PaginatedResult<UserTenantMembership>>(
-                new SubmitQueryRequest(
-                    "system",
-                    GetUserTenantsQuery.Domain,
-                    "index",
-                    GetUserTenantsQuery.QueryType,
-                    GetUserTenantsQuery.ProjectionType,
-                    JsonSerializer.SerializeToElement(new { cursor = query.Cursor, pageSize = query.PageSize }),
-                    EntityId: query.UserId),
-                eTag,
-                cancellationToken));
-
-        public Task<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>> GetTenantAuditAsync(
-            GetTenantAuditQuery query,
-            string? eTag,
-            CancellationToken cancellationToken = default)
-            => ConvertAsync(client.SubmitQueryAsync<PaginatedResult<TenantAuditEntry>>(
-                new SubmitQueryRequest(
-                    "system",
-                    GetTenantAuditQuery.Domain,
-                    query.TenantId,
-                    GetTenantAuditQuery.QueryType,
-                    GetTenantAuditQuery.ProjectionType,
-                    JsonSerializer.SerializeToElement(new
-                    {
-                        from = query.From,
-                        to = query.To,
-                        category = query.Category?.ToString(),
-                        cursor = query.Cursor,
-                        pageSize = query.PageSize,
-                    }),
-                    EntityId: query.TenantId),
-                eTag,
-                cancellationToken));
-
-        public Task<TenantsRestQueryResponse<PaginatedResult<GlobalAdministratorSummary>>> GetGlobalAdministratorsAsync(
-            GetGlobalAdministratorsQuery query,
-            string? eTag,
-            CancellationToken cancellationToken = default)
-            => ConvertAsync(client.SubmitQueryAsync<PaginatedResult<GlobalAdministratorSummary>>(
-                new SubmitQueryRequest(
-                    "system",
-                    GetGlobalAdministratorsQuery.Domain,
-                    "global-administrators",
-                    GetGlobalAdministratorsQuery.QueryType,
-                    GetGlobalAdministratorsQuery.ProjectionType,
-                    JsonSerializer.SerializeToElement(new { cursor = query.Cursor, pageSize = query.PageSize }),
-                    EntityId: "global-administrators"),
-                eTag,
-                cancellationToken));
-
-        private static async Task<TenantsRestQueryResponse<TPayload>> ConvertAsync<TPayload>(
-            Task<EventStoreQueryResult<TPayload>> resultTask)
+        object next = responses.Dequeue();
+        if (next is Exception exception)
         {
-            EventStoreQueryResult<TPayload> result = await resultTask.ConfigureAwait(false);
-            QueryResponseMetadata metadata = (result.Metadata ?? new QueryResponseMetadata()) with
-            {
-                ETag = result.ETag ?? result.Metadata?.ETag,
-                IsNotModified = result.IsNotModified,
-            };
-            // The freshness ladder that used to be computed here was dead: its result was assigned to a
-            // local and never read, because TenantsRestQueryResponse carries metadata and the gateway
-            // resolves freshness from it. Keeping it invited the reader to believe this harness modelled
-            // freshness resolution, which it never did -- ResolveFreshness in production is the only
-            // implementation, and TenantQueryGatewayTests exercises it through the metadata below.
-            return new(
-                result.Payload,
-                metadata,
-                TenantsRestQueryFailureKind.None,
-                result.IsNotModified ? (int)HttpStatusCode.NotModified : (int)HttpStatusCode.OK);
+            throw exception;
         }
+        if (next is ValueTuple<TenantsRestQueryFailureKind, int> failure)
+        {
+            return new(default, new QueryResponseMetadata(), failure.Item1, failure.Item2);
+        }
+        return (TenantsRestQueryResponse<T>)next;
     }
+
+    private static void EnqueueFailure(Queue<object> responses, TenantsRestQueryFailureKind kind, int statusCode)
+        => responses.Enqueue((kind, statusCode));
+
+    private static void EnqueueException(Queue<object> responses, Exception exception)
+        => responses.Enqueue(exception);
+
+    private static void EnqueueQueryResult<T>(
+        Queue<object> responses,
+        T payload,
+        string? eTag = "etag",
+        QueryResponseMetadata? metadata = null,
+        bool emitDefaultMetadata = true)
+        => responses.Enqueue(new TenantsRestQueryResponse<T>(
+            payload,
+            (metadata ?? (emitDefaultMetadata ? ProjectionBackedMetadata(eTag: eTag, isStale: false) : new QueryResponseMetadata())) with
+            {
+                ETag = eTag ?? metadata?.ETag,
+                IsNotModified = false,
+            },
+            TenantsRestQueryFailureKind.None,
+            (int)HttpStatusCode.OK));
+
+    private static void EnqueueDetailResult(Queue<object> responses, TenantDetail? payload, QueryResponseMetadata? metadata = null)
+        => EnqueueQueryResult(responses, payload, eTag: metadata?.ETag, metadata: metadata, emitDefaultMetadata: false);
+
+    private static void EnqueueNotModified(
+        Queue<object> responses,
+        string? eTag,
+        bool? isStale = false,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
+        QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
+        bool emitMetadata = true)
+        => EnqueueNotModified<PaginatedResult<TenantSummary>>(responses, eTag, isStale, lifecycle, provenance, emitMetadata);
+
+    private static void EnqueueDetailNotModified(
+        Queue<object> responses,
+        string? eTag,
+        bool? isStale = false,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current)
+        => EnqueueNotModified<TenantDetail>(responses, eTag, isStale, lifecycle);
+
+    private static void EnqueueUserTenantsNotModified(
+        Queue<object> responses,
+        string? eTag,
+        bool? isStale = false,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
+        QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
+        bool emitMetadata = true)
+        => EnqueueNotModified<PaginatedResult<UserTenantMembership>>(responses, eTag, isStale, lifecycle, provenance, emitMetadata);
+
+    private static void EnqueueTenantUsersNotModified(Queue<object> responses, string eTag, string projectionVersion)
+        => EnqueueNotModified<PaginatedResult<TenantMember>>(responses, eTag, projectionVersion: projectionVersion);
+
+    private static void EnqueueGlobalAdministratorsNotModified(
+        Queue<object> responses,
+        string? eTag,
+        bool? isStale = false,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
+        QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
+        bool emitMetadata = true,
+        string? projectionVersion = "projection-v1")
+        => EnqueueNotModified<PaginatedResult<GlobalAdministratorSummary>>(responses, eTag, isStale, lifecycle, provenance, emitMetadata, projectionVersion);
+
+    private static void EnqueueAuditNotModified(
+        Queue<object> responses,
+        string? eTag,
+        bool? isStale = false,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
+        QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
+        bool emitMetadata = true)
+        => EnqueueNotModified<PaginatedResult<TenantAuditEntry>>(responses, eTag, isStale, lifecycle, provenance, emitMetadata);
+
+    private static void EnqueueNotModified<T>(
+        Queue<object> responses,
+        string? eTag,
+        bool? isStale = false,
+        ProjectionLifecycleState lifecycle = ProjectionLifecycleState.Current,
+        QueryResponseProvenance provenance = QueryResponseProvenance.ProjectionBacked,
+        bool emitMetadata = true,
+        string? projectionVersion = "projection-v1")
+        => responses.Enqueue(new TenantsRestQueryResponse<T>(
+            default,
+            (emitMetadata
+                ? ProjectionBackedMetadata(eTag: eTag, isNotModified: true, isStale: isStale,
+                    lifecycle: lifecycle, provenance: provenance, projectionVersion: projectionVersion)
+                : new QueryResponseMetadata()) with
+            { ETag = eTag, IsNotModified = true },
+            TenantsRestQueryFailureKind.None,
+            (int)HttpStatusCode.NotModified));
 
     private sealed class StubMemoriesClient : MemoriesClient
     {
@@ -9184,7 +8882,6 @@ public sealed class TenantQueryGatewayTests
                 new InvalidOperationException("raw principal failure"));
     }
 
-    private sealed record SubmittedQuery(SubmitQueryRequest Request, string? IfNoneMatch);
 
     private static TenantDetail Detail(string tenantId)
         => Detail(

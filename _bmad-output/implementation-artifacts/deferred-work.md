@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-160 closure (2026-10-20):** Gateway tests now use actual typed REST substitutes and received-call assertions, preserving metadata and failure coverage. Reviewed Debug source build has zero warnings/errors; gateway 708/708, HTTP client 122/122 and full UI 6582/6582 pass with zero failures/skips. Only DW-160 closes: 656 IDs remain, 399 done/257 open across 232 exact-covering maintenance rows. See [validation and review](dw-160-validation-evidence.md).
+
 **DW-158 closure (2026-10-20):** Subscription-test wait expiry now names the unmet condition as an assertion, retaining the two-second deadline and predicate exceptions. Seven new cases pass; final original-helper replay fails exactly the two timeout cases. Restored Debug source build has zero warnings/errors, focused 30/30 and full UI 6580/6580 pass with zero failures/skips. Only DW-158 closes: all 656 IDs remain, 398 done/258 open across 233 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact validation and review](dw-158-validation-evidence.md).
 
 **DW-155 closure (2026-10-20):** Member paging is qualified through rendered Fluent buttons and captured queued events; both handlers are private with unchanged guards. Ten cases cover edited and pending change-role/removal commands, retained message identity, refresh, direction-boundary recovery, delayed reads and follow-up navigation. Four harmful controls fail as intended; independent review corrections are accepted. Final Debug source build has zero warnings/errors, focused 10/10 and full UI 6573/6573 pass with zero failures/skips. Only DW-155 closes: all 656 IDs remain, 397 done/259 open across 234 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-155-validation-evidence.md).
@@ -1397,17 +1399,26 @@ origin: migrated from legacy ledger ("Deferred from: review repair loop 11 of sp
 location: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:6093
 reason: The legacy ledger defers this issue: Replace `CapturingGatewayClient` + `RestQueryClientAdapter` in `TenantQueryGatewayTests` with a substitute. Original context is preserved in legacy-detail.
 legacy-detail: - Replace `CapturingGatewayClient` + `RestQueryClientAdapter` in `TenantQueryGatewayTests` with a substitute of the real `ITenantsRestQueryClient`. The adapter still re-implements the generic `SubmitQueryRequest` transport Story 1.10 deleted, so failures can only be injected as `EventStoreGatewayException` — a type the real client never throws — and the roughly sixty tests it drives exercise only the success arm of `ToEventStoreResult`. Reason for deferral: this is the reason review loop 10 itself gave when it reopened the item. Replacing the harness rewrites the fixture of about sixty tests in one change, which deserves its own pass and its own review rather than riding along with unrelated repairs. The *misleading* half is already closed: the 23 inert `Request.*` assertions and the adapter's dead freshness ladder are gone, and every failure-kind mapping repaired in loops 9–11 was driven through the production seam with `FixedFailureRestQueryClient` or an `ITenantsRestQueryClient` substitute. What remains is structural test debt, not a false claim. Revisit if: a further failure-mapping change is needed at the gateway seam, or the adapter drifts from `ResolveFreshness` again. [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:6093]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs still defines CapturingGatewayClient and RestQueryClientAdapter, alongside real REST substitutes for failure mapping. The structural fixture debt remains, without invalidating the production-seam failure tests.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs
-evidence-kind: recommendation
+pre-dw-160-status: open
+status: done 2026-10-20
+pre-dw-160-disposition: actionable
+disposition: resolved
+pre-dw-160-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-160-verification: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs still defines CapturingGatewayClient and RestQueryClientAdapter, alongside real REST substitutes for failure mapping. The structural fixture debt remains, without invalidating the production-seam failure tests.
+verification: The retired capturing client, adapter, synthetic request record and generic gateway overloads are removed. Actual ITenantsRestQueryClient substitutes return native response/failure contracts, and assertions inspect received typed arguments. All gateway test methods/data rows remain; two HTTP hostile-body cases preserve the moved transport scenario. Final Debug source build has zero warnings/errors, gateway 708/708, HTTP client 122/122 and full UI 6582/6582 pass with zero failures/skips. Independent review corrections and the disproved refetch finding are retained in dw-160-validation-evidence.md.
+pre-dw-160-verification-files: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs
+verification-files: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs; _bmad-output/implementation-artifacts/dw-160-validation-evidence.md
+pre-dw-160-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Replace adapter-backed cases with ITenantsRestQueryClient substitutes when the gateway fixture is next maintained.
+pre-dw-160-next-action: Replace adapter-backed cases with ITenantsRestQueryClient substitutes when the gateway fixture is next maintained.
+next-action: Closed within DW-160; preserve unrelated deferred work, historical findings, dependencies and existing release qualification holds.
 related: none
+resolution-evidence: [Exact validation and independent review](dw-160-validation-evidence.md)
+resolution-spec: spec-dw-160-typed-query-fixture.md
 
 ### DW-161: Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology
 origin: migrated from legacy ledger ("Deferred from: review repair loop 11 of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
