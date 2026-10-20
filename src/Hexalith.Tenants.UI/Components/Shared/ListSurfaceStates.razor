@@ -72,11 +72,24 @@
 
     private string AriaLive => Kind is TenantListSurfaceKind.Error or TenantListSurfaceKind.Degraded ? "assertive" : "polite";
 
-    private string Message => Reason is not TenantListReason.None
-        ? Localizer[$"Tenants.List.Reason.{Reason}"]
-        : Kind is TenantListSurfaceKind.SearchPageEmpty && HasMore
-            ? Localizer["Tenants.List.State.SearchPageEmpty.MoreMessage"]
-            : Localizer[$"Tenants.List.State.{ResourceName}.Message"];
+    private string Message
+    {
+        get
+        {
+            if (Reason is not TenantListReason.None)
+            {
+                LocalizedString reason = Localizer[$"Tenants.List.Reason.{Reason}"];
+                if (!reason.ResourceNotFound)
+                {
+                    return reason.Value;
+                }
+            }
+
+            return Kind is TenantListSurfaceKind.SearchPageEmpty && HasMore
+                ? Localizer["Tenants.List.State.SearchPageEmpty.MoreMessage"]
+                : Localizer[$"Tenants.List.State.{ResourceName}.Message"];
+        }
+    }
 
     private string Title => Kind is TenantListSurfaceKind.SearchPageEmpty && HasMore
         ? Localizer["Tenants.List.State.SearchPageEmpty.MoreTitle"]

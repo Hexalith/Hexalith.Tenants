@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-113 closure (2026-10-20):** Missing tenant-list reason translations now fall back to existing localized surface messages, preserving supported reason copy and search-page continuation. The unchanged component fails 160 of 280 new EN/FR rendered cases; the final Debug source build has zero warnings/errors, focused 280/280 and full UI 6564/6564 pass with zero failures/skips. Only DW-113 closes: all 656 IDs remain, 396 done/260 open across 235 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-113-validation-evidence.md).
+
 **DW-439 closure (2026-10-20):** Fifteen French receipt values now use the missing accents and established apostrophe convention, with one existing partial-receipt expectation updated. Debug source build has zero warnings/errors; final full UI 6284/6284 and the 118-case correction-panel recheck pass with zero failures/skips. The initial full-suite remount assertion failure and independent documentation review remain in [validation evidence](dw-439-validation-evidence.md). Only DW-439 closes: all 656 IDs remain, 395 done/261 open across 236 maintenance rows. Broader DW-270/DW-306/DW-324 copy work, historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved.
 
 **DW-437/DW-451/DW-534 closure (2026-10-20):** Story Guards now validates committed changed-story snapshots for full-history push/PR ranges, with explicit historical endpoints restricted to pointer-free event history. The new 49-case real-Git lane and retained 77/13/31 regressions pass; exact controls and review are in [validation evidence](dw-437-validation-evidence.md). Only these three records close: all 656 IDs remain, 394 done/262 open across 236 maintenance rows. DW-198, unrelated history, dependencies, archive/sprint and release holds remain preserved.
@@ -860,17 +862,26 @@ location: ListSurfaceStates.razor; TenantsResources.resx
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface. evidence: `ListSurfaceStates.razor` resolves `Localizer["Tenants.List.Reason.{Reason}"]` for any non-`None` reason, but only 5 of the 10 `TenantListReason` members have a `Tenants.List.Reason.*` key in `TenantsResources.resx`; an unmapped reason therefore renders the literal key in EN and FR. No currently reachable call site passes an unmapped reason, so this is a latent pre-existing trap in the shared component rather than a live defect of this story.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor Message interpolates Tenants.List.Reason.{Reason}; Resources/TenantsResources.resx has five reason keys while State/TenantList/TenantListReason.cs has eleven non-None members. Unsupported inputs still echo keys; no current reachable caller was established.
-verification-files: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor; src/Hexalith.Tenants.UI/State/TenantList/TenantListReason.cs
-evidence-kind: verified-defect
+pre-dw-113-status: open
+status: done 2026-10-20
+pre-dw-113-disposition: actionable
+disposition: resolved
+pre-dw-113-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-113-verification: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor Message interpolates Tenants.List.Reason.{Reason}; Resources/TenantsResources.resx has five reason keys while State/TenantList/TenantListReason.cs has eleven non-None members. Unsupported inputs still echo keys; no current reachable caller was established.
+verification: The unchanged component fails 160/280 new EN/FR rendered cases for six unmapped reasons and two invalid enum values. ResourceNotFound now selects the existing surface message, preserving all supported reason copy and search continuation. Debug source build has zero warnings/errors; focused 280/280 and full UI 6564/6564 pass with zero failures/skips. Independent review and exact commands/limits are in dw-113-validation-evidence.md.
+pre-dw-113-verification-files: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor; src/Hexalith.Tenants.UI/State/TenantList/TenantListReason.cs
+verification-files: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor; tests/Hexalith.Tenants.UI.Tests/Components/ListSurfaceStatesTests.cs; _bmad-output/implementation-artifacts/dw-113-validation-evidence.md
+pre-dw-113-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Add explicit fallback/mapping and EN/FR coverage for every accepted reason.
+pre-dw-113-next-action: Add explicit fallback/mapping and EN/FR coverage for every accepted reason.
+next-action: Closed within DW-113; preserve unrelated deferred work, historical findings, dependencies and existing release qualification holds.
 related: none
+resolution-evidence: [Exact reproduction, verification and independent review](dw-113-validation-evidence.md)
+resolution-spec: spec-dw-113-list-reason-fallback.md
 
 ### DW-114: The advance-by-requested-window paging rule rests on a Memories server premise that no test in this repository can observe
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
