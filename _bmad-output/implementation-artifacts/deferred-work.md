@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-419 closure (2026-10-20):** Legacy story gitlink audits now refuse detected mid-story baselines with a true-start diagnostic, and Git inspection errors fail closed. The maintained guard suite passes 77/77; entry replay reproduces 24 unsafe CLI PASS results and both helper/command inspection-error bypasses. Only DW-419 closes: all 656 IDs remain, 387 done/269 open across 241 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-419-validation-evidence.md).
+
 **DW-420 closure (2026-10-20):** Existing DW-656 checkout-ownership and indexed-pointer fixes are requalified for legacy unchanged gitlink claims. All 69 maintained guard tests pass; isolated historical-resolver replay produces nine assertion/subtest failures, and HEAD-fallback/index-only alternatives fail their matching controls. Only this stale record closes: all 656 IDs remain, 386 done/270 open across 242 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-420-validation-evidence.md).
 
 **DW-526/DW-531 closure (2026-10-20):** Existing DW-643 recorded-provenance fixes and regressions are requalified: all 69 maintained guard tests pass, and isolated protection-removal controls produce exactly the expected missing-chain and valid-addition/rename failures. Only these two stale records close: all 656 IDs remain, 385 done/271 open across 243 maintenance rows. Original fields, unrelated records, existing user changes, dependency pointers and release holds are preserved. See [exact evidence](dw-526-531-validation-evidence.md).
@@ -4793,17 +4795,26 @@ location: scripts/validate-story-gitlinks.py
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Fail the legacy story gitlink guard when its baseline already contains story work.\n  evidence: `scripts/validate-story-gitlinks.py` currently emits only a warning from `baseline_is_mid_story`; pointer moves before that baseline are excluded from the baseline-to-tree verdict. The current Story 4.3 baseline does not meet this condition."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: scripts/validate-story-gitlinks.py:406-410 still records baseline_is_mid_story as a warning only, then returns PASS when no in-range pointer violations are found. Story work contained before that baseline can remain outside its verdict.
-verification-files: scripts/validate-story-gitlinks.py
-evidence-kind: verified-defect
+pre-dw-419-status: open
+pre-dw-419-disposition: actionable
+pre-dw-419-verification-date: 2026-10-12
+pre-dw-419-verification: scripts/validate-story-gitlinks.py:406-410 still records baseline_is_mid_story as a warning only, then returns PASS when no in-range pointer violations are found. Story work contained before that baseline can remain outside its verdict.
+pre-dw-419-verification-files: scripts/validate-story-gitlinks.py
+pre-dw-419-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: Story baseline ownership policy
-next-action: Fail the legacy guard when the baseline already contains this story work, or require an explicit verified true-start override with regression coverage.
+pre-dw-419-next-action: Fail the legacy guard when the baseline already contains this story work, or require an explicit verified true-start override with regression coverage.
 related: DW-420, DW-437
+status: done 2026-10-20
+disposition: resolved
+verification-date: 2026-10-20
+verification: Legacy audits now refuse the existing mid-story baseline signal instead of returning PASS with a warning; failed Git inspection also refuses. The maintained lane passes 77/77. Eight focused methods on entry production yield 26 expected assertion/subtest failures, including 24 unsafe CLI PASS results and one failed-inspection command PASS verdict. Focused isolated variants detect warning-only behavior, unconditional recorded-mode rejection and swallowed inspection errors. Exact verification, independent review and conservative detector limits are recorded in dw-419-validation-evidence.md.
+verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/dw-419-check-variants.py; _bmad-output/implementation-artifacts/dw-419-validation-evidence.md
+evidence-kind: executed-regression
+next-action: Closed for detected legacy mid-story baselines; retain separately scoped CI enforcement, historical attribution, existing detector limitations and release holds.
+resolution-evidence: _bmad-output/implementation-artifacts/dw-419-validation-evidence.md
+resolution-spec: _bmad-output/implementation-artifacts/spec-dw-419-legacy-mid-story-baseline.md
 
 
 ### DW-420: Read unchanged legacy-mode gitlinks from the superproject index or tree when a submodule is uninitialized.

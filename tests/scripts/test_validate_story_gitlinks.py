@@ -12,9 +12,12 @@ Run: `python3 tests/scripts/test_validate_story_gitlinks.py`
 """
 
 import importlib.util
+import contextlib
+import io
 import pathlib
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -268,6 +271,13 @@ class PathTokenOffsetTests(unittest.TestCase):
                 self.assertEqual(cleaned.index(path), offset)
 
 
+class BaselineStoryInspectionTests(unittest.TestCase):
+    def test_inspection_failure_cannot_establish_a_safe_baseline(self):
+        with patch.object(guard, "run_git", side_effect=guard.CheckError("inspection failed")):
+            with self.assertRaisesRegex(guard.CheckError, "inspection failed"):
+                guard.baseline_is_mid_story("a" * 40, "story")
+
+
 class GuardCommandIntegrationTests(unittest.TestCase):
     """Runs the production CLI against real gitlink changes in an isolated repository."""
 
@@ -336,6 +346,153 @@ class GuardCommandIntegrationTests(unittest.TestCase):
         self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
         self.assertIn("[MISSTATED] references/Dependency", result.stdout)
         self.assertIn("RESULT: FAIL", result.stdout)
+
+    def test_legacy_mid_story_baseline_rejects_hidden_earlier_pointer_movement(self):
+        for artifact in ("story.md", "spec-story-2.md"):
+            self._commit_story_baseline(artifact)
+            self.assertEqual(self._git("diff", self.baseline, "HEAD", "--", "references/").stdout, "")
+            self._assert_mid_story_refusal()
+
+    def test_legacy_mid_story_baseline_rejects_pointer_movement_in_the_baseline_commit(self):
+        self._git("update-index", "--cacheinfo", f"160000,{self.baseline},references/Dependency")
+        self.target = self.baseline
+        self._commit_story_baseline("story.md")
+        self.assertIn("references/Dependency", self._git("diff", f"{self.baseline}^", self.baseline,
+                                                        "--name-only", "--", "references/").stdout)
+        self._assert_mid_story_refusal()
+
+    def test_correcting_a_legacy_mid_story_baseline_restores_the_complete_pointer_audit(self):
+        true_start = self.baseline
+        self._commit_story_baseline("spec-story-2.md")
+        self._assert_mid_story_refusal()
+        self.baseline = true_start
+        for include_worktree in (False, True):
+            with self.subTest(include_worktree=include_worktree):
+                result = self._run_guard("- `references/Dependency`",
+                                         f"- `references/Dependency` {true_start} -> {self.target}",
+                                         include_worktree=include_worktree)
+                self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+                self.assertIn("[declared] references/Dependency", result.stdout)
+                self.assertIn("RESULT: PASS", result.stdout)
+                self.assertNotIn("mid-story baseline", result.stdout)
+                undeclared = self._run_guard("- `src/Thing.cs`", include_worktree=include_worktree)
+                self.assertEqual(undeclared.returncode, guard.EXIT_FAIL, undeclared.stdout + undeclared.stderr)
+                self.assertIn("[UNDECLARED] references/Dependency", undeclared.stdout)
+
+    def test_unrelated_baseline_artifacts_do_not_block_a_valid_legacy_audit(self):
+        self._commit_story_baseline("unrelated.md")
+        for include_worktree in (False, True):
+            with self.subTest(include_worktree=include_worktree):
+                result = self._run_guard("- `src/Thing.cs`", include_worktree=include_worktree)
+                self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+                self.assertIn("No references/ pointer changes in range.", result.stdout)
+                self.assertIn("RESULT: PASS", result.stdout)
+                self.assertNotIn("mid-story baseline", result.stdout)
+
+    def test_baseline_inspection_error_produces_a_failed_command_verdict(self):
+        self._run_guard("- `references/Dependency`")
+        story = self.repo / "story.md"
+        actual_git = guard.run_git
+
+        def inspect_or_fail(*args):
+            if args[0] == "show":
+                raise guard.CheckError("git show failed: injected baseline inspection error")
+            return actual_git(*args)
+
+        output = io.StringIO()
+        with patch.object(guard, "REPO_ROOT", self.repo), \
+             patch.object(guard, "run_git", side_effect=inspect_or_fail), \
+             patch.object(sys, "argv", [str(_SCRIPT), str(story)]), \
+             contextlib.redirect_stdout(output):
+            result = guard.main()
+        self.assertEqual(result, guard.EXIT_FAIL, output.getvalue())
+        self.assertIn("RESULT: FAIL", output.getvalue())
+        self.assertIn("git show failed: injected baseline inspection error", output.getvalue())
+        self.assertNotIn("RESULT: PASS", output.getvalue())
+
+    def test_recorded_provenance_keeps_its_mid_story_warning_and_owned_commit_checks(self):
+        self._commit_story_baseline("spec-story-2.md")
+        self.target = self.pointer_commit
+        self._commit_pointer("references/Dependency", self.target)
+        owned = self._git("rev-parse", "HEAD").stdout.strip()
+        for include_worktree in (False, True):
+            with self.subTest(include_worktree=include_worktree):
+                result = self._run_guard("- `references/Dependency`",
+                                         f"- `references/Dependency` {self.baseline} -> {self.target}",
+                                         owned_commits=[owned], include_worktree=include_worktree)
+                self.assertEqual(result.returncode, guard.EXIT_PASS, result.stdout + result.stderr)
+                self.assertIn("WARNING:", result.stdout)
+                self.assertIn("mid-story baseline", result.stdout)
+                self.assertIn("RESULT: PASS", result.stdout)
+                undeclared = self._run_guard("- `src/Thing.cs`", owned_commits=[owned],
+                                             include_worktree=include_worktree)
+                self.assertEqual(undeclared.returncode, guard.EXIT_FAIL, undeclared.stdout + undeclared.stderr)
+                self.assertIn("[UNDECLARED] references/Dependency", undeclared.stdout)
+
+    def test_mid_story_recorded_provenance_retains_target_endpoint_worktree_and_chain_refusals(self):
+        self._commit_story_baseline("spec-story-2.md")
+        self.target = self.pointer_commit
+        self._commit_pointer("references/Dependency", self.target)
+        owned = self._git("rev-parse", "HEAD").stdout.strip()
+        declaration = "- `references/Dependency`"
+        claim = f"- `references/Dependency` {self.baseline} -> {self.target}"
+        stale = self._run_guard(declaration, "- `references/Dependency` abcdef0 -> deadbee",
+                                owned_commits=[owned])
+        self.assertEqual(stale.returncode, guard.EXIT_FAIL, stale.stdout + stale.stderr)
+        self.assertIn("[MISSTATED]", stale.stdout)
+
+        self._commit_pointer("references/Dependency", self.baseline)
+        endpoint = self._run_guard(declaration, claim, owned_commits=[owned])
+        self.assertEqual(endpoint.returncode, guard.EXIT_FAIL, endpoint.stdout + endpoint.stderr)
+        self.assertIn("[UNRECORDED ENDPOINT]", endpoint.stdout)
+        historical = self._run_guard(declaration, claim, owned_commits=[owned], ref=owned)
+        self.assertEqual(historical.returncode, guard.EXIT_PASS, historical.stdout + historical.stderr)
+        self.assertIn("RESULT: PASS", historical.stdout)
+
+        self._commit_pointer("references/Dependency", self.target)
+        self._git("update-index", "--cacheinfo", f"160000,{self.baseline},references/Dependency")
+        worktree = self._run_guard(declaration, claim, owned_commits=[owned], include_worktree=True)
+        self.assertEqual(worktree.returncode, guard.EXIT_FAIL, worktree.stdout + worktree.stderr)
+        self.assertIn("[WORKTREE MOVE]", worktree.stdout)
+
+        self._git("commit", "--quiet", "-m", "test: add unrecorded intermediate pointer")
+        self._commit_pointer("references/Dependency", self.target)
+        final = self._git("rev-parse", "HEAD").stdout.strip()
+        gap = self._run_guard(declaration, claim, owned_commits=[owned, final])
+        self.assertEqual(gap.returncode, guard.EXIT_FAIL, gap.stdout + gap.stderr)
+        self.assertIn("[CHAIN GAP]", gap.stdout)
+
+    def _commit_story_baseline(self, artifact):
+        (self.repo / "references/Dependency").mkdir(exist_ok=True)
+        path = self.repo / "_bmad-output/implementation-artifacts" / artifact
+        self.baseline_artifact = path.relative_to(self.repo).as_posix()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("story baseline evidence\n", encoding="utf-8")
+        self._git("add", str(path))
+        self._git("commit", "--quiet", "-m", "test: add baseline artifact")
+        self.baseline = self._git("rev-parse", "HEAD").stdout.strip()
+
+    def _assert_mid_story_refusal(self):
+        endpoint = self.repo / "audit-endpoint.txt"
+        endpoint.write_text(self.baseline + "\n", encoding="utf-8")
+        self._git("add", str(endpoint))
+        self._git("commit", "--quiet", "-m", "test: advance audit endpoint")
+        self.assertNotEqual(self.baseline, self._git("rev-parse", "HEAD").stdout.strip())
+        for declared in (False, True):
+            for ref in (None, "HEAD", self.baseline):
+                with self.subTest(baseline=self.baseline, declared=declared, ref=ref):
+                    result = self._run_guard(
+                        "- `references/Dependency`" if declared else "- `src/Thing.cs`",
+                        f"- `references/Dependency` {self.baseline} -> {self.target}" if declared else None,
+                        include_worktree=ref is None, ref=ref,
+                    )
+                    self.assertEqual(result.returncode, guard.EXIT_FAIL, result.stdout + result.stderr)
+                    self.assertIn("RESULT: FAIL", result.stdout)
+                    self.assertIn("mid-story baseline", result.stdout)
+                    self.assertIn("Filename-stem heuristic matched `story`", result.stdout)
+                    self.assertIn(self.baseline_artifact, result.stdout)
+                    self.assertIn("true start", result.stdout)
+                    self.assertNotIn("RESULT: PASS", result.stdout)
 
     def test_matching_table_targets_pass_in_both_provenance_modes(self):
         self._git("clone", "--quiet", "--no-checkout", str(self.repo), str(self.repo / "references/Dependency"))

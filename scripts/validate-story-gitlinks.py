@@ -18,8 +18,10 @@ That record validates each pointer-bearing story commit and requires the compare
 revision to retain the final recorded targets, with other gitlinks unchanged
 from baseline. Use `--ref <story-endpoint>` to audit a historical story before
 later independent dependency updates. Stories without that record use the
-original baseline-to-tree check. Both modes fail on new working-tree pointer
-movement. The check fails closed for unusable baselines or recorded commits.
+original baseline-to-tree check, which rejects a baseline detected as already
+touching this story's artifacts: earlier pointer changes would be excluded.
+Both modes fail on new working-tree pointer movement. The check fails closed
+for unusable baselines or recorded commits.
 """
 
 from __future__ import annotations
@@ -416,17 +418,19 @@ def current_pointer(path: str, ref: str | None) -> str | None:
     return None
 
 
-def baseline_is_mid_story(baseline: str, story_key: str) -> bool:
-    """True when the baseline commit itself touched this story's own artifacts.
+def _baseline_story_artifacts(baseline: str, story_key: str) -> list[str]:
+    """Return changed paths whose names contain the story's filename stem.
 
-    A baseline that already contains story work narrows the diff and can hide
-    drift that landed earlier in the story.
+    This conservative heuristic includes associated spec and evidence names.
+    A matching baseline narrows the diff and can hide earlier story drift.
     """
-    try:
-        touched = run_git("show", "--pretty=format:", "--name-only", baseline)
-    except CheckError:
-        return False
-    return any(story_key in line for line in touched.splitlines() if line.strip())
+    touched = run_git("show", "--pretty=format:", "--name-only", baseline)
+    return [line for line in touched.splitlines() if line.strip() and story_key in line]
+
+
+def baseline_is_mid_story(baseline: str, story_key: str) -> bool:
+    """Report whether the baseline touches a matching story artifact."""
+    return bool(_baseline_story_artifacts(baseline, story_key))
 
 
 def resolve_baseline(story_path: Path, story_text: str) -> str:
@@ -474,14 +478,24 @@ def check(story_path: Path, ref: str) -> int:
     print(f"Baseline: {baseline[:7]}")
     print(f"Compared: {ref} ({head[:7]}){' + working tree' if compare_worktree else ''}")
 
+    owned_commits = story_owned_commits(story_text)
     warnings: list[str] = []
-    if baseline_is_mid_story(baseline, story_key):
+    baseline_artifacts = _baseline_story_artifacts(baseline, story_key)
+    if baseline_artifacts:
+        matched_paths = "\n".join(f"    {path}" for path in baseline_artifacts)
+        if owned_commits is None:
+            raise CheckError(
+                f"baseline_commit {baseline[:7]} is a mid-story baseline: it already touches this story's own files.\n"
+                f"  Filename-stem heuristic matched `{story_key}` in these changed paths:\n{matched_paths}\n"
+                "  Earlier pointer changes are outside the legacy baseline-to-tree audit.\n"
+                "  Record the verified commit at the story's true start as baseline_commit, then rerun the check."
+            )
         warnings.append(
             f"baseline_commit {baseline[:7]} already touches this story's own files, so it is a\n"
-            "  mid-story baseline. Pointer changes made earlier in the story are outside this diff."
+            "  mid-story baseline. Pointer changes made earlier in the story are outside this diff.\n"
+            f"  Filename-stem heuristic matched `{story_key}` in these changed paths:\n{matched_paths}"
         )
 
-    owned_commits = story_owned_commits(story_text)
     if owned_commits is not None:
         declared = declared_paths(story_text)
         stated = stated_targets(story_text)
