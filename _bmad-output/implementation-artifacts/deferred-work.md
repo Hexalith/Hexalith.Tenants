@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-428 closure (2026-10-20):** A read-only attachment gate now skips dirty detached repositories before any sync operation, preserving HEAD, index, worktree and refs while other repositories continue. Thirteen real-Git procedure tests and the existing 77 gitlink tests pass; the new lane is included in Story Guards. Only DW-428 closes: all 656 IDs remain, 389 done/267 open across 239 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-428-validation-evidence.md).
+
 **DW-422 closure (2026-10-20):** Audit read-only recovery now shares its heading/grid render condition. The initial twelve-case component event/reset matrix qualifies the later existing validation protection and passes entry production; Debug source builds have zero warnings/errors, focused 230/230 and full UI 6284/6284 pass with zero failures/skips. Only DW-422 closes: all 656 IDs remain, 388 done/268 open across 240 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-422-validation-evidence.md).
 
 **DW-419 closure (2026-10-20):** Legacy story gitlink audits now refuse detected mid-story baselines with a true-start diagnostic, and Git inspection errors fail closed. The maintained guard suite passes 77/77; entry replay reproduces 24 unsafe CLI PASS results and both helper/command inspection-error bypasses. Only DW-419 closes: all 656 IDs remain, 387 done/269 open across 241 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-419-validation-evidence.md).
@@ -4953,17 +4955,26 @@ location: .agents/skills/pushall/SKILL.md
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`\n  summary: Keep dirty detached-HEAD submodule commits reachable from the branch that pushall pushes.\n  evidence: `.agents/skills/pushall/SKILL.md` commits before checking out the default branch, so a detached-HEAD commit can be left behind. This separate Git skill is unrelated to tenant audit."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .agents/skills/pushall/SKILL.md commits a dirty tree in step 3, before step 4 checks out the default branch. It has no detached-HEAD guard or step merging that newly created detached commit into the branch pushed in step 8, so the local changes can be left behind.
-verification-files: .agents/skills/pushall/SKILL.md
-evidence-kind: verified-defect
+pre-dw-428-status: open
+pre-dw-428-disposition: actionable
+pre-dw-428-verification-date: 2026-10-12
+pre-dw-428-verification: .agents/skills/pushall/SKILL.md commits a dirty tree in step 3, before step 4 checks out the default branch. It has no detached-HEAD guard or step merging that newly created detached commit into the branch pushed in step 8, so the local changes can be left behind.
+pre-dw-428-verification-files: .agents/skills/pushall/SKILL.md
+pre-dw-428-evidence-kind: verified-defect
 priority: P1
 owner: unassigned
 dependencies: Future authorized pushall skill change
-next-action: Require an attached intended branch or retain/merge the exact detached commit before default-branch push; add a procedure fixture for dirty detached HEAD.
+pre-dw-428-next-action: Require an attached intended branch or retain/merge the exact detached commit before default-branch push; add a procedure fixture for dirty detached HEAD.
 related: DW-417, DW-418, DW-429
+status: done 2026-10-20
+disposition: resolved
+verification-date: 2026-10-20
+verification: The three tracked pushall manifests now require a verified attached branch before any dirty-repository sync operation. A failed attachment gate skips the repository before fetch/staging/commit/checkout and preserves its original HEAD, index, worktree and refs. Thirteen real-Git procedure tests pass, including five dirty detached states across all copies, hidden untracked/submodule settings, non-branch symbolic HEAD refusal, branch/status inspection errors, executable/symlink preservation, clean detached and dirty attached controls, a local remote reachability check and legacy-order omission reproduction. The existing 77 gitlink regressions pass. Exact commands, independent review and the inherited manifest-validator incompatibility are recorded in dw-428-validation-evidence.md.
+verification-files: .agents/skills/pushall/SKILL.md; .claude/skills/pushall/SKILL.md; .github/skills/pushall/SKILL.md; tests/scripts/test_pushall_detached_head.py; .github/workflows/story-guards.yml
+evidence-kind: executed-procedure-regression
+next-action: Closed for dirty detached repositories through the attached-branch prerequisite; preserve DW-429 remote-default selection and all other tooling/release work.
+resolution-evidence: _bmad-output/implementation-artifacts/dw-428-validation-evidence.md
+resolution-spec: _bmad-output/implementation-artifacts/spec-dw-428-dirty-detached-pushall.md
 
 
 ### DW-429: Make pushall honor the remote's actual default branch when both main and master exist.

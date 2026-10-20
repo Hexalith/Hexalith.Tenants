@@ -34,7 +34,8 @@ authoritative. If it is unavailable, stop `/pushall` and report the missing inst
 - If a repo has no remote, push fails, or the local default branch has diverged from
   `origin/<default-branch>` (fast-forward not possible), record it as skipped/failed and continue
   with the rest — never stop the whole run for one repo.
-- Always end each repo back on its default branch, never detached HEAD or a feature branch.
+- End each processed repo back on its default branch. If the worktree attachment gate below
+  refuses a repo, preserve its original HEAD, index and worktree instead and report it as skipped.
 - Give a one-line progress update per repo as you go, and a final consolidated report (per repo:
   local and remote branches merged, local and remote branches deleted, anything skipped/failed,
   push status).
@@ -65,6 +66,39 @@ authoritative. If it is unavailable, stop `/pushall` and report the missing inst
 ## Per-repo procedure
 
 Apply this to one repo directory `<dir>` at a time (a submodule path, or `.` for the superproject):
+
+Before step 1, run this read-only worktree attachment gate as a separate command, replacing
+`<dir>` with the shell-quoted repo directory:
+
+```bash
+(
+    pushall_status=$(git --no-optional-locks -C <dir> status --porcelain --untracked-files=all --ignore-submodules=none) || {
+        printf '%s\n' 'SKIP: cannot inspect repository status; no sync operations performed.' >&2
+        exit 1
+    }
+    if [ -n "$pushall_status" ]; then
+        if pushall_branch=$(git -C <dir> symbolic-ref --quiet HEAD); then
+            case "$pushall_branch" in
+                refs/heads/*) : ;;
+                *) printf '%s\n' 'SKIP: HEAD does not name a local branch; attach the intended branch and rerun /pushall.' >&2
+                   exit 1 ;;
+            esac
+        else
+            case $? in
+                1) printf '%s\n' 'SKIP: dirty detached HEAD; attach the intended branch and rerun /pushall.' >&2 ;;
+                *) printf '%s\n' 'SKIP: cannot verify the current branch; no sync operations performed.' >&2 ;;
+            esac
+            exit 1
+        fi
+    fi
+)
+```
+
+If the gate fails, skip every numbered step for this repo and continue with the other repos.
+Do not stage, commit, switch branches, merge, push or prune in the refused repo. Leave its
+changes attached to the original HEAD and ask the owner to attach the intended branch before
+rerunning `/pushall`. A clean detached submodule checkout may proceed normally; a dirty repo
+must have a verified attached branch before step 3 creates a commit.
 
 1. `git -C <dir> fetch --all --prune`
 2. Determine the default branch: prefer `main`, else `master`, else

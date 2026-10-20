@@ -34,6 +34,9 @@ jobs:
       - name: Run the gitlink guard regression lane
         run: python3 tests/scripts/test_validate_story_gitlinks.py
 
+      - name: Run the pushall attachment gate regression lane
+        run: python3 tests/scripts/test_pushall_detached_head.py
+
   remove-focus-browser-guard:
     name: validate-remove-focus-in-chromium
     runs-on: ubuntu-latest
