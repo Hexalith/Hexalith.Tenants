@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-178 closure (2026-10-20):** Same-tenant detail loads deliberately refresh lifecycle authority with projection evidence; a source comment records the rationale and six new rendered cases qualify changed authority, pending fail-closed behavior and recovery. Final Debug source build has zero warnings/errors; focused 6/6 and full UI 6618/6618 pass with zero failures/skips. Only DW-178 closes: all 656 IDs remain, 401 done/255 open across 230 exact-covering maintenance rows. The inherited external sync, initial failures, removed unproven experiment and release limits are preserved in [exact evidence](dw-178-validation-evidence.md).
+
 **DW-177 closure (2026-10-20):** Same-caller soft refresh retains tenant rows, warnings and pager under fail-closed loading, including zero-match filtered pages and authentication invalidation. Independent review accepts all six corrections; isolated Debug source build has zero warnings/errors, focused 30/30 and full UI 6612/6612 pass with zero failures/skips. Current-main build remains blocked by the unrelated concurrent NativeSourceProof dependency; the initial timer failure and passing recheck are preserved in [exact evidence](dw-177-validation-evidence.md). Only DW-177 closes: all 656 IDs remain, 400 done/256 open across 231 exact-covering maintenance rows. Unrelated history, external work, dependencies, archive/sprint and release holds remain preserved.
 
 **DW-160 closure (2026-10-20):** Gateway tests now use actual typed REST substitutes and received-call assertions, preserving metadata and failure coverage. Reviewed Debug source build has zero warnings/errors; gateway 708/708, HTTP client 122/122 and full UI 6582/6582 pass with zero failures/skips. Only DW-160 closes: 656 IDs remain, 399 done/257 open across 232 exact-covering maintenance rows. See [validation and review](dw-160-validation-evidence.md).
@@ -1567,17 +1569,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:339
 reason: The legacy ledger defers this issue: StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit — deferred, mitigated by generation + CTS replace. Original context is preserved in legacy-detail.
 legacy-detail: - StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit — deferred, mitigated by generation + CTS replace [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:339]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor OnParametersSetAsync still starts lifecycle authority resolution on same-tenant parameter updates; replaceable CTS/generation guards protect stale application.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: recommendation
+pre-dw-178-status: open
+status: done 2026-10-20
+pre-dw-178-disposition: actionable
+disposition: resolved
+pre-dw-178-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-178-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor OnParametersSetAsync still starts lifecycle authority resolution on same-tenant parameter updates; replaceable CTS/generation guards protect stale application.
+verification: The ledger rationale option is implemented: eligible same-tenant and query-only parameter loads refresh projection evidence and lifecycle authority; unchanged tenant/caller identity alone cannot prove unchanged BFF authority. Six new rendered cases pass pending fail-closed, revoked/indeterminate/granted completion and recovery. Final ordinary Debug source build has zero warnings/errors, focused 6/6 and full UI 6618/6618 pass with zero failures/skips. Existing authentication, command-time and supersession coverage remains; the unproven extra late-result experiment is removed without qualification claims. Inherited external sync a83021d9efa259c1afa014078d2c5fcf61c4d42c is preserved and all six pointer moves are declared in the spec. Exact commands, initial failures and limits are in dw-178-validation-evidence.md.
+pre-dw-178-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.AuthorizationRefresh.cs; _bmad-output/implementation-artifacts/dw-178-validation-evidence.md
+pre-dw-178-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Short-circuit unchanged authority scope or document why each parameter update requires a fresh resolve.
+pre-dw-178-next-action: Short-circuit unchanged authority scope or document why each parameter update requires a fresh resolve.
+next-action: Closed using the documented fresh-per-load rationale and six rendered regressions; preserve unrelated work and existing release qualification holds.
 related: none
+resolution-evidence: [Exact commands, review and limits](dw-178-validation-evidence.md)
+resolution-spec: spec-dw-178-detail-authorization-refresh.md
 
 ### DW-179: IsSafeReturnUrl accepts any /tenants-prefixed path — deferred, already deferred earlier; same-origin relative only
 

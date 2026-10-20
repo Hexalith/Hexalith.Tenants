@@ -63,6 +63,8 @@ public sealed partial class TenantDetailSurfaceTests
         {
             composition.AsyncResolutionCount.ShouldBe(previousResolutions + 1);
             detailReads.ShouldBe(previousReads + 1);
+            cut.FindComponent<TenantLifecycleActionAvailability>().Instance.AuthorizationReflection
+                .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
             cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("aria-disabled").ShouldBe("true");
         });
         completion.SetResult();
@@ -81,6 +83,8 @@ public sealed partial class TenantDetailSurfaceTests
         cut.WaitForAssertion(() =>
         {
             composition.AsyncResolutionCount.ShouldBe(previousResolutions + 2);
+            cut.FindComponent<TenantLifecycleActionAvailability>().Instance.AuthorizationReflection
+                .ShouldBe(composition.Reflection);
             cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("aria-disabled")
                 .ShouldBe(nextAuthority == TenantLifecycleAuthorizationReflectionState.Authorized ? "true" : "false");
         });

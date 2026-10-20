@@ -2,9 +2,9 @@
 title: 'DW-178: Explain and qualify same-tenant authorization refresh'
 type: 'refactor'
 created: '2026-10-20'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
-review_loop_iteration: 0
+review_loop_iteration: 1
 baseline_commit: '54bfac8da66b60aa8aa19a77d23676a7662113b4'
 context: []
 ---
@@ -30,6 +30,10 @@ context: []
 - The initial extra same-tenant late-completion test did not reject a generation-removal control. A direct-substitute experiment also lacked required high-impact composition, producing a fixture null fault. Remove that unproven extra test and its experimental fixture hook; preserve the existing pending/superseded/authentication/submit-time regressions. The maintained new lane has six repeated/query-only authority cases. Do not claim new deterministic late-completion proof.
 
 - Concurrent external commit `a83021d9efa259c1afa014078d2c5fcf61c4d42c` captured the initial DW-178 draft files and six dependency pointer advances during qualification. Preserve that commit; this session owns only the completion corrections. The full source build now uses those committed updated source pins. Record all inherited pointer moves below so the true entry baseline remains auditable; no dependency update command was run by this session.
+
+- Independent correction recheck confirms all four corrections and the explicit supersession limitation, with no additional concrete issue. Final ordinary Debug source build has zero warnings/errors; reviewed focused 6/6 and full UI 6618/6618 pass with zero failures/skips. Reviewed scoped formatting and default own-spec gitlink validation pass. Only DW-178 closes: all 656 IDs remain, 401 done/255 open, 230 exact-covering index rows; unrelated record bodies, archive and sprint are byte-preserved.
+- A second external sync commit `3deb003d24a303c751f21dfe7326a0751d44ea69` captured intermediate DW-178 corrections without any further pointer movement. Preserve both external commits. This completion commit contains only the remaining test/evidence/maintenance corrections and no gitlink change. Existing release qualification holds remain in force.
+
 
 ## File List
 
@@ -59,3 +63,11 @@ The concurrent external sync commit above included the in-progress story files a
 | `references/Hexalith.McpCli` | `040fd406d71723772fb14cb3a3bac9434003b6a4` | `9354dc08176744c75c2ddb61d924c0948b373b98` |
 | `references/Hexalith.Memories` | `c082f8151328b1ac91939cda8733ab78ae68e1c4` | `35df7e2080c369003cacac12f5b44117d7f3ed35` |
 | `references/Hexalith.Platform` | `11893ca9fd85644cab8a0414b2076bf346f108f6` | `642b5bdbdf33ec1588eeef3b9a7e9f1a02aebc40` |
+
+## Review Triage Log
+
+- Low / patch: disabled controls alone did not establish the held authority's exact pending state. Assert the child receives Indeterminate while the gate remains held, alongside fresh-read counts and rendered disabled state.
+- Low / patch: follow-up revocation could also pass with authority stuck Indeterminate. Assert the exact fresh composition answer after the follow-up load.
+- Low / rejected: the supersession wording could be read as a new same-tenant overlap guarantee. DW-178's selected ledger option is documented fresh-per-load rationale, with existing generation protection preserved. The existing `Detail_lifecycle_authorization_discards_a_superseded_resolution` and authentication/command-time regressions execute in the full suite. The implementation notes and evidence explicitly exclude any new deterministic same-tenant overlap qualification; expanding that fixture is unnecessary for the recommendation and its unproven experiment was removed. No new overlap proof or runtime fix is claimed.
+- Low / patch: the evidence's maintained command/count and final section were still provisional while the full suite ran. Record the six-case command separately from historical seven-case experiments, and require final exact TRX counters before closure.
+- Low / patch: temporary control scripts alone were insufficient reproducibility. Record both exact source mutations and build/test command arguments in tracked evidence, distinguishing the ineffective generation control from accepted evidence.
