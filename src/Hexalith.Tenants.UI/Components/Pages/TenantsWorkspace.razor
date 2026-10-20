@@ -231,6 +231,12 @@
                     @if (IsRetainedTenantListView && _snapshot.Kind is TenantListSurfaceKind.Loading)
                     {
                         <ListSurfaceStates Kind="TenantListSurfaceKind.Loading" />
+                        @if (_refreshingListKind is TenantListSurfaceKind.Stale or TenantListSurfaceKind.Degraded)
+                        {
+                            <ListSurfaceStates Kind="@_refreshingListKind.Value"
+                                               Reason="@(_refreshingListKind is TenantListSurfaceKind.Degraded ? _snapshot.Reason : TenantListReason.None)"
+                                               OnRefresh="RefreshAsync" />
+                        }
                     }
                     else if (IsRetainedTenantListView && _visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not (TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Stale))
                     {
@@ -339,6 +345,7 @@
 @code {
     private static readonly int[] _pageSizes = [20, 50, 100];
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
+    private TenantListSurfaceKind? _refreshingListKind;
     private string? _renderedStatusFilterLabel;
     private long _auditRefreshVersion;
     private TenantListSnapshot? _lastConfirmedSnapshot;
@@ -579,6 +586,9 @@
             && string.Equals(_returnAnchor, TenantDomIdentity.ElementId("tenant-row-", _selectedTenantId), StringComparison.Ordinal);
 
     private bool HasPreviousPage
+        => _snapshot.Kind is not TenantListSurfaceKind.Loading && HasPreviousListPage;
+
+    private bool HasPreviousListPage
         => HasActiveSearch
             ? IsInteractiveCircuit && SearchPaging.HasPrevious(ActivePagingModeAuthoritative)
             : _cursorHistory.Count > 0;
@@ -587,9 +597,10 @@
     // branches of NextPageAsync require a non-null cursor, and the ordinary list path passes the server's
     // HasMore and Cursor through independently with no consistency check -- so HasMore = true beside a null
     // cursor produced a live button whose every click did nothing: no load, no re-render, no notice. The
-    // Loading() snapshot still reports HasMore = false, so Next stays disabled for the duration of a load.
+    // Loading explicitly disables Next even when a soft refresh retains the previous page's cursor.
     private bool HasNextPage
-        => _snapshot.HasMore && PagingSnapshot.NextCursor is not null;
+        => _snapshot.Kind is not TenantListSurfaceKind.Loading
+            && _snapshot.HasMore && PagingSnapshot.NextCursor is not null;
 
     // Resolved as a required service so a dropped registration fails loudly instead of silently degrading
     // to per-component paging that cannot survive tenant-detail navigation.
@@ -616,8 +627,9 @@
     // The list/grid surface (the former else branch): everything that is not a blocking/empty list state.
     // The Stale/Degraded list-surface banners still render in the States slot above this body.
     private bool ShowList
-        => _snapshot.Kind is not TenantListSurfaceKind.Loading
-            && !(_visibleRows.Count == 0 && HasPageLocalFilter && _snapshot.Kind is not (TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Stale))
+        => (_snapshot.Kind is not TenantListSurfaceKind.Loading || _snapshot.Rows.Count > 0)
+            && !(_visibleRows.Count == 0 && HasPageLocalFilter
+                && (_refreshingListKind ?? _snapshot.Kind) is not (TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Stale))
             && _snapshot.Kind is not (TenantListSurfaceKind.FilteredEmpty
                 or TenantListSurfaceKind.SearchPageEmpty
                 or TenantListSurfaceKind.Empty
@@ -626,10 +638,10 @@
 
     private bool ShowPager
         => IsRetainedTenantListView
-            && _snapshot.Kind is not (TenantListSurfaceKind.Loading
-                or TenantListSurfaceKind.Error
+            && (_snapshot.Kind is not TenantListSurfaceKind.Loading || _snapshot.Rows.Count > 0)
+            && _snapshot.Kind is not (TenantListSurfaceKind.Error
                 or TenantListSurfaceKind.Unauthorized)
-            && (ShowList || HasPreviousPage || _snapshot.HasMore);
+            && (ShowList || HasPreviousListPage || _snapshot.HasMore);
 
     private string NoticeMessage
         => NoticeMessageFor(_snapshot.Notice);
@@ -916,6 +928,14 @@
         _canReviewGlobalAdministrators = false;
         _auditReadDenied = false;
         _auditAuthorityResolved = false;
+        // An authentication transition invalidates the authority scope of retained loading evidence,
+        // including while the replacement caller is still unresolved.
+        if (_snapshot.Kind is TenantListSurfaceKind.Loading && _snapshot.Rows.Count > 0)
+        {
+            _snapshot = TenantListSnapshot.Loading();
+            _refreshingListKind = null;
+            ApplyVisibleRows();
+        }
         StateHasChanged();
 
         CancellationTokenSource source = ReplaceAuthorizationWait(ref _authenticationStateCancellation);
@@ -1274,11 +1294,22 @@
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
         CancellationToken cancellationToken = operation.CancellationToken;
         TenantListSnapshot previous = _lastConfirmedSnapshot ?? _snapshot;
-        _snapshot = TenantListSnapshot.Loading();
+        string? authenticatedUserId = AuthenticatedUserId;
+        // Retain only this displayed page for the same caller, never an older confirmed page after a
+        // hard load or refusal. Loading/Unknown keeps create, audit and paging closed while rows remain.
+        bool retainDisplayedPage = reuseETag
+            && _snapshot.Rows.Count > 0
+            && _snapshot.Kind is (TenantListSurfaceKind.Ready or TenantListSurfaceKind.Stale
+                or TenantListSurfaceKind.Degraded or TenantListSurfaceKind.Loading)
+            && !string.IsNullOrWhiteSpace(authenticatedUserId)
+            && string.Equals(_snapshot.CallerScope, TenantQueryGateway.AuditCallerScope(authenticatedUserId), StringComparison.Ordinal);
+        _refreshingListKind = retainDisplayedPage ? _refreshingListKind ?? _snapshot.Kind : null;
+        _snapshot = retainDisplayedPage
+            ? _snapshot with { Kind = TenantListSurfaceKind.Loading, Freshness = ReadModelFreshnessState.Unknown }
+            : TenantListSnapshot.Loading();
         ApplyVisibleRows();
 
         TenantStatus? status = Enum.TryParse(_statusFilter, out TenantStatus parsedStatus) ? parsedStatus : null;
-        string? authenticatedUserId = AuthenticatedUserId;
         bool interactiveCircuit = IsInteractiveCircuit;
         bool restoreSearchPagingContext = interactiveCircuit && _restoreSearchPagingContextPending;
         bool eligibleDetailReturn = HasValidatedTenantDetailReturnContext
@@ -1448,6 +1479,7 @@
             }
 
             _snapshot = snapshot;
+            _refreshingListKind = null;
             if (snapshot.Kind is TenantListSurfaceKind.Ready
                 or TenantListSurfaceKind.Empty
                 or TenantListSurfaceKind.FilteredEmpty
@@ -1595,9 +1627,8 @@
     }
 
     /// <summary>
-    /// The snapshot paging decisions may be read from. Never <c>_snapshot</c>: that is the transient
-    /// <c>Loading()</c> value for the whole duration of a load, whose IsAuthoritativeSearch is false and
-    /// whose NextCursor is null, so a click arriving mid-load would page the wrong mode from nowhere.
+    /// The confirmed snapshot paging decisions may be read from. The rendering snapshot is transient
+    /// while loading, and only same-scope soft refreshes retain its search mode and cursor fields.
     /// </summary>
     private TenantListSnapshot PagingSnapshot => _lastConfirmedSnapshot ?? _snapshot;
 
@@ -1610,7 +1641,7 @@
 
     private async Task NextPageAsync()
     {
-        if (_pagingInFlight)
+        if (_pagingInFlight || _snapshot.Kind is TenantListSurfaceKind.Loading)
         {
             return;
         }
@@ -1649,7 +1680,7 @@
 
     private async Task PreviousPageAsync()
     {
-        if (_pagingInFlight)
+        if (_pagingInFlight || _snapshot.Kind is TenantListSurfaceKind.Loading)
         {
             return;
         }

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-177 closure (2026-10-20):** Same-caller soft refresh retains tenant rows, warnings and pager under fail-closed loading, including zero-match filtered pages and authentication invalidation. Independent review accepts all six corrections; isolated Debug source build has zero warnings/errors, focused 30/30 and full UI 6612/6612 pass with zero failures/skips. Current-main build remains blocked by the unrelated concurrent NativeSourceProof dependency; the initial timer failure and passing recheck are preserved in [exact evidence](dw-177-validation-evidence.md). Only DW-177 closes: all 656 IDs remain, 400 done/256 open across 231 exact-covering maintenance rows. Unrelated history, external work, dependencies, archive/sprint and release holds remain preserved.
+
 **DW-160 closure (2026-10-20):** Gateway tests now use actual typed REST substitutes and received-call assertions, preserving metadata and failure coverage. Reviewed Debug source build has zero warnings/errors; gateway 708/708, HTTP client 122/122 and full UI 6582/6582 pass with zero failures/skips. Only DW-160 closes: 656 IDs remain, 399 done/257 open across 232 exact-covering maintenance rows. See [validation and review](dw-160-validation-evidence.md).
 
 **DW-158 closure (2026-10-20):** Subscription-test wait expiry now names the unmet condition as an assertion, retaining the two-second deadline and predicate exceptions. Seven new cases pass; final original-helper replay fails exactly the two timeout cases. Restored Debug source build has zero warnings/errors, focused 30/30 and full UI 6580/6580 pass with zero failures/skips. Only DW-158 closes: all 656 IDs remain, 398 done/258 open across 233 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact validation and review](dw-158-validation-evidence.md).
@@ -1538,17 +1540,27 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679
 reason: The legacy ledger defers this issue: Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed. Original context is preserved in legacy-detail.
 legacy-detail: - Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed. Distinct from the LoadAsync version-bump stale-apply window below (same approximate line region, different method). [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor RefreshAsync calls LoadAsync, which assigns TenantListSnapshot.Loading and clears visible rows; retained evidence exists but soft refresh still blanks the list.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: recommendation
+pre-dw-177-status: open
+status: done 2026-10-20
+pre-dw-177-disposition: actionable
+disposition: resolved
+pre-dw-177-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-177-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor RefreshAsync calls LoadAsync, which assigns TenantListSnapshot.Loading and clears visible rows; retained evidence exists but soft refresh still blanks the list.
+verification: Same-caller soft refresh retains the displayed projection rows, native grid, warnings and paging context under Loading/Unknown, with create/audit/pager actions closed. Thirty dedicated cases and the full 6612-case UI suite pass with zero failures/skips in an isolated entry-revision checkout carrying byte-identical final task sources; its Debug source build has zero warnings/errors. Independent review accepts all six corrections. Current-main source build remains separately blocked by an unrelated concurrent authority commit requiring absent NativeSourceProof; the initial full-suite timer failure and passing exact recheck are retained in dw-177-validation-evidence.md. No external source or dependency pointer is changed.
+pre-dw-177-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.SoftRefresh.cs; _bmad-output/implementation-artifacts/dw-177-validation-evidence.md
+pre-dw-177-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Choose/pin retained-list refresh behavior and preserve visible evidence during a same-scope soft refresh.
+pre-dw-177-next-action: Choose/pin retained-list refresh behavior and preserve visible evidence during a same-scope soft refresh.
+next-action: Closed within DW-177; retain the external NativeSourceProof build blocker, unrelated deferred records and existing release qualification holds.
 related: DW-119
+resolution-spec: spec-dw-177-retained-list-refresh.md
+resolution-evidence: [Exact validation, independent review and current-main build limitation](dw-177-validation-evidence.md)
+
 
 ### DW-178: StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit — deferred, mitigated by generation + CTS replace
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
