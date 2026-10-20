@@ -34,8 +34,9 @@ authoritative. If it is unavailable, stop `/pushall` and report the missing inst
 - If a repo has no remote, push fails, or the local default branch has diverged from
   `origin/<default-branch>` (fast-forward not possible), record it as skipped/failed and continue
   with the rest — never stop the whole run for one repo.
-- End each processed repo back on its default branch. If the worktree attachment gate below
-  refuses a repo, preserve its original HEAD, index and worktree instead and report it as skipped.
+- End each processed repo back on its default branch. If the worktree attachment gate or default
+  branch resolution refuses a repo, preserve its HEAD, index and worktree instead and report it as
+  skipped (the fetch in step 1 may already have updated remote-tracking refs).
 - Give a one-line progress update per repo as you go, and a final consolidated report (per repo:
   local and remote branches merged, local and remote branches deleted, anything skipped/failed,
   push status).
@@ -101,11 +102,69 @@ rerunning `/pushall`. A clean detached submodule checkout may proceed normally; 
 must have a verified attached branch before step 3 creates a commit.
 
 1. `git -C <dir> fetch --all --prune`
-2. Determine the default branch: prefer `main`, else `master`, else
-   `git -C <dir> remote show origin | sed -n 's/.*HEAD branch: //p'`.
+2. Resolve origin's live default with the Bash block below, replacing `<dir>` with the shell-quoted
+   repo directory. Keep `pushall_default_branch` as `<default-branch>` for every subsequent step.
+   Do not infer it from local `main`/`master` or cached `origin/HEAD`. If the block fails, skip steps
+   3–11 for this repo and continue with the others. Report the diagnostic; do not commit, switch,
+   merge, push or prune. Missing fetch coverage or a concurrent remote change requires inspection
+   and a fresh run, never a guessed default or a forced tracking-ref update.
+
+```bash
+git -C <dir> remote get-url origin >/dev/null || {
+    printf '%s\n' 'SKIP: no configured origin remote.' >&2
+    exit 1
+}
+pushall_remote_head=$(git -C <dir> ls-remote --symref --exit-code origin HEAD) || {
+    printf '%s\n' 'SKIP: cannot query the live origin default branch.' >&2
+    exit 1
+}
+pushall_head_pattern=$'^ref: (refs/heads/[^[:space:]]+)\tHEAD\n([0-9a-f]{40}|[0-9a-f]{64})\tHEAD$'
+if [[ ! "$pushall_remote_head" =~ $pushall_head_pattern ]]; then
+    printf '%s\n' 'SKIP: origin default branch evidence is missing, ambiguous or malformed.' >&2
+    exit 1
+fi
+pushall_default_ref=${BASH_REMATCH[1]}
+pushall_default_oid=${BASH_REMATCH[2]}
+pushall_default_branch=${pushall_default_ref#refs/heads/}
+if ! git -C <dir> check-ref-format "$pushall_default_ref" ||
+   ! git -C <dir> check-ref-format --branch "$pushall_default_branch" >/dev/null; then
+    printf '%s\n' 'SKIP: origin advertised an invalid default branch.' >&2
+    exit 1
+fi
+pushall_tracking_ref="refs/remotes/origin/$pushall_default_branch"
+pushall_tracking_evidence=$(git -C <dir> for-each-ref --format='%(refname)%09%(objectname)%09%(symref)' "$pushall_tracking_ref") || {
+    printf '%s\n' 'SKIP: cannot inspect the fetched origin default branch.' >&2
+    exit 1
+}
+pushall_default_type=$(git -C <dir> cat-file -t "$pushall_default_oid") || {
+    printf '%s\n' 'SKIP: cannot inspect the fetched default commit.' >&2
+    exit 1
+}
+if [[ "$pushall_tracking_evidence" != "$pushall_tracking_ref"$'\t'"$pushall_default_oid"$'\t' ]] ||
+   [[ "$pushall_default_type" != commit ]]; then
+    printf '%s\n' 'SKIP: fetched origin default is absent, indirect or differs from the live commit; inspect fetch coverage and rerun.' >&2
+    exit 1
+fi
+```
+
 3. If `git -C <dir> status --porcelain` is non-empty, stage and commit everything:
    `git -C <dir> add -A && git -C <dir> commit -m "build: sync local changes via /pushall"`.
-4. `git -C <dir> checkout <default-branch>`
+4. Switch to the exact local default branch, creating it from the validated tracking ref when
+   absent. Run in the same Bash session as step 2; stop this repo on any error:
+
+```bash
+if git -C <dir> show-ref --verify --quiet "refs/heads/$pushall_default_branch"; then
+    git -C <dir> switch --no-guess "$pushall_default_branch" || exit 1
+else
+    pushall_local_ref_status=$?
+    if [[ "$pushall_local_ref_status" != 1 ]]; then
+        printf '%s\n' 'SKIP: cannot inspect the local default branch.' >&2
+        exit 1
+    fi
+    git -C <dir> switch --no-track --create "$pushall_default_branch" "$pushall_tracking_ref" || exit 1
+fi
+```
+
 5. Try `git -C <dir> merge --ff-only origin/<default-branch>` to catch up with the remote first.
    If this fails because local and remote diverged, record it and skip the rest of this repo.
 6. Build the merge list from both kinds of refs:

@@ -37,6 +37,9 @@ jobs:
       - name: Run the pushall attachment gate regression lane
         run: python3 tests/scripts/test_pushall_detached_head.py
 
+      - name: Run the pushall remote default regression lane
+        run: python3 tests/scripts/test_pushall_default_branch.py
+
   remove-focus-browser-guard:
     name: validate-remove-focus-in-chromium
     runs-on: ubuntu-latest
