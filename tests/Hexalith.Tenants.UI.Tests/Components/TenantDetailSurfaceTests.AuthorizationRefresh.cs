@@ -3,12 +3,9 @@ using Bunit;
 using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Components.Tenants.Lifecycle;
 using Hexalith.Tenants.UI.State.TenantDetail;
-using Hexalith.Tenants.UI.Services.Gateways;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
-
-using NSubstitute;
 
 using Shouldly;
 
@@ -89,46 +86,4 @@ public sealed partial class TenantDetailSurfaceTests
         });
     }
 
-    /// <summary>A late allowed result from an older same-tenant load cannot restore revoked authority.</summary>
-    [Fact]
-    public async Task SameTenantParameterLoadDiscardsSupersededLifecycleAuthority()
-    {
-        // Return the held task directly so completing it on the renderer drains the page continuation.
-        var completion = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>();
-        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
-        composition.IsReadSurfaceConnected.Returns(true);
-        composition.IsCommandSurfaceConnected.Returns(true);
-        int resolutions = 0;
-        composition.ResolveLifecycleAuthorizationAsync(Arg.Any<CancellationToken>()).Returns(_ =>
-        {
-            if (++resolutions == 1)
-            {
-                entered.SetResult();
-                return new ValueTask<TenantLifecycleAuthorizationReflectionState>(completion.Task);
-            }
-
-            return ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.MissingPermission);
-        });
-        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(Detail("tenant.alpha"), projectionVersion: "tenant-sequence:41")), composition);
-        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
-            .Add(page => page.TenantId, "tenant.alpha"));
-        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
-
-        cut.Render(parameters => parameters.Add(page => page.TenantId, "tenant.alpha"));
-        cut.WaitForAssertion(() =>
-        {
-            resolutions.ShouldBe(2);
-            cut.FindComponent<TenantLifecycleActionAvailability>()
-                .Instance.AuthorizationReflection.ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
-        });
-
-        await cut.InvokeAsync(() => completion.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized));
-        cut.WaitForAssertion(() =>
-        {
-            cut.FindComponent<TenantLifecycleActionAvailability>().Instance.AuthorizationReflection
-                .ShouldBe(TenantLifecycleAuthorizationReflectionState.MissingPermission);
-            cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("aria-disabled").ShouldBe("true");
-        });
-    }
 }

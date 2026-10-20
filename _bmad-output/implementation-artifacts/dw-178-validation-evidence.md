@@ -6,7 +6,7 @@ Entry revision: `54bfac8da66b60aa8aa19a77d23676a7662113b4`, clean main. The user
 
 The ledger offers two resolutions: short-circuit unchanged authority scope, or document why every parameter update requires a fresh resolve. This change takes the latter. `OnParametersSetAsync` reloads projection evidence even when only the return context changes. Tenant ID and authentication epoch alone do not prove that the composition's current authority answer is unchanged. Preserve the existing fresh read, its pending Indeterminate state, replaceable cancellation/generation protection, and independent submit-time reauthorization. A source comment records that relationship. No runtime behavior, public API, localization, topology or dependency change is introduced by this work.
 
-Seven rendered component cases exercise repeated same-tenant parameters and actual query-string navigation, granted/revoked/indeterminate completion, pending fail-closed behavior, follow-up recovery and obsolete same-tenant completion. They reuse the existing fixture and assert the child authority parameter plus rendered Fluent action availability. Supersession uses inline completion on the renderer to consume the obsolete result before the callback returns. This is component evidence; no new browser, assistive-technology, deployed-authorization or revocation guarantee is claimed.
+Six new rendered component cases exercise repeated same-tenant parameters and actual query-string navigation, granted/revoked/indeterminate completion, pending fail-closed behavior, follow-up recovery and existing superseded-resolution coverage. They reuse the existing fixture and assert the child authority parameter plus rendered Fluent action availability. The pre-existing authentication/supersession and command-time reauthorization regressions remain part of the full suite. This is component evidence; no new browser, assistive-technology, deployed-authorization or revocation guarantee is claimed.
 
 ## Commands and initial results
 
@@ -50,4 +50,8 @@ The initial required default own-spec gitlink check exits 1 because another acto
 
 ## Final qualification
 
-Pending the two harmful controls, restored build, full UI suite, scoped formatting, independent review and exact maintenance reconciliation. No closure is claimed by this initial evidence draft.
+Pending the restored build, full UI suite, scoped formatting, independent review and exact maintenance reconciliation. No closure is claimed by this initial evidence draft.
+
+The experimental seventh same-tenant late-result test failed to reject removal of the generation guard (control exit 0). A direct-substitute experiment then produced an unrelated null composition fault; after repairing that fixture, the guard-removal control again passed. Remove the unproven test and experimental fixture hook rather than claiming qualification. The existing supersession regression is preserved. The cache-control replay rejected all six retained cases (plus the now-removed seventh); this is diagnostic evidence, not a final maintained seven-case result. Final qualification below uses exactly the six retained tests.
+
+Concurrent external commit `a83021d9efa259c1afa014078d2c5fcf61c4d42c` subsequently recorded all six checkout moves (including Platform) and captured the in-progress DW-178 files. Preserve the commit. The final source validation therefore uses the now-committed updated dependency pins; the initial missing-type failure remains historical evidence. The spec File List and full target table declare all six inherited moves from the true story-entry baseline. The follow-up completion commit must contain only the owned remaining files and no gitlink changes.
