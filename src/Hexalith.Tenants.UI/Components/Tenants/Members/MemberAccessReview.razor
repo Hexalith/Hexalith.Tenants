@@ -748,15 +748,14 @@
     private bool HasOpenMemberCommandFlow
         => _activeChangeRoleUserId is not null || _activeRemoveMemberUserId is not null;
 
-    // internal, not private: these guards exist for the click dispatched BEFORE the Disabled re-render
-    // lands, so asserting the rendered `disabled` attribute cannot observe them -- every guard here could be
-    // deleted with the suite still green. The test project has InternalsVisibleTo and invokes them directly.
-    internal Task RequestNextPageAsync()
+    // Guard events dispatched before the Disabled re-render lands. Tests capture the rendered Fluent
+    // buttons' callbacks while enabled, then deliver them after refreshing, flow or boundary changes.
+    private Task RequestNextPageAsync()
         => Members.HasMore && !Members.IsRefreshing && !HasOpenMemberCommandFlow
             ? OnNextPageRequested.InvokeAsync()
             : Task.CompletedTask;
 
-    internal Task RequestPreviousPageAsync()
+    private Task RequestPreviousPageAsync()
         => CanGoPrevious && !Members.IsRefreshing && !HasOpenMemberCommandFlow
             ? OnPreviousPageRequested.InvokeAsync()
             : Task.CompletedTask;

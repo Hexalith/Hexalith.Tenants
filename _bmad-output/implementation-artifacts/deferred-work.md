@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-155 closure (2026-10-20):** Member paging is qualified through rendered Fluent buttons and captured queued events; both handlers are private with unchanged guards. Ten cases cover edited and pending change-role/removal commands, retained message identity, refresh, direction-boundary recovery, delayed reads and follow-up navigation. Four harmful controls fail as intended; independent review corrections are accepted. Final Debug source build has zero warnings/errors, focused 10/10 and full UI 6573/6573 pass with zero failures/skips. Only DW-155 closes: all 656 IDs remain, 397 done/259 open across 234 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-155-validation-evidence.md).
+
 **DW-113 closure (2026-10-20):** Missing tenant-list reason translations now fall back to existing localized surface messages, preserving supported reason copy and search-page continuation. The unchanged component fails 160 of 280 new EN/FR rendered cases; the final Debug source build has zero warnings/errors, focused 280/280 and full UI 6564/6564 pass with zero failures/skips. Only DW-113 closes: all 656 IDs remain, 396 done/260 open across 235 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-113-validation-evidence.md).
 
 **DW-439 closure (2026-10-20):** Fifteen French receipt values now use the missing accents and established apostrophe convention, with one existing partial-receipt expectation updated. Debug source build has zero warnings/errors; final full UI 6284/6284 and the 118-case correction-panel recheck pass with zero failures/skips. The initial full-suite remount assertion failure and independent documentation review remain in [validation evidence](dw-439-validation-evidence.md). Only DW-439 closes: all 656 IDs remain, 395 done/261 open across 236 maintenance rows. Broader DW-270/DW-306/DW-324 copy work, historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved.
@@ -1311,17 +1313,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:585
 reason: The legacy ledger defers this issue: Paging guards widened to `internal` for direct test access. Original context is preserved in legacy-detail.
 legacy-detail: - **Paging guards widened to `internal` for direct test access** — `MemberAccessReview`'s paging guards were promoted from private to internal so the test project could invoke them directly; the accompanying comment concedes every guard could be deleted with the suite still green. Reason for deferral: pre-existing test-design debt, not introduced behaviour. The guards remain unobservable through the rendered affordance, so the coverage they now have does not prove the control behaves correctly — but narrowing them again without a rendered-affordance test would lose coverage. Revisit if: the member pager gains bUnit tests that drive it through its rendered controls. [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:585]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor RequestNextPageAsync and RequestPreviousPageAsync remain internal, with comments explaining pre-render click guards. Direct invocation still does not prove the rendered disabled-control behavior.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
-evidence-kind: verified-gap
+pre-dw-155-status: open
+status: done 2026-10-20
+pre-dw-155-disposition: actionable
+disposition: resolved
+pre-dw-155-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-155-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor RequestNextPageAsync and RequestPreviousPageAsync remain internal, with comments explaining pre-render click guards. Direct invocation still does not prove the rendered disabled-control behavior.
+verification: Ten rendered-control cases qualify both directions during refresh, edited change-role/removal flows, actual pending submissions with retained RequestSent/message identity, direction-boundary recovery, held real-page reads and follow-up navigation. All direct handler calls are replaced and both handlers are private with unchanged guards. Four final guard/binding mutations fail 4/10, 4/10, 3/10 and 10/10 as intended. Final Debug source build has zero warnings/errors; focused 10/10 and full UI 6573/6573 pass with zero failures/skips. Independent correction recheck accepts all five findings. Exact commands and limits are in dw-155-validation-evidence.md.
+pre-dw-155-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-155-validation-evidence.md
+pre-dw-155-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Drive member paging through rendered controls while a command/page request is pending.
+pre-dw-155-next-action: Drive member paging through rendered controls while a command/page request is pending.
+next-action: Closed within DW-155; preserve unrelated deferred work, historical findings, dependencies and existing release qualification holds.
 related: DW-610
+resolution-evidence: [Exact verification, controls and independent review](dw-155-validation-evidence.md)
+resolution-spec: spec-dw-155-rendered-member-paging.md
 
 ### DW-156: Command `SafeMessage` values are hardcoded English literals rather than `TenantsResources.resx` entries
 
