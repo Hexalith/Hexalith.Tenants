@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-437/DW-451/DW-534 closure (2026-10-20):** Story Guards now validates committed changed-story snapshots for full-history push/PR ranges, with explicit historical endpoints restricted to pointer-free event history. The new 49-case real-Git lane and retained 77/13/31 regressions pass; exact controls and review are in [validation evidence](dw-437-validation-evidence.md). Only these three records close: all 656 IDs remain, 394 done/262 open across 236 maintenance rows. DW-198, unrelated history, dependencies, archive/sprint and release holds remain preserved.
+
 **DW-431 closure (2026-10-20):** Story 5.2 now records its true start, initial and final historical endpoints, four exact closure targets and the complete seven-commit pointer chain, including two omitted final-closure moves. The historical guard and 77/77 regressions pass; moving HEAD and eight incorrect-target/missing-declaration controls fail as intended. Only DW-431 closes: all 656 IDs remain, 391 done/265 open across 237 maintenance rows. DW-437/DW-451/DW-534, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-431-validation-evidence.md).
 
 **DW-429 closure (2026-10-20):** Pushall now resolves origin’s live advertised default and verifies the matching fetched commit before committing or switching. Thirty-one real-Git default-selection tests, 13 attachment tests and 77 gitlink tests pass. Only DW-429 closes: all 656 IDs remain, 390 done/266 open across 238 maintenance rows. Original fields, unrelated records, external work, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-429-validation-evidence.md).
@@ -5137,17 +5139,26 @@ location: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Un-defer the CI story gitlink gate so `validate-story-gitlinks.py` runs against changed story files, not only its own regression suite.\n  evidence: Decision 2026-09-27 (\"Declare + enable CI gate\"). Story 5.2 is the fifth undeclared-bump occurrence; story commit `3ba48896` moved EventStore and FrontComposer without saying so. The fourth occurrence (Story 3.4, 2026-08-25) was the pre-agreed trigger. `.github/workflows/story-guards.yml` currently runs only `tests/scripts/test_validate_story_gitlinks.py`. The gate must compare each story's `baseline_commit..HEAD` range, because bumps often land in a later `build(deps)` commit."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/story-guards.yml::gitlink-guard still runs only python3 tests/scripts/test_validate_story_gitlinks.py. It never invokes scripts/validate-story-gitlinks.py on changed stories. Current Story 5.2 and 5.4 guards still exit 1. The 2026-09-27 Declare + enable CI gate decision is already approved and needs implementation, not a new policy question.
-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
-evidence-kind: verified-gap
+pre-dw-437-status: open
+status: done 2026-10-20
+pre-dw-437-disposition: actionable
+disposition: resolved
+pre-dw-437-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-437-verification: .github/workflows/story-guards.yml::gitlink-guard still runs only python3 tests/scripts/test_validate_story_gitlinks.py. It never invokes scripts/validate-story-gitlinks.py on changed stories. Current Story 5.2 and 5.4 guards still exit 1. The 2026-09-27 Declare + enable CI gate decision is already approved and needs implementation, not a new policy question.
+verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
+pre-dw-437-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
+verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
+pre-dw-437-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Story attribution must avoid including unrelated later pointer updates
-next-action: Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling.
+pre-dw-437-next-action: Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling.
+next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
 related: DW-431, DW-451, DW-419, DW-420
+resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
+resolution-spec: spec-dw-437-changed-story-ci-gate.md
 
 
 ## Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-27)
@@ -5391,18 +5402,27 @@ location: .github/workflows/story-guards.yml
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Seventh undeclared-bump occurrence for the CI story gitlink gate tracked above (Story 5.2 entry, \"Un-defer the CI story gitlink gate\").\n  evidence: Commit `e077e65e` (\"update audit availability and recovery specifications and sprint status\") moved `references/Hexalith.Builds` `0610f783`→`85ca19bc`, `references/Hexalith.EventStore` `801f3e52`→`cc79c03a` and `references/Hexalith.FrontComposer` `7d3af61e`→`f86fb730` without a declaration. `validate-story-gitlinks.py` on the 5.4 spec exits 1, while `.github/workflows/story-guards.yml:35` runs only the guard's own regression suite, so CI stayed green."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: The historical e077e65e occurrence remains valid history. .github/workflows/story-guards.yml still runs only the guard regression suite, and the current Story 5.4 validator executed 2026-10-12 exits 1 for later undeclared McpCli/Memories/Platform/PolymorphicSerializations pointers. The missing changed-story enforcement identified by the seventh occurrence is still present.
-verification-files: .github/workflows/story-guards.yml
-evidence-kind: verified-gap
+pre-dw-437-status: open
+status: done 2026-10-20
+pre-dw-437-disposition: actionable
+disposition: resolved
+pre-dw-437-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-437-verification: The historical e077e65e occurrence remains valid history. .github/workflows/story-guards.yml still runs only the guard regression suite, and the current Story 5.4 validator executed 2026-10-12 exits 1 for later undeclared McpCli/Memories/Platform/PolymorphicSerializations pointers. The missing changed-story enforcement identified by the seventh occurrence is still present.
+verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
+pre-dw-437-verification-files: .github/workflows/story-guards.yml
+verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
+pre-dw-437-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: DW-437 CI gate and story attribution
-next-action: Implement the already-approved changed-story CI gate from DW-437 and preserve this recurrence as supporting history.
+pre-dw-437-next-action: Implement the already-approved changed-story CI gate from DW-437 and preserve this recurrence as supporting history.
+next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
 related: DW-437
 duplicate-of: DW-437
+resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
+resolution-spec: spec-dw-437-changed-story-ci-gate.md
 
 
 ### DW-452: Hand off to Hexalith.Builds. The G-6 validator tuple pins CommunityToolkit.Aspire.Hosting.Dapr `13.5.1-beta.767`, while the central catalog pins `.770`.
@@ -6752,18 +6772,27 @@ location: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Carried, with no new work item; see DW-162. CI still never runs `validate-story-gitlinks.py` against real story files.\n  evidence: `.github/workflows/story-guards.yml:34` runs only `tests/scripts/test_validate_story_gitlinks.py` on synthetic repositories. `5bfe0715` reached `main` green while the guard exits 1 on both 5.6 specs (Memories `c4697367`, Platform `495d1d0d`). 10th recurrence of the silent-bump pattern."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/story-guards.yml:34 runs only tests/scripts/test_validate_story_gitlinks.py; no step invokes the production guard against real selected story artifacts. Current historical 5.6-2 guard execution still reports undeclared/misstated pointers, demonstrating synthetic regression success is not actual artifact validation.
-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py
-evidence-kind: verified-gap
+pre-dw-437-status: open
+status: done 2026-10-20
+pre-dw-437-disposition: actionable
+disposition: resolved
+pre-dw-437-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-437-verification: .github/workflows/story-guards.yml:34 runs only tests/scripts/test_validate_story_gitlinks.py; no step invokes the production guard against real selected story artifacts. Current historical 5.6-2 guard execution still reports undeclared/misstated pointers, demonstrating synthetic regression success is not actual artifact validation.
+verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
+pre-dw-437-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py
+verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
+pre-dw-437-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P1
 owner: unassigned
 dependencies: DW-198 historical story-range selection; DW-520 declaration format
-next-action: Wire production story-range validation for the actual change scope, using durable story-end/provenance rules that avoid treating later unrelated dependency changes as story-owned.
+pre-dw-437-next-action: Wire production story-range validation for the actual change scope, using durable story-end/provenance rules that avoid treating later unrelated dependency changes as story-owned.
+next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
 related: DW-162,DW-198,DW-520,DW-549
 duplicate-of: DW-437
+resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
+resolution-spec: spec-dw-437-changed-story-ci-gate.md
 
 
 ## Deferred from: code review of spec-gh-actions-28953291798-85906522208.md (2026-10-08)

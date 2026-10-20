@@ -16,6 +16,7 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, edited]
 
 concurrency:
   group: story-guards-${{ github.ref }}
@@ -30,14 +31,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Validate changed story gitlinks
+        run: python3 scripts/validate-changed-story-gitlinks.py
+
+      - name: Run the changed-story CI regression lane
+        if: ${{ !cancelled() }}
+        run: python3 tests/scripts/test_validate_changed_story_gitlinks.py
 
       - name: Run the gitlink guard regression lane
+        if: ${{ !cancelled() }}
         run: python3 tests/scripts/test_validate_story_gitlinks.py
 
       - name: Run the pushall attachment gate regression lane
+        if: ${{ !cancelled() }}
         run: python3 tests/scripts/test_pushall_detached_head.py
 
       - name: Run the pushall remote default regression lane
+        if: ${{ !cancelled() }}
         run: python3 tests/scripts/test_pushall_default_branch.py
 
   remove-focus-browser-guard:

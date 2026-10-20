@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-437/DW-451/DW-534 closure (2026-10-20):** Story Guards now validates committed changed-story snapshots for full-history push/PR ranges, with explicit historical endpoints restricted to pointer-free event history. The new 49-case real-Git lane and retained 77/13/31 regressions pass; exact controls and review are in [validation evidence](../_bmad-output/implementation-artifacts/dw-437-validation-evidence.md). Only these three records close: all 656 IDs remain, 394 done/262 open across 236 maintenance rows. DW-198, unrelated history, dependencies, archive/sprint and release holds remain preserved.
+
 **DW-431 closure (2026-10-20):** Story 5.2 now records its true start, initial and final historical endpoints, four exact closure targets and the complete seven-commit pointer chain, including two omitted final-closure moves. The historical guard and 77/77 regressions pass; moving HEAD and eight incorrect-target/missing-declaration controls fail as intended. Only DW-431 closes: all 656 IDs remain, 391 done/265 open across 237 maintenance rows. DW-437/DW-451/DW-534, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-431-validation-evidence.md).
 
 **DW-429 closure (2026-10-20):** Pushall now resolves origin’s live advertised default and verifies the matching fetched commit before committing or switching. Thirty-one real-Git default-selection tests, 13 attachment tests and 77 gitlink tests pass. Only DW-429 closes: all 656 IDs remain, 390 done/266 open across 238 maintenance rows. Original fields, unrelated records, external work, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-429-validation-evidence.md).
@@ -165,7 +167,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
-| DW-437, DW-451, DW-534 | P1 | Gap / actionable | unassigned | Story attribution must avoid including unrelated later pointer updates; DW-437 CI gate and story attribution; DW-198 historical story-range selection; DW-520 declaration format | Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling. |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
 | DW-121 | P2 | Defect / actionable | Hexalith.Builds | Hexalith.Builds owning workflow change | Align the input description/contract and callers with the recorded main-only policy. |
 | DW-128 | P2 | Defect / actionable | unassigned | coordinate DW-127 privacy contract | Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches. |
