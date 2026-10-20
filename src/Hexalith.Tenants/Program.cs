@@ -67,6 +67,10 @@ builder.Services.AddHttpClient<TenantOwnerSourceGateway>(client =>
 builder.Services.AddScoped<IAuthoritativeEventStreamReader>(provider =>
     new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
         provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(10)));
+builder.Services.AddKeyedScoped<IAuthoritativeEventStreamReader>("native-tenant-source", (provider, _) =>
+    new AuthoritativeEventStreamReader(provider.GetRequiredService<TenantOwnerSourceGateway>(),
+        provider.GetRequiredService<TimeProvider>(), TimeSpan.FromSeconds(10), requireNativeProof: true));
+builder.Services.AddEventStoreNativeSourceMetadataReader();
 builder.Services.AddValidatorsFromAssembly(typeof(TenantSubmitCommandValidator).Assembly);
 builder.Services.AddValidatorsFromAssembly(typeof(TenantAggregate).Assembly);
 builder.Services.AddHostedService<TenantBootstrapHostedService>();

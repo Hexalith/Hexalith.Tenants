@@ -70,7 +70,7 @@ public sealed class TenantOwnerAuthorityQueryHandler(IAuthoritativeEventStreamRe
             new QueryResponseMetadata { Provenance = QueryResponseProvenance.HandlerComputed });
     }
 
-    private static bool TryFold(AuthoritativeEventStream source, string tenantId, out TenantState? state)
+    internal static bool TryFold(AuthoritativeEventStream source, string tenantId, out TenantState? state)
     {
         state = null;
         if (source.Identity.TenantId != "system" || source.Identity.Domain != "tenants" ||
