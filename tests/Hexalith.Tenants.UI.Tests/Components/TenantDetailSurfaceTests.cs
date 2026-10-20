@@ -54,7 +54,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class TenantDetailSurfaceTests : BunitContext
+public sealed partial class TenantDetailSurfaceTests : BunitContext
 {
     // Protected search paging is a required scoped circuit service; the workspace fails loudly without it.
     public TenantDetailSurfaceTests()

@@ -958,6 +958,9 @@
             _commandInFlight = false;
         }
 
+        // Every parameter load refreshes projection evidence, including same-tenant audit returns.
+        // Tenant/caller identity alone does not prove that the BFF authority decision is unchanged, so
+        // resolve it again and fail closed while pending. Command admission also reauthorizes separately.
         StartLifecycleAuthorizationResolution(tenantId);
         if (!string.Equals(_subscriptionTenantId, tenantId, StringComparison.Ordinal)
             && _readRefreshLease is not null)
