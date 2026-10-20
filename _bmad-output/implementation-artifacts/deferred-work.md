@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-526/DW-531 closure (2026-10-20):** Existing DW-643 recorded-provenance fixes and regressions are requalified: all 69 maintained guard tests pass, and isolated protection-removal controls produce exactly the expected missing-chain and valid-addition/rename failures. Only these two stale records close: all 656 IDs remain, 385 done/271 open across 243 maintenance rows. Original fields, unrelated records, existing user changes, dependency pointers and release holds are preserved. See [exact evidence](dw-526-531-validation-evidence.md).
+
 **DW-656 closure (2026-10-19):** Default-HEAD unchanged-pointer claims now distinguish real dependency checkouts from empty/deinitialized directories and use the indexed gitlink when appropriate. Review corrections reject absent-pointer nonzero claims and unresolved index conflicts. The maintained lane passes 69/69; entry-production replay reproduces 21 assertion/subtest failures. Only DW-656 closes: all 656 IDs remain, 383 done/273 open across 245 maintenance rows. Historical fields, unrelated records, dependency pointers and release holds are preserved. See [exact commands, review and limits](dw-656-validation-evidence.md).
 
 **DW-520 closure and DW-656 review deferral (2026-10-19):** The story gitlink guard now binds three-column dependency targets while preserving explicit declarations, provenance and arrow behavior. Code examples cannot override live table claims. The 61-test lane passes after independent review corrections; original production with final tests reproduces 45 assertion/subtest failures. Only DW-520 closes; the inherited default-HEAD empty-checkout resolution defect remains open as DW-656. All 655 original IDs remain plus DW-656: 656 total, 382 done/274 open across 246 maintenance rows. Historical fields, unrelated records, dependencies and release holds are preserved. See [exact commands, review and limitations](dw-520-validation-evidence.md).
@@ -6486,17 +6488,26 @@ location: scripts/validate-story-gitlinks.py
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; recorded gitlink provenance rejects a valid new submodule addition.\n  evidence: BH4: validate-story-gitlinks.py:428 compares current_pointer(..., baseline), which returns None for an absent pointer, to the raw addition old SHA of forty zeroes. Normalize missing pointers and cover additions/removals; this branch predates the dependency continuation."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: scripts/validate-story-gitlinks.py:428-429 compares current_pointer(path, baseline), which is None when absent, directly with the raw old SHA for an added gitlink (all zeroes). The recorded-story-owned path therefore reports CHAIN GAP on a valid new submodule addition.
-verification-files: scripts/validate-story-gitlinks.py
-evidence-kind: verified-defect
+pre-dw-526-status: open
+status: done 2026-10-20
+pre-dw-526-disposition: actionable
+disposition: resolved
+pre-dw-526-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-526-verification: scripts/validate-story-gitlinks.py:428-429 compares current_pointer(path, baseline), which is None when absent, directly with the raw old SHA for an added gitlink (all zeroes). The recorded-story-owned path therefore reports CHAIN GAP on a valid new submodule addition.
+verification: DW-643 already normalized an absent baseline pointer to Git's zero SHA. Current recorded addition, rename and removal CLI regressions pass. Removing only normalization in a temporary script makes exactly the addition and rename tests fail; the other three focused controls pass. The unchanged maintained lane passes 69/69 with zero failures/skips. Exact commands, reproduction and limits are in dw-526-531-validation-evidence.md.
+pre-dw-526-verification-files: scripts/validate-story-gitlinks.py
+verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/spec-dw-526-531-recorded-gitlink-acceptance.md; _bmad-output/implementation-artifacts/dw-526-531-validation-evidence.md
+pre-dw-526-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Gitlink recorded-provenance tests
-next-action: Normalize absent/null pointer representations and add valid addition/removal CLI cases.
+pre-dw-526-next-action: Normalize absent/null pointer representations and add valid addition/removal CLI cases.
+next-action: Closed by qualification of the existing DW-643 implementation; retain unrelated deferred work, CI scope and release qualification holds.
 related: DW-531
+resolution-evidence: [Current qualification, protection-removal controls and limits](dw-526-531-validation-evidence.md)
+resolution-spec: spec-dw-526-531-recorded-gitlink-acceptance.md
 
 
 ### DW-527: medium; NuGet boundary validation cannot detect mismatched dependency versions or framework groups.
@@ -6602,17 +6613,26 @@ location: tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; recorded gitlink continuity lacks a regression that detects removal of the chain check.\n  evidence: VG1, pre-verified: the reviewer disabled only [CHAIN GAP] in memory and all 23 guard tests still passed. Add CLI cases for a valid two-commit pointer chain and an omitted intermediate pointer-changing commit. The guard/tests predate this dependency continuation."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/scripts/test_validate_story_gitlinks.py covers parser and synthetic default CLI behavior but no recorded Story-Owned Gitlink Commits two-commit continuity or missing intermediate commit fixture; the CHAIN GAP branch at scripts/validate-story-gitlinks.py:428-432 remains unpinned. The historic mutation result is retained, not rerun here.
-verification-files: tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
-evidence-kind: verified-gap
+pre-dw-531-status: open
+status: done 2026-10-20
+pre-dw-531-disposition: actionable
+disposition: resolved
+pre-dw-531-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-531-verification: tests/scripts/test_validate_story_gitlinks.py covers parser and synthetic default CLI behavior but no recorded Story-Owned Gitlink Commits two-commit continuity or missing intermediate commit fixture; the CHAIN GAP branch at scripts/validate-story-gitlinks.py:428-432 remains unpinned. The historic mutation result is retained, not rerun here.
+verification: DW-643 already added real-Git CLI regressions for a complete multi-commit recorded chain and an omitted intermediate pointer-changing commit. Both pass in the unchanged current lane. Removing only the chain check in a temporary script makes exactly the missing-intermediate test fail; the four positive focused controls pass. The maintained lane passes 69/69 with zero failures/skips. Exact commands, reproduction and limits are in dw-526-531-validation-evidence.md.
+pre-dw-531-verification-files: tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
+verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/spec-dw-526-531-recorded-gitlink-acceptance.md; _bmad-output/implementation-artifacts/dw-526-531-validation-evidence.md
+pre-dw-531-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Recorded-provenance synthetic repo fixture
-next-action: Add CLI cases proving a valid recorded pointer chain passes and omitting an intermediate pointer-changing commit fails CHAIN GAP.
+pre-dw-531-next-action: Add CLI cases proving a valid recorded pointer chain passes and omitting an intermediate pointer-changing commit fails CHAIN GAP.
+next-action: Closed by qualification of the existing DW-643 implementation; retain unrelated deferred work, CI scope and release qualification holds.
 related: DW-526
+resolution-evidence: [Current qualification, protection-removal controls and limits](dw-526-531-validation-evidence.md)
+resolution-spec: spec-dw-526-531-recorded-gitlink-acceptance.md
 
 
 ### DW-532: Clarify the non-EventStore preservation statement as structural equality of parsed rows rather than byte equality.
