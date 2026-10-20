@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-420 closure (2026-10-20):** Existing DW-656 checkout-ownership and indexed-pointer fixes are requalified for legacy unchanged gitlink claims. All 69 maintained guard tests pass; isolated historical-resolver replay produces nine assertion/subtest failures, and HEAD-fallback/index-only alternatives fail their matching controls. Only this stale record closes: all 656 IDs remain, 386 done/270 open across 242 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-420-validation-evidence.md).
+
 **DW-526/DW-531 closure (2026-10-20):** Existing DW-643 recorded-provenance fixes and regressions are requalified: all 69 maintained guard tests pass, and isolated protection-removal controls produce exactly the expected missing-chain and valid-addition/rename failures. Only these two stale records close: all 656 IDs remain, 385 done/271 open across 243 maintenance rows. Original fields, unrelated records, existing user changes, dependency pointers and release holds are preserved. See [exact evidence](dw-526-531-validation-evidence.md).
 
 **DW-656 closure (2026-10-19):** Default-HEAD unchanged-pointer claims now distinguish real dependency checkouts from empty/deinitialized directories and use the indexed gitlink when appropriate. Review corrections reject absent-pointer nonzero claims and unresolved index conflicts. The maintained lane passes 69/69; entry-production replay reproduces 21 assertion/subtest failures. Only DW-656 closes: all 656 IDs remain, 383 done/273 open across 245 maintenance rows. Historical fields, unrelated records, dependency pointers and release holds are preserved. See [exact commands, review and limits](dw-656-validation-evidence.md).
@@ -4811,17 +4813,26 @@ location: scripts/validate-story-gitlinks.py
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Read unchanged legacy-mode gitlinks from the superproject index or tree when a submodule is uninitialized.\n  evidence: `current_pointer(path, None)` runs `git -C <path> rev-parse HEAD`; in an uninitialized submodule directory Git can resolve the superproject HEAD and report a false pointer value. Recorded-commit mode uses `git ls-tree` and is unaffected."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: scripts/validate-story-gitlinks.py::current_pointer(path, None):327-336 still uses git -C path rev-parse HEAD without verifying the repository root. In an uninitialized submodule directory this resolves the enclosing superproject. Recorded-ref mode correctly uses ls-tree.
-verification-files: scripts/validate-story-gitlinks.py
-evidence-kind: verified-defect
+pre-dw-420-status: open
+pre-dw-420-disposition: actionable
+pre-dw-420-verification-date: 2026-10-12
+pre-dw-420-verification: scripts/validate-story-gitlinks.py::current_pointer(path, None):327-336 still uses git -C path rev-parse HEAD without verifying the repository root. In an uninitialized submodule directory this resolves the enclosing superproject. Recorded-ref mode correctly uses ls-tree.
+pre-dw-420-verification-files: scripts/validate-story-gitlinks.py
+pre-dw-420-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Read unchanged legacy-mode gitlinks from the superproject index/tree and test an uninitialized declared submodule directory.
+pre-dw-420-next-action: Read unchanged legacy-mode gitlinks from the superproject index/tree and test an uninitialized declared submodule directory.
 related: DW-419
+status: done 2026-10-20
+disposition: done
+verification-date: 2026-10-20
+verification: DW-656 commit 948141b48aa29af67caa8531d821be205096c46d already verifies checkout ownership and resolves uninitialized/deinitialized unchanged legacy pointers from the stage-zero index, including staged net-zero changes. Fresh maintained guard tests pass 69/69. Five real-CLI focused cases pass; isolated prior-resolver replay produces nine assertion/subtest failures across three cases, HEAD-tree fallback fails two staged-pointer assertions, and unconditional-index resolution fails the checkout-precedence case. Independent review and preservation results are recorded in dw-420-validation-evidence.md.
+verification-files: scripts/validate-story-gitlinks.py, tests/scripts/test_validate_story_gitlinks.py, _bmad-output/implementation-artifacts/dw-420-validation-evidence.md
+evidence-kind: qualified-existing-fix
+next-action: Closed after DW-656 acceptance reconciliation; retain DW-419 and separately scoped CI, history-attribution and release work.
+resolution-evidence: _bmad-output/implementation-artifacts/dw-420-validation-evidence.md
+resolution-spec: _bmad-output/implementation-artifacts/spec-dw-420-uninitialized-gitlink-acceptance.md
 
 
 ### DW-421: Release a terminal grant lease adopted after ownerless delivery completion.
