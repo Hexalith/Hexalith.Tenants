@@ -563,6 +563,25 @@ _Submodule pointers declared per the 2026-09-27 code-review gitlink decision. Th
 
 Source and test files are the `src/` and `tests/` changes in the story commits (`f17027ac`, `3ba48896`, `d30c13b3`, `bf164a9d`, `f245ab90`) plus the 2026-09-27 review patches.
 
+**Historical endpoint correction (DW-431, 2026-10-20):** The declarations above cover the dependency snapshot carried at Story 5.2 closure, including independent updates interleaved with story work. The earlier prose is retained as a historical observation; it omits the additional EventStore and FrontComposer moves carried by the final closure commit. The exact targets below bind this File List to that closure, rather than to today's HEAD. These declarations acknowledge carried pointers; they do not classify independent commits as Story 5.2 implementation.
+
+| Dependency path | True-start pointer | Final closure pointer |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `754d2b4b6615c5004606ba837dd9c925c57e8d14` | `0610f7837221c9859e280f06f333d7452a40f5b1` |
+| `references/Hexalith.Commons` | `37455bbb258d30e3ee86aa4b09769ae6e5638f9f` | `53f7961b517becde5b84ed4d20fe696b849b5cd9` |
+| `references/Hexalith.EventStore` | `04682eac0464b6b18bc02a39187f244fec3ab9bd` | `e29b44a2d185b01ddafe534672153308285b4444` |
+| `references/Hexalith.FrontComposer` | `2e33757e191e91b9369ceeb1b25fa568b1e57c3b` | `805a261bc2f4fbcf038f30919601d199fd78f1b5` |
+
+## Historical Gitlink Audit (DW-431, 2026-10-20)
+
+- True start: `fc147e3efab879f0d5f8131a4ebfd178bf3a113c`, the parent of initial implementation `f17027ac24a9af28f2e87d05951040be3be5db80`.
+- Initial implementation endpoint: `f17027ac24a9af28f2e87d05951040be3be5db80`. Its raw Git diff from the true start contains no dependency pointer changes.
+- Final Story 5.2 endpoint: `33d6dcca278952eaf65764e24b21000a9baa32d8`, the last original implementation/review commit changing this spec, its status and story tests, as observed at entry revision `569e80e7364b57c92ffdd80519e58fc47bc8b096`. Its two carried dependency moves must be included even though the earlier File List mentions only `3ba48896` as a story commit carrying pointers.
+- Reproduce the final snapshot audit with `python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md --ref 33d6dcca278952eaf65764e24b21000a9baa32d8`.
+- The legacy guard validates declarations and exact endpoint targets. The [canonical commit-by-commit attribution and validation evidence](dw-431-validation-evidence.md) separately distinguishes the two story-carried commits from five independent commits. No strict Story-Owned Gitlink Commits section is asserted for this interleaved history.
+- Historical guard PASS observations below predate this correction. The current closure-target document intentionally rejects the initial endpoint; use `git diff --raw --no-abbrev fc147e3efab879f0d5f8131a4ebfd178bf3a113c f17027ac24a9af28f2e87d05951040be3be5db80 -- references/` to reproduce the initial zero-pointer result. A default HEAD audit also intentionally fails because later dependency updates lie outside this historical story. Do not enlarge the File List or reset dependencies to obtain a HEAD PASS.
+- DW-431 resolves historical attribution only. The changed-story CI gate (DW-437 and related records), other historical story audits, hosted-route evidence and release readiness remain separate.
+
 ## Verification
 
 **Observed, Review 17 (2026-09-27):** Review patches close synchronous caller-provider retry gaps, conflicting return focus, invalid command return origins, owner Refresh capability retries, containing-page evidence gates, direct-audit Back labeling, keyboard access to disabled-entry reasons, and interop failure notices. The focused 14-class Release UI run passed 726/726; after correcting two stale test fixtures and an unreachable test state, the final serial Release UI suite passed 3,171/3,171 with zero skips. The exact focused verification commands passed 16/16 `AuditEvidenceEntryPointTests` and 101/101 `TenantAuditPageTests`. Release UI and integration test project builds passed with zero warnings or errors. The Google Chrome shipped-module and mutation fixture passed, and `git diff --check` passed. Two pre-existing issues were deferred in `deferred-work.md`: same-circuit audit-page caller-change evidence retention and the hosted route smoke fixture's unauthenticated FrontComposer assertions. The hosted six-case run remains outside passing acceptance evidence for the reasons recorded below.

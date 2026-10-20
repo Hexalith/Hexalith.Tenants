@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-431 closure (2026-10-20):** Story 5.2 now records its true start, initial and final historical endpoints, four exact closure targets and the complete seven-commit pointer chain, including two omitted final-closure moves. The historical guard and 77/77 regressions pass; moving HEAD and eight incorrect-target/missing-declaration controls fail as intended. Only DW-431 closes: all 656 IDs remain, 391 done/265 open across 237 maintenance rows. DW-437/DW-451/DW-534, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-431-validation-evidence.md).
+
 **DW-429 closure (2026-10-20):** Pushall now resolves origin’s live advertised default and verifies the matching fetched commit before committing or switching. Thirty-one real-Git default-selection tests, 13 attachment tests and 77 gitlink tests pass. Only DW-429 closes: all 656 IDs remain, 390 done/266 open across 238 maintenance rows. Original fields, unrelated records, external work, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-429-validation-evidence.md).
 
 **DW-428 closure (2026-10-20):** A read-only attachment gate now skips dirty detached repositories before any sync operation, preserving HEAD, index, worktree and refs while other repositories continue. Thirteen real-Git procedure tests and the existing 77 gitlink tests pass; the new lane is included in Story Guards. Only DW-428 closes: all 656 IDs remain, 389 done/267 open across 239 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-428-validation-evidence.md).
@@ -5027,17 +5029,26 @@ location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifa
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Story 5.2 gitlink guard fails against HEAD because later commits bump submodules.\n  evidence: `scripts/validate-story-gitlinks.py` exits 1 for undeclared Builds `754d2b4→2326f98`, EventStore `04682ea→4fafcb9`, and FrontComposer `2e33757→07bfc22`. The bumps come from `8431d992` (Story 5.1 closure), `04f68c60`, and `dfa78e10`. `--ref f17027ac` passes, with no `references/` change in the story range."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Executed python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md on 2026-10-12: exit 1. Legacy baseline fc147e3-to-HEAD includes later AI.Tools/McpCli/Memories/Platform/PolymorphicSerializations pointer changes not declared by the story; historical three-pointer list changed but drift still applies.
-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md
-evidence-kind: verified-gap
+pre-dw-431-status: open
+status: done 2026-10-20
+pre-dw-431-disposition: actionable
+disposition: resolved
+pre-dw-431-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-431-verification: Executed python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md on 2026-10-12: exit 1. Legacy baseline fc147e3-to-HEAD includes later AI.Tools/McpCli/Memories/Platform/PolymorphicSerializations pointer changes not declared by the story; historical three-pointer list changed but drift still applies.
+verification: The preserved true-start baseline, initial zero-pointer endpoint and final Story 5.2 closure are now recorded with canonical IDs. Four binding closure targets match Git exactly; the complete seven-commit/fifteen-move chain distinguishes two story-carried commits (including previously omitted final closure moves) from five independent commits. The explicit final historical guard passes; moving HEAD and eight separate incorrect-target/missing-declaration controls fail as expected. Entry-document initial/closure PASS results are retained as historical observations. The maintained guard lane passes 77/77. See dw-431-validation-evidence.md for exact commands, independent review and scope limits.
+pre-dw-431-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md
+verification-files: _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md; _bmad-output/implementation-artifacts/dw-431-validation-evidence.md
+pre-dw-431-evidence-kind: verified-gap
+evidence-kind: executed-historical-attribution
 priority: P2
 owner: unassigned
 dependencies: Story-owned pointer attribution
-next-action: Record precise story-owned pointer commits/endpoints and keep later dependency moves out of historical story scope.
+pre-dw-431-next-action: Record precise story-owned pointer commits/endpoints and keep later dependency moves out of historical story scope.
+next-action: Closed for Story 5.2 historical attribution using its explicit final endpoint; retain moving-HEAD refusal and keep DW-437/DW-451/DW-534 changed-story CI gate and unrelated release holds open.
 related: DW-437
+resolution-evidence: _bmad-output/implementation-artifacts/dw-431-validation-evidence.md
+resolution-spec: _bmad-output/implementation-artifacts/spec-dw-431-historical-story-gitlink-attribution.md
 
 
 ### DW-432: Run the hosted Story 5.2 route smoke once the Aspire EventStore fixture is healthy.
