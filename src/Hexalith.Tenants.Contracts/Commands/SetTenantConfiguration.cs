@@ -15,7 +15,7 @@ public record SetTenantConfiguration(
     [property: HexalithIdentifier]
     [property: Description("Identifier of the tenant to configure.")]
     string TenantId,
-    [property: Description("Configuration key, 1 to 256 characters, case-sensitive. An existing key is overwritten.")]
+    [property: Description("Configuration key, at most 256 characters, case-sensitive. An existing key is overwritten.")]
     string Key,
     [property: Description("Configuration value, at most 1024 characters; an empty string is allowed.")]
     string Value) : ICommandContract {

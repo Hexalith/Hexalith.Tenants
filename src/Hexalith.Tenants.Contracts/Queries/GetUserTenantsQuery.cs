@@ -17,7 +17,7 @@ namespace Hexalith.Tenants.Contracts.Queries;
     Example = """{"UserId":"8d3f2a61-5b7e-4c0a-9e21-3f4b6c7d8e90"}""")]
 public sealed class GetUserTenantsQuery : IQueryContract {
     [HexalithIdentifier]
-    [Description("Identifier of the user whose memberships are listed: the subject (sub) claim the identity provider issues for that user. Always set it, including for your own memberships: an omitted UserId does not default to you and usually returns an empty list. To list your own tenants without knowing your subject, use tenants.list-tenants.")]
+    [Description("Identifier of the user whose memberships are listed: the subject (sub) claim the identity provider issues for that user. Always set it, including for your own memberships: an omitted UserId does not default to you and usually returns an empty list. To list your own tenants without knowing your subject, use tenants.list-tenants; it returns no roles, and a global administrator gets every tenant there.")]
     public string UserId { get; init; } = string.Empty;
 
     [Description("Has no effect: use the pageSize and cursor call arguments instead.")]
