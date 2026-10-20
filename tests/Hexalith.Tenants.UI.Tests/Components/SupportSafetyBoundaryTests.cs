@@ -248,7 +248,7 @@ public sealed class SupportSafetyBoundaryTests : FluentBunitContext
         ArgumentNullException.ThrowIfNull(unsafeRepresentations);
         UseCulture(culture);
         string expectedPartial = culture == "fr"
-            ? "La preuve d'audit est partielle. Le recu ne peut pas citer une preuve complete."
+            ? "La preuve d’audit est partielle. Le reçu ne peut pas citer une preuve complète."
             : "Audit evidence is partial. The receipt cannot cite a complete proof.";
         string expectedBlocked = culture == "fr"
             ? "Le résumé du reçu ne peut pas être copié sans risque. Continuez en lecture seule ou contactez l’assistance."

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-439 closure (2026-10-20):** Fifteen French receipt values now use the missing accents and established apostrophe convention, with one existing partial-receipt expectation updated. Debug source build has zero warnings/errors; final full UI 6284/6284 and the 118-case correction-panel recheck pass with zero failures/skips. The initial full-suite remount assertion failure and independent documentation review remain in [validation evidence](dw-439-validation-evidence.md). Only DW-439 closes: all 656 IDs remain, 395 done/261 open across 236 maintenance rows. Broader DW-270/DW-306/DW-324 copy work, historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved.
+
 **DW-437/DW-451/DW-534 closure (2026-10-20):** Story Guards now validates committed changed-story snapshots for full-history push/PR ranges, with explicit historical endpoints restricted to pointer-free event history. The new 49-case real-Git lane and retained 77/13/31 regressions pass; exact controls and review are in [validation evidence](dw-437-validation-evidence.md). Only these three records close: all 656 IDs remain, 394 done/262 open across 236 maintenance rows. DW-198, unrelated history, dependencies, archive/sprint and release holds remain preserved.
 
 **DW-431 closure (2026-10-20):** Story 5.2 now records its true start, initial and final historical endpoints, four exact closure targets and the complete seven-commit pointer chain, including two omitted final-closure moves. The historical guard and 77/77 regressions pass; moving HEAD and eight incorrect-target/missing-declaration controls fail as intended. Only DW-431 closes: all 656 IDs remain, 391 done/265 open across 237 maintenance rows. DW-437/DW-451/DW-534, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-431-validation-evidence.md).
@@ -5196,16 +5198,26 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Add accents to the remaining unaccented French receipt strings and make apostrophes consistent.\n  evidence: `TenantsResources.fr.resx` still carries unaccented receipt copy from 2026-06-06 (`La preuve d'audit est prete a citer.`, `perimee`, `reessayez`, `Reference de commande`). Story 5.3 accented only the strings it rewrote, so the file now mixes `’` with ASCII `'`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still contains Reference de commande (:3284), La preuve d'audit est prete a citer (:3332), perimee (:3335), and reessayez (:3341), beside newer accented/curly-apostrophe strings. The localisation inconsistency remains visible in receipt copy.
-evidence-kind: verified-defect
+pre-dw-439-status: open
+status: done 2026-10-20
+pre-dw-439-disposition: actionable
+disposition: resolved
+pre-dw-439-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-439-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still contains Reference de commande (:3284), La preuve d'audit est prete a citer (:3332), perimee (:3335), and reessayez (:3341), beside newer accented/curly-apostrophe strings. The localisation inconsistency remains visible in receipt copy.
+verification: Fifteen remaining French receipt values now use the correct accents and established U+2019 apostrophes, with one existing French partial-state expectation updated. Manual editorial inspection and executable integrity checks preserve all 52 receipt / 1717 total EN/FR keys and every placeholder. Debug source build passes with zero warnings/errors; focused correction-panel recheck 118/118 and final full UI 6284/6284 pass with zero failures/skips. The initial full UI remount assertion failure and independent documentation review are retained in dw-439-validation-evidence.md. No runtime or browser behavior change is claimed.
+pre-dw-439-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: French editorial convention
-next-action: Correct the remaining French receipt accents and adopt the established apostrophe convention, checking EN/FR key parity.
+pre-dw-439-next-action: Correct the remaining French receipt accents and adopt the established apostrophe convention, checking EN/FR key parity.
+next-action: Closed within DW-439; preserve the broader DW-270/DW-306/DW-324 copy work, unrelated records, dependency pointers and existing release qualification holds.
 related: none
+verification-files: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs; _bmad-output/implementation-artifacts/dw-439-validation-evidence.md
+resolution-evidence: [Exact validation, initial failure and independent review](dw-439-validation-evidence.md)
+resolution-spec: spec-dw-439-french-receipt-copy.md
+
 
 
 ### DW-440: Decide whether the absolute audit timestamp should be culture-formatted, as the epic's "culture-aware" wording suggests.
