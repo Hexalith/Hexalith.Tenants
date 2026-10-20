@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-158 closure (2026-10-20):** Subscription-test wait expiry now names the unmet condition as an assertion, retaining the two-second deadline and predicate exceptions. Seven new cases pass; final original-helper replay fails exactly the two timeout cases. Restored Debug source build has zero warnings/errors, focused 30/30 and full UI 6580/6580 pass with zero failures/skips. Only DW-158 closes: all 656 IDs remain, 398 done/258 open across 233 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact validation and review](dw-158-validation-evidence.md).
+
 **DW-155 closure (2026-10-20):** Member paging is qualified through rendered Fluent buttons and captured queued events; both handlers are private with unchanged guards. Ten cases cover edited and pending change-role/removal commands, retained message identity, refresh, direction-boundary recovery, delayed reads and follow-up navigation. Four harmful controls fail as intended; independent review corrections are accepted. Final Debug source build has zero warnings/errors, focused 10/10 and full UI 6573/6573 pass with zero failures/skips. Only DW-155 closes: all 656 IDs remain, 397 done/259 open across 234 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-155-validation-evidence.md).
 
 **DW-113 closure (2026-10-20):** Missing tenant-list reason translations now fall back to existing localized surface messages, preserving supported reason copy and search-page continuation. The unchanged component fails 160 of 280 new EN/FR rendered cases; the final Debug source build has zero warnings/errors, focused 280/280 and full UI 6564/6564 pass with zero failures/skips. Only DW-113 closes: all 656 IDs remain, 396 done/260 open across 235 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-113-validation-evidence.md).
@@ -1351,17 +1353,27 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs:317
 reason: The legacy ledger defers this issue: `WaitForAsync` reports a slow agent as a raw `TaskCanceledException` from `Task.Delay` rather than as a named unmet condition, so a genuinely flaky subscription test reports as an infrastructure error. Original context is preserved in legacy-detail.
 legacy-detail: - `WaitForAsync` reports a slow agent as a raw `TaskCanceledException` from `Task.Delay` rather than as a named unmet condition, so a genuinely flaky subscription test reports as an infrastructure error. Reason for deferral: diagnostics-only. No production behaviour is left unverified by it. Revisit if: the subscription tests start failing intermittently in CI and the cause needs to be readable from the failure message alone. [tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs:317]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs WaitForAsync still uses Task.Delay(10, timeout.Token) without translating expiry into a named unmet-condition assertion.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs
-evidence-kind: verified-defect
+pre-dw-158-status: open
+status: done 2026-10-20
+pre-dw-158-disposition: actionable
+disposition: resolved
+pre-dw-158-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-158-verification: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs WaitForAsync still uses Task.Delay(10, timeout.Token) without translating expiry into a named unmet-condition assertion.
+verification: The private helper now translates only its polling-delay expiry into a named ShouldAssertException, retaining the two-second deadline and original predicate exceptions. Seven new cases cover two condition names, immediate/polled success and exception identity before/after deadline expiry. Final original-helper replay fails exactly both timeout cases; restored Debug source build has zero warnings/errors, focused 30/30 and full UI 6580/6580 pass with zero failures/skips. Exact commands, initial fixture failures and limits are in dw-158-validation-evidence.md.
+pre-dw-158-verification-files: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs
+verification-files: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs; _bmad-output/implementation-artifacts/dw-158-validation-evidence.md
+pre-dw-158-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Return a diagnostic assertion naming the condition when the two-second wait expires.
+pre-dw-158-next-action: Return a diagnostic assertion naming the condition when the two-second wait expires.
+next-action: Closed within DW-158; preserve unrelated deferred work, historical fields, dependencies and existing release qualification holds.
 related: none
+resolution-evidence: [Exact validation, original-helper replay and independent review](dw-158-validation-evidence.md)
+resolution-spec: spec-dw-158-subscription-wait-diagnostics.md
+
 
 ### DW-159: `TenantConfigurationView.StateResourcePrefix` has no arm for `TenantDetailSurfaceKind.NotFound` or `Unauthorized`, so both fall through to `Tenants.Configuration.State.Ready` ("Configuration evidence is current") and are announced assertively, because `!CanInspect` puts `LivePoliteness` in the escalated set, over a surface that has no rows
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31, loop 10 never-reviewed delta)"), 2026-08-25

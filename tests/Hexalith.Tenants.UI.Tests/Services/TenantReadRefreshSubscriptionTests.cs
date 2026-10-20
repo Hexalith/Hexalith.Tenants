@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 using Hexalith.FrontComposer.Contracts.Communication;
 using Hexalith.Tenants.UI.Services;
 
@@ -761,7 +763,9 @@ public sealed class TenantReadRefreshSubscriptionTests
             });
 
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
-        await WaitForAsync(() => Volatile.Read(ref successfulCallbacks) == 1);
+        await WaitForAsync(
+            () => Volatile.Read(ref successfulCallbacks) == 1,
+            "the first successful refresh callback");
         notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
         await secondNudgeCompleted.Task.WaitAsync(TimeSpan.FromSeconds(2));
 
@@ -775,12 +779,94 @@ public sealed class TenantReadRefreshSubscriptionTests
         logger.Exceptions.ShouldAllBe(static exception => exception == null);
     }
 
-    private static async Task WaitForAsync(Func<bool> condition)
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task WaitHelperAcceptsImmediateAndPolledSuccess(int successfulCheck)
+    {
+        int checks = 0;
+
+        await WaitForAsync(() => ++checks == successfulCheck, "the expected refresh callback");
+
+        checks.ShouldBe(successfulCheck);
+    }
+
+    [Theory]
+    [InlineData("the first successful refresh callback")]
+    [InlineData("the expected refresh callback")]
+    public async Task WaitHelperReportsTheUnmetConditionWhenItsDeadlineExpires(string conditionDescription)
+    {
+        long started = Stopwatch.GetTimestamp();
+        ShouldAssertException? failure = null;
+        try
+        {
+            await WaitForAsync(() => false, conditionDescription);
+        }
+        catch (ShouldAssertException exception)
+        {
+            failure = exception;
+        }
+
+        failure.ShouldNotBeNull().Message.ShouldBe(
+            $"Timed out after two seconds waiting for {conditionDescription}.");
+        Stopwatch.GetElapsedTime(started).ShouldBeGreaterThan(TimeSpan.FromSeconds(1.9));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task WaitHelperPreservesPredicateExceptions(bool cancellation, bool afterDeadline)
+    {
+        Exception expected = cancellation
+            ? new OperationCanceledException("predicate cancellation")
+            : new InvalidOperationException("predicate failure");
+        int checks = 0;
+        Task waiting = WaitForAsync(
+            () =>
+            {
+                if (++checks == 1)
+                {
+                    return false;
+                }
+
+                if (afterDeadline)
+                {
+                    // Deliberately hold this synchronous predicate past the helper's two-second deadline.
+                    Thread.Sleep(TimeSpan.FromSeconds(3));
+                }
+
+                throw expected;
+            },
+            "the expected refresh callback");
+
+        Exception? actual = null;
+        try
+        {
+            await waiting;
+        }
+        catch (Exception exception)
+        {
+            actual = exception;
+        }
+
+        actual.ShouldBeSameAs(expected);
+        checks.ShouldBe(2);
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition, string conditionDescription)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
         while (!condition())
         {
-            await Task.Delay(10, timeout.Token);
+            try
+            {
+                await Task.Delay(10, timeout.Token);
+            }
+            catch (OperationCanceledException) when (timeout.IsCancellationRequested)
+            {
+                throw new ShouldAssertException($"Timed out after two seconds waiting for {conditionDescription}.");
+            }
         }
     }
 
