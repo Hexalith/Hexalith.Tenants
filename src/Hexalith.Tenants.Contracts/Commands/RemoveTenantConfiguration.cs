@@ -15,7 +15,7 @@ public record RemoveTenantConfiguration(
     [property: HexalithIdentifier]
     [property: Description("Identifier of the tenant whose setting is deleted.")]
     string TenantId,
-    [property: Description("Exact configuration key to delete.")]
+    [property: Description("Exact, case-sensitive configuration key to delete.")]
     string Key) : ICommandContract {
     public static string Domain => TenantIdentity.Domain;
 

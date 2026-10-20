@@ -490,6 +490,34 @@ public class CiQualityGateScriptTests {
         }
     }
 
+    [Fact]
+    public async Task PackageValidatorAcceptsTheMcpCliDecorationPackageDependencyOfContracts() {
+        string repoRoot = FindRepoRoot();
+        using TemporaryDirectory temp = new();
+        const string project = "src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj";
+        string manifest = WriteReleaseManifest(temp.Path, "Hexalith.Tenants.Contracts", project);
+        WriteRestoreEvidence(
+            temp.Path,
+            project,
+            "Hexalith.Tenants.Contracts",
+            ["Hexalith.EventStore.Contracts", "Hexalith.McpCli.Abstractions"],
+            ["Hexalith.Commons.UniqueIds"]);
+        string packageDirectory = Path.Combine(temp.Path, "packages");
+        WritePackage(
+            packageDirectory,
+            "Hexalith.Tenants.Contracts",
+            "1.2.3",
+            includeLicense: true,
+            dependencyIds: ["Hexalith.Commons.UniqueIds", "Hexalith.EventStore.Contracts", "Hexalith.McpCli.Abstractions"]);
+
+        CommandResult result = await RunAsync(repoRoot, "python3",
+            $"scripts/validate-nuget-packages.py {Quote(packageDirectory)} --manifest {Quote(manifest)}");
+
+        result.ExitCode.ShouldBe(0, result.Output + result.Error);
+        result.Output.ShouldContain(
+            "- Hexalith.Tenants.Contracts dependencies: Hexalith.Commons.UniqueIds, Hexalith.EventStore.Contracts, Hexalith.McpCli.Abstractions");
+    }
+
     private static string CoverageClass(string filename, string[] lines)
         => $"""
                     <class name="{Path.GetFileNameWithoutExtension(filename)}" filename="{filename}" line-rate="1" branch-rate="1">

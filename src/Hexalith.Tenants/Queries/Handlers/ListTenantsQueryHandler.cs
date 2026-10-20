@@ -28,14 +28,14 @@ public sealed class ListTenantsQueryHandler(
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteCoreAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        (string? protectedCursor, int pageSize, string? payloadError) = DeserializePaginationPayload(envelope.Payload);
-        if (payloadError is not null)
+        TenantQueryPaginationPayload pagination = ResolveStandardPagination(envelope);
+        if (pagination.ErrorMessage is not null)
         {
-            return new QueryResult(false, default, ErrorMessage: payloadError);
+            return new QueryResult(false, default, ErrorMessage: pagination.ErrorMessage);
         }
 
         string scope = TenantQueryCursorScopes.ListTenants(envelope.UserId);
-        if (!CursorCodec.TryDecode(protectedCursor, ListTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+        if (!CursorCodec.TryDecode(pagination.Cursor, ListTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(ListTenantsQuery.QueryType, "list-tenants", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
@@ -47,7 +47,12 @@ public sealed class ListTenantsQueryHandler(
         if (indexModel is null) {
             cancellationToken.ThrowIfCancellationRequested();
             PaginatedResult<TenantSummary> empty = new([], null, false);
-            return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexModel, indexEntry?.ETag);
+            return CreateSuccessResult(
+                SerializeToElement(empty),
+                "tenant-index",
+                indexModel,
+                indexEntry?.ETag,
+                TenantQueryEnvelopePaging.CreateMetadata(pagination, empty));
         }
 
         bool isGlobalAdmin = await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false);
@@ -66,7 +71,7 @@ public sealed class ListTenantsQueryHandler(
             Paginate(
                 tenants,
                 cursor,
-                pageSize,
+                pagination.PageSize,
                 kvp => kvp.Key,
                 kvp => new TenantSummary(kvp.Key, kvp.Value.Name, kvp.Value.Status),
                 cancellationToken),
@@ -74,6 +79,11 @@ public sealed class ListTenantsQueryHandler(
             scope);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenant-index", indexModel, indexEntry?.ETag);
+        return CreateSuccessResult(
+            SerializeToElement(result),
+            "tenant-index",
+            indexModel,
+            indexEntry?.ETag,
+            TenantQueryEnvelopePaging.CreateMetadata(pagination, result));
     }
 }

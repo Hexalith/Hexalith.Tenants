@@ -9,7 +9,7 @@ namespace Hexalith.Tenants.Contracts.Commands;
 
 [RestRoute(RestVerb.Post, "{tenantId}/disable", ApiScope = "tenants")]
 [HexalithCommand(
-    "Disable an active tenant. Its data stays readable, but changes to its name, members, roles and configuration are rejected until it is enabled again. Only a global administrator can disable a tenant; disabling an unknown or already disabled tenant is rejected.",
+    "Disable an active tenant. Its data stays readable, but changes to its name, description, members, roles and configuration are rejected until it is enabled again. Only a global administrator can disable a tenant; disabling an unknown or already disabled tenant is rejected.",
     Example = """{"TenantId":"acme"}""")]
 public record DisableTenant(
     [property: HexalithIdentifier]

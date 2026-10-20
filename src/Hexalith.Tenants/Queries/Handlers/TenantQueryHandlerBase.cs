@@ -160,14 +160,16 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         JsonElement payload,
         string? projectionType,
         IReadModelFreshness? readModel,
-        string? eTag)
+        string? eTag,
+        QueryPagingMetadata? paging = null)
         => TenantQueryResult.FromPayload(
             payload,
             projectionType,
             readModel,
             _freshnessThresholds,
             _timeProvider.GetUtcNow(),
-            eTag);
+            eTag,
+            paging);
 
     private protected static JsonElement SerializeToElement<T>(T value)
         => JsonSerializer.SerializeToElement(value, s_queryJsonOptions);
@@ -183,13 +185,30 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             : RejectionOutcome;
     }
 
-    /// <summary>Parses standard pagination fields and carries cursor decoding failures to the handler.</summary>
-    /// <param name="payload">The serialized pagination payload.</param>
-    /// <returns>The cursor, bounded page size and optional validation error.</returns>
-    private protected static (string? Cursor, int PageSize, string? ErrorMessage) DeserializePaginationPayload(byte[]? payload)
+    /// <summary>
+    /// Resolves standard pagination. Present envelope paging alone governs the page; otherwise only the
+    /// legacy camelCase payload <c>cursor</c> and <c>pageSize</c> fields written by the REST controllers apply.
+    /// </summary>
+    /// <param name="envelope">The authenticated query envelope.</param>
+    /// <returns>The cursor, bounded page size, optional validation error and paging source.</returns>
+    private protected static TenantQueryPaginationPayload ResolveStandardPagination(QueryEnvelope envelope)
+        => envelope.Paging is { } paging
+            ? TenantQueryEnvelopePaging.Resolve(paging, TenantQueryPaginationPolicy.ClampStandardPageSize)
+            : TenantQueryPaginationPayloadParser.DeserializeStandardPayload(envelope.Payload);
+
+    /// <summary>
+    /// Resolves audit pagination. Present envelope paging alone governs the page; otherwise the cursor and
+    /// page size parsed from the legacy camelCase payload fields apply.
+    /// </summary>
+    /// <param name="envelope">The authenticated query envelope.</param>
+    /// <param name="query">The parsed audit payload.</param>
+    /// <returns>The cursor, bounded page size, optional validation error and paging source.</returns>
+    private protected static TenantQueryPaginationPayload ResolveAuditPagination(QueryEnvelope envelope, TenantAuditQueryPayload query)
     {
-        TenantQueryPaginationPayload pagination = TenantQueryPaginationPayloadParser.DeserializeStandardPayload(payload);
-        return (pagination.Cursor, pagination.PageSize, pagination.ErrorMessage);
+        ArgumentNullException.ThrowIfNull(query);
+        return envelope.Paging is { } paging
+            ? TenantQueryEnvelopePaging.Resolve(paging, TenantQueryPaginationPolicy.ClampAuditPageSize)
+            : new(query.Cursor, query.PageSize);
     }
 
     private protected static bool IsConcreteTenantRole(TenantRole role)
@@ -299,7 +318,15 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
             $"{entry.Timestamp.UtcDateTime.Ticks:D20}:{eventKey}");
     }
 
-    private protected static TenantAuditQueryPayload DeserializeAuditPayload(byte[]? payload) {
+    /// <summary>
+    /// Parses the audit filters, owner selector and legacy paging fields. Filters accept the camelCase names
+    /// written by the REST controllers and the CLR names written by generic gateway callers, with the same
+    /// validation; both spellings of one filter must agree.
+    /// </summary>
+    /// <param name="payload">The serialized audit query payload.</param>
+    /// <param name="includePaging">Whether the legacy camelCase <c>cursor</c> and <c>pageSize</c> fields are read.</param>
+    /// <returns>The parsed audit payload or its validation failure.</returns>
+    private protected static TenantAuditQueryPayload DeserializeAuditPayload(byte[]? payload, bool includePaging = true) {
         if (payload is null || payload.Length == 0) {
             return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, null);
         }
@@ -312,13 +339,13 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
                 return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
             }
 
-            if (!TryGetDateTimeOffset(root, "from", out DateTimeOffset? from)
-                || !TryGetDateTimeOffset(root, "to", out DateTimeOffset? to))
+            if (!TryGetDateTimeOffset(root, "from", "From", out DateTimeOffset? from)
+                || !TryGetDateTimeOffset(root, "to", "To", out DateTimeOffset? to))
             {
                 return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
             }
             string? cursor = null;
-            if (root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String)
+            if (includePaging && root.TryGetProperty("cursor", out JsonElement cursorEl) && cursorEl.ValueKind == JsonValueKind.String)
             {
                 try
                 {
@@ -331,7 +358,7 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
                 }
             }
             int pageSize = TenantQueryPaginationPolicy.AuditDefaultPageSize;
-            if (root.TryGetProperty("pageSize", out JsonElement pageSizeEl)
+            if (includePaging && root.TryGetProperty("pageSize", out JsonElement pageSizeEl)
                 && pageSizeEl.ValueKind == JsonValueKind.Number
                 && pageSizeEl.TryGetInt32(out int parsedPageSize)) {
                 pageSize = parsedPageSize;
@@ -339,41 +366,20 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
 
             pageSize = TenantQueryPaginationPolicy.ClampAuditPageSize(pageSize);
 
-            AuditEventCategory? category = null;
-            string? errorMessage = null;
-            if (root.TryGetProperty("category", out JsonElement categoryEl)
-                && categoryEl.ValueKind != JsonValueKind.Null)
+            if (!TryGetCategory(root, "category", out AuditEventCategory? category, out string? errorMessage)
+                || !TryGetCategory(root, "Category", out AuditEventCategory? clrCategory, out string? clrErrorMessage))
             {
-                if (categoryEl.ValueKind != JsonValueKind.String)
-                {
-                    errorMessage = QueryAdapterFailureReason.InvalidEnvelope;
-                }
-                else
-                {
-                    string? categoryValue;
-                    try
-                    {
-                        categoryValue = categoryEl.GetString();
-                    }
-                    catch (InvalidOperationException)
-                    {
-                        // JSON strings can contain escaped unpaired surrogates that fail only when decoded.
-                        return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(categoryValue))
-                    {
-                        if (Enum.TryParse(categoryValue, ignoreCase: true, out AuditEventCategory parsed))
-                        {
-                            category = parsed;
-                        }
-                        else
-                        {
-                            errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit category: {categoryValue}";
-                        }
-                    }
-                }
+                return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
             }
+
+            errorMessage ??= clrErrorMessage;
+            if (errorMessage is null && category is not null && clrCategory is not null && category != clrCategory)
+            {
+                // Both spellings of the filter were supplied with different meanings: refuse rather than pick one.
+                errorMessage = QueryAdapterFailureReason.InvalidEnvelope;
+            }
+
+            category ??= clrCategory;
 
             if (errorMessage is null && from is not null && to is not null && from > to) {
                 errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit query payload: 'from' must not be after 'to'.";
@@ -405,6 +411,70 @@ public abstract partial class TenantQueryHandlerBase : IDomainQueryHandler {
         catch (JsonException) {
             return new(null, null, null, null, TenantQueryPaginationPolicy.AuditDefaultPageSize, null, QueryAdapterFailureReason.InvalidEnvelope);
         }
+    }
+
+    /// <summary>
+    /// Reads one date filter from its camelCase and CLR spellings; both must parse and, when both are set, agree.
+    /// </summary>
+    private static bool TryGetDateTimeOffset(JsonElement root, string camelCaseName, string clrName, out DateTimeOffset? value)
+    {
+        value = null;
+        if (!TryGetDateTimeOffset(root, camelCaseName, out DateTimeOffset? camelCaseValue)
+            || !TryGetDateTimeOffset(root, clrName, out DateTimeOffset? clrValue)
+            || camelCaseValue is not null && clrValue is not null && camelCaseValue.Value != clrValue.Value)
+        {
+            return false;
+        }
+
+        value = camelCaseValue ?? clrValue;
+        return true;
+    }
+
+    /// <summary>
+    /// Reads one spelling of the audit category filter with the established validation. A non-string or unknown
+    /// category is reported through <paramref name="errorMessage"/>; an undecodable string makes the whole payload invalid.
+    /// </summary>
+    /// <returns><see langword="false"/> when the category string cannot be decoded.</returns>
+    private static bool TryGetCategory(JsonElement root, string propertyName, out AuditEventCategory? category, out string? errorMessage)
+    {
+        category = null;
+        errorMessage = null;
+        if (!root.TryGetProperty(propertyName, out JsonElement categoryEl)
+            || categoryEl.ValueKind == JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (categoryEl.ValueKind != JsonValueKind.String)
+        {
+            errorMessage = QueryAdapterFailureReason.InvalidEnvelope;
+            return true;
+        }
+
+        string? categoryValue;
+        try
+        {
+            categoryValue = categoryEl.GetString();
+        }
+        catch (InvalidOperationException)
+        {
+            // JSON strings can contain escaped unpaired surrogates that fail only when decoded.
+            return false;
+        }
+
+        if (!string.IsNullOrWhiteSpace(categoryValue))
+        {
+            if (Enum.TryParse(categoryValue, ignoreCase: true, out AuditEventCategory parsed))
+            {
+                category = parsed;
+            }
+            else
+            {
+                errorMessage = $"{QueryAdapterFailureReason.InvalidEnvelope}: Invalid audit category: {categoryValue}";
+            }
+        }
+
+        return true;
     }
 
     private static bool TryGetDateTimeOffset(JsonElement root, string propertyName, out DateTimeOffset? value)

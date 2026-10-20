@@ -37,14 +37,14 @@ public sealed class GetGlobalAdministratorsQueryHandler(
             return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.Forbidden);
         }
 
-        (string? protectedCursor, int pageSize, string? payloadError) = DeserializePaginationPayload(envelope.Payload);
-        if (payloadError is not null)
+        TenantQueryPaginationPayload pagination = ResolveStandardPagination(envelope);
+        if (pagination.ErrorMessage is not null)
         {
-            return new QueryResult(false, default, ErrorMessage: payloadError);
+            return new QueryResult(false, default, ErrorMessage: pagination.ErrorMessage);
         }
 
         string scope = TenantQueryCursorScopes.GetGlobalAdministrators(envelope.UserId);
-        if (!CursorCodec.TryDecode(protectedCursor, GetGlobalAdministratorsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+        if (!CursorCodec.TryDecode(pagination.Cursor, GetGlobalAdministratorsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(
                 GetGlobalAdministratorsQuery.QueryType,
                 "get-global-administrators",
@@ -68,7 +68,7 @@ public sealed class GetGlobalAdministratorsQueryHandler(
             Paginate(
                 model.Administrators.Select(static userId => KeyValuePair.Create(userId, userId)),
                 cursor,
-                pageSize,
+                pagination.PageSize,
                 static kvp => kvp.Key,
                 static kvp => new GlobalAdministratorSummary(kvp.Value),
                 cancellationToken),
@@ -80,6 +80,7 @@ public sealed class GetGlobalAdministratorsQueryHandler(
             SerializeToElement(result),
             GetGlobalAdministratorsQuery.ProjectionType,
             model,
-            adminEntry?.ETag);
+            adminEntry?.ETag,
+            TenantQueryEnvelopePaging.CreateMetadata(pagination, result));
     }
 }

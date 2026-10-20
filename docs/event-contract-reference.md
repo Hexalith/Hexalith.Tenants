@@ -66,6 +66,8 @@ Command contracts expose REST-generation metadata members: `AggregateId` maps th
 
 All public contracts in this reference are owned by package `Hexalith.Tenants.Contracts`. The tables below are the source-backed index for commands, success events, rejections, queries, DTOs, and enums. Detailed field tables appear in the aggregate, rejection, query, and enum sections that follow.
 
+The package also declares the Hexalith McpCli module `tenants` (String identifiers, fixed envelope tenant `system`) through `Hexalith.McpCli.Abstractions`. It exposes nine commands (`CreateTenant`, `UpdateTenant`, `DisableTenant`, `EnableTenant`, `AddUserToTenant`, `RemoveUserFromTenant`, `ChangeUserRole`, `SetTenantConfiguration`, `RemoveTenantConfiguration`) and five queries (`ListTenantsQuery`, `GetTenantQuery`, `GetTenantUsersQuery`, `GetUserTenantsQuery`, `GetTenantAuditQuery`) with their interface routing; the per-tenant queries route to the `TenantId` aggregate and the list queries to the constant aggregate `index`. The global-administrator commands, `GetGlobalAdministratorsQuery`, and `ResolveTenantOwnerAuthority` are not exposed. Its conformance vectors live in `tests/conformance-vectors/mcpcli-v1/`.
+
 ### Command Contracts
 
 | Contract | Package | Owning aggregate/domain | Fields | Intended caller | Success or rejection outcome |
@@ -817,6 +819,8 @@ Paginated responses use the standard shape `{ "items": [...], "cursor": "...", "
 
 Cursors are signed, opaque, and bound to the query type and authorization scope. A cursor generated for a different tenant, target user, requester, date range, category, or query shape is rejected with a safe validation error and must not reveal embedded tenant IDs, user IDs, filters, or internal state.
 
+Generic gateway callers, such as the Hexalith McpCli `tenants` module, send query payloads with the contracts' CLR member names and page through the gateway envelope (`SubmitQueryRequest.Paging`). When envelope paging is present it alone governs the page: payload paging fields are ignored, the same page-size bounds, signed cursors and cursor scopes apply, offset paging is rejected with `invalid-page`, and every page returns `metadata.paging` with `pageSize`, `hasMore`, and `nextCursor` when another page exists. Without envelope paging only the camelCase `cursor` and `pageSize` fields written by the REST controllers apply; CLR-named `Cursor` and `PageSize` payload members never govern paging. The audit query honors the `From`, `To`, and `Category` filters under either spelling with the same validation, and two spellings of one filter that disagree are rejected with `invalid-envelope`. `get-user-tenants` lists the user named by the payload's `UserId` when it is set, with unchanged visibility rules; an explicit entity identifier naming a different user is rejected with `invalid-envelope`.
+
 `GET /api/tenants/{tenantId}/audit` accepts optional `from`, `to`, `category`, `cursor`, and `pageSize` query parameters. Audit rows are projection-backed and include:
 
 | Field | Meaning |
@@ -834,7 +838,7 @@ Cursors are signed, opaque, and bound to the query type and authorization scope.
 
 Global-administrator events are projected under `audit-global-administrators:singleton`; the valid literal tenant `system` uses `audit-tenants:system`. Other tenants retain `audit:{tenantId}`. The old `audit:system` record remains immutable legacy evidence and is read through strict ownership classification. Unknown or conflicting ownership fails closed; existing recognized evidence is preserved.
 
-The query contract's nullable `Stream` member is exposed as optional `stream=tenant` to isolate tenant evidence. `stream=global-administrators` is allowed only with tenant identifier `system` and isolates global evidence. Omitted `stream` preserves ordinary tenant reads and the combined system-scope feed. Cursors, validators and retained snapshots bind the selected stream. Combined system versions are opaque; only an explicit canonical global stream can provide ordered global audit provenance. See [storage compatibility, rollout and replay](audit-stream-rollout.md) for safe operational prerequisites and remaining limits.
+The query contract's nullable `Stream` member is exposed as optional REST `stream=tenant` to isolate tenant evidence; it is read only from that camelCase REST field. `stream=global-administrators` is allowed only with tenant identifier `system` and isolates global evidence. Omitted `stream` preserves ordinary tenant reads and the combined system-scope feed. Cursors, validators and retained snapshots bind the selected stream. Combined system versions are opaque; only an explicit canonical global stream can provide ordered global audit provenance. See [storage compatibility, rollout and replay](audit-stream-rollout.md) for safe operational prerequisites and remaining limits.
 
 ---
 

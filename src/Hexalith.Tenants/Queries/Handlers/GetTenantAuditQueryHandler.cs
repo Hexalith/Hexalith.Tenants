@@ -35,9 +35,15 @@ public sealed class GetTenantAuditQueryHandler(
         // QueryEnvelope.ctor enforces non-empty AggregateId, so the "audit:" shared-key vector
         // raised in review is unreachable through any constructor path.
 
-        TenantAuditQueryPayload query = DeserializeAuditPayload(envelope.Payload);
+        // Present envelope paging alone governs the page, so the legacy payload paging fields are not read.
+        TenantAuditQueryPayload query = DeserializeAuditPayload(envelope.Payload, includePaging: envelope.Paging is null);
         if (query.ErrorMessage is not null || !TenantAuditOwnership.IsValidSelector(query.Stream, envelope.AggregateId)) {
             return new QueryResult(false, default, ErrorMessage: query.ErrorMessage ?? QueryAdapterFailureReason.InvalidEnvelope);
+        }
+
+        TenantQueryPaginationPayload pagination = ResolveAuditPagination(envelope, query);
+        if (pagination.ErrorMessage is not null) {
+            return new QueryResult(false, default, ErrorMessage: pagination.ErrorMessage);
         }
 
         string scope = TenantQueryCursorScopes.GetTenantAudit(
@@ -47,7 +53,7 @@ public sealed class GetTenantAuditQueryHandler(
             query.To,
             query.Category,
             query.Stream);
-        if (!CursorCodec.TryDecode(query.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+        if (!CursorCodec.TryDecode(pagination.Cursor, GetTenantAuditQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(GetTenantAuditQuery.QueryType, "get-tenant-audit", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
@@ -90,11 +96,16 @@ public sealed class GetTenantAuditQueryHandler(
 
         cancellationToken.ThrowIfCancellationRequested();
         PaginatedResult<TenantAuditEntry> result = ProtectCursor(
-            PaginateAuditEntries(entries, cursor, query.PageSize, cancellationToken,
+            PaginateAuditEntries(entries, cursor, pagination.PageSize, cancellationToken,
                 distinguishOwners: envelope.AggregateId == "system" && query.Stream is null),
             GetTenantAuditQuery.QueryType,
             scope);
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenants", model, eTag);
+        return CreateSuccessResult(
+            SerializeToElement(result),
+            "tenants",
+            model,
+            eTag,
+            TenantQueryEnvelopePaging.CreateMetadata(pagination, result));
     }
 }

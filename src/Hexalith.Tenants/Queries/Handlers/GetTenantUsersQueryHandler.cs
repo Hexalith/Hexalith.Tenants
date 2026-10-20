@@ -30,14 +30,14 @@ public sealed class GetTenantUsersQueryHandler(
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteCoreAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        (string? protectedCursor, int pageSize, string? payloadError) = DeserializePaginationPayload(envelope.Payload);
-        if (payloadError is not null)
+        TenantQueryPaginationPayload pagination = ResolveStandardPagination(envelope);
+        if (pagination.ErrorMessage is not null)
         {
-            return new QueryResult(false, default, ErrorMessage: payloadError);
+            return new QueryResult(false, default, ErrorMessage: pagination.ErrorMessage);
         }
 
         string scope = TenantQueryCursorScopes.GetTenantUsers(envelope.AggregateId);
-        if (!CursorCodec.TryDecode(protectedCursor, GetTenantUsersQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+        if (!CursorCodec.TryDecode(pagination.Cursor, GetTenantUsersQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(GetTenantUsersQuery.QueryType, "get-tenant-users", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
@@ -60,7 +60,7 @@ public sealed class GetTenantUsersQueryHandler(
             Paginate(
                 GetConcreteMembers(model),
                 cursor,
-                pageSize,
+                pagination.PageSize,
                 kvp => kvp.Key,
                 kvp => new TenantMember(kvp.Key, kvp.Value),
                 cancellationToken),
@@ -69,6 +69,6 @@ public sealed class GetTenantUsersQueryHandler(
 
         cancellationToken.ThrowIfCancellationRequested();
         JsonElement payload = SerializeToElement(result);
-        return CreateSuccessResult(payload, "tenants", model, tenantEntry?.ETag);
+        return CreateSuccessResult(payload, "tenants", model, tenantEntry?.ETag, TenantQueryEnvelopePaging.CreateMetadata(pagination, result));
     }
 }

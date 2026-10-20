@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Client.Queries;
 using Hexalith.EventStore.Contracts.Queries;
@@ -14,7 +16,8 @@ namespace Hexalith.Tenants.Queries.Handlers;
 /// <summary>
 /// Serves the <c>get-user-tenants</c> query: the paginated tenants a target user belongs to. A user can
 /// always see their own memberships; a global administrator sees any user's; a tenant owner sees a target
-/// user's memberships only for tenants the requester owns.
+/// user's memberships only for tenants the requester owns. Generic gateway callers name the target user in the
+/// payload's CLR <c>UserId</c>; REST callers route it as the envelope entity identifier.
 /// </summary>
 public sealed class GetUserTenantsQueryHandler(
     IReadModelStore store,
@@ -29,7 +32,9 @@ public sealed class GetUserTenantsQueryHandler(
 
     /// <inheritdoc/>
     protected override async Task<QueryResult> ExecuteCoreAsync(QueryEnvelope envelope, CancellationToken cancellationToken) {
-        string targetUserId = string.IsNullOrWhiteSpace(envelope.EntityId) ? envelope.UserId : envelope.EntityId;
+        if (!TryResolveTargetUser(envelope, out string targetUserId)) {
+            return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.InvalidEnvelope);
+        }
 
         cancellationToken.ThrowIfCancellationRequested();
         ReadModelEntry<TenantIndexReadModel>? indexEntry = await GetStateEntryAsync<TenantIndexReadModel>(
@@ -44,14 +49,14 @@ public sealed class GetUserTenantsQueryHandler(
         bool canViewAllTargetTenants = isSelfLookup
             || await IsGlobalAdminAsync(envelope, cancellationToken).ConfigureAwait(false);
 
-        (string? protectedCursor, int pageSize, string? payloadError) = DeserializePaginationPayload(envelope.Payload);
-        if (payloadError is not null)
+        TenantQueryPaginationPayload pagination = ResolveStandardPagination(envelope);
+        if (pagination.ErrorMessage is not null)
         {
-            return new QueryResult(false, default, ErrorMessage: payloadError);
+            return new QueryResult(false, default, ErrorMessage: pagination.ErrorMessage);
         }
 
         string scope = TenantQueryCursorScopes.GetUserTenants(envelope.UserId, targetUserId);
-        if (!CursorCodec.TryDecode(protectedCursor, GetUserTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
+        if (!CursorCodec.TryDecode(pagination.Cursor, GetUserTenantsQuery.QueryType, scope, out string? cursor, out string? failureReason)) {
             return InvalidCursorResult(GetUserTenantsQuery.QueryType, "get-user-tenants", envelope.AggregateId, envelope.UserId, failureReason);
         }
 
@@ -59,7 +64,12 @@ public sealed class GetUserTenantsQueryHandler(
             || !indexModel.UserTenants.TryGetValue(targetUserId, out Dictionary<string, TenantRole>? userTenants)) {
             cancellationToken.ThrowIfCancellationRequested();
             PaginatedResult<UserTenantMembership> empty = new([], null, false);
-            return CreateSuccessResult(SerializeToElement(empty), "tenant-index", indexModel, indexEntry?.ETag);
+            return CreateSuccessResult(
+                SerializeToElement(empty),
+                "tenant-index",
+                indexModel,
+                indexEntry?.ETag,
+                TenantQueryEnvelopePaging.CreateMetadata(pagination, empty));
         }
 
         IEnumerable<KeyValuePair<string, TenantRole>> visibleUserTenants = GetVisibleUserTenants(
@@ -94,7 +104,7 @@ public sealed class GetUserTenantsQueryHandler(
             Paginate(
                 existingVisibleUserTenants,
                 cursor,
-                pageSize,
+                pagination.PageSize,
                 kvp => kvp.Key,
                 kvp => new UserTenantMembership(
                     kvp.Key,
@@ -106,6 +116,77 @@ public sealed class GetUserTenantsQueryHandler(
             scope);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return CreateSuccessResult(SerializeToElement(result), "tenant-index", indexModel, indexEntry?.ETag);
+        return CreateSuccessResult(
+            SerializeToElement(result),
+            "tenant-index",
+            indexModel,
+            indexEntry?.ETag,
+            TenantQueryEnvelopePaging.CreateMetadata(pagination, result));
+    }
+
+    /// <summary>
+    /// Resolves the user whose memberships are listed: the payload's CLR <c>UserId</c> when set, otherwise the
+    /// routed entity identifier, otherwise the caller. Authorization is evaluated afterwards for the resolved user.
+    /// </summary>
+    /// <param name="envelope">The authenticated query envelope.</param>
+    /// <param name="targetUserId">The resolved target user.</param>
+    /// <returns><see langword="false"/> when the payload user is malformed or disagrees with an explicit entity identifier.</returns>
+    private static bool TryResolveTargetUser(QueryEnvelope envelope, out string targetUserId) {
+        targetUserId = string.IsNullOrWhiteSpace(envelope.EntityId) ? envelope.UserId : envelope.EntityId;
+        if (!TryReadPayloadUserId(envelope.Payload, out string? payloadUserId)) {
+            return false;
+        }
+
+        if (payloadUserId is null) {
+            return true;
+        }
+
+        // The gateway routes a request without an entity identifier to its aggregate identifier, so only a
+        // distinct entity identifier was chosen by the caller, and it must name the same user as the payload.
+        bool explicitEntityId = !string.IsNullOrWhiteSpace(envelope.EntityId)
+            && !string.Equals(envelope.EntityId, envelope.AggregateId, StringComparison.Ordinal);
+        if (explicitEntityId && !string.Equals(envelope.EntityId, payloadUserId, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        targetUserId = payloadUserId;
+        return true;
+    }
+
+    /// <summary>Reads the optional CLR <c>UserId</c> payload member; a blank value counts as absent.</summary>
+    /// <param name="payload">The serialized query payload.</param>
+    /// <param name="userId">The non-blank payload user, if any.</param>
+    /// <returns><see langword="false"/> when the member is not a string or cannot be decoded.</returns>
+    private static bool TryReadPayloadUserId(byte[]? payload, out string? userId) {
+        userId = null;
+        if (payload is null || payload.Length == 0) {
+            return true;
+        }
+
+        try {
+            using var document = JsonDocument.Parse(payload);
+            JsonElement root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty(nameof(GetUserTenantsQuery.UserId), out JsonElement element)
+                || element.ValueKind == JsonValueKind.Null) {
+                return true;
+            }
+
+            if (element.ValueKind != JsonValueKind.String) {
+                return false;
+            }
+
+            string? value = element.GetString();
+            userId = string.IsNullOrWhiteSpace(value) ? null : value;
+            return true;
+        }
+        catch (JsonException) {
+            // Unparseable payloads keep the established lenient handling of the legacy paging fields.
+            return true;
+        }
+        catch (InvalidOperationException) {
+            // JSON strings can contain escaped unpaired surrogates that fail only when decoded.
+            return false;
+        }
     }
 }

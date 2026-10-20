@@ -17,7 +17,7 @@ public record UpdateTenant(
     string TenantId,
     [property: Description("New display name; replaces the current one.")]
     string Name,
-    [property: Description("New description; replaces the current one, and null or omitted clears it.")]
+    [property: Description("New description; replaces the current one and null clears it. To keep the current description while renaming, send it again (read it with tenants.get-tenant).")]
     string? Description) : ICommandContract {
     public static string Domain => TenantIdentity.Domain;
 

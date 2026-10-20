@@ -40,7 +40,8 @@ internal sealed record TenantQueryResult : QueryResult {
         IReadModelFreshness? readModel,
         ReadModelFreshnessThresholds thresholds,
         DateTimeOffset now,
-        string? eTag)
+        string? eTag,
+        QueryPagingMetadata? paging = null)
     {
         if (payload.ValueKind == JsonValueKind.Undefined)
         {
@@ -57,6 +58,12 @@ internal sealed record TenantQueryResult : QueryResult {
                     IsNotModified = false,
                     Provenance = QueryResponseProvenance.ProjectionBacked,
                 };
+
+        // Envelope-paged reads report their page; legacy payload paging leaves the metadata unchanged.
+        if (paging is not null)
+        {
+            metadata = (metadata ?? new QueryResponseMetadata()) with { Paging = paging };
+        }
 
         return new TenantQueryResult(
             true,

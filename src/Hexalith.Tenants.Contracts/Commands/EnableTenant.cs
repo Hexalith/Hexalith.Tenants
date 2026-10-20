@@ -9,7 +9,7 @@ namespace Hexalith.Tenants.Contracts.Commands;
 
 [RestRoute(RestVerb.Post, "{tenantId}/enable", ApiScope = "tenants")]
 [HexalithCommand(
-    "Enable a disabled tenant so changes to its name, members, roles and configuration are accepted again. Only a global administrator can enable a tenant; enabling an unknown or already active tenant is rejected.",
+    "Enable a disabled tenant so changes to its name, description, members, roles and configuration are accepted again. Only a global administrator can enable a tenant; enabling an unknown or already active tenant is rejected.",
     Example = """{"TenantId":"acme"}""")]
 public record EnableTenant(
     [property: HexalithIdentifier]
