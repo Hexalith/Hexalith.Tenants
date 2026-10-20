@@ -42,6 +42,7 @@ using Hexalith.EventStore.Contracts.Queries;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Localization;
@@ -9792,26 +9793,20 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         cut.Find("[data-testid='tenants-change-role-flow']");
     }
 
-    [Fact]
-    public async Task Member_paging_handlers_reject_a_click_dispatched_before_the_disabled_attribute_renders()
+    [Theory]
+    [InlineData("change-role", false)]
+    [InlineData("remove-member", false)]
+    [InlineData("change-role", true)]
+    [InlineData("remove-member", true)]
+    public async Task MemberPagingControlsRefuseQueuedEventsDuringRefreshAndOpenCommands(string flow, bool submitCommand)
     {
-        // The Disabled bindings are observed by two existing tests, but the handler guards exist for the
-        // click dispatched BEFORE the re-render lands. Invoking the callbacks directly is the only way to
-        // observe them; removing any of the three guards previously kept the whole suite green.
-        RegisterComponentServices();
+        var pendingSubmission = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gateway = new TrackingMembershipCommandGateway(pendingSubmission.Task);
+        RegisterComponentServices(gateway);
         TenantDetail detail = Detail("tenant.alpha");
         int nextRequests = 0;
         int previousRequests = 0;
-        TenantUsersSnapshot refreshing = TenantUsersSnapshot.Ready(
-            detail.TenantId,
-            detail.Members,
-            nextCursor: "cursor-page-2",
-            hasMore: true,
-            eTag: "members-etag",
-            projectionVersion: "tenant-sequence:1",
-            ReadModelFreshnessState.Current,
-            ProjectionLifecycleState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), IsRefreshing = true };
-
+        TenantUsersSnapshot members = MemberSnapshot(detail) with { HasMore = true, NextCursor = "page-2" };
         IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
             .Add(p => p.IsAddMemberAuthorized, true)
             .Add(p => p.IsChangeRoleAuthorized, true)
@@ -9825,60 +9820,223 @@ public sealed class TenantDetailSurfaceTests : BunitContext
             .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
             .Add(view => view.ProjectionVersion, "tenant-sequence:1")
             .Add(view => view.CanGoPrevious, true)
-            .Add(view => view.Members, refreshing)
-            .Add(view => view.OnNextPageRequested, EventCallback.Factory.Create(this, () => nextRequests++))
-            .Add(view => view.OnPreviousPageRequested, EventCallback.Factory.Create(this, () => previousRequests++)));
+            .Add(view => view.Members, members)
+            .Add(view => view.OnNextPageRequested, () => nextRequests++)
+            .Add(view => view.OnPreviousPageRequested, () => previousRequests++));
 
-        // A load is in flight (IsRefreshing): neither handler may start a second page read.
-        await cut.InvokeAsync(() => cut.Instance.RequestNextPageAsync());
-        await cut.InvokeAsync(() => cut.Instance.RequestPreviousPageAsync());
-        nextRequests.ShouldBe(0);
-        previousRequests.ShouldBe(0);
+        // Capture the actual event bindings while both buttons are enabled. These represent clicks
+        // already dispatched before the disabled re-render; a disabled DOM click alone skips the handler.
+        EventCallback<MouseEventArgs> next = MemberPagingCallback(cut, "next");
+        EventCallback<MouseEventArgs> previous = MemberPagingCallback(cut, "previous");
+        cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Render(parameters => parameters.Add(view => view.Members, members with { IsRefreshing = true }));
+        await AssertBlockedAsync();
 
-        // Not refreshing, but a member command flow is open: still blocked, because paging unmounts it.
-        cut.Render(parameters => parameters
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
-            .Add(view => view.CanGoPrevious, true)
-            .Add(view => view.Members, refreshing with { IsRefreshing = false })
-            .Add(view => view.OnNextPageRequested, EventCallback.Factory.Create(this, () => nextRequests++))
-            .Add(view => view.OnPreviousPageRequested, EventCallback.Factory.Create(this, () => previousRequests++)));
-        cut.FindAll("[data-testid='tenants-change-role-open']")[0].Click();
+        cut.Render(parameters => parameters.Add(view => view.Members, members));
+        cut.FindAll($"[data-testid='tenants-{flow}-open']").Last().Click();
+        if (flow == "change-role")
+        {
+            FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        }
+        object activeFlow = flow == "change-role"
+            ? cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance
+            : cut.FindComponent<RemoveTenantMemberFlow>().Instance;
+        await AssertBlockedAsync();
+        object retainedFlow = flow == "change-role"
+            ? cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance
+            : cut.FindComponent<RemoveTenantMemberFlow>().Instance;
+        retainedFlow.ShouldBeSameAs(activeFlow);
+        cut.Find($"[data-testid='tenants-{flow}-flow']");
+        AssertFormState();
 
-        await cut.InvokeAsync(() => cut.Instance.RequestNextPageAsync());
-        await cut.InvokeAsync(() => cut.Instance.RequestPreviousPageAsync());
-        nextRequests.ShouldBe(0);
-        previousRequests.ShouldBe(0);
+        if (submitCommand)
+        {
+            Task submission = cut.Find($"[data-testid='tenants-{flow}-flow'] form").SubmitAsync();
+            try
+            {
+                cut.WaitForAssertion(() =>
+                {
+                    (gateway.ChangeRoleCallCount + gateway.RemoveMemberCallCount).ShouldBe(1);
+                    CommandState().State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+                });
+                string? messageId = CommandState().MessageId;
+                messageId.ShouldNotBeNullOrWhiteSpace();
+                await AssertBlockedAsync();
+                AssertFormState();
+                CommandState().State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+                CommandState().MessageId.ShouldBe(messageId);
+                cut.Find($"[data-testid='tenants-{flow}-cancel']").HasAttribute("disabled").ShouldBeTrue();
+            }
+            finally
+            {
+                pendingSubmission.TrySetResult(TenantCommandSubmissionResult.Rejected("Command refused by the test."));
+                await submission.WaitAsync(DefaultWaitTimeout);
+            }
+            CommandState().State.ShouldBe(TenantCommandLifecycleState.Rejected);
+        }
+        gateway.ChangeRoleCallCount.ShouldBe(submitCommand && flow == "change-role" ? 1 : 0);
+        gateway.RemoveMemberCallCount.ShouldBe(submitCommand && flow == "remove-member" ? 1 : 0);
 
-        // Nothing in flight and no open flow: both handlers proceed.
-        cut.Find("[data-testid='tenants-change-role-cancel']").Click();
-        await cut.InvokeAsync(() => cut.Instance.RequestNextPageAsync());
-        await cut.InvokeAsync(() => cut.Instance.RequestPreviousPageAsync());
+        cut.Find($"[data-testid='tenants-{flow}-cancel']").Click();
+        cut.FindAll($"[data-testid='tenants-{flow}-flow']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeFalse();
+        await cut.Find("[data-testid='tenants-member-next']").ClickAsync(new MouseEventArgs());
+        await cut.Find("[data-testid='tenants-member-previous']").ClickAsync(new MouseEventArgs());
         nextRequests.ShouldBe(1);
         previousRequests.ShouldBe(1);
 
-        // Finally the two boundary guards themselves. Every phase above holds HasMore and CanGoPrevious
-        // true, so `Members.HasMore &&` and `CanGoPrevious &&` could both be deleted with the suite green --
-        // a last page would then re-request a dead cursor and page one would walk off the front.
-        cut.Render(parameters => parameters
-            .Add(view => view.Detail, detail)
-            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
-            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
-            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(view => view.ProjectionVersion, "tenant-sequence:1")
-            .Add(view => view.CanGoPrevious, false)
-            .Add(view => view.Members, MemberSnapshot(detail))
-            .Add(view => view.OnNextPageRequested, EventCallback.Factory.Create(this, () => nextRequests++))
-            .Add(view => view.OnPreviousPageRequested, EventCallback.Factory.Create(this, () => previousRequests++)));
+        (TenantCommandLifecycleState State, string? MessageId) CommandState()
+            => flow == "change-role"
+                ? (cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance.Snapshot.State,
+                    cut.FindComponent<ChangeTenantMemberRoleFlow>().Instance.Snapshot.MessageId)
+                : (cut.FindComponent<RemoveTenantMemberFlow>().Instance.Snapshot.State,
+                    cut.FindComponent<RemoveTenantMemberFlow>().Instance.Snapshot.MessageId);
 
-        await cut.InvokeAsync(() => cut.Instance.RequestNextPageAsync());
-        await cut.InvokeAsync(() => cut.Instance.RequestPreviousPageAsync());
-        nextRequests.ShouldBe(1);
-        previousRequests.ShouldBe(1);
+        void AssertFormState()
+        {
+            if (flow == "change-role")
+            {
+                cut.FindComponents<FluentSelect<string, string>>()
+                    .Single(select => select.Instance.Id == "tenants-change-role-new-role")
+                    .Instance.Value.ShouldBe(nameof(TenantRole.TenantContributor));
+            }
+            else
+            {
+                cut.Find("[data-testid='tenants-remove-member-confirmation']").GetAttribute("value").ShouldBe("reader-user");
+            }
+        }
+
+        async Task AssertBlockedAsync()
+        {
+            cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeTrue();
+            cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeTrue();
+            await cut.Find("[data-testid='tenants-member-next']").ClickAsync(new MouseEventArgs());
+            await cut.Find("[data-testid='tenants-member-previous']").ClickAsync(new MouseEventArgs());
+            await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+            await cut.InvokeAsync(() => previous.InvokeAsync(new MouseEventArgs()));
+            nextRequests.ShouldBe(0);
+            previousRequests.ShouldBe(0);
+        }
     }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task MemberPagingControlsHonorDirectionBoundaries(bool canGoPrevious, bool hasMore)
+    {
+        RegisterComponentServices();
+        TenantDetail detail = Detail("tenant.alpha");
+        TenantUsersSnapshot members = MemberSnapshot(detail) with { HasMore = true, NextCursor = "page-2" };
+        int nextRequests = 0;
+        int previousRequests = 0;
+        IRenderedComponent<MemberAccessReview> cut = Render<MemberAccessReview>(parameters => parameters
+            .Add(view => view.Detail, detail)
+            .Add(view => view.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(view => view.Members, members)
+            .Add(view => view.CanGoPrevious, true)
+            .Add(view => view.OnNextPageRequested, () => nextRequests++)
+            .Add(view => view.OnPreviousPageRequested, () => previousRequests++));
+        EventCallback<MouseEventArgs> next = MemberPagingCallback(cut, "next");
+        EventCallback<MouseEventArgs> previous = MemberPagingCallback(cut, "previous");
+
+        cut.Render(parameters => parameters
+            .Add(view => view.CanGoPrevious, canGoPrevious)
+            .Add(view => view.Members, members with { HasMore = hasMore, NextCursor = hasMore ? "page-2" : null }));
+        if (canGoPrevious || hasMore)
+        {
+            cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBe(!hasMore);
+            cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBe(!canGoPrevious);
+            await cut.Find("[data-testid='tenants-member-next']").ClickAsync(new MouseEventArgs());
+            await cut.Find("[data-testid='tenants-member-previous']").ClickAsync(new MouseEventArgs());
+        }
+        else
+        {
+            cut.FindAll("[data-testid='tenants-member-paging']").ShouldBeEmpty();
+        }
+        nextRequests.ShouldBe(hasMore ? 1 : 0);
+        previousRequests.ShouldBe(canGoPrevious ? 1 : 0);
+        // The captured callbacks remain callable even when the pager has been removed at the boundary.
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+        await cut.InvokeAsync(() => previous.InvokeAsync(new MouseEventArgs()));
+        nextRequests.ShouldBe(hasMore ? 2 : 0);
+        previousRequests.ShouldBe(canGoPrevious ? 2 : 0);
+
+        cut.Render(parameters => parameters.Add(view => view.CanGoPrevious, true).Add(view => view.Members, members));
+        cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeFalse();
+        await cut.Find("[data-testid='tenants-member-next']").ClickAsync(new MouseEventArgs());
+        await cut.Find("[data-testid='tenants-member-previous']").ClickAsync(new MouseEventArgs());
+        nextRequests.ShouldBe((hasMore ? 2 : 0) + 1);
+        previousRequests.ShouldBe((canGoPrevious ? 2 : 0) + 1);
+    }
+
+    [Theory]
+    [InlineData("next", "page-3")]
+    [InlineData("previous", null)]
+    public async Task MemberPagingControlsDoNotStartAnotherReadWhileAPageIsPending(string direction, string? expectedCursor)
+    {
+        IRenderedComponent<TenantDetailPage> cut = await RenderDw150PageTwoAsync();
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+        List<TenantUsersRequest> requests = [];
+        var pending = new TaskCompletionSource<TenantUsersSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                requests.Add(call.Arg<TenantUsersRequest>());
+                return pending.Task;
+            });
+        EventCallback<MouseEventArgs> next = MemberPagingCallback(cut, "next");
+        EventCallback<MouseEventArgs> previous = MemberPagingCallback(cut, "previous");
+        Task first = cut.Find($"[data-testid='tenants-member-{direction}']").ClickAsync(new MouseEventArgs());
+        try
+        {
+            cut.WaitForAssertion(() =>
+            {
+                requests.ShouldHaveSingleItem().Cursor.ShouldBe(expectedCursor);
+                AssertDw150Refreshing(cut);
+            });
+            await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs())).WaitAsync(DefaultWaitTimeout);
+            await cut.InvokeAsync(() => previous.InvokeAsync(new MouseEventArgs())).WaitAsync(DefaultWaitTimeout);
+            requests.ShouldHaveSingleItem().Cursor.ShouldBe(expectedCursor);
+        }
+        finally
+        {
+            pending.TrySetResult(Dw150Members("arrived-page", expectedCursor));
+            await first.WaitAsync(DefaultWaitTimeout);
+        }
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("arrived-page");
+        cut.FindAll("[data-testid='tenants-member-refreshing']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBe(expectedCursor is null);
+        gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                requests.Add(call.Arg<TenantUsersRequest>());
+                return Task.FromResult(Dw150Members("followup-page", call.Arg<TenantUsersRequest>().Cursor));
+            });
+        string followup = direction == "next" ? "previous" : "next";
+        await cut.Find($"[data-testid='tenants-member-{followup}']").ClickAsync(new MouseEventArgs());
+        requests.Select(request => request.Cursor).ShouldBe(new[] { expectedCursor, "page-2" });
+        cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("followup-page");
+    }
+
+    private static EventCallback<MouseEventArgs> MemberPagingCallback<TComponent>(IRenderedComponent<TComponent> cut, string direction)
+        where TComponent : class, IComponent
+        => cut.FindComponents<FluentButton>()
+            .Single(button => button.Instance.AdditionalAttributes is { } attributes
+                && attributes.TryGetValue("data-testid", out object? actual)
+                && Equals(actual, $"tenants-member-{direction}"))
+            .Instance.OnClick;
 
     [Fact]
     public async Task Completed_detail_read_keeps_the_replacement_member_read_refreshing()
@@ -10066,7 +10224,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         // Exercise the retained history through Previous, not only reflection or request counts.
         gateway.GetTenantUsersAsync(Arg.Any<TenantUsersRequest>(), Arg.Any<TenantUsersSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(call => Task.FromResult(Dw150Members("returned-first", call.Arg<TenantUsersRequest>().Cursor)));
-        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.RequestPreviousPageAsync());
+        await cut.Find("[data-testid='tenants-member-previous']").ClickAsync(new MouseEventArgs());
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("returned-first");
         DetailField(cut, "_memberCursor").ShouldBeNull();
         cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeTrue();
@@ -10270,7 +10428,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
                 call.Arg<TenantUsersRequest>().Cursor)));
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters.Add(page => page.TenantId, "tenant.alpha"));
         cut.WaitForElement("[data-testid='tenants-member-row']");
-        await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.RequestNextPageAsync());
+        await cut.Find("[data-testid='tenants-member-next']").ClickAsync(new MouseEventArgs());
         cut.Find("[data-testid='tenants-member-table']").TextContent.ShouldContain("page-two");
         return cut;
     }
@@ -10408,9 +10566,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
 
         IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
             .Add(page => page.TenantId, "tenant.alpha"));
-        IRenderedComponent<MemberAccessReview> members = cut.FindComponent<MemberAccessReview>();
-
-        Task nextPage = cut.InvokeAsync(() => members.Instance.RequestNextPageAsync());
+        Task nextPage = cut.Find("[data-testid='tenants-member-next']").ClickAsync(new MouseEventArgs());
         cut.WaitForAssertion(() => memberRequests.Count.ShouldBe(2));
 
         // A detail refresh lands while the member page read is still open.
@@ -10907,7 +11063,7 @@ public sealed class TenantDetailSurfaceTests : BunitContext
         else
         {
             long epoch = HandoffField<long>(cut, "_readRefreshRouteVersion");
-            await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.RequestNextPageAsync());
+            await cut.Find("[data-testid='tenants-member-next']").ClickAsync(new MouseEventArgs());
             HandoffField<string>(cut, "_memberCursor").ShouldBe("page-2");
             await cut.InvokeAsync(() => cut.FindComponent<MemberAccessReview>().Instance.OnProjectionRefreshRequested.InvokeAsync());
             await cut.InvokeAsync(() => cut.FindComponent<EditTenantMetadataFlow>().Instance.OnProjectionRefreshRequested.InvokeAsync());

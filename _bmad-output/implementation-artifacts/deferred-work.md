@@ -1,5 +1,13 @@
 # Deferred Work
 
+**DW-155 closure (2026-10-20):** Member paging is qualified through rendered Fluent buttons and captured queued events; both handlers are private with unchanged guards. Ten cases cover edited and pending change-role/removal commands, retained message identity, refresh, direction-boundary recovery, delayed reads and follow-up navigation. Four harmful controls fail as intended; independent review corrections are accepted. Final Debug source build has zero warnings/errors, focused 10/10 and full UI 6573/6573 pass with zero failures/skips. Only DW-155 closes: all 656 IDs remain, 397 done/259 open across 234 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-155-validation-evidence.md).
+
+**DW-113 closure (2026-10-20):** Missing tenant-list reason translations now fall back to existing localized surface messages, preserving supported reason copy and search-page continuation. The unchanged component fails 160 of 280 new EN/FR rendered cases; the final Debug source build has zero warnings/errors, focused 280/280 and full UI 6564/6564 pass with zero failures/skips. Only DW-113 closes: all 656 IDs remain, 396 done/260 open across 235 exact-covering maintenance rows. Historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-113-validation-evidence.md).
+
+**DW-439 closure (2026-10-20):** Fifteen French receipt values now use the missing accents and established apostrophe convention, with one existing partial-receipt expectation updated. Debug source build has zero warnings/errors; final full UI 6284/6284 and the 118-case correction-panel recheck pass with zero failures/skips. The initial full-suite remount assertion failure and independent documentation review remain in [validation evidence](dw-439-validation-evidence.md). Only DW-439 closes: all 656 IDs remain, 395 done/261 open across 236 maintenance rows. Broader DW-270/DW-306/DW-324 copy work, historical fields, unrelated records, dependencies, archive/sprint and release holds remain preserved.
+
+**DW-437/DW-451/DW-534 closure (2026-10-20):** Story Guards now validates committed changed-story snapshots for full-history push/PR ranges, with explicit historical endpoints restricted to pointer-free event history. The new 49-case real-Git lane and retained 77/13/31 regressions pass; exact controls and review are in [validation evidence](dw-437-validation-evidence.md). Only these three records close: all 656 IDs remain, 394 done/262 open across 236 maintenance rows. DW-198, unrelated history, dependencies, archive/sprint and release holds remain preserved.
+
 **DW-431 closure (2026-10-20):** Story 5.2 now records its true start, initial and final historical endpoints, four exact closure targets and the complete seven-commit pointer chain, including two omitted final-closure moves. The historical guard and 77/77 regressions pass; moving HEAD and eight incorrect-target/missing-declaration controls fail as intended. Only DW-431 closes: all 656 IDs remain, 391 done/265 open across 237 maintenance rows. DW-437/DW-451/DW-534, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-431-validation-evidence.md).
 
 **DW-429 closure (2026-10-20):** Pushall now resolves origin’s live advertised default and verifies the matching fetched commit before committing or switching. Thirty-one real-Git default-selection tests, 13 attachment tests and 77 gitlink tests pass. Only DW-429 closes: all 656 IDs remain, 390 done/266 open across 238 maintenance rows. Original fields, unrelated records, external work, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-429-validation-evidence.md).
@@ -856,17 +864,26 @@ location: ListSurfaceStates.razor; TenantsResources.resx
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface. evidence: `ListSurfaceStates.razor` resolves `Localizer["Tenants.List.Reason.{Reason}"]` for any non-`None` reason, but only 5 of the 10 `TenantListReason` members have a `Tenants.List.Reason.*` key in `TenantsResources.resx`; an unmapped reason therefore renders the literal key in EN and FR. No currently reachable call site passes an unmapped reason, so this is a latent pre-existing trap in the shared component rather than a live defect of this story.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor Message interpolates Tenants.List.Reason.{Reason}; Resources/TenantsResources.resx has five reason keys while State/TenantList/TenantListReason.cs has eleven non-None members. Unsupported inputs still echo keys; no current reachable caller was established.
-verification-files: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor; src/Hexalith.Tenants.UI/State/TenantList/TenantListReason.cs
-evidence-kind: verified-defect
+pre-dw-113-status: open
+status: done 2026-10-20
+pre-dw-113-disposition: actionable
+disposition: resolved
+pre-dw-113-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-113-verification: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor Message interpolates Tenants.List.Reason.{Reason}; Resources/TenantsResources.resx has five reason keys while State/TenantList/TenantListReason.cs has eleven non-None members. Unsupported inputs still echo keys; no current reachable caller was established.
+verification: The unchanged component fails 160/280 new EN/FR rendered cases for six unmapped reasons and two invalid enum values. ResourceNotFound now selects the existing surface message, preserving all supported reason copy and search continuation. Debug source build has zero warnings/errors; focused 280/280 and full UI 6564/6564 pass with zero failures/skips. Independent review and exact commands/limits are in dw-113-validation-evidence.md.
+pre-dw-113-verification-files: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor; src/Hexalith.Tenants.UI/State/TenantList/TenantListReason.cs
+verification-files: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor; tests/Hexalith.Tenants.UI.Tests/Components/ListSurfaceStatesTests.cs; _bmad-output/implementation-artifacts/dw-113-validation-evidence.md
+pre-dw-113-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Add explicit fallback/mapping and EN/FR coverage for every accepted reason.
+pre-dw-113-next-action: Add explicit fallback/mapping and EN/FR coverage for every accepted reason.
+next-action: Closed within DW-113; preserve unrelated deferred work, historical findings, dependencies and existing release qualification holds.
 related: none
+resolution-evidence: [Exact reproduction, verification and independent review](dw-113-validation-evidence.md)
+resolution-spec: spec-dw-113-list-reason-fallback.md
 
 ### DW-114: The advance-by-requested-window paging rule rests on a Memories server premise that no test in this repository can observe
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
@@ -1296,17 +1313,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:585
 reason: The legacy ledger defers this issue: Paging guards widened to `internal` for direct test access. Original context is preserved in legacy-detail.
 legacy-detail: - **Paging guards widened to `internal` for direct test access** — `MemberAccessReview`'s paging guards were promoted from private to internal so the test project could invoke them directly; the accompanying comment concedes every guard could be deleted with the suite still green. Reason for deferral: pre-existing test-design debt, not introduced behaviour. The guards remain unobservable through the rendered affordance, so the coverage they now have does not prove the control behaves correctly — but narrowing them again without a rendered-affordance test would lose coverage. Revisit if: the member pager gains bUnit tests that drive it through its rendered controls. [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:585]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor RequestNextPageAsync and RequestPreviousPageAsync remain internal, with comments explaining pre-render click guards. Direct invocation still does not prove the rendered disabled-control behavior.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
-evidence-kind: verified-gap
+pre-dw-155-status: open
+status: done 2026-10-20
+pre-dw-155-disposition: actionable
+disposition: resolved
+pre-dw-155-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-155-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor RequestNextPageAsync and RequestPreviousPageAsync remain internal, with comments explaining pre-render click guards. Direct invocation still does not prove the rendered disabled-control behavior.
+verification: Ten rendered-control cases qualify both directions during refresh, edited change-role/removal flows, actual pending submissions with retained RequestSent/message identity, direction-boundary recovery, held real-page reads and follow-up navigation. All direct handler calls are replaced and both handlers are private with unchanged guards. Four final guard/binding mutations fail 4/10, 4/10, 3/10 and 10/10 as intended. Final Debug source build has zero warnings/errors; focused 10/10 and full UI 6573/6573 pass with zero failures/skips. Independent correction recheck accepts all five findings. Exact commands and limits are in dw-155-validation-evidence.md.
+pre-dw-155-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-155-validation-evidence.md
+pre-dw-155-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Drive member paging through rendered controls while a command/page request is pending.
+pre-dw-155-next-action: Drive member paging through rendered controls while a command/page request is pending.
+next-action: Closed within DW-155; preserve unrelated deferred work, historical findings, dependencies and existing release qualification holds.
 related: DW-610
+resolution-evidence: [Exact verification, controls and independent review](dw-155-validation-evidence.md)
+resolution-spec: spec-dw-155-rendered-member-paging.md
 
 ### DW-156: Command `SafeMessage` values are hardcoded English literals rather than `TenantsResources.resx` entries
 
@@ -5137,17 +5163,26 @@ location: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Un-defer the CI story gitlink gate so `validate-story-gitlinks.py` runs against changed story files, not only its own regression suite.\n  evidence: Decision 2026-09-27 (\"Declare + enable CI gate\"). Story 5.2 is the fifth undeclared-bump occurrence; story commit `3ba48896` moved EventStore and FrontComposer without saying so. The fourth occurrence (Story 3.4, 2026-08-25) was the pre-agreed trigger. `.github/workflows/story-guards.yml` currently runs only `tests/scripts/test_validate_story_gitlinks.py`. The gate must compare each story's `baseline_commit..HEAD` range, because bumps often land in a later `build(deps)` commit."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/story-guards.yml::gitlink-guard still runs only python3 tests/scripts/test_validate_story_gitlinks.py. It never invokes scripts/validate-story-gitlinks.py on changed stories. Current Story 5.2 and 5.4 guards still exit 1. The 2026-09-27 Declare + enable CI gate decision is already approved and needs implementation, not a new policy question.
-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
-evidence-kind: verified-gap
+pre-dw-437-status: open
+status: done 2026-10-20
+pre-dw-437-disposition: actionable
+disposition: resolved
+pre-dw-437-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-437-verification: .github/workflows/story-guards.yml::gitlink-guard still runs only python3 tests/scripts/test_validate_story_gitlinks.py. It never invokes scripts/validate-story-gitlinks.py on changed stories. Current Story 5.2 and 5.4 guards still exit 1. The 2026-09-27 Declare + enable CI gate decision is already approved and needs implementation, not a new policy question.
+verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
+pre-dw-437-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
+verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
+pre-dw-437-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: Story attribution must avoid including unrelated later pointer updates
-next-action: Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling.
+pre-dw-437-next-action: Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling.
+next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
 related: DW-431, DW-451, DW-419, DW-420
+resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
+resolution-spec: spec-dw-437-changed-story-ci-gate.md
 
 
 ## Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-27)
@@ -5185,16 +5220,26 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Add accents to the remaining unaccented French receipt strings and make apostrophes consistent.\n  evidence: `TenantsResources.fr.resx` still carries unaccented receipt copy from 2026-06-06 (`La preuve d'audit est prete a citer.`, `perimee`, `reessayez`, `Reference de commande`). Story 5.3 accented only the strings it rewrote, so the file now mixes `’` with ASCII `'`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still contains Reference de commande (:3284), La preuve d'audit est prete a citer (:3332), perimee (:3335), and reessayez (:3341), beside newer accented/curly-apostrophe strings. The localisation inconsistency remains visible in receipt copy.
-evidence-kind: verified-defect
+pre-dw-439-status: open
+status: done 2026-10-20
+pre-dw-439-disposition: actionable
+disposition: resolved
+pre-dw-439-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-439-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still contains Reference de commande (:3284), La preuve d'audit est prete a citer (:3332), perimee (:3335), and reessayez (:3341), beside newer accented/curly-apostrophe strings. The localisation inconsistency remains visible in receipt copy.
+verification: Fifteen remaining French receipt values now use the correct accents and established U+2019 apostrophes, with one existing French partial-state expectation updated. Manual editorial inspection and executable integrity checks preserve all 52 receipt / 1717 total EN/FR keys and every placeholder. Debug source build passes with zero warnings/errors; focused correction-panel recheck 118/118 and final full UI 6284/6284 pass with zero failures/skips. The initial full UI remount assertion failure and independent documentation review are retained in dw-439-validation-evidence.md. No runtime or browser behavior change is claimed.
+pre-dw-439-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: French editorial convention
-next-action: Correct the remaining French receipt accents and adopt the established apostrophe convention, checking EN/FR key parity.
+pre-dw-439-next-action: Correct the remaining French receipt accents and adopt the established apostrophe convention, checking EN/FR key parity.
+next-action: Closed within DW-439; preserve the broader DW-270/DW-306/DW-324 copy work, unrelated records, dependency pointers and existing release qualification holds.
 related: none
+verification-files: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs; _bmad-output/implementation-artifacts/dw-439-validation-evidence.md
+resolution-evidence: [Exact validation, initial failure and independent review](dw-439-validation-evidence.md)
+resolution-spec: spec-dw-439-french-receipt-copy.md
+
 
 
 ### DW-440: Decide whether the absolute audit timestamp should be culture-formatted, as the epic's "culture-aware" wording suggests.
@@ -5391,18 +5436,27 @@ location: .github/workflows/story-guards.yml
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Seventh undeclared-bump occurrence for the CI story gitlink gate tracked above (Story 5.2 entry, \"Un-defer the CI story gitlink gate\").\n  evidence: Commit `e077e65e` (\"update audit availability and recovery specifications and sprint status\") moved `references/Hexalith.Builds` `0610f783`→`85ca19bc`, `references/Hexalith.EventStore` `801f3e52`→`cc79c03a` and `references/Hexalith.FrontComposer` `7d3af61e`→`f86fb730` without a declaration. `validate-story-gitlinks.py` on the 5.4 spec exits 1, while `.github/workflows/story-guards.yml:35` runs only the guard's own regression suite, so CI stayed green."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: The historical e077e65e occurrence remains valid history. .github/workflows/story-guards.yml still runs only the guard regression suite, and the current Story 5.4 validator executed 2026-10-12 exits 1 for later undeclared McpCli/Memories/Platform/PolymorphicSerializations pointers. The missing changed-story enforcement identified by the seventh occurrence is still present.
-verification-files: .github/workflows/story-guards.yml
-evidence-kind: verified-gap
+pre-dw-437-status: open
+status: done 2026-10-20
+pre-dw-437-disposition: actionable
+disposition: resolved
+pre-dw-437-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-437-verification: The historical e077e65e occurrence remains valid history. .github/workflows/story-guards.yml still runs only the guard regression suite, and the current Story 5.4 validator executed 2026-10-12 exits 1 for later undeclared McpCli/Memories/Platform/PolymorphicSerializations pointers. The missing changed-story enforcement identified by the seventh occurrence is still present.
+verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
+pre-dw-437-verification-files: .github/workflows/story-guards.yml
+verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
+pre-dw-437-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: DW-437 CI gate and story attribution
-next-action: Implement the already-approved changed-story CI gate from DW-437 and preserve this recurrence as supporting history.
+pre-dw-437-next-action: Implement the already-approved changed-story CI gate from DW-437 and preserve this recurrence as supporting history.
+next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
 related: DW-437
 duplicate-of: DW-437
+resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
+resolution-spec: spec-dw-437-changed-story-ci-gate.md
 
 
 ### DW-452: Hand off to Hexalith.Builds. The G-6 validator tuple pins CommunityToolkit.Aspire.Hosting.Dapr `13.5.1-beta.767`, while the central catalog pins `.770`.
@@ -6752,18 +6806,27 @@ location: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Carried, with no new work item; see DW-162. CI still never runs `validate-story-gitlinks.py` against real story files.\n  evidence: `.github/workflows/story-guards.yml:34` runs only `tests/scripts/test_validate_story_gitlinks.py` on synthetic repositories. `5bfe0715` reached `main` green while the guard exits 1 on both 5.6 specs (Memories `c4697367`, Platform `495d1d0d`). 10th recurrence of the silent-bump pattern."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/story-guards.yml:34 runs only tests/scripts/test_validate_story_gitlinks.py; no step invokes the production guard against real selected story artifacts. Current historical 5.6-2 guard execution still reports undeclared/misstated pointers, demonstrating synthetic regression success is not actual artifact validation.
-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py
-evidence-kind: verified-gap
+pre-dw-437-status: open
+status: done 2026-10-20
+pre-dw-437-disposition: actionable
+disposition: resolved
+pre-dw-437-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-437-verification: .github/workflows/story-guards.yml:34 runs only tests/scripts/test_validate_story_gitlinks.py; no step invokes the production guard against real selected story artifacts. Current historical 5.6-2 guard execution still reports undeclared/misstated pointers, demonstrating synthetic regression success is not actual artifact validation.
+verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
+pre-dw-437-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py
+verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
+pre-dw-437-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P1
 owner: unassigned
 dependencies: DW-198 historical story-range selection; DW-520 declaration format
-next-action: Wire production story-range validation for the actual change scope, using durable story-end/provenance rules that avoid treating later unrelated dependency changes as story-owned.
+pre-dw-437-next-action: Wire production story-range validation for the actual change scope, using durable story-end/provenance rules that avoid treating later unrelated dependency changes as story-owned.
+next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
 related: DW-162,DW-198,DW-520,DW-549
 duplicate-of: DW-437
+resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
+resolution-spec: spec-dw-437-changed-story-ci-gate.md
 
 
 ## Deferred from: code review of spec-gh-actions-28953291798-85906522208.md (2026-10-08)
