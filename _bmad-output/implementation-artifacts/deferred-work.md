@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-422 closure (2026-10-20):** Audit read-only recovery now shares its heading/grid render condition. The initial twelve-case component event/reset matrix qualifies the later existing validation protection and passes entry production; Debug source builds have zero warnings/errors, focused 230/230 and full UI 6284/6284 pass with zero failures/skips. Only DW-422 closes: all 656 IDs remain, 388 done/268 open across 240 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-422-validation-evidence.md).
+
 **DW-419 closure (2026-10-20):** Legacy story gitlink audits now refuse detected mid-story baselines with a true-start diagnostic, and Git inspection errors fail closed. The maintained guard suite passes 77/77; entry replay reproduces 24 unsafe CLI PASS results and both helper/command inspection-error bypasses. Only DW-419 closes: all 656 IDs remain, 387 done/269 open across 241 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-419-validation-evidence.md).
 
 **DW-420 closure (2026-10-20):** Existing DW-656 checkout-ownership and indexed-pointer fixes are requalified for legacy unchanged gitlink claims. All 69 maintained guard tests pass; isolated historical-resolver replay produces nine assertion/subtest failures, and HEAD-fallback/index-only alternatives fail their matching controls. Only this stale record closes: all 656 IDs remain, 386 done/270 open across 242 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-420-validation-evidence.md).
@@ -4861,17 +4863,26 @@ location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Keep tenant-audit Continue read-only linked to a rendered grid heading when filter validation is active.\n  evidence: `TenantAuditPage.CanContinueReadOnlyForState` checks rows and stale/degraded/list-refreshed state while `ShouldRenderRows` also requires no filter validation, so the recovery link can target a heading omitted from the DOM. The audit surface was changed by later Story 5.1 work in the baseline range."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantAuditPage.razor::CanContinueReadOnlyForState:613 only checks retained rows and stale/degraded/list-refreshed kind, whereas ShouldRenderRows:554 also requires !HasFilterValidation. The recovery anchor at :180 can still target #tenant-audit-grid-heading when validation omits the grid.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
-evidence-kind: verified-defect
+pre-dw-422-status: open
+pre-dw-422-disposition: actionable
+pre-dw-422-verification-date: 2026-10-12
+pre-dw-422-verification: TenantAuditPage.razor::CanContinueReadOnlyForState:613 only checks retained rows and stale/degraded/list-refreshed kind, whereas ShouldRenderRows:554 also requires !HasFilterValidation. The recovery anchor at :180 can still target #tenant-audit-grid-heading when validation omits the grid.
+pre-dw-422-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
+pre-dw-422-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Gate Continue read-only on the actual rendered grid/heading condition and cover stale retained rows with invalid filter input.
+pre-dw-422-next-action: Gate Continue read-only on the actual rendered grid/heading condition and cover stale retained rows with invalid filter input.
 related: DW-444
+status: done 2026-10-20
+disposition: resolved
+verification-date: 2026-10-20
+verification: Existing invalid-filter snapshot clearing and pending-read invalidation are qualified by an initial twelve-case component event/reset matrix, which also passes entry production. The read-only anchor now reuses the actual heading/grid render predicate while retaining its three recovery states. Debug source builds have zero warnings/errors; focused 230/230 and maintained UI 6284/6284 pass with zero failures/skips. Exact commands, independent review, historical protection and runtime/formatting limits are recorded in dw-422-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs; _bmad-output/implementation-artifacts/dw-422-validation-evidence.md
+evidence-kind: qualified-existing-fix
+next-action: Closed through existing-protection qualification and shared render gating; retain DW-444, unrelated deferred work and existing release holds.
+resolution-evidence: _bmad-output/implementation-artifacts/dw-422-validation-evidence.md
+resolution-spec: _bmad-output/implementation-artifacts/spec-dw-422-audit-read-only-target.md
 
 
 ### DW-423: Sanitize URL-supplied user and command context before showing it on the tenant audit page.

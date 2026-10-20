@@ -611,7 +611,7 @@
             or TenantAuditSurfaceKind.Error;
 
     private bool CanContinueReadOnlyForState
-        => _snapshot.Rows.Count > 0
+        => ShouldRenderRows
             && _snapshot.Kind is TenantAuditSurfaceKind.Stale
                 or TenantAuditSurfaceKind.Degraded
                 or TenantAuditSurfaceKind.ListRefreshed;

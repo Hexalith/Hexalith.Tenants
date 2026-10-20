@@ -2834,6 +2834,128 @@ public sealed class TenantAuditPageTests : BunitContext
     }
 
     [Theory]
+    [InlineData(TenantAuditSurfaceKind.Stale, "from")]
+    [InlineData(TenantAuditSurfaceKind.Stale, "to")]
+    [InlineData(TenantAuditSurfaceKind.Stale, "category")]
+    [InlineData(TenantAuditSurfaceKind.Stale, "range")]
+    [InlineData(TenantAuditSurfaceKind.Degraded, "from")]
+    [InlineData(TenantAuditSurfaceKind.Degraded, "to")]
+    [InlineData(TenantAuditSurfaceKind.Degraded, "category")]
+    [InlineData(TenantAuditSurfaceKind.Degraded, "range")]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, "from")]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, "to")]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, "category")]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, "range")]
+    public void ReadOnlyRecoveryTargetTracksInvalidFiltersAndReset(
+        TenantAuditSurfaceKind kind,
+        string invalidFilter)
+    {
+        TenantAuditSnapshot snapshot = SnapshotFor(kind);
+        TenantAuditSnapshot resetSnapshot = snapshot with
+        {
+            Rows = [Row("event-after-reset", AuditEventCategory.Access)],
+        };
+        StubTenantQueryGateway gateway = RegisterServices(snapshot, resetSnapshot);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-recovery-continue']");
+        string target = cut.Find("[data-testid='tenants-audit-recovery-continue']")
+            .GetAttribute("href").ShouldNotBeNull();
+        target.ShouldBe("#tenant-audit-grid-heading");
+        cut.Find(target).TagName.ShouldBe("H2");
+        cut.FindAll("[data-testid='tenants-audit-row']").Count.ShouldBe(1);
+
+        switch (invalidFilter)
+        {
+            case "from":
+                cut.Find("[data-testid='tenants-audit-filter-from']").Change("not-a-utc-date");
+                break;
+            case "to":
+                cut.Find("[data-testid='tenants-audit-filter-to']").Change("not-a-utc-date");
+                break;
+            case "category":
+                FluentSelectInterop.ChangeFluentSelect(cut, "tenants-audit-filter-category", "unknown-category");
+                break;
+            case "range":
+                cut.Find("[data-testid='tenants-audit-filter-from']").Change("2026-06-03T00:00");
+                cut.Find("[data-testid='tenants-audit-filter-to']").Change("2026-06-02T00:00");
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(invalidFilter));
+        }
+
+        gateway.Requests.Count.ShouldBe(1);
+        cut.Find("[data-testid='tenants-audit-invalid-filters']").GetAttribute("role").ShouldBe("alert");
+        cut.FindAll("[data-testid='tenants-audit-recovery-continue']").ShouldBeEmpty();
+        cut.FindAll(target).ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-grid']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-recovery-refresh']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-audit-recovery-reset']").Click();
+
+        cut.WaitForAssertion(() =>
+        {
+            gateway.Requests.Count.ShouldBe(2);
+            cut.FindAll("[data-testid='tenants-audit-invalid-filters']").ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-audit-recovery-continue']").GetAttribute("href").ShouldBe(target);
+            cut.Find(target).TagName.ShouldBe("H2");
+            cut.FindAll("[data-testid='tenants-audit-row']").Count.ShouldBe(1);
+            cut.Find("[data-testid='tenants-audit-row']")
+                .GetAttribute("data-audit-reference").ShouldBe("event-after-reset");
+        });
+        gateway.Requests[1].From.ShouldBeNull();
+        gateway.Requests[1].To.ShouldBeNull();
+        gateway.Requests[1].Category.ShouldBeNull();
+        gateway.Requests[1].Cursor.ShouldBeNull();
+        gateway.Requests[1].ETag.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(TenantAuditSurfaceKind.Stale)]
+    [InlineData(TenantAuditSurfaceKind.Degraded)]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed)]
+    public void ReadOnlyRecoveryHasNoTargetWithoutRows(TenantAuditSurfaceKind kind)
+    {
+        StubTenantQueryGateway gateway = RegisterServices(SnapshotFor(kind) with { Rows = [] });
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-recovery']");
+
+        gateway.Requests.Count.ShouldBe(1);
+        cut.FindAll("[data-testid='tenants-audit-recovery-continue']").ShouldBeEmpty();
+        cut.FindAll("#tenant-audit-grid-heading").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-grid']").ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData(TenantAuditSurfaceKind.Stale)]
+    [InlineData(TenantAuditSurfaceKind.Degraded)]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed)]
+    public async Task ReadOnlyRecoveryStaysHiddenAfterInvalidFiltersSupersedeLateCompletion(
+        TenantAuditSurfaceKind kind)
+    {
+        TenantAuditSnapshot snapshot = SnapshotFor(kind);
+        StubTenantQueryGateway gateway = RegisterServices(snapshot);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters
+            .Add(p => p.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-audit-recovery-continue']");
+        var pending = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.QueueResponse(pending.Task);
+        Task refresh = cut.Find("[data-testid='tenants-audit-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => gateway.Requests.Count.ShouldBe(2));
+        cut.Find("[data-testid='tenants-audit-filter-from']").Change("invalid-date");
+
+        pending.SetResult(snapshot with { Rows = [Row("event-late", AuditEventCategory.Access)] });
+        await refresh;
+
+        gateway.Requests.Count.ShouldBe(2);
+        cut.Find("[data-testid='tenants-audit-invalid-filters']").GetAttribute("role").ShouldBe("alert");
+        cut.FindAll("[data-testid='tenants-audit-recovery-continue']").ShouldBeEmpty();
+        cut.FindAll("#tenant-audit-grid-heading").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-audit-grid']").ShouldBeEmpty();
+    }
+
+    [Theory]
     [InlineData(TenantAuditSurfaceKind.Unauthorized, null, "/support/audit-incident", "permission")]
     [InlineData(TenantAuditSurfaceKind.Unavailable, "/support/audit-access", null, "escalate")]
     [InlineData(TenantAuditSurfaceKind.Unauthorized, "https://external.example/access", "/support/audit-incident", "permission")]
