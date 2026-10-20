@@ -356,7 +356,8 @@
               "permissions": []
             },
             "callers": [
-              "eventstore"
+              "eventstore",
+              "parties"
             ],
             "operations": [
               {
@@ -419,6 +420,13 @@
                 "path": "/admin/operational-index-metadata",
                 "verbs": [
                   "POST"
+                ]
+              },
+              {
+                "caller": "parties",
+                "path": "/ready",
+                "verbs": [
+                  "GET"
                 ]
               }
             ]
