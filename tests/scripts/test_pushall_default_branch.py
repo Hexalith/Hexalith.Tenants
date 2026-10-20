@@ -26,6 +26,11 @@ def documented_blocks(skill):
     return re.findall(r"```bash\n(.*?)\n```", body, re.S)[1:3]
 
 
+def documented_command(skill, step):
+    body = skill.read_text(encoding="utf-8").split("## Per-repo procedure", 1)[1]
+    return re.search(rf"(?m)^{step}\. (?:Try )?`([^`]+)`", body)[1]
+
+
 class PushallDefaultBranchTests(unittest.TestCase):
     def setUp(self):
         self.fixture = attachment.PushallDetachedHeadTests()
@@ -49,7 +54,11 @@ class PushallDefaultBranchTests(unittest.TestCase):
     def advertisement(self, branch="main", oid=None):
         return f"ref: refs/heads/{branch}\tHEAD\n{oid or self.oid}\tHEAD\n"
 
-    def run_block(self, skill, overrides=None, switch=False, variables=None):
+    def snapshot(self):
+        gitdir = Path(self.git(self.repo, "rev-parse", "--absolute-git-dir").stdout.decode().strip())
+        return self.fixture.snapshot(), (gitdir / "config").read_bytes()
+
+    def run_block(self, skill, overrides=None, switch=False, steps=()):
         shim = Path(tempfile.mkdtemp(prefix="default trace ", dir=self.fixture.root))
         trace = shim / "commands.jsonl"
         script = shim / "git"
@@ -68,39 +77,48 @@ class PushallDefaultBranchTests(unittest.TestCase):
         env = dict(self.fixture.env, PATH=str(shim) + os.pathsep + self.fixture.env["PATH"])
         resolve, checkout = documented_blocks(skill)
         command = resolve
-        if variables:
-            command = "\n".join(f"{key}={shlex.quote(value)}" for key, value in variables.items())
         if switch:
             command += "\n" + checkout
+        for step in steps:
+            command += "\n" + documented_command(skill, step)
         command += '\nprintf "%s\\n" "$pushall_default_branch"'
         command = command.replace("<dir>", shlex.quote(str(self.repo)))
         result = subprocess.run(["bash", "-e", "-c", command], env=env,
                                 capture_output=True, check=False)
-        calls = [json.loads(line) for line in trace.read_text().splitlines()]
+        calls = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
         for args in calls:
             self.assertEqual(args[args.index("-C") + 1], str(self.repo))
+            operation = args[args.index("-C") + 2:]
             allowed = ("remote", "ls-remote", "check-ref-format", "for-each-ref", "cat-file")
             if switch:
-                allowed += ("show-ref", "switch")
-            self.assertIn(args[args.index("-C") + 2], allowed)
+                allowed += ("symbolic-ref", "show-ref", "switch")
+            if steps:
+                allowed += ("merge", "push")
+            self.assertIn(operation[0], allowed)
+            if operation[0] == "remote":
+                self.assertEqual(operation, ["remote", "get-url", "origin"])
+            if operation[0] == "symbolic-ref":
+                self.assertEqual(operation[:2], ["symbolic-ref", "--quiet"])
+                self.assertEqual(len(operation), 3, "Symbolic ref inspection must not write a target")
+                self.assertTrue(operation[2].startswith("refs/heads/"))
         return result, calls
 
     def assert_resolves(self, expected):
-        before = self.fixture.snapshot()
+        before = self.snapshot()
         for skill in SKILLS:
             result, _ = self.run_block(skill)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(result.stdout.decode().strip(), expected)
-            self.assertEqual(self.fixture.snapshot(), before)
+            self.assertEqual(self.snapshot(), before)
 
     def assert_refuses(self, overrides=None, diagnostic=b"SKIP:"):
         self.fixture.dirty("combined")
-        before = self.fixture.snapshot()
+        before = self.snapshot()
         for skill in SKILLS:
             result, _ = self.run_block(skill, overrides=overrides)
             self.assertNotEqual(result.returncode, 0, result.stdout)
             self.assertIn(diagnostic, result.stderr)
-            self.assertEqual(self.fixture.snapshot(), before)
+            self.assertEqual(self.snapshot(), before)
 
     def test_master_wins_over_local_main_and_stale_cached_origin_head(self):
         self.default("master")
@@ -123,6 +141,64 @@ class PushallDefaultBranchTests(unittest.TestCase):
 
     def test_dangling_cached_origin_head_is_irrelevant(self):
         self.git(self.repo, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/gone")
+        self.assert_resolves("main")
+
+    def test_unrelated_refs_ending_in_head_do_not_make_default_ambiguous(self):
+        self.git(self.repo, "tag", "topic/HEAD")
+        self.git(self.repo, "push", "origin", "refs/tags/topic/HEAD")
+        self.default("topic/HEAD")
+        self.git(self.remote, "symbolic-ref", "HEAD", "refs/heads/main")
+        self.assert_resolves("main")
+
+    def test_tag_collision_does_not_change_the_fetched_merge_target(self):
+        self.default("master", local=False)
+        self.git(self.repo, "checkout", "-b", "feature/collision")
+        (self.repo / "extra.txt").write_bytes(b"not the remote default\n")
+        self.git(self.repo, "add", "extra.txt")
+        self.git(self.repo, "commit", "-m", MESSAGE)
+        self.git(self.repo, "tag", "origin/master")
+        for skill in SKILLS:
+            result, _ = self.run_block(skill, switch=True, steps=(5,))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(self.git(self.repo, "rev-parse", "HEAD").stdout.decode().strip(), self.oid)
+
+    def test_tag_collision_does_not_change_the_push_source(self):
+        self.default("master")
+        self.git(self.repo, "tag", "master")
+        for skill in SKILLS:
+            result, _ = self.run_block(skill, switch=True, steps=(8,))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(self.git(self.remote, "rev-parse", "refs/heads/master").stdout.decode().strip(), self.oid)
+
+    def test_shell_metacharacters_in_a_valid_default_name_are_literal(self):
+        branch = "release;$(false)"
+        self.default(branch, local=False)
+        for skill in SKILLS:
+            result, _ = self.run_block(skill, switch=True, steps=(5, 8))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(self.git(self.repo, "symbolic-ref", "HEAD").stdout.decode().strip(),
+                             f"refs/heads/{branch}")
+
+    def test_unicode_spacing_allowed_by_git_is_preserved(self):
+        for branch in ("release\u2003stable", "release\u3000stable"):
+            with self.subTest(branch=branch):
+                self.default(branch)
+                self.assert_resolves(branch)
+
+    def test_sha256_repository_resolves_a_64_digit_commit(self):
+        remote = self.fixture.root / "sha256-remote.git"
+        repo = self.fixture.root / "sha256-work"
+        self.git(self.fixture.root, "init", "--bare", "--object-format=sha256",
+                 "--initial-branch=main", str(remote))
+        self.git(self.fixture.root, "clone", str(remote), str(repo))
+        (repo / "tracked.txt").write_bytes(b"sha256 baseline\n")
+        self.git(repo, "add", "tracked.txt")
+        self.git(repo, "commit", "-m", MESSAGE)
+        self.git(repo, "push", "origin", "main")
+        self.repo = self.fixture.repo = repo
+        self.remote = self.fixture.remote = remote
+        self.oid = self.git(repo, "rev-parse", "HEAD").stdout.decode().strip()
+        self.assertEqual(len(self.oid), 64)
         self.assert_resolves("main")
 
     def test_missing_local_default_is_created_at_the_remote_commit(self):
@@ -153,6 +229,7 @@ class PushallDefaultBranchTests(unittest.TestCase):
     def test_missing_configured_origin_cannot_be_treated_as_a_local_path(self):
         self.git(self.repo, "remote", "rename", "origin", "upstream")
         (self.repo / "origin").symlink_to(self.remote, target_is_directory=True)
+        self.git(self.repo, "update-ref", "refs/remotes/origin/main", self.oid)
         self.assert_refuses(diagnostic=b"no configured origin")
 
     def test_unavailable_origin_refuses(self):
@@ -201,6 +278,18 @@ class PushallDefaultBranchTests(unittest.TestCase):
         self.git(seed, "push", "origin", "main")
         self.assert_refuses(diagnostic=b"cannot inspect the fetched default commit")
 
+    def test_stale_tracking_ref_refuses_when_the_live_commit_exists_locally(self):
+        seed = self.fixture.root / "seed"
+        (seed / "new.txt").write_bytes(b"new remote commit\n")
+        self.git(seed, "add", "new.txt")
+        self.git(seed, "commit", "-m", MESSAGE)
+        self.git(seed, "push", "origin", "main")
+        live = self.git(seed, "rev-parse", "HEAD").stdout.decode().strip()
+        self.git(self.repo, "fetch", "--refmap=", "origin", "refs/heads/main:refs/remotes/other/main")
+        self.assertEqual(self.git(self.repo, "cat-file", "-t", live).stdout, b"commit\n")
+        self.assertEqual(self.git(self.repo, "rev-parse", "refs/remotes/origin/main").stdout.decode().strip(), self.oid)
+        self.assert_refuses(diagnostic=b"fetched origin default")
+
     def test_indirect_tracking_ref_refuses(self):
         self.git(self.repo, "symbolic-ref", "refs/remotes/origin/main", "refs/heads/main")
         self.assert_refuses(diagnostic=b"fetched origin default")
@@ -234,6 +323,26 @@ class PushallDefaultBranchTests(unittest.TestCase):
             result, calls = self.run_block(skill, overrides={"show-ref": (128, "")}, switch=True)
             self.assertNotEqual(result.returncode, 0)
             self.assertIn(b"cannot inspect the local default", result.stderr)
+            self.assertFalse(any("switch" in args for args in calls))
+            self.assertEqual(self.fixture.snapshot(), before)
+
+    def test_symbolic_local_default_cannot_switch_to_a_different_branch(self):
+        self.default("master", local=False)
+        self.git(self.repo, "symbolic-ref", "refs/heads/master", "refs/heads/main")
+        before = self.fixture.snapshot()
+        for skill in SKILLS:
+            result, calls = self.run_block(skill, switch=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"local default branch is symbolic", result.stderr)
+            self.assertFalse(any("switch" in args for args in calls))
+            self.assertEqual(self.fixture.snapshot(), before)
+
+    def test_local_symbolic_inspection_error_does_not_switch(self):
+        before = self.fixture.snapshot()
+        for skill in SKILLS:
+            result, calls = self.run_block(skill, overrides={"symbolic-ref": (128, "")}, switch=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"cannot inspect local default branch attachment", result.stderr)
             self.assertFalse(any("switch" in args for args in calls))
             self.assertEqual(self.fixture.snapshot(), before)
 

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-429 closure (2026-10-20):** Pushall now resolves origin’s live advertised default and verifies the matching fetched commit before committing or switching. Thirty-one real-Git default-selection tests, 13 attachment tests and 77 gitlink tests pass. Only DW-429 closes: all 656 IDs remain, 390 done/266 open across 238 maintenance rows. Original fields, unrelated records, external work, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-429-validation-evidence.md).
+
 **DW-428 closure (2026-10-20):** A read-only attachment gate now skips dirty detached repositories before any sync operation, preserving HEAD, index, worktree and refs while other repositories continue. Thirteen real-Git procedure tests and the existing 77 gitlink tests pass; the new lane is included in Story Guards. Only DW-428 closes: all 656 IDs remain, 389 done/267 open across 239 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-428-validation-evidence.md).
 
 **DW-422 closure (2026-10-20):** Audit read-only recovery now shares its heading/grid render condition. The initial twelve-case component event/reset matrix qualifies the later existing validation protection and passes entry production; Debug source builds have zero warnings/errors, focused 230/230 and full UI 6284/6284 pass with zero failures/skips. Only DW-422 closes: all 656 IDs remain, 388 done/268 open across 240 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](dw-422-validation-evidence.md).
@@ -4984,17 +4986,26 @@ location: .agents/skills/pushall/SKILL.md
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`\n  summary: Make pushall honor the remote's actual default branch when both main and master exist.\n  evidence: `.agents/skills/pushall/SKILL.md` prefers local `main` ahead of `origin/HEAD`, so it can merge and prune against the wrong default. This separate Git skill is unrelated to tenant audit."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .agents/skills/pushall/SKILL.md step 2 still prefers local main, then master, and asks origin only when neither exists. This can choose a stale local branch instead of the actual remote default and drive merges/pruning against the wrong branch.
-verification-files: .agents/skills/pushall/SKILL.md
-evidence-kind: verified-defect
+pre-dw-429-status: open
+status: done 2026-10-20
+pre-dw-429-disposition: actionable
+disposition: resolved
+pre-dw-429-verification-date: 2026-10-12
+verification-date: 2026-10-20
+pre-dw-429-verification: .agents/skills/pushall/SKILL.md step 2 still prefers local main, then master, and asks origin only when neither exists. This can choose a stale local branch instead of the actual remote default and drive merges/pruning against the wrong branch.
+verification: Live origin HEAD resolution now requires one valid branch and OID plus a direct matching fetched commit before committing or switching. Missing local defaults are explicitly created. Thirty-one real-Git regressions and the retained 13 attachment/77 gitlink tests pass; independent review and final results are recorded in dw-429-validation-evidence.md. The manifest validator retains its unsupported-key limitation, and external checkout pointer drift remains excluded from the task.
+pre-dw-429-verification-files: .agents/skills/pushall/SKILL.md
+verification-files: .agents/skills/pushall/SKILL.md; .claude/skills/pushall/SKILL.md; .github/skills/pushall/SKILL.md; tests/scripts/test_pushall_default_branch.py; .github/workflows/story-guards.yml; _bmad-output/implementation-artifacts/dw-429-validation-evidence.md
+pre-dw-429-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P1
 owner: unassigned
 dependencies: Future authorized pushall skill change
-next-action: Resolve the remote default first, validate its branch/ref, and handle missing or ambiguous remote-default evidence explicitly.
+pre-dw-429-next-action: Resolve the remote default first, validate its branch/ref, and handle missing or ambiguous remote-default evidence explicitly.
+next-action: Closed for live remote-default selection; preserve unrelated pushall findings, external work and existing release holds.
 related: DW-417, DW-418, DW-428
+resolution-evidence: _bmad-output/implementation-artifacts/dw-429-validation-evidence.md
+resolution-spec: _bmad-output/implementation-artifacts/spec-dw-429-pushall-remote-default.md
 
 
 ### DW-430: Resolve whether the historical Story 5.1 performance guest used modified dependency source.

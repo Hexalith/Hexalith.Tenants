@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-429 closure (2026-10-20):** Pushall now resolves origin’s live advertised default and verifies the matching fetched commit before committing or switching. Thirty-one real-Git default-selection tests, 13 attachment tests and 77 gitlink tests pass. Only DW-429 closes: all 656 IDs remain, 390 done/266 open across 238 maintenance rows. Original fields, unrelated records, external work, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-429-validation-evidence.md).
+
 **DW-428 closure (2026-10-20):** A read-only attachment gate now skips dirty detached repositories before any sync operation, preserving HEAD, index, worktree and refs while other repositories continue. Thirteen real-Git procedure tests and the existing 77 gitlink tests pass; the new lane is included in Story Guards. Only DW-428 closes: all 656 IDs remain, 389 done/267 open across 239 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-428-validation-evidence.md).
 
 **DW-422 closure (2026-10-20):** Audit read-only recovery now shares its heading/grid render condition. The initial twelve-case component event/reset matrix qualifies the later existing validation protection and passes entry production; Debug source builds have zero warnings/errors, focused 230/230 and full UI 6284/6284 pass with zero failures/skips. Only DW-422 closes: all 656 IDs remain, 388 done/268 open across 240 maintenance rows. Original fields, unrelated records, dependency pointers, archive, sprint and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-422-validation-evidence.md).
@@ -161,7 +163,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
-| DW-429 | P1 | Defect / actionable | unassigned | Future authorized pushall skill change | Resolve the remote default first, validate its branch/ref, and handle missing or ambiguous remote-default evidence explicitly. |
 | DW-437, DW-451, DW-534 | P1 | Gap / actionable | unassigned | Story attribution must avoid including unrelated later pointer updates; DW-437 CI gate and story attribution; DW-198 historical story-range selection; DW-520 declaration format | Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling. |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
 | DW-121 | P2 | Defect / actionable | Hexalith.Builds | Hexalith.Builds owning workflow change | Align the input description/contract and callers with the recorded main-only policy. |

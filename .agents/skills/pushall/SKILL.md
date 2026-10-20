@@ -118,8 +118,17 @@ pushall_remote_head=$(git -C <dir> ls-remote --symref --exit-code origin HEAD) |
     printf '%s\n' 'SKIP: cannot query the live origin default branch.' >&2
     exit 1
 }
-pushall_head_pattern=$'^ref: (refs/heads/[^[:space:]]+)\tHEAD\n([0-9a-f]{40}|[0-9a-f]{64})\tHEAD$'
-if [[ ! "$pushall_remote_head" =~ $pushall_head_pattern ]]; then
+pushall_head_evidence=
+while IFS= read -r pushall_remote_line; do
+    case "$pushall_remote_line" in
+        *$'\t'HEAD) pushall_head_evidence+="${pushall_head_evidence:+$'\n'}$pushall_remote_line" ;;
+        *$'\t'refs/*) : ;; # ls-remote also matches unrelated refs ending in /HEAD.
+        *) printf '%s\n' 'SKIP: origin default branch evidence is missing, ambiguous or malformed.' >&2
+           exit 1 ;;
+    esac
+done <<< "$pushall_remote_head"
+pushall_head_pattern=$'^ref: (refs/heads/[^\t\n]+)\tHEAD\n([0-9a-f]{40}|[0-9a-f]{64})\tHEAD$'
+if [[ ! "$pushall_head_evidence" =~ $pushall_head_pattern ]]; then
     printf '%s\n' 'SKIP: origin default branch evidence is missing, ambiguous or malformed.' >&2
     exit 1
 fi
@@ -153,6 +162,16 @@ fi
    absent. Run in the same Bash session as step 2; stop this repo on any error:
 
 ```bash
+if git -C <dir> symbolic-ref --quiet "refs/heads/$pushall_default_branch" >/dev/null; then
+    printf '%s\n' 'SKIP: the local default branch is symbolic; inspect it before rerunning.' >&2
+    exit 1
+else
+    pushall_local_symbolic_status=$?
+    if [[ "$pushall_local_symbolic_status" != 1 ]]; then
+        printf '%s\n' 'SKIP: cannot inspect local default branch attachment.' >&2
+        exit 1
+    fi
+fi
 if git -C <dir> show-ref --verify --quiet "refs/heads/$pushall_default_branch"; then
     git -C <dir> switch --no-guess "$pushall_default_branch" || exit 1
 else
@@ -165,18 +184,19 @@ else
 fi
 ```
 
-5. Try `git -C <dir> merge --ff-only origin/<default-branch>` to catch up with the remote first.
+5. Try `git -C <dir> merge --ff-only "$pushall_tracking_ref"` to catch up with the remote first.
    If this fails because local and remote diverged, record it and skip the rest of this repo.
 6. Build the merge list from both kinds of refs:
-   - Local branches: `git -C <dir> branch --format='%(refname:short)'`, excluding the default
-     branch.
+   - Local branches: `git -C <dir> for-each-ref --format='%(refname)' refs/heads/`, excluding exactly
+     `refs/heads/$pushall_default_branch`. Keep full refs as merge targets.
    - Remote branches: `git -C <dir> for-each-ref
      --format='%(refname) %(objectname) %(symref)' refs/remotes/origin/`. Exclude symbolic refs and
-     `refs/remotes/origin/<default-branch>`, derive each branch name by removing the
+     the exact `$pushall_tracking_ref`, derive each branch name by removing the
      `refs/remotes/origin/` prefix, and keep its fetched object ID for the deletion lease in step
      10.
 7. For every ref in the merge list (local refs first, then `origin` remote refs):
-   - `git -C <dir> merge --no-ff <ref> -m "build: merge <ref> into <default-branch> via /pushall"`
+   - Keep the full ref in `pushall_merge_ref` and run
+     `git -C <dir> merge --no-ff "$pushall_merge_ref" -m "build: merge $pushall_merge_ref into $pushall_default_branch via /pushall"`.
    - On conflict, list unresolved paths with `git -C <dir> diff --name-only --diff-filter=U`, inspect
      the base and both sides, and edit the files to preserve compatible changes and intended
      behavior from both branches.
@@ -184,15 +204,17 @@ fi
      relevant available validation, then complete the merge with `git -C <dir> commit --no-edit`.
    - If the conflict cannot be resolved safely, unresolved paths remain, or validation fails, run
      `git -C <dir> merge --abort`, record the ref as skipped, and continue to the next ref.
-8. `git -C <dir> push origin <default-branch>`. Record failure and continue if it's rejected.
+8. `git -C <dir> push origin "refs/heads/$pushall_default_branch:refs/heads/$pushall_default_branch"`.
+   Record failure and continue if it's rejected.
 9. Delete local branches now fully merged into the default branch (excluding the default branch
-   itself): `git -C <dir> branch --merged <default-branch>` minus the default branch, then
-   `git -C <dir> branch -d <each>`.
+   itself): `git -C <dir> branch --merged "refs/heads/$pushall_default_branch"` minus the exact default
+   branch, then `git -C <dir> branch -d -- "$pushall_branch_to_delete"` for each remaining branch name.
 10. Only if step 8 succeeded, prune each non-default `origin` branch whose fetched object ID is an
     ancestor of the default branch:
-    - Verify with `git -C <dir> merge-base --is-ancestor <fetched-object-id> <default-branch>`.
+    - Keep its fetched object ID in `pushall_fetched_oid` and verify with
+      `git -C <dir> merge-base --is-ancestor "$pushall_fetched_oid" "refs/heads/$pushall_default_branch"`.
     - Delete with `git -C <dir> push
-      --force-with-lease=refs/heads/<branch>:<fetched-object-id> origin --delete <branch>`.
+      --force-with-lease="refs/heads/$pushall_branch_to_delete:$pushall_fetched_oid" origin --delete "refs/heads/$pushall_branch_to_delete"`.
     - If the lease or deletion fails, record the branch as not pruned and continue. Never retry
       without the exact lease.
 11. `git -C <dir> fetch --all --prune` to remove deleted or otherwise stale remote-tracking refs.
