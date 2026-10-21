@@ -145,6 +145,17 @@ On a complete valid source, `Allowed` is true only for an active tenant whose me
 
 Runtime prerequisites are a Base64-encoded PKCS#8 RSA private key of at least 2048 bits in `Authentication:BoundStreamRead:PrivateKey`, a workload assertion issuer trusted by EventStore for `eventstore:stream-read`, and EventStore validation of the matching bound-stream proof. The [source gateway](../src/Hexalith.Tenants/Authorization/TenantOwnerSourceGateway.cs) sends the assertion and `X-Hexalith-Bound-Stream-Read-Proof` to the workload stream-read route; missing credentials or trust makes the source unavailable. The [host registration](../src/Hexalith.Tenants/Program.cs) gives the complete source observation ten seconds. The shared reader limits each source walk to 10,000 events and 16 MiB of event payload bytes; exceeding these bounds fails closed even when the principal is an owner.
 
+#### Delegated Tenant Read Evidence
+
+`ResolveTenantReadAuthority` is the content-free delegated read served by `TenantReadAuthorityQueryHandler`. Its static `QueryType` is `Hexalith.Tenants.Queries.ResolveTenantReadAuthority.v1`. The request payload is empty. The response contract is `TenantReadAuthorityResult`.
+
+| Contract | Package | Fields | Intended caller or consumer |
+| --- | --- | --- | --- |
+| `ResolveTenantReadAuthority` | `Hexalith.Tenants.Contracts` | static `QueryType` | Delegated `projects`, `conversations`, or `folders` workloads requesting current Read evidence |
+| `TenantReadAuthorityResult` | `Hexalith.Tenants.Contracts` | `TenantId`, `PrincipalId`, `Allowed`, `NativeProof`, `VerifiedAt` | The requesting workload's Read decision |
+
+`NativeProof` is the native prefix folded for the decision. `VerifiedAt` is the final native source verification instant. The response contains authorization evidence only and does not return roster or grant contents.
+
 ### Rejection and Enum Contracts
 
 The rejection table later in this document lists all 14 public rejection contracts, their structured fields, and HTTP boundary mappings. Public enum contracts are `TenantRole`, `TenantStatus`, and `AuditEventCategory`; their values and serialization behavior are documented in [Enums](#enums).

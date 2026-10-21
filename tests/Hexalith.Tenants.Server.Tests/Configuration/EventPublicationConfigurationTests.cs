@@ -142,6 +142,9 @@ public class EventPublicationConfigurationTests {
         // Match the host's domain-owned dependencies for the discovered owner-authority handler.
         IAuthoritativeEventStreamReader reader = Substitute.For<IAuthoritativeEventStreamReader>();
         builder.Services.AddScoped(_ => reader);
+        builder.Services.AddKeyedScoped<IAuthoritativeEventStreamReader>("native-tenant-source", (_, _) => reader);
+        builder.Services.AddSingleton(Substitute.For<INativeSourceMetadataReader>());
+        builder.Services.AddHttpContextAccessor();
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddSingleton<TenantTelemetry>(serviceProvider => new TenantTelemetry(
             serviceProvider.GetRequiredKeyedService<EventStoreDomainDiagnostics>("tenants")));
@@ -160,6 +163,7 @@ public class EventPublicationConfigurationTests {
                 GetUserTenantsQuery.QueryType,
                 ListTenantsQuery.QueryType,
                 ResolveTenantOwnerAuthority.QueryType,
+                ResolveTenantReadAuthority.QueryType,
             ],
             ignoreOrder: true);
 
@@ -179,6 +183,7 @@ public class EventPublicationConfigurationTests {
                 GetUserTenantsQuery.QueryType,
                 ListTenantsQuery.QueryType,
                 ResolveTenantOwnerAuthority.QueryType,
+                ResolveTenantReadAuthority.QueryType,
             ],
             ignoreOrder: true);
 
