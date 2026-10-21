@@ -1,0 +1,35 @@
+{
+  "baseline": "092bcd0eafffb9e85b6c3506ee532f1340d6e87f",
+  "selected": [
+    504,
+    532,
+    564,
+    578,
+    596
+  ],
+  "result": "pass",
+  "total_records": 657,
+  "open_records": 212,
+  "done_records": 445,
+  "index_rows": 193,
+  "dispositions": {
+    "done": 445,
+    "blocked": 15,
+    "accepted-limitation": 9,
+    "uncertain": 36,
+    "actionable": 126,
+    "awaiting-decision": 26
+  },
+  "historical_audit_endpoints": {
+    "5-6-preview-and-confirm-correction-with-linked-proof.md": "a34120b5a205e66260b1b59fa499d87c3511f17a",
+    "spec-eventstore-3-117-1.md": "ef4b7f2f99b2a60910b94481a198f591c51bfe5c"
+  },
+  "changed_document_sha256": {
+    "_bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md": "8fed557def4082b0094884ebfb707184a1127e7617cd69ff8bace1c356b71823",
+    "_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md": "0edf3f2bf30b92a27d57ccb71eb0d19e4f16b9190cb5990ee91062641a0128a7",
+    "_bmad-output/project-context.md": "843d975c23495f4677e4d49ddae13ee389c56c27f9b95ae5c9e3ebcc7107c3fd",
+    "docs/production-auth-readiness.md": "8caf3274a449daf7a183aff50be349f76284423e880185563d77084646ddbecc",
+    "_bmad-output/implementation-artifacts/deferred-work.md": "95e66cdafe08b482a37e2ea9e8993626a93b117f91d94ee99d30dcfddca9c39e",
+    "docs/maintenance-backlog.md": "6ea49f016945720913d6c562f2a3fd1c60becd930cb2d623df74e8be8fd09889"
+  }
+}

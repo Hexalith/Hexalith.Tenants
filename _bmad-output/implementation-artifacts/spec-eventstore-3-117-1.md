@@ -7,6 +7,7 @@ route: 'oneshot'
 revised: '2026-10-10'
 review_loop_iteration: 0
 baseline_commit: '9e9e04308ea1060010a64bb8b800e755c4aaf99d'
+gitlink_audit_ref: 'ef4b7f2f99b2a60910b94481a198f591c51bfe5c'
 context: []
 ---
 
@@ -21,6 +22,10 @@ context: []
 </frozen-after-approval>
 
 ## Implementation Notes
+
+### 2026-10-21 — Evidence wording clarification (DW-532)
+
+The historical 3.117.1 note below uses “byte-for-byte equivalent as parsed data.” Its package/family comparison used Python equality on parsed JSON: that proves **structural equality of parsed rows**, not byte equality of JSON serialization. The independent catalog replacement/hash checks establish preservation of every catalog byte except the intended version substitution, including its BOM and CRLF representation. These are separate guarantees; the original note and review R7 are preserved as historical evidence. This annotation does not accept either dependency audit or close the 3.120.0 governance work.
 
 ### 2026-10-10 continuation to 3.120.0
 

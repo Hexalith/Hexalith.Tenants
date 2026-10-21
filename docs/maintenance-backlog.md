@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-504/DW-532/DW-564/DW-578/DW-596 closure (2026-10-21):** Historical tenant proof claims are qualified and revocation lag is documented, parsed-row equality is distinguished from catalog byte preservation, and CI/dependency guidance follows tracked authority. Exactly five documentation records close: all 657 IDs remain, 445 done/212 open across 193 exact-covering maintenance rows. Historical evidence, unrelated records and unresolved provenance/runtime/release gates remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-504-532-564-578-596-validation-evidence.md).
+
 **DW-252/DW-256/DW-258/DW-259/DW-282 closure (2026-10-21):** Six unused internal projection-evidence wrappers and two unused notification wrappers are retired; workspace composition is resolved once with live capability getters. Migrated confirmation/lease/receipt tests and command/read connectivity regressions pass. Reviewed Debug build has zero warnings/errors; focused 584/584 and full UI 7117/7117 pass with zero failures/skips. Independent recheck clears all findings. Only these five records close: 657 IDs remain, 440 done/217 open across 198 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-252-256-258-259-282-validation-evidence.md).
 
 **DW-320/DW-479/DW-530/DW-605/DW-606 closure (2026-10-21):** The unused lifecycle duplicate-state path is removed, three already-fixed model-split records are requalified, and two scoped source paths reliably check out with CRLF. Debug source build has zero warnings/errors; focused 383/383 and full UI 7116/7116 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 435 done/222 open across 202 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-320-479-530-605-606-validation-evidence.md).
@@ -166,14 +168,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 440 |
-| actionable | 131 |
+| done | 445 |
+| actionable | 126 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 36 |
 
-**Remaining: 217 open records across 198 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 212 open records across 193 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -314,14 +316,9 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-344 | P3 | Gap / actionable | unassigned | AppHost build-mode fixture | Pin/record evaluated Memories package-mode properties in the model test lane. |
 | DW-397 | P3 | Gap / actionable | unassigned | Python 3.11+ and temporary fixture roots | Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics. |
 | DW-462 | P3 | Gap / actionable | unassigned | DW-461 historical guard disposition | Add a dated historical-evidence clarification with current symbol anchors and recover exact commands/mutation identities where available; preserve the original notes. |
-| DW-504 | P3 | Gap / actionable | unassigned | Artifact historical-claim annotation | Add a dated superseded-behavior note linking the current 5.6 spec and its honest tenant missing-association state, preserving historical acceptance text. |
-| DW-532 | P3 | Gap / actionable | unassigned | Historical evidence wording annotation | Add a concise dated annotation distinguishing parsed-row structural equality from the independent catalog byte/hash guarantee. |
 | DW-533 | P3 | Gap / actionable | unassigned | Authoritative planning context sources | Annotate the context’s historical/current scope and reconcile omitted authoritative constraints and citations before future regeneration or reuse. |
 | DW-558 | P3 | Gap / actionable | unassigned | Story 5.7 completion evidence | Reconcile the paging spec historical reversal with the final Story 5.7 ownership and verification. |
-| DW-564 | P3 | Gap / actionable | unassigned | DW-562 revocation contract | Document current revocation lag and the eventual-consistency boundary without claiming a bound. |
-| DW-578 | P3 | Gap / actionable | agent-context maintenance | Current CI configuration | Update Tier 2 guidance to include the blocking AppHost model project. |
 | DW-591 | P3 | Gap / actionable | unassigned | Rendered host fixture | Render actual host documents under en/fr cultures and assert html lang. |
-| DW-596 | P3 | Gap / actionable | EventStore 3.120.0 dependency refresh (spec-eventstore-3-117-1.md) and agent-context maintenance | Current dependency/provenance facts | Refresh the dependency narrative and CI project list without claiming unresolved audit acceptance. |
 | DW-613 | P3 | Gap / actionable | unassigned | Existing FrontComposer not-found conventions | Add a framework-conforming in-app unmatched-route message and safe recovery link. |
 | DW-616 | P3 | Gap / actionable | unassigned | Interactive host/browser fixture | Navigate the running interactive router to a FrontComposer-owned route and assert correct shell content. |
 

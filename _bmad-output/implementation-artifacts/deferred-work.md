@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-504/DW-532/DW-564/DW-578/DW-596 closure (2026-10-21):** Historical tenant proof claims are qualified and revocation lag is documented, parsed-row equality is distinguished from catalog byte preservation, and CI/dependency guidance follows tracked authority. Exactly five documentation records close: all 657 IDs remain, 445 done/212 open across 193 exact-covering maintenance rows. Historical evidence, unrelated records and unresolved provenance/runtime/release gates remain preserved. See [validation evidence](dw-504-532-564-578-596-validation-evidence.md).
+
 **DW-252/DW-256/DW-258/DW-259/DW-282 closure (2026-10-21):** Six unused internal projection-evidence wrappers and two unused notification wrappers are retired; workspace composition is resolved once with live capability getters. Migrated confirmation/lease/receipt tests and command/read connectivity regressions pass. Reviewed Debug build has zero warnings/errors; focused 584/584 and full UI 7117/7117 pass with zero failures/skips. Independent recheck clears all findings. Only these five records close: 657 IDs remain, 440 done/217 open across 198 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-252-256-258-259-282-validation-evidence.md).
 
 **DW-320/DW-479/DW-530/DW-605/DW-606 closure (2026-10-21):** The unused lifecycle duplicate-state path is removed, three already-fixed model-split records are requalified, and two scoped source paths reliably check out with CRLF. Debug source build has zero warnings/errors; focused 383/383 and full UI 7116/7116 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 435 done/222 open across 202 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-320-479-530-605-606-validation-evidence.md).
@@ -5950,22 +5952,31 @@ related: none
 Diff reviewed: Tenants `c0afce2e..af69f36d` (code only) and EventStore `b51978dd..b0464255`, `ff2fcc9f`, `865cd9e4`.
 
 ### DW-504: Mark the older Story 5.6 record as superseded on audit proof linking.
+location: _bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md
+
+status: done 2026-10-21
+disposition: resolved
+verification-date: 2026-10-21
+verification: A dated superseded-behavior annotation preserves the June Story 5.6 acceptance/completion text and links the current tenant correction specification. Source inspection confirms WithCorrectiveProof(null), MissingSupport and no tenant paired proof link; the separate Story 5.7 global-administrator path is distinguished.
+verification-files: _bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor; src/Hexalith.Tenants.UI/State/TenantAudit/TenantCorrectionPreviewSnapshot.cs
+evidence-kind: documentation-reconciliation
+next-action: none; see dw-504-532-564-578-596-validation-evidence.md
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 3 (2026-10-04)"), 2026-10-12
-location: _bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
+pre-documentation-reconciliation-location: _bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Mark the older Story 5.6 record as superseded on audit proof linking.\n  evidence: `5-6-preview-and-confirm-correction-with-linked-proof.md` is still `Status: done`, and its AC 8 and Completion Notes (`:188-194`) claim audit proof linking and support-safe proof links. The current implementation always applies `WithCorrectiveProof(null)` (`CorrectionStartPanel.razor:1031`), and the tenant confirmation copy says the audit association is unavailable. A reader of the older record gets a false picture of what shipped."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md remains Status: done and Completion Notes :188-194 claim tenant audit proof lookup/linking. Current CorrectionStartPanel.razor:1044 deliberately uses WithCorrectiveProof(null), and the newer spec says audit association support is missing. The older artifact has no superseding clarification for this claim.
-verification-files: _bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
-evidence-kind: verified-gap
+pre-documentation-reconciliation-status: open
+pre-documentation-reconciliation-disposition: actionable
+pre-documentation-reconciliation-verification-date: 2026-10-12
+pre-documentation-reconciliation-verification: _bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md remains Status: done and Completion Notes :188-194 claim tenant audit proof lookup/linking. Current CorrectionStartPanel.razor:1044 deliberately uses WithCorrectiveProof(null), and the newer spec says audit association support is missing. The older artifact has no superseding clarification for this claim.
+pre-documentation-reconciliation-verification-files: _bmad-output/implementation-artifacts/5-6-preview-and-confirm-correction-with-linked-proof.md; src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
+pre-documentation-reconciliation-evidence-kind: verified-gap
 priority: P3
 owner: unassigned
 dependencies: Artifact historical-claim annotation
-next-action: Add a dated superseded-behavior note linking the current 5.6 spec and its honest tenant missing-association state, preserving historical acceptance text.
+pre-documentation-reconciliation-next-action: Add a dated superseded-behavior note linking the current 5.6 spec and its honest tenant missing-association state, preserving historical acceptance text.
 related: DW-486
 
 
@@ -6475,22 +6486,31 @@ priority: P2
 archived: 2026-10-21
 
 ### DW-532: Clarify the non-EventStore preservation statement as structural equality of parsed rows rather than byte equality.
+location: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md
+
+status: done 2026-10-21
+disposition: resolved
+verification-date: 2026-10-21
+verification: A dated annotation distinguishes structural equality of Python-parsed package/family rows from independent catalog byte/hash/BOM/CRLF preservation except the intended version substitution. Original wording, R7 and dependency audit blockers remain historical.
+verification-files: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md
+evidence-kind: documentation-reconciliation
+next-action: none; see dw-504-532-564-578-596-validation-evidence.md
 
 origin: migrated from unnumbered ledger ("Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)"), 2026-10-12
-location: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md
+pre-documentation-reconciliation-location: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md
 source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md`\n  summary: Clarify the non-EventStore preservation statement as structural equality of parsed rows rather than byte equality.\n  evidence: The refresh verification compares JSON package/family lists with Python equality; separate catalog byte/hash checks prove file-byte preservation. The focused review's R7 records this distinction and the one-shot workflow routes fixes to specs into deferred work."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md:46 still says non-EventStore rows are “byte-for-byte equivalent as parsed data”; R7 at :90 explains actual Python structural equality and separate catalog byte hashes. The historical sentence remains ambiguous despite the preserved review clarification.
-verification-files: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md
-evidence-kind: verified-gap
+pre-documentation-reconciliation-status: open
+pre-documentation-reconciliation-disposition: actionable
+pre-documentation-reconciliation-verification-date: 2026-10-12
+pre-documentation-reconciliation-verification: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md:46 still says non-EventStore rows are “byte-for-byte equivalent as parsed data”; R7 at :90 explains actual Python structural equality and separate catalog byte hashes. The historical sentence remains ambiguous despite the preserved review clarification.
+pre-documentation-reconciliation-verification-files: _bmad-output/implementation-artifacts/spec-eventstore-3-117-1.md
+pre-documentation-reconciliation-evidence-kind: verified-gap
 priority: P3
 owner: unassigned
 dependencies: Historical evidence wording annotation
-next-action: Add a concise dated annotation distinguishing parsed-row structural equality from the independent catalog byte/hash guarantee.
+pre-documentation-reconciliation-next-action: Add a concise dated annotation distinguishing parsed-row structural equality from the independent catalog byte/hash guarantee.
 related: none
 
 
@@ -7040,22 +7060,31 @@ related: DW-560
 
 
 ### DW-564: low; Tenants production authentication guidance documents global-administrator grants but omits revocation lag.
+location: docs/production-auth-readiness.md
+
+status: done 2026-10-21
+disposition: resolved
+verification-date: 2026-10-21
+verification: Production authentication guidance now explains GlobalAdministratorRemoved projection lag, IdP token/circuit renewal, and the absence of a bounded revocation guarantee. The current membership-only server verifier is documented and underlying DW-562/DW-617 authority-policy work remains open. Stale identity claims cannot override projected absence; deployment checks require a global-administrator-only refusal.
+verification-files: docs/production-auth-readiness.md; src/Hexalith.Tenants/Authorization/TenantsGlobalAdministratorVerifier.cs
+evidence-kind: documentation-reconciliation
+next-action: none; see dw-504-532-564-578-596-validation-evidence.md
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 24 (2026-10-09)"), 2026-10-12
-location: docs/production-auth-readiness.md
+pre-documentation-reconciliation-location: docs/production-auth-readiness.md
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: low; Tenants production authentication guidance documents global-administrator grants but omits revocation lag.\n  evidence: `docs/production-auth-readiness.md:76` says `GlobalAdministratorSet` takes effect after projection, but does not say that `GlobalAdministratorRemoved` also takes effect after projection and identity-provider revocation after token or circuit renewal. Update that Tenants-owned guidance separately from the platform authority check."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: docs/production-auth-readiness.md global-administrator bootstrap paragraph explains GlobalAdministratorSet projection lag but still omits removal lag/token or circuit renewal.
-verification-files: docs/production-auth-readiness.md
-evidence-kind: verified-gap
+pre-documentation-reconciliation-status: open
+pre-documentation-reconciliation-disposition: actionable
+pre-documentation-reconciliation-verification-date: 2026-10-12
+pre-documentation-reconciliation-verification: docs/production-auth-readiness.md global-administrator bootstrap paragraph explains GlobalAdministratorSet projection lag but still omits removal lag/token or circuit renewal.
+pre-documentation-reconciliation-verification-files: docs/production-auth-readiness.md
+pre-documentation-reconciliation-evidence-kind: verified-gap
 priority: P3
 owner: unassigned
 dependencies: DW-562 revocation contract
-next-action: Document current revocation lag and the eventual-consistency boundary without claiming a bound.
+pre-documentation-reconciliation-next-action: Document current revocation lag and the eventual-consistency boundary without claiming a bound.
 related: DW-562,DW-617
 
 
@@ -7321,21 +7350,30 @@ related: DW-572,DW-594
 
 
 ### DW-578: low; `_bmad-output/project-context.md` omits `AppHost.Tests` from blocking CI Tier 2. Owner: agent-context maintenance.
+location: _bmad-output/project-context.md
+
+status: done 2026-10-21
+disposition: resolved
+verification-date: 2026-10-21
+verification: Project context now names both AppHost.Tests and Server.Tests in the blocking CI Tier 2, matching ci.yml integration-test-projects and retaining Server DAPR prerequisites.
+verification-files: _bmad-output/project-context.md; .github/workflows/ci.yml
+evidence-kind: documentation-reconciliation
+next-action: none; see dw-504-532-564-578-596-validation-evidence.md
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 39 (2026-10-10)"), 2026-10-12
-location: n/a
+pre-documentation-reconciliation-location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: low; `_bmad-output/project-context.md` omits `AppHost.Tests` from blocking CI Tier 2. Owner: agent-context maintenance.\n  evidence: `_bmad-output/project-context.md:112` lists only `Server.Tests`, while `.github/workflows/ci.yml:32-34` runs `tests/Hexalith.Tenants.AppHost.Tests` next to it in `integration-test-projects` (added by Story 5.6 pass 31). Agents that read the context file will leave out the blocking AppHost model checks."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/project-context.md:112 still names Server.Tests alone in Tier 2; ci.yml integration-test-projects includes AppHost.Tests and Server.Tests.
-evidence-kind: verified-gap
+pre-documentation-reconciliation-status: open
+pre-documentation-reconciliation-disposition: actionable
+pre-documentation-reconciliation-verification-date: 2026-10-12
+pre-documentation-reconciliation-verification: _bmad-output/project-context.md:112 still names Server.Tests alone in Tier 2; ci.yml integration-test-projects includes AppHost.Tests and Server.Tests.
+pre-documentation-reconciliation-evidence-kind: verified-gap
 priority: P3
 owner: agent-context maintenance
 dependencies: Current CI configuration
-next-action: Update Tier 2 guidance to include the blocking AppHost model project.
+pre-documentation-reconciliation-next-action: Update Tier 2 guidance to include the blocking AppHost model project.
 related: DW-596
 
 
@@ -7649,21 +7687,30 @@ related: none
 
 
 ### DW-596: low; `_bmad-output/project-context.md` is stale about the EventStore 3.120.0 catalog commit. Owner: EventStore 3.120.0 dependency refresh (`spec-eventstore-3-117-1.md`) and agent-context maintenance.
+location: _bmad-output/project-context.md
+
+status: done 2026-10-21
+disposition: resolved
+verification-date: 2026-10-21
+verification: Project context records the committed 3.120.0 catalog and root adoption using canonical revisions, identifies the current root-pinned Builds catalog selecting EventStore 3.126.0, and explicitly scopes 2026-10-10 test/audit results to historical 3.120.0. DW-579 remains open; no new audit/build/release acceptance is claimed.
+verification-files: _bmad-output/project-context.md; references/Hexalith.Builds/Props/Directory.Packages.props; _bmad-output/implementation-artifacts/dependency-refresh-eventstore-3.120.0-evidence-2026-10-10.json
+evidence-kind: documentation-reconciliation
+next-action: none; see dw-504-532-564-578-596-validation-evidence.md
 
 origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 41 (2026-10-10)"), 2026-10-12
-location: n/a
+pre-documentation-reconciliation-location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: low; `_bmad-output/project-context.md` is stale about the EventStore 3.120.0 catalog commit. Owner: EventStore 3.120.0 dependency refresh (`spec-eventstore-3-117-1.md`) and agent-context maintenance.\n  evidence: `_bmad-output/project-context.md:34` says the 3.120.0 catalog \"requires a governed owning-repository commit … no commit is authorized in this task\". Builds `9e6b6ca3` (\"fix: update HexalithEventStoreVersion to 3.120.0\") is that commit, and root `b3878f14` pins it, so agents reading the file will think the package lane is still 3.119.0. `:112` also still omits `AppHost.Tests` from Tier 2 (the pass-39 entry above)."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: project-context.md:34 still says the edited 3.120.0 catalog needs a commit; current Builds catalog/gitlink already contains 3.120.0. Its Tier 2 guidance also still omits AppHost.Tests. Supported audit acceptance remains a separate blocker.
-evidence-kind: verified-gap
+pre-documentation-reconciliation-status: open
+pre-documentation-reconciliation-disposition: actionable
+pre-documentation-reconciliation-verification-date: 2026-10-12
+pre-documentation-reconciliation-verification: project-context.md:34 still says the edited 3.120.0 catalog needs a commit; current Builds catalog/gitlink already contains 3.120.0. Its Tier 2 guidance also still omits AppHost.Tests. Supported audit acceptance remains a separate blocker.
+pre-documentation-reconciliation-evidence-kind: verified-gap
 priority: P3
 owner: EventStore 3.120.0 dependency refresh (spec-eventstore-3-117-1.md) and agent-context maintenance
 dependencies: Current dependency/provenance facts
-next-action: Refresh the dependency narrative and CI project list without claiming unresolved audit acceptance.
+pre-documentation-reconciliation-next-action: Refresh the dependency narrative and CI project list without claiming unresolved audit acceptance.
 related: DW-578,DW-579
 
 

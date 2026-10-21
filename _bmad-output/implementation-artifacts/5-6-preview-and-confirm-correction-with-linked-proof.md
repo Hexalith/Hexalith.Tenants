@@ -1,11 +1,14 @@
 ---
 created: 2026-06-06T18:59:20+02:00
 baseline_commit: eeb0a49
+gitlink_audit_ref: 'a34120b5a205e66260b1b59fa499d87c3511f17a'
 ---
 
 # Story 5.6: Preview and Confirm Correction with Linked Proof
 
 Status: done
+
+**Superseded behavior (2026-10-21; DW-504):** This is the historical June Story 5.6 record. Its acceptance criteria, checked proof-link tasks and Completion Notes remain historical; the tenant audit-proof lookup/linking claims are superseded by the [current Story 5.6 specification](spec-5-6-preview-confirm-and-link-a-tenant-correction.md). The current tenant correction panel confirms through command progress and fresh matching projection evidence, then deliberately clears corrective proof. It reports audit association as `MissingSupport`, renders no paired proof link, and retains original evidence. Projection confirmation alone does not establish an original/corrective audit association. The [Story 5.7 global-administrator proof path](spec-5-7-correct-global-administrator-authority-from-audit-evidence.md) is separate.
 
 <!-- Note: Created by the BMAD create-story workflow for Story 5.6. -->
 
