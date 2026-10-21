@@ -871,31 +871,12 @@ priority: P2
 archived: 2026-10-15
 
 ### DW-113: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface
-origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
-location: ListSurfaceStates.razor; TenantsResources.resx
-source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
-reason: The legacy ledger defers this issue: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: An unmapped list reason renders its raw resource key as user-visible copy in the shared list-state surface. evidence: `ListSurfaceStates.razor` resolves `Localizer["Tenants.List.Reason.{Reason}"]` for any non-`None` reason, but only 5 of the 10 `TenantListReason` members have a `Tenants.List.Reason.*` key in `TenantsResources.resx`; an unmapped reason therefore renders the literal key in EN and FR. No currently reachable call site passes an unmapped reason, so this is a latent pre-existing trap in the shared component rather than a live defect of this story.
-pre-dw-113-status: open
+
 status: done 2026-10-20
-pre-dw-113-disposition: actionable
-disposition: resolved
-pre-dw-113-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-113-verification: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor Message interpolates Tenants.List.Reason.{Reason}; Resources/TenantsResources.resx has five reason keys while State/TenantList/TenantListReason.cs has eleven non-None members. Unsupported inputs still echo keys; no current reachable caller was established.
-verification: The unchanged component fails 160/280 new EN/FR rendered cases for six unmapped reasons and two invalid enum values. ResourceNotFound now selects the existing surface message, preserving all supported reason copy and search continuation. Debug source build has zero warnings/errors; focused 280/280 and full UI 6564/6564 pass with zero failures/skips. Independent review and exact commands/limits are in dw-113-validation-evidence.md.
-pre-dw-113-verification-files: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor; src/Hexalith.Tenants.UI/State/TenantList/TenantListReason.cs
-verification-files: src/Hexalith.Tenants.UI/Components/Shared/ListSurfaceStates.razor; tests/Hexalith.Tenants.UI.Tests/Components/ListSurfaceStatesTests.cs; _bmad-output/implementation-artifacts/dw-113-validation-evidence.md
-pre-dw-113-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 priority: P3
-owner: unassigned
-dependencies: none
-pre-dw-113-next-action: Add explicit fallback/mapping and EN/FR coverage for every accepted reason.
-next-action: Closed within DW-113; preserve unrelated deferred work, historical findings, dependencies and existing release qualification holds.
-related: none
-resolution-evidence: [Exact reproduction, verification and independent review](dw-113-validation-evidence.md)
-resolution-spec: spec-dw-113-list-reason-fallback.md
+archived: 2026-10-21
 
 ### DW-114: The advance-by-requested-window paging rule rests on a Memories server premise that no test in this repository can observe
 origin: migrated from legacy ledger ("Deferred from: code review of 1-4-my-tenants-self-audit (2026-07-21)"), 2026-08-25
@@ -1321,30 +1302,11 @@ next-action: Use a concurrency-capable renderer/browser harness to pin reset and
 related: none
 
 ### DW-155: Paging guards widened to `internal` for direct test access
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:585
-reason: The legacy ledger defers this issue: Paging guards widened to `internal` for direct test access. Original context is preserved in legacy-detail.
-legacy-detail: - **Paging guards widened to `internal` for direct test access** — `MemberAccessReview`'s paging guards were promoted from private to internal so the test project could invoke them directly; the accompanying comment concedes every guard could be deleted with the suite still green. Reason for deferral: pre-existing test-design debt, not introduced behaviour. The guards remain unobservable through the rendered affordance, so the coverage they now have does not prove the control behaves correctly — but narrowing them again without a rendered-affordance test would lose coverage. Revisit if: the member pager gains bUnit tests that drive it through its rendered controls. [src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor:585]
-pre-dw-155-status: open
+
 status: done 2026-10-20
-pre-dw-155-disposition: actionable
-disposition: resolved
-pre-dw-155-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-155-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor RequestNextPageAsync and RequestPreviousPageAsync remain internal, with comments explaining pre-render click guards. Direct invocation still does not prove the rendered disabled-control behavior.
-verification: Ten rendered-control cases qualify both directions during refresh, edited change-role/removal flows, actual pending submissions with retained RequestSent/message identity, direction-boundary recovery, held real-page reads and follow-up navigation. All direct handler calls are replaced and both handlers are private with unchanged guards. Four final guard/binding mutations fail 4/10, 4/10, 3/10 and 10/10 as intended. Final Debug source build has zero warnings/errors; focused 10/10 and full UI 6573/6573 pass with zero failures/skips. Independent correction recheck accepts all five findings. Exact commands and limits are in dw-155-validation-evidence.md.
-pre-dw-155-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; _bmad-output/implementation-artifacts/dw-155-validation-evidence.md
-pre-dw-155-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
 priority: P3
-owner: unassigned
-dependencies: none
-pre-dw-155-next-action: Drive member paging through rendered controls while a command/page request is pending.
-next-action: Closed within DW-155; preserve unrelated deferred work, historical findings, dependencies and existing release qualification holds.
-related: DW-610
-resolution-evidence: [Exact verification, controls and independent review](dw-155-validation-evidence.md)
-resolution-spec: spec-dw-155-rendered-member-paging.md
+archived: 2026-10-21
 
 ### DW-156: Command `SafeMessage` values are hardcoded English literals rather than `TenantsResources.resx` entries
 
@@ -1359,31 +1321,11 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 archived: 2026-10-12
 
 ### DW-158: `WaitForAsync` reports a slow agent as a raw `TaskCanceledException` from `Task.Delay` rather than as a named unmet condition, so a genuinely flaky subscription test reports as an infrastructure error
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
-location: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs:317
-reason: The legacy ledger defers this issue: `WaitForAsync` reports a slow agent as a raw `TaskCanceledException` from `Task.Delay` rather than as a named unmet condition, so a genuinely flaky subscription test reports as an infrastructure error. Original context is preserved in legacy-detail.
-legacy-detail: - `WaitForAsync` reports a slow agent as a raw `TaskCanceledException` from `Task.Delay` rather than as a named unmet condition, so a genuinely flaky subscription test reports as an infrastructure error. Reason for deferral: diagnostics-only. No production behaviour is left unverified by it. Revisit if: the subscription tests start failing intermittently in CI and the cause needs to be readable from the failure message alone. [tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs:317]
-pre-dw-158-status: open
-status: done 2026-10-20
-pre-dw-158-disposition: actionable
-disposition: resolved
-pre-dw-158-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-158-verification: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs WaitForAsync still uses Task.Delay(10, timeout.Token) without translating expiry into a named unmet-condition assertion.
-verification: The private helper now translates only its polling-delay expiry into a named ShouldAssertException, retaining the two-second deadline and original predicate exceptions. Seven new cases cover two condition names, immediate/polled success and exception identity before/after deadline expiry. Final original-helper replay fails exactly both timeout cases; restored Debug source build has zero warnings/errors, focused 30/30 and full UI 6580/6580 pass with zero failures/skips. Exact commands, initial fixture failures and limits are in dw-158-validation-evidence.md.
-pre-dw-158-verification-files: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs
-verification-files: tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs; _bmad-output/implementation-artifacts/dw-158-validation-evidence.md
-pre-dw-158-evidence-kind: verified-defect
-evidence-kind: executed-regression
-priority: P3
-owner: unassigned
-dependencies: none
-pre-dw-158-next-action: Return a diagnostic assertion naming the condition when the two-second wait expires.
-next-action: Closed within DW-158; preserve unrelated deferred work, historical fields, dependencies and existing release qualification holds.
-related: none
-resolution-evidence: [Exact validation, original-helper replay and independent review](dw-158-validation-evidence.md)
-resolution-spec: spec-dw-158-subscription-wait-diagnostics.md
 
+status: done 2026-10-20
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
+priority: P3
+archived: 2026-10-21
 
 ### DW-159: `TenantConfigurationView.StateResourcePrefix` has no arm for `TenantDetailSurfaceKind.NotFound` or `Unauthorized`, so both fall through to `Tenants.Configuration.State.Ready` ("Configuration evidence is current") and are announced assertively, because `!CanInspect` puts `LivePoliteness` in the escalated set, over a surface that has no rows
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31, loop 10 never-reviewed delta)"), 2026-08-25
@@ -1403,30 +1345,11 @@ next-action: Require explicit state mapping if a second consumer passes an avail
 related: none
 
 ### DW-160: Replace `CapturingGatewayClient` + `RestQueryClientAdapter` in `TenantQueryGatewayTests` with a substitute
-origin: migrated from legacy ledger ("Deferred from: review repair loop 11 of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
-location: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:6093
-reason: The legacy ledger defers this issue: Replace `CapturingGatewayClient` + `RestQueryClientAdapter` in `TenantQueryGatewayTests` with a substitute. Original context is preserved in legacy-detail.
-legacy-detail: - Replace `CapturingGatewayClient` + `RestQueryClientAdapter` in `TenantQueryGatewayTests` with a substitute of the real `ITenantsRestQueryClient`. The adapter still re-implements the generic `SubmitQueryRequest` transport Story 1.10 deleted, so failures can only be injected as `EventStoreGatewayException` — a type the real client never throws — and the roughly sixty tests it drives exercise only the success arm of `ToEventStoreResult`. Reason for deferral: this is the reason review loop 10 itself gave when it reopened the item. Replacing the harness rewrites the fixture of about sixty tests in one change, which deserves its own pass and its own review rather than riding along with unrelated repairs. The *misleading* half is already closed: the 23 inert `Request.*` assertions and the adapter's dead freshness ladder are gone, and every failure-kind mapping repaired in loops 9–11 was driven through the production seam with `FixedFailureRestQueryClient` or an `ITenantsRestQueryClient` substitute. What remains is structural test debt, not a false claim. Revisit if: a further failure-mapping change is needed at the gateway seam, or the adapter drifts from `ResolveFreshness` again. [tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs:6093]
-pre-dw-160-status: open
+
 status: done 2026-10-20
-pre-dw-160-disposition: actionable
-disposition: resolved
-pre-dw-160-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-160-verification: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs still defines CapturingGatewayClient and RestQueryClientAdapter, alongside real REST substitutes for failure mapping. The structural fixture debt remains, without invalidating the production-seam failure tests.
-verification: The retired capturing client, adapter, synthetic request record and generic gateway overloads are removed. Actual ITenantsRestQueryClient substitutes return native response/failure contracts, and assertions inspect received typed arguments. All gateway test methods/data rows remain; two HTTP hostile-body cases preserve the moved transport scenario. Final Debug source build has zero warnings/errors, gateway 708/708, HTTP client 122/122 and full UI 6582/6582 pass with zero failures/skips. Independent review corrections and the disproved refetch finding are retained in dw-160-validation-evidence.md.
-pre-dw-160-verification-files: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs
-verification-files: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs; _bmad-output/implementation-artifacts/dw-160-validation-evidence.md
-pre-dw-160-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: review repair loop 11 of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
 priority: P3
-owner: unassigned
-dependencies: none
-pre-dw-160-next-action: Replace adapter-backed cases with ITenantsRestQueryClient substitutes when the gateway fixture is next maintained.
-next-action: Closed within DW-160; preserve unrelated deferred work, historical findings, dependencies and existing release qualification holds.
-related: none
-resolution-evidence: [Exact validation and independent review](dw-160-validation-evidence.md)
-resolution-spec: spec-dw-160-typed-query-fixture.md
+archived: 2026-10-21
 
 ### DW-161: Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology
 origin: migrated from legacy ledger ("Deferred from: review repair loop 11 of spec-1-10-direct-tenants-reads-and-authoritative-freshness (2026-07-31)"), 2026-08-25
@@ -1542,57 +1465,18 @@ priority: P2
 archived: 2026-10-16
 
 ### DW-177: Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679
-reason: The legacy ledger defers this issue: Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed. Original context is preserved in legacy-detail.
-legacy-detail: - Soft `RefreshAsync` blanks the tenant list via Loading/ShowList — deferred, pre-existing UX; workspace never had retainConfirmed. Distinct from the LoadAsync version-bump stale-apply window below (same approximate line region, different method). [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
-pre-dw-177-status: open
-status: done 2026-10-20
-pre-dw-177-disposition: actionable
-disposition: resolved
-pre-dw-177-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-177-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor RefreshAsync calls LoadAsync, which assigns TenantListSnapshot.Loading and clears visible rows; retained evidence exists but soft refresh still blanks the list.
-verification: Same-caller soft refresh retains the displayed projection rows, native grid, warnings and paging context under Loading/Unknown, with create/audit/pager actions closed. Thirty dedicated cases and the full 6612-case UI suite pass with zero failures/skips in an isolated entry-revision checkout carrying byte-identical final task sources; its Debug source build has zero warnings/errors. Independent review accepts all six corrections. Current-main source build remains separately blocked by an unrelated concurrent authority commit requiring absent NativeSourceProof; the initial full-suite timer failure and passing exact recheck are retained in dw-177-validation-evidence.md. No external source or dependency pointer is changed.
-pre-dw-177-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.SoftRefresh.cs; _bmad-output/implementation-artifacts/dw-177-validation-evidence.md
-pre-dw-177-evidence-kind: recommendation
-evidence-kind: executed-regression
-priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-177-next-action: Choose/pin retained-list refresh behavior and preserve visible evidence during a same-scope soft refresh.
-next-action: Closed within DW-177; retain the external NativeSourceProof build blocker, unrelated deferred records and existing release qualification holds.
-related: DW-119
-resolution-spec: spec-dw-177-retained-list-refresh.md
-resolution-evidence: [Exact validation, independent review and current-main build limitation](dw-177-validation-evidence.md)
 
+status: done 2026-10-20
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
+priority: P2
+archived: 2026-10-21
 
 ### DW-178: StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit — deferred, mitigated by generation + CTS replace
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:339
-reason: The legacy ledger defers this issue: StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit — deferred, mitigated by generation + CTS replace. Original context is preserved in legacy-detail.
-legacy-detail: - StartLifecycleAuthorizationResolution runs on every OnParametersSetAsync without TenantId short-circuit — deferred, mitigated by generation + CTS replace [src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:339]
-pre-dw-178-status: open
+
 status: done 2026-10-20
-pre-dw-178-disposition: actionable
-disposition: resolved
-pre-dw-178-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-178-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor OnParametersSetAsync still starts lifecycle authority resolution on same-tenant parameter updates; replaceable CTS/generation guards protect stale application.
-verification: The ledger rationale option is implemented: eligible same-tenant and query-only parameter loads refresh projection evidence and lifecycle authority; unchanged tenant/caller identity alone cannot prove unchanged BFF authority. Six new rendered cases pass pending fail-closed, revoked/indeterminate/granted completion and recovery. Final ordinary Debug source build has zero warnings/errors, focused 6/6 and full UI 6618/6618 pass with zero failures/skips. Existing authentication, command-time and supersession coverage remains; the unproven extra late-result experiment is removed without qualification claims. Inherited external sync a83021d9efa259c1afa014078d2c5fcf61c4d42c is preserved and all six pointer moves are declared in the spec. Exact commands, initial failures and limits are in dw-178-validation-evidence.md.
-pre-dw-178-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.AuthorizationRefresh.cs; _bmad-output/implementation-artifacts/dw-178-validation-evidence.md
-pre-dw-178-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
 priority: P3
-owner: unassigned
-dependencies: none
-pre-dw-178-next-action: Short-circuit unchanged authority scope or document why each parameter update requires a fresh resolve.
-next-action: Closed using the documented fresh-per-load rationale and six rendered regressions; preserve unrelated work and existing release qualification holds.
-related: none
-resolution-evidence: [Exact commands, review and limits](dw-178-validation-evidence.md)
-resolution-spec: spec-dw-178-detail-authorization-refresh.md
+archived: 2026-10-21
 
 ### DW-179: IsSafeReturnUrl accepts any /tenants-prefixed path — deferred, already deferred earlier; same-origin relative only
 
@@ -1619,31 +1503,11 @@ next-action: Create a deterministic cancellation callback interleaving and asser
 related: none
 
 ### DW-181: TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
-location: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
-reason: The legacy ledger defers this issue: TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only. Original context is preserved in legacy-detail.
-legacy-detail: - TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs]
-pre-dw-181-status: open
-status: done 2026-10-21
-pre-dw-181-disposition: actionable
-disposition: resolved
-pre-dw-181-verification-date: 2026-10-12
-verification-date: 2026-10-21
-pre-dw-181-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs exercises route/load cancellation, but the explicit workspace-equivalent outstanding-token deferred-disposal assertion is not established for TenantDetailPage BeginLoad.
-pre-dw-181-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
-pre-dw-181-evidence-kind: verified-gap
-evidence-kind: executed-regression
-priority: P3
-owner: unassigned
-dependencies: none
-pre-dw-181-next-action: Drive a real held detail read through supersession/disposal and assert token lifetime through completion.
-related: none
-verification: Six rendered held-read cases establish immediate cancellation with usable tokens through metadata refresh and shared parameter loads, route replacement and real component unmount. Completed predecessors retain successor cancellation ownership; every owner disposes its source and obsolete results cannot replace current detail. Final Debug source build has zero warnings/errors; focused 6/6 and full UI 6624/6624 pass with zero failures/skips. Independent review accepts all six corrections; initial failures, harmful-control outcomes and explicit limits are preserved in dw-181-validation-evidence.md. Inherited external sync and dependency advances are attributed in the spec and preserved; this completion changes no dependency pointer.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.CancellationLifetime.cs; _bmad-output/implementation-artifacts/dw-181-validation-evidence.md
-next-action: Closed within DW-181; preserve DW-180, unrelated work and existing release qualification holds.
-resolution-spec: spec-dw-181-detail-cancellation-lifetime.md
-resolution-evidence: [Exact commands, review and limits](dw-181-validation-evidence.md)
 
+status: done 2026-10-21
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
+priority: P3
+archived: 2026-10-21
 
 ### DW-182: EditTenantMetadataFlow Lifecycle wiring not asserted via tenants-edit-metadata-open on the detail page — deferred, covered by EditTenantMetadataFlowTests
 
@@ -2046,142 +1910,44 @@ source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-la
 archived: 2026-10-12
 
 ### DW-215: Align release-tag validation with semantic-release SemVer parsing
-origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
-reason: The legacy ledger defers this issue: Align release-tag validation with semantic-release SemVer parsing. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Align release-tag validation with semantic-release SemVer parsing. evidence: The pre-existing tag filter accepts leading-zero or oversized numeric tags that semantic-release may ignore, allowing the guard and release engine to select different floors.
-pre-dw-215-status: open
-status: done 2026-10-18
-pre-dw-215-disposition: actionable
-disposition: resolved
-pre-dw-215-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-215-verification: .github/workflows/release.yml release_tags still accepts ^v[0-9]+\.[0-9]+\.[0-9]+$, including leading zeros and arbitrary numeric width, before selecting a floor; .releaserc.json uses semantic-release tag semantics.
-verification: The plain stable release-tag selector now validates canonical decimal components and the inclusive 9007199254740991 bound as strings before numeric sorting or reachability requests. Initial unchanged-production cases failed 24/36; independent review added thirteen controls and shared fixtures. Final focused 49/49 and full Contracts 203/203 pass with zero failures/skips; final Debug source build has zero warnings/errors. Actual selector parity with installed semantic-release 25.0.9 / semver 7.8.5 matches 5,832 candidates with zero admission/order mismatches. Actionlint, whitespace and story-gitlink checks pass. Exact commands, initial failures, review and runtime limits are in dw-215-validation-evidence.md.
-pre-dw-215-verification-files: .github/workflows/release.yml
-verification-files: .github/workflows/release.yml; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs; _bmad-output/implementation-artifacts/dw-215-validation-evidence.md
-pre-dw-215-evidence-kind: verified-defect
-evidence-kind: executed-regression
-priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-215-next-action: Validate candidate tags with the same SemVer parser/range as semantic-release and test rejected numeric forms.
-next-action: Closed within DW-215; preserve DW-216 and all unrelated deferred work and release qualification holds.
-related: none
-resolution-evidence: [Exact validation, initial failures and independent review](dw-215-validation-evidence.md)
-resolution-spec: spec-dw-215-release-tag-semver-validation.md
 
+status: done 2026-10-18
+origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
+priority: P2
+archived: 2026-10-21
 
 ### DW-216: Validate normalized NuGet version grammar before excluding prereleases from the registry floor
-origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
-reason: The legacy ledger defers this issue: Validate normalized NuGet version grammar before excluding prereleases from the registry floor. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Validate normalized NuGet version grammar before excluding prereleases from the registry floor. evidence: The pre-existing registry parser accepts malformed prerelease and non-normalized stable strings, which can turn unusable evidence into a passing drift check.
-pre-dw-216-status: open
+
 status: done 2026-10-18
-pre-dw-216-disposition: actionable
-disposition: resolved
-pre-dw-216-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-216-verification: .github/workflows/release.yml registry grammar permits leading-zero stable forms and malformed prerelease identifiers under [0-9A-Za-z.-]+, then excludes any hyphenated value. Invalid evidence can still pass the floor guard.
-verification: Complete version grammar, canonical Int32-bounded core components, valid prerelease identifiers and the 64-character NuGet.org bound are checked before exclusion. Original production failed 64/116 cases; review length controls failed four/130 before correction. Independent review/recheck, final focused 130/130, full Contracts 333/333 and zero-warning/error Debug source build pass with zero failures/skips. Existing two-component/zero-revision/case compatibility, valid prereleases, malformed non-string evidence and full numeric ordering remain covered. Exact commands, initial failures and limits are in dw-216-validation-evidence.md.
-pre-dw-216-verification-files: .github/workflows/release.yml
-verification-files: .github/workflows/release.yml; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs; _bmad-output/implementation-artifacts/dw-216-validation-evidence.md
-pre-dw-216-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-216-next-action: Validate normalized NuGet grammar before stable/prerelease classification and cover malformed suffixes.
-next-action: Closed within DW-216; preserve unrelated deferred work and existing release qualification holds.
-related: none
-resolution-evidence: [Exact validation, initial failures and independent review](dw-216-validation-evidence.md)
-resolution-spec: spec-dw-216-registry-version-validation.md
+archived: 2026-10-21
 
 ### DW-217: Reconcile publication-preflight and contributor recovery guidance with authentic-tag-only provenance policy
-origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
-reason: The legacy ledger defers this issue: Reconcile publication-preflight and contributor recovery guidance with authentic-tag-only provenance policy. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Reconcile publication-preflight and contributor recovery guidance with authentic-tag-only provenance policy. evidence: Existing script and CONTRIBUTING guidance still recommends restoring deleted tags or advancing via a breaking footer without the producing-commit and reachability safeguards adopted by this spec.
-pre-dw-217-status: open
-status: done 2026-10-18
-pre-dw-217-disposition: actionable
-disposition: resolved
-pre-dw-217-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-217-verification: scripts/validate-publication-preflight.sh floor failure text and CONTRIBUTING.md still suggest restoring deleted tags or a breaking footer without the authentic producing-commit/reachability safeguards in .github/workflows/release.yml.
-verification: Publication-preflight verify/publish failures and contributor recovery guidance now require an authentic published-version tag at its actual producing commit, reachable from dispatched source, or separately reviewed recovery. Original-production tests failed 2/214 across this bundle; independent review/recheck and three rejected policy/advice mutations qualify the correction. Final Debug source build has zero warnings/errors; final full Contracts 333/333 passes with zero failures/skips. DW-218 remains open; exact commands, earlier failures and unchanged-line formatter blocker are retained in dw-217-219-validation-evidence.md.
-pre-dw-217-verification-files: scripts/validate-publication-preflight.sh; .github/workflows/release.yml
-verification-files: scripts/validate-publication-preflight.sh; CONTRIBUTING.md; .github/workflows/release.yml; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
-pre-dw-217-evidence-kind: verified-defect
-evidence-kind: executed-regression
-priority: P2
-owner: unassigned
-dependencies: release-lineage policy
-pre-dw-217-next-action: Align recovery guidance with authentic-tag-only lineage and reviewed recovery.
-next-action: Closed within DW-217/DW-219; retain DW-218, unrelated deferred work and existing release qualification holds.
-related: DW-218, DW-219
-resolution-evidence: [Exact validation, initial failures and independent review](dw-217-219-validation-evidence.md)
-resolution-spec: spec-dw-217-219-release-recovery-guidance.md
 
+status: done 2026-10-18
+origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
+priority: P2
+archived: 2026-10-21
 
 ### DW-218: Correct stale release trigger and current release-line documentation
-origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
-reason: The legacy ledger defers this issue: Correct stale release trigger and current release-line documentation. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Correct stale release trigger and current release-line documentation. evidence: Existing project context and contributor docs describe automatic workflow-run publication and a 4.x current line, while release is manually dispatched and reachable history extends through 5.x.
-pre-dw-218-status: open
+
 status: done 2026-10-18
-pre-dw-218-disposition: actionable
-disposition: done
-pre-dw-218-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-218-verification: _bmad-output/project-context.md still says workflow_run publication; .github/workflows/release.yml actually uses workflow_dispatch. CONTRIBUTING.md still calls 4.x current, while later release artifacts describe newer lines.
-verification: Contributor and agent guidance now describe explicit dispatch from the current main tip with successful exact-SHA push CI, source recheck and exact-source publication verification. Date-bound local v5.8.0 ancestry evidence is distinguished from the unchanged 4.0.0 static minimum and registry/readiness proof; historical observations and changelog entries are preserved. Independent review/recheck resolves four findings; final Debug source build has zero warnings/errors and all 333 Contracts tests pass with zero failures/skips. Exact commands, initial stale assertion failure, formatter baseline and maintenance accounting remain in dw-218-validation-evidence.md.
-pre-dw-218-verification-files: .github/workflows/release.yml
-verification-files: CONTRIBUTING.md; _bmad-output/project-context.md; scripts/validate-publication-preflight.sh; .github/workflows/release.yml; .releaserc.json; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
-pre-dw-218-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
 priority: P2
-owner: unassigned
-dependencies: verified current release-line evidence
-pre-dw-218-next-action: Correct current trigger/line guidance using committed release evidence; preserve historical observations.
-next-action: Closed within DW-218; preserve unrelated deferred work, authentic-lineage safeguards and existing release qualification holds.
-related: DW-217
-resolution-evidence: [Exact commands, independent review and validation limits](dw-218-validation-evidence.md)
-resolution-spec: spec-dw-218-release-trigger-and-line-guidance.md
+archived: 2026-10-21
 
 ### DW-219: Replace absolute collision wording with an accurate unproven-lineage risk statement
-origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
-reason: The legacy ledger defers this issue: Replace absolute collision wording with an accurate unproven-lineage risk statement. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md` summary: Replace absolute collision wording with an accurate unproven-lineage risk statement. evidence: The existing guard message says semantic-release would certainly propose an occupied version even though it does not compute the proposal and the registry range may contain gaps.
-pre-dw-219-status: open
-status: done 2026-10-18
-pre-dw-219-disposition: actionable
-disposition: resolved
-pre-dw-219-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-219-verification: .github/workflows/release.yml still says semantic-release would certainly propose an occupied version, although the guard compares registry/tag floors without computing the proposed version.
-verification: Registry-floor failure now reports unproven release lineage and possible collision while explicitly stating that no release proposal is computed. Sparse-registry and existing drift/four-component controls execute actual workflow Bash with unchanged read-only probes. Independent review/recheck, zero-warning/error final Debug source build and final full Contracts 333/333 pass with zero failures/skips. Exact commands, initial failures and limits are retained in dw-217-219-validation-evidence.md.
-pre-dw-219-verification-files: .github/workflows/release.yml
-verification-files: .github/workflows/release.yml; CONTRIBUTING.md; tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
-pre-dw-219-evidence-kind: verified-defect
-evidence-kind: executed-regression
-priority: P3
-owner: unassigned
-dependencies: none
-pre-dw-219-next-action: Describe the proven lineage/floor gap and collision risk without claiming an uncomputed collision.
-next-action: Closed within DW-217/DW-219; retain DW-218, unrelated deferred work and existing release qualification holds.
-related: DW-217
-resolution-evidence: [Exact validation, initial failures and independent review](dw-217-219-validation-evidence.md)
-resolution-spec: spec-dw-217-219-release-recovery-guidance.md
 
+status: done 2026-10-18
+origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-release-version-floor-drift.md`
+priority: P3
+archived: 2026-10-21
 
 ### DW-220: Remove default set/remove projection-proof implementations from ITenantQueryGateway so every gateway and decorator must implement the security-sensitive proof contract explicitly
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -2436,30 +2202,12 @@ next-action: Measure form visibility and initial/Tab focus at 767px and 768px be
 related: DW-195, DW-227, DW-317
 
 ### DW-243: Replace legacy Fluent/FAST CSS custom properties in the remove-member dialog
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
-location: RemoveTenantMemberFlow.razor.css
-source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
-reason: The legacy ledger defers this issue: Replace legacy Fluent/FAST CSS custom properties in the remove-member dialog. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Replace legacy Fluent/FAST CSS custom properties in the remove-member dialog. evidence: `RemoveTenantMemberFlow.razor.css` still uses `--neutral-stroke-rest`, `--error-fill-rest`, and `--focus-stroke-outer`, contrary to the repository's Fluent UI v5 token guidance.
-pre-dw-243-status: open
+
 status: done 2026-10-17
-pre-dw-243-disposition: actionable
-disposition: resolved
-pre-dw-243-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-243-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css still uses --neutral-stroke-rest, --error-fill-rest and --focus-stroke-outer. tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs does not prove removal of these legacy variables.
-verification: All seven obsolete token references now use existing Fluent 2 neutral/danger border and focus roles while preserving system fallbacks and forced-colors rules. The new guard covers active CSS and Razor, named FAST primitives, nested fallbacks and comments with 21 controls. Independent review/correction recheck accepts both guard fixes; final Debug source build has zero warnings/errors, 6159 full UI tests pass with zero failures/skips, and computed light/dark/forced-colors plus maintained rendered Chromium checks pass. The expanded focused run had one unchanged held-authority case failure; its immediate eight-case recheck and full suite pass. See resolution evidence for limits.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css; tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs
-pre-dw-243-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-243-next-action: Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard.
-next-action: Closed after token migration and conformance/browser qualification; unrelated deferred work and release holds remain unchanged.
-related: DW-243, DW-262, DW-612
-resolution-evidence: [Commands, initial failures, review and limits](dw-243-262-612-validation-evidence.md)
-resolution-spec: spec-dw-243-262-612-fluent-theme-tokens.md
+archived: 2026-10-21
 
 ### DW-244: Align rejected remove-member recovery copy with actions the surface actually provides
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
@@ -2713,30 +2461,11 @@ next-action: Add create minted-ID retention on an indeterminate result and a gat
 related: none
 
 ### DW-262: Legacy FAST token `--neutral-stroke-rest` survives in `RemoveTenantMemberFlow.razor.css:4`
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-21)"), 2026-08-25
-location: RemoveTenantMemberFlow.razor.css:4; project-context.md
-reason: The legacy ledger defers this issue: Legacy FAST token `--neutral-stroke-rest` survives in `RemoveTenantMemberFlow.razor.css:4`. Original context is preserved in legacy-detail.
-legacy-detail: - **Legacy FAST token `--neutral-stroke-rest` survives in `RemoveTenantMemberFlow.razor.css:4`.** `project-context.md` bans `--neutral-*` outright, yet `DomainUiFluentConformanceTests` passes — the guard does not cover custom-property names. Noted rather than patched because this story's diff moved *off* a banned token (`--accent-fill-rest` → `--error-fill-rest` at `.css:36`), i.e. it improved the file; the residual token and the guard gap are pre-existing.
-pre-dw-262-status: open
+
 status: done 2026-10-17
-pre-dw-262-disposition: actionable
-disposition: resolved
-pre-dw-262-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-262-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css still uses --neutral-stroke-rest, --error-fill-rest and --focus-stroke-outer. tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs does not prove removal of these legacy variables.
-verification: All seven obsolete token references now use existing Fluent 2 neutral/danger border and focus roles while preserving system fallbacks and forced-colors rules. The new guard covers active CSS and Razor, named FAST primitives, nested fallbacks and comments with 21 controls. Independent review/correction recheck accepts both guard fixes; final Debug source build has zero warnings/errors, 6159 full UI tests pass with zero failures/skips, and computed light/dark/forced-colors plus maintained rendered Chromium checks pass. The expanded focused run had one unchanged held-authority case failure; its immediate eight-case recheck and full suite pass. See resolution evidence for limits.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css; tests/Hexalith.Tenants.UI.Tests/DomainUiFluentConformanceTests.cs
-pre-dw-262-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-21)"), 2026-08-25
 priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-262-next-action: Migrate the residual CSS tokens to Fluent 2 roles and pin the legacy-token guard.
-next-action: Closed after token migration and conformance/browser qualification; unrelated deferred work and release holds remain unchanged.
-related: DW-243, DW-262, DW-612
-duplicate-of: DW-243
-resolution-evidence: [Commands, initial failures, review and limits](dw-243-262-612-validation-evidence.md)
-resolution-spec: spec-dw-243-262-612-fluent-theme-tokens.md
+archived: 2026-10-21
 
 ### DW-263: `RemoveTenantMemberFlow.Dispose` does not release the command-activity lease — attempted and reverted
 
@@ -3259,29 +2988,11 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 archived: 2026-10-12
 
 ### DW-308: `TenantConfigurationManagementContext`'s null `authorityState` default (implicit `TenantOwner` grant) and `TenantConfigurationSafeComposer`'s `_ = tenantStatus;` discard were documented with comments rather than removed
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
-location: TenantConfigurationManagementContext
-reason: The legacy ledger defers this issue: `TenantConfigurationManagementContext`'s null `authorityState` default (implicit `TenantOwner` grant) and `TenantConfigurationSafeComposer`'s `_ = tenantStatus;` discard were documented with comments rather than removed. Original context is preserved in legacy-detail.
-legacy-detail: - `TenantConfigurationManagementContext`'s null `authorityState` default (implicit `TenantOwner` grant) and `TenantConfigurationSafeComposer`'s `_ = tenantStatus;` discard were documented with comments rather than removed.
-pre-dw-308-status: open
+
 status: done 2026-10-17
-pre-dw-308-disposition: actionable
-disposition: resolved
-pre-dw-308-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-308-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs Available still accepts authorityState=null and grants TenantOwner for nonglobal callers; Services/Configuration/TenantConfigurationSafeComposer.cs still discards tenantStatus in authority helpers. Production supplies explicit evidence, but the public implicit-grant trap remains.
-verification: Available now requires TenantConfigurationAuthorityState and does not infer a role. Private resolvers no longer take tenantStatus. The pre-update UI test build failed with CS7036 on every old five-argument call. Final Debug source build has zero warnings/errors; policy tests 80/80 and full UI 6263/6263 pass with zero failures/skips. Exact commands and the initial compile failure remain in dw-308-314-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
-pre-dw-308-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
 priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-308-next-action: Require explicit authority at construction and reconcile unused status parameters with compatibility tests.
-next-action: Closed within DW-308; DW-649 records the separate page-stub mismatch. Existing release holds remain.
-related: DW-314, DW-649
-resolution-evidence: [Exact validation, initial compile failure and independent review](dw-308-314-validation-evidence.md)
-resolution-spec: spec-dw-308-314-explicit-configuration-authority.md
+archived: 2026-10-21
 
 ### DW-309: `_hasAdoptedRetainedAttempt` is latched before the tracker lookup, and a `Detail.TenantId` change on a mounted flow is never re-adopted. Latent only — the parent renders the flow solely for a loaded tenant
 
@@ -3326,30 +3037,11 @@ next-action: Address create retention/late completion before extracting reusable
 related: DW-255, DW-284, DW-288
 
 ### DW-314: `TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs:85-92
-reason: The legacy ledger defers this issue: `TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it. Original context is preserved in legacy-detail.
-legacy-detail: - **`TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it** — `src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs:85-92`. The `<remarks>` explains at length that the null default silently grants `TenantOwner`, exists only for tests predating the authority distinction, and "a new test should not rely on" it. A comment cannot stop the next test from taking the 5-argument overload. Second occurrence — also deferred in Loop 2. Deferred again because configuration authority is Story 3.5/3.6 territory, which Story 3.4's "Never" list excludes.
-pre-dw-314-status: open
+
 status: done 2026-10-17
-pre-dw-314-disposition: actionable
-disposition: resolved
-pre-dw-314-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-314-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs Available still accepts authorityState=null and grants TenantOwner for nonglobal callers; Services/Configuration/TenantConfigurationSafeComposer.cs still discards tenantStatus in authority helpers. Production supplies explicit evidence, but the public implicit-grant trap remains.
-verification: Closed with DW-308. Available requires an explicit authority argument, and the private resolvers no longer discard tenantStatus. Final Debug source build, policy 80/80 and full UI 6263/6263 pass with zero failures/skips. Evidence is dw-308-314-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantConfigurationManagementContext.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
-pre-dw-314-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25)"), 2026-08-25
 priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-314-next-action: Require explicit authority at construction and reconcile unused status parameters with compatibility tests.
-next-action: Closed within DW-314; the duplicate DW-308 record holds the shared evidence.
-related: DW-308, DW-649
-duplicate-of: DW-308
-resolution-evidence: [Exact validation, initial compile failure and independent review](dw-308-314-validation-evidence.md)
-resolution-spec: spec-dw-308-314-explicit-configuration-authority.md
+archived: 2026-10-21
 
 ### DW-315: `TenantCommandGateway.BoundSafeFailureReason` returns most backend failure text verbatim
 
@@ -3489,30 +3181,13 @@ next-action: Finish the cited audit accent/apostrophe pass with EN/FR parity.
 related: DW-270, DW-306, DW-439
 
 ### DW-325: TenantConfigurationManagement latches _removeCommandInFlight from a retained attempt with no reset branch, so the flag survives the tracker's autonomous expiry when the flow is unmounted.
+
+status: done 2026-10-17
 origin: spec-deferred 1af6159500d9
-location: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor:363
 source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
 severity: low
-reason: OnParametersSet sets _removeCommandInFlight = true whenever RemoveAttemptTracker.Find returns a retained attempt, and only the flow's own lease callback lowers it. Tracker expiry raised while the flow is unmounted never runs that callback. The obvious else-reset was implemented and reverted: it lowers ChildCommandInFlight at the instant of confirmation, and the management landmark then replaces both flows with the unavailable paragraph before the operator can see the terminal state (Matching_signalr_notification_reconciles_retained_remove_without_redispatch_or_nudge_success fails). Impact is limited: the page clears its own _commandInFlight on expiry, so IsCommandSurfaceAvailable still recovers. A correct fix needs a distinct "flow owns the lease" signal.
-pre-dw-325-status: open
-status: done 2026-10-17
-pre-dw-325-disposition: actionable
-disposition: resolved
-pre-dw-325-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-325-verification: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor OnParametersSet still only raises _removeCommandInFlight for retained attempts; there is no reset when a tracker expires while the child is unmounted. Original terminal-unmount regression prevents a naive else-reset.
-verification: Executed refused-adoption regressions prove retained-only activity clears with tracker-first and child-first expiry, exact heading focus, held-renderer replacement/tenant switching, accepted child/sibling activity preservation and disposal. Final Debug source build has zero warnings/errors; focused 470/470 and full UI 6137/6137 pass with zero failures/skips. Independent review accepts all five corrections. The historical literal unmounted-child scenario was not reproduced; current rendering preserves an adopted child and the executed failure involves one that never acquired activity.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/TenantConfigurationManagement.razor
-pre-dw-325-evidence-kind: verified-defect
-evidence-kind: executed-regression
 priority: P2
-owner: unassigned
-dependencies: retained remove activity ownership
-pre-dw-325-next-action: Represent flow-owned activity separately from retained-attempt activity and pin expiry plus visible confirmation.
-next-action: Closed together with its duplicate after expiry/ownership qualification; unrelated deferred work and release holds remain unchanged.
-related: DW-587
-resolution-evidence: [Exact commands, initial failures, review and limits](dw-325-587-validation-evidence.md)
-resolution-spec: spec-dw-325-587-remove-configuration-activity.md
+archived: 2026-10-21
 
 ### DW-326: One of the ten mandated preview facts is a constant, and roughly two dozen enum-keyed EN/FR strings can never render.
 origin: spec-deferred 3352ed6ca1f0
@@ -4894,61 +4569,19 @@ related: DW-417, DW-428, DW-429
 
 ### DW-419: Fail the legacy story gitlink guard when its baseline already contains story work.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: scripts/validate-story-gitlinks.py
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Fail the legacy story gitlink guard when its baseline already contains story work.\n  evidence: `scripts/validate-story-gitlinks.py` currently emits only a warning from `baseline_is_mid_story`; pointer moves before that baseline are excluded from the baseline-to-tree verdict. The current Story 4.3 baseline does not meet this condition."
-pre-dw-419-status: open
-pre-dw-419-disposition: actionable
-pre-dw-419-verification-date: 2026-10-12
-pre-dw-419-verification: scripts/validate-story-gitlinks.py:406-410 still records baseline_is_mid_story as a warning only, then returns PASS when no in-range pointer violations are found. Story work contained before that baseline can remain outside its verdict.
-pre-dw-419-verification-files: scripts/validate-story-gitlinks.py
-pre-dw-419-evidence-kind: verified-defect
-priority: P2
-owner: unassigned
-dependencies: Story baseline ownership policy
-pre-dw-419-next-action: Fail the legacy guard when the baseline already contains this story work, or require an explicit verified true-start override with regression coverage.
-related: DW-420, DW-437
 status: done 2026-10-20
-disposition: resolved
-verification-date: 2026-10-20
-verification: Legacy audits now refuse the existing mid-story baseline signal instead of returning PASS with a warning; failed Git inspection also refuses. The maintained lane passes 77/77. Eight focused methods on entry production yield 26 expected assertion/subtest failures, including 24 unsafe CLI PASS results and one failed-inspection command PASS verdict. Focused isolated variants detect warning-only behavior, unconditional recorded-mode rejection and swallowed inspection errors. Exact verification, independent review and conservative detector limits are recorded in dw-419-validation-evidence.md.
-verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/dw-419-check-variants.py; _bmad-output/implementation-artifacts/dw-419-validation-evidence.md
-evidence-kind: executed-regression
-next-action: Closed for detected legacy mid-story baselines; retain separately scoped CI enforcement, historical attribution, existing detector limitations and release holds.
-resolution-evidence: _bmad-output/implementation-artifacts/dw-419-validation-evidence.md
-resolution-spec: _bmad-output/implementation-artifacts/spec-dw-419-legacy-mid-story-baseline.md
-
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+priority: P2
+archived: 2026-10-21
 
 ### DW-420: Read unchanged legacy-mode gitlinks from the superproject index or tree when a submodule is uninitialized.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: scripts/validate-story-gitlinks.py
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Read unchanged legacy-mode gitlinks from the superproject index or tree when a submodule is uninitialized.\n  evidence: `current_pointer(path, None)` runs `git -C <path> rev-parse HEAD`; in an uninitialized submodule directory Git can resolve the superproject HEAD and report a false pointer value. Recorded-commit mode uses `git ls-tree` and is unaffected."
-pre-dw-420-status: open
-pre-dw-420-disposition: actionable
-pre-dw-420-verification-date: 2026-10-12
-pre-dw-420-verification: scripts/validate-story-gitlinks.py::current_pointer(path, None):327-336 still uses git -C path rev-parse HEAD without verifying the repository root. In an uninitialized submodule directory this resolves the enclosing superproject. Recorded-ref mode correctly uses ls-tree.
-pre-dw-420-verification-files: scripts/validate-story-gitlinks.py
-pre-dw-420-evidence-kind: verified-defect
-priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-420-next-action: Read unchanged legacy-mode gitlinks from the superproject index/tree and test an uninitialized declared submodule directory.
-related: DW-419
 status: done 2026-10-20
-disposition: done
-verification-date: 2026-10-20
-verification: DW-656 commit 948141b48aa29af67caa8531d821be205096c46d already verifies checkout ownership and resolves uninitialized/deinitialized unchanged legacy pointers from the stage-zero index, including staged net-zero changes. Fresh maintained guard tests pass 69/69. Five real-CLI focused cases pass; isolated prior-resolver replay produces nine assertion/subtest failures across three cases, HEAD-tree fallback fails two staged-pointer assertions, and unconditional-index resolution fails the checkout-precedence case. Independent review and preservation results are recorded in dw-420-validation-evidence.md.
-verification-files: scripts/validate-story-gitlinks.py, tests/scripts/test_validate_story_gitlinks.py, _bmad-output/implementation-artifacts/dw-420-validation-evidence.md
-evidence-kind: qualified-existing-fix
-next-action: Closed after DW-656 acceptance reconciliation; retain DW-419 and separately scoped CI, history-attribution and release work.
-resolution-evidence: _bmad-output/implementation-artifacts/dw-420-validation-evidence.md
-resolution-spec: _bmad-output/implementation-artifacts/spec-dw-420-uninitialized-gitlink-acceptance.md
-
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+priority: P2
+archived: 2026-10-21
 
 ### DW-421: Release a terminal grant lease adopted after ownerless delivery completion.
 
@@ -4960,32 +4593,11 @@ archived: 2026-10-13
 
 ### DW-422: Keep tenant-audit Continue read-only linked to a rendered grid heading when filter validation is active.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Keep tenant-audit Continue read-only linked to a rendered grid heading when filter validation is active.\n  evidence: `TenantAuditPage.CanContinueReadOnlyForState` checks rows and stale/degraded/list-refreshed state while `ShouldRenderRows` also requires no filter validation, so the recovery link can target a heading omitted from the DOM. The audit surface was changed by later Story 5.1 work in the baseline range."
-pre-dw-422-status: open
-pre-dw-422-disposition: actionable
-pre-dw-422-verification-date: 2026-10-12
-pre-dw-422-verification: TenantAuditPage.razor::CanContinueReadOnlyForState:613 only checks retained rows and stale/degraded/list-refreshed kind, whereas ShouldRenderRows:554 also requires !HasFilterValidation. The recovery anchor at :180 can still target #tenant-audit-grid-heading when validation omits the grid.
-pre-dw-422-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
-pre-dw-422-evidence-kind: verified-defect
-priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-422-next-action: Gate Continue read-only on the actual rendered grid/heading condition and cover stale retained rows with invalid filter input.
-related: DW-444
 status: done 2026-10-20
-disposition: resolved
-verification-date: 2026-10-20
-verification: Existing invalid-filter snapshot clearing and pending-read invalidation are qualified by an initial twelve-case component event/reset matrix, which also passes entry production. The read-only anchor now reuses the actual heading/grid render predicate while retaining its three recovery states. Debug source builds have zero warnings/errors; focused 230/230 and maintained UI 6284/6284 pass with zero failures/skips. Exact commands, independent review, historical protection and runtime/formatting limits are recorded in dw-422-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs; _bmad-output/implementation-artifacts/dw-422-validation-evidence.md
-evidence-kind: qualified-existing-fix
-next-action: Closed through existing-protection qualification and shared render gating; retain DW-444, unrelated deferred work and existing release holds.
-resolution-evidence: _bmad-output/implementation-artifacts/dw-422-validation-evidence.md
-resolution-spec: _bmad-output/implementation-artifacts/spec-dw-422-audit-read-only-target.md
-
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+priority: P2
+archived: 2026-10-21
 
 ### DW-423: Sanitize URL-supplied user and command context before showing it on the tenant audit page.
 
@@ -4997,32 +4609,11 @@ archived: 2026-10-12
 
 ### DW-424: Reject malformed audit date and non-string category fields in direct server query payloads.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`\n  summary: Reject malformed audit date and non-string category fields in direct server query payloads.\n  evidence: `TenantQueryHandlerBase.DeserializeAuditPayload` converts malformed `from`/`to` and non-string `category` to null filters; the method is unchanged from the Story 5.1 baseline, so a direct authorized query can broaden its tenant-scoped result."
-pre-dw-424-status: open
 status: done 2026-10-18
-pre-dw-424-disposition: actionable
-disposition: resolved
-pre-dw-424-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-424-verification: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs::DeserializeAuditPayload:301-327 still converts invalid from/to through TryGetDateTimeOffset to null and only parses category when its JSON kind is String. Non-string category and malformed date fields can silently become missing filters and broaden an authorized direct read.
-verification: Malformed supplied date strings and wrong JSON kinds, plus non-string/non-null categories, now return InvalidEnvelope before cursor decoding or audit reads. Optional filters, active scope, numeric-string categories, final duplicate-member semantics, offsets, inclusive bounds and authorization precedence are covered. Original-parser control failed 25/39; final 59 focused and full Server 1010/1010 pass with zero failures/skips after independent review/recheck. The final Debug source build passes with zero errors and one transient MSB3026 copy-retry warning. Exact commands, initial failures and limits are in dw-424-validation-evidence.md. The pre-existing Unicode category string decoding exception is separately recorded as DW-650.
-pre-dw-424-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; src/Hexalith.Tenants/Queries/Handlers/GetTenantAuditQueryHandler.cs; tests/Hexalith.Tenants.Server.Tests/Queries/GetTenantAuditQueryHandlerTests.cs
-pre-dw-424-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
 priority: P2
-owner: unassigned
-dependencies: none
-pre-dw-424-next-action: Reject supplied-but-malformed date/category filter fields with InvalidEnvelope and add direct query-handler tests for each malformed JSON kind/date.
-next-action: Closed within DW-424; preserve the separate DW-650 category-decoding follow-up and existing release holds.
-related: DW-408
-resolution-evidence: [Exact commands, initial failures, independent review and limits](dw-424-validation-evidence.md)
-resolution-spec: spec-dw-424-malformed-audit-filters.md
-
+archived: 2026-10-21
 
 ### DW-425: Recheck audit load generation inside the queued tenant-detail projection write.
 
@@ -5050,61 +4641,19 @@ archived: 2026-10-12
 
 ### DW-428: Keep dirty detached-HEAD submodule commits reachable from the branch that pushall pushes.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: .agents/skills/pushall/SKILL.md
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`\n  summary: Keep dirty detached-HEAD submodule commits reachable from the branch that pushall pushes.\n  evidence: `.agents/skills/pushall/SKILL.md` commits before checking out the default branch, so a detached-HEAD commit can be left behind. This separate Git skill is unrelated to tenant audit."
-pre-dw-428-status: open
-pre-dw-428-disposition: actionable
-pre-dw-428-verification-date: 2026-10-12
-pre-dw-428-verification: .agents/skills/pushall/SKILL.md commits a dirty tree in step 3, before step 4 checks out the default branch. It has no detached-HEAD guard or step merging that newly created detached commit into the branch pushed in step 8, so the local changes can be left behind.
-pre-dw-428-verification-files: .agents/skills/pushall/SKILL.md
-pre-dw-428-evidence-kind: verified-defect
-priority: P1
-owner: unassigned
-dependencies: Future authorized pushall skill change
-pre-dw-428-next-action: Require an attached intended branch or retain/merge the exact detached commit before default-branch push; add a procedure fixture for dirty detached HEAD.
-related: DW-417, DW-418, DW-429
 status: done 2026-10-20
-disposition: resolved
-verification-date: 2026-10-20
-verification: The three tracked pushall manifests now require a verified attached branch before any dirty-repository sync operation. A failed attachment gate skips the repository before fetch/staging/commit/checkout and preserves its original HEAD, index, worktree and refs. Thirteen real-Git procedure tests pass, including five dirty detached states across all copies, hidden untracked/submodule settings, non-branch symbolic HEAD refusal, branch/status inspection errors, executable/symlink preservation, clean detached and dirty attached controls, a local remote reachability check and legacy-order omission reproduction. The existing 77 gitlink regressions pass. Exact commands, independent review and the inherited manifest-validator incompatibility are recorded in dw-428-validation-evidence.md.
-verification-files: .agents/skills/pushall/SKILL.md; .claude/skills/pushall/SKILL.md; .github/skills/pushall/SKILL.md; tests/scripts/test_pushall_detached_head.py; .github/workflows/story-guards.yml
-evidence-kind: executed-procedure-regression
-next-action: Closed for dirty detached repositories through the attached-branch prerequisite; preserve DW-429 remote-default selection and all other tooling/release work.
-resolution-evidence: _bmad-output/implementation-artifacts/dw-428-validation-evidence.md
-resolution-spec: _bmad-output/implementation-artifacts/spec-dw-428-dirty-detached-pushall.md
-
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
+priority: P1
+archived: 2026-10-21
 
 ### DW-429: Make pushall honor the remote's actual default branch when both main and master exist.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: .agents/skills/pushall/SKILL.md
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`\n  summary: Make pushall honor the remote's actual default branch when both main and master exist.\n  evidence: `.agents/skills/pushall/SKILL.md` prefers local `main` ahead of `origin/HEAD`, so it can merge and prune against the wrong default. This separate Git skill is unrelated to tenant audit."
-pre-dw-429-status: open
 status: done 2026-10-20
-pre-dw-429-disposition: actionable
-disposition: resolved
-pre-dw-429-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-429-verification: .agents/skills/pushall/SKILL.md step 2 still prefers local main, then master, and asks origin only when neither exists. This can choose a stale local branch instead of the actual remote default and drive merges/pruning against the wrong branch.
-verification: Live origin HEAD resolution now requires one valid branch and OID plus a direct matching fetched commit before committing or switching. Missing local defaults are explicitly created. Thirty-one real-Git regressions and the retained 13 attachment/77 gitlink tests pass; independent review and final results are recorded in dw-429-validation-evidence.md. The manifest validator retains its unsupported-key limitation, and external checkout pointer drift remains excluded from the task.
-pre-dw-429-verification-files: .agents/skills/pushall/SKILL.md
-verification-files: .agents/skills/pushall/SKILL.md; .claude/skills/pushall/SKILL.md; .github/skills/pushall/SKILL.md; tests/scripts/test_pushall_default_branch.py; .github/workflows/story-guards.yml; _bmad-output/implementation-artifacts/dw-429-validation-evidence.md
-pre-dw-429-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-1-browse-tenant-audit-trail.md`
 priority: P1
-owner: unassigned
-dependencies: Future authorized pushall skill change
-pre-dw-429-next-action: Resolve the remote default first, validate its branch/ref, and handle missing or ambiguous remote-default evidence explicitly.
-next-action: Closed for live remote-default selection; preserve unrelated pushall findings, external work and existing release holds.
-related: DW-417, DW-418, DW-428
-resolution-evidence: _bmad-output/implementation-artifacts/dw-429-validation-evidence.md
-resolution-spec: _bmad-output/implementation-artifacts/spec-dw-429-pushall-remote-default.md
-
+archived: 2026-10-21
 
 ### DW-430: Resolve whether the historical Story 5.1 performance guest used modified dependency source.
 
@@ -5120,32 +4669,11 @@ Story range `fc147e3e..f17027ac`.
 
 ### DW-431: Story 5.2 gitlink guard fails against HEAD because later commits bump submodules.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-2-reach-scoped-audit-evidence-from-context.md (2026-09-26)"), 2026-10-12
-location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Story 5.2 gitlink guard fails against HEAD because later commits bump submodules.\n  evidence: `scripts/validate-story-gitlinks.py` exits 1 for undeclared Builds `754d2b4→2326f98`, EventStore `04682ea→4fafcb9`, and FrontComposer `2e33757→07bfc22`. The bumps come from `8431d992` (Story 5.1 closure), `04f68c60`, and `dfa78e10`. `--ref f17027ac` passes, with no `references/` change in the story range."
-pre-dw-431-status: open
 status: done 2026-10-20
-pre-dw-431-disposition: actionable
-disposition: resolved
-pre-dw-431-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-431-verification: Executed python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md on 2026-10-12: exit 1. Legacy baseline fc147e3-to-HEAD includes later AI.Tools/McpCli/Memories/Platform/PolymorphicSerializations pointer changes not declared by the story; historical three-pointer list changed but drift still applies.
-verification: The preserved true-start baseline, initial zero-pointer endpoint and final Story 5.2 closure are now recorded with canonical IDs. Four binding closure targets match Git exactly; the complete seven-commit/fifteen-move chain distinguishes two story-carried commits (including previously omitted final closure moves) from five independent commits. The explicit final historical guard passes; moving HEAD and eight separate incorrect-target/missing-declaration controls fail as expected. Entry-document initial/closure PASS results are retained as historical observations. The maintained guard lane passes 77/77. See dw-431-validation-evidence.md for exact commands, independent review and scope limits.
-pre-dw-431-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md
-verification-files: _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md; _bmad-output/implementation-artifacts/dw-431-validation-evidence.md
-pre-dw-431-evidence-kind: verified-gap
-evidence-kind: executed-historical-attribution
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-2-reach-scoped-audit-evidence-from-context.md (2026-09-26)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
 priority: P2
-owner: unassigned
-dependencies: Story-owned pointer attribution
-pre-dw-431-next-action: Record precise story-owned pointer commits/endpoints and keep later dependency moves out of historical story scope.
-next-action: Closed for Story 5.2 historical attribution using its explicit final endpoint; retain moving-HEAD refusal and keep DW-437/DW-451/DW-534 changed-story CI gate and unrelated release holds open.
-related: DW-437
-resolution-evidence: _bmad-output/implementation-artifacts/dw-431-validation-evidence.md
-resolution-spec: _bmad-output/implementation-artifacts/spec-dw-431-historical-story-gitlink-attribution.md
-
+archived: 2026-10-21
 
 ### DW-432: Run the hosted Story 5.2 route smoke once the Aspire EventStore fixture is healthy.
 
@@ -5228,32 +4756,11 @@ Story range `fc147e3e..HEAD`.
 
 ### DW-437: Un-defer the CI story gitlink gate so `validate-story-gitlinks.py` runs against changed story files, not only its own regression suite.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-2-reach-scoped-audit-evidence-from-context.md (2026-09-27)"), 2026-10-12
-location: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Un-defer the CI story gitlink gate so `validate-story-gitlinks.py` runs against changed story files, not only its own regression suite.\n  evidence: Decision 2026-09-27 (\"Declare + enable CI gate\"). Story 5.2 is the fifth undeclared-bump occurrence; story commit `3ba48896` moved EventStore and FrontComposer without saying so. The fourth occurrence (Story 3.4, 2026-08-25) was the pre-agreed trigger. `.github/workflows/story-guards.yml` currently runs only `tests/scripts/test_validate_story_gitlinks.py`. The gate must compare each story's `baseline_commit..HEAD` range, because bumps often land in a later `build(deps)` commit."
-pre-dw-437-status: open
 status: done 2026-10-20
-pre-dw-437-disposition: actionable
-disposition: resolved
-pre-dw-437-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-437-verification: .github/workflows/story-guards.yml::gitlink-guard still runs only python3 tests/scripts/test_validate_story_gitlinks.py. It never invokes scripts/validate-story-gitlinks.py on changed stories. Current Story 5.2 and 5.4 guards still exit 1. The 2026-09-27 Declare + enable CI gate decision is already approved and needs implementation, not a new policy question.
-verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
-pre-dw-437-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
-verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
-pre-dw-437-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-2-reach-scoped-audit-evidence-from-context.md (2026-09-27)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
 priority: P2
-owner: unassigned
-dependencies: Story attribution must avoid including unrelated later pointer updates
-pre-dw-437-next-action: Enable a changed-story CI validation step with full history and deliberate story baseline/owned-commit handling.
-next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
-related: DW-431, DW-451, DW-419, DW-420
-resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
-resolution-spec: spec-dw-437-changed-story-ci-gate.md
-
+archived: 2026-10-21
 
 ## Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-27)
 
@@ -5285,32 +4792,11 @@ Story range `33d6dcca..7ac52e8d` (rebased to `051f9f30..f8223524`).
 
 ### DW-439: Add accents to the remaining unaccented French receipt strings and make apostrophes consistent.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-28)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Add accents to the remaining unaccented French receipt strings and make apostrophes consistent.\n  evidence: `TenantsResources.fr.resx` still carries unaccented receipt copy from 2026-06-06 (`La preuve d'audit est prete a citer.`, `perimee`, `reessayez`, `Reference de commande`). Story 5.3 accented only the strings it rewrote, so the file now mixes `’` with ASCII `'`."
-pre-dw-439-status: open
 status: done 2026-10-20
-pre-dw-439-disposition: actionable
-disposition: resolved
-pre-dw-439-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-439-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still contains Reference de commande (:3284), La preuve d'audit est prete a citer (:3332), perimee (:3335), and reessayez (:3341), beside newer accented/curly-apostrophe strings. The localisation inconsistency remains visible in receipt copy.
-verification: Fifteen remaining French receipt values now use the correct accents and established U+2019 apostrophes, with one existing French partial-state expectation updated. Manual editorial inspection and executable integrity checks preserve all 52 receipt / 1717 total EN/FR keys and every placeholder. Debug source build passes with zero warnings/errors; focused correction-panel recheck 118/118 and final full UI 6284/6284 pass with zero failures/skips. The initial full UI remount assertion failure and independent documentation review are retained in dw-439-validation-evidence.md. No runtime or browser behavior change is claimed.
-pre-dw-439-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-3-view-a-support-safe-audit-evidence-receipt.md (2026-09-28)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
 priority: P3
-owner: unassigned
-dependencies: French editorial convention
-pre-dw-439-next-action: Correct the remaining French receipt accents and adopt the established apostrophe convention, checking EN/FR key parity.
-next-action: Closed within DW-439; preserve the broader DW-270/DW-306/DW-324 copy work, unrelated records, dependency pointers and existing release qualification holds.
-related: none
-verification-files: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/SupportSafetyBoundaryTests.cs; _bmad-output/implementation-artifacts/dw-439-validation-evidence.md
-resolution-evidence: [Exact validation, initial failure and independent review](dw-439-validation-evidence.md)
-resolution-spec: spec-dw-439-french-receipt-copy.md
-
-
+archived: 2026-10-21
 
 ### DW-440: Decide whether the absolute audit timestamp should be culture-formatted, as the epic's "culture-aware" wording suggests.
 
@@ -5501,33 +4987,11 @@ Review range `1cdcc0a9..e077e65e` (delta only).
 
 ### DW-451: Seventh undeclared-bump occurrence for the CI story gitlink gate tracked above (Story 5.2 entry, "Un-defer the CI story gitlink gate").
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29, review 3)"), 2026-10-12
-location: .github/workflows/story-guards.yml
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Seventh undeclared-bump occurrence for the CI story gitlink gate tracked above (Story 5.2 entry, \"Un-defer the CI story gitlink gate\").\n  evidence: Commit `e077e65e` (\"update audit availability and recovery specifications and sprint status\") moved `references/Hexalith.Builds` `0610f783`→`85ca19bc`, `references/Hexalith.EventStore` `801f3e52`→`cc79c03a` and `references/Hexalith.FrontComposer` `7d3af61e`→`f86fb730` without a declaration. `validate-story-gitlinks.py` on the 5.4 spec exits 1, while `.github/workflows/story-guards.yml:35` runs only the guard's own regression suite, so CI stayed green."
-pre-dw-437-status: open
 status: done 2026-10-20
-pre-dw-437-disposition: actionable
-disposition: resolved
-pre-dw-437-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-437-verification: The historical e077e65e occurrence remains valid history. .github/workflows/story-guards.yml still runs only the guard regression suite, and the current Story 5.4 validator executed 2026-10-12 exits 1 for later undeclared McpCli/Memories/Platform/PolymorphicSerializations pointers. The missing changed-story enforcement identified by the seventh occurrence is still present.
-verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
-pre-dw-437-verification-files: .github/workflows/story-guards.yml
-verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
-pre-dw-437-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29, review 3)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 priority: P2
-owner: unassigned
-dependencies: DW-437 CI gate and story attribution
-pre-dw-437-next-action: Implement the already-approved changed-story CI gate from DW-437 and preserve this recurrence as supporting history.
-next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
-related: DW-437
-duplicate-of: DW-437
-resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
-resolution-spec: spec-dw-437-changed-story-ci-gate.md
-
+archived: 2026-10-21
 
 ### DW-452: Hand off to Hexalith.Builds. The G-6 validator tuple pins CommunityToolkit.Aspire.Hosting.Dapr `13.5.1-beta.767`, while the central catalog pins `.770`.
 
@@ -6536,32 +6000,11 @@ Diff reviewed: Tenants `d8558263..5a519cd7`, and EventStore `8f34b395..55b2982e`
 
 ### DW-520: Teach `scripts/validate-story-gitlinks.py` to bind three-column dependency-table rows, or document that tables are non-binding.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 13 (2026-10-05)"), 2026-10-12
-location: scripts/validate-story-gitlinks.py
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Teach `scripts/validate-story-gitlinks.py` to bind three-column dependency-table rows, or document that tables are non-binding.\n  evidence: `stated_targets()` (`:208`) matches only `ARROW_CHAIN` (`X -> Y`). For the 5.6 spec at `5a519cd7` it returns `{}`, so the run PASSes while four `| references/X | base | target |` rows are stale (EventStore `8f34b395` vs shipped `55b2982e`, FrontComposer, McpCli, Memories). The docstring says a stale pointer table is exactly what the guard catches. `tests/scripts/test_validate_story_gitlinks.py` has no pipe-table fixture. Add one that expects `[MISSTATED]`. Pre-existing; not caused by Story 5.6."
-pre-dw-520-status: open
 status: done 2026-10-19
-pre-dw-520-disposition: actionable
-disposition: resolved
-pre-dw-520-verification-date: 2026-10-12
-verification-date: 2026-10-19
-pre-dw-520-verification: Executed an import-only parser probe: stated_targets on a File List row “| references/Hexalith.Builds | 1111111 | 2222222 |” returned {}; the arrow form returned target 2222222. scripts/validate-story-gitlinks.py:208-256 remains ARROW_CHAIN-only, so stale three-column targets are not bound.
-verification: Strict three-column table targets now bind alongside arrow claims, with explicit declarations and existing section/provenance rules retained. Fenced, indented and whole-inline-code examples cannot replace live table claims. Independent review corrections and the final 61-test lane pass; original production with final tests reproduces 45 assertion/subtest failures. Matching and stale targets, both CLI modes, additions/removals and unowned claims are covered. The unchanged-pointer explicit-ref evidence is qualified; the inherited default-HEAD empty-checkout defect is separately open as DW-656. Exact commands, historical failures and review are in dw-520-validation-evidence.md.
-pre-dw-520-verification-files: scripts/validate-story-gitlinks.py
-verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/spec-dw-520-gitlink-table-targets.md; _bmad-output/implementation-artifacts/dw-520-validation-evidence.md
-pre-dw-520-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 13 (2026-10-05)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P2
-owner: unassigned
-dependencies: Gitlink declaration format policy
-pre-dw-520-next-action: Support three-column base/target rows with a negative MISSTATED fixture, or explicitly declare and enforce their nonbinding status.
-next-action: Closed within DW-520; retain DW-656, unrelated deferred work, CI scope and release qualification holds.
-related: DW-534
-resolution-evidence: [Exact validation, original-production replay and independent review](dw-520-validation-evidence.md)
-resolution-spec: spec-dw-520-gitlink-table-targets.md
-
+archived: 2026-10-21
 
 ### DW-521: A caller-chosen correlation ID in one tenant can force a 409 on another tenant's `messageId` status lookup.
 
@@ -6673,32 +6116,11 @@ related: none
 
 ### DW-526: medium; recorded gitlink provenance rejects a valid new submodule addition.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)"), 2026-10-12
-location: scripts/validate-story-gitlinks.py
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; recorded gitlink provenance rejects a valid new submodule addition.\n  evidence: BH4: validate-story-gitlinks.py:428 compares current_pointer(..., baseline), which returns None for an absent pointer, to the raw addition old SHA of forty zeroes. Normalize missing pointers and cover additions/removals; this branch predates the dependency continuation."
-pre-dw-526-status: open
 status: done 2026-10-20
-pre-dw-526-disposition: actionable
-disposition: resolved
-pre-dw-526-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-526-verification: scripts/validate-story-gitlinks.py:428-429 compares current_pointer(path, baseline), which is None when absent, directly with the raw old SHA for an added gitlink (all zeroes). The recorded-story-owned path therefore reports CHAIN GAP on a valid new submodule addition.
-verification: DW-643 already normalized an absent baseline pointer to Git's zero SHA. Current recorded addition, rename and removal CLI regressions pass. Removing only normalization in a temporary script makes exactly the addition and rename tests fail; the other three focused controls pass. The unchanged maintained lane passes 69/69 with zero failures/skips. Exact commands, reproduction and limits are in dw-526-531-validation-evidence.md.
-pre-dw-526-verification-files: scripts/validate-story-gitlinks.py
-verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/spec-dw-526-531-recorded-gitlink-acceptance.md; _bmad-output/implementation-artifacts/dw-526-531-validation-evidence.md
-pre-dw-526-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 priority: P2
-owner: unassigned
-dependencies: Gitlink recorded-provenance tests
-pre-dw-526-next-action: Normalize absent/null pointer representations and add valid addition/removal CLI cases.
-next-action: Closed by qualification of the existing DW-643 implementation; retain unrelated deferred work, CI scope and release qualification holds.
-related: DW-531
-resolution-evidence: [Current qualification, protection-removal controls and limits](dw-526-531-validation-evidence.md)
-resolution-spec: spec-dw-526-531-recorded-gitlink-acceptance.md
-
+archived: 2026-10-21
 
 ### DW-527: medium; NuGet boundary validation cannot detect mismatched dependency versions or framework groups.
 
@@ -6722,38 +6144,11 @@ related: DW-544,DW-554
 
 ### DW-528: medium; bootstrap token responses are buffered before the intended 64 KiB bound is enforced.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)"), 2026-10-12
-location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; bootstrap token responses are buffered before the intended 64 KiB bound is enforced.\n  evidence: BH7: TenantBootstrapCredentialProvider.cs:86 uses buffered PostAsync, then calls LoadIntoBufferAsync with 64 KiB; TenantBootstrapHostedService creates a default HttpClient. An oversized authority response consumes memory before this cap. Use headers-first bounded reading and an oversized-response test in the pre-existing bootstrap flow."
-pre-dw-528-status: open
 status: done 2026-10-17
-pre-dw-528-disposition: actionable
-disposition: resolved
-pre-dw-528-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-528-verification: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:85-93 uses buffered HttpClient.PostAsync before LoadIntoBufferAsync(MaxTokenResponseBytes). TenantBootstrapHostedService.cs:95 creates a default client, so oversized response buffering precedes the intended 64-KiB check; current bootstrap tests lack oversized authority responses.
-pre-closure-dw-528-verification: Headers-first response completion now precedes the existing 65,536-byte bounded loader; a linked client deadline covers sending and body consumption. Twenty-four added streamed boundary, understated-length, variable-chunk, cancellation, disposal, subject-binding and hosted-dispatch regressions pass. Final Debug source build has zero warnings/errors; focused bootstrap/configuration 87/87 pass. Full Server 948/951 pass with three failures reproduced using the unchanged entry provider: two contract-documentation checks and one owner-authority query-handler registration check. Repair is implemented and independently reviewed; the required all-tests completion gate keeps this record open pending those baseline failures.
-verification: Headers-first response completion now enforces the existing 65,536-byte buffer limit, preserving the shared header/body client deadline, caller cancellation, disposal and exact delegated-subject checks. Independent review corrections pass, including 24 added bootstrap cases and SDK owner dispatch with exact stream identity, HandlerComputed payload metadata and fresh unavailable-source denial. The user-authorized follow-up repairs the three original Server failures through contract documentation and the discovery fixture; no runtime query policy changed. Final Debug source build has zero warnings/errors; focused documentation/configuration/owner-query 31/31 and complete Server 951/951 pass with zero failures/skips. Original failures, baseline comparison and copy-lock recovery are retained in the evidence.
-pre-dw-528-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs; tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs; docs/event-contract-reference.md
-pre-dw-528-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 priority: P2
-owner: unassigned
-dependencies: Bootstrap authority response contract
-pre-dw-528-next-action: Use headers-first bounded token response reading and add an oversized authority-response test.
-pre-closure-dw-528-next-action: Resolve or explicitly reassess the three baseline Server gate failures in dw-528-542-validation-evidence.md, rerun the complete owning test project and obtain passing required acceptance before closure.
-next-action: Closed after the authorized Server gate repair and passing full-project qualification; unrelated deferred work and release holds remain unchanged.
-related: DW-542
-repair-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs
-repair-evidence: [Commands, baseline failures, review and limits](dw-528-542-validation-evidence.md)
-repair-spec: spec-dw-528-542-bootstrap-response-limit.md
-resolution-evidence: [Commands, initial failures, follow-up repair, review and limits](dw-528-542-validation-evidence.md)
-resolution-spec: spec-dw-528-542-bootstrap-response-limit.md
-
-
+archived: 2026-10-21
 
 ### DW-529: medium; performance evidence records root HEAD while measuring an unrestricted working tree.
 
@@ -6798,32 +6193,11 @@ duplicate-of: DW-479
 
 ### DW-531: medium; recorded gitlink continuity lacks a regression that detects removal of the chain check.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)"), 2026-10-12
-location: tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; recorded gitlink continuity lacks a regression that detects removal of the chain check.\n  evidence: VG1, pre-verified: the reviewer disabled only [CHAIN GAP] in memory and all 23 guard tests still passed. Add CLI cases for a valid two-commit pointer chain and an omitted intermediate pointer-changing commit. The guard/tests predate this dependency continuation."
-pre-dw-531-status: open
 status: done 2026-10-20
-pre-dw-531-disposition: actionable
-disposition: resolved
-pre-dw-531-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-531-verification: tests/scripts/test_validate_story_gitlinks.py covers parser and synthetic default CLI behavior but no recorded Story-Owned Gitlink Commits two-commit continuity or missing intermediate commit fixture; the CHAIN GAP branch at scripts/validate-story-gitlinks.py:428-432 remains unpinned. The historic mutation result is retained, not rerun here.
-verification: DW-643 already added real-Git CLI regressions for a complete multi-commit recorded chain and an omitted intermediate pointer-changing commit. Both pass in the unchanged current lane. Removing only the chain check in a temporary script makes exactly the missing-intermediate test fail; the four positive focused controls pass. The maintained lane passes 69/69 with zero failures/skips. Exact commands, reproduction and limits are in dw-526-531-validation-evidence.md.
-pre-dw-531-verification-files: tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
-verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/spec-dw-526-531-recorded-gitlink-acceptance.md; _bmad-output/implementation-artifacts/dw-526-531-validation-evidence.md
-pre-dw-531-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-refresh-dependencies.md and spec-eventstore-3-117-1.md (2026-10-08)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 priority: P2
-owner: unassigned
-dependencies: Recorded-provenance synthetic repo fixture
-pre-dw-531-next-action: Add CLI cases proving a valid recorded pointer chain passes and omitting an intermediate pointer-changing commit fails CHAIN GAP.
-next-action: Closed by qualification of the existing DW-643 implementation; retain unrelated deferred work, CI scope and release qualification holds.
-related: DW-526
-resolution-evidence: [Current qualification, protection-removal controls and limits](dw-526-531-validation-evidence.md)
-resolution-spec: spec-dw-526-531-recorded-gitlink-acceptance.md
-
+archived: 2026-10-21
 
 ### DW-532: Clarify the non-EventStore preservation statement as structural equality of parsed rows rather than byte equality.
 
@@ -6871,33 +6245,11 @@ related: none
 
 ### DW-534: Carried, with no new work item; see DW-162. CI still never runs `validate-story-gitlinks.py` against real story files.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 15 (2026-10-08)"), 2026-10-12
-location: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Carried, with no new work item; see DW-162. CI still never runs `validate-story-gitlinks.py` against real story files.\n  evidence: `.github/workflows/story-guards.yml:34` runs only `tests/scripts/test_validate_story_gitlinks.py` on synthetic repositories. `5bfe0715` reached `main` green while the guard exits 1 on both 5.6 specs (Memories `c4697367`, Platform `495d1d0d`). 10th recurrence of the silent-bump pattern."
-pre-dw-437-status: open
 status: done 2026-10-20
-pre-dw-437-disposition: actionable
-disposition: resolved
-pre-dw-437-verification-date: 2026-10-12
-verification-date: 2026-10-20
-pre-dw-437-verification: .github/workflows/story-guards.yml:34 runs only tests/scripts/test_validate_story_gitlinks.py; no step invokes the production guard against real selected story artifacts. Current historical 5.6-2 guard execution still reports undeclared/misstated pointers, demonstrating synthetic regression success is not actual artifact validation.
-verification: Story Guards now runs the production validator on committed changed-story snapshots using full-history push/PR ranges. The 49-case real-Git runner lane and retained 77/13/31 regression lanes pass. Historical opt-in binds a canonical pre-event endpoint and refuses every event gitlink commit, including move/revert and merge cases. Only DW-437 and duplicate records DW-451/DW-534 close; DW-198 and unrelated history/release holds remain. Exact commands, controls and limits are in dw-437-validation-evidence.md.
-pre-dw-437-verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py
-verification-files: .github/workflows/story-guards.yml; scripts/validate-changed-story-gitlinks.py; tests/scripts/test_validate_changed_story_gitlinks.py; docs/story-gitlink-ci.md; _bmad-output/implementation-artifacts/dw-437-validation-evidence.md
-pre-dw-437-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 15 (2026-10-08)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P1
-owner: unassigned
-dependencies: DW-198 historical story-range selection; DW-520 declaration format
-pre-dw-437-next-action: Wire production story-range validation for the actual change scope, using durable story-end/provenance rules that avoid treating later unrelated dependency changes as story-owned.
-next-action: Closed within DW-437 with duplicates DW-451/DW-534; preserve DW-198, unrelated deferred work and existing release qualification holds.
-related: DW-162,DW-198,DW-520,DW-549
-duplicate-of: DW-437
-resolution-evidence: [Exact validation, mutation controls and review](dw-437-validation-evidence.md)
-resolution-spec: spec-dw-437-changed-story-ci-gate.md
-
+archived: 2026-10-21
 
 ## Deferred from: code review of spec-gh-actions-28953291798-85906522208.md (2026-10-08)
 
@@ -7012,39 +6364,11 @@ Diff reviewed: baseline `11e65e37f0fbf6649642a512052eebd37d50166d` through the p
 
 ### DW-542: medium; bootstrap token retrieval buffers the response before applying its 64 KiB cap.
 
-origin: migrated from unnumbered ledger ("Deferred from: pass 16 review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-08)"), 2026-10-12
-location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; bootstrap token retrieval buffers the response before applying its 64 KiB cap.\n  evidence: `TenantBootstrapCredentialProvider` calls `HttpClient.PostAsync` and only then `LoadIntoBufferAsync`. The password grant and subject check sit on that same path. This is outside the tenant-correction story."
-pre-dw-542-status: open
 status: done 2026-10-17
-pre-dw-542-disposition: actionable
-disposition: resolved
-pre-dw-542-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-542-verification: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs:85-93 uses buffered HttpClient.PostAsync before LoadIntoBufferAsync(MaxTokenResponseBytes). TenantBootstrapHostedService.cs:95 creates a default client, so oversized response buffering precedes the intended 64-KiB check; current bootstrap tests lack oversized authority responses.
-pre-closure-dw-542-verification: Headers-first response completion now precedes the existing 65,536-byte bounded loader; a linked client deadline covers sending and body consumption. Twenty-four added streamed boundary, understated-length, variable-chunk, cancellation, disposal, subject-binding and hosted-dispatch regressions pass. Final Debug source build has zero warnings/errors; focused bootstrap/configuration 87/87 pass. Full Server 948/951 pass with three failures reproduced using the unchanged entry provider: two contract-documentation checks and one owner-authority query-handler registration check. Repair is implemented and independently reviewed; the required all-tests completion gate keeps this record open pending those baseline failures.
-verification: Headers-first response completion now enforces the existing 65,536-byte buffer limit, preserving the shared header/body client deadline, caller cancellation, disposal and exact delegated-subject checks. Independent review corrections pass, including 24 added bootstrap cases and SDK owner dispatch with exact stream identity, HandlerComputed payload metadata and fresh unavailable-source denial. The user-authorized follow-up repairs the three original Server failures through contract documentation and the discovery fixture; no runtime query policy changed. Final Debug source build has zero warnings/errors; focused documentation/configuration/owner-query 31/31 and complete Server 951/951 pass with zero failures/skips. Original failures, baseline comparison and copy-lock recovery are retained in the evidence.
-pre-dw-542-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs; tests/Hexalith.Tenants.Server.Tests/Configuration/EventPublicationConfigurationTests.cs; docs/event-contract-reference.md
-pre-dw-542-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: pass 16 review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-08)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P2
-owner: unassigned
-dependencies: Bootstrap authority response contract
-pre-dw-542-next-action: Use headers-first bounded token response reading and add an oversized authority-response test.
-pre-closure-dw-542-next-action: Resolve or explicitly reassess the three baseline Server gate failures in dw-528-542-validation-evidence.md, rerun the complete owning test project and obtain passing required acceptance before closure.
-next-action: Closed after the authorized Server gate repair and passing full-project qualification; unrelated deferred work and release holds remain unchanged.
-related: DW-528
-duplicate-of: DW-528
-repair-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/BootstrapTokenResponseStream.cs
-repair-evidence: [Commands, baseline failures, review and limits](dw-528-542-validation-evidence.md)
-repair-spec: spec-dw-528-542-bootstrap-response-limit.md
-resolution-evidence: [Commands, initial failures, follow-up repair, review and limits](dw-528-542-validation-evidence.md)
-resolution-spec: spec-dw-528-542-bootstrap-response-limit.md
-
-
+archived: 2026-10-21
 
 ### DW-543: high claim superseded by pass-17 gateway tracing; see the medium command-API test-expectation defer below.
 
@@ -7076,36 +6400,11 @@ related: DW-527,DW-554
 
 ### DW-545: medium; duplicate global-administrator ids are dropped and the page is still marked complete.
 
-origin: migrated from unnumbered ledger ("Deferred from: pass 16 review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-08)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; duplicate global-administrator ids are dropped and the page is still marked complete.\n  evidence: `GlobalAdministratorsProjectionLoader` ignores a failed `TryAdd` and sets `IsCompleteEvidence`. Conflicting administrator rows can disappear from a ready page. That loader is the global-administrator read, not this correction."
-pre-dw-545-acceptance-status: open
 status: done 2026-10-17
-pre-dw-545-acceptance-disposition: actionable
-disposition: resolved
-pre-dw-545-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-545-verification: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs:67 discards rows.TryAdd failure and :82 sets IsCompleteEvidence=true after page exhaustion. Conflicting duplicate UserId rows across stable pages are silently discarded; no duplicate-conflict fail-closed test was found.
-pre-dw-545-acceptance-verification: Current sealed GlobalAdministratorRow has only UserId/Freshness/Lifecycle; IsCurrentStablePage requires every row to be Current/Current before merging, so all representable equal-ID conflicts already fail closed. Added 72 regressions covering every defined non-current state, order, page location and continuation; final loader 99/99 passes, zero failures/skips, with zero-warning/error Debug source build and accepted independent review/recheck. Final full UI has 6229 passed/two failures/zero skips in unchanged removal-confirmation tests; all 72 added cases pass. Full UI acceptance remains pending, with exact initial/focused/final results retained in dw-545-validation-evidence.md. No production defect reproduction or runtime fix is claimed.
-verification: Existing loader guards already reject all representable conflicting administrator rows; accepted 72 conflict cases and identical/ordinal behavior remain unchanged. Authorized follow-up fixes removal admission renderer/confirmation ordering and queued authority generation consumption, preserving exact refusal, no-dispatch and same-ID retry semantics. Independent review/recheck, zero-warning/error Debug source build and full UI 6243/6243 pass with zero failures/skips. Failed controls and all earlier acceptance failures remain in dw-545-validation-evidence.md and dw-545-ui-acceptance-evidence.md. No loader production defect reproduction or loader runtime fix is claimed; ambiguous-delivery retry qualification remains separately open as DW-648.
-pre-dw-545-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs
-pre-dw-545-acceptance-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs; src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/GlobalAdministratorsProjectionLoader.cs; src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorRow.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorsProjectionLoaderTests.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
-pre-dw-545-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: pass 16 review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-08)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P2
-owner: unassigned
-dependencies: Global-administrator projection completeness contract
-pre-dw-545-next-action: Reject conflicting duplicate administrator rows as incomplete evidence and cover same/conflicting duplicates across cursor pages.
-pre-dw-545-acceptance-next-action: Retain current identical-duplicate/ordinal behavior and the new conflict coverage; resolve the separate existing removal-confirmation test failures and pass the full UI completion gate before closing DW-545.
-next-action: Closed after the full UI acceptance follow-up; preserve supported identical duplicates and ordinal identity, all historical results and existing release holds. DW-648 remains separate follow-up qualification.
-related: none
-pre-dw-545-acceptance-validation-evidence: [Exact commands, review and pending acceptance](dw-545-validation-evidence.md)
-validation-evidence: [Original conflict evidence and prior failures](dw-545-validation-evidence.md); [completed UI acceptance, controls and limits](dw-545-ui-acceptance-evidence.md)
-validation-spec: spec-dw-545-conflicting-administrator-evidence.md
-resolution-spec: spec-dw-545-ui-acceptance-followup.md
+archived: 2026-10-21
 
 ### DW-546: Story 5.7; loading may drop an in-flight global-administrator correction when that story mounts the panel. Not reachable on the tenant audit page since `10c9f6f6`; unverified, high if true.
 
@@ -7895,59 +7194,19 @@ related: none
 
 ### DW-587: Clear a retained remove-configuration activity latch when its attempt expires without a mounted child.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Clear a retained remove-configuration activity latch when its attempt expires without a mounted child.\n  evidence: `TenantConfigurationManagement` sets `_removeCommandInFlight` from a retained attempt and clears it on context change or child callback, which an unmounted child cannot send."
-pre-dw-587-status: open
 status: done 2026-10-17
-pre-dw-587-disposition: actionable
-disposition: resolved
-pre-dw-587-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-587-verification: TenantConfigurationManagement.OnParametersSet sets _removeCommandInFlight=true from a retained removal; it has no inverse reset when Find returns null and no tracker expiry subscription. Same-tenant expiry with no mounted child can retain the latch.
-verification: Executed refused-adoption regressions prove retained-only activity clears with tracker-first and child-first expiry, exact heading focus, held-renderer replacement/tenant switching, accepted child/sibling activity preservation and disposal. Final Debug source build has zero warnings/errors; focused 470/470 and full UI 6137/6137 pass with zero failures/skips. Independent review accepts all five corrections. The historical literal unmounted-child scenario was not reproduced; current rendering preserves an adopted child and the executed failure involves one that never acquired activity.
-pre-dw-587-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-dependencies: Removal tracker expiry notification
-pre-dw-587-next-action: Clear/recompute the parent activity latch when the retained attempt expires without a mounted child.
-next-action: Closed together with its duplicate after expiry/ownership qualification; unrelated deferred work and release holds remain unchanged.
-related: none
-duplicate-of: DW-325
-resolution-evidence: [Exact commands, initial failures, review and limits](dw-325-587-validation-evidence.md)
-resolution-spec: spec-dw-325-587-remove-configuration-activity.md
+archived: 2026-10-21
 
 ### DW-588: Reject a recovery state with an existing GitHub Release and missing tag.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
-location: scripts/validate-partial-release-recovery.sh
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Reject a recovery state with an existing GitHub Release and missing tag.\n  evidence: The recovery validator independently permits a 404 tag and a 200 release, then later tag verification cannot succeed."
-pre-dw-588-status: open
 status: done 2026-10-18
-pre-dw-588-disposition: actionable
-disposition: done
-pre-dw-588-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-588-verification: validate-partial-release-recovery.sh permits tag=404 independently of release=200; publisher leaves an existing release untouched and verifier requires a resolving tag. The inconsistent state remains admissible.
-verification: Recovery preflight now rejects an existing GitHub Release when the matching tag is absent, before destination reads or recovery-state preparation. Original production failed both new defect cases; independent review/recheck resolved five fixture findings. Final Debug source build has zero warnings/errors; focused 18/18 and maintained Contracts 351/351 pass with zero failures/skips. Existing lightweight/annotated tag, source/CI, draft/tag-name and absent-release paths remain covered, including persisted existing-artifact hashes. The historical story-gitlink gate separately fails on six concurrent external pointer updates; no task pointer movement is claimed. Exact commands, initial failures and limits remain in dw-588-validation-evidence.md.
-pre-dw-588-verification-files: scripts/validate-partial-release-recovery.sh
-verification-files: scripts/validate-partial-release-recovery.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryTests.cs
-pre-dw-588-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-dependencies: Validated GitHub tag/release inventory
-pre-dw-588-next-action: Reject existing-release/missing-tag recovery before any publication.
-next-action: Closed within DW-588; preserve separate release-recovery work and existing qualification holds.
-related: DW-581,DW-607
-resolution-evidence: [Exact commands, independent review and validation limits](dw-588-validation-evidence.md)
-resolution-spec: spec-dw-588-recovery-release-without-tag.md
-
+archived: 2026-10-21
 
 ### DW-589: Check OCI index handling in the recovery container manifest probe.
 
@@ -7970,32 +7229,11 @@ related: DW-582
 
 ### DW-590: Recheck the live main SHA immediately before partial release publication.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
-location: scripts/publish-partial-release.sh
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Recheck the live main SHA immediately before partial release publication.\n  evidence: `publish-partial-release.sh` checks main before building and packing, then publishes without a second check after those operations."
-pre-dw-590-status: open
 status: done 2026-10-18
-pre-dw-590-disposition: actionable
-disposition: done
-pre-dw-590-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-590-verification: publish-partial-release.sh compares live main before build/pack/hash validation; no second source check precedes the first push/publication. Main may advance during those operations.
-verification: Recovery publication now rechecks exact live main after all local preparation and existing-package hash comparisons, before package/container/release publication. Original production failed all 33 initial sequence checks, including 29 unsafe-source cases proceeding to publication. Independent review/recheck resolved five fixture gaps; final zero-warning/error Debug source build, focused 46/46 and maintained Contracts 397/397 pass with zero failures/skips. Seven harmful copied-script mutations are rejected, with a pristine 46/46 control. Existing initial and hash refusals, complete/empty inventory and exact publication arguments remain covered. Exact commands, initial failures and runtime/release limits remain in dw-590-validation-evidence.md.
-pre-dw-590-verification-files: scripts/publish-partial-release.sh
-verification-files: scripts/publish-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs
-pre-dw-590-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-dependencies: Exact-source publication invariant
-pre-dw-590-next-action: Recheck live main after all build/validation work and immediately before publication.
-next-action: Closed within DW-590; preserve separate release-recovery records and existing qualification holds.
-related: DW-563
-resolution-evidence: [Exact commands, independent review and validation limits](dw-590-validation-evidence.md)
-resolution-spec: spec-dw-590-final-recovery-source-check.md
-
+archived: 2026-10-21
 
 ### DW-591: Add a rendered document-language test for English and French UI cultures.
 
@@ -8328,32 +7566,11 @@ related: DW-588
 
 ### DW-608: Execute a mismatched existing-package hash test for partial-release recovery.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: scripts/publish-partial-release.sh
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Execute a mismatched existing-package hash test for partial-release recovery.\n  evidence: Existing tests do not run publish-partial-release.sh with a mismatched package hash, so removal of its comparison could let a mixed-source release publish without test failure."
-pre-dw-608-status: open
 status: done 2026-10-18
-pre-dw-608-disposition: actionable
-disposition: resolved
-pre-dw-608-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-608-verification: publish-partial-release.sh compares existing NuGet SHA256 hashes, but PackageGovernanceTests.Partial_release_recovery_is_protected_and_never_skips_duplicate_packages only inspects script text. No executable hash-mismatch case was found.
-verification: The unchanged publisher refuses differing bytes against supplied reviewed hashes at every existing-package position across package-only, container-only, release-only and mixed recovery. Stable source responses, distinct per-ID contents, reordered hash records, exact refusal prefixes and retained state are qualified. Independent review/recheck, focused 76/76 and maintained Contracts 440/440 pass with zero failures/skips; the Debug source build has zero warnings/errors. Four copied-script mutations are rejected, and the replay rejects stale XML and unrelated fixture failures. The separate absent-expected-hash defect remains open as DW-654. Exact commands, initial results and limits are in dw-608-validation-evidence.md.
-pre-dw-608-verification-files: scripts/publish-partial-release.sh
-verification-files: scripts/publish-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs; _bmad-output/implementation-artifacts/dw-608-check-variants.py; _bmad-output/implementation-artifacts/dw-608-check-runner-refusals.py; _bmad-output/implementation-artifacts/dw-608-validation-evidence.md
-pre-dw-608-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-dependencies: Mock publication tools/state fixture
-pre-dw-608-next-action: Execute the mismatch path and assert exit before any package/container/release publication.
-next-action: Closed within DW-608; retain DW-654, DW-620, unrelated deferred work and existing release qualification holds.
-related: DW-620
-resolution-evidence: [Exact validation, independent review and limits](dw-608-validation-evidence.md)
-resolution-spec: spec-dw-608-existing-package-hash-refusal.md
-
+archived: 2026-10-21
 
 ### DW-609: Clear or reauthorize retained tenant, audit, and membership snapshots when permissions change within the same user and tenant scope.
 
@@ -8414,31 +7631,11 @@ related: DW-619
 
 ### DW-612: Replace legacy Fluent border variables in tenant metadata and member-removal CSS.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Replace legacy Fluent border variables in tenant metadata and member-removal CSS.\n  evidence: Two components use --neutral-stroke-rest with CanvasText fallback while V5 components use --colorNeutralStroke1, so their borders can fail to follow the theme."
-pre-dw-612-status: open
 status: done 2026-10-17
-pre-dw-612-disposition: actionable
-disposition: resolved
-pre-dw-612-verification-date: 2026-10-12
-verification-date: 2026-10-17
-pre-dw-612-verification: EditTenantMetadataFlow.razor.css:6 and RemoveTenantMemberFlow.razor.css:4 still use --neutral-stroke-rest with CanvasText fallback; Hexalith UX and current Fluent components use V5 tokens.
-verification: All seven obsolete token references now use existing Fluent 2 neutral/danger border and focus roles while preserving system fallbacks and forced-colors rules. The new guard covers active CSS and Razor, named FAST primitives, nested fallbacks and comments with 21 controls. Independent review/correction recheck accepts both guard fixes; final Debug source build has zero warnings/errors, 6159 full UI tests pass with zero failures/skips, and computed light/dark/forced-colors plus maintained rendered Chromium checks pass. The expanded focused run had one unchanged held-authority case failure; its immediate eight-case recheck and full suite pass. See resolution evidence for limits.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor.css
-pre-dw-612-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P3
-owner: unassigned
-dependencies: Fluent V5 theme token mapping
-pre-dw-612-next-action: Replace the two legacy border tokens with the appropriate Fluent V5 token.
-next-action: Closed after token migration and conformance/browser qualification; unrelated deferred work and release holds remain unchanged.
-related: none
-resolution-evidence: [Commands, initial failures, review and limits](dw-243-262-612-validation-evidence.md)
-resolution-spec: spec-dw-243-262-612-fluent-theme-tokens.md
-
+archived: 2026-10-21
 
 ### DW-613: Render a recovery surface for unmatched interactive UI routes.
 
@@ -8596,58 +7793,19 @@ related: DW-581,DW-608,DW-583
 
 ### DW-621: Mark recovered prerelease versions as prereleases in GitHub Releases.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: scripts/publish-partial-release.sh
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Mark recovered prerelease versions as prereleases in GitHub Releases.\n  evidence: The recovery publisher calls gh release create without --prerelease for a version containing a prerelease suffix, leaving GitHub to mark it stable."
-pre-dw-621-status: open
 status: done 2026-10-18
-pre-dw-621-disposition: actionable
-disposition: resolved
-pre-dw-621-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-621-verification: publish-partial-release.sh gh release create has no --prerelease flag, while validator accepts SemVer prerelease suffixes. Recovery can mark a prerelease GitHub version stable.
-verification: New recovery releases now request prerelease classification for suffix-bearing versions, and final verification requires matching Boolean metadata. Original publisher cases failed 6/55; original verifier cases failed 8/13. Independent review corrections, a zero-warning/error Debug source build, focused 68/68 and full Contracts 419/419 pass with zero failures/skips. Isolated baseline replay and three harmful mutation checks qualify classification and argument boundaries. Exact commands, original failures and limits are retained in dw-621-validation-evidence.md.
-pre-dw-621-verification-files: scripts/publish-partial-release.sh
-verification-files: scripts/publish-partial-release.sh; scripts/verify-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs; tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseVerificationTests.cs; _bmad-output/implementation-artifacts/dw-621-check-variants.py
-pre-dw-621-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-pre-dw-621-owner: unassigned
-owner: Tenants release recovery
-dependencies: SemVer prerelease classification
-pre-dw-621-next-action: Set and verify GitHub prerelease metadata for suffix-bearing versions.
-next-action: Closed within DW-621; preserve unrelated deferred work and existing release qualification holds.
-related: none
-resolution-evidence: [Exact validation, original failures and review corrections](dw-621-validation-evidence.md)
-resolution-spec: spec-dw-621-recovery-prerelease-classification.md
-
+archived: 2026-10-21
 
 ### DW-622: Test the effective Tenants UI read endpoint in the AppHost resource model.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Test the effective Tenants UI read endpoint in the AppHost resource model.\n  evidence: Existing tests inspect source text for Tenants__BaseAddress but do not evaluate the UI resource environment; a later override could redirect authorized reads to EventStore while the source-text checks pass."
-pre-dw-622-status: open
 status: done 2026-10-18
-pre-dw-622-disposition: actionable
-disposition: done
-pre-dw-622-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-622-verification: AppHost Program.cs sets UI Tenants__BaseAddress to tenantsApi HTTPS, but AppHostSecurityResourceGraphTests evaluates only authentication/token environments, not the UI effective read endpoint. Source-text wiring checks cannot catch later overrides.
-verification: The actual AppHost UI environment is evaluated after every environment callback in both Keycloak and symmetric modes. Two new cases verify the final read endpoint resource, HTTPS name and allocated URL. The Debug source build has zero warnings/errors; the maintained AppHost project passes 8/8 with zero failures/skips. Five isolated later overrides (EventStore, HTTP, uppercase/colon aliases and allocation-dependent callbacks) each fail exactly the two new cases while six existing controls pass; normal outputs are rebuilt in finally. Exact commands, harness correction and limits are in dw-622-validation-evidence.md.
-evidence-kind: verified-gap
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-dependencies: Evaluated AppHost environment fixture
-pre-dw-622-next-action: Assert the effective tenants-ui Tenants__BaseAddress resolves to the expected tenants-api endpoint.
-next-action: Closed within DW-622; retain unrelated deferred work, dependencies and release qualification holds.
-related: none
-verification-files: tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs; _bmad-output/implementation-artifacts/dw-622-validation-evidence.md
-
+archived: 2026-10-21
 
 ### DW-623: Verify whether BFF submit-time and EventStore event-time clock skew can hide an exact global-administrator correction audit proof.
 
@@ -8820,31 +7978,11 @@ archived: 2026-10-12
 
 ### DW-634: medium; make the disabled-bootstrap test deterministically prove no deferred command is registered.
 
-origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 Review 9 triage (2026-10-12)"), 2026-10-12
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; make the disabled-bootstrap test deterministically prove no deferred command is registered.\n  evidence: `StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator` in `tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs:30`, independently committed in `6b6a35f0`, waits with `Task.Delay(50)` at `:52` for absence of HTTP traffic, but the enabled path schedules its HTTP work with `Task.Run` after `ApplicationStarted`; a late task could escape the assertion."
-pre-dw-634-status: open
 status: done 2026-10-18
-pre-dw-634-disposition: actionable
-disposition: resolved
-pre-dw-634-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-634-verification: TenantBootstrapHostedServiceTests.StartAsyncWithDisabledBootstrapPreservesConfiguredAdministrator still asserts no HTTP after Task.Delay(50), while enabled service work is deferred after ApplicationStarted. The timing-based negative proof remains.
-verification: The disabled regression now proves no ApplicationStarted/Stopping token access before and after startup signaling, preserving the configured administrator and disabled diagnostic without a fixed delay. The enabled control observes lifetime access and actual post-startup HTTP delivery. An isolated missing-return production compile overlay fails exactly this negative assertion (84/85 pass); final normal-source bootstrap 85/85 and full Server 1316/1316 pass with zero failures/skips. The Debug source build has zero warnings/errors. Exact commands, mutation diagnostic and independent review are retained in dw-634-validation-evidence.md.
-pre-dw-634-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 Review 9 triage (2026-10-12)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 priority: P2
-owner: unassigned
-dependencies: Deterministic host-lifetime/callback fixture
-pre-dw-634-next-action: Assert no deferred callback/work registration for disabled bootstrap rather than waiting for absent traffic.
-next-action: Closed within DW-634; preserve unrelated deferred work, dependency changes and all existing release qualification holds.
-related: none
-verification-files: tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; _bmad-output/implementation-artifacts/dw-634-validation-evidence.md
-resolution-spec: spec-dw-634-disabled-bootstrap-registration.md
-resolution-evidence: [Exact validation and independent review](dw-634-validation-evidence.md)
-
+archived: 2026-10-21
 
 ### DW-635: medium; record current global-administrator membership in the independent module manifest authorization inventory.
 
@@ -8889,31 +8027,11 @@ related: DW-604,DW-628
 
 ### DW-637: medium; pin the authentication-state unsubscribe on disposal of `GlobalAdministratorCorrectionPanel` and `GlobalAdministratorsPage`.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, fix-pass range `44878a58..2315aad9` (2026-10-12)"), 2026-10-12
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; pin the authentication-state unsubscribe on disposal of `GlobalAdministratorCorrectionPanel` and `GlobalAdministratorsPage`.\n  evidence: Pre-existing test gap: both subscriptions exist at Story 5.7 baseline `66072cc4`, and fix pass `2315aad9` closed only the `TenantAuditPage` equivalent. In an isolated checkout of `2315aad9`, deleting `AuthenticationStateChanged -= OnAuthenticationStateChanged` at `src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:2367`, or at `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:2397`, leaves the UI suite at 4,075/4,075 green. A regression would keep disposed components referenced by the circuit's provider, and the panel handler (`:2026`) would run `RetainReconciliationForReplacement()` and `InvalidateOperation()` after disposal. Suggested shape: the `TenantAuditPage` dispose test from `2315aad9` — after disposal raise a principal change and assert the handler's counter is unchanged (`_authorizationGeneration` on the panel, `_authorizationTransitionVersion` on the page)."
-pre-dw-637-status: open
 status: done 2026-10-18
-pre-dw-637-disposition: actionable
-disposition: done
-pre-dw-637-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-637-verification: GlobalAdministratorCorrectionPanel.Dispose and GlobalAdministratorsPage.DisposeAsync unsubscribe AuthenticationStateChanged, but inspected component tests lack a post-disposal principal-change assertion for their counters. TenantAuditPageTests has the equivalent explicit disposal regression. Original mutation evidence is historical, not rerun.
-verification: Two component regressions exercise real provider notifications while mounted, dispose on the renderer, and require no later handler-entry generation changes. Each independently removed unsubscribe causes its matching test to fail (expected 2L, actual 3L) while the other passes. Focused classes pass 131/131 and 260/260, and the maintained full UI project passes 6266/6266 with zero failures/skips after a zero-warning/error ordinary Debug source rebuild. Production sources are unchanged. Exact commands, fixture failures, the existing formatting blocker and scope limits remain in dw-637-validation-evidence.md.
-pre-dw-637-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, fix-pass range `44878a58..2315aad9` (2026-10-12)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 priority: P2
-owner: unassigned
-dependencies: Observable authentication test provider
-pre-dw-637-next-action: Add post-disposal provider-notification regressions for both components that fail if unsubscription is removed.
-next-action: Closed with deterministic provider-notification regressions and independent unsubscribe-removal controls; preserve unrelated work and existing release qualification holds.
-related: none
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs; _bmad-output/implementation-artifacts/dw-637-validation-evidence.md
-resolution-evidence: [Exact validation and scope limits](dw-637-validation-evidence.md)
-resolution-spec: spec-dw-637-authentication-disposal-regressions.md
-
+archived: 2026-10-21
 
 ## Deferred from: Story 5.7 Review 10 triage (2026-10-12)
 
@@ -8927,86 +8045,27 @@ archived: 2026-10-12
 
 ### DW-639: low; the missing signing-key exception names only the legacy EventStore setting.
 
-origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 Review 10 triage (2026-10-12)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: low; the missing signing-key exception names only the legacy EventStore setting.\n  evidence: `src/Hexalith.Tenants.Api/Program.cs:60` throws that `EventStore:Authentication:SigningKey` is required when neither that value nor `Jwt:SigningKey` is configured. `FirstConfigured` was introduced by the independent bootstrap commit `6b6a35f0`."
-pre-dw-639-status: open
 status: done 2026-10-18
-pre-dw-639-disposition: actionable
-disposition: resolved
-pre-dw-639-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-639-verification: API Program.cs missing-key exception still names only EventStore:Authentication:SigningKey even though FirstConfigured also accepts Jwt:SigningKey; generated-controller invalid-key tests pin the legacy-only wording.
-verification: Production missing/short-key diagnostics already name EventStore:Authentication:SigningKey and Jwt:SigningKey. The existing real-host tests assert complete safe messages for null, empty, whitespace and short legacy keys plus a short alias key. Fresh ordinary audit-enabled Debug source build succeeds with zero warnings/errors; the maintained generated-controller class passes 44/44 with zero failures/skips, including all five diagnostic cases. Only this stale record closes; no application/test change or live topology qualification is claimed. Exact commands, receipts and preservation checks are in dw-639-validation-evidence.md.
-pre-dw-639-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 Review 10 triage (2026-10-12)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 priority: P3
-owner: unassigned
-dependencies: Supported auth configuration aliases
-pre-dw-639-next-action: Name both accepted configuration alternatives in the safe exception and align message tests.
-next-action: Closed within DW-639; retain unrelated deferred work and existing release qualification holds.
-related: DW-632
-resolution-evidence: [Exact commands and reconciliation checks](dw-639-validation-evidence.md)
-resolution-spec: spec-dw-639-signing-key-diagnostic-closure.md
-
+archived: 2026-10-21
 
 ### DW-640: medium; the public API readiness registration does not prove its three-second gateway timeout.
 
-origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 Review 10 triage (2026-10-12)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; the public API readiness registration does not prove its three-second gateway timeout.\n  evidence: `src/Hexalith.Tenants.Api/Program.cs:83` registers `eventstore-gateway` with `TimeSpan.FromSeconds(3)`, and `tests/Hexalith.Tenants.IntegrationTests/TenantsApiReadinessTests.cs` returns a completed response without reading `HealthCheckRegistration.Timeout`. Dropping the timeout argument leaves that test green. The registration comes from the independent API commit `6b6a35f0`."
-pre-dw-640-status: open
 status: done 2026-10-18
-pre-dw-640-disposition: actionable
-disposition: done
-pre-dw-640-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-640-verification: API Program.cs registers eventstore-gateway timeout=3 seconds; TenantsApiReadinessTests uses completed stub responses and never inspects HealthCheckRegistration.Timeout or deadline behavior. Timeout removal is not covered.
-verification: The real API host registration is now covered by ReadyRegistersThreeSecondGatewayTimeout: the effective eventstore-gateway check has Timeout=3 seconds and the ready tag. All six readiness cases pass through the maintained Debug source project runner. An isolated compile overlay removing the production timeout builds successfully and makes the new test fail on the infinite default; normal-source verification is recorded in dw-640-validation-evidence.md. Runtime behavior is unchanged; no live deadline or broad integration-suite qualification is claimed.
-pre-dw-640-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 Review 10 triage (2026-10-12)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 priority: P2
-owner: unassigned
-dependencies: Health-check registration/test fixture
-pre-dw-640-next-action: Assert the effective registration timeout or exercise a cancellable stalled gateway health check.
-next-action: Closed with an effective-registration regression and timeout-removal mutation evidence; preserve unrelated deferred work and existing release qualification holds.
-related: none
-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiReadinessTests.cs; _bmad-output/implementation-artifacts/dw-640-validation-evidence.md
-resolution-evidence: [Exact validation and scope limits](dw-640-validation-evidence.md)
-resolution-spec: spec-dw-640-api-readiness-timeout.md
-
+archived: 2026-10-21
 
 ### DW-641: medium; legacy authentication settings are not tested against a different non-blank alias.
 
-origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 Review 10 triage (2026-10-12)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; legacy authentication settings are not tested against a different non-blank alias.\n  evidence: `FirstConfigured` in `src/Hexalith.Tenants.Api/Program.cs:104` keeps a non-blank legacy value over `Oidc:Authority` or `Jwt:SigningKey`. The alias tests in `tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs` set only the alias, or a blank legacy value. Those settings come from `6b6a35f0`."
-pre-dw-641-status: open
 status: done 2026-10-18
-pre-dw-641-disposition: actionable
-disposition: done
-pre-dw-641-verification-date: 2026-10-12
-verification-date: 2026-10-18
-pre-dw-641-verification: Program.FirstConfigured preserves nonblank legacy value; generated-controller tests cover alias-only and blank-legacy fallback but no different nonblank legacy and alias values. Alias coverage added earlier does not cover precedence.
-verification: Commit b185ae80de474bedc6c60af38bacc5550d4e8cd7 already added distinct nonblank legacy/alias key and authority tests. Fresh Debug source execution passes both exact precedence tests (2/2) and the complete generated-controller class (44/44), with zero failures/skips/errors. The factory clears ambient configuration and assertions inspect actual host authentication options. The fallback source build has zero warnings/errors; the normal audit-enabled build remains blocked by Commons NU1902. No production/test changes or deployed-topology qualification are claimed. Exact commands and limits are in dw-641-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.Api/Program.cs; tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs; _bmad-output/implementation-artifacts/dw-641-validation-evidence.md
-pre-dw-641-evidence-kind: verified-gap
-evidence-kind: executed-existing-regression
+origin: migrated from unnumbered ledger ("Deferred from: Story 5.7 Review 10 triage (2026-10-12)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 priority: P2
-owner: unassigned
-dependencies: Conflicting auth configuration fixture
-pre-dw-641-next-action: Test distinct nonblank legacy/alias authority and signing keys and assert legacy precedence.
-next-action: Closed as already implemented and freshly verified; retain DW-639, unrelated deferred work and existing release qualification holds.
-related: DW-632
-resolution-evidence: [Exact validation and scope limits](dw-641-validation-evidence.md)
-resolution-spec: spec-dw-641-authentication-alias-precedence-closure.md
-
+archived: 2026-10-21
 
 ## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, range `2315aad9..9345d9d0` (2026-10-12)
 
@@ -9033,32 +8092,11 @@ related: none
 
 ### DW-643: medium; the story gitlink guard ignores pointer moves in unrecorded commits once a story records a Story-Owned Gitlink Commits section.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, range `9345d9d0..6a81aee1` (2026-10-12)"), 2026-10-12
-location: scripts/validate-story-gitlinks.py
-source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; the story gitlink guard ignores pointer moves in unrecorded commits once a story records a Story-Owned Gitlink Commits section.\n  evidence: In that branch, `check()` in `scripts/validate-story-gitlinks.py` (`:412-457`) validates only the listed commits' chain, their stated targets and working-tree movement, and never compares baseline pointers with HEAD. A later unrecorded pointer-moving commit therefore passes, which is how Story 5.7's `6869ec4a` and `3440ff01` passed the `2315aad9..9345d9d0` review. Pre-existing tooling, not changed by the reviewed range; at `6a81aee1` all five pointer-moving commits are recorded and net endpoints match. Fix: in that branch, also fail when `gitlink_changes(baseline, head)` has a path whose HEAD pointer differs from its last owned target, or from the baseline when the path has no owned target."
-pre-dw-643-status: open
 status: done 2026-10-19
-pre-dw-643-disposition: actionable
-disposition: done
-pre-dw-643-verification-date: 2026-10-12
-verification-date: 2026-10-19
-pre-dw-643-verification: validate-story-gitlinks.py check owned_commits branch still verifies listed commit chains/claims/worktree only and explicitly excludes later committed moves; it does not compare baseline-to-HEAD endpoints to final owned targets. Historical regression results do not prove unrecorded moves are rejected.
-verification: The guard now reconciles recorded targets and all other baseline-to-audited-ref gitlink endpoints, including owned reversions to baseline and path additions/removals/renames. Historical audits retain the existing explicit --ref option. Final real-Git regression tests pass 39/39; the original production script with those tests reproduces eight unsafe PASS failures. Existing declaration, target, chain and working-tree checks remain; complete evidence and independent review are recorded in dw-643-validation-evidence.md.
-pre-dw-643-verification-files: scripts/validate-story-gitlinks.py
-verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/dw-643-validation-evidence.md
-pre-dw-643-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, range `9345d9d0..6a81aee1` (2026-10-12)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 priority: P2
-owner: unassigned
-dependencies: Story-owned commit guard policy; later independent-pointer attribution
-pre-dw-643-next-action: Cover an unrecorded later pointer-moving commit and enforce the approved endpoint/attribution rule.
-next-action: Closed with audited-endpoint enforcement and historical-reference controls; preserve unrelated deferred work, DW-585 CI scope and release qualification holds.
-related: DW-585
-resolution-evidence: [Exact commands, review and scope](dw-643-validation-evidence.md)
-resolution-spec: spec-dw-643-story-gitlink-endpoints.md
-
+archived: 2026-10-21
 
 ### DW-644: A non-lease pre-dispatch freshness refusal cannot resume after freshness becomes current.
 
@@ -9080,268 +8118,75 @@ archived: 2026-10-17
 
 ### DW-647: A freshness or confirmation change during removal admission can announce unavailable authority instead of its actual refusal reason.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-645-predispatch-release-recovery.md`
-  summary: Preserve accurate localized refusal feedback when current safety changes invalidate a held removal admission.
-  evidence: Independent DW-645 review traced freshness/confirmation invalidation of admission generation to ReauthorizeAdmissionAsync returning false and SubmitAsync selecting AuthorizationUnavailableReason even while authority remains authorized. The reason-selection logic is unchanged from canonical entry e667d5391dae306e631dec23acd191863e54130c.
-pre-dw-647-status: open
 status: done 2026-10-17
-pre-dw-647-disposition: actionable
-disposition: resolved
-pre-dw-647-verification-date: 2026-10-17
-verification-date: 2026-10-17
-pre-dw-647-verification: Source-verified generation invalidation and reason selection at entry and current source. Existing held-admission regressions prove no dispatch and recoverability but do not pin the exact explanation. No wrong-copy EN/FR execution or correction was performed; preserve that limit.
-verification: Executed 50 new EN/FR held-admission, held-authority, held-cleanup and same-ID retry cases; final Debug source build has zero warnings/errors, focused 430/430 and full UI 6124/6124 pass with zero failures/skips. Independent review and both correction rechecks accept all five findings. Exact commands, initial failures and limits are retained in dw-647-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
-pre-dw-647-evidence-kind: verified-defect
-evidence-kind: executed-regression
 priority: P2
-owner: Tenants UI
-dependencies: Current safety reason versus invalidated admission-generation feedback
-pre-dw-647-next-action: Assert shipped EN/FR freshness/confirmation refusal feedback during held admission and distinguish changed safety evidence from genuinely denied or indeterminate authority without weakening reauthorization.
-next-action: Closed within DW-647; existing release qualification holds and unrelated deferred work remain unchanged.
-related: DW-645, DW-644
-resolution-evidence: [Exact validation, initial failures and independent review](dw-647-validation-evidence.md)
-resolution-spec: spec-dw-647-removal-admission-feedback.md
+archived: 2026-10-21
+
 ### DW-648: Queued successful authority results on ambiguous removal-delivery retries lack regression coverage.
 
-origin: independent review of DW-545 UI acceptance follow-up, 2026-10-17
-location: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
-source_spec: `_bmad-output/implementation-artifacts/spec-dw-545-ui-acceptance-followup.md`
-summary: Qualify admission-generation and renderer ordering on the separate RequestSent ambiguous-delivery retry path.
-pre-dw-648-status: open
 status: done 2026-10-17
-pre-dw-648-disposition: actionable
-disposition: resolved
-verification-date: 2026-10-17
-pre-dw-648-verification: Read-only review confirms RetryDeliveryAsync handles RequestSent retries separately, retains ConfigureAwait(false), and has no caller-side generation comparison after the helper returns. Existing identity tests and the repaired Failed-retry second-read matrix do not prove successful authority consumption queued before a change-and-restore safety transition on this path. No controlled execution/mutation of that interleaving or production defect reproduction is claimed; this is a qualification gap, not a demonstrated regression introduced by the DW-545 repair.
-verification: Controlled component reproduction against unchanged runtime dispatched obsolete queued-authority retries in both change-and-restore cases (two failures/two passes). The retry now consumes authority on the renderer and checks admission generation. Nineteen new cases qualify pending/queued safety, denied/indeterminate/faulted/canceled authority, replacement/disposal, same-ID recovery and separate status/projection/audit truth. Independent review/recheck, zero-warning/error Debug source build, focused 240/240 and final full UI 6262/6262 pass with zero failures/skips. Exact commands and initial failures remain in dw-648-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
-pre-dw-648-evidence-kind: verified-gap
-evidence-kind: executed-regression
+origin: independent review of DW-545 UI acceptance follow-up, 2026-10-17
+source_spec: `_bmad-output/implementation-artifacts/spec-dw-545-ui-acceptance-followup.md`
 priority: P2
-owner: Tenants UI
-dependencies: Supported ambiguous-delivery same-ID retry contract; controlled renderer/authority completion fixture
-pre-dw-648-next-action: Exercise an actual RequestSent same-ID retry with a successful authority result queued before safety changes and restores; assert no obsolete-generation dispatch and safe identity-preserving recovery, then repair runtime only if the regression reproduces.
-next-action: Closed within DW-648; retain existing release qualification holds and unrelated deferred work.
-related: DW-545
-resolution-evidence: [Exact validation, initial failures and independent review](dw-648-validation-evidence.md)
-resolution-spec: spec-dw-648-ambiguous-removal-retry-admission.md
+archived: 2026-10-21
 
 ### DW-649: The tenant detail page's configuration reauthorization stub grants TenantOwner where production safe-model reauthorization grants MissingPermission.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-308-314-explicit-configuration-authority.md`
-  summary: The detail-page safe-model reauthorization stub still grants TenantOwner for a non-global principal.
-  evidence: Independent DW-308 review compared `Detail_page_set_configuration_completes_preview_dispatch_status_and_projection_proof` with `TenantConfigurationSafeComposer.Reauthorize(safeModel, status, policy)`. Production returns MissingPermission when the safe model has no membership and the principal is not a global administrator. The stub previously omitted authority and received the implicit TenantOwner grant; this change preserved that meaning by passing TenantOwner explicitly. No page behavior was changed.
-pre-dw-649-status: open
 status: done 2026-10-18
-pre-dw-649-disposition: actionable
-disposition: resolved
-pre-dw-649-verification-date: 2026-10-17
-verification-date: 2026-10-18
-pre-dw-649-verification: Source comparison only. The stub at TenantDetailSurfaceTests.ReauthorizeConfigurationManagement passes TenantConfigurationAuthorityState.TenantOwner with isGlobalAdministrator false. The composer's safe-model resolver returns MissingPermission for a non-global principal. No execution changed the stub.
-verification: The original comparison conflated the page's unused ReauthorizeProvider with the safe-model-only resolver; the page's live submit path uses a fresh preview that resolves policy and owner membership. The positive test now has matching caller/owner evidence and no unconditional callback. A new page case refuses the changed-owner submit-time preview and proves zero dispatch/status/projection-proof calls. Independent review corrections, the zero-warning/error Debug source build, focused 2/2 and final full UI 6264/6264 pass with zero failures/skips. Exact commands, initial failed experiments and limits are in dw-649-validation-evidence.md.
-pre-dw-649-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs; src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationSafeComposer.cs
-pre-dw-649-evidence-kind: verified-gap
-evidence-kind: executed-regression
 priority: P2
-pre-dw-649-owner: unassigned
-owner: Tenants UI
-dependencies: none
-pre-dw-649-next-action: Decide whether that page fixture should fail closed with MissingPermission, then cover the production result without changing unrelated detail-page flows.
-next-action: Closed within DW-649; retain unrelated deferred work and release qualification holds.
-related: DW-308
-resolution-evidence: [Exact validation, initial failures and source qualification](dw-649-validation-evidence.md)
-resolution-spec: spec-dw-649-detail-page-configuration-reauthorization.md
+archived: 2026-10-21
 
 ### DW-650: Lone-surrogate category strings escape direct audit payload validation.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-424-malformed-audit-filters.md`
-  summary: Reject invalid Unicode category string decoding with InvalidEnvelope rather than throwing from the audit query parser.
-  evidence: Independent review reproduced both escaped lone high and low surrogate category strings through the built query handler, which throws InvalidOperationException at categoryEl.GetString(). The baseline uses the identical accessor; a direct baseline-accessor comparison throws identically. This pre-existing string-category issue is outside DW-424's selected malformed-date/non-string-category repair. The repaired date path rejects the corresponding surrogate strings.
-origin: DW-424 independent review, 2026-10-18
-location: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs::DeserializeAuditPayload
-pre-dw-650-status: open
 status: done 2026-10-18
-pre-dw-650-disposition: actionable
-disposition: resolved
-pre-dw-650-verification-date: 2026-10-18
-verification-date: 2026-10-18
-pre-dw-650-verification: Current built-handler and original-accessor reproductions confirm the category exception. The original comparison was an accessor expression, not a separately built baseline handler. A saved accessor control run with dotnet fsi --exec /tmp/tenants-dw-424/category-surrogate.fsx exits 0 and prints System.InvalidOperationException for both inputs; exact evidence and limits are in dw-424-validation-evidence.md.
-verification: The narrow category decoder returns InvalidEnvelope for escaped unpaired surrogates and raw malformed UTF-8. Original-production tests reproduced 18 failures; independent review/recheck, final focused 119/119 and full Server 1070/1070 pass with zero failures/skips. Final Debug source build passes with two transient MSB3026 copy-retry warnings and zero errors. Compatibility and protected paging remain covered; separate existing cursor/stream decoding exceptions remain open as DW-651. Exact commands and limits are retained in dw-650-validation-evidence.md.
-pre-dw-650-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; _bmad-output/implementation-artifacts/dw-424-validation-evidence.md
-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; tests/Hexalith.Tenants.Server.Tests/Queries/GetTenantAuditQueryHandlerTests.cs; _bmad-output/implementation-artifacts/dw-650-validation-evidence.md
-pre-dw-650-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: DW-424 independent review, 2026-10-18
 severity: medium
 priority: P2
-owner: Tenants query handlers
-dependencies: Preserve existing optional and string-category compatibility semantics
-pre-dw-650-next-action: Contain malformed Unicode category decoding with a safe InvalidEnvelope result and direct handler regressions for both lone-surrogate forms, preserving authorization precedence and no audit reads.
-next-action: Closed within DW-650; retain DW-651, unrelated deferred work and existing release qualification holds.
-related: DW-424
-resolution-evidence: [Exact validation, initial failures and independent review](dw-650-validation-evidence.md)
-resolution-spec: spec-dw-650-malformed-unicode-audit-category.md
+archived: 2026-10-21
 
 ### DW-651: Malformed Unicode audit cursor and stream strings escape payload validation.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-650-malformed-unicode-audit-category.md`
-  summary: Contain malformed Unicode decoding for audit cursor and stream strings, including cursors decoded before category validation.
-  evidence: Independent review reproduced InvalidOperationException through the repaired built parser and authorized production handler for category=access with an escaped lone low surrogate in either cursor or stream, and for malformed category plus malformed cursor. Unauthorized callers receive Forbidden; malformed category plus malformed stream returns InvalidEnvelope. Entry-source cursor/stream accessors are unchanged, and original-accessor controls throw identically. No separately rebuilt original handler is claimed.
-origin: DW-650 independent review, 2026-10-18
-location: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs::DeserializeAuditPayload
-pre-dw-651-status: open
 status: done 2026-10-18
-pre-dw-651-disposition: actionable
-disposition: resolved
-pre-dw-651-verification-date: 2026-10-18
-verification-date: 2026-10-18
-pre-dw-651-verification: dotnet fsi --exec /tmp/tenants-dw-650/review-unicode.fsx exits 0 and records built-parser/handler results plus original-accessor controls. The script initially needed ASP.NET runtime assembly resolution; corrected execution succeeds. Exact evidence and limits are in dw-650-validation-evidence.md.
-verification: Cursor and stream decoding now catch InvalidOperationException and return bare InvalidEnvelope. Original-production tests failed 16/155; independent review, final focused 155/155 and full Server 1106/1106 pass with zero failures/skips. The Debug source build passes with one transient MSB3026 copy-retry warning and zero errors. Authorization, escaped stream scope, and decoded invalid-cursor rejection remain covered. Embedded audit-date surrogates and standard pagination cursors remain open as DW-652 and DW-653. Exact commands and limits are in dw-651-validation-evidence.md.
-pre-dw-651-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; _bmad-output/implementation-artifacts/dw-650-validation-evidence.md
-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; tests/Hexalith.Tenants.Server.Tests/Queries/GetTenantAuditQueryHandlerTests.cs; _bmad-output/implementation-artifacts/dw-651-validation-evidence.md
-pre-dw-651-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: DW-650 independent review, 2026-10-18
 severity: medium
 priority: P2
-owner: Tenants query handlers
-dependencies: Preserve authorization precedence, opaque cursor scope, stream selection and existing successfully decoded string semantics
-pre-dw-651-next-action: Contain malformed Unicode cursor/stream decoding with a validation result and direct handler regressions for both surrogate forms and mixed malformed payloads, preserving authorization precedence and no audit reads.
-next-action: Closed within DW-651; retain DW-652, DW-653, unrelated deferred work and existing release qualification holds.
-related: DW-650
-resolution-evidence: [Exact validation, initial failures and independent review](dw-651-validation-evidence.md)
-resolution-spec: spec-dw-651-malformed-unicode-audit-cursor-stream.md
+archived: 2026-10-21
 
 ### DW-652: Embedded unpaired surrogates in audit date filters still escape payload validation.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-651-malformed-unicode-audit-cursor-stream.md`
-  summary: Return InvalidEnvelope when audit from or to strings contain embedded or swapped unpaired surrogates.
-  evidence: `dotnet fsi --exec /tmp/tenants-dw-651/datecheck.fsx` exits 0. A lone `\ud800` date returns false. A date-like value with a trailing `\ud800`, a swapped `\udc00\ud800`, and a trailing `\udfff` throw InvalidOperationException from `JsonElement.TryGetDateTimeOffset`. `DeserializeAuditPayload` catches only `JsonException`, and `ExecuteAsync` rethrows other exceptions. DW-651 did not change this date path. No handler execution of the embedded forms is claimed.
-origin: DW-651 independent review, 2026-10-18
-location: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs::TryGetDateTimeOffset
 status: done 2026-10-18
-pre-dw-652-disposition: actionable
-disposition: resolved
-pre-dw-652-verification-date: 2026-10-18
-verification-date: 2026-10-18
-pre-dw-652-verification: API reproduction above. Existing focused date cases cover only whole-value lone surrogates, which do not throw.
-verification: The local date accessor now contains InvalidOperationException and produces bare InvalidEnvelope before codec use or audit reads. Initial original-production handler tests failed 44/261; final focused 267/267 and full Server 1218/1218 pass with zero failures/skips. Final Debug source build has zero warnings/errors. Independent review prompted six additional compatibility controls and durable evidence/reproduction guidance; no production defect or new deferral remains from that review. Earlier whole-value rejection, authorization, inclusive offset bounds, final duplicates and protected cursor scope remain covered. Exact commands, initial failures, intermediate warnings and limits are in dw-652-validation-evidence.md.
-pre-dw-652-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
-verification-files: src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; tests/Hexalith.Tenants.Server.Tests/Queries/GetTenantAuditQueryHandlerTests.cs; _bmad-output/implementation-artifacts/dw-652-validation-evidence.md
-pre-dw-652-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: DW-651 independent review, 2026-10-18
 severity: medium
 priority: P2
-owner: Tenants query handlers
-dependencies: Preserve authorization precedence and the existing whole-value lone-surrogate date rejection
-pre-dw-652-next-action: Contain embedded unpaired-surrogate audit date decoding with InvalidEnvelope and direct handler regressions, before cursor decoding or audit reads.
-next-action: Closed within DW-652; preserve DW-653, unrelated deferred work and existing release qualification holds.
-related: DW-651
-resolution-evidence: [Exact validation, initial failures and independent review](dw-652-validation-evidence.md)
-resolution-spec: spec-dw-652-malformed-unicode-audit-dates.md
+archived: 2026-10-21
 
 ### DW-653: Malformed Unicode cursors on standard tenant queries escape pagination parsing.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-651-malformed-unicode-audit-cursor-stream.md`
-  summary: Contain malformed Unicode cursor decoding in the standard pagination parser.
-  evidence: `TenantQueryPaginationPayloadParser.DeserializeStandardPayload` calls cursor `GetString()` inside a `JsonException`-only catch. `InvalidOperationException` from unpaired surrogates or ill-formed UTF-8 therefore leaves the parser, and `ExecuteAsync` rethrows it. DW-651 left this parser unchanged; the audit parser catch does not cover it. No standard-query handler execution is claimed.
-origin: DW-651 independent review, 2026-10-18
-location: src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs::DeserializeStandardPayload
-pre-dw-653-status: open
 status: done 2026-10-18
-pre-dw-653-disposition: actionable
-disposition: resolved
-pre-dw-653-verification-date: 2026-10-18
-verification-date: 2026-10-18
-pre-dw-653-verification: Source inspection of the parser and the shared `ExecuteAsync` catch. No standard-query handler run is claimed.
-verification: Cursor GetString now locally contains InvalidOperationException and returns a validation error propagated by all four standard handlers as bare InvalidEnvelope before codec use. Original-production tests failed 54/64; independent review prompted six compatibility controls, and final focused 112/112 plus full Server 1316/1316 pass with zero failures/skips. Final Debug source build succeeds with one transient MSB3026 copy-retry warning and zero errors. Existing identity/route precedence, self/cross-user pre-parsing reads, protected continuation/scope rejection, final duplicates, ignored fields, malformed-JSON defaults, decoded Unicode and page-size bounds remain covered; downstream codec exceptions still propagate. Exact commands, earlier results and limits are in dw-653-validation-evidence.md.
-pre-dw-653-verification-files: src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs; src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs
-verification-files: src/Hexalith.Tenants/Queries/TenantQueryPaginationPayloadParser.cs; src/Hexalith.Tenants/Queries/TenantQueryPaginationPayload.cs; src/Hexalith.Tenants/Queries/Handlers/TenantQueryHandlerBase.cs; src/Hexalith.Tenants/Queries/Handlers/ListTenantsQueryHandler.cs; src/Hexalith.Tenants/Queries/Handlers/GetTenantUsersQueryHandler.cs; src/Hexalith.Tenants/Queries/Handlers/GetUserTenantsQueryHandler.cs; src/Hexalith.Tenants/Queries/Handlers/GetGlobalAdministratorsQueryHandler.cs; tests/Hexalith.Tenants.Server.Tests/Queries/StandardTenantQueryPaginationTests.cs; tests/Hexalith.Tenants.Server.Tests/Queries/TenantQueryPaginationPayloadParserTests.cs; _bmad-output/implementation-artifacts/dw-653-validation-evidence.md
-pre-dw-653-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: DW-651 independent review, 2026-10-18
 severity: medium
 priority: P2
-owner: Tenants query handlers
-dependencies: Preserve successfully decoded standard cursors and existing page-size clamping
-pre-dw-653-next-action: Contain malformed Unicode standard-query cursors with a validation result and direct regressions, without changing decoded cursor or page-size behavior.
-next-action: Closed within DW-653; retain unrelated deferred work and existing release qualification holds.
-related: DW-651
-resolution-evidence: [Exact validation, initial failures and independent review](dw-653-validation-evidence.md)
-resolution-spec: spec-dw-653-malformed-unicode-standard-cursors.md
+archived: 2026-10-21
 
 ### DW-654: Missing expected package hashes allow partial-release recovery to skip content comparison.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-608-existing-package-hash-refusal.md`
-  summary: Refuse existing-package recovery when reviewed expected-hash evidence is absent.
-  evidence: Independent DW-608 review identified the unchanged publisher's empty-hash continue branch. The tracked local probe invokes production with differing Contracts package bytes and stable main evidence: missing expected hash exits 0 and reaches four intercepted package pushes, container login/publication and release creation; supplying the reviewed hash exits 1 at the package-specific refusal before publication. No remote publication occurs.
-origin: DW-608 independent review, 2026-10-18
-location: scripts/publish-partial-release.sh::existing-packages hash loop
-pre-dw-654-status: open
 status: done 2026-10-18
-pre-dw-654-disposition: actionable
-disposition: resolved
-verification-date: 2026-10-18
-pre-dw-654-verification: bash _bmad-output/implementation-artifacts/dw-608-probe-missing-hash.sh missing exits 0 and records all three intercepted publication destinations; the present argument exits 1 with the existing hash-mismatch refusal. The production publisher is unchanged from entry revision 1dd9613e27abe935002d9d3af3a1f476bfdd73a6.
-verification: Empty per-ID expected-hash lookups now refuse before publication. Forty new cases cover every existing-package position, unusable/missing files and no-existing-package compatibility; exact call prefixes and retained state are asserted. Independent review corrections, a zero-warning/error Debug source build, focused 116/116 and maintained Contracts 480/480 pass with zero failures/skips. Isolated baseline replay reproduces 35 intended failures, while an unconditional hash-file mutation fails the positive control. The separate unterminated-inventory gap remains open as DW-655. Exact commands, initial failures and limits are in dw-654-validation-evidence.md.
-pre-dw-654-verification-files: scripts/publish-partial-release.sh; _bmad-output/implementation-artifacts/dw-608-probe-missing-hash.sh; _bmad-output/implementation-artifacts/dw-608-validation-evidence.md
-verification-files: scripts/publish-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs; _bmad-output/implementation-artifacts/spec-dw-654-missing-recovery-package-hashes.md; _bmad-output/implementation-artifacts/dw-654-check-variants.py; _bmad-output/implementation-artifacts/dw-654-validation-evidence.md
-evidence-kind: verified-defect
+origin: DW-608 independent review, 2026-10-18
 priority: P2
-owner: unassigned
-dependencies: Recovery-state completeness and reviewed expected-hash evidence
-pre-dw-654-next-action: Fail closed when any existing package lacks its reviewed hash, with executable missing-evidence refusals and matching-evidence controls before every publication destination.
-next-action: Closed within DW-654; retain DW-655, DW-620, unrelated deferred work and existing release qualification holds.
-related: DW-608,DW-620
+archived: 2026-10-21
 
 ### DW-655: An unterminated final existing-package inventory line bypasses recovery hash verification.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-654-missing-recovery-package-hashes.md`
-  summary: Process or reject an unterminated final existing-package ID before recovery publication.
-  evidence: Independent DW-654 review and the tracked replay probe reproduce current production exiting 0 and reaching four intercepted package pushes, container login/publication and release creation when existing-packages contains an unterminated Contracts ID and expected hashes are empty. Normal preflight emits terminated lines; the existing while-read loop skips malformed or truncated final state. No remote publication occurs.
-origin: DW-654 independent review, 2026-10-18
-location: scripts/publish-partial-release.sh::existing-packages read loop
-pre-dw-655-status: open
 status: done 2026-10-18
-pre-dw-655-disposition: actionable
-disposition: done
-pre-dw-655-verification-date: 2026-10-18
-verification-date: 2026-10-18
-pre-dw-655-verification: python3 _bmad-output/implementation-artifacts/dw-654-check-variants.py --output-directory /tmp/dw-654/variants --probe-truncated-inventory exits 0 after validating the exact intercepted publication sequence for an unterminated inventory and empty hashes. The optional probe changes only the historical probe's project-root binding and final inventory newline; the production publisher remains untouched.
-verification: The final nonempty existing-package ID is processed at EOF before any recovery publication. Twenty-six new cases cover omitted/absent hash evidence, differing/matching bytes and live-main advancement at the final hash, preserving exact calls and state. Independent review/recheck confirms a zero-warning/error Debug source build, focused 142/142 and maintained Contracts 506/506 with zero failures/skips. Corrected isolated replay passes 34/34, reproduces all 26 intended baseline failures through actual intercepted publication, rejects blanket refusal in six matching controls, and cannot bypass failure under Python optimization. Exact commands, historical results and limits are retained in dw-655-validation-evidence.md.
-pre-dw-655-verification-files: scripts/publish-partial-release.sh; _bmad-output/implementation-artifacts/dw-654-check-variants.py; _bmad-output/implementation-artifacts/dw-654-validation-evidence.md
-verification-files: scripts/publish-partial-release.sh; tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs; _bmad-output/implementation-artifacts/dw-655-check-variants.py; _bmad-output/implementation-artifacts/dw-655-validation-evidence.md
-evidence-kind: verified-defect
+origin: DW-654 independent review, 2026-10-18
 priority: P2
-owner: unassigned
-dependencies: Recovery-state inventory completeness and line parsing
-pre-dw-655-next-action: Process the final unterminated package ID or refuse malformed inventory, with executable no-publication and canonical-state controls.
-next-action: Closed within DW-655; retain DW-620, unrelated deferred work and all release qualification holds.
-related: DW-654
+archived: 2026-10-21
 
 ### DW-656: Default-HEAD unchanged-pointer claims can resolve an empty dependency directory to the superproject HEAD.
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-dw-520-gitlink-table-targets.md`
-  summary: Resolve unchanged gitlink claims safely when a dependency checkout is empty or deinitialized.
-  evidence: Independent review and isolated CLI reproduction set baseline to the current pointer-bearing root commit, retain an empty references/Dependency directory, and state the matching dependency target. Default HEAD reports MISSTATED using the root HEAD instead of the gitlink. The current table and arrow forms reproduce; replacing only the isolated script with original production at c4c781791b0b50eabeb0b58505d943be40538e7f reproduces the same arrow failure. Explicit --ref resolves the recorded pointer correctly. No real workspace submodule is changed.
-origin: DW-520 independent review, 2026-10-19
-location: scripts/validate-story-gitlinks.py::current_pointer
-pre-dw-656-status: open
 status: done 2026-10-19
-pre-dw-656-disposition: actionable
-disposition: resolved
-verification-date: 2026-10-19
-pre-dw-656-verification: The default-HEAD current_pointer branch invokes git -C path rev-parse HEAD without verifying that path owns a checkout. Git ascends from an empty directory to the superproject, so a matching unchanged-pointer claim fails. Current table/arrow and original-production arrow CLI controls each exit 1 with the incorrect superproject SHA and MISSTATED. Exact isolated reproduction is in dw-520-validation-evidence.md.
-verification: The resolver verifies checkout ownership and otherwise reads the exact stage-zero index gitlink. Review corrections reject nonzero absent-pointer claims and unresolved index conflicts. The final maintained lane passes 69/69 with zero failures/skips; isolated entry-production replay reproduces 21 assertion/subtest failures. Explicit-ref audits, own checkouts, gitfiles, staged reversions and directory-removal detection remain covered. Exact commands, review dispositions and limits are in dw-656-validation-evidence.md.
-pre-dw-656-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/dw-520-validation-evidence.md
-verification-files: scripts/validate-story-gitlinks.py; tests/scripts/test_validate_story_gitlinks.py; _bmad-output/implementation-artifacts/dw-656-validation-evidence.md
-pre-dw-656-evidence-kind: verified-defect
-evidence-kind: executed-regression
+origin: DW-520 independent review, 2026-10-19
 severity: medium
 priority: P2
-owner: Tenants developer tooling
-dependencies: Preserve actual checked-out pointer movement detection and explicit-ref auditing
-pre-dw-656-next-action: Distinguish a real dependency checkout from an empty/deinitialized path and resolve unchanged claims from the recorded gitlink when appropriate, with default-HEAD positive and movement-refusal controls.
-next-action: Closed within DW-656; preserve unrelated deferred work, dependency pointers and existing release qualification holds.
-related: DW-520
-resolution-evidence: [Exact validation, original-production replay and independent review](dw-656-validation-evidence.md)
-resolution-spec: spec-dw-656-uninitialized-gitlink-resolution.md
+archived: 2026-10-21
+
