@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-464/DW-496/DW-505/DW-555/DW-585 closure (2026-10-21):** Immutable hosted logs qualify the existing Chrome 153/CDP repair, EN/FR correction fixture checks and negative controls; current hosted CI validates actual changed stories. The separate current NativeSourceProof package-build failure still prevents current browser execution. Exactly five stale CI records close: all 657 IDs remain, 465 done/192 open across 178 exact-covering maintenance rows. Original findings, unrelated work, dependency pointers, authenticated-runtime limitations and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-464-496-505-555-585-validation-evidence.md).
+
 **DW-297/DW-462/DW-533/DW-549/DW-558 closure (2026-10-21):** Historical validation commands, Story 5.4 evidence and Epic 5 constraints are qualified; Story 5.6 reverification binds its final historical endpoint, and the paging ownership report distinguishes reverted work from Story 5.7 integration. Only these five records close: 657 IDs remain, 460 done/197 open across 181 exact-covering maintenance rows. Separate baseline holds, original failures, unrelated work, dependencies and release limitations remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-297-462-533-549-558-validation-evidence.md).
 
 **DW-198/DW-246/DW-343/DW-360/DW-384 closure (2026-10-21):** Removal and grant audits bind immutable historical endpoints and exact dependency targets. The refresh inventory includes earlier gitlinks and the topology alias, with its preserved mid-story checkpoint explicitly qualified. Only these five records close: 657 IDs remain, 455 done/202 open across 186 exact-covering maintenance rows. Historical findings, independent dependency work and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-198-246-343-360-384-validation-evidence.md).
@@ -174,14 +176,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 455 |
-| actionable | 118 |
+| done | 465 |
+| actionable | 109 |
 | blocked | 15 |
-| awaiting-decision | 26 |
+| awaiting-decision | 25 |
 | accepted-limitation | 9 |
 | uncertain | 34 |
 
-**Remaining: 202 open records across 186 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 192 open records across 178 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -228,9 +230,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-418 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome. |
 | DW-444 | P2 | Defect / actionable | unassigned | Focus only when the removed panel actually owned focus | Capture/reset/remount focus and restore the actual correction launcher at safe and narrow widths. |
 | DW-448 | P2 | Defect / actionable | unassigned | Attempt wait/deadline threshold | Choose a bounded unmatched-walk/deadline threshold within the existing recovery contract and transition exhausted waiting to Delayed with tests. |
-| DW-464, DW-496, DW-555 | P2 | Defect / actionable | unassigned | Hosted runner Chromium launch diagnosis | Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios. |
 | DW-469 | P2 | Defect / actionable | unassigned | Configuration tracker resumed-identity result | Pass retry identity to lifecycle audit mapping and expose whether configuration BeginDispatch resumed a retained identity; test pre-dispatch failure on retry. |
-| DW-505 | P2 | Defect / actionable | unassigned | DW-464 hosted Chromium repair | Repair and rerun the pinned hosted Chromium launch and subsequent correction preview/negative controls; no further package-boundary repair is needed for this record. |
 | DW-511 | P2 | Defect / actionable | Hexalith.EventStore | EventStore ambiguity contract | Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions. |
 | DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
 | DW-522 | P2 | Defect / actionable | Hexalith.EventStore | DW-511 general ambiguity wording | Align the served ambiguity catalog and problem reference with the general scope-aware runtime remediation. |
@@ -293,7 +293,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-579 | P2 | Gap / blocked | unassigned | Builds-maintainer historical provenance repair | Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence. |
 | DW-582 | P2 | Gap / actionable | unassigned | Reviewed container digest/provenance | Compare existing OCI content/provenance with reviewed immutable source before accepting recovery. |
 | DW-583 | P2 | Gap / actionable | unassigned | Immutable release-artifact manifest | Verify every expected destination and artifact content after normal publication. |
-| DW-585 | P2 | Gap / actionable | unassigned | Changed-story selection/base revision | Add actual changed-story validation alongside the validator regression lane. |
 | DW-593 | P2 | Gap / awaiting-decision | release recovery (recover-partial-release.yml) | Release-owner exact execution provenance decision | Define and enforce the approved publication/recovery Builds revision relationship. |
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 | DW-602 | P2 | Gap / actionable | unassigned | Requested page-size propagation to payload validator | Reject oversized item counts before hydration and test bounded detail-call fanout. |
