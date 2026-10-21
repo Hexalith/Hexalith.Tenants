@@ -2404,8 +2404,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         gateway.EnableSubmissions.ShouldBe(0);
     }
 
+    /// <summary>Missing version evidence blocks lifecycle actions with support guidance rather than a stale-data refresh promise.</summary>
     [Fact]
-    public void Missing_projection_version_disables_lifecycle_with_visible_refresh_recovery()
+    public void MissingProjectionVersionDisablesLifecycleWithVisibleSupportRecovery()
     {
         var gateway = new StubTenantCommandGateway();
         RegisterServices(gateway);
@@ -2424,9 +2425,9 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 
         cut.Find("[data-testid='tenants-lifecycle-disable']").GetAttribute("disabled").ShouldNotBeNull();
         cut.Find("#tenants-lifecycle-disable-reason").TextContent
-            .ShouldContain("current authoritative data", Case.Insensitive);
+            .ShouldBe("This lifecycle action is unavailable because the tenant projection has no version evidence for verification.");
         cut.Find("[data-testid='tenants-lifecycle-disable-recovery']").TextContent
-            .ShouldContain("Refresh the authoritative tenant data", Case.Insensitive);
+            .ShouldBe("Continue read-only and ask support to restore projection-version evidence before trying this action again.");
         cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
         cut.FindAll("[data-testid='tenants-lifecycle-command-flow']").ShouldBeEmpty();
         gateway.DisableSubmissions.ShouldBe(0);
@@ -3727,6 +3728,8 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             ["Tenants.Lifecycle.Dispatch.Recovery"] = "Refresh to safely retry the same command identity. The unresolved dispatch expires after {0} minutes; you may stop tracking if you accept that its outcome remains unknown.",
             ["Tenants.Lifecycle.Unavailable.ProjectionLifecycle"] = "{1} is unavailable for tenant {0} because the projection lifecycle is not current. Continue read-only and refresh projection evidence.",
             ["Tenants.Lifecycle.Unavailable.SameState"] = "The current projection already shows {0}; lifecycle submission is blocked.",
+            ["Tenants.Lifecycle.Unavailable.MissingProjectionVersion"] = "This lifecycle action is unavailable because the tenant projection has no version evidence for verification.",
+            ["Tenants.Lifecycle.Recovery.MissingProjectionVersion"] = "Continue read-only and ask support to restore projection-version evidence before trying this action again.",
             ["Tenants.Lifecycle.Unavailable.StaleFreshness"] = "{1} is unavailable for tenant {0} because tenant freshness is stale or unknown. Refresh before considering lifecycle action availability.",
             ["Tenants.Lifecycle.Unavailable.UnknownStatus"] = "{1} is unavailable for tenant {0} because the tenant lifecycle state is unknown. Continue read-only and refresh projection evidence.",
             ["Tenants.Lifecycle.UnavailableReason.HighImpactFlowNotReady"] = "high-impact flow not ready",

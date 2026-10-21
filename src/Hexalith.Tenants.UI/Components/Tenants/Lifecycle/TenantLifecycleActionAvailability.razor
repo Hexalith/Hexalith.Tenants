@@ -298,6 +298,8 @@
                     : Localizer["Tenants.Lifecycle.Retained.Resume"].Value
             : !IsCommandSurfaceAvailable && highImpact.IsEligible
             ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
+            : availability.HasMissingProjectionVersion
+                ? Localizer[availability.SafeMessageKey].Value
             : availability.UnavailableReasonCategory is TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle
                 ? Localizer[availability.SafeMessageKey, availability.TenantId,
                     Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"].Value].Value
@@ -314,7 +316,9 @@
                     : Localizer["Tenants.Lifecycle.Retained.Recovery"].Value
             : !IsCommandSurfaceAvailable && highImpact.IsEligible
                 ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface.Recovery"].Value
-                : Localizer[highImpact.RecoveryKey].Value;
+                : availability.HasMissingProjectionVersion
+                    ? Localizer["Tenants.Lifecycle.Recovery.MissingProjectionVersion"].Value
+                    : Localizer[highImpact.RecoveryKey].Value;
 
     private string ReasonCategory(
         TenantLifecycleAvailability availability,

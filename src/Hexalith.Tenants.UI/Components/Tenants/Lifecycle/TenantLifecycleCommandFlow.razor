@@ -309,7 +309,9 @@
         TenantHighImpactActionAvailability highImpact)
     {
         TenantLifecycleAvailability availability = TenantLifecycleAvailability.FromEvidence(evidence);
-        return availability.UnavailableReasonCategory is TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle
+        return availability.HasMissingProjectionVersion
+            ? Localizer[availability.SafeMessageKey].Value
+            : availability.UnavailableReasonCategory is TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle
             ? Localizer[availability.SafeMessageKey, availability.TenantId,
                 Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"].Value].Value
             : Localizer[highImpact.SafeMessageKey].Value;
@@ -480,9 +482,9 @@
 
     private string UnavailableRecoveryKey
         => CurrentResolvedEvidence is not null && !CurrentEntryAvailability.IsEligible
-            ? CurrentEntryAvailability.RecoveryKey
+            ? EvidenceUnavailableRecoveryKey(CurrentResolvedEvidence, CurrentEntryAvailability)
             : ResolvedEvidence is not null && !EntryAvailability.IsEligible
-            ? EntryAvailability.RecoveryKey
+            ? EvidenceUnavailableRecoveryKey(ResolvedEvidence, EntryAvailability)
             : CommandGateway is null || !CommandGateway.SupportsTrackedLifecycleDispatch
                 ? "Tenants.HighImpact.Recovery.MissingLifecycleSupport"
                 : _preview is { IsCommandSurfaceAvailable: false } && !IsOwnedCommandInFlight
@@ -492,6 +494,13 @@
                         || !IsPreviewComplete
                         ? "Tenants.HighImpact.Recovery.MissingConsequencePreview"
                         : "Tenants.HighImpact.Recovery.None";
+
+    private static string EvidenceUnavailableRecoveryKey(
+        TenantHighImpactActionEvidence evidence,
+        TenantHighImpactActionAvailability highImpact)
+        => TenantLifecycleAvailability.FromEvidence(evidence).HasMissingProjectionVersion
+            ? "Tenants.Lifecycle.Recovery.MissingProjectionVersion"
+            : highImpact.RecoveryKey;
 
     private string LiveRegionMode
         => _snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive ? "assertive" : "polite";

@@ -40,6 +40,10 @@ public sealed record TenantLifecycleAvailability(
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness,
     TenantHighImpactActionEvidence? Evidence = null)
 {
+    /// <summary>Gets whether missing projection-version evidence is the effective lifecycle blocker.</summary>
+    internal bool HasMissingProjectionVersion
+        => SafeMessageKey is "Tenants.Lifecycle.Unavailable.MissingProjectionVersion";
+
     /// <summary>
     /// Evaluates shared lifecycle evidence and derives the legacy compatibility fields when they are not supplied.
     /// </summary>
@@ -161,6 +165,9 @@ public sealed record TenantLifecycleAvailability(
             TenantHighImpactUnavailableReason.StaleData
                 when category is TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle
                 => "Tenants.Lifecycle.Unavailable.ProjectionLifecycle",
+            TenantHighImpactUnavailableReason.StaleData
+                when IsMissingProjectionVersion(evidence)
+                => "Tenants.Lifecycle.Unavailable.MissingProjectionVersion",
             TenantHighImpactUnavailableReason.StaleData => "Tenants.Lifecycle.Unavailable.StaleFreshness",
             TenantHighImpactUnavailableReason.MissingPermission => "Tenants.Lifecycle.Unavailable.MissingPermission",
             TenantHighImpactUnavailableReason.MissingLifecycleSupport
@@ -177,6 +184,17 @@ public sealed record TenantLifecycleAvailability(
             _ => "Tenants.Lifecycle.Available",
         };
     }
+
+    private static bool IsMissingProjectionVersion(TenantHighImpactActionEvidence evidence)
+        => evidence.Authority is TenantHighImpactAuthorityEvidence.Authorized
+            && evidence.SurfaceKind is TenantDetailSurfaceKind.Ready
+            && (evidence.Freshness is TenantHighImpactFreshnessState.Current or TenantHighImpactFreshnessState.Aging
+                || evidence.Freshness is TenantHighImpactFreshnessState.Refreshing && evidence.HasCurrentBaseline)
+            && evidence.ProjectionLifecycle is ProjectionLifecycleState.Current
+            && !string.IsNullOrWhiteSpace(evidence.TenantId)
+            && Enum.IsDefined(evidence.TenantStatus)
+            && evidence.TenantStatus is not TenantStatus.Unknown
+            && string.IsNullOrWhiteSpace(evidence.ProjectionVersion);
 
     private static ReadModelFreshnessState ToReadModelFreshness(TenantHighImpactActionEvidence evidence)
         => evidence.Freshness switch

@@ -4564,4 +4564,6 @@
   <data name="Tenants.Members.UnavailableReason.ActiveMemberCommand" xml:space="preserve">
     <value>Une commande de gestion des membres est active pour ce locataire. Examinez cette commande avant d’en démarrer une autre.</value>
   </data>
+  <data name="Tenants.Lifecycle.Unavailable.MissingProjectionVersion" xml:space="preserve"><value>Cette action de cycle de vie est indisponible car la projection du locataire ne fournit aucune preuve de version permettant sa vérification.</value></data>
+  <data name="Tenants.Lifecycle.Recovery.MissingProjectionVersion" xml:space="preserve"><value>Poursuivez en lecture seule et demandez au support de rétablir les preuves de version de la projection avant de réessayer cette action.</value></data>
 </root>

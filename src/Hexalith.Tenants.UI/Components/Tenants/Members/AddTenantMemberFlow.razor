@@ -159,6 +159,7 @@
     private bool _disposed;
     private readonly object _formModel = new();
     private TenantAddMemberCommandSnapshot _snapshot = TenantAddMemberCommandSnapshot.Idle();
+    private TenantAddMemberCommandSnapshot? _undispatchedRefusal;
     private string? _userId;
     private string _roleValue = string.Empty;
     private string? _validationMessage;
@@ -452,8 +453,13 @@
                 : Detail.Status is TenantStatus.Disabled or TenantStatus.Unknown
                     ? Localizer["Tenants.AddMember.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnAggregateAdmissionUnavailable) || CommandGateway is null || Services.GetService<TenantAggregateCommandAdmissionGate>() is null || Services.GetService<TenantCommandAttemptTracker>() is null
-                        ? CommandSurfaceUnavailableReason ?? Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value
+                        ? CommandSurfaceReason("Tenants.AddMember.Unavailable.CommandSurface")
                         : null;
+
+    private string CommandSurfaceReason(string fallbackKey)
+        => string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason)
+            ? Localizer[fallbackKey].Value
+            : CommandSurfaceUnavailableReason;
 
     private string? UnavailableReason
         => EligibilityUnavailableReason ?? (_isSubmitting ? Localizer["Tenants.AddMember.Unavailable.InFlight"].Value : null);
@@ -609,11 +615,21 @@
         }
 
         _snapshot = snapshot;
+        _undispatchedRefusal = null;
         SynchronizeRetainedAttempt();
         if (_snapshot.LiveRegionPoliteness is TenantCommandLiveRegionPoliteness.Assertive)
         {
             _focusLifecyclePending = true;
         }
+    }
+
+    private void SetDispatchRefusal(TenantAddMemberCommandSnapshot snapshot)
+    {
+        SetSnapshot(snapshot);
+        _undispatchedRefusal = ReferenceEquals(_snapshot, snapshot)
+            && snapshot.Intent is null && snapshot.MessageId is null && snapshot.CorrelationId is null
+                ? snapshot
+                : null;
     }
 
     // A first attempt refused before dispatch sent nothing. A refused retry keeps the failed attempt it retried:
@@ -804,6 +820,17 @@
             return;
         }
 
+        // Only this exact known-unsent refusal may restart without tracking. Adopted or uncertain attempts retain their recovery gate.
+        if (ReferenceEquals(_snapshot, _undispatchedRefusal))
+        {
+            if (!string.IsNullOrWhiteSpace(UnavailableReason))
+            {
+                SetDispatchRefusal(TenantAddMemberCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+                return;
+            }
+            SetSnapshot(TenantAddMemberCommandSnapshot.Idle());
+        }
+
         if (_snapshot.State is TenantCommandLifecycleState.UnableToVerify
             or TenantCommandLifecycleState.Degraded)
         {
@@ -829,7 +856,7 @@
 
         if (!string.IsNullOrWhiteSpace(UnavailableReason))
         {
-            SetSnapshot(TenantAddMemberCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
+            SetDispatchRefusal(TenantAddMemberCommandSnapshot.Blocked(UnavailableReason, TenantCommandFocusTarget.Submit));
             return;
         }
 
@@ -892,14 +919,14 @@
             {
                 return;
             }
-            SetSnapshot(RefuseDispatch(eligibilityReason!, retriedAttempt, retryMessageId));
+            SetDispatchRefusal(RefuseDispatch(eligibilityReason!, retriedAttempt, retryMessageId));
             return;
         }
         if (!admitted)
         {
             _isSubmitting = false;
-            SetSnapshot(RefuseDispatch(
-                CommandSurfaceUnavailableReason ?? Localizer["Tenants.AddMember.Unavailable.InFlight"].Value,
+            SetDispatchRefusal(RefuseDispatch(
+                CommandSurfaceReason("Tenants.AddMember.Unavailable.InFlight"),
                 retriedAttempt,
                 retryMessageId));
             return;
@@ -912,7 +939,7 @@
             {
                 Attempts.Detach(_retainedAttempt, this);
                 _retainedAttempt = null;
-                SetSnapshot(RefuseDispatch(
+                SetDispatchRefusal(RefuseDispatch(
                     Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value,
                     retriedAttempt,
                     retryMessageId));

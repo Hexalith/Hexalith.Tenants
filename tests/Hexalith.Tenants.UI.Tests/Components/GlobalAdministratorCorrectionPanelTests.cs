@@ -1296,6 +1296,112 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         commandGateway.TrackedMessageIds.ShouldHaveSingleItem();
     }
 
+    /// <summary>Retry copy follows the actual lease predicate while a competing reconciliation owns dispatch.</summary>
+    /// <param name="culture">The resource culture.</param>
+    /// <param name="remove">Whether the correction removes an administrator.</param>
+    [Theory]
+    [InlineData("en", false)]
+    [InlineData("en", true)]
+    [InlineData("fr", false)]
+    [InlineData("fr", true)]
+    public async Task AmbiguousCorrectionRetryLabelTracksActualEligibility(string culture, bool remove)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            var gateway = new StubTenantCommandGateway();
+            bool holdAuthorization = false;
+            var authorization = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition
+            {
+                AuthorizationResolver = _ => holdAuthorization
+                    ? new ValueTask<TenantLifecycleAuthorizationReflectionState>(authorization.Task)
+                    : ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized),
+            });
+            Task<TenantCommandSubmissionResult> ambiguous = Task.FromResult(TenantCommandSubmissionResult.Ambiguous(
+                "ignored", remove ? "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous"
+                    : "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
+            gateway.SetResultTask = ambiguous;
+            gateway.RemoveResultTask = ambiguous;
+            GlobalAdministratorsSnapshot projection = remove ? Projection("admin-user", "other-admin") : Projection("other-admin");
+            Services.AddSingleton<ITenantCommandGateway>(gateway);
+            Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(projection, Audit("proof", "GlobalAdministratorRemoved"))
+            {
+                AutoAdvanceProjectionVersion = false,
+                SimulateFirstReadPreflight = false,
+            });
+            IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(p => p.Intent, remove ? RevokeIntent() : RestoreIntent())
+                .Add(p => p.CurrentProjection, projection));
+            await cut.Find("[data-testid='tenants-correction-confirm']")
+                .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+            GlobalAdministratorCorrectionSnapshot snapshot = cut.Instance.Snapshot.ShouldNotBeNull();
+            snapshot.IsSubmissionAmbiguous.ShouldBeTrue();
+            IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+            string retry = localizer[remove ? "Tenants.GlobalAdministrators.Remove.DeliveryRetry" : "Tenants.GlobalAdministrators.Grant.DeliveryRetry"].Value;
+            string refresh = localizer[remove ? "Tenants.GlobalAdministrators.Remove.Refresh" : "Tenants.Correction.Confirm.Refresh"].Value;
+            cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe(retry);
+            cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+            TenantAggregateCommandLease lease = PrivateField<TenantAggregateCommandLease>(cut.Instance, "_admissionLease");
+            object owner = PrivateField<object>(cut.Instance, "_admissionOwner");
+            lease.TryBeginReconciliationDispatch(owner, snapshot.ToReconciliation().ShouldNotBeNull(), out long token).ShouldBeTrue();
+            cut.Render();
+            cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe(refresh);
+            cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+            cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent.Trim()
+                .ShouldBe(localizer["Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"].Value);
+            cut.Instance.Snapshot.ShouldBe(snapshot);
+            gateway.TrackedMessageIds.ShouldHaveSingleItem().ShouldBe(snapshot.MessageId);
+            lease.TryAbortReconciliationDispatch(token).ShouldBeTrue();
+            cut.Render();
+            cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe(retry);
+            cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+
+            // Compatibility snapshots with blank correlation cannot advertise delivery retry when its predicate refuses it.
+            foreach (string correlation in new[] { string.Empty, " \t" })
+            {
+                typeof(GlobalAdministratorCorrectionPanel).GetField("_snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .SetValue(cut.Instance, snapshot with { CorrelationId = correlation });
+                cut.Render();
+                cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe(refresh);
+                cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+                await cut.Find("[data-testid='tenants-correction-refresh']")
+                    .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+                gateway.StatusHandles.ShouldBeEmpty();
+                gateway.TrackedMessageIds.ShouldHaveSingleItem().ShouldBe(snapshot.MessageId);
+            }
+            typeof(GlobalAdministratorCorrectionPanel).GetField("_snapshot", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(cut.Instance, snapshot);
+            cut.Render();
+            holdAuthorization = true;
+            Task refreshAttempt = cut.Find("[data-testid='tenants-correction-refresh']")
+                .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+            try
+            {
+                cut.WaitForAssertion(() =>
+                {
+                    cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+                    cut.Find("[data-testid='tenants-correction-refresh']").TextContent.Trim().ShouldBe(refresh);
+                    cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent.Trim()
+                        .ShouldBe(localizer["Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"].Value);
+                });
+            }
+            finally
+            {
+                authorization.TrySetResult(TenantLifecycleAuthorizationReflectionState.MissingPermission);
+                await refreshAttempt;
+            }
+            gateway.StatusHandles.ShouldBeEmpty();
+            gateway.TrackedMessageIds.ShouldHaveSingleItem().ShouldBe(snapshot.MessageId);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
     [Fact]
     public async Task AmbiguousRemoveRetryExplainsWhenItsLeaseDispatchCannotBegin()
     {
@@ -2186,7 +2292,8 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
         cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent
             .ShouldContain("ambiguous", Case.Insensitive);
         cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent
-            .ShouldContain("retained command identity", Case.Insensitive);
+            .ShouldBe("Reconcile the active attempt to terminal evidence before starting another.");
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
         commandGateway.TrackedMessageIds.ShouldHaveSingleItem().ShouldBe("message-safe");
         commandGateway.SetRequests.ShouldHaveSingleItem().UserId.ShouldBe("admin-user");
 
@@ -2195,6 +2302,13 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             "message-safe",
             "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
         cut.WaitForAssertion(() => ReferenceEquals(cut.Instance.Snapshot, adoptedSnapshot).ShouldBeFalse());
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent
+                .ShouldContain("retained command identity", Case.Insensitive);
+            cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+        });
+        commandGateway.TrackedMessageIds.ShouldHaveSingleItem().ShouldBe("message-safe");
     }
 
     [Theory]
@@ -3698,6 +3812,7 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             ["Tenants.Correction.Confirm.Refresh"] = "Refresh status",
             ["Tenants.GlobalAdministrators.Remove.Refresh"] = "Refresh status",
             ["Tenants.GlobalAdministrators.Grant.DeliveryRetry"] = "Retry delivery with the same tracked command",
+            ["Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"] = "Reconcile the active attempt to terminal evidence before starting another.",
             ["Tenants.Correction.Confirm.Cancel"] = "Cancel",
             ["Tenants.Correction.Field.OriginalEvidence"] = "Original evidence",
             ["Tenants.Correction.Field.Domain"] = "Command domain",

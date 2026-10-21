@@ -4,6 +4,7 @@ using Bunit;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Tenants.Members;
@@ -13,6 +14,7 @@ using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
 using Hexalith.Tenants.UI.State.TenantUsers;
 
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 
@@ -203,6 +205,122 @@ public sealed class MemberCommandExplanationTests : FluentBunitContext
                 Localizer["Tenants.Members.UnavailableReason.AggregateLocked"].Value));
             AssertBlockedRows(cut, Localizer["Tenants.Members.UnavailableReason.AggregateLocked"].Value);
             Gateway.ReceivedCalls().ShouldBeEmpty();
+        });
+
+    /// <summary>Absent support reasons disable valid input and captured submits retain the localized refusal.</summary>
+    /// <param name="culture">The resource culture.</param>
+    /// <param name="reason">The absent external reason.</param>
+    [Theory]
+    [InlineData("en", null)]
+    [InlineData("en", "")]
+    [InlineData("en", " \t")]
+    [InlineData("fr", null)]
+    [InlineData("fr", "")]
+    [InlineData("fr", " \t")]
+    public Task AddMemberUnavailableSupportRefusesCapturedValidSubmit(string culture, string? reason)
+        => InCultureAsync(culture, async () =>
+        {
+            IRenderedComponent<MemberAccessReview> cut = RenderMembers();
+            Gateway.AddUserToTenantAsync(Arg.Any<AddUserToTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                .Returns(call => TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "correlation-member"));
+            Gateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+                .Returns(TenantCommandStatusResult.Pending("Waiting for status."));
+            cut.Find("[data-testid='tenants-add-member-user-id']").Change("new-member");
+            FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+            IRenderedComponent<AddTenantMemberFlow> flow = cut.FindComponent<AddTenantMemberFlow>();
+            EditForm capturedForm = flow.FindComponent<EditForm>().Instance;
+            cut.Find("[data-testid='tenants-add-member-submit']").HasAttribute("disabled").ShouldBeFalse();
+
+            cut.Render(parameters => parameters
+                .Add(p => p.IsCommandSurfaceAvailable, false)
+                .Add(p => p.CommandSurfaceUnavailableReason, reason));
+            string expected = Localizer["Tenants.AddMember.Unavailable.CommandSurface"].Value;
+            cut.Find("[data-testid='tenants-add-member-submit']").HasAttribute("disabled").ShouldBeTrue();
+            cut.Find("[data-testid='tenants-add-member-unavailable-reason']").TextContent.Trim().ShouldBe(expected);
+
+            await cut.InvokeAsync(() => capturedForm.OnSubmit.InvokeAsync(capturedForm.EditContext));
+            flow.Instance.Snapshot.SafeMessage.ShouldBe(expected);
+            flow.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+            Gateway.ReceivedCalls().ShouldBeEmpty();
+            // Repeated captured submits retain the real support reason instead of inventing lost tracking.
+            await cut.InvokeAsync(() => capturedForm.OnSubmit.InvokeAsync(capturedForm.EditContext));
+            flow.Instance.Snapshot.SafeMessage.ShouldBe(expected);
+            Gateway.ReceivedCalls().ShouldBeEmpty();
+            cut.Render(parameters => parameters.Add(p => p.IsCommandSurfaceAvailable, true));
+            cut.Find("[data-testid='tenants-add-member-submit']").HasAttribute("disabled").ShouldBeFalse();
+            await cut.InvokeAsync(() => capturedForm.OnSubmit.InvokeAsync(capturedForm.EditContext));
+            await Gateway.Received(1).AddUserToTenantAsync(new AddUserToTenant("tenant.alpha", "new-member", TenantRole.TenantReader),
+                Arg.Is<string>(id => !string.IsNullOrWhiteSpace(id)), Arg.Any<CancellationToken>());
+            flow.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        });
+
+    /// <summary>Restoring support before submission allows one valid command with its original inputs.</summary>
+    /// <param name="culture">The resource culture.</param>
+    /// <param name="reason">The absent external reason.</param>
+    [Theory]
+    [InlineData("en", null)]
+    [InlineData("en", "")]
+    [InlineData("en", " \t")]
+    [InlineData("fr", null)]
+    [InlineData("fr", "")]
+    [InlineData("fr", " \t")]
+    public Task AddMemberSupportRecoveryAllowsValidSubmit(string culture, string? reason)
+        => InCultureAsync(culture, async () =>
+        {
+            IRenderedComponent<MemberAccessReview> cut = RenderMembers();
+            Gateway.AddUserToTenantAsync(Arg.Any<AddUserToTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                .Returns(call => TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "correlation-member"));
+            Gateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+                .Returns(TenantCommandStatusResult.Pending("Waiting for status."));
+            cut.Find("[data-testid='tenants-add-member-user-id']").Change("new-member");
+            FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+            cut.Render(parameters => parameters
+                .Add(p => p.IsCommandSurfaceAvailable, false)
+                .Add(p => p.CommandSurfaceUnavailableReason, reason));
+            cut.Find("[data-testid='tenants-add-member-submit']").HasAttribute("disabled").ShouldBeTrue();
+            cut.Render(parameters => parameters.Add(p => p.IsCommandSurfaceAvailable, true));
+            cut.FindAll("[data-testid='tenants-add-member-unavailable-reason']").ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-add-member-submit']").HasAttribute("disabled").ShouldBeFalse();
+
+            EditForm form = cut.FindComponent<AddTenantMemberFlow>().FindComponent<EditForm>().Instance;
+            await cut.InvokeAsync(() => form.OnSubmit.InvokeAsync(form.EditContext));
+            await Gateway.Received(1).AddUserToTenantAsync(new AddUserToTenant("tenant.alpha", "new-member", TenantRole.TenantReader),
+                Arg.Is<string>(id => !string.IsNullOrWhiteSpace(id)), Arg.Any<CancellationToken>());
+            cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        });
+
+    /// <summary>An admission refusal uses a nonempty localized fallback even when its external reason is absent.</summary>
+    /// <param name="culture">The resource culture.</param>
+    /// <param name="reason">The absent external reason.</param>
+    [Theory]
+    [InlineData("en", null)]
+    [InlineData("en", "")]
+    [InlineData("en", " \t")]
+    [InlineData("fr", null)]
+    [InlineData("fr", "")]
+    [InlineData("fr", " \t")]
+    public Task AddMemberAdmissionRefusalKeepsLocalizedFallback(string culture, string? reason)
+        => InCultureAsync(culture, async () =>
+        {
+            bool admissionAvailable = false;
+            IRenderedComponent<MemberAccessReview> cut = RenderMembers(_ => Task.FromResult(admissionAvailable));
+            Gateway.AddUserToTenantAsync(Arg.Any<AddUserToTenant>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+                .Returns(call => TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "correlation-member"));
+            Gateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+                .Returns(TenantCommandStatusResult.Pending("Waiting for status."));
+            cut.Render(parameters => parameters.Add(p => p.CommandSurfaceUnavailableReason, reason));
+            cut.Find("[data-testid='tenants-add-member-user-id']").Change("new-member");
+            FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+            EditForm form = cut.FindComponent<AddTenantMemberFlow>().FindComponent<EditForm>().Instance;
+            await cut.InvokeAsync(() => form.OnSubmit.InvokeAsync(form.EditContext));
+            cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.SafeMessage
+                .ShouldBe(Localizer["Tenants.AddMember.Unavailable.InFlight"].Value);
+            Gateway.ReceivedCalls().ShouldBeEmpty();
+            admissionAvailable = true;
+            await cut.InvokeAsync(() => form.OnSubmit.InvokeAsync(form.EditContext));
+            await Gateway.Received(1).AddUserToTenantAsync(new AddUserToTenant("tenant.alpha", "new-member", TenantRole.TenantReader),
+                Arg.Is<string>(id => !string.IsNullOrWhiteSpace(id)), Arg.Any<CancellationToken>());
+            cut.FindComponent<AddTenantMemberFlow>().Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
         });
 
     private ITenantCommandGateway Gateway { get; set; } = null!;

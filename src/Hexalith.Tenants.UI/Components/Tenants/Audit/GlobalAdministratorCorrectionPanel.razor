@@ -298,7 +298,12 @@
                 IsConfirmDisabled: true,
                 canRefresh,
                 GetSnapshotReason(snapshot),
-                Localizer[ambiguousRecoveryKey].Value);
+                Localizer[canRefresh && CanRetryAmbiguousCorrectionDelivery
+                    ? ambiguousRecoveryKey
+                    : _admissionLease?.IsReconciliationDispatchInFlight == true
+                        || Volatile.Read(ref _refreshInFlight) != 0
+                        ? "Tenants.GlobalAdministrators.Availability.Recovery.AggregateBusy"
+                        : "Tenants.Correction.Recovery.Unavailable"].Value);
         }
 
         if (snapshot.HasCommandTracking)
@@ -420,7 +425,7 @@
         };
 
     private bool IsCorrelatedCorrectionStatusRefresh
-        => _snapshot is { CorrelationId: { Length: > 0 } };
+        => _snapshot is { } snapshot && !string.IsNullOrWhiteSpace(snapshot.CorrelationId);
 
     private bool CanRefreshCorrelatedCorrectionStatus
         => IsCorrelatedCorrectionStatusRefresh
@@ -522,7 +527,7 @@
         => _snapshot is null ? string.Empty : Localizer[$"Tenants.Correction.State.{_snapshot.LifecycleState}"];
 
     private string RefreshActionText
-        => _snapshot is { IsSubmissionAmbiguous: true, CorrelationId: null } ambiguous
+        => CanRetryAmbiguousCorrectionDelivery && Volatile.Read(ref _refreshInFlight) == 0 && _snapshot is { } ambiguous
             ? ambiguous.IsRestoreAccessAction
                 ? Localizer["Tenants.GlobalAdministrators.Grant.DeliveryRetry"]
                 : Localizer["Tenants.GlobalAdministrators.Remove.DeliveryRetry"]

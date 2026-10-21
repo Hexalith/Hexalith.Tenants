@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-303/DW-449/DW-506/DW-586/DW-657 closure (2026-10-21):** Missing lifecycle version evidence has dedicated EN/FR guidance; correction recovery copy follows actual eligibility and refuses blank-correlation status lookups; absent add-member reasons fail closed and known-unsent refusals recover. Pending-status records were already fixed and are independently requalified. Reviewed Debug source build and full UI 7033/7033 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 425 done/232 open across 211 exact-covering maintenance rows. Historical evidence, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-303-449-506-586-657-validation-evidence.md).
+
 **DW-349/DW-353/DW-355/DW-407/DW-535 closure (2026-10-21):** Audit filter validation is renderer-bound, categories require exact supported names, and narrative timestamps accept bounded explicit-zone ISO forms. Held recovery tests qualify caller changes and sign-out; rendered states pin Unauthorized alert/assertive semantics. Independent review, original-code controls, a zero-warning/error Debug source build and full UI 6949/6949 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 420 done/237 open across 216 exact-covering maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [exact evidence](dw-349-353-355-407-535-validation-evidence.md).
 
 **DW-270/DW-306/DW-324/DW-536/DW-538 closure (2026-10-21):** French administrator/audit accents, apostrophes and nearby editorial copy are corrected; exact shipped EN/FR unauthorized-detail titles and audit return hints are qualified. Independent review/recheck, a zero-warning/error Debug source build and full UI 6882/6882 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 415 done/242 open across 221 exact-covering maintenance rows. Historical fields, initial failures, unrelated records, dependency pointers and release holds remain preserved. See [exact evidence](dw-270-306-324-536-538-validation-evidence.md).
@@ -3013,18 +3015,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: ProjectionVersion
 reason: The legacy ledger defers this issue: A blank `ProjectionVersion` fails closed as `UnavailableReason.StaleData`, bricking both lifecycle buttons behind "authoritative data is not current" — a cause no refresh can fix and which misdirects support. Original context is preserved in legacy-detail.
 legacy-detail: - A blank `ProjectionVersion` fails closed as `UnavailableReason.StaleData`, bricking both lifecycle buttons behind "authoritative data is not current" — a cause no refresh can fix and which misdirects support. Needs a distinct reason or recovery key.
-status: open
+pre-command-feedback-status: open
+status: done 2026-10-21
 decision: 2026-08-27 Specific recovery key — Keep the existing unavailable-reason enum stable, detect the missing-version branch explicitly at the lifecycle component boundary, and emit dedicated EN/FR message and recovery keys with focused tests.
 decision: 2026-08-27 Specific recovery key — Keep the existing unavailable-reason enum stable, detect the missing-version branch explicitly at the lifecycle component boundary, and emit dedicated EN/FR message and recovery keys with focused tests.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs maps missing ProjectionVersion to StaleData; TenantLifecycleAvailability.cs still has no dedicated missing-version recovery mapping. The recorded 2026-08-27 specific-recovery-key decision remains pending.
-verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs; src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs
-evidence-kind: verified-defect
+pre-command-feedback-disposition: actionable
+disposition: done
+pre-command-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-feedback-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs maps missing ProjectionVersion to StaleData; TenantLifecycleAvailability.cs still has no dedicated missing-version recovery mapping. The recorded 2026-08-27 specific-recovery-key decision remains pending.
+verification: Lifecycle missing-version evidence selects dedicated EN/FR message and recovery at the compatibility boundary and both renderers. Disabled actions, mounted flow, restored dispatch, read freshness and earlier/later blocker precedence pass; enum values and shared evaluator stay unchanged.
+pre-command-feedback-verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantHighImpactActionAvailabilityEvaluator.cs; src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleProjectionCategoryTests.cs
+pre-command-feedback-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Implement the recorded lifecycle-boundary EN/FR missing-version message/recovery without renumbering the enum.
+pre-command-feedback-next-action: Implement the recorded lifecycle-boundary EN/FR missing-version message/recovery without renumbering the enum.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-303-449-506-586-657-validation-evidence.md`
 related: none
 
 ### DW-304: The ten-item preview renders from `_snapshot.LastConfirmedProjection ?? Detail` while the eligibility gate validates `Detail`/`ResolvedEvidence`; after an in-flow Refresh the user can be shown facts no gate validated. Fails closed at submit, so consistency rather than correctness. Fix is ambiguous (which source wins)
@@ -5084,16 +5094,24 @@ location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Treat a 404 status lag as a wait in the command dimension, not an assertive unable-to-verify.\n  evidence: `TenantCommandGateway.GetStatusAsync` maps a 404 to `TenantCommandStatusResult.Pending` (null `Status`, `IsPending`). The `ApplyStatus` methods for Create, AddMember, ChangeRole, RemoveMember and Metadata still send every null status to UnableToVerify, announced assertively (`TenantCreateCommandModels.cs:255` and siblings). The baseline did the same. Narrowed by the Story 5.4 Review 3 decision (option b): the audit dimension now keeps its state on the lag through `TenantCommandAuditStates.FromStatusLookup`, so only the command dimension remains. Lifecycle and the configuration snapshots already handle `IsPending` and `IsRetryableFailure` as waits in both dimensions."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantCommandGateway.GetStatusAsync maps 404 to TenantCommandStatusResult.Pending. TenantCreateCommandModels.cs Create/AddMember/ChangeRole/RemoveMember/Metadata ApplyStatus still maps every null Status to UnableToVerify with Assertive politeness; only AuditState uses FromStatusLookup and retains lag correctly. Lifecycle/configuration snapshots already handle IsPending as waiting. The recorded option-b decision narrowed this to command dimension and must be preserved.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-evidence-kind: verified-defect
+pre-command-feedback-status: open
+status: done 2026-10-21
+pre-command-feedback-disposition: actionable
+disposition: done
+pre-command-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-feedback-verification: TenantCommandGateway.GetStatusAsync maps 404 to TenantCommandStatusResult.Pending. TenantCreateCommandModels.cs Create/AddMember/ChangeRole/RemoveMember/Metadata ApplyStatus still maps every null Status to UnableToVerify with Assertive politeness; only AuditState uses FromStatusLookup and retains lag correctly. Lifecycle/configuration snapshots already handle IsPending as waiting. The recorded option-b decision narrowed this to command dimension and must be preserved.
+verification: Already implemented at entry in all five type-named snapshots. Fresh pending/raw/keyed/retryable, whole-attempt identity/evidence/audit preservation, later authoritative confirmation, unknown/contradictory and terminal controls pass. Original-source replay also passes; no production snapshot rewrite is needed.
+pre-command-feedback-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
+verification-files: tests/Hexalith.Tenants.UI.Tests/State/TenantCommandTemporaryLookupTests.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantAddMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantChangeRoleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantUpdateMetadataCommandSnapshot.cs
+pre-command-feedback-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Preserve Story 5.4 option-b command/audit separation
-next-action: Handle IsPending in the five command lifecycle snapshots without assertive unverifiable feedback, preserving their already-correct independent audit state.
+pre-command-feedback-next-action: Handle IsPending in the five command lifecycle snapshots without assertive unverifiable feedback, preserving their already-correct independent audit state.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-303-449-506-586-657-validation-evidence.md`
 related: DW-447, DW-448
 
 
@@ -5876,16 +5894,24 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCo
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Show the global-administrator correction panel's delivery-retry label only when a retry is actually possible.\n  evidence: `GlobalAdministratorCorrectionPanel.razor:469` (`RefreshActionText`) picks the delivery-retry text whenever `IsSubmissionAmbiguous && CorrelationId: null`, even when `CanRetryAmbiguousCorrectionDelivery` is false, and uses a null-only pattern. Story 5.6 pass 3 fixed the same defect in `CorrectionStartPanel` (`CanRefresh && no correlation`). Global-administrator correction belongs to Story 5.7."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorCorrectionPanel.razor:524-531 RefreshActionText still chooses delivery-retry solely for IsSubmissionAmbiguous && CorrelationId:null, without CanRetryAmbiguousCorrectionDelivery or CanRefreshSnapshot. Admission/authority/viewport refusal can disable actual retry while copy offers it.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
-evidence-kind: verified-defect
+pre-command-feedback-status: open
+status: done 2026-10-21
+pre-command-feedback-disposition: actionable
+disposition: done
+pre-command-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-feedback-verification: GlobalAdministratorCorrectionPanel.razor:524-531 RefreshActionText still chooses delivery-retry solely for IsSubmissionAmbiguous && CorrelationId:null, without CanRetryAmbiguousCorrectionDelivery or CanRefreshSnapshot. Admission/authority/viewport refusal can disable actual retry while copy offers it.
+verification: Correction retry labels and recovery paragraphs follow actual display eligibility, including competing reconciliation and held authorization. Empty/whitespace correlation cannot enable status refresh; captured refresh emits no invalid status lookup or redispatch. Positive retry and retained identity controls pass in EN/FR.
+pre-command-feedback-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs
+pre-command-feedback-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Global correction recovery-label contract
-next-action: Use the actual retry-eligibility predicate for retry-specific text and cover ambiguous-but-ineligible and blank-correlation states.
+pre-command-feedback-next-action: Use the actual retry-eligibility predicate for retry-specific text and cover ambiguous-but-ineligible and blank-correlation states.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-303-449-506-586-657-validation-evidence.md`
 related: none
 
 
@@ -7339,16 +7365,24 @@ location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Keep pending create-command status in a waiting state.\n  evidence: The gateway maps status 404 to `Pending`, while `TenantCreateCommandSnapshot.ApplyStatus` treats the resulting null status as assertive `UnableToVerify`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantCreateCommandModels.cs TenantCreateCommandSnapshot.ApplyStatus sets any null Status to UnableToVerify/assertive even when TenantCommandStatusResult.IsPending=true; status 404 maps to Pending in the gateway.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-evidence-kind: verified-defect
+pre-command-feedback-status: open
+status: done 2026-10-21
+pre-command-feedback-disposition: actionable
+disposition: done
+pre-command-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-feedback-verification: TenantCreateCommandModels.cs TenantCreateCommandSnapshot.ApplyStatus sets any null Status to UnableToVerify/assertive even when TenantCommandStatusResult.IsPending=true; status 404 maps to Pending in the gateway.
+verification: Duplicate create-specific pending-status record is already implemented at entry. Fresh independent Pending/raw/keyed and retryable lookup controls retain polite Accepted/ProjectionPending, identity and audit state; verified status plus authoritative projection remains required. Original-source controls pass.
+pre-command-feedback-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCommandTemporaryLookupTests.cs
+pre-command-feedback-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Pending-status UX contract
-next-action: Preserve a polite waiting lifecycle for Pending status and cover 404-before-first-status.
+pre-command-feedback-next-action: Preserve a polite waiting lifecycle for Pending status and cover 404-before-first-status.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-303-449-506-586-657-validation-evidence.md`
 related: none
 
 
@@ -8357,15 +8391,23 @@ source_spec: `spec-dw-244-293-294-298-447-command-explanations.md`
 summary: Normalize absent add-member command-surface reasons before deriving the disabled state and dispatch guard.
 evidence: AddTenantMemberFlow EligibilityUnavailableReason and pre-dispatch refusal use null-coalescing for CommandSurfaceUnavailableReason, while IsSubmitDisabled treats empty/whitespace as no refusal. A temporary valid-input rendered probe fails four EN/FR empty/whitespace cases because submit remains enabled; two null controls pass. AddTenantMemberFlow production is unchanged by this bundle. The temporary probe is removed; exact commands and results are in dw-244-293-294-298-447-validation-evidence.md.
 location: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor
-status: open
-disposition: actionable
+pre-command-feedback-status: open
+status: done 2026-10-21
+pre-command-feedback-disposition: actionable
+disposition: done
+pre-command-feedback-verification-date: 2026-10-21
 verification-date: 2026-10-21
-verification: Reproduced enabled valid-input submission control for unavailable support with empty and whitespace reasons; this finding does not claim that a backend mutation succeeded.
+pre-command-feedback-verification: Reproduced enabled valid-input submission control for unavailable support with empty and whitespace reasons; this finding does not claim that a backend mutation succeeded.
+verification: Null/empty/whitespace external support reasons normalize to localized fallbacks in render and pre-dispatch refusal. Valid input remains disabled while unsupported; captured/repeated submits never dispatch. Restored support or admission recovers the exact known-unsent refusal with one dispatch; uncertain/retained attempts keep their existing tracking gate. EN/FR controls pass.
+pre-command-feedback-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/MemberCommandExplanationTests.cs
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/MemberCommandExplanationTests.cs
-evidence-kind: verified-defect
+pre-command-feedback-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: Tenants membership command admission
 dependencies: none
-next-action: Normalize null/empty/whitespace reasons to the localized support fallback and qualify rendered disabled controls, captured submit events and zero gateway dispatch with available-support recovery controls.
+pre-command-feedback-next-action: Normalize null/empty/whitespace reasons to the localized support fallback and qualify rendered disabled controls, captured submit events and zero gateway dispatch with available-support recovery controls.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-303-449-506-586-657-validation-evidence.md`
 related: DW-293
 

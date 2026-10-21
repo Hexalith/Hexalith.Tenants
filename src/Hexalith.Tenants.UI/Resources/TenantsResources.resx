@@ -4564,4 +4564,6 @@
   <data name="Tenants.Members.UnavailableReason.ActiveMemberCommand" xml:space="preserve">
     <value>A member command is active for this tenant. Review that command before starting another.</value>
   </data>
+  <data name="Tenants.Lifecycle.Unavailable.MissingProjectionVersion" xml:space="preserve"><value>This lifecycle action is unavailable because the tenant projection has no version evidence for verification.</value></data>
+  <data name="Tenants.Lifecycle.Recovery.MissingProjectionVersion" xml:space="preserve"><value>Continue read-only and ask support to restore projection-version evidence before trying this action again.</value></data>
 </root>
