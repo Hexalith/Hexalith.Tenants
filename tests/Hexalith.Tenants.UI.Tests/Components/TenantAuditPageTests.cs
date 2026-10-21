@@ -3040,10 +3040,20 @@ public sealed class TenantAuditPageTests : BunitContext
         context.ShouldNotContain(returnFocus);
     }
 
-    [Fact]
-    public void Matching_list_anchor_and_explicit_return_focus_restore_the_audit_launcher()
+    /// <summary>A validated launcher retains its return URL and complete localized focus hint.</summary>
+    /// <param name="cultureName">The supported language to render.</param>
+    /// <param name="expectedContext">The complete localized return hint.</param>
+    [Theory]
+    [InlineData("en", "Return to the tenant list. The originating control will receive focus when available.")]
+    [InlineData("fr", "Retour vers la liste des locataires. Le contrôle d’origine recevra le focus s’il est disponible.")]
+    public void Matching_list_anchor_and_explicit_return_focus_restore_the_audit_launcher(
+        string cultureName, string expectedContext)
     {
         RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        Services.AddLocalization();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
         Services.GetRequiredService<NavigationManager>().NavigateTo(
             "/tenants/tenant.alpha/audit?returnUrl="
             + Uri.EscapeDataString("/tenants?selected=tenant.alpha&anchor=tenant-row-tenant.alpha")
@@ -3054,13 +3064,22 @@ public sealed class TenantAuditPageTests : BunitContext
 
         string href = cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href").ShouldNotBeNull();
         href.ShouldBe("/tenants?selected=tenant.alpha&anchor=tenant-row-tenant.alpha&auditFocus=tenant-row-tenant.alpha");
-        cut.Find("[data-testid='tenants-audit-return-context']").TextContent.ShouldContain("focus");
+        cut.Find("[data-testid='tenants-audit-return-context']").TextContent.Trim().ShouldBe(expectedContext);
     }
 
-    [Fact]
-    public void Focusless_detail_return_preserves_a_stripped_cursor_notice()
+    /// <summary>A focusless detail return preserves its notice and exact localized hint.</summary>
+    /// <param name="cultureName">The supported language to render.</param>
+    /// <param name="expectedContext">The complete localized return hint.</param>
+    [Theory]
+    [InlineData("en", "Return to tenant detail.")]
+    [InlineData("fr", "Retour vers le détail du locataire.")]
+    public void Focusless_detail_return_preserves_a_stripped_cursor_notice(string cultureName, string expectedContext)
     {
         RegisterServices(ReadySnapshot([Row("event-1", AuditEventCategory.Access)]));
+        Services.AddLocalization();
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
         Services.GetRequiredService<NavigationManager>().NavigateTo(
             "/tenants/tenant.alpha/audit?returnUrl="
             + Uri.EscapeDataString("/tenants/tenant.alpha?returnUrl=%2Ftenants%3Fcursor%3Dprotected%26selected%3Dtenant.alpha"));
@@ -3071,7 +3090,7 @@ public sealed class TenantAuditPageTests : BunitContext
         string href = cut.Find("[data-testid='tenants-audit-back']").GetAttribute("href").ShouldNotBeNull();
         href.ShouldContain("auditPartialReturn=true");
         href.ShouldNotContain("protected");
-        cut.Find("[data-testid='tenants-audit-return-context']").TextContent.ShouldNotContain("focus");
+        cut.Find("[data-testid='tenants-audit-return-context']").TextContent.Trim().ShouldBe(expectedContext);
     }
 
     [Fact]

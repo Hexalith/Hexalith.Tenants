@@ -496,7 +496,7 @@ public sealed class TenantCommandGatewayTests
                 "La livraison de la commande est incertaine. Ne la renvoyez pas ; actualisez l'état ou arrêtez le rapprochement local."),
             "grant-tracked" => ("Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous",
                 "Grant delivery is ambiguous. Refresh or retry with the same retained command identity.",
-                "La livraison de l'attribution est ambiguë. Actualisez ou réessayez avec la même identité de commande conservée."),
+                "La livraison de l’attribution est ambiguë. Actualisez ou réessayez avec la même identité de commande conservée."),
             "remove-global-tracked" => ("Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous",
                 "Delivery is uncertain; retry only with this attempt’s retained identifier.",
                 "La livraison est incertaine ; réessayez uniquement avec l’identifiant conservé de cette tentative."),

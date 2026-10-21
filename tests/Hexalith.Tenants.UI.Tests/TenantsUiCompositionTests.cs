@@ -1476,11 +1476,11 @@ public sealed class TenantsUiCompositionTests
         manager.GetString("Tenants.GlobalAdministrators.State.Stale.Title", CultureInfo.InvariantCulture)
             .ShouldBe("Global administrator data stale");
         manager.GetString("Tenants.GlobalAdministrators.State.Stale.Title", CultureInfo.GetCultureInfo("fr"))
-            .ShouldBe("Donnees d'administrateurs globaux perimees");
+            .ShouldBe("Données d’administrateurs globaux périmées");
         manager.GetString("Tenants.GlobalAdministrators.State.Ready.Title", CultureInfo.InvariantCulture)
             .ShouldBe("Global administrators loaded");
         manager.GetString("Tenants.GlobalAdministrators.State.Ready.Title", CultureInfo.GetCultureInfo("fr"))
-            .ShouldBe("Administrateurs globaux charges");
+            .ShouldBe("Administrateurs globaux chargés");
         manager.GetString("Tenants.GlobalAdministrators.State.Unauthorized.Title", CultureInfo.InvariantCulture)
             .ShouldBe("Platform area unavailable");
         manager.GetString("Tenants.GlobalAdministrators.State.Unauthorized.Title", CultureInfo.GetCultureInfo("fr"))

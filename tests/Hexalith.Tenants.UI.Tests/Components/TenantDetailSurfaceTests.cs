@@ -3258,7 +3258,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
     [Theory]
     [InlineData(TenantDetailSurfaceKind.Stale, "tenants-detail-stale", "stale")]
     [InlineData(TenantDetailSurfaceKind.Degraded, "tenants-detail-degraded", "degraded")]
-    [InlineData(TenantDetailSurfaceKind.Unauthorized, "tenants-detail-unauthorized", "authorized")]
+    [InlineData(TenantDetailSurfaceKind.Unauthorized, "tenants-detail-unauthorized", "Tenant detail unauthorized")]
     [InlineData(TenantDetailSurfaceKind.NotFound, "tenants-detail-error", "not found")]
     [InlineData(TenantDetailSurfaceKind.Unavailable, "tenants-detail-error", "unavailable")]
     [InlineData(TenantDetailSurfaceKind.Unknown, "tenants-detail-error", "unavailable")]
@@ -4359,6 +4359,27 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
             Arg.Is<TenantAuditRequest>(request => request.PageSize == 100 && request.Cursor == "opaque-next-page"),
             Arg.Any<TenantAuditSnapshot?>(),
             Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>Unauthorized headings resolve to the complete shipped title in both supported languages.</summary>
+    /// <param name="cultureName">The supported language to render.</param>
+    /// <param name="expectedTitle">The complete localized heading.</param>
+    [Theory]
+    [InlineData("en", "Tenant detail unauthorized")]
+    [InlineData("fr", "Détails du locataire non autorisés")]
+    public void UnauthorizedDetailTitleUsesExactLocalizedCopy(string cultureName, string expectedTitle)
+    {
+        RegisterServices(_ => Task.FromResult(Snapshot(TenantDetailSurfaceKind.Unauthorized)));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(provider => new CultureBoundTenantsLocalizer(
+            provider.GetRequiredService<IStringLocalizerFactory>().Create(typeof(TenantsResources)),
+            CultureInfo.GetCultureInfo(cultureName)));
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+
+        cut.WaitForElement("[data-testid='tenants-detail-unauthorized']");
+        cut.Find("#tenants-detail-identity").TextContent.Trim().ShouldBe(expectedTitle);
+        cut.Find("[data-testid='tenants-detail-unauthorized']").GetAttribute("role").ShouldBe("alert");
     }
 
     [Fact]

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-270/DW-306/DW-324/DW-536/DW-538 closure (2026-10-21):** French administrator/audit accents, apostrophes and nearby editorial copy are corrected; exact shipped EN/FR unauthorized-detail titles and audit return hints are qualified. Independent review/recheck, a zero-warning/error Debug source build and full UI 6882/6882 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 415 done/242 open across 221 exact-covering maintenance rows. Historical fields, initial failures, unrelated records, dependency pointers and release holds remain preserved. See [exact evidence](dw-270-306-324-536-538-validation-evidence.md).
+
 **DW-244/DW-293/DW-294/DW-298/DW-447 closure (2026-10-21):** Member command explanations distinguish owned activity from unknown support; scoped EN/FR recovery copy describes evidence without promising absent actions. Independent review/recheck, a zero-warning/error Debug source build, focused 82/82 and full UI 6878/6878 pass with zero failures/skips. Only these five records close; the pre-existing add-member empty/whitespace reason defect is separately open as DW-657. All 656 original IDs remain plus DW-657: 657 total, 410 done/247 open across 224 exact-covering maintenance rows. Historical fields, initial failures, inherited historical spec gitlink blocker, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-244-293-294-298-447-validation-evidence.md).
 
 **DW-191 closure (2026-10-21):** Membership notifications received before child attachment now retain their reconciliation intent until current authorization and rendering, preserving exact attempt identity and authoritative confirmation. Real subscription regressions, route/disposal/failure/remount controls, independent review and a zero-warning/error Debug source build qualify the change; focused and full UI counts are in [exact evidence](dw-191-validation-evidence.md). Only DW-191 closes: all 656 IDs remain, 405 done/251 open across 226 exact-covering maintenance rows. Historical findings, unrelated work, dependencies and release holds remain preserved.
@@ -2609,16 +2611,25 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantsResources.fr.resx:3141
 reason: The legacy ledger defers this issue: French resource additions are inconsistently accented against their neighbours. Original context is preserved in legacy-detail.
 legacy-detail: - summary: French resource additions are inconsistently accented against their neighbours. evidence: `TenantsResources.fr.resx:3141` is fully accented while `:3138` and `:3147` are deliberately unaccented; the same split appears at `:2562-2567` versus `:2134`. The same screen can render both conventions.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still mixes accented labels with Identite/Disponibilite/Categorie/Resultat/Reference entries on the same surfaces.
-evidence-kind: verified-defect
+pre-localized-copy-status: open
+status: done 2026-10-21
+pre-localized-copy-disposition: actionable
+disposition: done
+pre-localized-copy-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-localized-copy-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still mixes accented labels with Identite/Disponibilite/Categorie/Resultat/Reference entries on the same surfaces.
+verification: Completed the overlapping French administrator/audit accent and apostrophe pass, including the adjacent detail audit-launcher label; independent editorial review and full UI qualify all final copy. See dw-270-306-324-536-538-validation-evidence.md for exact commands, earlier failures and review.
+pre-localized-copy-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Run a focused French copy pass with resource parity preserved.
+pre-localized-copy-next-action: Run a focused French copy pass with resource parity preserved.
+next-action: Closed in the localized-copy bundle; preserve unrelated records, dependency pointers and release holds.
 related: DW-306, DW-324, DW-439
+verification-files: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
+resolution-evidence: [Exact validation and review](dw-270-306-324-536-538-validation-evidence.md)
+resolution-spec: spec-dw-270-306-324-536-538-localized-copy.md
 
 ### DW-271: `TenantAggregateCommandAdmissionGate`'s public API changed shape without an obsolete overload
 
@@ -3031,16 +3042,25 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: Availability
 reason: The legacy ledger defers this issue: The French accent repair is partial: ~30 entries fixed, but `Tenants.GlobalAdministrators.Column.Identity`/`.Availability` and `Tenants.Audit.Column.Category`/`.Outcome` remain unaccented. Original context is preserved in legacy-detail.
 legacy-detail: - The French accent repair is partial: ~30 entries fixed, but `Tenants.GlobalAdministrators.Column.Identity`/`.Availability` and `Tenants.Audit.Column.Category`/`.Outcome` remain unaccented. Key parity is clean (1346/1346). Finish in a dedicated pass.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still contains Disponibilite accorder/retirer, Identite administrateur, Categorie and Resultat for the cited global/audit column keys.
-evidence-kind: verified-defect
+pre-localized-copy-status: open
+status: done 2026-10-21
+pre-localized-copy-disposition: actionable
+disposition: done
+pre-localized-copy-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-localized-copy-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx still contains Disponibilite accorder/retirer, Identite administrateur, Categorie and Resultat for the cited global/audit column keys.
+verification: Corrected administrator Actions/Identity and audit Category/Outcome labels; the historical Availability key is now Actions. EN/FR keys and placeholders remain unchanged. See dw-270-306-324-536-538-validation-evidence.md for exact commands, earlier failures and review.
+pre-localized-copy-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Correct the four cited labels in the French copy pass.
+pre-localized-copy-next-action: Correct the four cited labels in the French copy pass.
+next-action: Closed in the localized-copy bundle; preserve unrelated records, dependency pointers and release holds.
 related: DW-270, DW-324
+verification-files: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
+resolution-evidence: [Exact validation and review](dw-270-306-324-536-538-validation-evidence.md)
+resolution-spec: spec-dw-270-306-324-536-538-localized-copy.md
 
 ### DW-307: `TenantLifecycleAttemptTracker` has no attempt expiry and never prunes `_terminalMessageByTenantId`/`_terminalAttemptStartedAtByTenantId`; both grow for the circuit's lifetime. Subsumed by the open decision on bounding a wedged attempt
 
@@ -3230,16 +3250,25 @@ location: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx:3374
 source_spec: `spec-deferred-work-support-safe-copy-followup.md`
 severity: low
 reason: TenantsResources.fr.resx uses accented French throughout ("Non connecte" is spelled "Non connecté" at line 19, "Périmé" at line 85), and line 3707 already carries "Référence d'audit d'origine". The audit block is the exception: line 3374 "Reference d'audit : {0}", line 3380 "Reference de commande", line 3389 "Reference d'audit", line 3410 "Reference indisponible". Lines 3380 and 3389 predate this story, so the cluster is pre-existing rather than introduced here.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx retains Reference de commande and Reference indisponible in the audit block despite later accented receipt strings.
-evidence-kind: verified-defect
+pre-localized-copy-status: open
+status: done 2026-10-21
+pre-localized-copy-disposition: actionable
+disposition: done
+pre-localized-copy-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-localized-copy-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx retains Reference de commande and Reference indisponible in the audit block despite later accented receipt strings.
+verification: Corrected remaining audit column, event-copy and unavailable-reference accents/apostrophes; already-correct receipt field labels are preserved. See dw-270-306-324-536-538-validation-evidence.md for exact commands, earlier failures and review.
+pre-localized-copy-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Finish the cited audit accent/apostrophe pass with EN/FR parity.
+pre-localized-copy-next-action: Finish the cited audit accent/apostrophe pass with EN/FR parity.
+next-action: Closed in the localized-copy bundle; preserve unrelated records, dependency pointers and release holds.
 related: DW-270, DW-306, DW-439
+verification-files: src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx
+resolution-evidence: [Exact validation and review](dw-270-306-324-536-538-validation-evidence.md)
+resolution-spec: spec-dw-270-306-324-536-538-localized-copy.md
 
 ### DW-325: TenantConfigurationManagement latches _removeCommandInFlight from a retained attempt with no reset branch, so the flag survives the tracker's autonomous expiry when the flow is unmounted.
 
@@ -6352,18 +6381,26 @@ location: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
 source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`\n  summary: low; the localized detail Unauthorized title \"Tenant detail unauthorized\" is not pinned exactly by any test.\n  evidence: The hosted smoke assertion was removed around `2e61f57b`/`62eb3607`. Tier 1 `Detail_page_renders_distinct_safe_states` (`TenantDetailSurfaceTests.cs:2923`) matches only the case-insensitive substring `\"authorized\"`, which an unresolved resx key name (`Tenants.Detail.State.Unauthorized.Title`) would also satisfy."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:2920-2938 still uses expectedText “authorized” for Unauthorized rather than the exact localized title. The rewritten TenantsUiRouteSmokeTests only checks shell scope denial, so it provides no title fallback detection.
+pre-localized-copy-status: open
+status: done 2026-10-21
+pre-localized-copy-disposition: actionable
+disposition: done
+pre-localized-copy-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-localized-copy-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs:2920-2938 still uses expectedText “authorized” for Unauthorized rather than the exact localized title. The rewritten TenantsUiRouteSmokeTests only checks shell scope denial, so it provides no title fallback detection.
+verification: Two rendered real-resource EN/FR cases assert the exact unauthorized heading and alert role, preserving existing denial-state assertions. See dw-270-306-324-536-538-validation-evidence.md for exact commands, earlier failures and review.
+pre-localized-copy-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
 verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
-evidence-kind: verified-gap
+pre-localized-copy-evidence-kind: verified-gap
+evidence-kind: verified-coverage
 priority: P3
 owner: unassigned
 dependencies: Blocking detail component resource fixture
-next-action: Add exact localized Unauthorized-title coverage with the real resources or a parity-aware localizer.
+pre-localized-copy-next-action: Add exact localized Unauthorized-title coverage with the real resources or a parity-aware localizer.
+next-action: Closed in the localized-copy bundle; preserve unrelated records, dependency pointers and release holds.
 related: none
-
+resolution-evidence: [Exact validation and review](dw-270-306-324-536-538-validation-evidence.md)
+resolution-spec: spec-dw-270-306-324-536-538-localized-copy.md
 
 ### DW-537: low; the detail smoke test asserts the unauthorized marker twice, and the comment above the duplicate describes a source-order form that never existed in this file.
 
@@ -6380,17 +6417,25 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`\n  summary: low; the audit smoke assertion \"Return to tenant detail\" cannot tell the focus-return hint from the NoFocus variant, and no test asserts the hint text.\n  evidence: `TenantsResources.resx:3547-3552`: `Tenants.Audit.ReturnContext` = \"Return to {0}. The originating control will receive focus when available.\"; `.NoFocus` = \"Return to {0}.\" Both start with the asserted prefix. The test passes a `returnFocus`, so it should assert the full sentence. A search of `tests/Hexalith.Tenants.UI.Tests` finds the sentence only in a resource dictionary (`AuditEvidenceEntryPointTests.cs:514`), never in an assertion."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: The old hosted prefix assertion was removed by the shell-denial smoke rewrite. TenantAuditPageTests.Matching_list_anchor_and_explicit_return_focus_restore_the_audit_launcher now asserts the context contains “focus” (:2924), and Focusless_detail_return_preserves_a_stripped_cursor_notice asserts no “focus” (:2941), so variant differentiation exists. Exact full localized hint copy is still not pinned; this is a residual test-strength recommendation, not evidence of wrong current behavior.
-evidence-kind: recommendation
+pre-localized-copy-status: open
+status: done 2026-10-21
+pre-localized-copy-disposition: actionable
+disposition: done
+pre-localized-copy-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-localized-copy-verification: The old hosted prefix assertion was removed by the shell-denial smoke rewrite. TenantAuditPageTests.Matching_list_anchor_and_explicit_return_focus_restore_the_audit_launcher now asserts the context contains “focus” (:2924), and Focusless_detail_return_preserves_a_stripped_cursor_notice asserts no “focus” (:2941), so variant differentiation exists. Exact full localized hint copy is still not pinned; this is a residual test-strength recommendation, not evidence of wrong current behavior.
+verification: Four rendered EN/FR cases assert complete focus-return and focusless hints with real resources while retaining safe URL and stripped-cursor checks. See dw-270-306-324-536-538-validation-evidence.md for exact commands, earlier failures and review.
+pre-localized-copy-evidence-kind: recommendation
+evidence-kind: verified-coverage
 priority: P3
 owner: unassigned
 dependencies: UX exact-copy test policy
-next-action: Strengthen component assertions to the full approved localized focus-return sentence if exact copy is a maintained contract.
+pre-localized-copy-next-action: Strengthen component assertions to the full approved localized focus-return sentence if exact copy is a maintained contract.
+next-action: Closed in the localized-copy bundle; preserve unrelated records, dependency pointers and release holds.
 related: none
-
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs
+resolution-evidence: [Exact validation and review](dw-270-306-324-536-538-validation-evidence.md)
+resolution-spec: spec-dw-270-306-324-536-538-localized-copy.md
 
 ### DW-539: low; the user-lookup smoke comment says the compatibility route "redirects before issuing the lookup", but the code issues the lookup first.
 
