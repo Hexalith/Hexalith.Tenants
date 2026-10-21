@@ -4898,6 +4898,85 @@ public sealed class TenantQueryGatewayTests
         snapshot.CallerScope.ShouldBe(TenantQueryGateway.AuditCallerScope("caller-two"));
     }
 
+    /// <summary>Rejects unverified caller evidence after a held invalid-cursor recovery fails.</summary>
+    /// <param name="nextUserId">The caller observed when recovery completes.</param>
+    /// <param name="typedFailure">Whether recovery reports a typed transport failure.</param>
+    /// <param name="expectedKind">The safe surface state for that caller and failure.</param>
+    [Theory]
+    [InlineData("caller-two", true, TenantAuditSurfaceKind.Unavailable)]
+    [InlineData(null, true, TenantAuditSurfaceKind.Unauthorized)]
+    [InlineData("caller-one", true, TenantAuditSurfaceKind.Unauthorized)]
+    [InlineData("caller-two", false, TenantAuditSurfaceKind.Unavailable)]
+    [InlineData(null, false, TenantAuditSurfaceKind.Unauthorized)]
+    [InlineData("caller-one", false, TenantAuditSurfaceKind.Unavailable)]
+    public async Task GetTenantAuditInvalidCursorRetryFailureRespectsCurrentCallerAsync(
+        string? nextUserId,
+        bool typedFailure,
+        TenantAuditSurfaceKind expectedKind)
+    {
+        string? currentUserId = "caller-one";
+        IUserContextAccessor userContext = Substitute.For<IUserContextAccessor>();
+        userContext.UserId.Returns(_ => currentUserId);
+        DateTimeOffset from = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        TenantAuditRequest request = new(
+            "tenant.alpha",
+            From: from,
+            To: from.AddHours(1),
+            Category: AuditEventCategory.Access,
+            Cursor: "expired-protected-cursor",
+            PageSize: 25,
+            ETag: "confirmed-etag",
+            Stream: "tenant");
+        TenantAuditSnapshot previous = TenantAuditSnapshot.Ready(
+            [TenantAuditRow.FromEntry(AuditEntry("event-retained", AuditEventCategory.Access, from), ReadModelFreshnessState.Current)],
+            "retained-next-cursor", true, "confirmed-etag", ReadModelFreshnessState.Current, request) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("caller-one"),
+        };
+        var pending = new TaskCompletionSource<TenantsRestQueryResponse<PaginatedResult<TenantAuditEntry>>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
+        client.GetTenantAuditAsync(Arg.Any<GetTenantAuditQuery>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(
+                Task.FromResult(FailureResponse<PaginatedResult<TenantAuditEntry>>(TenantsRestQueryFailureKind.InvalidCursor, 400)),
+                pending.Task);
+        TenantQueryGateway gateway = CreateGateway(client, userContextAccessor: userContext);
+
+        Task<TenantAuditSnapshot> read = gateway.GetTenantAuditAsync(request, previous, CancellationToken.None);
+        IReadOnlyList<NSubstitute.Core.ICall> calls = ReadCalls(client);
+        calls.Count.ShouldBe(2);
+        ((GetTenantAuditQuery)calls[0].GetArguments()[0]!).Cursor.ShouldBe("expired-protected-cursor");
+        calls[0].GetArguments()[1].ShouldBe("confirmed-etag");
+        GetTenantAuditQuery retry = (GetTenantAuditQuery)calls[1].GetArguments()[0]!;
+        retry.TenantId.ShouldBe(request.TenantId);
+        retry.From.ShouldBe(request.From);
+        retry.To.ShouldBe(request.To);
+        retry.Category.ShouldBe(request.Category);
+        retry.Stream.ShouldBe(request.Stream);
+        retry.PageSize.ShouldBe(request.PageSize);
+        retry.Cursor.ShouldBeNull();
+        calls[1].GetArguments()[1].ShouldBeNull();
+        currentUserId = nextUserId;
+        if (typedFailure)
+        {
+            pending.SetResult(FailureResponse<PaginatedResult<TenantAuditEntry>>(TenantsRestQueryFailureKind.Forbidden, 403));
+        }
+        else
+        {
+            pending.SetException(new InvalidOperationException("retry transport failed"));
+        }
+
+        TenantAuditSnapshot snapshot = await read;
+
+        snapshot.Kind.ShouldBe(expectedKind);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.ETag.ShouldBeNull();
+        snapshot.NextCursor.ShouldBeNull();
+        snapshot.HasMore.ShouldBeFalse();
+        snapshot.CallerScope.ShouldBe(nextUserId is null ? null : TenantQueryGateway.AuditCallerScope(nextUserId));
+        ReadCalls(client).Count.ShouldBe(2);
+    }
+
     [Fact]
     public async Task Get_tenant_audit_maps_typed_roles_without_parsing_display_delimiters()
     {

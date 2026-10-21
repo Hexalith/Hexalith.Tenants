@@ -1052,17 +1052,40 @@
         bool useRequestedCursor = false)
     {
         string tenantId = requestedTenantId ?? TenantId;
-        TenantAuditSnapshot previous = _snapshot;
-        if (!TryCreateRequest(
-            tenantId,
-            useRequestedCursor ? requestedCursor : _currentCursor,
-            reuseETag ? previous.ETag : null,
-            out TenantAuditRequest? request))
+        long entryGeneration = Volatile.Read(ref _loadGeneration);
+        TenantAuditSnapshot? previous = null;
+        TenantAuditRequest? request = null;
+        PendingOperation? preparedOperation = null;
+        // Route and authentication continuations can enter from a worker thread. Capture the filters,
+        // cursor and validator together with validation's surface writes on the renderer, and refuse a
+        // queued load that disposal, a route change or a newer load has already superseded.
+        await InvokeAsync(() =>
+        {
+            if (!CanApply(tenantId, entryGeneration))
+            {
+                return;
+            }
+
+            previous = _snapshot;
+            if (!TryCreateRequest(
+                tenantId,
+                useRequestedCursor ? requestedCursor : _currentCursor,
+                reuseETag ? previous.ETag : null,
+                out request))
+            {
+                // A background load has no UI event or lifecycle completion to paint this local refusal.
+                StateHasChanged();
+                return;
+            }
+
+            preparedOperation = BeginLoad();
+        }).ConfigureAwait(false);
+        if (preparedOperation is null)
         {
             return null;
         }
 
-        using PendingOperation operation = BeginLoad();
+        using PendingOperation operation = preparedOperation;
         long generation = operation.Generation;
         CancellationToken cancellationToken = operation.CancellationToken;
         if (!retainConfirmed)
@@ -1551,7 +1574,7 @@
         AuditEventCategory parsedCategory = default;
         bool categoryValid = string.IsNullOrEmpty(_categoryText)
             || (Enum.TryParse(_categoryText, ignoreCase: false, out parsedCategory)
-                && Enum.IsDefined(parsedCategory));
+                && string.Equals(Enum.GetName(parsedCategory), _categoryText, StringComparison.Ordinal));
         AuditEventCategory? category = categoryValid && !string.IsNullOrEmpty(_categoryText)
             ? parsedCategory
             : null;

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-349/DW-353/DW-355/DW-407/DW-535 closure (2026-10-21):** Audit filter validation is renderer-bound, categories require exact supported names, and narrative timestamps accept bounded explicit-zone ISO forms. Held recovery tests qualify caller changes and sign-out; rendered states pin Unauthorized alert/assertive semantics. Independent review, original-code controls, a zero-warning/error Debug source build and full UI 6949/6949 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 420 done/237 open across 216 exact-covering maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [exact evidence](dw-349-353-355-407-535-validation-evidence.md).
+
 **DW-270/DW-306/DW-324/DW-536/DW-538 closure (2026-10-21):** French administrator/audit accents, apostrophes and nearby editorial copy are corrected; exact shipped EN/FR unauthorized-detail titles and audit return hints are qualified. Independent review/recheck, a zero-warning/error Debug source build and full UI 6882/6882 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 415 done/242 open across 221 exact-covering maintenance rows. Historical fields, initial failures, unrelated records, dependency pointers and release holds remain preserved. See [exact evidence](dw-270-306-324-536-538-validation-evidence.md).
 
 **DW-244/DW-293/DW-294/DW-298/DW-447 closure (2026-10-21):** Member command explanations distinguish owned activity from unknown support; scoped EN/FR recovery copy describes evidence without promising absent actions. Independent review/recheck, a zero-warning/error Debug source build, focused 82/82 and full UI 6878/6878 pass with zero failures/skips. Only these five records close; the pre-existing add-member empty/whitespace reason defect is separately open as DW-657. All 656 original IDs remain plus DW-657: 657 total, 410 done/247 open across 224 exact-covering maintenance rows. Historical fields, initial failures, inherited historical spec gitlink blocker, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-244-293-294-298-447-validation-evidence.md).
@@ -3603,17 +3605,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-rem
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: TenantAuditPage.TryCreateRequest mutates _fromValidationKey, _toValidationKey, and _categoryValidationKey before InvokeAsync, including from notification LoadAsync continuations that already use ConfigureAwait(false), so validation state can be written off the renderer and never painted.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor LoadAsync still calls TryCreateRequest before InvokeAsync; that method mutates _fromValidationKey/_toValidationKey/_categoryValidationKey and may be reached after ConfigureAwait(false) notification continuations.
+pre-audit-safety-status: open
+status: done 2026-10-21
+pre-audit-safety-disposition: actionable
+disposition: done
+pre-audit-safety-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-audit-safety-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor LoadAsync still calls TryCreateRequest before InvokeAsync; that method mutates _fromValidationKey/_toValidationKey/_categoryValidationKey and may be reached after ConfigureAwait(false) notification continuations.
+verification: Audit request capture and validation now run on the renderer with stale-load guards and explicit local-refusal rendering; an actual delayed authentication continuation qualifies field errors and zero reads. See dw-349-353-355-407-535-validation-evidence.md for exact commands, controls, independent review and limitations.
 verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
-evidence-kind: verified-defect
+pre-audit-safety-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Marshal request validation state onto the renderer and prove notification-triggered invalid fields repaint.
+pre-audit-safety-next-action: Marshal request validation state onto the renderer and prove notification-triggered invalid fields repaint.
+next-action: Closed in the audit-safety bundle; preserve unrelated records, dependency pointers and release holds.
 related: none
+resolution-evidence: [Exact validation and review](dw-349-353-355-407-535-validation-evidence.md)
+resolution-spec: spec-dw-349-353-355-407-535-audit-safety.md
+
 
 ### DW-350: Audit list return URLs that contain a cursor are rejected and replaced with the tenant path.
 
@@ -3645,17 +3656,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-rem
 location: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNarrative.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: TenantAuditNarrative.SafeTimestamp accepts only the round-trip O format with seven fractional digits, so otherwise valid timestamps that omit fractional seconds or use Z without seven digits are dropped from display.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNarrative.cs SafeTimestamp still accepts only O. Canonical server output uses O; acceptance of additional ISO 8601 input forms remains an enhancement rather than a demonstrated current transport defect.
+pre-audit-safety-status: open
+status: done 2026-10-21
+pre-audit-safety-disposition: actionable
+disposition: done
+pre-audit-safety-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-audit-safety-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNarrative.cs SafeTimestamp still accepts only O. Canonical server output uses O; acceptance of additional ISO 8601 input forms remains an enhancement rather than a demonstrated current transport defect.
+verification: The private narrative parser accepts explicit-zone ISO seconds with zero through seven fractional digits, preserves offsets and emits canonical UTC display; malformed and ambiguous date controls are rejected. See dw-349-353-355-407-535-validation-evidence.md for exact commands, controls, independent review and limitations.
 verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditNarrative.cs
-evidence-kind: recommendation
+pre-audit-safety-evidence-kind: recommendation
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: timestamp input contract
-next-action: Specify accepted narrative timestamp forms and add missing-fraction/Z cases before expanding the parser.
+pre-audit-safety-next-action: Specify accepted narrative timestamp forms and add missing-fraction/Z cases before expanding the parser.
+next-action: Closed in the audit-safety bundle; preserve unrelated records, dependency pointers and release holds.
 related: none
+resolution-evidence: [Exact validation and review](dw-349-353-355-407-535-validation-evidence.md)
+resolution-spec: spec-dw-349-353-355-407-535-audit-safety.md
+
 
 ### DW-354: A rejected audit EventId becomes an empty receipt/grid identity instead of failing closed.
 
@@ -3671,17 +3691,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-4-3-rem
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: TenantAuditPage combines int.TryParse with Enum.IsDefined when parsing category text, so numeric enum value zero is accepted as Access instead of producing a field validation error.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor TryCreateRequest now uses Enum.TryParse+Enum.IsDefined, which still admits numeric text 0 as Access; there is no named-value grammar check.
+pre-audit-safety-status: open
+status: done 2026-10-21
+pre-audit-safety-disposition: actionable
+disposition: done
+pre-audit-safety-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-audit-safety-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor TryCreateRequest now uses Enum.TryParse+Enum.IsDefined, which still admits numeric text 0 as Access; there is no named-value grammar check.
+verification: Audit category parsing now requires exact supported names; rendered invalid numeric, padded and composite values cannot query, while valid names recover normally. See dw-349-353-355-407-535-validation-evidence.md for exact commands, controls, independent review and limitations.
 verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
-evidence-kind: verified-defect
+pre-audit-safety-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Require supported category names and assert numeric URL/form values produce the field error.
+pre-audit-safety-next-action: Require supported category names and assert numeric URL/form values produce the field error.
+next-action: Closed in the audit-safety bundle; preserve unrelated records, dependency pointers and release holds.
 related: none
+resolution-evidence: [Exact validation and review](dw-349-353-355-407-535-validation-evidence.md)
+resolution-spec: spec-dw-349-353-355-407-535-audit-safety.md
+
 
 ### DW-356: A reversed audit From/To range has no page test for field-associated Range validation.
 
@@ -4468,17 +4497,25 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Cover the tenant-audit caller-change guard on faulting, invalid-cursor retry, and not-modified refetch paths.\n  evidence: Only `Get_tenant_audit_discards_an_awaited_response_when_the_caller_changes` switches the caller mid-call, and it completes successfully with no retained snapshot; removing the `AuditIdentityFailure` check in the exception catches would return the original caller's retained rows with every test green. Story 5.1 code (`281e3c3c`)."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantQueryGatewayTests now includes Get_tenant_audit_discards_a_refetched_304_response_when_the_caller_changes_during_the_second_read and Get_tenant_audit_discards_retained_rows_when_the_caller_changes_during_an_unexpected_fault, closing two parts of the old gap. The invalid-cursor first-page retry catch at TenantQueryGateway.cs:1168-1175 still has no held-retry/caller-switch regression.
+pre-audit-safety-status: open
+status: done 2026-10-21
+pre-audit-safety-disposition: actionable
+disposition: done
+pre-audit-safety-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-audit-safety-verification: TenantQueryGatewayTests now includes Get_tenant_audit_discards_a_refetched_304_response_when_the_caller_changes_during_the_second_read and Get_tenant_audit_discards_retained_rows_when_the_caller_changes_during_an_unexpected_fault, closing two parts of the old gap. The invalid-cursor first-page retry catch at TenantQueryGateway.cs:1168-1175 still has no held-retry/caller-switch regression.
+verification: Six held invalid-cursor retry cases qualify caller replacement, sign-out and unchanged-caller controls across typed and unexpected failures, including discarded rows/validators and exact first-page retry arguments. See dw-349-353-355-407-535-validation-evidence.md for exact commands, controls, independent review and limitations.
 verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
-evidence-kind: verified-gap
+pre-audit-safety-evidence-kind: verified-gap
+evidence-kind: verified-coverage
 priority: P2
 owner: unassigned
 dependencies: Held invalid-cursor recovery response
-next-action: Add a caller-switch test during invalid-cursor recovery whose retry faults, and verify no old caller rows can be retained.
+pre-audit-safety-next-action: Add a caller-switch test during invalid-cursor recovery whose retry faults, and verify no old caller rows can be retained.
+next-action: Closed in the audit-safety bundle; preserve unrelated records, dependency pointers and release holds.
 related: none
+resolution-evidence: [Exact validation and review](dw-349-353-355-407-535-validation-evidence.md)
+resolution-spec: spec-dw-349-353-355-407-535-audit-safety.md
 
 
 ### DW-408: Decide how the tenant-audit payload allowlist handles server event types it does not know.
@@ -6361,17 +6398,25 @@ location: tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs
 source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-28953291798-85906522208.md`\n  summary: medium; no blocking test asserts that the audit Unauthorized state is announced with `role=\"alert\"` and `aria-live=\"assertive\"`.\n  evidence: `96bdfd8a` removed `markup.ShouldContain(\"role=\\\"alert\\\"\")` from the audit route smoke test. The only Tier 1 check, `TenantAuditPageTests.Tenant_audit_page_renders_distinct_accessible_states` (`tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2108-2129`), asserts only `GetAttribute(\"role\").ShouldNotBeNull()`, so a regression of `TenantAuditPage.razor:632` `StatusRole` to `status`/`polite` passes everywhere. Fix: mirror `TenantDetailSurfaceTests.cs:2945-2947` and assert `alert` plus `assertive` for Unauthorized."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2767-2779 Tenant_audit_page_renders_distinct_accessible_states still asserts only nonnull role and nonempty live text, including Unauthorized. Current hosted route smoke asserts outer fc-scope-blocked and cannot cover page-level alert/assertive semantics.
+pre-audit-safety-status: open
+status: done 2026-10-21
+pre-audit-safety-disposition: actionable
+disposition: done
+pre-audit-safety-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-audit-safety-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs:2767-2779 Tenant_audit_page_renders_distinct_accessible_states still asserts only nonnull role and nonempty live text, including Unauthorized. Current hosted route smoke asserts outer fc-scope-blocked and cannot cover page-level alert/assertive semantics.
+verification: The blocking rendered audit state theory now asserts exact role and aria-live values, including Unauthorized alert/assertive semantics. See dw-349-353-355-407-535-validation-evidence.md for exact commands, controls, independent review and limitations.
 verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs
-evidence-kind: verified-gap
+pre-audit-safety-evidence-kind: verified-gap
+evidence-kind: verified-coverage
 priority: P2
 owner: unassigned
 dependencies: Audit component localizer/authorization fixture
-next-action: Pin Unauthorized role=alert and aria-live=assertive in the blocking rendered component lane.
+pre-audit-safety-next-action: Pin Unauthorized role=alert and aria-live=assertive in the blocking rendered component lane.
+next-action: Closed in the audit-safety bundle; preserve unrelated records, dependency pointers and release holds.
 related: none
+resolution-evidence: [Exact validation and review](dw-349-353-355-407-535-validation-evidence.md)
+resolution-spec: spec-dw-349-353-355-407-535-audit-safety.md
 
 
 ### DW-536: low; the localized detail Unauthorized title "Tenant detail unauthorized" is not pinned exactly by any test.

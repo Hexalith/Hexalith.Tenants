@@ -86,16 +86,30 @@ public sealed record TenantAuditNarrative(
                 ? role
                 : null;
 
+    // Narrative evidence requires an explicit zone; never infer the server local timezone.
+    // Date parsing permits shortened offsets and an empty fraction, so constrain those shapes first.
     private static DateTimeOffset? SafeTimestamp(IReadOnlyDictionary<string, string> payload, string key)
         => payload.TryGetValue(key, out string? value)
+            && HasSupportedTimestampShape(value)
             && DateTimeOffset.TryParseExact(
                 value,
-                "O",
+                [
+                    "yyyy-MM-dd'T'HH:mm:sszzz",
+                    "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz",
+                    "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                    "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'",
+                ],
                 CultureInfo.InvariantCulture,
-                DateTimeStyles.RoundtripKind,
+                DateTimeStyles.AssumeUniversal,
                 out DateTimeOffset timestamp)
                 ? timestamp
                 : null;
+
+    private static bool HasSupportedTimestampShape(string? value)
+        => value is { Length: >= 20 and <= 33 }
+            && (value[19] != '.' || (value.Length > 20 && char.IsAsciiDigit(value[20])))
+            && (value.EndsWith('Z')
+                || (value.Length >= 25 && value[^6] is '+' or '-' && value[^3] == ':'));
 
     private static string? NullIfEmpty(string value)
         => string.IsNullOrWhiteSpace(value) ? null : value;
