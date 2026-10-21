@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-187 closure (2026-10-21):** Lifecycle changes invalidate undispatched metadata/set editors and removal confirmation, preserving sent/uncertain/accepted attempts and terminal evidence. Obsolete previews cannot replace reopened drafts; provisional lease cleanup remains serialized. Independent review corrections/rechecks, zero-warning/error Debug source build, dedicated 28/28 and full UI 6749/6749 pass with zero failures/skips. Only DW-187 closes: all 656 IDs remain, 404 done/252 open across 227 exact-covering maintenance rows. Historical findings, unrelated work, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-187-validation-evidence.md).
+
 **DW-186 closure (2026-10-21):** Lifecycle launchers and open confirmations distinguish projection lifecycle from read freshness with specific EN/FR copy, preserving the six shared reasons and existing safety gates. Original-code reproduction fails 56 intended cases; reviewed Debug build has zero warnings/errors, focused lifecycle 358/358 and full UI 6721/6721 pass with zero failures/skips. Independent recheck accepts all five corrections. Only DW-186 closes: all 656 IDs remain, 403 done/253 open across 228 exact-covering maintenance rows. Concurrent external archiving, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-186-validation-evidence.md).
 
 **DW-181 closure (2026-10-21):** Six rendered held-read cases qualify cancellation lifetime through metadata refresh, parameter loads, route replacement and real component unmount, including shared detail/member lifetime, successor cancellation, eventual disposal and stale-result rejection. Debug source builds have zero warnings/errors; focused 6/6 and full UI 6624/6624 pass with zero failures/skips. Only DW-181 closes: all 656 IDs remain, 402 done/254 open across 229 exact-covering maintenance rows. External dependency changes, unrelated work and release holds remain preserved. See [exact evidence](dw-181-validation-evidence.md).
@@ -1569,17 +1571,27 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-12-pr
 location: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor
 reason: The legacy ledger defers this issue: Open Set/Remove/Edit flows do not reset when lifecycle flips mid-flight (only lifecycle-action re-evals) — deferred, pre-existing command-flow pattern beyond this story's badge split. Original context is preserved in legacy-detail.
 legacy-detail: - Open Set/Remove/Edit flows do not reset when lifecycle flips mid-flight (only lifecycle-action re-evals) — deferred, pre-existing command-flow pattern beyond this story's badge split [`src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor`]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor and Configuration/SetTenantConfigurationFlow.razor retain open editor intent through lifecycle updates; submit gates recheck availability, but no common editor invalidation contract resets those open flows.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor
-evidence-kind: recommendation
+pre-dw-187-status: open
+status: done 2026-10-21
+pre-dw-187-disposition: actionable
+disposition: resolved
+pre-dw-187-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-dw-187-verification: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor and Configuration/SetTenantConfigurationFlow.razor retain open editor intent through lifecycle updates; submit gates recheck availability, but no common editor invalidation contract resets those open flows.
+verification: Lifecycle value changes close and discard undispatched metadata/set drafts and clear removal confirmation while preserving actual sent, ambiguous, accepted and settled evidence. Pending preview recovery can reopen before obsolete completion; provisional lease cleanup remains serialized. Reviewed Debug source build has zero warnings/errors; 28 dedicated cases and full UI 6749/6749 pass with zero failures/skips. Independent review corrections/rechecks and exact commands are in dw-187-validation-evidence.md.
+pre-dw-187-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantConfigurationFlowTests.cs; _bmad-output/implementation-artifacts/dw-187-validation-evidence.md
+pre-dw-187-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
 dependencies: shared open-editor lifecycle contract
-next-action: Specify and test mid-edit lifecycle-change handling across metadata/set/remove without discarding an accepted attempt.
+pre-dw-187-next-action: Specify and test mid-edit lifecycle-change handling across metadata/set/remove without discarding an accepted attempt.
+next-action: Closed within DW-187; preserve unrelated deferred work, historical findings, dependencies and release qualification holds.
 related: none
+resolution-evidence: [Exact verification, review and limits](dw-187-validation-evidence.md)
+resolution-spec: spec-dw-187-editor-lifecycle-invalidation.md
+
 
 ### DW-188: CorrectionStartPanel still submits membership corrections without reusable messageId tracking
 

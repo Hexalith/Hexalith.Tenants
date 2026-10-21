@@ -29,6 +29,177 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class EditTenantMetadataFlowTests : FluentBunitContext
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void LifecycleChangesDiscardOnlyUndispatchedMetadataDrafts(int change)
+    {
+        var gateway = new StubTenantCommandGateway();
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Obsolete draft");
+        cut.Find("[data-testid='tenants-edit-metadata-description']").Change("Obsolete description");
+
+        cut.Render(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description") with
+            {
+                Status = change == 2 ? TenantStatus.Disabled : TenantStatus.Active,
+            })
+            .Add(p => p.Lifecycle, change == 1 ? ProjectionLifecycleState.Rebuilding : ProjectionLifecycleState.Current));
+
+        if (change == 0)
+        {
+            cut.Find("[data-testid='tenants-edit-metadata-name']").GetAttribute("value").ShouldBe("Obsolete draft");
+        }
+        else
+        {
+            cut.FindAll("[data-testid='tenants-edit-metadata-name']").ShouldBeEmpty();
+            cut.WaitForAssertion(() => FocusCalls().Last().ShouldBe(ElementReferenceId(cut.Instance, "_lifecycleElement")));
+            cut.Find("[data-testid='tenants-edit-metadata-unavailable-reason']");
+            cut.Render(parameters => parameters
+                .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+                .Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+            cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+            cut.Find("[data-testid='tenants-edit-metadata-name']").GetAttribute("value").ShouldBe("Alpha");
+            cut.WaitForAssertion(() => FocusCalls().Last().ShouldBe(
+                cut.FindComponent<Microsoft.FluentUI.AspNetCore.Components.FluentTextInput>().Instance.Element.Id));
+        }
+        gateway.UpdateTenantCallCount.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task LifecycleRoundTripInvalidatesMetadataAdmissionButPreservesSentAttempts(bool dispatched, bool tenantStatusChanged)
+    {
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var authority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var delivery = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gateway = new StubTenantCommandGateway
+        {
+            UpdateTenantSubmissionAsync = _ => { entered.TrySetResult(); return delivery.Task; },
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        if (!dispatched)
+        {
+            cut.Render(parameters => parameters.Add(p => p.AuthorizationReflectionProvider,
+                _ => { entered.TrySetResult(); return authority.Task; }));
+        }
+        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        string? messageId = cut.Instance.Snapshot.MessageId;
+        cut.Render(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description") with
+            {
+                Status = tenantStatusChanged ? TenantStatus.Disabled : TenantStatus.Active,
+            })
+            .Add(p => p.Lifecycle, tenantStatusChanged ? ProjectionLifecycleState.Current : ProjectionLifecycleState.Rebuilding));
+        cut.Render(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        if (dispatched)
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+            cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+            delivery.SetResult(TenantCommandSubmissionResult.Accepted(messageId!, "correlation-update"));
+        }
+        else
+        {
+            authority.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        }
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.UpdateTenantCallCount.ShouldBe(dispatched ? 1 : 0);
+        if (dispatched)
+        {
+            cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+            cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+            cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+            cut.Instance.Snapshot.Intent!.Name.ShouldBe("Updated");
+        }
+        else
+        {
+            cut.FindAll("[data-testid='tenants-edit-metadata-name']").ShouldBeEmpty();
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LifecycleRoundTripClosesMetadataAfterProvisionalAdmissionUnwinds(bool holdSecondAuthority)
+    {
+        var gateway = new StubTenantCommandGateway();
+        RegisterServices(gateway);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lease = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var authority = new TaskCompletionSource<TenantLifecycleAuthorizationReflectionState>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int authorityCalls = 0;
+        List<bool> activity = [];
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+        cut.Render(parameters => parameters
+            .Add(p => p.CommandActivityLease, active =>
+            {
+                activity.Add(active);
+                if (active && !holdSecondAuthority) { entered.TrySetResult(); return lease.Task; }
+                return Task.FromResult(true);
+            })
+            .Add(p => p.AuthorizationReflectionProvider, _ =>
+            {
+                if (++authorityCalls == 2 && holdSecondAuthority) { entered.TrySetResult(); return authority.Task; }
+                return Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+            }));
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Obsolete draft");
+        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        gateway.UpdateTenantCallCount.ShouldBe(0);
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        lease.TrySetResult(true);
+        authority.TrySetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-edit-metadata-name']").ShouldBeEmpty());
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
+        gateway.UpdateTenantCallCount.ShouldBe(0);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        cut.WaitForAssertion(() => activity.ToArray().ShouldBe(new[] { true, false }));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LifecycleChangesPreserveMetadataAttemptOwnershipAndEvidence(bool ambiguous)
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = ambiguous
+                ? TenantCommandSubmissionResult.Ambiguous("ignored", "Tenants.EditMetadata.Unavailable.CommandSurface")
+                : TenantCommandSubmissionResult.Rejected("Rejected"),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderEditableFlow();
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Uncertain intent");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.UpdateTenantCallCount.ShouldBe(1));
+        TenantUpdateMetadataCommandSnapshot before = cut.Instance.Snapshot;
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBe(ambiguous);
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.Instance.Snapshot.ShouldBe(before);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBe(ambiguous);
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+    }
+
     [Fact]
     public void Edit_metadata_flow_renders_confirmed_metadata_stable_selectors_and_accessible_fields()
     {

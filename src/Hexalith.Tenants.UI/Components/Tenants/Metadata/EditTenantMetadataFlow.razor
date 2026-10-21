@@ -267,6 +267,8 @@
     private bool _authorityResolutionInProgress;
     private readonly Lock _authorityCancellationLock = new();
     private CancellationTokenSource? _authorityCancellation;
+    private (TenantStatus Status, ProjectionLifecycleState Lifecycle)? _editorLifecycle;
+    private long _editorLifecycleRevision;
     private object? _admissionParameters;
     private TenantLifecycleAuthorizationReflectionState? _submissionAuthority;
 
@@ -720,6 +722,19 @@
     {
         ObserveAdmissionParameters();
         RestoreRetainedAttempt();
+        var lifecycle = (Detail.Status, Lifecycle);
+        bool lifecycleChanged = _editorLifecycle is { } previous && previous != lifecycle;
+        _editorLifecycle = lifecycle;
+        if (lifecycleChanged)
+        {
+            _editorLifecycleRevision++;
+        }
+        // A recovered lifecycle requires a deliberate new editor. Dispatched/uncertain attempts keep
+        // their ownership and continuation generation so late delivery and proof can still reconcile.
+        if (lifecycleChanged && _isOpen && !IsOwnedCommandInFlight)
+        {
+            ResetEditorForLifecycleChange();
+        }
         if (_snapshot.State is TenantCommandLifecycleState.Idle)
         {
             _snapshot = TenantUpdateMetadataCommandSnapshot.Idle(Detail.Name, Detail.Description, Detail)
@@ -862,6 +877,18 @@
         return string.IsNullOrWhiteSpace(fromProvider) ? ProjectionVersion : fromProvider;
     }
 
+    private void ResetEditorForLifecycleChange()
+    {
+        InvalidateAdmission();
+        _attemptGeneration++;
+        _isOpen = false;
+        _name = null;
+        _description = null;
+        _validationMessage = null;
+        _focusNamePending = false;
+        _focusOpenPending = true;
+    }
+
     private async Task OpenEditorAsync()
     {
         _validationMessage = null;
@@ -909,6 +936,7 @@
         TenantRetainedCommandAttempt? initialAttempt = _retainedAttempt;
         int initialAttemptGeneration = _attemptGeneration;
         long admissionGeneration = _admissionGeneration;
+        long lifecycleRevision = _editorLifecycleRevision;
         if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(false))
         {
             if (!_disposed && admissionGeneration == Volatile.Read(ref _admissionGeneration)
@@ -1072,6 +1100,12 @@
             {
                 AuditState = retryMessageId is null ? TenantCommandAuditStates.NotStarted : TenantCommandAuditStates.Unverifiable,
             });
+            if (retryMessageId is null && lifecycleRevision != _editorLifecycleRevision)
+            {
+                // RequestSent was provisional while admission awaited; no delivery has started.
+                _snapshot = TenantUpdateMetadataCommandSnapshot.Idle(Detail.Name, Detail.Description, Detail);
+                ResetEditorForLifecycleChange();
+            }
             return;
         }
         if (!admitted)
@@ -1086,6 +1120,11 @@
                     ? TenantCommandAuditStates.NotStarted
                     : TenantCommandAuditStates.Unverifiable,
             });
+            if (retryMessageId is null && lifecycleRevision != _editorLifecycleRevision)
+            {
+                _snapshot = TenantUpdateMetadataCommandSnapshot.Idle(Detail.Name, Detail.Description, Detail);
+                ResetEditorForLifecycleChange();
+            }
             return;
         }
 

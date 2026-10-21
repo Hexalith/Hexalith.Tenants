@@ -29,6 +29,193 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void LifecycleChangesDiscardOnlyUndispatchedConfigurationDrafts(int change)
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        TenantConfigurationManagementContext context = Context(["billing"]);
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway, context, intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+        CompleteForm(cut, "mode", "Obsolete secret");
+        cut.Render(parameters => parameters
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                context.TenantId, change == 2 ? TenantStatus.Disabled : TenantStatus.Active,
+                false, ["billing"], [], TenantConfigurationAuthorityState.TenantOwner))
+            .Add(p => p.Lifecycle, change == 1 ? ProjectionLifecycleState.Rebuilding : ProjectionLifecycleState.Current));
+        if (change == 0)
+        {
+            cut.Find("[data-testid='tenants-config-set-key-suffix']").GetAttribute("value").ShouldBe("mode");
+            cut.Find("[data-testid='tenants-config-set-value']").GetAttribute("value").ShouldBe("Obsolete secret");
+        }
+        else
+        {
+            cut.FindAll("[data-testid='tenants-config-set-key-suffix']").ShouldBeEmpty();
+            string lifecycleReference = ((ElementReference)typeof(SetTenantConfigurationFlow)
+                .GetField("_lifecycleElement", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(cut.Instance)!).Id;
+            cut.WaitForAssertion(() => FocusCalls().Last().ShouldBe(lifecycleReference));
+            cut.Render(parameters => parameters.Add(p => p.Context, context).Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+            cut.Find("[data-testid='tenants-config-set-open']").Click();
+            cut.Find("[data-testid='tenants-config-set-key-suffix']").GetAttribute("value").ShouldBeNullOrEmpty();
+            cut.Find("[data-testid='tenants-config-set-value']").GetAttribute("value").ShouldBeNullOrEmpty();
+            cut.WaitForAssertion(() => FocusCalls().Last().ShouldBe(
+                cut.FindComponent<Microsoft.FluentUI.AspNetCore.Components.FluentTextInput>().Instance.Element.Id));
+        }
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task LifecycleRoundTripInvalidatesSetPreviewButPreservesSentAttempts(bool dispatched, bool tenantStatusChanged)
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var previewGate = new TaskCompletionSource<TenantSetConfigurationPreview>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var delivery = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.SubmissionAsync = (_, _) => { entered.TrySetResult(); return delivery.Task; };
+        gateway.StatusAsync = _ => Task.FromResult(new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
+        bool holdPreview = false;
+        TenantSetConfigurationIntent? pendingIntent = null;
+        Task<TenantSetConfigurationPreview> PreviewProvider(TenantSetConfigurationIntent intent)
+        {
+            if (!holdPreview || dispatched) return Task.FromResult(Preview(intent, TenantSetConfigurationCurrentState.Different));
+            pendingIntent = intent;
+            entered.TrySetResult();
+            return previewGate.Task;
+        }
+        TenantConfigurationManagementContext context = Context(["billing"]);
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(gateway, context,
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different), previewAsync: PreviewProvider);
+        CompleteForm(cut, "mode", "enabled");
+        holdPreview = true;
+        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        string? messageId = cut.Instance.Snapshot.MessageId;
+        cut.Render(parameters => parameters
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                context.TenantId, tenantStatusChanged ? TenantStatus.Disabled : TenantStatus.Active,
+                false, ["billing"], [], TenantConfigurationAuthorityState.TenantOwner))
+            .Add(p => p.Lifecycle, tenantStatusChanged ? ProjectionLifecycleState.Current : ProjectionLifecycleState.Rebuilding));
+        cut.Render(parameters => parameters.Add(p => p.Context, context).Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        if (dispatched)
+        {
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+            cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+            delivery.SetResult(TenantCommandSubmissionResult.Accepted(messageId!, "correlation-set"));
+        }
+        else
+        {
+            // No lease exists while the provider is held: recovery must not depend on it returning.
+            holdPreview = false;
+            CompleteForm(cut, "fresh", "recovered value");
+            previewGate.SetResult(Preview(pendingIntent!, TenantSetConfigurationCurrentState.Different));
+        }
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.SetConfigurationCallCount.ShouldBe(dispatched ? 1 : 0);
+        if (dispatched)
+        {
+            cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+            cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+            cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+            cut.Instance.Snapshot.Intent!.FullKey.ShouldBe("billing.mode");
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-config-set-key-suffix']").GetAttribute("value").ShouldBe("fresh");
+            cut.Instance.Snapshot.Intent!.FullKey.ShouldBe("billing.fresh");
+        }
+    }
+
+    [Fact]
+    public async Task LifecycleRoundTripKeepsSetAdmissionBusyUntilOldLeaseCleanupCompletes()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var lease = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<bool> activity = [];
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(gateway, Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+        cut.Render(parameters => parameters.Add(p => p.CommandActivityLease, active =>
+        {
+            activity.Add(active);
+            if (active) { entered.TrySetResult(); return lease.Task; }
+            return Task.FromResult(true);
+        }));
+        CompleteForm(cut, "mode", "obsolete");
+        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.FindAll("[data-testid='tenants-config-set-key-suffix']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-config-set-open']").ShouldBeEmpty();
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        lease.SetResult(true);
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => activity.ToArray().ShouldBe(new[] { true, false }));
+        cut.Find("[data-testid='tenants-config-set-open']").Click();
+        cut.Find("[data-testid='tenants-config-set-key-suffix']").GetAttribute("value").ShouldBeNullOrEmpty();
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task LifecycleChangesDiscardNewSetDraftWhilePreservingTerminalEvidence()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.SubmissionFactory = (_, messageId) => TenantCommandSubmissionResult.Rejected("Rejected") with { MessageId = messageId };
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var preview = new TaskCompletionSource<TenantSetConfigurationPreview>(TaskCreationOptions.RunContinuationsAsynchronously);
+        bool holdPreview = false;
+        TenantSetConfigurationIntent? draft = null;
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(gateway, Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different),
+            previewAsync: intent =>
+            {
+                if (!holdPreview) return Task.FromResult(Preview(intent, TenantSetConfigurationCurrentState.Different));
+                draft = intent;
+                entered.TrySetResult();
+                return preview.Task;
+            });
+        CompleteForm(cut, "mode", "first");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Rejected));
+        TenantSetConfigurationCommandSnapshot settled = cut.Instance.Snapshot;
+        settled.MessageId.ShouldNotBeNullOrWhiteSpace();
+        holdPreview = true;
+        Task input = cut.InvokeAsync(() => cut.Find("[data-testid='tenants-config-set-value']").Change("obsolete second draft"));
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        preview.SetResult(Preview(draft!, TenantSetConfigurationCurrentState.Different));
+        await input.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.FindAll("[data-testid='tenants-config-set-value']").ShouldBeEmpty();
+        cut.Instance.Snapshot.ShouldBe(settled);
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void LifecycleChangesPreserveAmbiguousSetOwnershipAndEvidence()
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.SubmissionFactory = (_, messageId) => TenantCommandSubmissionResult.Ambiguous(messageId, "Tenants.Configuration.Set.SubmissionEvidence.Ambiguous");
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(gateway, Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+        CompleteForm(cut, "mode", "uncertain");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.RetainsAttempt.ShouldBeTrue());
+        TenantSetConfigurationCommandSnapshot before = cut.Instance.Snapshot;
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.Instance.Snapshot.ShouldBe(before);
+        Services.GetRequiredService<TenantSetConfigurationAttemptTracker>().Find("tenant.alpha").ShouldBe(before);
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+    }
+
     [Fact]
     public void TenantNamedGlobalAdministratorsConfirmsConfigurationThroughStatusGateway()
     {

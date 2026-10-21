@@ -31,6 +31,116 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void LifecycleChangesRequireFreshRemovalConfirmation(int change)
+    {
+        var gateway = new StubTenantCommandGateway();
+        RegisterServices(gateway);
+        TenantConfigurationManagementContext context = Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "enabled" });
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, context).Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Render(parameters => parameters
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                context.TenantId, change == 2 ? TenantStatus.Disabled : TenantStatus.Active,
+                false, context.AuthorizedPrefixes, context.RemovableRows, TenantConfigurationAuthorityState.TenantOwner))
+            .Add(p => p.Lifecycle, change == 1 ? ProjectionLifecycleState.Rebuilding : ProjectionLifecycleState.Current));
+        cut.Render(parameters => parameters.Add(p => p.Context, context).Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").GetAttribute("value")
+            .ShouldBe(change == 0 ? "billing.mode" : null);
+        if (change != 0)
+        {
+            cut.Find("form").Submit();
+            gateway.RemoveConfigurationCallCount.ShouldBe(0);
+            cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        }
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.RemoveConfigurationCallCount.ShouldBe(1));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LifecycleRoundTripPreservesSentRemovalAndLateDelivery(bool tenantStatusChanged)
+    {
+        var delivery = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gateway = new StubTenantCommandGateway
+        {
+            SubmissionGate = delivery,
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        RegisterServices(gateway);
+        TenantConfigurationManagementContext context = Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "enabled" });
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, context).Add(p => p.TargetKey, "billing.mode")
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        cut.WaitForAssertion(() => gateway.RemoveConfigurationCallCount.ShouldBe(1));
+        string? messageId = cut.Instance.Snapshot.MessageId;
+        cut.Render(parameters => parameters
+            .Add(p => p.Context, TenantConfigurationManagementContext.Available(
+                context.TenantId, tenantStatusChanged ? TenantStatus.Disabled : TenantStatus.Active,
+                false, context.AuthorizedPrefixes, context.RemovableRows, TenantConfigurationAuthorityState.TenantOwner))
+            .Add(p => p.Lifecycle, tenantStatusChanged ? ProjectionLifecycleState.Current : ProjectionLifecycleState.Rebuilding));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+        cut.Render(parameters => parameters.Add(p => p.Context, context).Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        delivery.SetResult(TenantCommandSubmissionResult.Accepted(messageId!, "correlation-remove"));
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+        cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        gateway.RemoveConfigurationCallCount.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LifecycleChangesPreserveRemovalEvidenceAndRequireNewConfirmationAfterSettlement(bool ambiguous)
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = ambiguous
+                ? TenantCommandSubmissionResult.Ambiguous("ignored", "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous")
+                : TenantCommandSubmissionResult.Rejected("Rejected"),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "enabled" }))
+            .Add(p => p.TargetKey, "billing.mode").Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current).Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.RemoveConfigurationCallCount.ShouldBe(1));
+        TenantRemoveConfigurationCommandSnapshot before = cut.Instance.Snapshot;
+        before.MessageId.ShouldNotBeNullOrWhiteSpace();
+        before.RetainsAttempt.ShouldBe(ambiguous);
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
+        cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.Instance.Snapshot.ShouldBe(before);
+        if (ambiguous)
+        {
+            Services.GetRequiredService<TenantRemoveConfigurationAttemptTracker>().Find("tenant.alpha").ShouldBe(before);
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-config-remove-confirmation']").GetAttribute("value").ShouldBeNullOrEmpty();
+            cut.Find("form").Submit();
+            gateway.RemoveConfigurationCallCount.ShouldBe(1);
+            cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+            cut.Find("form").Submit();
+            cut.WaitForAssertion(() => gateway.RemoveConfigurationCallCount.ShouldBe(2));
+        }
+    }
+
     [Fact]
     public void TenantNamedGlobalAdministratorsConfirmsRemovalThroughStatusGateway()
     {

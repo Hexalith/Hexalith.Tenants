@@ -534,6 +534,9 @@
         PreviewInputScope inputScope = CapturePreviewInputScope();
         bool tenantChanged = !string.Equals(_contextTenantId, tenantId, StringComparison.Ordinal);
         bool previewScopeChanged = !Equals(_previewInputScope, inputScope);
+        bool lifecycleChanged = _previewInputScope is { } previous
+            && (previous.Context.TenantStatus != inputScope.Context.TenantStatus
+                || previous.Lifecycle != inputScope.Lifecycle);
         if (tenantChanged)
         {
             _contextTenantId = tenantId;
@@ -557,6 +560,11 @@
         {
             _previewInputScope = inputScope;
             CancelSubmitOperation();
+            if (lifecycleChanged && !_snapshot.RetainsAttempt)
+            {
+                // Terminal command evidence remains visible, but it cannot confirm another removal.
+                _confirmationText = null;
+            }
             _ = Interlocked.Increment(ref _previewGeneration);
             _ = Interlocked.Increment(ref _submitGeneration);
             // A parent refresh commonly changes Context/Evidence immediately after causal confirmation.

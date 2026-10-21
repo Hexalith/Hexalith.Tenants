@@ -295,7 +295,7 @@
 
     private bool HasPreviewCapability
         => IsPreviewSurfaceAvailable;
-    private bool CanOpen => !_isOpen && string.IsNullOrWhiteSpace(UnavailableReason);
+    private bool CanOpen => !_isOpen && !_isSubmitting && string.IsNullOrWhiteSpace(UnavailableReason);
     private bool IsPreviewComplete => _snapshot.Preview is { IsComplete: true } preview
         && _snapshot.Intent is not null
         && TryBuildIntent(_value, out TenantSetConfigurationIntent? currentIntent, showValidation: false)
@@ -400,9 +400,15 @@
     private string? DisplaySafeMessage => !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
         ? Localizer[_snapshot.SafeMessageKey].Value : _snapshot.SafeMessage;
 
+    private (TenantStatus Status, ProjectionLifecycleState Lifecycle)? _editorLifecycle;
+    private bool _admissionLeasePending;
+
     protected override void OnParametersSet()
     {
         string tenantId = Context?.TenantId ?? string.Empty;
+        var lifecycle = (Context?.TenantStatus ?? TenantStatus.Unknown, Lifecycle);
+        bool lifecycleChanged = _editorLifecycle is { } previous && previous != lifecycle;
+        _editorLifecycle = lifecycle;
         if (!string.Equals(_contextTenantId, tenantId, StringComparison.Ordinal))
         {
             _contextTenantId = tenantId;
@@ -418,8 +424,38 @@
             _isRefreshing = false;
             _isSubmitting = false;
             _activeSubmitGeneration = 0;
+            _admissionLeasePending = false;
             _hasRaisedCommandActivity = false;
             _adoptAndRefreshPending = false;
+        }
+
+        // Invalidate only unsent work: changing the attempt generation after dispatch would discard
+        // the late gateway response. A lifecycle round trip must also invalidate a held submit preview.
+        if (lifecycleChanged && !_snapshot.RetainsAttempt)
+        {
+            _ = Interlocked.Increment(ref _previewGeneration);
+            _ = Interlocked.Increment(ref _submitGeneration);
+            _namespacePrefix = null;
+            _keySuffix = null;
+            _value = null;
+            _validationMessage = null;
+            _previewEvidenceUnavailable = false;
+            if (string.IsNullOrWhiteSpace(_snapshot.MessageId))
+            {
+                _snapshot = TenantSetConfigurationCommandSnapshot.Idle();
+            }
+            _focusOpenPending = _isOpen;
+            _isOpen = false;
+            // A preview owns no activity and may never return. Once lease acquisition starts,
+            // keep admission busy until finally releases that provisional ownership.
+            if (!_admissionLeasePending)
+            {
+                _isSubmitting = false;
+                _activeSubmitGeneration = 0;
+            }
+            _focusNamespacePending = false;
+            _focusKeyPending = false;
+            _focusValuePending = false;
         }
 
         TenantSetConfigurationCommandSnapshot? retained = AttemptTracker?.Find(tenantId);
@@ -478,6 +514,7 @@
 
     private Task OpenEditorAsync()
     {
+        if (!CanOpen) return Task.CompletedTask;
         InvalidatePendingOperations();
         _validationMessage = null;
         _namespacePrefix = Context.IsGlobalAdministrator ? null : AuthorizedNamespaces.FirstOrDefault();
@@ -662,6 +699,7 @@
             }
 
             leaseRequested = true;
+            _admissionLeasePending = true;
             if (!await SetCommandActivityRaisedAsync(true, capturedLease).ConfigureAwait(false))
             {
                 SetSnapshot(TenantSetConfigurationCommandSnapshot.Blocked(
@@ -741,6 +779,7 @@
             }
             if (_activeSubmitGeneration == submitGeneration)
             {
+                _admissionLeasePending = false;
                 _activeSubmitGeneration = 0;
                 _isSubmitting = false;
                 if (_snapshot.RetainsAttempt && _snapshot.IsRetentionExpired(DateTimeOffset.UtcNow))
