@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-244/DW-293/DW-294/DW-298/DW-447 closure (2026-10-21):** Member command explanations distinguish owned activity from unknown support; scoped EN/FR recovery copy describes evidence without promising absent actions. Independent review/recheck, a zero-warning/error Debug source build, focused 82/82 and full UI 6878/6878 pass with zero failures/skips. Only these five records close; the pre-existing add-member empty/whitespace reason defect is separately open as DW-657. All 656 original IDs remain plus DW-657: 657 total, 410 done/247 open across 224 exact-covering maintenance rows. Historical fields, initial failures, inherited historical spec gitlink blocker, unrelated work, dependencies and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-244-293-294-298-447-validation-evidence.md).
+
 **DW-191 closure (2026-10-21):** Membership notifications received before child attachment now retain their reconciliation intent until current authorization and rendering, preserving exact attempt identity and authoritative confirmation. Real subscription regressions, route/disposal/failure/remount controls, independent review and a zero-warning/error Debug source build qualify the change; focused and full UI counts are in [exact evidence](../_bmad-output/implementation-artifacts/dw-191-validation-evidence.md). Only DW-191 closes: all 656 IDs remain, 405 done/251 open across 226 exact-covering maintenance rows. Historical findings, unrelated work, dependencies and release holds remain preserved.
 
 **DW-187 closure (2026-10-21):** Lifecycle changes invalidate undispatched metadata/set editors and removal confirmation, preserving sent/uncertain/accepted attempts and terminal evidence. Obsolete previews cannot replace reopened drafts; provisional lease cleanup remains serialized. Independent review corrections/rechecks, zero-warning/error Debug source build, dedicated 28/28 and full UI 6749/6749 pass with zero failures/skips. Only DW-187 closes: all 656 IDs remain, 404 done/252 open across 227 exact-covering maintenance rows. Historical findings, unrelated work, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-187-validation-evidence.md).
@@ -152,14 +154,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 405 |
-| actionable | 165 |
+| done | 410 |
+| actionable | 161 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 36 |
 
-**Remaining: 251 open records across 226 index rows.** Disposition counts now cover all 656 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 247 open records across 224 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -190,6 +192,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
+| DW-657 | P2 | Defect / actionable | Tenants membership command admission | none | Normalize absent add-member support reasons and verify disabled submit, zero dispatch and recovery. |
 | DW-121 | P2 | Defect / actionable | Hexalith.Builds | Hexalith.Builds owning workflow change | Align the input description/contract and callers with the recorded main-only policy. |
 | DW-128 | P2 | Defect / actionable | unassigned | coordinate DW-127 privacy contract | Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches. |
 | DW-225 | P2 | Defect / actionable | unassigned | DW-222 | Replace wall-clock qualification with exact command causation/sequence in coordination with DW-222. |
@@ -208,7 +211,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-417 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Add an explicit per-repository fetch-failure stop/skip path before merge, push, or pruning, and synchronize tracked skill copies. |
 | DW-418 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome. |
 | DW-444 | P2 | Defect / actionable | unassigned | Focus only when the removed panel actually owned focus | Capture/reset/remount focus and restore the actual correction launcher at safe and narrow widths. |
-| DW-447 | P2 | Defect / actionable | unassigned | Current per-flow callback/recovery availability | Make flow-level recovery text describe only currently rendered actions, with no-callback and exhausted-retry component coverage in EN/FR. |
 | DW-448 | P2 | Defect / actionable | unassigned | Attempt wait/deadline threshold | Choose a bounded unmatched-walk/deadline threshold within the existing recovery contract and transition exhausted waiting to Delayed with tests. |
 | DW-449 | P2 | Defect / actionable | unassigned | Preserve Story 5.4 option-b command/audit separation | Handle IsPending in the five command lifecycle snapshots without assertive unverifiable feedback, preserving their already-correct independent audit state. |
 | DW-464, DW-496, DW-555 | P2 | Defect / actionable | unassigned | Hosted runner Chromium launch diagnosis | Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios. |
@@ -298,9 +300,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-635 | P2 | Gap / actionable | unassigned | Manifest authorization inventory semantics | Record the current-global-administrator condition using the owning schema authorization representation. |
 | DW-212 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Implement the recorded shared parameter diagnostic and its component regression. |
 | DW-213 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Add a rendered-element readiness guard and an explicit pre-render focus test. |
-| DW-244 | P3 | Defect / actionable | unassigned | none | Align rejected recovery copy with rendered actions or provide the explicitly governed destination. |
 | DW-270, DW-306, DW-324 | P3 | Defect / actionable | unassigned | French editorial convention | Complete the French accent/apostrophe pass while preserving resource parity. |
-| DW-293, DW-294, DW-298 | P3 | Defect / actionable | unassigned | DW-293 copy decision | Align unavailable/self-lock copy with actual cause and replace spec restatements with DW links. |
 | DW-303 | P3 | Defect / actionable | unassigned | none | Implement the recorded lifecycle-boundary EN/FR missing-version message/recovery without renumbering the enum. |
 | DW-346 | P3 | Defect / actionable | unassigned | grant chrome ownership | Migrate the grant Cancel to the existing Fluent V5 component and verify focus behavior. |
 | DW-355 | P3 | Defect / actionable | unassigned | none | Require supported category names and assert numeric URL/form values produce the field error. |

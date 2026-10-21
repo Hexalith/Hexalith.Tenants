@@ -729,9 +729,8 @@
         // Contention is reported only once the prerequisites that would block the action anyway have been
         // cleared. Reporting it first masked missing permission, stale evidence and disabled lifecycle
         // behind "another command is already in progress" for as long as any command held the aggregate.
-        // A sibling row's change-role/remove-member flow holding the reserved child lease is the same kind
-        // of contention -- OpenChangeRole/OpenRemoveMember already refuse to open while it is held, so every
-        // row's launcher must say so instead of silently no-opping the click.
+        // A reserved child lease also blocks every row's launcher. ReasonLabel distinguishes that known
+        // member command from supplied external reasons and an unavailable surface with no known cause.
         if (_childCommandLeaseOwner is not null || !IsCommandSurfaceAvailable || !string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason))
         {
             return [UnavailableReason.AggregateLocked];
@@ -1045,9 +1044,23 @@
         };
 
     private string ReasonLabel(UnavailableReason reason)
-        => reason is UnavailableReason.AggregateLocked && !string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason)
+    {
+        if (reason is not UnavailableReason.AggregateLocked)
+        {
+            return Localizer[$"Tenants.Members.UnavailableReason.{reason}"];
+        }
+
+        // The parent can echo this child's aggregate reservation as an external command lock. Describe
+        // the member command we actually own; a missing support reason establishes no competing command.
+        if (_childCommandLeaseOwner is not null)
+        {
+            return Localizer["Tenants.Members.UnavailableReason.ActiveMemberCommand"];
+        }
+
+        return !string.IsNullOrWhiteSpace(CommandSurfaceUnavailableReason)
             ? CommandSurfaceUnavailableReason
-            : Localizer[$"Tenants.Members.UnavailableReason.{reason}"];
+            : Localizer["Tenants.Members.UnavailableReason.CommandSurfaceUnavailable"];
+    }
 
     // The always-visible catalog is a legend of terse noun fragments ("stale data", "missing audit proof").
     // AggregateLocked's live copy is a two-sentence instruction, which reads as an alert when parked in that

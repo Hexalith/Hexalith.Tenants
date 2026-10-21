@@ -1460,37 +1460,37 @@
     <value>Ouvrez le formulaire lorsque la preuve de projection actuelle et la portée d'espace de noms sont disponibles.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.Previewed" xml:space="preserve">
-    <value>Soumettez, annulez ou continuez en lecture seule.</value>
+    <value>Examinez la modification proposée et ses conséquences.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.RequestSent" xml:space="preserve">
     <value>Attendez le statut de commande et l'actualisation de projection.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.Accepted" xml:space="preserve">
-    <value>Attendez, actualisez le statut ou continuez en lecture seule jusqu'à confirmation de la configuration par projection.</value>
+    <value>La commande a été acceptée ; la confirmation de la modification de configuration demandée par projection est en attente.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.ProjectionPending" xml:space="preserve">
-    <value>Actualisez le détail du locataire ; n'affichez pas la réussite tant que la clé et la valeur soumises ne sont pas confirmées.</value>
+    <value>La preuve de projection ne confirme pas encore la modification de configuration demandée.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.Confirmed" xml:space="preserve">
-    <value>Continuez en lecture seule ou inspectez l'audit lorsque la preuve devient disponible.</value>
+    <value>La preuve de projection confirme la modification de configuration demandée. La preuve d’audit est indiquée séparément.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.Rejected" xml:space="preserve">
-    <value>Actualisez la preuve de projection, demandez l'autorisation, démarrez une correction ou escaladez.</value>
+    <value>La commande a été rejetée. Elle ne confirme pas la modification de configuration demandée.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.AlreadyApplied" xml:space="preserve">
-    <value>Continuez en lecture seule ou soumettez une correction en avant si la configuration attendue diffère.</value>
+    <value>La preuve de projection indiquait déjà la modification de configuration demandée.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.DuplicatePrevented" xml:space="preserve">
-    <value>Attendez la commande en cours, relancez la recherche de statut ou continuez en lecture seule.</value>
+    <value>La tentative de commande conservée est toujours en cours de rapprochement. La confirmation de la modification de configuration demandée reste à établir.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.Failed" xml:space="preserve">
-    <value>Réessayez après vérification de la preuve de projection actuelle ou escaladez.</value>
+    <value>La soumission de la commande a échoué. La confirmation de la modification de configuration demandée reste à établir.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.Degraded" xml:space="preserve">
-    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou escaladez.</value>
+    <value>Le traitement de la commande est dégradé. La confirmation de la modification de configuration demandée reste à établir.</value>
   </data>
   <data name="Tenants.Configuration.Set.Recovery.UnableToVerify" xml:space="preserve">
-    <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
+    <value>Les preuves disponibles n’établissent pas la modification de configuration demandée.</value>
   </data>
   <data name="Tenants.Configuration.Header.Actions" xml:space="preserve">
     <value>Actions</value>
@@ -1693,31 +1693,31 @@
     <value>Choisissez une clé visible lorsque la preuve de projection courante et la portée d'espace de noms sont disponibles.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Previewed" xml:space="preserve">
-    <value>Confirmez la suppression, annulez ou continuez en lecture seule.</value>
+    <value>Examinez la modification proposée et ses conséquences.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.RequestSent" xml:space="preserve">
     <value>Attendez le statut de commande et l'actualisation de projection.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Accepted" xml:space="preserve">
-    <value>Attendez, actualisez le statut ou continuez en lecture seule jusqu'à confirmation de la suppression par projection.</value>
+    <value>La commande a été acceptée ; la confirmation de la suppression de la clé de configuration par projection est en attente.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.ProjectionPending" xml:space="preserve">
-    <value>Actualisez le détail du tenant ; n'affichez pas la suppression comme terminée tant que la clé n'est pas absente de la projection.</value>
+    <value>La preuve de projection ne confirme pas encore la suppression de la clé de configuration.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Confirmed" xml:space="preserve">
-    <value>Continuez en lecture seule ou inspectez l'audit lorsque la preuve devient disponible.</value>
+    <value>La preuve de projection confirme la suppression de la clé de configuration. La preuve d’audit est indiquée séparément.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Rejected" xml:space="preserve">
-    <value>Actualisez la preuve de projection, demandez l'autorisation, démarrez une correction ou escaladez.</value>
+    <value>La commande a été rejetée. Elle ne confirme pas la suppression de la clé de configuration.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Failed" xml:space="preserve">
-    <value>Réessayez après vérification de la preuve de projection actuelle ou escaladez.</value>
+    <value>La soumission de la commande a échoué. La confirmation de la suppression de la clé de configuration reste à établir.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.Degraded" xml:space="preserve">
-    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou escaladez.</value>
+    <value>Le traitement de la commande est dégradé. La confirmation de la suppression de la clé de configuration reste à établir.</value>
   </data>
   <data name="Tenants.Configuration.Remove.Recovery.UnableToVerify" xml:space="preserve">
-    <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
+    <value>Les preuves disponibles n’établissent pas la suppression de la clé de configuration.</value>
   </data>
   <data name="Tenants.Members.Action.AddMember" xml:space="preserve">
     <value>Ajouter un membre</value>
@@ -2470,37 +2470,37 @@
     <value>Ouvrez l'aperçu lorsque la preuve de projection actuelle est disponible.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Previewed" xml:space="preserve">
-    <value>Confirmez délibérément, annulez ou continuez en lecture seule.</value>
+    <value>Examinez la modification proposée et ses conséquences.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.RequestSent" xml:space="preserve">
     <value>Attendez le statut de commande et l'actualisation de projection.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Accepted" xml:space="preserve">
-    <value>Attendez, actualisez le statut ou continuez en lecture seule jusqu'à confirmation de l'absence par projection.</value>
+    <value>La commande a été acceptée ; la confirmation du retrait du membre par projection est en attente.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.ProjectionPending" xml:space="preserve">
-    <value>Actualisez la projection des membres ; ne considérez pas la ligne comme retirée tant que l'absence n'est pas confirmée.</value>
+    <value>La preuve de projection ne confirme pas encore le retrait du membre.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Confirmed" xml:space="preserve">
-    <value>Continuez en lecture seule ou inspectez l'audit lorsque la preuve devient disponible.</value>
+    <value>La preuve de projection confirme le retrait du membre. La preuve d’audit est indiquée séparément.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Rejected" xml:space="preserve">
-    <value>Actualisez la preuve de projection ou demandez l'autorisation avant de réessayer.</value>
+    <value>La commande a été rejetée. Elle ne confirme pas le retrait du membre.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.AlreadyApplied" xml:space="preserve">
-    <value>Continuez en lecture seule ou actualisez la preuve d'appartenance actuelle avant toute autre action.</value>
+    <value>La preuve de projection indiquait déjà le retrait du membre.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.DuplicatePrevented" xml:space="preserve">
-    <value>Attendez la commande en cours, relancez la recherche de statut ou continuez en lecture seule.</value>
+    <value>La tentative de commande conservée est toujours en cours de rapprochement. La confirmation du retrait du membre reste à établir.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Failed" xml:space="preserve">
-    <value>Réessayez après vérification de la preuve de projection actuelle.</value>
+    <value>La soumission de la commande a échoué. La confirmation du retrait du membre reste à établir.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.Degraded" xml:space="preserve">
-    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou continuez en lecture seule.</value>
+    <value>Le traitement de la commande est dégradé. La confirmation du retrait du membre reste à établir.</value>
   </data>
   <data name="Tenants.RemoveMember.Recovery.UnableToVerify" xml:space="preserve">
-    <value>Actualisez, relancez la recherche de statut ou continuez en lecture seule.</value>
+    <value>Les preuves disponibles n’établissent pas le retrait du membre.</value>
   </data>
   <data name="Tenants.EditMetadata.Title" xml:space="preserve">
     <value>Metadonnees du locataire</value>
@@ -2620,37 +2620,37 @@
     <value>Ouvrez le formulaire lorsque la preuve de projection actuelle est disponible.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Previewed" xml:space="preserve">
-    <value>Soumettez, annulez ou continuez en lecture seule.</value>
+    <value>Examinez la modification proposée et ses conséquences.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.RequestSent" xml:space="preserve">
     <value>Attendez le statut de commande et l'actualisation de projection.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Accepted" xml:space="preserve">
-    <value>Attendez, actualisez le statut ou continuez en lecture seule jusqu'a confirmation des metadonnees par projection.</value>
+    <value>La commande a été acceptée ; la confirmation de la mise à jour des métadonnées demandée par projection est en attente.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.ProjectionPending" xml:space="preserve">
-    <value>Actualisez le detail du locataire ; n'affichez pas la reussite tant que les metadonnees soumises ne sont pas confirmees.</value>
+    <value>La preuve de projection ne confirme pas encore la mise à jour des métadonnées demandée.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Confirmed" xml:space="preserve">
-    <value>Continuez en lecture seule ou inspectez l'audit lorsque la preuve devient disponible.</value>
+    <value>La preuve de projection confirme la mise à jour des métadonnées demandée. La preuve d’audit est indiquée séparément.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Rejected" xml:space="preserve">
-    <value>Actualisez la preuve de projection, demandez l'autorisation, demarrez une correction ou escaladez.</value>
+    <value>La commande a été rejetée. Elle ne confirme pas la mise à jour des métadonnées demandée.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.AlreadyApplied" xml:space="preserve">
-    <value>Continuez en lecture seule ou soumettez une correction en avant si les metadonnees attendues different.</value>
+    <value>La preuve de projection indiquait déjà la mise à jour des métadonnées demandée.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.DuplicatePrevented" xml:space="preserve">
-    <value>Attendez la commande en cours, relancez la recherche de statut ou continuez en lecture seule.</value>
+    <value>La tentative de commande conservée est toujours en cours de rapprochement. La confirmation de la mise à jour des métadonnées demandée reste à établir.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Failed" xml:space="preserve">
-    <value>Reessayez apres verification de la preuve de projection actuelle ou escaladez.</value>
+    <value>La soumission de la commande a échoué. La confirmation de la mise à jour des métadonnées demandée reste à établir.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.Degraded" xml:space="preserve">
-    <value>Attendez, relancez la recherche de statut, inspectez l'audit lorsqu'il est disponible ou escaladez.</value>
+    <value>Le traitement de la commande est dégradé. La confirmation de la mise à jour des métadonnées demandée reste à établir.</value>
   </data>
   <data name="Tenants.EditMetadata.Recovery.UnableToVerify" xml:space="preserve">
-    <value>Actualisez, relancez la recherche de statut, continuez en lecture seule ou escaladez.</value>
+    <value>Les preuves disponibles n’établissent pas la mise à jour des métadonnées demandée.</value>
   </data>
   <data name="Tenants.Navigation.AllTenants" xml:space="preserve">
     <value>Tous les locataires</value>
@@ -4557,5 +4557,11 @@
   </data>
   <data name="Tenants.Configuration.Remove.Submission.VerificationFailed" xml:space="preserve">
     <value>La soumission de la commande de locataire a échoué avant de pouvoir être vérifiée.</value>
+  </data>
+  <data name="Tenants.Members.UnavailableReason.CommandSurfaceUnavailable" xml:space="preserve">
+    <value>Les commandes de gestion des membres sont indisponibles pour ce locataire.</value>
+  </data>
+  <data name="Tenants.Members.UnavailableReason.ActiveMemberCommand" xml:space="preserve">
+    <value>Une commande de gestion des membres est active pour ce locataire. Examinez cette commande avant d’en démarrer une autre.</value>
   </data>
 </root>

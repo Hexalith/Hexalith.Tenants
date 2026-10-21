@@ -1,0 +1,61 @@
+{
+  "baseline_commit": "73e4cbee3c3d429ee90a81562ceb9060f8a82ce5",
+  "original_ids": 656,
+  "preserved_unrelated_original_records": 651,
+  "closed_ids": [
+    244,
+    293,
+    294,
+    298,
+    447
+  ],
+  "new_deferred_id": 657,
+  "records": 657,
+  "done": 410,
+  "open": 247,
+  "index_rows": 224,
+  "open_dispositions": {
+    "actionable": 161,
+    "uncertain": 36,
+    "awaiting-decision": 26,
+    "blocked": 15,
+    "accepted-limitation": 9
+  },
+  "archive_and_sprint_unchanged": true,
+  "full_ui": {
+    "total": "6878",
+    "executed": "6878",
+    "passed": "6878",
+    "failed": "0",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  },
+  "focused": {
+    "total": "82",
+    "executed": "82",
+    "passed": "82",
+    "failed": "0",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  }
+}

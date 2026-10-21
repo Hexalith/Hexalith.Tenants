@@ -2879,7 +2879,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
 
         cut.WaitForAssertion(() =>
             cut.FindAll("[data-testid='tenants-member-unavailable-reason']")
-                .ShouldContain(reason => reason.TextContent.Contains("already in progress for this tenant", StringComparison.OrdinalIgnoreCase)));
+                .ShouldContain(reason => reason.TextContent.Contains("A member command is active for this tenant.", StringComparison.Ordinal)));
         cut.FindAll("[data-testid='tenants-change-role-open']").ShouldBeEmpty();
 
         pendingSubmission.SetResult(TenantCommandSubmissionResult.Failed("Command submission cancelled by the test."));
@@ -9222,15 +9222,15 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.State.Degraded"] = "Configuration removal result is degraded and needs review.",
             ["Tenants.Configuration.Remove.State.UnableToVerify"] = "Unable to verify the configuration removal result.",
             ["Tenants.Configuration.Remove.Recovery.Idle"] = "Choose a visible key when current projection evidence and namespace scope are available.",
-            ["Tenants.Configuration.Remove.Recovery.Previewed"] = "Confirm removal, cancel, or continue read-only.",
+            ["Tenants.Configuration.Remove.Recovery.Previewed"] = "Review the proposed change and its consequences.",
             ["Tenants.Configuration.Remove.Recovery.RequestSent"] = "Wait for command status and projection refresh.",
-            ["Tenants.Configuration.Remove.Recovery.Accepted"] = "Wait, refresh status, or continue read-only until projection confirms removal.",
-            ["Tenants.Configuration.Remove.Recovery.ProjectionPending"] = "Refresh tenant detail; do not display removal as complete until the key is absent from projection.",
-            ["Tenants.Configuration.Remove.Recovery.Confirmed"] = "Continue read-only or inspect audit when evidence becomes available.",
-            ["Tenants.Configuration.Remove.Recovery.Rejected"] = "Refresh projection evidence, request permission, start correction, or escalate.",
-            ["Tenants.Configuration.Remove.Recovery.Failed"] = "Retry after checking current projection evidence or escalate.",
-            ["Tenants.Configuration.Remove.Recovery.Degraded"] = "Wait, retry status lookup, inspect audit when available, or escalate.",
-            ["Tenants.Configuration.Remove.Recovery.UnableToVerify"] = "Refresh, retry status lookup, continue read-only, or escalate.",
+            ["Tenants.Configuration.Remove.Recovery.Accepted"] = "The command was accepted; projection confirmation of removal of the configuration key is pending.",
+            ["Tenants.Configuration.Remove.Recovery.ProjectionPending"] = "Projection evidence has not yet confirmed removal of the configuration key.",
+            ["Tenants.Configuration.Remove.Recovery.Confirmed"] = "Projection evidence confirms removal of the configuration key. Audit evidence is reported separately.",
+            ["Tenants.Configuration.Remove.Recovery.Rejected"] = "The command was rejected. It does not confirm removal of the configuration key.",
+            ["Tenants.Configuration.Remove.Recovery.Failed"] = "Command submission failed. Removal of the configuration key has not been confirmed.",
+            ["Tenants.Configuration.Remove.Recovery.Degraded"] = "Command processing is degraded. Removal of the configuration key has not been confirmed.",
+            ["Tenants.Configuration.Remove.Recovery.UnableToVerify"] = "The available evidence does not establish removal of the configuration key.",
             ["Tenants.Copy.Action"] = "Copy",
             ["Tenants.Copy.Label.ConfigurationKey"] = "Copy configuration key {0}",
             ["Tenants.Copy.Label.ConfigurationValue"] = "Copy visible configuration value for {0}",
@@ -9363,7 +9363,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
             ["Tenants.RemoveMember.State.Idle"] = "No remove-member preview opened.",
             ["Tenants.RemoveMember.State.Previewed"] = "Consequence preview ready; no command has been submitted.",
             ["Tenants.RemoveMember.Recovery.Idle"] = "Open the preview when current projection evidence is available.",
-            ["Tenants.RemoveMember.Recovery.Previewed"] = "Confirm deliberately, cancel, or continue read-only.",
+            ["Tenants.RemoveMember.Recovery.Previewed"] = "Review the proposed change and its consequences.",
             ["Tenants.Members.ActionSlotAccessible"] = "{0} is unavailable for {1}: {2}",
             ["Tenants.Members.Column.Actions"] = "Action availability",
             ["Tenants.Members.Column.Freshness"] = "Freshness",

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-244/DW-293/DW-294/DW-298/DW-447 closure (2026-10-21):** Member command explanations distinguish owned activity from unknown support; scoped EN/FR recovery copy describes evidence without promising absent actions. Independent review/recheck, a zero-warning/error Debug source build, focused 82/82 and full UI 6878/6878 pass with zero failures/skips. Only these five records close; the pre-existing add-member empty/whitespace reason defect is separately open as DW-657. All 656 original IDs remain plus DW-657: 657 total, 410 done/247 open across 224 exact-covering maintenance rows. Historical fields, initial failures, inherited historical spec gitlink blocker, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-244-293-294-298-447-validation-evidence.md).
+
 **DW-191 closure (2026-10-21):** Membership notifications received before child attachment now retain their reconciliation intent until current authorization and rendering, preserving exact attempt identity and authoritative confirmation. Real subscription regressions, route/disposal/failure/remount controls, independent review and a zero-warning/error Debug source build qualify the change; focused and full UI counts are in [exact evidence](dw-191-validation-evidence.md). Only DW-191 closes: all 656 IDs remain, 405 done/251 open across 226 exact-covering maintenance rows. Historical findings, unrelated work, dependencies and release holds remain preserved.
 
 **DW-187 closure (2026-10-21):** Lifecycle changes invalidate undispatched metadata/set editors and removal confirmation, preserving sent/uncertain/accepted attempts and terminal evidence. Obsolete previews cannot replace reopened drafts; provisional lease cleanup remains serialized. Independent review corrections/rechecks, zero-warning/error Debug source build, dedicated 28/28 and full UI 6749/6749 pass with zero failures/skips. Only DW-187 closes: all 656 IDs remain, 404 done/252 open across 227 exact-covering maintenance rows. Historical findings, unrelated work, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-187-validation-evidence.md).
@@ -2238,17 +2240,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Align rejected remove-member recovery copy with actions the surface actually provides. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Align rejected remove-member recovery copy with actions the surface actually provides. evidence: The EN/FR rejected-state recovery text tells the operator to request permission, but the rejected flow renders no permission-request action or delegate.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.resx Tenants.RemoveMember.Recovery.Rejected still says request permission; Components/Tenants/Members/RemoveTenantMemberFlow.razor supplies no permission-request destination/action.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
-evidence-kind: verified-defect
+pre-command-explanations-status: open
+status: done 2026-10-21
+pre-command-explanations-disposition: actionable
+disposition: done
+pre-command-explanations-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-explanations-verification: src/Hexalith.Tenants.UI/Resources/TenantsResources.resx Tenants.RemoveMember.Recovery.Rejected still says request permission; Components/Tenants/Members/RemoveTenantMemberFlow.razor supplies no permission-request destination/action.
+verification: Rejected member-removal recovery describes rejection without promising a permission-request destination; real EN/FR rejected submissions and full UI qualify the change. Exact commands, initial failures and review are in dw-244-293-294-298-447-validation-evidence.md.
+pre-command-explanations-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/MemberCommandExplanationTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/CommandRecoveryExplanationTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+pre-command-explanations-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Align rejected recovery copy with rendered actions or provide the explicitly governed destination.
+pre-command-explanations-next-action: Align rejected recovery copy with rendered actions or provide the explicitly governed destination.
+next-action: Closed within the command-explanation bundle; retain independent defects, inherited historical gitlink attribution and release qualification holds.
 related: none
+resolution-evidence: [Exact validation, review and limits](dw-244-293-294-298-447-validation-evidence.md)
+resolution-spec: spec-dw-244-293-294-298-447-command-explanations.md
 
 ### DW-245: Preserve queued projection-refresh intent in add-member and change-role flows
 
@@ -2816,17 +2827,26 @@ location: MemberAccessReview.razor:660
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
 reason: The legacy ledger defers this issue: Blank `CommandSurfaceUnavailableReason` maps to `UnavailableReason.AggregateLocked`'s copy, which asserts a specific ("another command is already in progress") cause that may not be true. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md` summary: Blank `CommandSurfaceUnavailableReason` maps to `UnavailableReason.AggregateLocked`'s copy, which asserts a specific ("another command is already in progress") cause that may not be true. evidence: `ResolveFailClosedReasons` (`MemberAccessReview.razor:660`) returns `AggregateLocked` whenever `!IsCommandSurfaceAvailable`, even with an empty reason string (e.g. a missing admission-gate registration with no actual contention); there is no generic "support unavailable" `UnavailableReason` value. Fail-closed behavior is correct; only the specific wording is inaccurate. Needs a dedicated wording/UX pass (new enum value + EN/FR copy) rather than a fold-in fix.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor ResolveFailClosedReasons still maps blank unavailable support and its own _childCommandLeaseOwner to AggregateLocked; ReasonLabel can therefore say another command when no other command is established.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
-evidence-kind: verified-defect
+pre-command-explanations-status: open
+status: done 2026-10-21
+pre-command-explanations-disposition: actionable
+disposition: done
+pre-command-explanations-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-explanations-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor ResolveFailClosedReasons still maps blank unavailable support and its own _childCommandLeaseOwner to AggregateLocked; ReasonLabel can therefore say another command when no other command is established.
+verification: Missing command support with no supplied reason now renders generic localized unavailability rather than asserting another command; null/empty/whitespace controls retain fail-closed row gates. Exact commands, initial failures and review are in dw-244-293-294-298-447-validation-evidence.md.
+pre-command-explanations-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/MemberCommandExplanationTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/CommandRecoveryExplanationTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+pre-command-explanations-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Introduce reason-honest unavailable/self-owned copy and make the ledger the decision authority.
+pre-command-explanations-next-action: Introduce reason-honest unavailable/self-owned copy and make the ledger the decision authority.
+next-action: Closed within the command-explanation bundle; retain independent defects, inherited historical gitlink attribution and release qualification holds.
 related: DW-293, DW-294, DW-298
+resolution-evidence: [Exact validation, review and limits](dw-244-293-294-298-447-validation-evidence.md)
+resolution-spec: spec-dw-244-293-294-298-447-command-explanations.md
 
 ### DW-294: Self-lock reason text — a row whose own flow currently holds `_childCommandLeaseOwner` also renders its own launcher buttons as `AggregateLocked` ("another command is already in progress"), which is imprecise for its own open flow
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4b-wp-2a-removal-proof-and-audit-available (2026-08-22, pass 2)"), 2026-08-25
@@ -2834,17 +2854,26 @@ location: MemberAccessReview.razor:663
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
 reason: The legacy ledger defers this issue: Self-lock reason text — a row whose own flow currently holds `_childCommandLeaseOwner` also renders its own launcher buttons as `AggregateLocked` ("another command is already in progress"), which is imprecise for its own open flow. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md` summary: Self-lock reason text — a row whose own flow currently holds `_childCommandLeaseOwner` also renders its own launcher buttons as `AggregateLocked` ("another command is already in progress"), which is imprecise for its own open flow. evidence: `ResolveFailClosedReasons` (`MemberAccessReview.razor:663`) checks `_childCommandLeaseOwner is not null` unconditionally for every row, including the row whose own flow holds the lease; not newly introduced by this diff (the row was already gated unavailable via `IsCommandSurfaceAvailable` once any child flow raises the parent lease) — same class of issue as the item above; fold into that dedicated wording/UX pass rather than treating separately.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor ResolveFailClosedReasons still maps blank unavailable support and its own _childCommandLeaseOwner to AggregateLocked; ReasonLabel can therefore say another command when no other command is established.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
-evidence-kind: verified-defect
+pre-command-explanations-status: open
+status: done 2026-10-21
+pre-command-explanations-disposition: actionable
+disposition: done
+pre-command-explanations-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-explanations-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor ResolveFailClosedReasons still maps blank unavailable support and its own _childCommandLeaseOwner to AggregateLocked; ReasonLabel can therefore say another command when no other command is established.
+verification: An owned member reservation now renders accurate localized active-member copy on own and sibling rows, including the parent lock echo and pending admission cleanup; the existing actual held-submit parent regression qualifies composition. Exact commands, initial failures and review are in dw-244-293-294-298-447-validation-evidence.md.
+pre-command-explanations-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/MemberCommandExplanationTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/CommandRecoveryExplanationTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+pre-command-explanations-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Introduce reason-honest unavailable/self-owned copy and make the ledger the decision authority.
+pre-command-explanations-next-action: Introduce reason-honest unavailable/self-owned copy and make the ledger the decision authority.
+next-action: Closed within the command-explanation bundle; retain independent defects, inherited historical gitlink attribution and release qualification holds.
 related: DW-293, DW-294, DW-298
+resolution-evidence: [Exact validation, review and limits](dw-244-293-294-298-447-validation-evidence.md)
+resolution-spec: spec-dw-244-293-294-298-447-command-explanations.md
 
 ### DW-295: New `EventId(2001, "TenantProjectionNullEventSkipped")` is an unregistered magic literal with no cross-project collision check
 
@@ -2884,17 +2913,26 @@ location: deferred-work.md; spec-2-4b-wp-2a-removal-proof-and-audit-available.md
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
 reason: The legacy ledger defers this issue: The "blank `CommandSurfaceUnavailableReason` → `AggregateLocked` copy" deferred decision is now recorded independently, with drifting prose, in both `deferred-work.md` and the spec's own Review Findings section. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md` summary: The "blank `CommandSurfaceUnavailableReason` → `AggregateLocked` copy" deferred decision is now recorded independently, with drifting prose, in both `deferred-work.md` and the spec's own Review Findings section. evidence: Compare this file's entry above (2026-08-22) against `spec-2-4b-wp-2a-removal-proof-and-audit-available.md`'s Review Findings "DEFERRED (2026-08-22): ACCEPT CURRENT COPY FOR THIS PASS" bullet — same decision, different prose framing. Two sources of truth for one decision invite silent divergence on the next edit.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md still records ACCEPT CURRENT COPY separately from DW-293/294. This reconciliation declares deferred-work.md authoritative, but the spec lacks a DW cross-reference and may drift.
-verification-files: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md; _bmad-output/implementation-artifacts/deferred-work.md
-evidence-kind: recommendation
+pre-command-explanations-status: open
+status: done 2026-10-21
+pre-command-explanations-disposition: actionable
+disposition: done
+pre-command-explanations-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-explanations-verification: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md still records ACCEPT CURRENT COPY separately from DW-293/294. This reconciliation declares deferred-work.md authoritative, but the spec lacks a DW cross-reference and may drift.
+verification: Historical spec review notes now identify the deferred ledger as the authoritative current decision and closure evidence. Existing baseline, frozen intent and pointer declarations remain intact; inherited historical gitlink validation still fails separately. Exact commands, initial failures and review are in dw-244-293-294-298-447-validation-evidence.md.
+pre-command-explanations-verification-files: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md; _bmad-output/implementation-artifacts/deferred-work.md
+verification-files: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md
+pre-command-explanations-evidence-kind: recommendation
+evidence-kind: verified-fix
 priority: P3
 owner: unassigned
 dependencies: DW-293 copy decision
-next-action: Replace the spec decision restatement with a historical note linking DW-293/294.
+pre-command-explanations-next-action: Replace the spec decision restatement with a historical note linking DW-293/294.
+next-action: Closed within the command-explanation bundle; retain independent defects, inherited historical gitlink attribution and release qualification holds.
 related: DW-293, DW-294
+resolution-evidence: [Exact validation, review and limits](dw-244-293-294-298-447-validation-evidence.md)
+resolution-spec: spec-dw-244-293-294-298-447-command-explanations.md
 
 ### DW-299: Add browser-level computed-visibility coverage for the narrow configuration set and remove forms
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4b-wp-2a-removal-proof-and-audit-available (2026-08-22, pass 2)"), 2026-08-25
@@ -4928,21 +4966,30 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Stop flow-level lifecycle recovery copy from naming recovery actions that the shared availability control may not render.\n  evidence: Strings such as `Tenants.EditMetadata.Recovery.Degraded`, `Tenants.Configuration.Set.Recovery.*`, `Tenants.Configuration.Remove.Recovery.*` and `Tenants.RemoveMember.Recovery.*` read \"Wait, retry status lookup, inspect audit when available, or escalate.\" They render beside the control (for example `EditTenantMetadataFlow.razor:153`) whether or not Escalate, Inspect audit or Continue read-only exist. This flow lifecycle copy predates Story 5.4, which removed the same promise from the shared control."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantsResources.resx still tells Configuration.Set/Remove and EditMetadata degraded states to wait, retry status lookup, inspect audit when available, or escalate (:1487, :1714, :2644). Their flow-level RecoveryText renders independently of AuditAvailabilityState action callbacks/retry budgets. The shared availability control now filters actions, so this adjacent copy can promise an absent action.
-evidence-kind: verified-defect
+pre-command-explanations-status: open
+status: done 2026-10-21
+pre-command-explanations-disposition: actionable
+disposition: done
+pre-command-explanations-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-explanations-verification: TenantsResources.resx still tells Configuration.Set/Remove and EditMetadata degraded states to wait, retry status lookup, inspect audit when available, or escalate (:1487, :1714, :2644). Their flow-level RecoveryText renders independently of AuditAvailabilityState action callbacks/retry budgets. The shared availability control now filters actions, so this adjacent copy can promise an absent action.
+verification: Scoped recovery descriptions no longer promise optional permission, correction, status-retry, inspect-audit, read-only or escalation actions. EN/FR rendered preview, rejection, degradation, retry exhaustion, blocked preview and incomplete-tracking cases qualify accurate state descriptions. Exact commands, initial failures and review are in dw-244-293-294-298-447-validation-evidence.md.
+pre-command-explanations-evidence-kind: verified-defect
+evidence-kind: verified-fix
 priority: P2
 owner: unassigned
 dependencies: Current per-flow callback/recovery availability
-next-action: Make flow-level recovery text describe only currently rendered actions, with no-callback and exhausted-retry component coverage in EN/FR.
+pre-command-explanations-next-action: Make flow-level recovery text describe only currently rendered actions, with no-callback and exhausted-retry component coverage in EN/FR.
+next-action: Closed within the command-explanation bundle; retain independent defects, inherited historical gitlink attribution and release qualification holds.
 related: DW-448, DW-449
 
 
 ## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-09-29, review 2)
 
 Review range `55f3dc63..1cdcc0a9`.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/MemberCommandExplanationTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/CommandRecoveryExplanationTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+resolution-evidence: [Exact validation, review and limits](dw-244-293-294-298-447-validation-evidence.md)
+resolution-spec: spec-dw-244-293-294-298-447-command-explanations.md
 
 ### DW-448: Stop an unmatched RemoveMember proof walk from leaving the audit state pending indefinitely.
 
@@ -8212,4 +8259,23 @@ origin: DW-520 independent review, 2026-10-19
 severity: medium
 priority: P2
 archived: 2026-10-21
+
+### DW-657: Empty or whitespace add-member support reasons leave a valid form enabled while command support is unavailable
+
+origin: command-explanation Blind Hunter review, 2026-10-21
+source_spec: `spec-dw-244-293-294-298-447-command-explanations.md`
+summary: Normalize absent add-member command-surface reasons before deriving the disabled state and dispatch guard.
+evidence: AddTenantMemberFlow EligibilityUnavailableReason and pre-dispatch refusal use null-coalescing for CommandSurfaceUnavailableReason, while IsSubmitDisabled treats empty/whitespace as no refusal. A temporary valid-input rendered probe fails four EN/FR empty/whitespace cases because submit remains enabled; two null controls pass. AddTenantMemberFlow production is unchanged by this bundle. The temporary probe is removed; exact commands and results are in dw-244-293-294-298-447-validation-evidence.md.
+location: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor
+status: open
+disposition: actionable
+verification-date: 2026-10-21
+verification: Reproduced enabled valid-input submission control for unavailable support with empty and whitespace reasons; this finding does not claim that a backend mutation succeeded.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/MemberCommandExplanationTests.cs
+evidence-kind: verified-defect
+priority: P2
+owner: Tenants membership command admission
+dependencies: none
+next-action: Normalize null/empty/whitespace reasons to the localized support fallback and qualify rendered disabled controls, captured submit events and zero gateway dispatch with available-support recovery controls.
+related: DW-293
 
