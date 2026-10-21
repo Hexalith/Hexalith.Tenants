@@ -1029,9 +1029,6 @@
   <data name="Tenants.Lifecycle.State.AlreadyApplied" xml:space="preserve">
     <value>La projection correspondait déjà au cycle de vie demandé ; aucun succès de commande n'est affirmé.</value>
   </data>
-  <data name="Tenants.Lifecycle.State.DuplicatePrevented" xml:space="preserve">
-    <value>Soumission de cycle de vie en double empêchée.</value>
-  </data>
   <data name="Tenants.Lifecycle.State.Failed" xml:space="preserve">
     <value>La commande de cycle de vie a échoué avant vérification.</value>
   </data>

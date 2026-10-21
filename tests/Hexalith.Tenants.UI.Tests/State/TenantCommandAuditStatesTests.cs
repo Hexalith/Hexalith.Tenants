@@ -461,7 +461,7 @@ public sealed class TenantCommandAuditStatesTests
         TenantRemoveConfigurationCommandSnapshot.Blocked("Blocked.", TenantCommandFocusTarget.Submit).AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
 
         TenantRemoveMemberCommandSnapshot.Idle().DuplicatePrevented("Duplicate.").AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
-        LifecycleStarted().DuplicatePrevented("Duplicate.").AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        LifecycleStarted().BlockedWithTracking("Tenants.Lifecycle.DuplicatePrevented.Message").AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
         TenantLifecycleCommandSnapshot.Idle(LifecycleDetail(TenantStatus.Active))
             .Previewed(new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant), LifecycleDetail(TenantStatus.Active), "tenant-sequence:41")
             .AuditState.ShouldBe(TenantCommandAuditState.NotStarted);

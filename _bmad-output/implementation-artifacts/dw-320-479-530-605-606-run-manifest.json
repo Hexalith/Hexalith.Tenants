@@ -1,0 +1,189 @@
+{
+  "baseline_commit": "6cd7521fc0732823490c2c2f18da0120f77991b5",
+  "tested_assembly": {
+    "path": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+    "sha256": "de4073d781435ba54db94f855b7af9e5bdbd37e79e4d71952f61730254f6a572"
+  },
+  "runs": [
+    {
+      "lane": "TenantLifecycleCommandSnapshotTests",
+      "trx_path": "/tmp/tenants-model-maintenance/accepted/TenantLifecycleCommandSnapshotTests/results.trx",
+      "trx_sha256": "c5e3c7dcf35192c7ff282fb58f6247c00e985f0353ac20771af10ae379535d2a",
+      "run_id": "e8bf7b05-5130-48eb-b125-a1e5d14d4f64",
+      "run_times": {
+        "creation": "2026-10-21T15:30:42.1054758+00:00",
+        "queuing": "2026-10-21T15:30:42.1054758+00:00",
+        "start": "2026-10-21T15:30:42.1054758+00:00",
+        "finish": "2026-10-21T15:30:42.2413318+00:00"
+      },
+      "counters": {
+        "total": "79",
+        "executed": "79",
+        "passed": "79",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "TenantCommandAuditStatesTests",
+      "trx_path": "/tmp/tenants-model-maintenance/accepted/TenantCommandAuditStatesTests/results.trx",
+      "trx_sha256": "95bfc8ecaafbd39c6b3d6893d57fb050c3ccd3bf88321a06c489137d58d78685",
+      "run_id": "a67e953e-1d16-4a22-8537-2bd53b69340b",
+      "run_times": {
+        "creation": "2026-10-21T15:30:43.6392011+00:00",
+        "queuing": "2026-10-21T15:30:43.6392011+00:00",
+        "start": "2026-10-21T15:30:43.6392011+00:00",
+        "finish": "2026-10-21T15:30:43.7907020+00:00"
+      },
+      "counters": {
+        "total": "144",
+        "executed": "144",
+        "passed": "144",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "TenantLifecycleActionAvailabilityTests",
+      "trx_path": "/tmp/tenants-model-maintenance/accepted/TenantLifecycleActionAvailabilityTests/results.trx",
+      "trx_sha256": "fda1ec6e70a40b33a175db78c0022027f00c65b70d17a6a21c5d05877c550b92",
+      "run_id": "0d9599ba-632f-41f0-8d8e-34d13c9f7c4a",
+      "run_times": {
+        "creation": "2026-10-21T15:30:45.2535872+00:00",
+        "queuing": "2026-10-21T15:30:45.2535872+00:00",
+        "start": "2026-10-21T15:30:45.2535872+00:00",
+        "finish": "2026-10-21T15:30:47.0732550+00:00"
+      },
+      "counters": {
+        "total": "113",
+        "executed": "113",
+        "passed": "113",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "TenantRemoveMemberCommandSnapshotTests",
+      "trx_path": "/tmp/tenants-model-maintenance/accepted/TenantRemoveMemberCommandSnapshotTests/results.trx",
+      "trx_sha256": "2f08e74aee48aeca28b526ba346af10c96e40e3320f3de82898d46340639d92b",
+      "run_id": "bb3aa7d3-9c12-44dc-9840-dec71c8fbc89",
+      "run_times": {
+        "creation": "2026-10-21T15:30:48.5309564+00:00",
+        "queuing": "2026-10-21T15:30:48.5309564+00:00",
+        "start": "2026-10-21T15:30:48.5309564+00:00",
+        "finish": "2026-10-21T15:30:48.6569540+00:00"
+      },
+      "counters": {
+        "total": "23",
+        "executed": "23",
+        "passed": "23",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "TenantCommandFlowGuardTests",
+      "trx_path": "/tmp/tenants-model-maintenance/accepted/TenantCommandFlowGuardTests/results.trx",
+      "trx_sha256": "c442676275d5507aab46b5f3a2b61c4e8ca5c6d6e7c42fcca2e2c6b7a64719de",
+      "run_id": "c8145ddd-5923-4601-89bd-9caa4db86d80",
+      "run_times": {
+        "creation": "2026-10-21T15:30:50.0588320+00:00",
+        "queuing": "2026-10-21T15:30:50.0588320+00:00",
+        "start": "2026-10-21T15:30:50.0588320+00:00",
+        "finish": "2026-10-21T15:30:50.1584590+00:00"
+      },
+      "counters": {
+        "total": "24",
+        "executed": "24",
+        "passed": "24",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "full",
+      "trx_path": "/tmp/tenants-model-maintenance/accepted/full/results.trx",
+      "trx_sha256": "cd3643453066ec2e1c27cd545d61a8f795b32dba834de8a09cab385900d7a95f",
+      "run_id": "207a406d-6742-4d65-bf98-7af4d88ad526",
+      "run_times": {
+        "creation": "2026-10-21T15:30:51.5736011+00:00",
+        "queuing": "2026-10-21T15:30:51.5736011+00:00",
+        "start": "2026-10-21T15:30:51.5736011+00:00",
+        "finish": "2026-10-21T15:32:49.8587839+00:00"
+      },
+      "counters": {
+        "total": "7116",
+        "executed": "7116",
+        "passed": "7116",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ]
+}

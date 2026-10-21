@@ -372,29 +372,45 @@ public sealed class TenantLifecycleCommandSnapshotTests
         requestSent.AttemptStartedAtUtc.ShouldNotBeNull();
     }
 
-    [Fact]
-    public void Blocking_an_accepted_attempt_preserves_its_recovery_identity()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Duplicate_refusal_preserves_active_recovery_identity_and_audit_evidence(bool hasAuditEvidence)
     {
         TenantLifecycleCommandSnapshot accepted = Started(
                 TenantLifecycleOperation.DisableTenant,
                 TenantStatus.Active)
             .Accepted(TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"));
 
-        TenantLifecycleCommandSnapshot blocked = accepted.BlockedWithTracking(
-            "Tenants.Lifecycle.UnableToVerify.ProofRead");
+        if (hasAuditEvidence)
+        {
+            accepted = accepted.ApplyStatus(new TenantCommandStatusResult(
+                CommandStatus.EventsPublished,
+                EventCount: 1,
+                HasVerifiedCommandIdentity: true));
+        }
 
-        blocked.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        TenantLifecycleCommandSnapshot blocked = accepted.BlockedWithTracking(
+            "Tenants.Lifecycle.DuplicatePrevented.Message",
+            "Tenants.Lifecycle.Recovery.DuplicatePrevented");
+
+        blocked.State.ShouldBe(accepted.State);
+        blocked.AuditState.ShouldBe(hasAuditEvidence
+            ? TenantCommandAuditState.AuditPending
+            : TenantCommandAuditState.NotStarted);
+        blocked.HasTerminalOwnership.ShouldBeFalse();
         blocked.RetainsAttempt.ShouldBeTrue();
         blocked.Intent.ShouldBe(accepted.Intent);
         blocked.MessageId.ShouldBe("message-1");
         blocked.CorrelationId.ShouldBe("correlation-1");
         blocked.BaselineProjectionVersion.ShouldBe("tenant-sequence:41");
-        blocked.SafeMessageKey.ShouldBe("Tenants.Lifecycle.UnableToVerify.ProofRead");
+        blocked.SafeMessageKey.ShouldBe("Tenants.Lifecycle.DuplicatePrevented.Message");
+        blocked.RecoveryKey.ShouldBe("Tenants.Lifecycle.Recovery.DuplicatePrevented");
         blocked.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
     }
 
     [Fact]
-    public void Duplicate_prevention_keeps_the_preview_identity_and_is_non_success()
+    public void Duplicate_refusal_preserves_the_preview_without_claiming_terminal_ownership()
     {
         TenantLifecycleCommandSnapshot previewed = TenantLifecycleCommandSnapshot
             .Idle(Detail("tenant.alpha", TenantStatus.Active))
@@ -403,14 +419,19 @@ public sealed class TenantLifecycleCommandSnapshotTests
                 Detail("tenant.alpha", TenantStatus.Active),
                 "tenant-sequence:41");
 
-        TenantLifecycleCommandSnapshot duplicate = previewed.DuplicatePrevented(
-            "A lifecycle command is already in progress.");
+        TenantLifecycleCommandSnapshot duplicate = previewed.BlockedWithTracking(
+            "Tenants.Lifecycle.DuplicatePrevented.Message",
+            "Tenants.Lifecycle.Recovery.DuplicatePrevented");
 
-        duplicate.State.ShouldBe(TenantCommandLifecycleState.DuplicatePrevented);
+        duplicate.State.ShouldBe(TenantCommandLifecycleState.Previewed);
         duplicate.Intent.ShouldBe(previewed.Intent);
         duplicate.PreviewProjectionVersion.ShouldBe("tenant-sequence:41");
         duplicate.RetainsAttempt.ShouldBeFalse();
-        duplicate.HasTerminalOwnership.ShouldBeTrue();
+        duplicate.HasTerminalOwnership.ShouldBeFalse();
+        duplicate.AuditState.ShouldBe(previewed.AuditState);
+        duplicate.SafeMessageKey.ShouldBe("Tenants.Lifecycle.DuplicatePrevented.Message");
+        duplicate.RecoveryKey.ShouldBe("Tenants.Lifecycle.Recovery.DuplicatePrevented");
+        duplicate.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
         duplicate.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
     }
 

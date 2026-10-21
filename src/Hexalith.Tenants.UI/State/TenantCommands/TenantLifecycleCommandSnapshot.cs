@@ -50,7 +50,6 @@ public sealed record TenantLifecycleCommandSnapshot(
         => State is TenantCommandLifecycleState.Confirmed
             or TenantCommandLifecycleState.Rejected
             or TenantCommandLifecycleState.AlreadyApplied
-            or TenantCommandLifecycleState.DuplicatePrevented
             or TenantCommandLifecycleState.Failed
             or TenantCommandLifecycleState.Degraded
             or TenantCommandLifecycleState.UnableToVerify;
@@ -83,18 +82,6 @@ public sealed record TenantLifecycleCommandSnapshot(
             EvidenceRevision = NextEvidenceRevision(),
         };
     }
-
-    public TenantLifecycleCommandSnapshot DuplicatePrevented(string safeMessage)
-        => this with
-        {
-            State = TenantCommandLifecycleState.DuplicatePrevented,
-            SafeMessage = safeMessage,
-            SafeMessageKey = null,
-            AuditState = TenantCommandAuditStates.NotStarted,
-            FocusTarget = TenantCommandFocusTarget.Lifecycle,
-            LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
-            EvidenceRevision = NextEvidenceRevision(),
-        };
 
     /// <summary>
     /// Starts one lifecycle attempt from fresh authoritative detail evidence and a stable message id.

@@ -1029,9 +1029,6 @@
   <data name="Tenants.Lifecycle.State.AlreadyApplied" xml:space="preserve">
     <value>Projection already matched the requested lifecycle; no command success is asserted.</value>
   </data>
-  <data name="Tenants.Lifecycle.State.DuplicatePrevented" xml:space="preserve">
-    <value>Duplicate lifecycle submission prevented.</value>
-  </data>
   <data name="Tenants.Lifecycle.State.Failed" xml:space="preserve">
     <value>Lifecycle command failed before it could be verified.</value>
   </data>

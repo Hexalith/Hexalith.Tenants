@@ -1,0 +1,36 @@
+{
+  "baseline_commit": "6cd7521fc0732823490c2c2f18da0120f77991b5",
+  "selected": [
+    320,
+    479,
+    530,
+    605,
+    606
+  ],
+  "records": 657,
+  "done": 435,
+  "open": 222,
+  "maintenance_rows": 202,
+  "exact_unique_open_id_coverage": true,
+  "unrelated_records_unchanged": true,
+  "all_historical_field_values_preserved": true,
+  "unrelated_maintenance_rows_unchanged": true,
+  "full_ui_counters": {
+    "total": "7116",
+    "executed": "7116",
+    "passed": "7116",
+    "failed": "0",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  }
+}

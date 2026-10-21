@@ -400,7 +400,7 @@
         => _snapshot.State switch
         {
             TenantCommandLifecycleState.Confirmed => "OK",
-            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed or TenantCommandLifecycleState.DuplicatePrevented => "!",
+            TenantCommandLifecycleState.Rejected or TenantCommandLifecycleState.Failed => "!",
             TenantCommandLifecycleState.Degraded or TenantCommandLifecycleState.UnableToVerify => "?",
             _ => ">",
         };

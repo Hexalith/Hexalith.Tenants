@@ -9,3 +9,7 @@
 *.yml text eol=lf
 *.yaml text eol=lf
 *.json text eol=lf
+
+# Preserve the required C# line endings for the DW-606 source paths on checkout.
+src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs text eol=crlf
+src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs text eol=crlf

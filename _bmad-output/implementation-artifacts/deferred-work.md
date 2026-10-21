@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-320/DW-479/DW-530/DW-605/DW-606 closure (2026-10-21):** The unused lifecycle duplicate-state path is removed, three already-fixed model-split records are requalified, and two scoped source paths reliably check out with CRLF. Debug source build has zero warnings/errors; focused 383/383 and full UI 7116/7116 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 435 done/222 open across 202 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-320-479-530-605-606-validation-evidence.md).
+
 **DW-371/DW-386/DW-396/DW-406/DW-414 closure (2026-10-21):** Administrator localization failures retain specific paired recovery, fixed removal-resource checks are reused, recognized grant rejections preserve localized reasons, and captured correction callbacks refuse lost tracked capability. Independent review corrections/recheck, a zero-warning/error Debug source build and full UI 7115/7115 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 430 done/227 open across 206 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-371-386-396-406-414-validation-evidence.md).
 
 **DW-303/DW-449/DW-506/DW-586/DW-657 closure (2026-10-21):** Missing lifecycle version evidence has dedicated EN/FR guidance; correction recovery copy follows actual eligibility and refuses blank-correlation status lookups; absent add-member reasons fail closed and known-unsent refusals recover. Pending-status records were already fixed and are independently requalified. Reviewed Debug source build and full UI 7033/7033 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 425 done/232 open across 211 exact-covering maintenance rows. Historical evidence, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-303-449-506-586-657-validation-evidence.md).
@@ -3196,16 +3198,24 @@ related: DW-254, DW-327
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor
 reason: Lifecycle `SubmitAsync` uses `BlockedWithTracking`, which never produces `TenantLifecycleCommandSnapshot.DuplicatePrevented`, while `HasTerminalOwnership` and the lifecycle icon switch still carry that unreachable state path. Remove the lifecycle-only dead handling without disturbing command flows that still use `DuplicatePrevented`.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs still defines lifecycle DuplicatePrevented; Lifecycle/TenantLifecycleCommandFlow.razor SubmitAsync uses BlockedWithTracking while its icon switch still handles DuplicatePrevented.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor
-evidence-kind: recommendation
+pre-command-maintenance-status: open
+status: done 2026-10-21
+pre-command-maintenance-disposition: actionable
+disposition: done
+pre-command-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-maintenance-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs still defines lifecycle DuplicatePrevented; Lifecycle/TenantLifecycleCommandFlow.razor SubmitAsync uses BlockedWithTracking while its icon switch still handles DuplicatePrevented.
+verification: Removed the unused lifecycle-only duplicate factory, terminal-ownership arm and display-symbol arm. Updated live BlockedWithTracking tests and existing rendered repeated-submit/remount controls pass. Shared duplicate handling in other flows remains covered. Full UI 7116/7116 passes with zero failures/skips.
+pre-command-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleCommandSnapshot.cs; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleCommandSnapshotTests.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCommandAuditStatesTests.cs
+pre-command-maintenance-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Remove the unused lifecycle-only state path while preserving live duplicate handling in other flows.
+pre-command-maintenance-next-action: Remove the unused lifecycle-only state path while preserving live duplicate handling in other flows.
+next-action: None for this record; preserve unrelated work and existing release holds.
+closure-evidence: `dw-320-479-530-605-606-validation-evidence.md`
 related: none
 
 ### DW-321: Extract shared lifecycle lease-reclamation and focus helpers
@@ -5602,16 +5612,24 @@ location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Split the fourteen pre-existing public command-model types into their own named C# files.\n  evidence: Build completion review BH11 compared TenantCreateCommandModels.cs with baseline 55f3dc63b6ce10bb0afdf929d026fa07cffd9105 and found all fourteen public types already present. The monolithic file remains contrary to the Hexalith one-type-per-file rule; Review 7's fixes did not edit that file."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs still declares fourteen public types (records/enums at lines 23,27,36,51,60,74,79,134,171,432,614,857,1241,1524), contrary to the required Hexalith one-type-per-file authoring rule.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-evidence-kind: verified-gap
+pre-command-maintenance-status: open
+status: done 2026-10-21
+pre-command-maintenance-disposition: actionable
+disposition: done
+pre-command-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-maintenance-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs still declares fourteen public types (records/enums at lines 23,27,36,51,60,74,79,134,171,432,614,857,1241,1524), contrary to the required Hexalith one-type-per-file authoring rule.
+verification: Requalified existing split from 5f41f089157ef077c5145f34a260004cafa5349c: all fourteen original public types have individual matching files with one public type each, and the monolith is absent. Full UI 7116/7116 passes; no split is newly attributed to this closure.
+pre-command-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/ (fourteen type-named files); dw-320-479-530-605-606-source-checks.json
+pre-command-maintenance-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Split existing command-model types into their matching type-named files in a separate mechanical maintenance change.
+pre-command-maintenance-next-action: Split existing command-model types into their matching type-named files in a separate mechanical maintenance change.
+next-action: None for this record; preserve unrelated work and existing release holds.
+closure-evidence: `dw-320-479-530-605-606-validation-evidence.md`
 related: DW-530
 
 
@@ -6381,16 +6399,24 @@ location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: low; command models violate the required one-C#-type-per-file authoring rule.\n  evidence: BH10: TenantCreateCommandModels.cs contains fourteen public records/enums for create, membership, metadata and lifecycle flows. The required Hexalith baseline explicitly requires separate type-named files. Split mechanically in the owning command-flow change; no new product code was introduced by this dependency upgrade."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs still declares fourteen public types (records/enums at lines 23,27,36,51,60,74,79,134,171,432,614,857,1241,1524), contrary to the required Hexalith one-type-per-file authoring rule.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-evidence-kind: verified-gap
+pre-command-maintenance-status: open
+status: done 2026-10-21
+pre-command-maintenance-disposition: actionable
+disposition: done
+pre-command-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-maintenance-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs still declares fourteen public types (records/enums at lines 23,27,36,51,60,74,79,134,171,432,614,857,1241,1524), contrary to the required Hexalith one-type-per-file authoring rule.
+verification: Duplicate of DW-479. Existing split at 5f41f089157ef077c5145f34a260004cafa5349c is requalified by fourteen exact named-file checks and full UI 7116/7116, zero failures/skips.
+pre-command-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/ (fourteen type-named files); dw-320-479-530-605-606-source-checks.json
+pre-command-maintenance-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Split existing command-model types into their matching type-named files in a separate mechanical maintenance change.
+pre-command-maintenance-next-action: Split existing command-model types into their matching type-named files in a separate mechanical maintenance change.
+next-action: None for this record; preserve unrelated work and existing release holds.
+closure-evidence: `dw-320-479-530-605-606-validation-evidence.md`
 related: DW-479
 duplicate-of: DW-479
 
@@ -7747,16 +7773,24 @@ location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Split tenant command model types into files named for each C# type.\n  evidence: TenantCreateCommandModels.cs contains fourteen public records and enums, making individual models harder to navigate and violating the Hexalith one-type-per-file rule."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantCreateCommandModels.cs still defines multiple public enums/records/snapshots in one file, contrary to the required Hexalith one-type-per-file rule.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-evidence-kind: verified-gap
+pre-command-maintenance-status: open
+status: done 2026-10-21
+pre-command-maintenance-disposition: actionable
+disposition: done
+pre-command-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-maintenance-verification: TenantCreateCommandModels.cs still defines multiple public enums/records/snapshots in one file, contrary to the required Hexalith one-type-per-file rule.
+verification: Requalified the existing fourteen-type split from 5f41f089157ef077c5145f34a260004cafa5349c. Every original public type has a matching single-type file, the old monolith is absent, and full UI 7116/7116 passes. No additional source split was necessary.
+pre-command-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/ (fourteen type-named files); dw-320-479-530-605-606-source-checks.json
+pre-command-maintenance-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Plan a mechanical split into files named after each C# type without behavior changes.
+pre-command-maintenance-next-action: Plan a mechanical split into files named after each C# type without behavior changes.
+next-action: None for this record; preserve unrelated work and existing release holds.
+closure-evidence: `dw-320-479-530-605-606-validation-evidence.md`
 related: none
 
 
@@ -7767,16 +7801,24 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs; s
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Normalize affected C# files to the repository's CRLF line ending policy.\n  evidence: TenantsRestQueryClient.cs and TenantBootstrapCredentialProvider.cs are LF-only despite .editorconfig requiring CRLF, so editor normalization can create noisy diffs."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Read-only byte inspection on 2026-10-12 found TenantsRestQueryClient.cs has 765 LF/0 CRLF, TenantBootstrapCredentialProvider.cs 179 LF/0 CRLF; .editorconfig requires CRLF for C#.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
-evidence-kind: verified-gap
+pre-command-maintenance-status: open
+status: done 2026-10-21
+pre-command-maintenance-disposition: actionable
+disposition: done
+pre-command-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-command-maintenance-verification: Read-only byte inspection on 2026-10-12 found TenantsRestQueryClient.cs has 765 LF/0 CRLF, TenantBootstrapCredentialProvider.cs 179 LF/0 CRLF; .editorconfig requires CRLF for C#.
+verification: Both named source files already have CRLF working bytes. Scoped text/eol=crlf attributes now reproduce that policy in a fresh temporary checkout even with core.autocrlf=false and core.eol=lf. Entry attributes reproduce LF; changed attributes produce 766/766 and 206/206 CRLF newlines with identical normalized contents.
+pre-command-maintenance-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
+verification-files: .gitattributes; src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs; src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
+pre-command-maintenance-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: Owning source formatting work
-next-action: Normalize the affected C# files in a separate formatting-only change.
+pre-command-maintenance-next-action: Normalize the affected C# files in a separate formatting-only change.
+next-action: None for this record; preserve unrelated work and existing release holds.
+closure-evidence: `dw-320-479-530-605-606-validation-evidence.md`
 related: DW-605
 
 

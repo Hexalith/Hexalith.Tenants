@@ -1,0 +1,47 @@
+{
+  "entry_attributes": {
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs": {
+      "lf_count": 766,
+      "crlf_count": 0,
+      "normalized_sha256": "45be3f90d1c83e5f947e2a0dadc2f3a67dae90bc6df74cac8d53a18cfb418bc8"
+    },
+    "src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs": {
+      "lf_count": 206,
+      "crlf_count": 0,
+      "normalized_sha256": "f7ca44d51c27d45cbcefdeff376cd14ff4d996ba67e18688b62ba5b2288341b5"
+    }
+  },
+  "changed_attributes": {
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs": {
+      "lf_count": 766,
+      "crlf_count": 766,
+      "normalized_sha256": "45be3f90d1c83e5f947e2a0dadc2f3a67dae90bc6df74cac8d53a18cfb418bc8"
+    },
+    "src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs": {
+      "lf_count": 206,
+      "crlf_count": 206,
+      "normalized_sha256": "f7ca44d51c27d45cbcefdeff376cd14ff4d996ba67e18688b62ba5b2288341b5"
+    }
+  },
+  "split": {
+    "commit": "5f41f089157ef077c5145f34a260004cafa5349c",
+    "types": [
+      "TenantLifecycleCommandRequest",
+      "TenantCommandTrackingHandle",
+      "TenantCommandLifecycleState",
+      "TenantCommandAuditState",
+      "TenantCommandFocusTarget",
+      "TenantCommandLiveRegionPoliteness",
+      "TenantCommandSubmissionResult",
+      "TenantCommandStatusResult",
+      "TenantCreateCommandSnapshot",
+      "TenantAddMemberCommandSnapshot",
+      "TenantChangeRoleCommandSnapshot",
+      "TenantRemoveMemberCommandSnapshot",
+      "TenantUpdateMetadataCommandSnapshot",
+      "TenantLifecycleCommandSnapshot"
+    ],
+    "exact_named_files": true,
+    "old_monolith_absent": true
+  }
+}
