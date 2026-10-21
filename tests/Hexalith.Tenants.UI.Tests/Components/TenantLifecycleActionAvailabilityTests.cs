@@ -912,14 +912,14 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
                     observedCancellation = cancellationToken;
                     return neverSubmission.Task;
                 }
-                : null,
+            : null,
             StatusProvider = stage == "status"
                 ? (_, cancellationToken) =>
                 {
                     observedCancellation = cancellationToken;
                     return neverStatus.Task;
                 }
-                : null,
+            : null,
         };
         List<bool> activity = [];
         int proofCalls = 0;
@@ -2308,7 +2308,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.Lifecycle, ProjectionLifecycleState.Stale));
 
         cut.Find("[data-testid='tenants-lifecycle-flow-unavailable-reason']").TextContent
-            .ShouldContain("current authoritative data", Case.Insensitive);
+            .ShouldContain("projection lifecycle is not current", Case.Insensitive);
         cut.Find("[data-testid='tenants-lifecycle-recovery']").TextContent
             .ShouldContain("Refresh the authoritative tenant data", Case.Insensitive);
         cut.Find("[data-testid='tenants-lifecycle-recovery']").TextContent

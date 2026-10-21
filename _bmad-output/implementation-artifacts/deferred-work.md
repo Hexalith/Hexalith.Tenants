@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-186 closure (2026-10-21):** Lifecycle launchers and open confirmations distinguish projection lifecycle from read freshness with specific EN/FR copy, preserving the six shared reasons and existing safety gates. Original-code reproduction fails 56 intended cases; reviewed Debug build has zero warnings/errors, focused lifecycle 358/358 and full UI 6721/6721 pass with zero failures/skips. Independent recheck accepts all five corrections. Only DW-186 closes: all 656 IDs remain, 403 done/253 open across 228 exact-covering maintenance rows. Concurrent external archiving, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-186-validation-evidence.md).
+
 **DW-181 closure (2026-10-21):** Six rendered held-read cases qualify cancellation lifetime through metadata refresh, parameter loads, route replacement and real component unmount, including shared detail/member lifetime, successor cancellation, eventual disposal and stale-result rejection. Debug source builds have zero warnings/errors; focused 6/6 and full UI 6624/6624 pass with zero failures/skips. Only DW-181 closes: all 656 IDs remain, 402 done/254 open across 229 exact-covering maintenance rows. External dependency changes, unrelated work and release holds remain preserved. See [exact evidence](dw-181-validation-evidence.md).
 
 **DW-178 closure (2026-10-20):** Same-tenant detail loads deliberately refresh lifecycle authority with projection evidence; a source comment records the rationale and six new rendered cases qualify changed authority, pending fail-closed behavior and recovery. Final Debug source build has zero warnings/errors; focused 6/6 and full UI 6618/6618 pass with zero failures/skips. Only DW-178 closes: all 656 IDs remain, 401 done/255 open across 230 exact-covering maintenance rows. The inherited external sync, initial failures, removed unproven experiment and release limits are preserved in [exact evidence](dw-178-validation-evidence.md).
@@ -1674,19 +1676,29 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-12-pr
 location: src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs:64
 reason: The legacy ledger defers this issue: Coarse `StaleData` category for every non-Current projection lifecycle — deferred, pre-existing; message key is specific (`ProjectionLifecycle`) but category chip stays StaleData. Original context is preserved in legacy-detail.
 legacy-detail: - Coarse `StaleData` category for every non-Current projection lifecycle — deferred, pre-existing; message key is specific (`ProjectionLifecycle`) but category chip stays StaleData [`src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs:64`]
-status: open
+pre-dw-186-status: open
+status: done 2026-10-21
 decision: 2026-09-02 Add lifecycle category — Add a dedicated projection-lifecycle category and migrate mappings, chips, resources, and tests compatibly.
 decision: 2026-09-02 Add lifecycle category — Add a dedicated projection-lifecycle category and migrate mappings, chips, resources, and tests compatibly.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs still maps shared StaleData to TenantLifecycleUnavailableReasonCategory.StaleData even for ProjectionLifecycle-specific copy. Existing 2026-09-02 decision selects a dedicated lifecycle category.
-verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs
-evidence-kind: verified-defect
+pre-dw-186-disposition: actionable
+disposition: resolved
+pre-dw-186-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-dw-186-verification: src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs still maps shared StaleData to TenantLifecycleUnavailableReasonCategory.StaleData even for ProjectionLifecycle-specific copy. Existing 2026-09-02 decision selects a dedicated lifecycle category.
+verification: Dedicated lifecycle presentation subtype preserves shared StaleData eligibility/recovery and earlier authority/read/freshness precedence. EN/FR launchers and open confirmations render the specific projection-lifecycle reason. Original code fails 56/65 intended cases; reviewed Debug source build has zero warnings/errors, lifecycle lane 358/358 and full UI 6721/6721 pass with zero failures/skips. Independent recheck accepts all five corrections; exact commands and limits are in dw-186-validation-evidence.md.
+pre-dw-186-verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleAvailability.cs; src/Hexalith.Tenants.UI/State/TenantDetail/TenantLifecycleUnavailableReasonCategory.cs; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleProjectionCategoryTests.cs; _bmad-output/implementation-artifacts/dw-186-validation-evidence.md
+pre-dw-186-evidence-kind: verified-defect
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Add the recorded lifecycle reason category with compatible resource/chip mappings.
+pre-dw-186-next-action: Add the recorded lifecycle reason category with compatible resource/chip mappings.
+next-action: Closed within DW-186; preserve unrelated deferred work, external archiving, dependencies and existing release qualification holds.
 related: none
+resolution-evidence: [Exact reproduction, verification and independent review](dw-186-validation-evidence.md)
+resolution-spec: spec-dw-186-projection-lifecycle-category.md
+
 
 ### DW-187: Open Set/Remove/Edit flows do not reset when lifecycle flips mid-flight (only lifecycle-action re-evals) — deferred, pre-existing command-flow pattern beyond this story's badge split
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-12-projection-lifecycle-badges.md (2026-08-08)"), 2026-08-25

@@ -100,6 +100,7 @@ public sealed class TenantLifecycleAvailabilityTests
     [InlineData(ProjectionLifecycleState.Degraded)]
     [InlineData(ProjectionLifecycleState.Unavailable)]
     [InlineData(ProjectionLifecycleState.LocalOnly)]
+    [InlineData((ProjectionLifecycleState)999)]
     public void Non_current_operational_lifecycle_blocks_actions_even_when_legacy_freshness_is_current(
         ProjectionLifecycleState lifecycle)
     {
@@ -116,7 +117,7 @@ public sealed class TenantLifecycleAvailabilityTests
             .Evaluate(TenantLifecycleOperation.DisableTenant);
 
         availability.IsUnavailable.ShouldBeTrue();
-        availability.UnavailableReasonCategory.ShouldBe(TenantLifecycleUnavailableReasonCategory.StaleData);
+        availability.UnavailableReasonCategory.ShouldBe(TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle);
         availability.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.ProjectionLifecycle");
         availability.FocusTarget.ShouldBe(TenantCommandFocusTarget.Refresh);
     }

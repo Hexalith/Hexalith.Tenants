@@ -287,9 +287,9 @@
 
     private string? UnavailableReason
         => CurrentResolvedEvidence is not null && !CurrentEntryAvailability.IsEligible
-            ? Localizer[CurrentEntryAvailability.SafeMessageKey].Value
+            ? EvidenceUnavailableReason(CurrentResolvedEvidence, CurrentEntryAvailability)
             : ResolvedEvidence is not null && !EntryAvailability.IsEligible
-                ? Localizer[EntryAvailability.SafeMessageKey].Value
+                ? EvidenceUnavailableReason(ResolvedEvidence, EntryAvailability)
             : Availability.Evidence is null && Availability.IsUnavailable
                 ? Localizer[Availability.SafeMessageKey, PreviewDetail.TenantId, OperationLabel, Availability.ExpectedDomainOutcomeKey ?? string.Empty].Value
             : CommandGateway is null || !CommandGateway.SupportsTrackedLifecycleDispatch
@@ -303,6 +303,17 @@
                         : !IsPreviewComplete
                             ? Localizer["Tenants.Lifecycle.Unavailable.PreviewIncomplete"].Value
                             : null;
+
+    private string EvidenceUnavailableReason(
+        TenantHighImpactActionEvidence evidence,
+        TenantHighImpactActionAvailability highImpact)
+    {
+        TenantLifecycleAvailability availability = TenantLifecycleAvailability.FromEvidence(evidence);
+        return availability.UnavailableReasonCategory is TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle
+            ? Localizer[availability.SafeMessageKey, availability.TenantId,
+                Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"].Value].Value
+            : Localizer[highImpact.SafeMessageKey].Value;
+    }
 
     private bool IsSubmitDisabled
         => !IsPreviewComplete

@@ -298,6 +298,9 @@
                     : Localizer["Tenants.Lifecycle.Retained.Resume"].Value
             : !IsCommandSurfaceAvailable && highImpact.IsEligible
             ? Localizer["Tenants.Lifecycle.Unavailable.InFlightOrCommandSurface"].Value
+            : availability.UnavailableReasonCategory is TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle
+                ? Localizer[availability.SafeMessageKey, availability.TenantId,
+                    Localizer[$"Tenants.Lifecycle.Operation.{availability.Operation}"].Value].Value
             : Localizer[highImpact.SafeMessageKey].Value;
 
     private string HighImpactRecovery(
@@ -323,6 +326,8 @@
             : highImpact.UnavailableReason is TenantHighImpactUnavailableReason.None
                 && highImpact.DomainOutcome is TenantHighImpactDomainOutcome.LifecycleStateAlreadySet
                 ? TenantHighImpactReasonCategoryNames.LifecycleStateAlreadySet
+            : availability.UnavailableReasonCategory is TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle
+                ? nameof(TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle)
             : TenantHighImpactReasonCategoryNames.ForUnavailableReason(highImpact.UnavailableReason);
 
     private string StatusText(TenantStatus status)

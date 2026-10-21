@@ -801,6 +801,9 @@
   <data name="Tenants.Lifecycle.UnavailableReason.StaleData" xml:space="preserve">
     <value>données périmées</value>
   </data>
+  <data name="Tenants.Lifecycle.UnavailableReason.ProjectionLifecycle" xml:space="preserve">
+    <value>cycle de vie de la projection</value>
+  </data>
   <data name="Tenants.Lifecycle.Preview.Title" xml:space="preserve">
     <value>Aperçu des conséquences pour {0}</value>
   </data>

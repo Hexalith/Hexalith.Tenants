@@ -1,4 +1,5 @@
 using Hexalith.EventStore.Client.Projections;
+using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.UI.State.TenantCommands;
 
@@ -91,6 +92,13 @@ public sealed record TenantLifecycleAvailability(
             : result.UnavailableReason switch
         {
             TenantHighImpactUnavailableReason.MissingPermission => TenantLifecycleUnavailableReasonCategory.MissingPermission,
+            // Keep the shared six-reason taxonomy while distinguishing lifecycle from read freshness.
+            TenantHighImpactUnavailableReason.StaleData
+                when evidence.SurfaceKind is TenantDetailSurfaceKind.Ready
+                    && (evidence.Freshness is TenantHighImpactFreshnessState.Current or TenantHighImpactFreshnessState.Aging
+                        || evidence.Freshness is TenantHighImpactFreshnessState.Refreshing && evidence.HasCurrentBaseline)
+                    && evidence.ProjectionLifecycle is not ProjectionLifecycleState.Current
+                => TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle,
             TenantHighImpactUnavailableReason.StaleData => TenantLifecycleUnavailableReasonCategory.StaleData,
             TenantHighImpactUnavailableReason.MissingLifecycleSupport => TenantLifecycleUnavailableReasonCategory.MissingLifecycleSupport,
             TenantHighImpactUnavailableReason.HighImpactFlowNotReady
@@ -117,7 +125,7 @@ public sealed record TenantLifecycleAvailability(
                 ? operation is TenantLifecycleOperation.EnableTenant
                     ? "Tenants.Lifecycle.Unavailable.AlreadyActive"
                     : "Tenants.Lifecycle.Unavailable.AlreadyDisabled"
-                : ResolveSafeMessageKey(evidence, result, operation),
+                : ResolveSafeMessageKey(evidence, result, operation, category),
             result.DomainOutcome is TenantHighImpactDomainOutcome.LifecycleStateAlreadySet
                 ? "TenantLifecycleStateAlreadySet"
                 : null,
@@ -137,7 +145,8 @@ public sealed record TenantLifecycleAvailability(
     private static string ResolveSafeMessageKey(
         TenantHighImpactActionEvidence evidence,
         TenantHighImpactActionAvailability result,
-        TenantLifecycleOperation operation)
+        TenantLifecycleOperation operation,
+        TenantLifecycleUnavailableReasonCategory category)
     {
         if (result.DomainOutcome is TenantHighImpactDomainOutcome.LifecycleStateAlreadySet
             && result.UnavailableReason is TenantHighImpactUnavailableReason.None)
@@ -150,14 +159,9 @@ public sealed record TenantLifecycleAvailability(
         return result.UnavailableReason switch
         {
             TenantHighImpactUnavailableReason.StaleData
-                when evidence.SurfaceKind is not TenantDetailSurfaceKind.Ready
-                    and not TenantDetailSurfaceKind.Unauthorized
-                    || evidence.Freshness is TenantHighImpactFreshnessState.Stale
-                        or TenantHighImpactFreshnessState.Unknown
-                    || evidence.Freshness is TenantHighImpactFreshnessState.Refreshing
-                        && !evidence.HasCurrentBaseline
-                => "Tenants.Lifecycle.Unavailable.StaleFreshness",
-            TenantHighImpactUnavailableReason.StaleData => "Tenants.Lifecycle.Unavailable.ProjectionLifecycle",
+                when category is TenantLifecycleUnavailableReasonCategory.ProjectionLifecycle
+                => "Tenants.Lifecycle.Unavailable.ProjectionLifecycle",
+            TenantHighImpactUnavailableReason.StaleData => "Tenants.Lifecycle.Unavailable.StaleFreshness",
             TenantHighImpactUnavailableReason.MissingPermission => "Tenants.Lifecycle.Unavailable.MissingPermission",
             TenantHighImpactUnavailableReason.MissingLifecycleSupport
                 when evidence.TenantStatus is TenantStatus.Unknown

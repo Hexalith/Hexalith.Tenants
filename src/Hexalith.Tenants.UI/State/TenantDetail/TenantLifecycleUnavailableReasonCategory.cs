@@ -17,4 +17,7 @@ public enum TenantLifecycleUnavailableReasonCategory
 
     /// <summary>The high-impact flow cannot proceed.</summary>
     HighImpactFlowNotReady,
+
+    /// <summary>The otherwise usable read has a non-current projection lifecycle.</summary>
+    ProjectionLifecycle,
 }
