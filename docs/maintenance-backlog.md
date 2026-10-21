@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-191 closure (2026-10-21):** Membership notifications received before child attachment now retain their reconciliation intent until current authorization and rendering, preserving exact attempt identity and authoritative confirmation. Real subscription regressions, route/disposal/failure/remount controls, independent review and a zero-warning/error Debug source build qualify the change; focused and full UI counts are in [exact evidence](../_bmad-output/implementation-artifacts/dw-191-validation-evidence.md). Only DW-191 closes: all 656 IDs remain, 405 done/251 open across 226 exact-covering maintenance rows. Historical findings, unrelated work, dependencies and release holds remain preserved.
+
 **DW-187 closure (2026-10-21):** Lifecycle changes invalidate undispatched metadata/set editors and removal confirmation, preserving sent/uncertain/accepted attempts and terminal evidence. Obsolete previews cannot replace reopened drafts; provisional lease cleanup remains serialized. Independent review corrections/rechecks, zero-warning/error Debug source build, dedicated 28/28 and full UI 6749/6749 pass with zero failures/skips. Only DW-187 closes: all 656 IDs remain, 404 done/252 open across 227 exact-covering maintenance rows. Historical findings, unrelated work, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-187-validation-evidence.md).
 
 **DW-186 closure (2026-10-21):** Lifecycle launchers and open confirmations distinguish projection lifecycle from read freshness with specific EN/FR copy, preserving the six shared reasons and existing safety gates. Original-code reproduction fails 56 intended cases; reviewed Debug build has zero warnings/errors, focused lifecycle 358/358 and full UI 6721/6721 pass with zero failures/skips. Independent recheck accepts all five corrections. Only DW-186 closes: all 656 IDs remain, 403 done/253 open across 228 exact-covering maintenance rows. Concurrent external archiving, unrelated work, dependencies and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-186-validation-evidence.md).
@@ -150,14 +152,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 381 |
-| actionable | 187 |
+| done | 405 |
+| actionable | 165 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
-| uncertain | 37 |
+| uncertain | 36 |
 
-**Remaining: 274 open records across 246 index rows.** Disposition counts now cover all 655 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 251 open records across 226 index rows.** Disposition counts now cover all 656 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -338,7 +340,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-119 | P2 | Unverified / uncertain | unassigned | authenticated browser search fixture | Record document.activeElement during paging and determine whether restoration is required. |
 | DW-127 | P2 | Unverified / awaiting-decision | Story 1.9 | product/security requirement | Set the privacy/completeness acceptance requirement for partially hidden search windows. |
 | DW-180 | P2 | Unverified / uncertain | unassigned | none | Create a deterministic cancellation callback interleaving and assert the older load cannot apply. |
-| DW-191 | P2 | Unverified / uncertain | unassigned | none | Hold child attachment, deliver a nudge during a retained attempt, and show whether the subsequent authoritative read reconciles it. |
 | DW-242 | P2 | Unverified / uncertain | unassigned | authenticated browser fixture | Measure form visibility and initial/Tab focus at 767px and 768px before closing the remaining risk. |
 | DW-372, DW-382 | P2 | Unverified / uncertain | unassigned | none | Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout. |
 | DW-374 | P2 | Unverified / uncertain | unassigned | none | Verify adoption of a withdrawn ambiguous grant under unchanged blocked prerequisites and assert the reason, label, and disabled state. |

@@ -415,6 +415,7 @@
     private string? _activeAggregateLockKey;
     private string? _activeAggregateTenantId;
     private MemberAccessReview? _memberAccessReview;
+    private (long Generation, string TenantId)? _pendingMembershipNudge;
     private TenantAggregateCommandAdmissionGate? _aggregateAdmissionGate;
     private TenantLifecycleAttemptTracker? _lifecycleAttemptTracker;
     private TenantSetConfigurationAttemptTracker? _setConfigurationAttemptTracker;
@@ -1283,6 +1284,8 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         StartMutationAuthorizationResolution();
+        // Stay on the renderer dispatcher: replay can yield before the remaining render work.
+        await ApplyPendingMembershipNudgeAsync();
         if (_pendingAuditFocus is { } focus)
         {
             _pendingAuditFocus = null;
@@ -1319,6 +1322,58 @@
         // subscription endpoint that is down. The counter resets with the route or an explicit projection
         // refresh, so a new tenant and a same-route operator recovery both get a bounded fresh opportunity.
         await EnsureReadRefreshLeaseAsync(TenantId).ConfigureAwait(false);
+    }
+
+    /// <summary>Replays a coalesced membership nudge after current child attachment and authorization.</summary>
+    private async Task ApplyPendingMembershipNudgeAsync()
+    {
+        if (_pendingMembershipNudge is not { } pending)
+        {
+            return;
+        }
+        if (!CanApply(pending.Generation, pending.TenantId))
+        {
+            _pendingMembershipNudge = null;
+            return;
+        }
+        MemberAccessReview? members = _memberAccessReview;
+        if (DetailState is not (FcAggregateDetailState.Ready or FcAggregateDetailState.Stale or FcAggregateDetailState.Degraded)
+            || members is null
+            || !ReferenceEquals(members.Detail, _snapshot.Detail)
+            || MutationAuthorization.Membership is not TenantLifecycleAuthorizationReflectionState.Authorized
+            || members.AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized
+            || members.AuthorizationVersion != _mutationAuthorizationGeneration)
+        {
+            return;
+        }
+
+        // Consume before awaiting: another notification may enqueue a successor while this query yields.
+        _pendingMembershipNudge = null;
+        try
+        {
+            // StateHasChanged below must resume on the renderer dispatcher.
+            await members.ApplySignalRNudgeAsync();
+        }
+        catch
+        {
+            // This optional notification previously ran inside the subscription's contained callback. Keep
+            // transport/provider faults out of OnAfterRender; preserve evidence for explicit refresh recovery.
+            try
+            {
+                if (!_disposed && Services.GetService<ILoggerFactory>() is { } loggerFactory)
+                {
+                    TenantDetailPageLog.MembershipNudgeFailed(loggerFactory.CreateLogger<TenantDetailPage>());
+                }
+            }
+            catch
+            {
+                // Optional diagnostics can outlive their logging scope; they must not fault the renderer.
+            }
+        }
+        if (CanApply(pending.Generation, pending.TenantId) && ReferenceEquals(members, _memberAccessReview))
+        {
+            StateHasChanged();
+        }
     }
 
     private async Task RestoreAuditFocusAsync(string focus)
@@ -1795,6 +1850,10 @@
                 return;
             }
 
+            MemberAccessReview? attachedMembers = _memberAccessReview;
+            bool memberLandmarkMounted = DetailState is FcAggregateDetailState.Ready or FcAggregateDetailState.Stale or FcAggregateDetailState.Degraded
+                && attachedMembers is not null && ReferenceEquals(attachedMembers.Detail, _snapshot.Detail)
+                && attachedMembers.AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
             _snapshot = ForCurrentCaller(detail);
             _tenantUsersSnapshot = MembersForCurrentCaller(members);
             // The jump announcement describes the immediately preceding Previous action. Once an
@@ -1809,14 +1868,20 @@
                 _memberPagingJumpedToFirstPage = false;
             }
 
-            // SignalR / coalesced read refresh is a nudge only: forward into in-flight membership flows so
-            // they re-query authoritative evidence without treating the notification as confirmation.
-            // No ConfigureAwait(false) here: this lambda already runs on the renderer's dispatcher, the nudge
-            // awaits an authoritative status/evidence re-query that yields, and resuming off the dispatcher
-            // would make the StateHasChanged() below throw and tear the circuit down.
-            if ((_commandInFlight || IsCurrentAggregateLocked) && _memberAccessReview is not null)
+            // SignalR is a nudge only. Keep mounted-flow forwarding in this callback context so a
+            // command's own projection refresh does not recursively poll its status again.
+            if (_commandInFlight || IsCurrentAggregateLocked)
             {
-                await _memberAccessReview.ApplySignalRNudgeAsync();
+                if (memberLandmarkMounted && attachedMembers is not null)
+                {
+                    await attachedMembers.ApplySignalRNudgeAsync();
+                }
+                else
+                {
+                    // Loading may have no child, or @ref may still point at a disposed old landmark.
+                    // Replay after the current child has rendered and adopted its retained attempt.
+                    _pendingMembershipNudge = (generation, tenantId);
+                }
             }
 
             TenantConfigurationManagement? configurationManagement = _configurationManagement;

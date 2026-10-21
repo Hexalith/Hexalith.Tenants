@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-191 closure (2026-10-21):** Membership notifications received before child attachment now retain their reconciliation intent until current authorization and rendering, preserving exact attempt identity and authoritative confirmation. Real subscription regressions, route/disposal/failure/remount controls, independent review and a zero-warning/error Debug source build qualify the change; focused and full UI counts are in [exact evidence](dw-191-validation-evidence.md). Only DW-191 closes: all 656 IDs remain, 405 done/251 open across 226 exact-covering maintenance rows. Historical findings, unrelated work, dependencies and release holds remain preserved.
+
 **DW-187 closure (2026-10-21):** Lifecycle changes invalidate undispatched metadata/set editors and removal confirmation, preserving sent/uncertain/accepted attempts and terminal evidence. Obsolete previews cannot replace reopened drafts; provisional lease cleanup remains serialized. Independent review corrections/rechecks, zero-warning/error Debug source build, dedicated 28/28 and full UI 6749/6749 pass with zero failures/skips. Only DW-187 closes: all 656 IDs remain, 404 done/252 open across 227 exact-covering maintenance rows. Historical findings, unrelated work, dependencies, archive/sprint and release holds remain preserved. See [exact evidence](dw-187-validation-evidence.md).
 
 **DW-186 closure (2026-10-21):** Lifecycle launchers and open confirmations distinguish projection lifecycle from read freshness with specific EN/FR copy, preserving the six shared reasons and existing safety gates. Original-code reproduction fails 56 intended cases; reviewed Debug build has zero warnings/errors, focused lifecycle 358/358 and full UI 6721/6721 pass with zero failures/skips. Independent recheck accepts all five corrections. Only DW-186 closes: all 656 IDs remain, 403 done/253 open across 228 exact-covering maintenance rows. Concurrent external archiving, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-186-validation-evidence.md).
@@ -1621,17 +1623,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: SignalR nudge is skipped when MemberAccessReview ref is still null. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: SignalR nudge is skipped when MemberAccessReview ref is still null. evidence: TenantDetailPage forwards only when `_memberAccessReview is not null`; early refresh before child attach can miss an in-flight nudge.
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor forwards member nudges only when _memberAccessReview is nonnull; current key/lease timing is not covered by an early-nudge-before-child-attach reproduction.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: unverified-risk
+pre-dw-191-status: open
+status: done 2026-10-21
+pre-dw-191-disposition: uncertain
+disposition: done
+pre-dw-191-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-dw-191-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor forwards member nudges only when _memberAccessReview is nonnull; current key/lease timing is not covered by an early-nudge-before-child-attach reproduction.
+verification: Actual notifier events during held initial and same-route loads now reconcile retained membership attempts after current child attachment and authorization; focused boundary cases, full UI, independent review and exact commands are recorded in dw-191-validation-evidence.md.
+pre-dw-191-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPageLog.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudge.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.EarlyMembershipNudgeBoundaries.cs
+pre-dw-191-evidence-kind: unverified-risk
+evidence-kind: rendered-regression-and-reviewed-source
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Hold child attachment, deliver a nudge during a retained attempt, and show whether the subsequent authoritative read reconciles it.
+pre-dw-191-next-action: Hold child attachment, deliver a nudge during a retained attempt, and show whether the subsequent authoritative read reconciles it.
+next-action: Closed within DW-191; preserve unrelated deferred work, historical findings, dependencies and release qualification holds.
 related: none
+resolution-evidence: [Exact verification, review and limits](dw-191-validation-evidence.md)
+resolution-spec: spec-dw-191-early-membership-nudge.md
 
 ### DW-192: The mandatory story gitlink validator fails against current HEAD because seven unrelated submodule pointer bumps landed after the isolated Story 2.1 commit
 
