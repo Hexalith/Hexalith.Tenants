@@ -865,12 +865,6 @@
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
 
-    internal void ApplySignalRNudge()
-        => SetSnapshot(_snapshot.SignalRNudge());
-
-    internal void ApplyProjectionEvidence(TenantDetailSnapshot? detail)
-        => SetSnapshot(_snapshot.ConfirmProjection(detail));
-
     private string? ResolveCurrentProjectionVersion()
     {
         string? fromProvider = ProjectionVersionProvider?.Invoke();

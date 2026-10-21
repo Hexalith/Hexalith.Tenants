@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-252/DW-256/DW-258/DW-259/DW-282 closure (2026-10-21):** Six unused internal projection-evidence wrappers and two unused notification wrappers are retired; workspace composition is resolved once with live capability getters. Migrated confirmation/lease/receipt tests and command/read connectivity regressions pass. Reviewed Debug build has zero warnings/errors; focused 584/584 and full UI 7117/7117 pass with zero failures/skips. Independent recheck clears all findings. Only these five records close: 657 IDs remain, 440 done/217 open across 198 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-252-256-258-259-282-validation-evidence.md).
+
 **DW-320/DW-479/DW-530/DW-605/DW-606 closure (2026-10-21):** The unused lifecycle duplicate-state path is removed, three already-fixed model-split records are requalified, and two scoped source paths reliably check out with CRLF. Debug source build has zero warnings/errors; focused 383/383 and full UI 7116/7116 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 435 done/222 open across 202 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-320-479-530-605-606-validation-evidence.md).
 
 **DW-371/DW-386/DW-396/DW-406/DW-414 closure (2026-10-21):** Administrator localization failures retain specific paired recovery, fixed removal-resource checks are reused, recognized grant rejections preserve localized reasons, and captured correction callbacks refuse lost tracked capability. Independent review corrections/recheck, a zero-warning/error Debug source build and full UI 7115/7115 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 430 done/227 open across 206 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](../_bmad-output/implementation-artifacts/dw-371-386-396-406-414-validation-evidence.md).
@@ -164,14 +166,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 435 |
-| actionable | 136 |
+| done | 440 |
+| actionable | 131 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 36 |
 
-**Remaining: 222 open records across 202 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 217 open records across 198 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -377,11 +379,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-332 | P3 | Unverified / uncertain | unassigned | none | Drive a controlled evidence transition during a render and capture the resulting associations before choosing a fix. |
 | DW-246 | P3 | Recommendation / actionable | unassigned | DW-198 | Record exact story end/provenance, retaining later dependency changes outside the old story. |
 | DW-248 | P3 | Recommendation / actionable | unassigned | membership coalescer design | Replace recursive tail replay with an iterative shared drain without dropping refresh intent. |
-| DW-252 | P3 | Recommendation / actionable | unassigned | none | Wire metadata nudges to authoritative reconciliation or retire the dead evidence seam. |
 | DW-255 | P3 | Recommendation / actionable | unassigned | none | Inject the chosen clock and consume timing in bounded retained create behavior while preserving the public member. |
-| DW-256 | P3 | Recommendation / actionable | unassigned | DW-200 | Complete the create nudge/evidence wiring or remove the dead seam. |
-| DW-258, DW-282 | P3 | Recommendation / actionable | unassigned | none | Resolve composition consistently and centralize the absence predicate; specify whether reconnect needs notification. |
-| DW-259 | P3 | Recommendation / actionable | unassigned | none | Remove unused evidence entry points or wire one authoritative live seam with focus/fault containment. |
 | DW-266 | P3 | Recommendation / actionable | unassigned | none | Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive. |
 | DW-267 | P3 | Recommendation / actionable | unassigned | DW-245 and DW-300 | Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics. |
 | DW-301 | P3 | Recommendation / actionable | unassigned | none | Extract a keyed proof-scope helper with cancellation and route-generation behavior pinned first. |

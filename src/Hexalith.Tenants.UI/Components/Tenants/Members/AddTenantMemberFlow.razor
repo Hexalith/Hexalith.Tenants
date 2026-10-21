@@ -731,9 +731,6 @@
         await RefreshCommandStatusAsync(requestProjectionRefresh: false, waitForRunningRefresh: false).ConfigureAwait(false);
     }
 
-    internal void ApplyProjectionEvidence(TenantDetailSnapshot? detail)
-        => SetSnapshot(_snapshot.ConfirmProjection(detail));
-
     private string? ResolveCurrentProjectionVersion()
         => ProjectionVersionProvider?.Invoke() ?? ProjectionVersion;
 

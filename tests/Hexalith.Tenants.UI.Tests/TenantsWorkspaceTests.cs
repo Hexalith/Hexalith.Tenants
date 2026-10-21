@@ -1271,15 +1271,21 @@ public sealed partial class TenantsWorkspaceTests : BunitContext
     }
 
     [Fact]
-    public void Workspace_blocks_create_when_command_surface_is_disconnected()
+    public async Task Workspace_blocks_create_when_command_surface_is_disconnected_and_recovers_on_refresh()
     {
         Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
         gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(TenantListSnapshot.Empty(isAuthorizationScoped: true, ReadModelFreshnessState.Current)));
         Services.AddSingleton(gateway);
-        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized, commandSurfaceConnected: false));
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        Services.AddSingleton(commands);
+        bool commandConnected = false;
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsCommandSurfaceConnected.Returns(_ => commandConnected);
+        composition.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddScoped<ITenantsBffComposition>(_ => composition);
         Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
 
@@ -1289,6 +1295,65 @@ public sealed partial class TenantsWorkspaceTests : BunitContext
         cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
         cut.Find("[data-testid='tenants-create-unavailable-reason']")
             .TextContent.ShouldContain("Tenant command support is unavailable.");
+        cut.FindComponent<CreateTenantFlow>().Instance.IsCommandSurfaceAvailable.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("first-literal-tenant");
+        cut.Find("[data-testid='tenants-create-name']").Change("First tenant");
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+
+        commandConnected = true;
+        await cut.Find("[data-testid='tenants-list-refresh']").ClickAsync(new());
+        cut.WaitForAssertion(() => cut.FindComponent<CreateTenantFlow>().Instance.IsCommandSurfaceAvailable.ShouldBeTrue());
+        cut.FindAll("[data-testid='tenants-create-unavailable-reason']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeFalse();
+
+        commandConnected = false;
+        await cut.Find("[data-testid='tenants-list-refresh']").ClickAsync(new());
+        cut.WaitForAssertion(() => cut.FindComponent<CreateTenantFlow>().Instance.IsCommandSurfaceAvailable.ShouldBeFalse());
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-create-unavailable-reason']")
+            .TextContent.ShouldContain("Tenant command support is unavailable.");
+        await cut.FindComponent<CreateTenantFlow>().Find("form").SubmitAsync();
+        commands.ReceivedCalls().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Workspace_audit_entry_observes_read_disconnection_and_recovery_on_refresh()
+    {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        TenantListRow row = TenantListRow.FromSummary(new Hexalith.Tenants.Contracts.Queries.TenantSummary(
+            "tenant.alpha", "Alpha", TenantStatus.Active)) with
+        {
+            Freshness = ReadModelFreshnessState.Current,
+            Lifecycle = ProjectionLifecycleState.Current,
+        };
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Ready(
+                [row], nextCursor: null, hasMore: false, eTag: null,
+                ReadModelFreshnessState.Current, isDegraded: false) with { Lifecycle = ProjectionLifecycleState.Current }));
+        bool readConnected = false;
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.IsReadSurfaceConnected.Returns(_ => readConnected);
+        composition.ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>())
+            .Returns(ValueTask.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddScoped<ITenantsBffComposition>(_ => composition);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-list-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
+
+        readConnected = true;
+        await cut.Find("[data-testid='tenants-list-refresh']").ClickAsync(new());
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-list-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
+
+        readConnected = false;
+        await cut.Find("[data-testid='tenants-list-refresh']").ClickAsync(new());
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-list-audit-entrypoint']")
+            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
     }
 
     [Fact]

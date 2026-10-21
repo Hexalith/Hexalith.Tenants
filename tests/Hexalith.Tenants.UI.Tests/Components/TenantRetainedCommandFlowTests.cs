@@ -15,6 +15,7 @@ using Hexalith.Tenants.UI.Components.Tenants.Metadata;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
 using Hexalith.Tenants.UI.State.TenantDetail;
+using Hexalith.Tenants.UI.State.TenantList;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
@@ -494,7 +495,7 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
     [InlineData("add")]
     [InlineData("change")]
     [InlineData("metadata")]
-    public async Task CurrentAuthoritativeConfirmationSurvivesLateProcessingStatusAndProtectsForeignAdmission(string kind)
+    public async Task RetainedConfirmationPublicationSurvivesLateProcessingStatusAndProtectsForeignAdmission(string kind)
     {
         ITenantCommandGateway gateway = RegisterGateway((_, id) => Task.FromResult(TenantCommandSubmissionResult.Accepted(id, "correlation-original")));
         gateway.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
@@ -507,7 +508,7 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         MethodInfo refresh = component.GetType().GetMethod("RefreshStatusAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
         Task refreshTask = cut.InvokeAsync(() => (Task)refresh.Invoke(component, null)!);
         await WaitForAsync(() => gateway.ReceivedCalls().Count(call => call.GetMethodInfo().Name is nameof(ITenantCommandGateway.GetStatusAsync)) == 2);
-        MethodInfo applyProjection = component.GetType().GetMethod("ApplyProjectionEvidence", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        object expected = Snapshot(component);
         object proof;
         if (kind is "create")
         {
@@ -520,7 +521,19 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
                 new Dictionary<string, string>(), DateTimeOffset.UtcNow);
             proof = TenantCommandProofFixtures.Proof(detail, "tenant-sequence:2")!;
         }
-        await cut.InvokeAsync(() => applyProjection.Invoke(component, [proof]));
+        object terminal = kind switch
+        {
+            "create" => ((TenantCreateCommandSnapshot)expected).ConfirmProjection((TenantListSnapshot)proof, null),
+            "add" => ((TenantAddMemberCommandSnapshot)expected).ConfirmProjection((TenantDetailSnapshot)proof),
+            "change" => ((TenantChangeRoleCommandSnapshot)expected).ConfirmProjection((TenantDetailSnapshot)proof),
+            _ => ((TenantUpdateMetadataCommandSnapshot)expected).ConfirmProjection((TenantDetailSnapshot)proof),
+        };
+        Property<TenantCommandLifecycleState>(terminal, "State").ShouldBe(TenantCommandLifecycleState.Confirmed);
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantRetainedCommandAttempt attempt = (TenantRetainedCommandAttempt)component.GetType()
+            .GetField("_retainedAttempt", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(component)!;
+        await cut.InvokeAsync(() => tracker.TryUpdate(attempt, expected, terminal).ShouldBeTrue());
+        await WaitForAsync(() => ReferenceEquals(Snapshot(component), terminal));
         Property<TenantCommandLifecycleState>(Snapshot(component), "State").ShouldBe(TenantCommandLifecycleState.Confirmed);
         TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
         string key = TenantCommandAggregateLock.ForTenant("tenant.alpha");
@@ -529,6 +542,10 @@ public sealed class TenantRetainedCommandFlowTests : FluentBunitContext
         held.SetResult(new(CommandStatus.Processing, HasVerifiedCommandIdentity: true));
         await refreshTask.WaitAsync(TimeSpan.FromSeconds(5));
         Property<TenantCommandLifecycleState>(Snapshot(component), "State").ShouldBe(TenantCommandLifecycleState.Confirmed);
+        ReadRetained(tracker, kind).ShouldBeSameAs(terminal);
+        Property<string>(terminal, "MessageId").ShouldBe(Property<string>(expected, "MessageId"));
+        Property<string>(terminal, "CorrelationId").ShouldBe(Property<string>(expected, "CorrelationId"));
+        Property<object>(terminal, "Intent").ShouldBeSameAs(Property<object>(expected, "Intent"));
         gate.IsLocked(key).ShouldBeTrue();
         foreign!.TryAbandonBeforeDispatch(foreignOwner).ShouldBeTrue();
     }

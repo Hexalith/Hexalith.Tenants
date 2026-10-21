@@ -1118,16 +1118,6 @@
         await RefreshCommandStatusAsync(requestProjectionRefresh: false, waitForRunningRefresh: false).ConfigureAwait(false);
     }
 
-    internal void ApplyProjectionEvidence(TenantDetailSnapshot? detail)
-    {
-        SetSnapshot(_snapshot.ConfirmProjection(detail));
-        _ = InvokeAsync(async () =>
-        {
-            await TryAssembleRemovalProofAsync().ConfigureAwait(false);
-            await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
-        });
-    }
-
     private string? ResolveCurrentProjectionVersion()
         => ProjectionVersionProvider?.Invoke() ?? ProjectionVersion;
 

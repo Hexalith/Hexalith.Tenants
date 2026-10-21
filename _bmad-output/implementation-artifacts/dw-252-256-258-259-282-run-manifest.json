@@ -1,0 +1,267 @@
+{
+  "baseline_commit": "c92cd4b15a80c3edb295093d3a1f426aa5a5636f",
+  "initial_full_assembly": {
+    "path": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+    "sha256": "b5c7241c534c6ae1928d3698dfc818c35babba2a4bdbe1cebb9682392757b7fa"
+  },
+  "review_build_log": "/tmp/tenants-ui-cleanup-build-review.log",
+  "reviewed_assembly": {
+    "path": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+    "sha256": "4e3b5a5c3a661e1a03d46fefb739c989a6cb68ea499d4fede8492ed38bffc88d"
+  },
+  "reviewed_source_sha256": {
+    "src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor": "bf900b78652fb8193771c37cdda4dae11afd07e04ddb9b5c0e8280ee829e075c",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor": "1f6583c364a22fabe1519dc16512abbe2df6dd71a4606d95f9353c5861423715",
+    "src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor": "20fcc25767fa977c7fadf54e9d52d408f9d75f26bbce5e32e7712945a7b0b93e",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor": "42c30b39b6362943dff99a5e6c8c78a476c23ee998f15b6ea8d860976cb426f7",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor": "762ed04ed582d6b158a40e111ebbc101275c349a1a9254373e2d679e48c2764e",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor": "1321c2c4963104492ed94cd0d1f6adb98d0561b434e4c4112f826430d1616a66",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor": "201a1de4271a1e98fac7a1af5fe7ce5069a6e85b5360d929c068c5570e18da1b",
+    "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs": "f03300f5e7d7d0eddb320ce93fa2cdb6f922edf1a7345ca24fa4fc25756e78e7",
+    "tests/Hexalith.Tenants.UI.Tests/Components/TenantRetainedCommandFlowTests.cs": "29692f4ae7ca8ea1e40003e674dbd5c2bea4ffc39df6faaf8089f0f968329105",
+    "tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs": "5f737d0d7d3557b2e3900029b87cb827ff05827cc272f3ca336ded5fc6fd1de0"
+  },
+  "note": "The reviewed assembly hash applies to the four review/* lanes; no source/test changes occurred between the reviewed build and those runs. Initial full assembly hash is the historical captured hash from the preceding accepted build. Earlier initial focused runs preceded whitespace normalization and have no attributed assembly hash.",
+  "runs": [
+    {
+      "lane": "RemoveTenantMemberFlowTests",
+      "path": "/tmp/tenants-ui-cleanup/RemoveTenantMemberFlowTests/results.trx",
+      "sha256": "e1c40de0eca8d4650f6b705299e89ea3b3d924183f564fff00805bbbf55b496f",
+      "run_id": "697527ed-62ae-4787-b20d-13b17da97094",
+      "times": {
+        "creation": "2026-10-21T15:43:10.2317988+00:00",
+        "queuing": "2026-10-21T15:43:10.2317988+00:00",
+        "start": "2026-10-21T15:43:10.2317988+00:00",
+        "finish": "2026-10-21T15:43:14.0893815+00:00"
+      },
+      "counters": {
+        "total": "240",
+        "executed": "240",
+        "passed": "240",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "TenantRetainedCommandFlowTests",
+      "path": "/tmp/tenants-ui-cleanup/TenantRetainedCommandFlowTests/results.trx",
+      "sha256": "cb9edaebcfb26432835f63b19d9ca38a0d00e726795e5e409d69e3f2df8df8e8",
+      "run_id": "e4ed14cc-1e9a-41ed-8b48-f56c47eac54c",
+      "times": {
+        "creation": "2026-10-21T15:43:10.0739674+00:00",
+        "queuing": "2026-10-21T15:43:10.0739674+00:00",
+        "start": "2026-10-21T15:43:10.0739674+00:00",
+        "finish": "2026-10-21T15:43:32.8301632+00:00"
+      },
+      "counters": {
+        "total": "207",
+        "executed": "207",
+        "passed": "207",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "TenantsWorkspaceTests",
+      "path": "/tmp/tenants-ui-cleanup/TenantsWorkspaceTests/results.trx",
+      "sha256": "ae0b00d21fcea010644787d30b4d89614257e1d43a52f0289aa7a3880864b7c7",
+      "run_id": "14ae2ec5-3294-4414-9247-6cb680abf5f4",
+      "times": {
+        "creation": "2026-10-21T15:43:10.1293536+00:00",
+        "queuing": "2026-10-21T15:43:10.1293536+00:00",
+        "start": "2026-10-21T15:43:10.1293536+00:00",
+        "finish": "2026-10-21T15:43:15.6383319+00:00"
+      },
+      "counters": {
+        "total": "136",
+        "executed": "136",
+        "passed": "136",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "full",
+      "path": "/tmp/tenants-ui-cleanup/full/results.trx",
+      "sha256": "5184273f1d69637551a1a00a62fbb025f7f9e5eb64c2571141ef283df6a474d2",
+      "run_id": "af950a95-9f57-412f-9e6c-701c9234cbdf",
+      "times": {
+        "creation": "2026-10-21T15:44:47.2535778+00:00",
+        "queuing": "2026-10-21T15:44:47.2535778+00:00",
+        "start": "2026-10-21T15:44:47.2535778+00:00",
+        "finish": "2026-10-21T15:46:34.5403461+00:00"
+      },
+      "counters": {
+        "total": "7116",
+        "executed": "7116",
+        "passed": "7116",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "review/RemoveTenantMemberFlowTests",
+      "path": "/tmp/tenants-ui-cleanup/review/RemoveTenantMemberFlowTests/results.trx",
+      "sha256": "3ba8f1bcb3d081ba7b49de9c2691379923d21e5a5c7e2b945e2eaa1c837995d1",
+      "run_id": "788d7b96-4add-48cd-bd84-c7923dfc84b6",
+      "times": {
+        "creation": "2026-10-21T15:51:23.0758255+00:00",
+        "queuing": "2026-10-21T15:51:23.0758255+00:00",
+        "start": "2026-10-21T15:51:23.0758255+00:00",
+        "finish": "2026-10-21T15:51:26.9672743+00:00"
+      },
+      "counters": {
+        "total": "240",
+        "executed": "240",
+        "passed": "240",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "review/TenantRetainedCommandFlowTests",
+      "path": "/tmp/tenants-ui-cleanup/review/TenantRetainedCommandFlowTests/results.trx",
+      "sha256": "b75f8e53b16e10c9b7041fe6921a01501010e69227009d633aeee2e9d6f749b3",
+      "run_id": "ec93af43-3cba-4300-b156-f85d49fec025",
+      "times": {
+        "creation": "2026-10-21T15:51:23.1039010+00:00",
+        "queuing": "2026-10-21T15:51:23.1039010+00:00",
+        "start": "2026-10-21T15:51:23.1039010+00:00",
+        "finish": "2026-10-21T15:51:45.7132425+00:00"
+      },
+      "counters": {
+        "total": "207",
+        "executed": "207",
+        "passed": "207",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "review/TenantsWorkspaceTests",
+      "path": "/tmp/tenants-ui-cleanup/review/TenantsWorkspaceTests/results.trx",
+      "sha256": "8a17dc44ede1e9b61d414021612719d21a35e4f77c4d9e4ba12b9c72fc84fbb6",
+      "run_id": "f27600c9-6700-4e68-ad68-611497057b83",
+      "times": {
+        "creation": "2026-10-21T15:51:23.0954085+00:00",
+        "queuing": "2026-10-21T15:51:23.0954085+00:00",
+        "start": "2026-10-21T15:51:23.0954085+00:00",
+        "finish": "2026-10-21T15:51:28.2988684+00:00"
+      },
+      "counters": {
+        "total": "137",
+        "executed": "137",
+        "passed": "137",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "lane": "review/full",
+      "path": "/tmp/tenants-ui-cleanup/review/full/results.trx",
+      "sha256": "26e3f2c0c80697436969f72801930aec073946f6b42bf99d06c93b82a4cf382b",
+      "run_id": "f80f7b77-b366-48fb-a5bf-c157e72482f9",
+      "times": {
+        "creation": "2026-10-21T15:52:44.8929478+00:00",
+        "queuing": "2026-10-21T15:52:44.8929478+00:00",
+        "start": "2026-10-21T15:52:44.8929478+00:00",
+        "finish": "2026-10-21T15:54:36.5441136+00:00"
+      },
+      "counters": {
+        "total": "7117",
+        "executed": "7117",
+        "passed": "7117",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ]
+}

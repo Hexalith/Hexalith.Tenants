@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-252/DW-256/DW-258/DW-259/DW-282 closure (2026-10-21):** Six unused internal projection-evidence wrappers and two unused notification wrappers are retired; workspace composition is resolved once with live capability getters. Migrated confirmation/lease/receipt tests and command/read connectivity regressions pass. Reviewed Debug build has zero warnings/errors; focused 584/584 and full UI 7117/7117 pass with zero failures/skips. Independent recheck clears all findings. Only these five records close: 657 IDs remain, 440 done/217 open across 198 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-252-256-258-259-282-validation-evidence.md).
+
 **DW-320/DW-479/DW-530/DW-605/DW-606 closure (2026-10-21):** The unused lifecycle duplicate-state path is removed, three already-fixed model-split records are requalified, and two scoped source paths reliably check out with CRLF. Debug source build has zero warnings/errors; focused 383/383 and full UI 7116/7116 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 435 done/222 open across 202 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-320-479-530-605-606-validation-evidence.md).
 
 **DW-371/DW-386/DW-396/DW-406/DW-414 closure (2026-10-21):** Administrator localization failures retain specific paired recovery, fixed removal-resource checks are reused, recognized grant rejections preserve localized reasons, and captured correction callbacks refuse lost tracked capability. Independent review corrections/recheck, a zero-warning/error Debug source build and full UI 7115/7115 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 430 done/227 open across 206 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-371-386-396-406-414-validation-evidence.md).
@@ -2351,17 +2353,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: EditTenantMetadataFlow.ApplyProjectionEvidence and ApplySignalRNudge have no callers; the story threaded a projection version into a dead entry point. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: EditTenantMetadataFlow.ApplyProjectionEvidence and ApplySignalRNudge have no callers; the story threaded a projection version into a dead entry point. evidence: grep over src/ finds only the declarations; TenantDetailPage holds an @ref to _memberAccessReview only and nudges only that component. Consequence: SignalR nudges never reach the metadata flow today.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor still declares ApplySignalRNudge and ApplyProjectionEvidence without production invocations; TenantDetailPage.razor only nudges member and lifecycle children.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: recommendation
+pre-ui-composition-cleanup-status: open
+pre-ui-composition-cleanup-disposition: actionable
+pre-ui-composition-cleanup-verification-date: 2026-10-12
+pre-ui-composition-cleanup-verification: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor still declares ApplySignalRNudge and ApplyProjectionEvidence without production invocations; TenantDetailPage.razor only nudges member and lifecycle children.
+pre-ui-composition-cleanup-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
+pre-ui-composition-cleanup-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Wire metadata nudges to authoritative reconciliation or retire the dead evidence seam.
+pre-ui-composition-cleanup-next-action: Wire metadata nudges to authoritative reconciliation or retire the dead evidence seam.
 related: DW-259
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: Retired the unused metadata projection-evidence and synchronous nudge wrappers. Production status/projection reconciliation remains the authoritative path; no notification wiring is claimed.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor
+evidence-kind: verified-resolution
+next-action: None for this record; unrelated work and existing release holds retain their separate scope.
+closure-evidence: `dw-252-256-258-259-282-validation-evidence.md`
+retirement-decision: Choose this record's explicit retire-seam alternative. Metadata retains its existing explicit authoritative refresh UX; notification integration is a future feature, not an outstanding requirement of this cleanup. The original notification observation remains preserved in legacy-detail and pre-ui-composition-cleanup-verification.
 
 ### DW-253: New defensive branches are covered only by reflection-poking private fields, so they will break silently on rename and do not exercise the real gateway path
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-2-edit-tenant-metadata-with-recorded-updates.md (2026-08-21)"), 2026-08-25
@@ -2427,17 +2438,25 @@ location: src/; tests/
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: `CreateTenantFlow.ApplyProjectionEvidence` has no callers in `src/` or `tests/` and bypasses `SetSnapshot`, so it would not honour the assertive-focus rule if wired. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: `CreateTenantFlow.ApplyProjectionEvidence` has no callers in `src/` or `tests/` and bypasses `SetSnapshot`, so it would not honour the assertive-focus rule if wired. evidence: Its signature was updated for the tuple change, but the SignalR nudge wiring that would call it is itself deferred; fixing the seam in isolation has no observable effect.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor ApplyProjectionEvidence now calls SetSnapshot, fixing the focus bypass, but repository search still finds no invocations; the nudge integration is still missing.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-evidence-kind: recommendation
+pre-ui-composition-cleanup-status: open
+pre-ui-composition-cleanup-disposition: actionable
+pre-ui-composition-cleanup-verification-date: 2026-10-12
+pre-ui-composition-cleanup-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor ApplyProjectionEvidence now calls SetSnapshot, fixing the focus bypass, but repository search still finds no invocations; the nudge integration is still missing.
+pre-ui-composition-cleanup-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
+pre-ui-composition-cleanup-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: DW-200
-next-action: Complete the create nudge/evidence wiring or remove the dead seam.
+pre-ui-composition-cleanup-next-action: Complete the create nudge/evidence wiring or remove the dead seam.
 related: DW-200, DW-259
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: Retired the unused create projection-evidence and synchronous nudge wrappers. The independent create notification integration tracked by DW-200 remains open; existing status/projection confirmation is unchanged.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
+evidence-kind: verified-resolution
+next-action: None for this record; unrelated work and existing release holds retain their separate scope.
+closure-evidence: `dw-252-256-258-259-282-validation-evidence.md`
 
 ### DW-257: Baseline and evidence projection versions are read from different snapshot lineages -- baseline from `_snapshot.ProjectionVersion`, evidence from `_lastConfirmedSnapshot ?? _snapshot` -- so a failed post-create reload makes a genuinely successful create report `UnableToVerify`
 
@@ -2452,34 +2471,51 @@ location: TenantsWorkspace.IsCommandSurfaceConnected
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: `TenantsWorkspace.IsCommandSurfaceConnected` is a render-time `Services.GetService` lookup with no subscription, duplicating an existing resolution in the same component and using the non-generic overload. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: `TenantsWorkspace.IsCommandSurfaceConnected` is a render-time `Services.GetService` lookup with no subscription, duplicating an existing resolution in the same component and using the non-generic overload. evidence: Pre-existing composition pattern; the no-subscription half is already recorded in this ledger from the 2026-08-08 review. Story 3.1 added the workspace-side call site but not the pattern.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor IsCommandSurfaceConnected still resolves ITenantsBffComposition via Services.GetService at render time, with duplicated disconnected/authorization-empty predicates and no reconnect subscription.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: recommendation
+pre-ui-composition-cleanup-status: open
+pre-ui-composition-cleanup-disposition: actionable
+pre-ui-composition-cleanup-verification-date: 2026-10-12
+pre-ui-composition-cleanup-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor IsCommandSurfaceConnected still resolves ITenantsBffComposition via Services.GetService at render time, with duplicated disconnected/authorization-empty predicates and no reconnect subscription.
+pre-ui-composition-cleanup-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+pre-ui-composition-cleanup-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Resolve composition consistently and centralize the absence predicate; specify whether reconnect needs notification.
+pre-ui-composition-cleanup-next-action: Resolve composition consistently and centralize the absence predicate; specify whether reconnect needs notification.
 related: DW-258, DW-282
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: TenantsWorkspace now resolves the optional scoped BFF composition once during initialization and reuses it at all four call sites. Connectivity getters remain live on render/refresh; the interface has no connectivity event. The authoritative-first-empty predicate was already centralized and remains unchanged.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+evidence-kind: verified-resolution
+next-action: None for this record; unrelated work and existing release holds retain their separate scope.
+closure-evidence: `dw-252-256-258-259-282-validation-evidence.md`
+connectivity-decision: Preserve the existing Refresh/rerender capability checks for the configured scoped composition. No connectivity event contract exists or is required by this refactor; cache the service instance only. The command and audit-read transition regressions qualify current getters after refresh.
 
 ### DW-259: `ApplyProjectionEvidence` is dead code across all eight command flows
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md (2026-08-21)"), 2026-08-25
 location: src/; tests/
 reason: The legacy ledger defers this issue: `ApplyProjectionEvidence` is dead code across all eight command flows. Original context is preserved in legacy-detail.
 legacy-detail: - **`ApplyProjectionEvidence` is dead code across all eight command flows.** A repo-wide search finds eight `internal void ApplyProjectionEvidence` declarations in `src/` and zero invocations in `src/` or `tests/`. Loop 2 rewrote the remove-member copy (`RemoveTenantMemberFlow.razor:628`) to fire a discarded `InvokeAsync` that calls `TryAssembleRemovalProofAsync` and `UpdateCommandActivityForSnapshotAsync` without `StateHasChanged` and outside any try/catch. The live proof path is `HandleAuthoritativeRefreshNudgeAsync` → `TryAssembleRemovalProofAsync` (`:902`), reached from `MemberAccessReview.razor:804`, so WP-2A still works — the rewritten method is simply unreachable. Pre-existing pattern, spans seven files outside story 2.4.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor, Members/AddTenantMemberFlow.razor, ChangeTenantMemberRoleFlow.razor, RemoveTenantMemberFlow.razor, Metadata/EditTenantMetadataFlow.razor and Configuration/SetTenantConfigurationFlow.razor still declare ApplyProjectionEvidence with no call sites in src/tests. The historical count eight changed, but the dead-seam issue persists.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor
-evidence-kind: recommendation
+pre-ui-composition-cleanup-status: open
+pre-ui-composition-cleanup-disposition: actionable
+pre-ui-composition-cleanup-verification-date: 2026-10-12
+pre-ui-composition-cleanup-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor, Members/AddTenantMemberFlow.razor, ChangeTenantMemberRoleFlow.razor, RemoveTenantMemberFlow.razor, Metadata/EditTenantMetadataFlow.razor and Configuration/SetTenantConfigurationFlow.razor still declare ApplyProjectionEvidence with no call sites in src/tests. The historical count eight changed, but the dead-seam issue persists.
+pre-ui-composition-cleanup-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor
+pre-ui-composition-cleanup-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Remove unused evidence entry points or wire one authoritative live seam with focus/fault containment.
+pre-ui-composition-cleanup-next-action: Remove unused evidence entry points or wire one authoritative live seam with focus/fault containment.
 related: DW-252, DW-256
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: Removed all six remaining unused internal ApplyProjectionEvidence declarations. Nine direct/reflected test cases now use authoritative provider refresh or retained tracker advancement; late-status receipt and foreign-admission assertions remain qualified.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantRetainedCommandFlowTests.cs
+evidence-kind: verified-resolution
+next-action: None for this record; unrelated work and existing release holds retain their separate scope.
+closure-evidence: `dw-252-256-258-259-282-validation-evidence.md`
 
 ### DW-260: `CreateTenantFlow` never adopts the reusable `messageId` affordance this story added
 
@@ -2732,18 +2768,27 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantsWorkspace
 reason: The legacy ledger defers this issue: `TenantsWorkspace` resolves `ITenantsBffComposition` per render and duplicates its own absence predicate. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `TenantsWorkspace` resolves `ITenantsBffComposition` per render and duplicates its own absence predicate. evidence: `:418-420` uses the untyped `Services.GetService(typeof(...))` inside a per-render property with no caching, where `TenantDetailPage` caches the equivalent in a field; the `Empty && IsAuthorizationScopedEmpty` predicate appears at both `:413-414` and `:159` and must not be allowed to drift.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor IsCommandSurfaceConnected still resolves ITenantsBffComposition via Services.GetService at render time, with duplicated disconnected/authorization-empty predicates and no reconnect subscription.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: recommendation
+pre-ui-composition-cleanup-status: open
+pre-ui-composition-cleanup-disposition: actionable
+pre-ui-composition-cleanup-verification-date: 2026-10-12
+pre-ui-composition-cleanup-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor IsCommandSurfaceConnected still resolves ITenantsBffComposition via Services.GetService at render time, with duplicated disconnected/authorization-empty predicates and no reconnect subscription.
+pre-ui-composition-cleanup-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+pre-ui-composition-cleanup-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Resolve composition consistently and centralize the absence predicate; specify whether reconnect needs notification.
+pre-ui-composition-cleanup-next-action: Resolve composition consistently and centralize the absence predicate; specify whether reconnect needs notification.
 related: DW-258, DW-282
 duplicate-of: DW-258
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: Duplicate of DW-258: one optional scoped composition instance replaces repeated resolution. Capability values remain live, and the existing shared authoritative-first-empty predicate is preserved.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+evidence-kind: verified-resolution
+next-action: None for this record; unrelated work and existing release holds retain their separate scope.
+closure-evidence: `dw-252-256-258-259-282-validation-evidence.md`
+connectivity-decision: Preserve the existing Refresh/rerender capability checks for the configured scoped composition. No connectivity event contract exists or is required by this refactor; cache the service instance only. The command and audit-read transition regressions qualify current getters after refresh.
 
 ### DW-283: An eighth undeclared `references/` pointer move appeared during this review
 

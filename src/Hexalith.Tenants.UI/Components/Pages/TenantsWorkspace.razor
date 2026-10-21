@@ -345,6 +345,7 @@
 @code {
     private static readonly int[] _pageSizes = [20, 50, 100];
     private TenantListSnapshot _snapshot = TenantListSnapshot.Loading();
+    private ITenantsBffComposition? _bffComposition;
     private TenantListSurfaceKind? _refreshingListKind;
     private string? _renderedStatusFilterLabel;
     private long _auditRefreshVersion;
@@ -569,8 +570,7 @@
         => _snapshot.Freshness is ReadModelFreshnessState.Unknown && IsAuthoritativeFirstTenantEmpty;
 
     private bool IsCommandSurfaceConnected
-        => Services.GetService(typeof(ITenantsBffComposition)) is ITenantsBffComposition bffComposition
-            && bffComposition.IsCommandSurfaceConnected;
+        => _bffComposition?.IsCommandSurfaceConnected is true;
 
     // The scoped paging service resolved on a non-interactive (static SSR / prerender) render pass belongs
     // to that request's scope, not to the interactive circuit, so retained protected paging must neither be
@@ -696,6 +696,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // The composition is circuit-scoped; read its current capabilities on each use.
+        _bffComposition = Services.GetService<ITenantsBffComposition>();
         Navigation.LocationChanged += OnWorkspaceLocationChanged;
         _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
         if (_authenticationStateProvider is not null)
@@ -778,7 +780,7 @@
         string? caller = AuthenticatedUserId;
         _createAuthorization = TenantLifecycleAuthorizationReflectionState.Indeterminate;
         _createAuthorityUserId = null;
-        if (Services.GetService(typeof(ITenantsBffComposition)) is not ITenantsBffComposition bffComposition)
+        if (_bffComposition is not { } bffComposition)
         {
             await InvokeAsync(() =>
             {
@@ -844,7 +846,7 @@
         TenantListSnapshot snapshot = _snapshot;
         if (!IsTenantListView || !HasCurrentCallerAuthority || string.IsNullOrWhiteSpace(caller)
             || Volatile.Read(ref _pendingAuditCallerVersion) != 0
-            || Services.GetService<ITenantsBffComposition>() is not { } bffComposition)
+            || _bffComposition is not { } bffComposition)
         {
             return TenantLifecycleAuthorizationReflectionState.Indeterminate;
         }
@@ -1515,7 +1517,7 @@
 
     private bool AuditReadAvailable
         => CanReviewGlobalAdministrators
-            && Services.GetService(typeof(ITenantsBffComposition)) is ITenantsBffComposition { IsReadSurfaceConnected: true };
+            && _bffComposition is { IsReadSurfaceConnected: true };
 
     // Resolved authority that is neither authorized nor proven denied is indeterminate: say so rather than
     // blaming tenant scope. Pending authority and disconnection have their own entry-point copy.

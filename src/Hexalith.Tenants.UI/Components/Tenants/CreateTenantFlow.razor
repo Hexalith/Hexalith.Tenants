@@ -587,12 +587,6 @@
 
     private TenantCommandAttemptTracker Attempts => AttemptTracker!.Attempts;
 
-    internal void ApplySignalRNudge()
-        => SetSnapshot(_snapshot.SignalRNudge());
-
-    internal void ApplyProjectionEvidence(TenantListSnapshot? proof)
-        => SetSnapshot(_snapshot.ConfirmProjection(proof, null));
-
     private void OnTenantIdInput(string? value)
     {
         InvalidateAdmission();

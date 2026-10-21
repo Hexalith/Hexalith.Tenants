@@ -510,7 +510,6 @@
         await RefreshAttemptStatusAsync(waitForRunningRefresh: false).ConfigureAwait(false);
     }
     internal void ApplySignalRNudge() => SetSnapshot(_snapshot.SignalRNudge());
-    internal void ApplyProjectionEvidence(TenantConfigurationProjectionProof? proof) => SetSnapshot(_snapshot.ConfirmProjection(proof));
 
     private Task OpenEditorAsync()
     {

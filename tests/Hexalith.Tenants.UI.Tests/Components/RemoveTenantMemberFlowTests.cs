@@ -758,7 +758,9 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         await cut.Find("form").SubmitAsync();
         gateway.RemoveMemberCallCount.ShouldBe(1);
         TenantDetail after = Detail("tenant.alpha", [new("owner-user", TenantRole.TenantOwner), new("second-owner", TenantRole.TenantOwner)]);
-        await cut.InvokeAsync(() => cut.Instance.ApplyProjectionEvidence(Proof(after, "tenant-sequence:2")));
+        cut.Render(p => p.Add(x => x.ProjectionEvidenceProvider,
+            _ => Task.FromResult(Proof(after, "tenant-sequence:2"))));
+        await cut.InvokeAsync(cut.Instance.HandleAuthoritativeRefreshNudgeAsync);
         cut.WaitForAssertion(() =>
         {
             cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
@@ -957,7 +959,9 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         await submission;
         cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
         TenantDetail after = Detail("tenant.alpha", [new("owner-user", TenantRole.TenantOwner), new("second-owner", TenantRole.TenantOwner)]);
-        await cut.InvokeAsync(() => cut.Instance.ApplyProjectionEvidence(Proof(after, "tenant-sequence:2")));
+        cut.Render(p => p.Add(x => x.ProjectionEvidenceProvider,
+            _ => Task.FromResult(Proof(after, "tenant-sequence:2"))));
+        await cut.InvokeAsync(cut.Instance.HandleAuthoritativeRefreshNudgeAsync);
         cut.WaitForAssertion(() =>
         {
             cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
@@ -2039,7 +2043,9 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
         releases.ShouldBe(1);
         TenantDetail after = Detail("tenant.alpha", [new("owner-user", TenantRole.TenantOwner), new("second-owner", TenantRole.TenantOwner)]);
-        await cut.InvokeAsync(() => cut.Instance.ApplyProjectionEvidence(Proof(after, "tenant-sequence:2")));
+        cut.Render(p => p.Add(x => x.ProjectionEvidenceProvider,
+            _ => Task.FromResult(Proof(after, "tenant-sequence:2"))));
+        await cut.InvokeAsync(cut.Instance.HandleAuthoritativeRefreshNudgeAsync);
         cut.WaitForAssertion(() =>
         {
             cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
@@ -2811,7 +2817,9 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         tracker.HasPendingOwnership("tenant.alpha").ShouldBeTrue();
         gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
         TenantDetail after = Detail("tenant.alpha", [new("owner-user", TenantRole.TenantOwner), new("second-owner", TenantRole.TenantOwner)]);
-        await replacement.InvokeAsync(() => replacement.Instance.ApplyProjectionEvidence(Proof(after, "tenant-sequence:2")));
+        replacement.Render(p => p.Add(x => x.ProjectionEvidenceProvider,
+            _ => Task.FromResult(Proof(after, "tenant-sequence:2"))));
+        await replacement.InvokeAsync(replacement.Instance.HandleAuthoritativeRefreshNudgeAsync);
         replacement.WaitForAssertion(() =>
         {
             replacement.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
@@ -4254,7 +4262,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public async Task AuthoritativeRemovalConfirmationPreservesQualifiedReceiptAcrossLateStatusAndReleasesOnlyItsLease()
+    public async Task RetainedRemovalConfirmationPreservesQualifiedReceiptAcrossLateStatusAndReleasesOnlyItsLease()
     {
         StubTenantCommandGateway gateway = CompletedGateway();
         ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
@@ -4268,7 +4276,18 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         Task refresh = cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
         await WaitUntilAsync(() => gateway.StatusCallCount == 2, TimeSpan.FromSeconds(5));
         TenantDetail after = Detail("tenant.alpha", [new("owner-user", TenantRole.TenantOwner), new("second-owner", TenantRole.TenantOwner)]);
-        await cut.InvokeAsync(() => cut.Instance.ApplyProjectionEvidence(Proof(after, "tenant-sequence:2")));
+        TenantRemoveMemberCommandSnapshot pending = cut.Instance.Snapshot;
+        TenantRemoveMemberCommandSnapshot terminal = pending.ConfirmProjection(Proof(after, "tenant-sequence:2"));
+        terminal.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        TenantCommandAttemptTracker tracker = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        TenantRetainedCommandAttempt attempt = (TenantRetainedCommandAttempt)typeof(RemoveTenantMemberFlow)
+            .GetField("_retainedAttempt", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(cut.Instance)!;
+        await cut.InvokeAsync(() => tracker.TryUpdate(attempt, pending, terminal).ShouldBeTrue());
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.ShouldBeSameAs(terminal));
+        // Qualify the receipt through the live audit-query method while the older status remains held.
+        MethodInfo assembleProof = typeof(RemoveTenantMemberFlow)
+            .GetMethod("TryAssembleRemovalProofAsync", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        await cut.InvokeAsync(() => (Task)assembleProof.Invoke(cut.Instance, null)!);
         cut.WaitForElement("[data-testid='tenants-audit-receipt']");
         TenantRemoveMemberCommandSnapshot confirmed = cut.Instance.Snapshot;
         TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
