@@ -48,8 +48,9 @@ A historical audit is refused if **any** commit in the event range changes a
 Keep a historical documentation repair separate from dependency changes. This
 restriction prevents a pinned old endpoint from hiding pointers carried by new
 story work. Unchanged old stories are not selected, and independent pointer-only
-pushes do not acquire inferred story ownership. Historical attribution questions
-outside the selected range remain separately tracked in DW-198.
+pushes do not acquire inferred story ownership. Historical range inventories for the removal, grant and dependency-refresh
+artifacts are recorded in [DW-198/246/343/360/384 evidence](../_bmad-output/implementation-artifacts/dw-198-246-343-360-384-validation-evidence.md).
+Other historical range-policy decisions remain separately tracked in DW-549.
 
 To replay a local event, save its JSON and run:
 

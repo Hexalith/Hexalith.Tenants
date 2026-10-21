@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-198/DW-246/DW-343/DW-360/DW-384 closure (2026-10-21):** Removal and grant audits bind immutable historical endpoints and exact dependency targets. The refresh inventory includes earlier gitlinks and the topology alias, with its preserved mid-story checkpoint explicitly qualified. Only these five records close: 657 IDs remain, 455 done/202 open across 186 exact-covering maintenance rows. Historical findings, independent dependency work and release holds remain preserved. See [validation evidence](dw-198-246-343-360-384-validation-evidence.md).
+
 **DW-344/DW-381/DW-393/DW-394/DW-395 closure (2026-10-21):** Provenance CI rejects skipped cases; parsed workflow commands and build-only edge metadata have executable mutation controls. The blocking AppHost model test proves its actual package mode and rejects source evidence. Exactly five records close: 657 IDs remain, 450 done/207 open across 189 exact-covering maintenance rows. The broader package IntegrationTests NativeSourceProof build blocker and unrelated release/runtime gates remain explicit. See [validation evidence](dw-344-381-393-394-395-validation-evidence.md).
 
 **DW-504/DW-532/DW-564/DW-578/DW-596 closure (2026-10-21):** Historical tenant proof claims are qualified and revocation lag is documented, parsed-row equality is distinguished from catalog byte preservation, and CI/dependency guidance follows tracked authority. Exactly five documentation records close: all 657 IDs remain, 445 done/212 open across 193 exact-covering maintenance rows. Historical evidence, unrelated records and unresolved provenance/runtime/release gates remain preserved. See [validation evidence](dw-504-532-564-578-596-validation-evidence.md).
@@ -1739,17 +1741,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: validate-story-gitlinks.py; references/
 reason: The legacy ledger defers this issue: Default `validate-story-gitlinks.py` execution compares the Story 2.4 baseline to the later repository `HEAD` and reports seven undeclared `references/` pointer moves made by post-story dependency commits. Original context is preserved in legacy-detail.
 legacy-detail: - Default `validate-story-gitlinks.py` execution compares the Story 2.4 baseline to the later repository `HEAD` and reports seven undeclared `references/` pointer moves made by post-story dependency commits. Exact story-range validation with `--ref fa5ca559` passes for both 2.4 specifications with no gitlink changes. Keep the later dependency bumps outside Story 2.4 review scope; make story-end range selection durable if old stories must remain independently re-reviewable after `main` advances.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: scripts/validate-story-gitlinks.py defaults legacy stories to HEAD, while --ref permits exact historical ranges. The recorded-commit mode added later does not automatically assign an end revision to these older 2.4 records.
-verification-files: scripts/validate-story-gitlinks.py
-evidence-kind: recommendation
+pre-historical-provenance-status: open
+pre-historical-provenance-disposition: actionable
+pre-historical-provenance-verification-date: 2026-10-12
+pre-historical-provenance-verification: scripts/validate-story-gitlinks.py defaults legacy stories to HEAD, while --ref permits exact historical ranges. The recorded-commit mode added later does not automatically assign an end revision to these older 2.4 records.
+pre-historical-provenance-verification-files: scripts/validate-story-gitlinks.py
+pre-historical-provenance-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: historical story-range attribution
-next-action: Record an immutable story-end range or migrate the historical artifact to owned-commit provenance; keep later dependency moves separate.
+pre-historical-provenance-next-action: Record an immutable story-end range or migrate the historical artifact to owned-commit provenance; keep later dependency moves separate.
 related: DW-246
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: Both Story 2.4 artifacts now bind their final historical endpoint b2b80941df874c2ee6772ca316841c480e0e493b and all seven exact baseline-to-endpoint targets. Earlier expected failures and the owner decision remain historical; independent dependency work is explicitly distinguished from story-carried pointers.
+verification-files: spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md; spec-2-4b-wp-2a-removal-proof-and-audit-available.md; spec-4-2-grant-global-administrator-with-projection-confirmation.md; spec-refresh-dependencies-2.md; dw-198-246-343-360-384-verify.py
+evidence-kind: verified-resolution
+next-action: None for this record; preserve unrelated historical policy decisions and release holds.
+closure-evidence: `dw-198-246-343-360-384-validation-evidence.md`
+
 
 ### DW-199: AggregateIdentity-scoped create admission lock through terminal evidence (unrelated aggregates may proceed; replace create-local submitting flag with TenantAggregateCommandAdmissionGate)
 
@@ -2291,17 +2302,26 @@ location: Hexalith.Builds
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Reconcile story gitlink validation with the seven post-baseline dependency pointer changes. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Reconcile story gitlink validation with the seven post-baseline dependency pointer changes. evidence: The story validator reports only `Hexalith.AI.Tools`, `Hexalith.Builds`, `Hexalith.Commons`, `Hexalith.EventStore`, `Hexalith.FrontComposer`, `Hexalith.Memories`, and `Hexalith.PolymorphicSerializations`, all introduced after the preserved story baseline and outside this patch.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: scripts/validate-story-gitlinks.py legacy-mode default still compares the old 2.4 baseline with current HEAD; the exact original --ref range remains the supported way to exclude later dependency commits. No durable story-end attribution has been added to this historical artifact.
-verification-files: scripts/validate-story-gitlinks.py
-evidence-kind: recommendation
+pre-historical-provenance-status: open
+pre-historical-provenance-disposition: actionable
+pre-historical-provenance-verification-date: 2026-10-12
+pre-historical-provenance-verification: scripts/validate-story-gitlinks.py legacy-mode default still compares the old 2.4 baseline with current HEAD; the exact original --ref range remains the supported way to exclude later dependency commits. No durable story-end attribution has been added to this historical artifact.
+pre-historical-provenance-verification-files: scripts/validate-story-gitlinks.py
+pre-historical-provenance-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: DW-198
-next-action: Record exact story end/provenance, retaining later dependency changes outside the old story.
+pre-historical-provenance-next-action: Record exact story end/provenance, retaining later dependency changes outside the old story.
 related: DW-198
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: The two Story 2.4 documents now audit the final historical endpoint with complete qualified range inventories. Later mainline dependencies are excluded by the explicit endpoint; no current pointer is reverted or attributed to the old implementation.
+verification-files: spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md; spec-2-4b-wp-2a-removal-proof-and-audit-available.md; spec-4-2-grant-global-administrator-with-projection-confirmation.md; spec-refresh-dependencies-2.md; dw-198-246-343-360-384-verify.py
+evidence-kind: verified-resolution
+next-action: None for this record; preserve unrelated historical policy decisions and release holds.
+closure-evidence: `dw-198-246-343-360-384-validation-evidence.md`
+
 
 ### DW-247: No-advancement ProjectionPending has no in-place terminal escape
 
@@ -3588,17 +3608,26 @@ origin: migrated from legacy ledger (""), 2026-09-05
 location: _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md; references/Hexalith.EventStore; references/Hexalith.FrontComposer; references/Hexalith.Memories; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: These files changed after Story 4.3's baseline in later dependency and topology work rather than in the removal command surface; a dedicated refresh-spec File List update would settle the ledger without changing removal behavior.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md File List still lists only Builds, AppHost files, secret-store test and itself; AspireTopologyTests.cs is documented in tasks but absent from File List, and the later EventStore/FrontComposer/Memories gitlinks lack range attribution.
-verification-files: _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
-evidence-kind: verified-gap
+pre-historical-provenance-status: open
+pre-historical-provenance-disposition: actionable
+pre-historical-provenance-verification-date: 2026-10-12
+pre-historical-provenance-verification: _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md File List still lists only Builds, AppHost files, secret-store test and itself; AspireTopologyTests.cs is documented in tasks but absent from File List, and the later EventStore/FrontComposer/Memories gitlinks lack range attribution.
+pre-historical-provenance-verification-files: _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-historical-provenance-evidence-kind: verified-gap
 priority: P3
 owner: unassigned
 dependencies: historical refresh commit range
-next-action: Reconcile exact baseline/end attribution in the refresh artifact without reverting current pointers.
+pre-historical-provenance-next-action: Reconcile exact baseline/end attribution in the refresh artifact without reverting current pointers.
 related: none
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: The refresh File List now includes EventStore, FrontComposer, Memories and AspireTopologyTests.cs. The preserved mid-story checkpoint is explicit; the full implementation window b60f49c656723fb8cdff83a9164d1fa84b652707..d90b074e37bd31bc817b7c5f39d3245ba20738fc is independently qualified, while recorded-commit mode audits the final Builds move with the checkpoint warning retained.
+verification-files: spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md; spec-2-4b-wp-2a-removal-proof-and-audit-available.md; spec-4-2-grant-global-administrator-with-projection-confirmation.md; spec-refresh-dependencies-2.md; dw-198-246-343-360-384-verify.py
+evidence-kind: verified-resolution
+next-action: None for this record; preserve unrelated historical policy decisions and release holds.
+closure-evidence: `dw-198-246-343-360-384-validation-evidence.md`
+
 
 ### DW-344: `MemoriesSecretStoreResourceGraphTests` does not pin package-mode secret-store properties, so a default source-reference run may not prove the NuGet graph.
 
@@ -3870,17 +3899,25 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- `validate-story-gitlinks.py` FAILs against HEAD because later mainline moved `references/` after grant completion `d0c534ff` (UNDECLARED `Hexalith.AI.Tools` / `Hexalith.Memories`; MISSTATED Builds/Commons/EventStore/FrontComposer vs the File List). Not caused by this 14-file chunk; belongs to group 3 / later `build(deps)`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Executed python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md on 2026-10-12: exit 1. Current undeclared McpCli/Platform and seven misstated target SHAs show the long legacy baseline-to-HEAD record still incorporates later dependency work.
-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md
-evidence-kind: verified-gap
+pre-historical-provenance-status: open
+pre-historical-provenance-disposition: actionable
+pre-historical-provenance-verification-date: 2026-10-12
+pre-historical-provenance-verification: Executed python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md on 2026-10-12: exit 1. Current undeclared McpCli/Platform and seven misstated target SHAs show the long legacy baseline-to-HEAD record still incorporates later dependency work.
+pre-historical-provenance-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md
+pre-historical-provenance-evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Story-owned commit attribution
-next-action: Record the actual story-owned gitlink commits and historical endpoints without reverting later dependency updates.
+pre-historical-provenance-next-action: Record the actual story-owned gitlink commits and historical endpoints without reverting later dependency updates.
 related: DW-384
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: The grant artifact binds cf0e420be4873e5d7a005316f3b056b192d3fb87 and its existing seven exact dependency targets. Complete pointer history distinguishes story-associated commits from independent changes; current-main drift remains outside that historical audit.
+verification-files: spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md; spec-2-4b-wp-2a-removal-proof-and-audit-available.md; spec-4-2-grant-global-administrator-with-projection-confirmation.md; spec-refresh-dependencies-2.md; dw-198-246-343-360-384-verify.py
+evidence-kind: verified-resolution
+next-action: None for this record; preserve unrelated historical policy decisions and release holds.
+closure-evidence: `dw-198-246-343-360-384-validation-evidence.md`
 
 
 ### DW-361: Opening preview while `_focusGrantLauncherPending` is still set can focus the inert launcher. Unverified medium: settle with a same-turn cancel-then-reopen test that leaves both focus flags set before `OnAfterRenderAsync`. [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:1335`]
@@ -4238,17 +4275,25 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: n/a
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- `validate-story-gitlinks.py` FAILs against HEAD. This grant-core chunk excluded gitlinks. UNDECLARED `references/Hexalith.AI.Tools de38f78 -> 5f93d2e` and `references/Hexalith.Memories d1b95ab -> 8884933`. MISSTATED Builds `2fba349` (story says `9d77ed7`), Commons `9f4809d` (`372d715`), EventStore `66cb4ed` (`e38c125`), FrontComposer `0276424` (`c6fe14c`), PolymorphicSerializations `7e95556` (`8aeed1d`). Declare or revert in the gitlink chunk. [`scripts/validate-story-gitlinks.py`]"
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Executed the Story 4.2 gitlink guard on 2026-10-12: exit 1. Its legacy baseline 7e88a57 is compared with HEAD 7a2a126; McpCli/Platform are undeclared and seven older File List targets are misstated after later dependency updates. The individual historical hashes changed, but the attribution problem remains.
-evidence-kind: verified-gap
+pre-historical-provenance-status: open
+pre-historical-provenance-disposition: actionable
+pre-historical-provenance-verification-date: 2026-10-12
+pre-historical-provenance-verification: Executed the Story 4.2 gitlink guard on 2026-10-12: exit 1. Its legacy baseline 7e88a57 is compared with HEAD 7a2a126; McpCli/Platform are undeclared and seven older File List targets are misstated after later dependency updates. The individual historical hashes changed, but the attribution problem remains.
+pre-historical-provenance-evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Story-owned gitlink attribution
-next-action: Document actual story-owned pointer commits/endpoints, without copying current unrelated dependency bumps into grant scope.
+pre-historical-provenance-next-action: Document actual story-owned pointer commits/endpoints, without copying current unrelated dependency bumps into grant scope.
 related: DW-360
 duplicate-of: DW-360
+status: done 2026-10-21
+disposition: done
+verification-date: 2026-10-21
+verification: Duplicate grant-provenance observation requalified against the final historical endpoint cf0e420be4873e5d7a005316f3b056b192d3fb87. The exact range audit passes, changed-story CI resolves the explicit historical endpoint, and independent later dependencies remain separate.
+verification-files: spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md; spec-2-4b-wp-2a-removal-proof-and-audit-available.md; spec-4-2-grant-global-administrator-with-projection-confirmation.md; spec-refresh-dependencies-2.md; dw-198-246-343-360-384-verify.py
+evidence-kind: verified-resolution
+next-action: None for this record; preserve unrelated historical policy decisions and release holds.
+closure-evidence: `dw-198-246-343-360-384-validation-evidence.md`
 
 
 ### DW-385: Add removal availability reason and recovery keys to the removal localization-readiness manifest.

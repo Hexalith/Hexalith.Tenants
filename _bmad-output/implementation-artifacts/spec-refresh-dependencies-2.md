@@ -6,6 +6,7 @@ status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: 'de5784ca751f51a4cfe282f67e11b13dd1ed4b45'
+gitlink_audit_ref: 'd90b074e37bd31bc817b7c5f39d3245ba20738fc'
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md'
   - '{project-root}/_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-20.md'
@@ -97,6 +98,40 @@ context:
 
 “Latest” is evaluated independently for source and package channels: a submodule advances to its live default-branch tip, while a NuGet family advances only to a published, policy-admissible version. A source tip may legitimately contain commits beyond its latest package release.
 
+## Historical range qualification (2026-10-21)
+
+The historical completion tree is `d90b074e37bd31bc817b7c5f39d3245ba20738fc`. The preserved
+`baseline_commit` is a **mid-story checkpoint**, not the beginning of the refresh.
+The complete implementation window starts at `b60f49c656723fb8cdff83a9164d1fa84b652707`, the parent
+of the first commit adding this artifact. The alias in `AspireTopologyTests.cs`
+landed in `a3321266b61fc98f98f700901bd2cc5166eff4b0`; its absence from the
+checkpoint-to-completion diff does not remove it from the refresh inventory.
+
+Three mixed removal/refresh commits (`cf31675b2e860c4be23e22355e361ce977da57c3`,
+`a3321266b61fc98f98f700901bd2cc5166eff4b0`, and
+`de5784ca751f51a4cfe282f67e11b13dd1ed4b45`) carry the earlier Builds,
+EventStore, FrontComposer and Memories moves. This records landed history,
+without attributing unrelated removal implementation to dependency refresh.
+The final scoped refresh commit below moves only Builds. Its explicit
+recorded-commit audit retains the checkpoint warning; the complete earlier chain
+is separately checked against Git in the linked evidence.
+
+| Dependency | Complete-window start | Historical completion |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `e0e069468b29ce3fe85082b7bf0eb0d1952ce77c` | `0fbbc735335352f5e563563ab3e50fa86c42a07b` |
+| `references/Hexalith.EventStore` | `c08cb3497768806d80a8e949d320cb28ccc40afc` | `6d436b3c271af1c3d0ef15b102c786465ed4a258` |
+| `references/Hexalith.FrontComposer` | `1a7edded603cd557a97dda1277e5ae3101fbec4d` | `780dd5e901daa2472365e85b123de8b83e32cf22` |
+| `references/Hexalith.Memories` | `3a7a70259d0ff185947fcc2e4216f7a275651d68` | `f7fef9fb4716721baffc7dfd435de4a2968428cc` |
+
+Full chains, changed-file attribution, checkpoint boundaries and validation:
+[DW-198/246/343/360/384 evidence](dw-198-246-343-360-384-validation-evidence.md).
+The original validation observations below remain historical; this repair does
+not rerun or requalify the September package/build/runtime results.
+
+## Story-Owned Gitlink Commits
+
+- `f5ed833a259f1599589ad8e7849ee4b8b849ba95`
+
 ## Completion Notes List
 
 - references/Hexalith.Builds
@@ -106,12 +141,32 @@ The Builds pointer advances from the fetched upstream tip to the two local, scop
 ## File List
 
 - references/Hexalith.Builds
+- references/Hexalith.EventStore -- earlier refresh implementation, before the preserved checkpoint.
+- references/Hexalith.FrontComposer -- earlier refresh implementation, before the preserved checkpoint.
+- references/Hexalith.Memories -- earlier refresh implementation, before the preserved checkpoint.
+- tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs -- EventStore CommandStatus alias landed in a3321266b61fc98f98f700901bd2cc5166eff4b0 before the checkpoint.
 - src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj
 - src/Hexalith.Tenants.AppHost/Program.cs
 - tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs
 - _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md
 
+The binding target below covers only the recorded post-checkpoint Builds move.
+Earlier dependency targets belong to the complete-window table above, not to
+this narrower recorded-commit audit.
+
+| Dependency | Checkpoint | Target |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `e81e62770bcc72bc3d6722aefe6844775b82b6cf` | `0fbbc735335352f5e563563ab3e50fa86c42a07b` |
+
 ## Verification
+
+**Historical documentation audit (2026-10-21):**
+`python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md --ref d90b074e37bd31bc817b7c5f39d3245ba20738fc`
+passes for the recorded Builds move, with the retained mid-story-checkpoint
+warning. The companion checker independently verifies all four complete-window
+pointer chains and the pre-checkpoint topology alias. The changed-story CI runner
+uses the explicit `gitlink_audit_ref`; direct CLI audits still require `--ref`.
+
 
 **Commands:**
 - `pwsh -NoProfile -Command "& './Tools/audit-central-package-versions.ps1' -PriorAuditPath './Tools/package-version-audit.json' -Family @('hexalith-frontcomposer','hexalith-memories')"` from `references/Hexalith.Builds` -- expected: official-feed evidence selects the admitted aligned families.

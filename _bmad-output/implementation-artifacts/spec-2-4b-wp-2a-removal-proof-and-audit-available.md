@@ -124,9 +124,73 @@ _Declared per the 2026-08-22 code-review gitlink decision, mirroring spec-2-4's 
   (`2-4-remove-tenant-member-with-complete-preview-and-proof`). This spec's own reviewed range
   (`28d32ca8~1..HEAD`) does not move this pointer; declared here for continuity with the sibling spec.
 
+**Historical finding, preserved from the 2026-08-22 declaration decision; superseded for the current historical audit by the inventory below.**
+
 **Not declared here:** the other 6 pointers (`AI.Tools`, `Builds`, `Commons`, `FrontComposer`, `Memories`,
 `PolymorphicSerializations`) are accepted external dependency drift per spec-2-4's resolved chunk-A
 decision — not attributed to 2.4b. `validate-story-gitlinks.py` is expected to keep exiting 1 for these 6.
+
+
+### Historical dependency inventory (2026-10-21)
+
+This inventory binds the preserved baseline `bb85fadb149fed1fa00dfd9c8d3315df541566e8` to
+`b2b80941df874c2ee6772ca316841c480e0e493b`. It records every dependency difference in that historical
+range, including independent dependency work and pointers carried by commits that
+also changed this story. A path declaration here records the range contents; it
+does not assert that every pointer update was required by the product behavior
+or label independent commits as story-owned implementation. Later changes to
+`main` are outside this immutable audit.
+
+- `references/Hexalith.AI.Tools`
+- `references/Hexalith.Builds`
+- `references/Hexalith.Commons`
+- `references/Hexalith.EventStore`
+- `references/Hexalith.FrontComposer`
+- `references/Hexalith.Memories`
+- `references/Hexalith.PolymorphicSerializations`
+
+| Dependency | Preserved baseline | Historical endpoint |
+| --- | --- | --- |
+| `references/Hexalith.AI.Tools` | `a19a69d0f71152ec687f4db08d85b06c3467afb1` | `de38f78ef7672df2a0997ddc60bf35ba0d02fa25` |
+| `references/Hexalith.Builds` | `a8a50859fa2f27f511a9470dfe1e3ae54d0ebc1a` | `761dc0187ef60599f12310fef2411dbaf0206742` |
+| `references/Hexalith.Commons` | `74ccb968639d17ec1d82bf67ebf59bcb8af7a8a9` | `5ff390a46685c72145de2337893f71ec8bc6a62c` |
+| `references/Hexalith.EventStore` | `37fdcd1fc8a238b676441b1f5a5ef5fd4370d27e` | `94591f3539ce30372db58e5fdd3ba017ea8c07b8` |
+| `references/Hexalith.FrontComposer` | `138a550363cd980a8f5c87a2deec01cc4847bb1f` | `36efb0c3f774744cd9556f256c0b47f9b0b6bcad` |
+| `references/Hexalith.Memories` | `f78c80c6ff6c3e3c9c6f13699525bbc13dc90933` | `003fd21488d60307cd932a3139f69319a25cea66` |
+| `references/Hexalith.PolymorphicSerializations` | `5dd6aa88ed9d5d06892a733e30ef1f2d195a3833` | `93bcc44a65cd42fcc4558de8f8a8e4d523486157` |
+
+The original EventStore declaration and review decisions above remain historical
+evidence. The six additional path declarations complete the baseline-range
+inventory without converting independent dependency work into removal behavior.
+
+
+## Historical Gitlink Audit (2026-10-21)
+
+The audit checks the supplied current Markdown against the historical Git tree;
+`--ref` does not load the old Markdown. Run from the repository root:
+
+```bash
+python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md --ref b2b80941df874c2ee6772ca316841c480e0e493b
+```
+
+Expected: seven exact declared targets and `RESULT: PASS`. The recorded
+`gitlink_audit_ref` gives the changed-story CI gate the same endpoint for a
+pointer-free documentation repair. Running the legacy guard without `--ref`
+still compares with moving HEAD and can refuse later unrelated dependency
+updates; earlier expected-failure observations above remain historical.
+
+The complete ordered first-parent landing chain contains 13 pointer-bearing commits and
+34 pointer changes. Merge landings are compared with their first parents; merged branch
+commits remain evidence and are not counted again. Changed-file attribution and controls
+are in
+[the validation evidence](dw-198-246-343-360-384-validation-evidence.md) and
+[the history manifest](dw-198-246-343-360-384-history.json).
+
+The final endpoint includes the later removal/projection fixes and pointer
+changes in `b2b80941df874c2ee6772ca316841c480e0e493b`. The initial
+`fa5ca5596f4a627713dce9ea712a0de81cf670bf` snapshot used by the original
+DW-198 observation does not include that final work and is not the current
+audit endpoint.
 
 ## Spec Change Log
 

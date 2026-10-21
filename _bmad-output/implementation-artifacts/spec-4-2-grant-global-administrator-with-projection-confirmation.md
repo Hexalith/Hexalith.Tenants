@@ -5,6 +5,7 @@ created: '2026-08-31'
 status: done
 baseline_revision: 7f564930055a89251f512bafb62ee61491891a8f
 baseline_commit: '7e88a571588fc7aa769ee1af01e91113f6f9b01f'
+gitlink_audit_ref: 'cf0e420be4873e5d7a005316f3b056b192d3fb87'
 review_loop_iteration: 3
 followup_review_recommended: true
 operator_actions:
@@ -799,6 +800,8 @@ Source and tests changed by this story:
 - `src/Hexalith.Tenants.AppHost/Program.cs` -- concurrent Memories secret-store topology change (see the high-severity deferred entry; this is the file that fails the solution build).
 - `tests/Hexalith.Tenants.UI.Tests/**` -- component, state, gateway, composition, workspace and audit coverage for the above.
 
+**Historical 2026-09-22 declaration decision.** The following paragraph and its descriptions of the "current" graph refer to that review snapshot. The immutable range inventory below governs today's historical audit.
+
 Root submodule pointers included in the preserved baseline-to-HEAD story range. The human explicitly accepted their declaration on 2026-09-22 instead of separate cleanup. The final working-tree patch did not move these gitlinks; this record makes the resumed story's dependency provenance complete. FrontComposer supplies the tab primitives used by the concurrent workspace migration, EventStore supplies the projection-provenance path, Memories supplies the resource-builder topology, Builds/Commons/PolymorphicSerializations carry the aligned repository build graph, and AI.Tools carries the workflow/tooling version used during the range:
 
 - `references/Hexalith.AI.Tools`
@@ -816,6 +819,59 @@ Root submodule pointers included in the preserved baseline-to-HEAD story range. 
   - `references/Hexalith.Memories` d1b95ab2d75584895ee6de4a16f0aaafd01cb60a -> 8884933571e2738c406feea37e57f7124378b3e3 -- declares the resource-builder secret-store topology used by the AppHost in the verified solution graph.
 - `references/Hexalith.PolymorphicSerializations`
   - `references/Hexalith.PolymorphicSerializations` 65fc33613db30f562dfe7daf92bf84b5cbb7eb4c -> 7e95556c919ff1142864e54f306a6aa0101b2bf5 -- declares the serialization dependency aligned with the current repository build graph.
+
+
+### Historical dependency inventory (2026-10-21)
+
+This inventory binds the preserved baseline `7e88a571588fc7aa769ee1af01e91113f6f9b01f` to
+`cf0e420be4873e5d7a005316f3b056b192d3fb87`. It records every dependency difference in that historical
+range, including independent dependency work and pointers carried by commits that
+also changed this story. A path declaration here records the range contents; it
+does not assert that every pointer update was required by the product behavior
+or label independent commits as story-owned implementation. Later changes to
+`main` are outside this immutable audit.
+
+| Dependency | Preserved baseline | Historical endpoint |
+| --- | --- | --- |
+| `references/Hexalith.AI.Tools` | `de38f78ef7672df2a0997ddc60bf35ba0d02fa25` | `5f93d2ec8239494852c97032c819cb1689939e36` |
+| `references/Hexalith.Builds` | `12b69515f563d16dfa159e6c10eda5a8cce1f894` | `2fba3497043fe5ffcfe4dc44c51a09eae9b950ab` |
+| `references/Hexalith.Commons` | `feab4efc8804692fbe3c522a9d753559959ea22d` | `9f4809d37095e64e3732abc3e766535f9e836563` |
+| `references/Hexalith.EventStore` | `1194dfe59bcbc9b235390d1e46a7dfe4ee115d94` | `66cb4edaa2b474090f2b4e375d481a4bbcd70a08` |
+| `references/Hexalith.FrontComposer` | `9d7710a2860cc67441b0eef13b90c260ab5c2794` | `0276424a8d71bceea0f1d51c3ecdafbd61b7d31f` |
+| `references/Hexalith.Memories` | `d1b95ab2d75584895ee6de4a16f0aaafd01cb60a` | `8884933571e2738c406feea37e57f7124378b3e3` |
+| `references/Hexalith.PolymorphicSerializations` | `65fc33613db30f562dfe7daf92bf84b5cbb7eb4c` | `7e95556c919ff1142864e54f306a6aa0101b2bf5` |
+
+The existing seven declarations and target hashes already matched this endpoint
+before this repair. The new endpoint and attribution make that historical audit
+durable; they do not establish a new application behavior claim.
+
+## Historical Gitlink Audit (2026-10-21)
+
+The audit checks the supplied current Markdown against the historical Git tree;
+`--ref` does not load the old Markdown. Run from the repository root:
+
+```bash
+python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md --ref cf0e420be4873e5d7a005316f3b056b192d3fb87
+```
+
+Expected: seven exact declared targets and `RESULT: PASS`. The recorded
+`gitlink_audit_ref` gives the changed-story CI gate the same endpoint for a
+pointer-free documentation repair. Running the legacy guard without `--ref`
+still compares with moving HEAD and can refuse later unrelated dependency
+updates; earlier expected-failure observations above remain historical.
+
+The complete ordered first-parent landing chain contains 28 pointer-bearing commits and
+76 pointer changes. Merge landings are compared with their first parents; merged branch
+commits remain evidence and are not counted again. Changed-file attribution and controls
+are in
+[the validation evidence](dw-198-246-343-360-384-validation-evidence.md) and
+[the history manifest](dw-198-246-343-360-384-history.json).
+
+The earlier grant-core closure `d0c534ffb7cfff34ae6bacf8499dc10bf1aceed8`
+is an intermediate review boundary. The endpoint also retains resumed grant
+reviews and later story-associated pointer-bearing commits; independent removal,
+workspace, tooling and dependency work in the wider range remains separately
+classified in the manifest.
 
 ## Auto Run Result
 

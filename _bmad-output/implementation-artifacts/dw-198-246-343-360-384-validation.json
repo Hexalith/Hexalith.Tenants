@@ -1,0 +1,46 @@
+{
+  "baseline": "ffe9522b10f37f56cd9339c3387cbb4b7d16d897",
+  "selected": [
+    198,
+    246,
+    343,
+    360,
+    384
+  ],
+  "ledger_records": 657,
+  "done": 455,
+  "open": 202,
+  "maintenance_rows": 186,
+  "controls": {
+    "premature_endpoint_rejected": 4,
+    "superseded_endpoint_rejected": 3,
+    "historical_pass": 4,
+    "moving_head_rejected": 4,
+    "wrong_target_rejected": 22,
+    "missing_declaration_rejected": 22,
+    "entry_document_replays": 4
+  },
+  "history": [
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md",
+      "pointer_commits": 13,
+      "pointer_changes": 34
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md",
+      "pointer_commits": 13,
+      "pointer_changes": 34
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md",
+      "pointer_commits": 28,
+      "pointer_changes": 76
+    },
+    {
+      "path": "_bmad-output/implementation-artifacts/spec-refresh-dependencies-2.md",
+      "pointer_commits": 4,
+      "pointer_changes": 12
+    }
+  ],
+  "result": "pass"
+}

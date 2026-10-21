@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-198/DW-246/DW-343/DW-360/DW-384 closure (2026-10-21):** Removal and grant audits bind immutable historical endpoints and exact dependency targets. The refresh inventory includes earlier gitlinks and the topology alias, with its preserved mid-story checkpoint explicitly qualified. Only these five records close: 657 IDs remain, 455 done/202 open across 186 exact-covering maintenance rows. Historical findings, independent dependency work and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-198-246-343-360-384-validation-evidence.md).
+
 **DW-344/DW-381/DW-393/DW-394/DW-395 closure (2026-10-21):** Provenance CI rejects skipped cases; parsed workflow commands and build-only edge metadata have executable mutation controls. The blocking AppHost model test proves its actual package mode and rejects source evidence. Exactly five records close: 657 IDs remain, 450 done/207 open across 189 exact-covering maintenance rows. The broader package IntegrationTests NativeSourceProof build blocker and unrelated release/runtime gates remain explicit. See [validation evidence](../_bmad-output/implementation-artifacts/dw-344-381-393-394-395-validation-evidence.md).
 
 **DW-504/DW-532/DW-564/DW-578/DW-596 closure (2026-10-21):** Historical tenant proof claims are qualified and revocation lag is documented, parsed-row equality is distinguished from catalog byte preservation, and CI/dependency guidance follows tracked authority. Exactly five documentation records close: all 657 IDs remain, 445 done/212 open across 193 exact-covering maintenance rows. Historical evidence, unrelated records and unresolved provenance/runtime/release gates remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-504-532-564-578-596-validation-evidence.md).
@@ -170,14 +172,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 450 |
-| actionable | 123 |
+| done | 455 |
+| actionable | 118 |
 | blocked | 15 |
 | awaiting-decision | 26 |
 | accepted-limitation | 9 |
 | uncertain | 34 |
 
-**Remaining: 207 open records across 189 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 202 open records across 186 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -251,14 +253,13 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-122 | P2 | Gap / blocked | Memories | Memories index uniqueness guarantee | Add an owning Memories uniqueness contract test across raw windows. |
 | DW-154 | P2 | Gap / blocked | unassigned | concurrent teardown harness | Use a concurrency-capable renderer/browser harness to pin reset and disposed-notification behavior. |
 | DW-161 | P2 | Gap / blocked | unassigned | healthy live topology and endpoint/auth evidence | Capture all six production-client routes, conditional 304 and headers through a healthy authenticated deployed topology. |
-| DW-198, DW-549 | P2 | Gap / actionable/awaiting-decision | unassigned | historical story-range attribution; DW-198 historical story-range policy | Record an immutable story-end range or migrate the historical artifact to owned-commit provenance; keep later dependency moves separate. |
+| DW-549 | P2 | Gap / awaiting-decision | unassigned | Historical Story 5.6 endpoint/provenance decision | Set a durable story-end/provenance convention for the historical Story 5.6 artifact without rewriting its original findings. |
 | DW-200 | P2 | Gap / actionable | unassigned | none | Wire workspace notification nudges to create authoritative requery without notify-only confirmation. |
 | DW-284 | P2 | Gap / actionable | unassigned | none | Dispatch through the first component, remount using real scoped services, and assert no redispatch plus correct baseline retention. |
 | DW-299 | P2 | Gap / blocked | unassigned | authenticated browser configuration fixture | Capture real set/remove form and warning visibility at both sides of the breakpoint. |
 | DW-333, DW-335 | P2 | Gap / blocked | unassigned | authenticated real-browser workspace fixture | Capture authenticated tab switches with computed visibility, activeElement and accessibility-tree evidence. |
 | DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
 | DW-336, DW-357, DW-359 | P2 | Gap / blocked/uncertain | unassigned | authenticated browser grant fixture | Run the real grant-preview keyboard/focus/viewport sequence and preserve its trace. |
-| DW-360, DW-384 | P2 | Gap / actionable | unassigned | Story-owned commit attribution; Story-owned gitlink attribution | Record the actual story-owned gitlink commits and historical endpoints without reverting later dependency updates. |
 | DW-369 | P2 | Gap / actionable | unassigned | A controllable final-dispatch capability boundary | Add a deterministic dispatch-capability read seam or equivalent test that fails when this inner refusal silently returns. |
 | DW-432 | P2 | Gap / blocked | unassigned | DW-436 authenticated caller/scope fixture and healthy Aspire topology | Establish the authenticated route fixture from DW-436, then retain the hosted audit-context route assertions and results. |
 | DW-436 | P2 | Gap / actionable | unassigned | Validated caller/tenant scope and healthy Aspire topology | Add an authenticated FrontComposer route fixture and preserve the useful anonymous fail-closed tests as a separate lane. |
@@ -312,7 +313,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-261 | P3 | Gap / actionable | unassigned | shared flow test seam | Add create minted-ID retention on an indeterminate result and a gateway-driven accepted-with-lost-tracking submission regression. |
 | DW-292 | P3 | Gap / actionable | unassigned | TEA hook test harness | Add focused scanner mode/registry/failure regressions in owning tooling tests. |
 | DW-297 | P3 | Gap / actionable | unassigned | none | Add the existing exact Release validation command/result to formal verification without rerunning historical work. |
-| DW-343 | P3 | Gap / actionable | unassigned | historical refresh commit range | Reconcile exact baseline/end attribution in the refresh artifact without reverting current pointers. |
 | DW-397 | P3 | Gap / actionable | unassigned | Python 3.11+ and temporary fixture roots | Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics. |
 | DW-462 | P3 | Gap / actionable | unassigned | DW-461 historical guard disposition | Add a dated historical-evidence clarification with current symbol anchors and recover exact commands/mutation identities where available; preserve the original notes. |
 | DW-533 | P3 | Gap / actionable | unassigned | Authoritative planning context sources | Annotate the context’s historical/current scope and reconcile omitted authoritative constraints and citations before future regeneration or reuse. |
@@ -372,7 +372,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-630 | P2 | Recommendation / uncertain | unassigned | Module manifest v2 inventory contract | Confirm required inventory completeness, then map every required decorated operation. |
 | DW-276 | P3 | Unverified / uncertain | unassigned | none | Hold an existing lease and exercise each refusal path to establish the intended flag/owner behavior. |
 | DW-332 | P3 | Unverified / uncertain | unassigned | none | Drive a controlled evidence transition during a render and capture the resulting associations before choosing a fix. |
-| DW-246 | P3 | Recommendation / actionable | unassigned | DW-198 | Record exact story end/provenance, retaining later dependency changes outside the old story. |
 | DW-248 | P3 | Recommendation / actionable | unassigned | membership coalescer design | Replace recursive tail replay with an iterative shared drain without dropping refresh intent. |
 | DW-255 | P3 | Recommendation / actionable | unassigned | none | Inject the chosen clock and consume timing in bounded retained create behavior while preserving the public member. |
 | DW-266 | P3 | Recommendation / actionable | unassigned | none | Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive. |
