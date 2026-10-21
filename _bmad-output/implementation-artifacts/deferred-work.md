@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-181 closure (2026-10-21):** Six rendered held-read cases qualify cancellation lifetime through metadata refresh, parameter loads, route replacement and real component unmount, including shared detail/member lifetime, successor cancellation, eventual disposal and stale-result rejection. Debug source builds have zero warnings/errors; focused 6/6 and full UI 6624/6624 pass with zero failures/skips. Only DW-181 closes: all 656 IDs remain, 402 done/254 open across 229 exact-covering maintenance rows. External dependency changes, unrelated work and release holds remain preserved. See [exact evidence](dw-181-validation-evidence.md).
+
 **DW-178 closure (2026-10-20):** Same-tenant detail loads deliberately refresh lifecycle authority with projection evidence; a source comment records the rationale and six new rendered cases qualify changed authority, pending fail-closed behavior and recovery. Final Debug source build has zero warnings/errors; focused 6/6 and full UI 6618/6618 pass with zero failures/skips. Only DW-178 closes: all 656 IDs remain, 401 done/255 open across 230 exact-covering maintenance rows. The inherited external sync, initial failures, removed unproven experiment and release limits are preserved in [exact evidence](dw-178-validation-evidence.md).
 
 **DW-177 closure (2026-10-20):** Same-caller soft refresh retains tenant rows, warnings and pager under fail-closed loading, including zero-match filtered pages and authentication invalidation. Independent review accepts all six corrections; isolated Debug source build has zero warnings/errors, focused 30/30 and full UI 6612/6612 pass with zero failures/skips. Current-main build remains blocked by the unrelated concurrent NativeSourceProof dependency; the initial timer failure and passing recheck are preserved in [exact evidence](dw-177-validation-evidence.md). Only DW-177 closes: all 656 IDs remain, 400 done/256 open across 231 exact-covering maintenance rows. Unrelated history, external work, dependencies, archive/sprint and release holds remain preserved.
@@ -1619,17 +1621,27 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
 reason: The legacy ledger defers this issue: TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only. Original context is preserved in legacy-detail.
 legacy-detail: - TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only [tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs]
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs exercises route/load cancellation, but the explicit workspace-equivalent outstanding-token deferred-disposal assertion is not established for TenantDetailPage BeginLoad.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
-evidence-kind: verified-gap
+pre-dw-181-status: open
+status: done 2026-10-21
+pre-dw-181-disposition: actionable
+disposition: resolved
+pre-dw-181-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-dw-181-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs exercises route/load cancellation, but the explicit workspace-equivalent outstanding-token deferred-disposal assertion is not established for TenantDetailPage BeginLoad.
+pre-dw-181-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+pre-dw-181-evidence-kind: verified-gap
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Drive a real held detail read through supersession/disposal and assert token lifetime through completion.
+pre-dw-181-next-action: Drive a real held detail read through supersession/disposal and assert token lifetime through completion.
 related: none
+verification: Six rendered held-read cases establish immediate cancellation with usable tokens through metadata refresh and shared parameter loads, route replacement and real component unmount. Completed predecessors retain successor cancellation ownership; every owner disposes its source and obsolete results cannot replace current detail. Final Debug source build has zero warnings/errors; focused 6/6 and full UI 6624/6624 pass with zero failures/skips. Independent review accepts all six corrections; initial failures, harmful-control outcomes and explicit limits are preserved in dw-181-validation-evidence.md. Inherited external sync and dependency advances are attributed in the spec and preserved; this completion changes no dependency pointer.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.CancellationLifetime.cs; _bmad-output/implementation-artifacts/dw-181-validation-evidence.md
+next-action: Closed within DW-181; preserve DW-180, unrelated work and existing release qualification holds.
+resolution-spec: spec-dw-181-detail-cancellation-lifetime.md
+resolution-evidence: [Exact commands, review and limits](dw-181-validation-evidence.md)
+
 
 ### DW-182: EditTenantMetadataFlow Lifecycle wiring not asserted via tenants-edit-metadata-open on the detail page — deferred, covered by EditTenantMetadataFlowTests
 
