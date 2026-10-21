@@ -108,6 +108,237 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
             Audit("proof", "GlobalAdministratorSet")));
     }
 
+    [Theory]
+    [InlineData("en", false, false)]
+    [InlineData("en", false, true)]
+    [InlineData("en", true, false)]
+    [InlineData("en", true, true)]
+    [InlineData("fr", false, false)]
+    [InlineData("fr", false, true)]
+    [InlineData("fr", true, false)]
+    [InlineData("fr", true, true)]
+    public async Task MissingTrackedCorrectionDispatchBlocksCapturedConfirm(string culture, bool remove, bool stale)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            var gateway = new StubTenantCommandGateway
+            {
+                SupportsTrackedGlobalAdministratorDispatch = stale || remove,
+                SupportsTrackedGlobalAdministratorRemoveDispatch = stale || !remove,
+            };
+            Services.AddSingleton<ITenantCommandGateway>(gateway);
+            IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(p => p.Intent, remove ? RevokeIntent() : RestoreIntent())
+                .Add(p => p.CurrentProjection, remove ? Projection("admin-user", "other-admin") : Projection("other-admin")));
+            Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.Web.MouseEventArgs> capturedConfirm = cut
+                .FindComponents<Microsoft.FluentUI.AspNetCore.Components.FluentButton>()
+                .Select(component => component.Instance)
+                .Single(button => button.AdditionalAttributes is { } attributes
+                    && attributes.TryGetValue("data-testid", out object? value)
+                    && value as string == "tenants-correction-confirm").OnClick;
+            if (stale)
+            {
+                cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+                gateway.SupportsTrackedGlobalAdministratorDispatch = remove;
+                gateway.SupportsTrackedGlobalAdministratorRemoveDispatch = !remove;
+                cut.Render();
+            }
+            cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+            IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+            cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.Trim().ShouldBe(
+                localizer[$"Tenants.GlobalAdministrators.Availability.{(remove ? "Remove" : "Grant")}.Unavailable.MissingLifecycleSupport"].Value);
+            await cut.InvokeAsync(() => capturedConfirm.InvokeAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs()));
+            gateway.TrackedMessageIds.ShouldBeEmpty();
+            gateway.StatusHandles.ShouldBeEmpty();
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    [Theory]
+    [InlineData("en", false, false, false, "none")]
+    [InlineData("en", false, false, true, "none")]
+    [InlineData("en", false, true, false, "none")]
+    [InlineData("en", false, true, true, "none")]
+    [InlineData("en", true, false, false, "none")]
+    [InlineData("en", true, false, true, "none")]
+    [InlineData("en", true, true, false, "none")]
+    [InlineData("en", true, true, true, "none")]
+    [InlineData("fr", false, false, false, "none")]
+    [InlineData("fr", false, false, true, "none")]
+    [InlineData("fr", false, true, false, "none")]
+    [InlineData("fr", false, true, true, "none")]
+    [InlineData("fr", true, false, false, "none")]
+    [InlineData("fr", true, false, true, "none")]
+    [InlineData("fr", true, true, false, "none")]
+    [InlineData("fr", true, true, true, "none")]
+    [InlineData("en", false, true, false, "transport")]
+    [InlineData("en", false, true, false, "viewport")]
+    [InlineData("en", true, true, false, "transport")]
+    [InlineData("en", true, true, false, "viewport")]
+    [InlineData("fr", false, true, false, "transport")]
+    [InlineData("fr", false, true, false, "viewport")]
+    [InlineData("fr", true, true, false, "transport")]
+    [InlineData("fr", true, true, false, "viewport")]
+    public async Task CorrectionRecoveryExplainsLostSupportAndRetainsAttempt(string culture, bool remove, bool localization, bool correlated, string higherBlocker)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            var gateway = new StubTenantCommandGateway
+            {
+                Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+            };
+            Task<TenantCommandSubmissionResult> ambiguous = Task.FromResult(correlated
+                ? TenantCommandSubmissionResult.Accepted("ignored", "correlation-safe")
+                : TenantCommandSubmissionResult.Ambiguous("ignored", remove ? "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous" : "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous"));
+            gateway.SetResultTask = ambiguous;
+            gateway.RemoveResultTask = ambiguous;
+            var composition = new StubTenantsBffComposition();
+            Services.AddSingleton<ITenantsBffComposition>(composition);
+            Services.AddSingleton<ITenantCommandGateway>(gateway);
+            GlobalAdministratorsSnapshot projection = remove ? Projection("admin-user", "other-admin") : Projection("other-admin");
+            Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(projection, Audit("proof", "GlobalAdministratorRemoved"))
+            {
+                AutoAdvanceProjectionVersion = false,
+                SimulateFirstReadPreflight = false,
+            });
+            IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(p => p.Intent, remove ? RevokeIntent() : RestoreIntent())
+                .Add(p => p.CurrentProjection, projection));
+            await cut.Find("[data-testid='tenants-correction-confirm']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+            GlobalAdministratorCorrectionSnapshot retained = cut.Instance.Snapshot.ShouldNotBeNull();
+            retained.IsSubmissionAmbiguous.ShouldBe(!correlated);
+            int priorStatusReads = gateway.StatusHandles.Count;
+            Microsoft.AspNetCore.Components.EventCallback<Microsoft.AspNetCore.Components.Web.MouseEventArgs> capturedRetry = cut
+                .FindComponents<Microsoft.FluentUI.AspNetCore.Components.FluentButton>()
+                .Select(component => component.Instance)
+                .Single(button => button.AdditionalAttributes is { } attributes
+                    && attributes.TryGetValue("data-testid", out object? value)
+                    && value as string == "tenants-correction-refresh").OnClick;
+            string action = remove ? "Remove" : "Grant";
+            string reasonKey = $"Tenants.GlobalAdministrators.{action}.Preview.Unavailable.Localization";
+            string recoveryKey = $"Tenants.GlobalAdministrators.{action}.Preview.Recovery.Localization";
+            if (localization)
+            {
+                composition.IsGlobalAdministratorGrantPreviewReady = remove;
+                composition.IsGlobalAdministratorRemovePreviewReady = !remove;
+                composition.GlobalAdministratorGrantPreviewUnavailableReasonKey = reasonKey;
+                composition.GlobalAdministratorGrantPreviewRecoveryKey = recoveryKey;
+                composition.GlobalAdministratorRemovePreviewUnavailableReasonKey = reasonKey;
+                composition.GlobalAdministratorRemovePreviewRecoveryKey = recoveryKey;
+            }
+            else
+            {
+                gateway.SupportsTrackedGlobalAdministratorDispatch = remove;
+                gateway.SupportsTrackedGlobalAdministratorRemoveDispatch = !remove;
+                reasonKey = $"Tenants.GlobalAdministrators.Availability.{action}.Unavailable.MissingLifecycleSupport";
+                recoveryKey = "Tenants.GlobalAdministrators.Availability.Recovery.MissingLifecycleSupport";
+            }
+            if (higherBlocker == "transport")
+            {
+                gateway.SupportsGlobalAdministratorDispatch = false;
+                reasonKey = $"Tenants.GlobalAdministrators.Availability.{action}.Unavailable.MissingLifecycleSupport";
+                recoveryKey = "Tenants.GlobalAdministrators.Availability.Recovery.MissingLifecycleSupport";
+            }
+            else if (higherBlocker == "viewport")
+            {
+                Services.GetRequiredService<TenantHighImpactViewportObservation>().Observe(ViewportTier.Phone);
+                reasonKey = $"Tenants.GlobalAdministrators.Availability.{action}.Unavailable.UnsafeViewport";
+                recoveryKey = "Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport";
+            }
+            cut.Render();
+            IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+            cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.Trim().ShouldBe(localizer[reasonKey].Value);
+            cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent.Trim().ShouldBe(localizer[recoveryKey].Value);
+            cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+            if (correlated)
+            {
+                cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+            }
+            else
+            {
+                cut.FindAll("[data-testid='tenants-correction-refresh']").ShouldBeEmpty();
+            }
+            await cut.InvokeAsync(() => capturedRetry.InvokeAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs()));
+            gateway.TrackedMessageIds.ShouldHaveSingleItem().ShouldBe(retained.MessageId);
+            gateway.StatusHandles.Count.ShouldBe(priorStatusReads);
+            cut.Instance.Snapshot!.CorrelationId.ShouldBe(retained.CorrelationId);
+            cut.Instance.Snapshot!.MessageId.ShouldBe(retained.MessageId);
+            Services.GetRequiredService<TenantAggregateCommandAdmissionGate>().IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    [Theory]
+    [InlineData("en", false, "complete")]
+    [InlineData("en", false, "null-reason")]
+    [InlineData("en", false, "empty-recovery")]
+    [InlineData("en", false, "blank-reason")]
+    [InlineData("en", true, "complete")]
+    [InlineData("en", true, "null-reason")]
+    [InlineData("en", true, "empty-recovery")]
+    [InlineData("en", true, "blank-reason")]
+    [InlineData("fr", false, "complete")]
+    [InlineData("fr", false, "null-reason")]
+    [InlineData("fr", false, "empty-recovery")]
+    [InlineData("fr", false, "blank-reason")]
+    [InlineData("fr", true, "complete")]
+    [InlineData("fr", true, "null-reason")]
+    [InlineData("fr", true, "empty-recovery")]
+    [InlineData("fr", true, "blank-reason")]
+    public void CorrectionPreviewExplainsLocalizationFailure(string culture, bool remove, string pair)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            string action = remove ? "Remove" : "Grant";
+            string reasonKey = $"Tenants.GlobalAdministrators.{action}.Preview.Unavailable.Localization";
+            string recoveryKey = $"Tenants.GlobalAdministrators.{action}.Preview.Recovery.Localization";
+            Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition
+            {
+                IsGlobalAdministratorGrantPreviewReady = remove,
+                IsGlobalAdministratorRemovePreviewReady = !remove,
+                GlobalAdministratorGrantPreviewUnavailableReasonKey = pair == "null-reason" ? null : pair == "blank-reason" ? "   " : reasonKey,
+                GlobalAdministratorGrantPreviewRecoveryKey = pair == "empty-recovery" ? string.Empty : recoveryKey,
+                GlobalAdministratorRemovePreviewUnavailableReasonKey = pair == "null-reason" ? null : pair == "blank-reason" ? "   " : reasonKey,
+                GlobalAdministratorRemovePreviewRecoveryKey = pair == "empty-recovery" ? string.Empty : recoveryKey,
+            });
+            var gateway = new StubTenantCommandGateway();
+            Services.AddSingleton<ITenantCommandGateway>(gateway);
+            IRenderedComponent<GlobalAdministratorCorrectionPanel> cut = Render<GlobalAdministratorCorrectionPanel>(parameters => parameters
+                .Add(p => p.Intent, remove ? RevokeIntent() : RestoreIntent())
+                .Add(p => p.CurrentProjection, remove ? Projection("admin-user", "other-admin") : Projection("other-admin")));
+            if (pair != "complete")
+            {
+                reasonKey = $"Tenants.GlobalAdministrators.Availability.{action}.Unavailable.MissingConsequencePreview";
+                recoveryKey = $"Tenants.GlobalAdministrators.Availability.{action}.Recovery.MissingConsequencePreview";
+            }
+            IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+            cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+            cut.Find("[data-testid='tenants-correction-unavailable-reason']").TextContent.Trim().ShouldBe(localizer[reasonKey].Value);
+            cut.Find("[data-testid='tenants-correction-unavailable-recovery']").TextContent.Trim().ShouldBe(localizer[recoveryKey].Value);
+            gateway.TrackedMessageIds.ShouldBeEmpty();
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
     [Fact]
     public async Task DisposedCorrectionPanelDoesNotReactToPrincipalChange()
     {
@@ -3616,9 +3847,17 @@ public sealed class GlobalAdministratorCorrectionPanelTests : FluentBunitContext
 
         public bool IsGlobalAdministratorRequeryConnected { get; set; } = true;
 
-        public bool IsGlobalAdministratorGrantPreviewReady => true;
+        public bool IsGlobalAdministratorGrantPreviewReady { get; set; } = true;
 
-        public bool IsGlobalAdministratorRemovePreviewReady => true;
+        public string? GlobalAdministratorGrantPreviewUnavailableReasonKey { get; set; }
+
+        public string? GlobalAdministratorGrantPreviewRecoveryKey { get; set; }
+
+        public bool IsGlobalAdministratorRemovePreviewReady { get; set; } = true;
+
+        public string? GlobalAdministratorRemovePreviewUnavailableReasonKey { get; set; }
+
+        public string? GlobalAdministratorRemovePreviewRecoveryKey { get; set; }
 
         public string CallerSubject { get; set; } = "operator";
 

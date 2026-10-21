@@ -974,13 +974,24 @@
     // freshness and completeness gates must be re-evaluated at submit or Remove fails open through them.
     private string? RemoveUnavailableReasonForUser(string? userId)
         => RemoveAvailability(userId) is { IsAvailable: false } availability
-            ? Localizer[availability.ReasonKey].Value
+            ? Localizer[availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
+                && TryGetRemovePreviewLocalizationOverride(out string reasonKey, out _)
+                    ? reasonKey : availability.ReasonKey].Value
             : null;
 
     private string? RemoveRecoveryForUser(string? userId)
         => RemoveAvailability(userId) is { IsAvailable: false } availability
-            ? Localizer[availability.RecoveryKey].Value
+            ? Localizer[availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
+                && TryGetRemovePreviewLocalizationOverride(out _, out string recoveryKey)
+                    ? recoveryKey : availability.RecoveryKey].Value
             : null;
+
+    private bool TryGetRemovePreviewLocalizationOverride(out string reasonKey, out string recoveryKey)
+    {
+        reasonKey = BffComposition.GlobalAdministratorRemovePreviewUnavailableReasonKey ?? string.Empty;
+        recoveryKey = BffComposition.GlobalAdministratorRemovePreviewRecoveryKey ?? string.Empty;
+        return !string.IsNullOrWhiteSpace(reasonKey) && !string.IsNullOrWhiteSpace(recoveryKey);
+    }
 
     private GlobalAdministratorActionAvailability RemoveAvailability(
         string? userId,

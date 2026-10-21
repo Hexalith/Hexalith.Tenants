@@ -2772,45 +2772,57 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData("LastGlobalAdministrator", "last global administrator")]
-    [InlineData("GlobalAdministratorNotFound", "exact administrator target")]
-    public void Remove_rejection_keeps_last_confirmed_rows_without_success_or_member_copy(
-        string rejectionCode,
-        string expectedText)
+    [InlineData("en", "LastGlobalAdministrator", "Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator")]
+    [InlineData("en", "GlobalAdministratorNotFound", "Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound")]
+    [InlineData("fr", "LastGlobalAdministrator", "Tenants.GlobalAdministrators.Remove.Status.Rejected.LastAdministrator")]
+    [InlineData("fr", "GlobalAdministratorNotFound", "Tenants.GlobalAdministrators.Remove.Status.Rejected.NotFound")]
+    public void RemoveRejectionKeepsRowsAndRendersLocalizedReason(string culture, string rejectionCode, string expectedKey)
     {
-        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
-        Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
-            [
-                new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
-                new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
-            ],
-            null,
-            false,
-            "\"etag\"",
-            ReadModelFreshnessState.Current) with { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
-        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
         {
-            RemoveSubmission = TenantCommandSubmissionResult.Rejected(expectedText, rejectionCode),
-        });
-        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+            Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(GlobalAdministratorsSnapshot.Ready(
+                [
+                    new GlobalAdministratorRow("target-admin", ReadModelFreshnessState.Current),
+                    new GlobalAdministratorRow("other-admin", ReadModelFreshnessState.Current),
+                ],
+                null,
+                false,
+                "\"etag\"",
+                ReadModelFreshnessState.Current) with
+            { CallerScope = TenantQueryGateway.AuditCallerScope("operator.alpha"), Lifecycle = ProjectionLifecycleState.Current, IsCompleteEvidence = true }));
+            Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway
+            {
+                RemoveSubmission = TenantCommandSubmissionResult.Rejected("RAW-GATEWAY-REJECTION-SENTINEL", rejectionCode),
+            });
+            Services.AddLocalization();
+            IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
 
-        IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+            IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
 
-        OpenRemovePreview(cut);
-        AcknowledgeRemovePreview(cut);
-        cut.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
+            OpenRemovePreview(cut);
+            AcknowledgeRemovePreview(cut);
+            cut.Find("[data-testid='tenants-global-admin-remove-submit']").Click();
 
-        cut.WaitForAssertion(() =>
+            cut.WaitForAssertion(() =>
+            {
+                cut.Find("[data-testid='tenants-global-admin-remove-state']").TextContent.ShouldContain(localizer["Tenants.GlobalAdministrators.Remove.State.Rejected"].Value);
+                cut.Find("[data-testid='tenants-global-admin-remove-safe-message']").TextContent.Trim().ShouldBe(localizer[expectedKey].Value);
+                cut.Markup.ShouldNotContain("RAW-GATEWAY-REJECTION-SENTINEL");
+                cut.Find("[data-testid='tenants-global-admin-remove-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+                cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
+                    .ShouldContain("target-admin");
+                // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
+                cut.VisibleText().ShouldNotContain("success", Case.Insensitive);
+                cut.Markup.ShouldNotContain("remove member", Case.Insensitive);
+            });
+        }
+        finally
         {
-            cut.Find("[data-testid='tenants-global-admin-remove-state']").TextContent.ShouldContain("rejected", Case.Insensitive);
-            cut.Find("[data-testid='tenants-global-admin-remove-safe-message']").TextContent.ShouldContain(expectedText, Case.Insensitive);
-            cut.Find("[data-testid='tenants-global-admin-remove-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
-            cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static element => element.TextContent)
-                .ShouldContain("target-admin");
-            // Visible text only — avoids the Fluent success-color token false positive (see VisibleText).
-            cut.VisibleText().ShouldNotContain("success", Case.Insensitive);
-            cut.Markup.ShouldNotContain("remove member", Case.Insensitive);
-        });
+            CultureInfo.CurrentUICulture = previous;
+        }
     }
 
     [Fact]
@@ -3199,6 +3211,88 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             .ShouldContain("supported user id", Case.Insensitive);
         composition.GrantPreviewCompositionCount.ShouldBe(0);
         commandGateway.SetGlobalAdministratorCalls.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData("en", "complete")]
+    [InlineData("fr", "complete")]
+    [InlineData("en", "blank-reason")]
+    [InlineData("fr", "blank-recovery")]
+    public void RemovalLocalizationReadinessUsesOnlyACompletePair(string culture, string pair)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            const string reason = "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization";
+            const string recovery = "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization";
+            Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(
+                TenantLifecycleAuthorizationReflectionState.Authorized, isRemovePreviewReady: false)
+            {
+                GlobalAdministratorRemovePreviewUnavailableReasonKey = pair == "blank-reason" ? "   " : reason,
+                GlobalAdministratorRemovePreviewRecoveryKey = pair == "blank-recovery" ? "   " : recovery,
+            });
+            Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(ComponentReady("projection-v1", "target-admin", "other-admin")));
+            var gateway = new StubTenantCommandGateway();
+            Services.AddSingleton<ITenantCommandGateway>(gateway);
+            IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+            IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+            cut.FindAll("[data-testid='tenants-global-admin-remove']").ShouldBeEmpty();
+            string expectedReason = pair == "complete" ? reason : "Tenants.GlobalAdministrators.Availability.Remove.Unavailable.MissingConsequencePreview";
+            string expectedRecovery = pair == "complete" ? recovery : "Tenants.GlobalAdministrators.Availability.Remove.Recovery.MissingConsequencePreview";
+            IReadOnlyList<IElement> reasons = cut.FindAll("[data-testid='tenants-global-admins-remove-reason']");
+            IReadOnlyList<IElement> recoveries = cut.FindAll("[data-testid='tenants-global-admins-remove-recovery']");
+            reasons.Count.ShouldBe(2);
+            recoveries.Count.ShouldBe(2);
+            reasons.ShouldAllBe(element => element.TextContent.Trim() == localizer[expectedReason].Value);
+            recoveries.ShouldAllBe(element => element.TextContent.Trim() == localizer[expectedRecovery].Value);
+            gateway.RemoveGlobalAdministratorCalls.ShouldBe(0);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    [Theory]
+    [InlineData("en", "GlobalAdministratorAlreadyExists", false)]
+    [InlineData("en", "InsufficientPermissions", false)]
+    [InlineData("fr", "GlobalAdministratorAlreadyExists", false)]
+    [InlineData("fr", "InsufficientPermissions", false)]
+    [InlineData("en", "GlobalAdministratorAlreadyExists", true)]
+    [InlineData("en", "InsufficientPermissions", true)]
+    [InlineData("fr", "GlobalAdministratorAlreadyExists", true)]
+    [InlineData("fr", "InsufficientPermissions", true)]
+    public void GrantRejectionRendersSpecificLocalizedResource(string culture, string code, bool status)
+    {
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo(culture);
+            Services.AddLocalization();
+            string key = $"Tenants.Commands.Rejection.{code}";
+            TenantCommandSubmissionResult rejected = TenantCommandSubmissionResult.Rejected("RAW-GATEWAY-REJECTION-SENTINEL", code) with { SafeMessageKey = key };
+            var gateway = new StubTenantCommandGateway(status ? TenantCommandSubmissionResult.Accepted("message-safe", "correlation-safe") : rejected,
+                new TenantCommandStatusResult(CommandStatus.Rejected, "RAW-GATEWAY-REJECTION-SENTINEL", code, HasVerifiedCommandIdentity: true, SafeMessageKey: key));
+            Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+            Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(ComponentReady("projection-v1", "existing-admin")) { RepeatLastResponse = true });
+            Services.AddSingleton<ITenantCommandGateway>(gateway);
+            IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
+            cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+            PreviewAcknowledgeAndConfirmGrant(cut);
+            IStringLocalizer<TenantsResources> localizer = Services.GetRequiredService<IStringLocalizer<TenantsResources>>();
+            cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-global-admin-grant-safe-message']").TextContent.Trim().ShouldBe(localizer[key].Value));
+            cut.Markup.ShouldNotContain("RAW-GATEWAY-REJECTION-SENTINEL");
+            cut.Find("[data-testid='tenants-global-admin-grant-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+            gateway.SetGlobalAdministratorCalls.ShouldBe(1);
+            gateway.StatusHandles.Count.ShouldBe(status ? 1 : 0);
+            cut.FindAll("[data-testid='tenants-global-admins-user-id']").Select(static e => e.TextContent).ShouldContain("existing-admin");
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
     }
 
     [Fact]
@@ -8503,6 +8597,10 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         public string? GlobalAdministratorGrantPreviewRecoveryKey { get; set; }
 
         public bool IsGlobalAdministratorRemovePreviewReady => isRemovePreviewReady;
+
+        public string? GlobalAdministratorRemovePreviewUnavailableReasonKey { get; set; }
+
+        public string? GlobalAdministratorRemovePreviewRecoveryKey { get; set; }
 
         public TenantLifecycleAuthorizationReflectionState Reflection { get; set; } = reflection;
 

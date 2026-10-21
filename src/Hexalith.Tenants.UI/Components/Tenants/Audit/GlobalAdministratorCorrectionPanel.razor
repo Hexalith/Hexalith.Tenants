@@ -393,9 +393,13 @@
         GlobalAdministratorCorrectionSnapshot snapshot)
     {
         GlobalAdministratorActionEvidence evidence = CreateActionEvidence();
-        return snapshot.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
+        GlobalAdministratorActionAvailability availability = snapshot.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
             ? GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(evidence, snapshot.TargetUserId)
             : GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(evidence);
+        return availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
+            && TryGetPreviewLocalizationOverride(snapshot, out string reasonKey, out string recoveryKey)
+                ? availability with { ReasonKey = reasonKey, RecoveryKey = recoveryKey }
+                : availability;
     }
 
     private bool CanRefreshSnapshot(GlobalAdministratorCorrectionSnapshot snapshot)
@@ -488,6 +492,15 @@
         GlobalAdministratorActionKind action = snapshot.CommandType is TenantCorrectionCommandType.RemoveGlobalAdministrator
             ? GlobalAdministratorActionKind.Remove
             : GlobalAdministratorActionKind.Grant;
+        if (unavailableReason is GlobalAdministratorActionUnavailableReason.MissingLifecycleSupport
+            && HasCommandReconciliationSupport
+            && TryGetPreviewLocalizationOverride(snapshot, out string reasonKey, out string recoveryKey))
+        {
+            reason = Localizer[reasonKey].Value;
+            recovery = Localizer[recoveryKey].Value;
+            return true;
+        }
+
         reason = Localizer[$"Tenants.GlobalAdministrators.Availability.{action}.Unavailable.{unavailableReason}"].Value;
         recovery = Localizer[$"Tenants.GlobalAdministrators.Availability.Recovery.{unavailableReason}"].Value;
         return true;
@@ -504,15 +517,37 @@
         => _viewportObservation is { HasMeasurement: true, State: TenantHighImpactViewportState.Safe };
 
     private bool HasReconciliationSupport
+        => HasCommandReconciliationSupport
+            && (_snapshot?.IsRestoreAccessAction == true
+                ? _bffComposition?.IsGlobalAdministratorGrantPreviewReady == true
+                : _bffComposition?.IsGlobalAdministratorRemovePreviewReady == true);
+
+    private bool HasCommandReconciliationSupport
         => HasExplicitLifecycleSupport
             && CommandGateway?.SupportsGlobalAdministratorDispatch == true
             && (_snapshot?.IsRestoreAccessAction == true
                 ? CommandGateway.SupportsTrackedGlobalAdministratorDispatch
-                    && _bffComposition?.IsGlobalAdministratorGrantPreviewReady == true
-                : CommandGateway?.SupportsTrackedGlobalAdministratorRemoveDispatch == true
-                    && _bffComposition?.IsGlobalAdministratorRemovePreviewReady == true)
-            && CommandGateway?.SupportsCommandStatusLookup == true
+                : CommandGateway.SupportsTrackedGlobalAdministratorRemoveDispatch)
+            && CommandGateway.SupportsCommandStatusLookup
             && HasConcreteRequerySupport;
+
+    private bool TryGetPreviewLocalizationOverride(
+        GlobalAdministratorCorrectionSnapshot snapshot,
+        out string reasonKey,
+        out string recoveryKey)
+    {
+        bool restore = snapshot.IsRestoreAccessAction;
+        reasonKey = (restore
+            ? _bffComposition?.GlobalAdministratorGrantPreviewUnavailableReasonKey
+            : _bffComposition?.GlobalAdministratorRemovePreviewUnavailableReasonKey) ?? string.Empty;
+        recoveryKey = (restore
+            ? _bffComposition?.GlobalAdministratorGrantPreviewRecoveryKey
+            : _bffComposition?.GlobalAdministratorRemovePreviewRecoveryKey) ?? string.Empty;
+        bool ready = restore
+            ? _bffComposition?.IsGlobalAdministratorGrantPreviewReady == true
+            : _bffComposition?.IsGlobalAdministratorRemovePreviewReady == true;
+        return !ready && !string.IsNullOrWhiteSpace(reasonKey) && !string.IsNullOrWhiteSpace(recoveryKey);
+    }
 
     private bool HasConcreteRequerySupport
         => ProjectionRefreshProvider is not null
@@ -658,10 +693,11 @@
                 && !_admissionGate.IsLockedByAnother(
                     TenantCommandAggregateLock.ForGlobalAdministrators(),
                     _admissionOwner),
-            _snapshot?.CanSubmit == true,
+            _snapshot?.CanSubmit == true && _bffComposition?.IsGlobalAdministratorRemovePreviewReady == true,
             _viewportObservation?.State ?? TenantHighImpactViewportState.Unknown,
             _viewportObservation?.HasMeasurement == true)
         {
+            IsGrantPreviewReady = _snapshot?.CanSubmit == true && _bffComposition?.IsGlobalAdministratorGrantPreviewReady == true,
             SupportsTrackedGrantDispatch = CommandGateway?.SupportsTrackedGlobalAdministratorDispatch == true,
             SupportsTrackedRemoveDispatch = CommandGateway?.SupportsTrackedGlobalAdministratorRemoveDispatch == true,
         };

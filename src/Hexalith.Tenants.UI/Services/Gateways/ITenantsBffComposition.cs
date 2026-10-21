@@ -83,6 +83,12 @@ public interface ITenantsBffComposition {
     /// <summary>Gets whether the downstream removal consequence preview is ready.</summary>
     bool IsGlobalAdministratorRemovePreviewReady => false;
 
+    /// <summary>Gets the specific support-safe reason when removal-preview localization is incomplete.</summary>
+    string? GlobalAdministratorRemovePreviewUnavailableReasonKey => null;
+
+    /// <summary>Gets the recovery paired with an incomplete removal-preview localization reason.</summary>
+    string? GlobalAdministratorRemovePreviewRecoveryKey => null;
+
     TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
         => TenantLifecycleAuthorizationReflectionState.Indeterminate;
 

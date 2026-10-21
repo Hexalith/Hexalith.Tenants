@@ -452,6 +452,107 @@ public sealed class TenantsBffCompositionTests
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task RemovalCompositionReusesFixedLocalizationAcrossPreviews(bool readinessFirst)
+    {
+        IStringLocalizer<TenantsResources> localizer = ResolvedRemoveLocalizer();
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+        GlobalAdministratorsSnapshot projection = CompleteGlobalAdministrators("projection-v1", "target-admin", "other-admin");
+        if (readinessFirst)
+        {
+            composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeTrue();
+        }
+
+        for (int i = 0; i < 100; i++)
+        {
+            GlobalAdministratorRemovePreview preview = await composition.ComposeGlobalAdministratorRemovePreviewAsync("target-admin", projection);
+            preview.IsComplete.ShouldBeTrue();
+            composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeTrue();
+            composition.GlobalAdministratorRemovePreviewUnavailableReasonKey.ShouldBeNull();
+            composition.GlobalAdministratorRemovePreviewRecoveryKey.ShouldBeNull();
+        }
+
+        localizer.Received(2).GetAllStrings(includeParentCultures: false);
+        GlobalAdministratorRemovePreview missing = await composition.ComposeGlobalAdministratorRemovePreviewAsync("absent-admin", projection);
+        missing.IsComplete.ShouldBeFalse();
+        missing.UnavailableReasonKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.TargetMissing");
+        GlobalAdministratorRemovePreview last = await composition.ComposeGlobalAdministratorRemovePreviewAsync(
+            "target-admin", CompleteGlobalAdministrators("projection-v2", "target-admin"));
+        last.IsComplete.ShouldBeFalse();
+        last.UnavailableReasonKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.LastAdministrator");
+    }
+
+    [Theory]
+    [InlineData("en", false)]
+    [InlineData("en", true)]
+    [InlineData("fr", false)]
+    [InlineData("fr", true)]
+    public async Task RemovalLocalizationFailureReportsPairedReasonAndRemainsCached(string missingCulture, bool compositionFirst)
+    {
+        const string missingKey = "Tenants.GlobalAdministrators.Remove.Preview.Target";
+        IStringLocalizer<TenantsResources> localizer = ResolvedRemoveLocalizer((culture, key) =>
+            key == missingKey && (missingCulture == "en" ? culture.Equals(CultureInfo.InvariantCulture) : culture.Name == "fr")
+                ? key : DefaultRemoveResourceValue(key));
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+        if (compositionFirst)
+        {
+            GlobalAdministratorRemovePreview first = await composition.ComposeGlobalAdministratorRemovePreviewAsync(
+                "target-admin", CompleteGlobalAdministrators("projection-v1", "target-admin", "other-admin"));
+            first.IsComplete.ShouldBeFalse();
+            first.UnavailableReasonKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization");
+        }
+        composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeFalse();
+        composition.GlobalAdministratorRemovePreviewUnavailableReasonKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization");
+        composition.GlobalAdministratorRemovePreviewRecoveryKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization");
+        for (int i = 0; i < 2; i++)
+        {
+            GlobalAdministratorRemovePreview preview = await composition.ComposeGlobalAdministratorRemovePreviewAsync(
+                "target-admin", CompleteGlobalAdministrators("projection-v1", "target-admin", "other-admin"));
+            preview.IsComplete.ShouldBeFalse();
+            preview.UnavailableReasonKey.ShouldBe(composition.GlobalAdministratorRemovePreviewUnavailableReasonKey);
+            preview.RecoveryKey.ShouldBe(composition.GlobalAdministratorRemovePreviewRecoveryKey);
+        }
+        localizer.Received(missingCulture == "en" ? 1 : 2).GetAllStrings(includeParentCultures: false);
+    }
+
+    [Fact]
+    public async Task RemovalLocalizationRejectsAbsentFrenchResourceDespiteEnglishFallback()
+    {
+        const string missing = "Tenants.GlobalAdministrators.Remove.Preview.Target";
+        IStringLocalizer<TenantsResources> localizer = ResolvedRemoveLocalizer();
+        localizer.GetAllStrings(includeParentCultures: false).Returns(_ => TenantsBffComposition.RequiredRemoveFactKeys
+            .Where(key => CultureInfo.CurrentUICulture.Name != "fr" || key != missing)
+            .Select(key => new LocalizedString(key, DefaultRemoveResourceValue(key), resourceNotFound: false)).ToArray());
+        CultureInfo previous = CultureInfo.CurrentUICulture;
+        try
+        {
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("fr");
+            localizer[missing].ResourceNotFound.ShouldBeFalse();
+            localizer[missing].Value.ShouldNotBe(missing);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+        var composition = new TenantsBffComposition(new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+        GlobalAdministratorRemovePreview preview = await composition.ComposeGlobalAdministratorRemovePreviewAsync(
+            "target-admin", CompleteGlobalAdministrators("projection-v1", "target-admin", "other-admin"));
+        preview.IsComplete.ShouldBeFalse();
+        composition.IsGlobalAdministratorRemovePreviewReady.ShouldBeFalse();
+        composition.GlobalAdministratorRemovePreviewUnavailableReasonKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization");
+        localizer.Received(2).GetAllStrings(includeParentCultures: false);
+    }
+
+    [Theory]
     [InlineData("Tenants.GlobalAdministrators.Availability.Remove.Unavailable.LastAdministrator")]
     [InlineData("Tenants.GlobalAdministrators.Availability.Remove.Recovery.MissingConsequencePreview")]
     [InlineData("Tenants.GlobalAdministrators.Availability.Recovery.TargetMissing")]
@@ -537,8 +638,8 @@ public sealed class TenantsBffCompositionTests
             "Tenants.GlobalAdministrators.Availability.Recovery.UnsafeViewport",
         ];
 
-        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(104);
-        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(104);
+        TenantsBffComposition.RequiredGrantFactKeys.Count.ShouldBe(108);
+        TenantsBffComposition.RequiredGrantFactKeys.Distinct(StringComparer.Ordinal).Count().ShouldBe(108);
         foreach (string key in renderedFactKeys.Concat(renderedChromeKeys).Concat(renderedAvailabilityKeys))
         {
             key.ShouldNotBeNullOrWhiteSpace();
@@ -569,6 +670,33 @@ public sealed class TenantsBffCompositionTests
             "Tenants.GlobalAdministrators.Grant.State.DuplicatePrevented");
         TenantsBffComposition.RequiredGrantFactKeys.ShouldNotContain(
             "Tenants.GlobalAdministrators.Grant.Submit");
+    }
+
+    [Theory]
+    [InlineData("en", "GlobalAdministratorAlreadyExists")]
+    [InlineData("fr", "GlobalAdministratorAlreadyExists")]
+    [InlineData("en", "GlobalAdministratorNotFound")]
+    [InlineData("fr", "GlobalAdministratorNotFound")]
+    [InlineData("en", "LastGlobalAdministrator")]
+    [InlineData("fr", "LastGlobalAdministrator")]
+    [InlineData("en", "InsufficientPermissions")]
+    [InlineData("fr", "InsufficientPermissions")]
+    public async Task GrantPreviewRequiresSpecificRejectionCopyInBothCultures(string missingCulture, string code)
+    {
+        string missingKey = $"Tenants.Commands.Rejection.{code}";
+        TenantsBffComposition.RequiredGrantFactKeys.ShouldContain(missingKey);
+        IStringLocalizer<TenantsResources> localizer = ResolvedGrantLocalizer(
+            (culture, key) => key == missingKey && (missingCulture == "en" ? culture.Equals(CultureInfo.InvariantCulture) : culture.Name == "fr")
+                ? key : DefaultGrantResourceValue(key));
+        var composition = new TenantsBffComposition(
+            new UnavailableTenantCommandGateway(),
+            principalResolver: new StubPrincipalResolver(TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")),
+            resourceLocalizer: localizer);
+        composition.IsGlobalAdministratorGrantPreviewReady.ShouldBeFalse();
+        GlobalAdministratorGrantPreview preview = await composition.ComposeGlobalAdministratorGrantPreviewAsync(
+            "target-admin", CompleteGlobalAdministrators("projection-v1", "existing-admin"));
+        preview.IsComplete.ShouldBeFalse();
+        preview.UnavailableReasonKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Preview.Unavailable.Localization");
     }
 
     [Fact]

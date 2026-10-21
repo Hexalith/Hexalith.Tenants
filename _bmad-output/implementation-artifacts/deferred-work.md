@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-371/DW-386/DW-396/DW-406/DW-414 closure (2026-10-21):** Administrator localization failures retain specific paired recovery, fixed removal-resource checks are reused, recognized grant rejections preserve localized reasons, and captured correction callbacks refuse lost tracked capability. Independent review corrections/recheck, a zero-warning/error Debug source build and full UI 7115/7115 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 430 done/227 open across 206 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-371-386-396-406-414-validation-evidence.md).
+
 **DW-303/DW-449/DW-506/DW-586/DW-657 closure (2026-10-21):** Missing lifecycle version evidence has dedicated EN/FR guidance; correction recovery copy follows actual eligibility and refuses blank-correlation status lookups; absent add-member reasons fail closed and known-unsent refusals recover. Pending-status records were already fixed and are independently requalified. Reviewed Debug source build and full UI 7033/7033 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 425 done/232 open across 211 exact-covering maintenance rows. Historical evidence, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-303-449-506-586-657-validation-evidence.md).
 
 **DW-349/DW-353/DW-355/DW-407/DW-535 closure (2026-10-21):** Audit filter validation is renderer-bound, categories require exact supported names, and narrative timestamps accept bounded explicit-zone ISO forms. Held recovery tests qualify caller changes and sign-out; rendered states pin Unauthorized alert/assertive semantics. Independent review, original-code controls, a zero-warning/error Debug source build and full UI 6949/6949 pass with zero failures/skips. Only these five records close: all 657 IDs remain, 420 done/237 open across 216 exact-covering maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [exact evidence](dw-349-353-355-407-535-validation-evidence.md).
@@ -3951,16 +3953,24 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- The sibling grant consumers did not adopt this round's pattern. Pre-existing and outside the grant-page file group: `GlobalAdministratorCorrectionPanel.RetryAmbiguousDeliveryAsync` still returns silently for the same grant command, and neither the correction panel nor the remove surface consumes a localization-specific unavailable reason although `Remove.Preview.Unavailable.Localization` already exists in both resx files and in `RequiredRemoveFactKeys`. [`src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1173`]"
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorCorrectionPanel.razor::HasReconciliationSupport folds failed grant/remove preview localization readiness into MissingLifecycleSupport, and the page removal availability similarly consumes readiness without the grant-specific localization override. RetryAmbiguousDeliveryAsync now preserves busy/preflight diagnostics, partially resolving the silent-return concern, but localization failures still have no specific unavailable reason/recovery on these sibling surfaces.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
-evidence-kind: verified-defect
+pre-administrator-feedback-status: open
+status: done 2026-10-21
+pre-administrator-feedback-disposition: actionable
+disposition: done
+pre-administrator-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-administrator-feedback-verification: GlobalAdministratorCorrectionPanel.razor::HasReconciliationSupport folds failed grant/remove preview localization readiness into MissingLifecycleSupport, and the page removal availability similarly consumes readiness without the grant-specific localization override. RetryAmbiguousDeliveryAsync now preserves busy/preflight diagnostics, partially resolving the silent-return concern, but localization failures still have no specific unavailable reason/recovery on these sibling surfaces.
+verification: Removal BFF diagnostics and correction/page consumers show specific paired localization guidance only for the effective localization blocker. EN/FR initial and tracked recovery, malformed pairs, transport/viewport precedence and explicit absent French resource with English fallback pass; permission and safety gates remain intact.
+pre-administrator-feedback-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/ITenantsBffComposition.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs; src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor
+pre-administrator-feedback-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: BFF readiness reason contract
-next-action: Expose the localization-specific unavailable reason and recovery on removal and correction consumers, with missing-EN/FR regressions.
+pre-administrator-feedback-next-action: Expose the localization-specific unavailable reason and recovery on removal and correction consumers, with missing-EN/FR regressions.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-371-386-396-406-414-validation-evidence.md`
 related: DW-385
 
 
@@ -4181,16 +4191,24 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Reuse the cached fixed removal localization result during removal preview composition.\n  evidence: `ComposeGlobalAdministratorRemovePreviewAsync` repeats the two-culture resource scan instead of using the existing per-circuit cache; this is pre-existing removal-only performance work."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantsBffComposition.cs:290 caches _hasCompleteFixedRemoveLocalization for IsGlobalAdministratorRemovePreviewReady, but ComposeGlobalAdministratorRemovePreviewAsync:372 still calls HasCompleteLocalization(RequiredRemoveFactKeys) and scans both cultures again. This is a verified redundant scan, with no retained performance measurement showing user-visible impact.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs
-evidence-kind: recommendation
+pre-administrator-feedback-status: open
+status: done 2026-10-21
+pre-administrator-feedback-disposition: actionable
+disposition: done
+pre-administrator-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-administrator-feedback-verification: TenantsBffComposition.cs:290 caches _hasCompleteFixedRemoveLocalization for IsGlobalAdministratorRemovePreviewReady, but ComposeGlobalAdministratorRemovePreviewAsync:372 still calls HasCompleteLocalization(RequiredRemoveFactKeys) and scans both cultures again. This is a verified redundant scan, with no retained performance measurement showing user-visible impact.
+verification: Removal composition reuses its existing immutable per-composition fixed-localization result. In either initialization order 100 valid previews require exactly two culture enumerations instead of the original repeated scans; missing EN/FR results also cache in either order. Per-preview target and last-administrator controls still refuse correctly. No user-visible latency claim is made.
+pre-administrator-feedback-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsBffCompositionTests.cs
+pre-administrator-feedback-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: Localization immutability/cache-lifetime contract
-next-action: Assess whether the existing per-circuit fixed-localization cache can safely serve removal composition; change only if the measured cost warrants it.
+pre-administrator-feedback-next-action: Assess whether the existing per-circuit fixed-localization cache can safely serve removal composition; change only if the measured cost warrants it.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-371-386-396-406-414-validation-evidence.md`
 related: none
 
 
@@ -4357,15 +4375,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Cover correction-panel grant and removal behavior when tracked dispatch capability is false.\n  evidence: The pure evaluator tests false capabilities, but correction-panel stubs always return true; panel wiring can regress without disabling high-impact correction actions."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorCorrectionPanelTests.StubTenantCommandGateway now has settable SupportsTrackedGlobalAdministratorDispatch/RemoveDispatch properties, but no test sets either false. UnavailableQueryGatewayBlocksBothCorrectionActionsWithoutDispatch covers requery absence, not the dispatch-capability wiring named in this finding.
-evidence-kind: verified-gap
+pre-administrator-feedback-status: open
+status: done 2026-10-21
+pre-administrator-feedback-disposition: actionable
+disposition: done
+pre-administrator-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-administrator-feedback-verification: GlobalAdministratorCorrectionPanelTests.StubTenantCommandGateway now has settable SupportsTrackedGlobalAdministratorDispatch/RemoveDispatch properties, but no test sets either false. UnavailableQueryGatewayBlocksBothCorrectionActionsWithoutDispatch covers requery absence, not the dispatch-capability wiring named in this finding.
+verification: EN/FR restore/revoke rendered controls refuse missing tracked capability. Captured enabled confirmations cannot dispatch after capability loss; captured ambiguous retries and correlated status refreshes retain message/correlation and aggregate ownership with no additional dispatch/status reads when applicable support disappears.
+pre-administrator-feedback-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Render restore and revoke correction panels with their tracked-dispatch capability false and verify confirm/retry remain blocked and no dispatch occurs.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs
+pre-administrator-feedback-next-action: Render restore and revoke correction panels with their tracked-dispatch capability false and verify confirm/retry remain blocked and no dispatch occurs.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-371-386-396-406-414-validation-evidence.md`
 related: DW-369
 
 
@@ -4487,16 +4513,24 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Preserve specific grant rejection reasons instead of collapsing every code to the generic rejected key.\n  evidence: `TenantCommandGateway.MapSetGlobalAdministratorGatewayException` maps `GlobalAdministratorAlreadyExists`, `InsufficientPermissions`, and other recognised codes to `Tenants.GlobalAdministrators.Grant.Submission.Rejected`, `GetStatusAsync` maps every rejected status to `Grant.Status.Rejected`, and the page never renders `RejectionCode`; introduced by Story 4.2 commit `cf0e420b`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantCommandGateway.cs::MapSetGlobalAdministratorGatewayException:904-916 still maps recognised rejection codes and HTTP permission failures to the generic Grant.Submission.Rejected key. GetStatusAsync uses Grant.Status.Rejected, and GlobalAdministratorsPage renders the safe key without RejectionCode-specific mapping. Removal retains differentiated reasons.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
-evidence-kind: verified-defect
+pre-administrator-feedback-status: open
+status: done 2026-10-21
+pre-administrator-feedback-disposition: actionable
+disposition: done
+pre-administrator-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-administrator-feedback-verification: TenantCommandGateway.cs::MapSetGlobalAdministratorGatewayException:904-916 still maps recognised rejection codes and HTTP permission failures to the generic Grant.Submission.Rejected key. GetStatusAsync uses Grant.Status.Rejected, and GlobalAdministratorsPage renders the safe key without RejectionCode-specific mapping. Removal retains differentiated reasons.
+verification: Recognized platform-governance grant rejection codes select existing specific support-safe EN/FR resource keys for submission and fixed-aggregate status; unknown codes retain generic safe feedback. Gateway/page regressions cover exact keys, classified rejection, raw secret suppression and preserved rows. Fixed grant readiness now requires every consumed specific rejection key in both cultures.
+pre-administrator-feedback-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
+pre-administrator-feedback-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Approved rejection-code-to-copy map
-next-action: Add support-safe EN/FR grant rejection reasons keyed by recognised platform-governance codes for submission and status, with page/gateway regressions.
+pre-administrator-feedback-next-action: Add support-safe EN/FR grant rejection reasons keyed by recognised platform-governance codes for submission and status, with page/gateway regressions.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-371-386-396-406-414-validation-evidence.md`
 related: none
 
 
@@ -4624,16 +4658,24 @@ location: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTes
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Make the removal rejection page test prove localization instead of echoing the gateway's raw text.\n  evidence: `Remove_rejection_keeps_last_confirmed_rows_without_success_or_member_copy` (`GlobalAdministratorsPageTests.cs:2332`) passes `Rejected(expectedText, code)`, and the stub localizer text also contains `expectedText`. `RemoveSafeMessage` falls back to raw `SafeMessage` when the key is missing, so a broken `Remove.Status.Rejected.*` mapping still passes. Pre-existing; not changed in this range."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPageTests.cs::Remove_rejection_keeps_last_confirmed_rows_without_success_or_member_copy:2681 still supplies TenantCommandSubmissionResult.Rejected(expectedText, rejectionCode) and asserts the same expectedText returned by the stub. RemoveSafeMessage falls back to raw safe text when no key exists. The test still does not distinguish correct localisation from raw gateway echo.
+pre-administrator-feedback-status: open
+status: done 2026-10-21
+pre-administrator-feedback-disposition: actionable
+disposition: done
+pre-administrator-feedback-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-administrator-feedback-verification: GlobalAdministratorsPageTests.cs::Remove_rejection_keeps_last_confirmed_rows_without_success_or_member_copy:2681 still supplies TenantCommandSubmissionResult.Rejected(expectedText, rejectionCode) and asserts the same expectedText returned by the stub. RemoveSafeMessage falls back to raw safe text when no key exists. The test still does not distinguish correct localisation from raw gateway echo.
+verification: The removal rejection page theory uses distinct raw gateway sentinel text and exact real EN/FR resources for last-administrator/not-found rejections. It asserts the sentinel is absent, retained rows, assertive feedback and absence of success/member copy, so raw fallback cannot satisfy the localization assertion.
+pre-administrator-feedback-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
 verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
-evidence-kind: verified-gap
+pre-administrator-feedback-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Use distinct raw gateway text and real/localizer-only expected EN/FR rejection copy, and make a broken rejection key mapping fail.
+pre-administrator-feedback-next-action: Use distinct raw gateway text and real/localizer-only expected EN/FR rejection copy, and make a broken rejection key mapping fail.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
+closure-evidence: `dw-371-386-396-406-414-validation-evidence.md`
 related: DW-406
 
 

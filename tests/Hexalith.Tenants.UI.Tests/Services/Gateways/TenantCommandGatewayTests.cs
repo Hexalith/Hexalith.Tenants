@@ -389,7 +389,7 @@ public sealed class TenantCommandGatewayTests
         {
             "set-tracked" => "Tenants.Configuration.Set." + (unauthorized ? "Unavailable.Authorization" : statusCode == 400 ? "Submission.Invalid" : "Submission.VerificationFailed"),
             "remove-configuration-tracked" => "Tenants.Configuration.Remove." + (unauthorized ? "Unavailable.Authorization" : statusCode == 400 ? "Submission.Invalid" : "Submission.VerificationFailed"),
-            "grant-tracked" => "Tenants.GlobalAdministrators.Grant.Submission." + (unauthorized ? "Rejected" : statusCode == 400 ? "Invalid" : "Failed"),
+            "grant-tracked" => unauthorized ? "Tenants.Commands.Rejection.InsufficientPermissions" : "Tenants.GlobalAdministrators.Grant.Submission." + (statusCode == 400 ? "Invalid" : "Failed"),
             "remove-global-tracked" => "Tenants.GlobalAdministrators.Remove.Submission." + (unauthorized ? "Unauthorized" : statusCode == 400 ? "Invalid" : "Failed"),
             _ => "Tenants.Lifecycle." + (unauthorized ? "Message.Rejected.InsufficientPermissions" : statusCode == 400 ? "Submission.Invalid" : "Submission.Failed"),
         };
@@ -405,7 +405,7 @@ public sealed class TenantCommandGatewayTests
     [InlineData("remove-configuration-tracked", "ConfigurationKeyNotFound", "Tenants.Commands.Rejection.ConfigurationKeyNotFound")]
     [InlineData("enable-tracked", "TenantLifecycleStateAlreadySet", "Tenants.Commands.Rejection.TenantLifecycleStateAlreadySet")]
     [InlineData("disable-tracked", "TenantDisabled", "Tenants.Lifecycle.Rejection.TenantDisabled")]
-    [InlineData("grant-tracked", "GlobalAdministratorAlreadyExists", "Tenants.GlobalAdministrators.Grant.Submission.Rejected")]
+    [InlineData("grant-tracked", "GlobalAdministratorAlreadyExists", "Tenants.Commands.Rejection.GlobalAdministratorAlreadyExists")]
     [InlineData("remove-global-tracked", "LastGlobalAdministrator", "Tenants.Commands.Rejection.LastGlobalAdministrator")]
     public async Task TrackedDomainRejectionsStayTerminalAndKeepOperationCodes(string operation, string code, string key)
     {
@@ -553,11 +553,11 @@ public sealed class TenantCommandGatewayTests
     [InlineData(
         HttpStatusCode.Unauthorized,
         TenantCommandLifecycleState.Rejected,
-        "Tenants.GlobalAdministrators.Grant.Submission.Rejected")]
+        "Tenants.Commands.Rejection.InsufficientPermissions")]
     [InlineData(
         HttpStatusCode.Forbidden,
         TenantCommandLifecycleState.Rejected,
-        "Tenants.GlobalAdministrators.Grant.Submission.Rejected")]
+        "Tenants.Commands.Rejection.InsufficientPermissions")]
     [InlineData(
         HttpStatusCode.Conflict,
         TenantCommandLifecycleState.Failed,
@@ -874,7 +874,7 @@ public sealed class TenantCommandGatewayTests
         result.RejectionCode.ShouldBe(expectedCode);
         AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
         result.SafeMessage.ShouldBeNull();
-        result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Submission.Rejected");
+        result.SafeMessageKey.ShouldBe($"Tenants.Commands.Rejection.{expectedCode}");
     }
 
     [Fact]
@@ -2727,6 +2727,41 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Theory]
+    [InlineData("GlobalAdministratorAlreadyExists", "Tenants.Commands.Rejection.GlobalAdministratorAlreadyExists")]
+    [InlineData("GlobalAdministratorNotFound", "Tenants.Commands.Rejection.GlobalAdministratorNotFound")]
+    [InlineData("LastGlobalAdministrator", "Tenants.Commands.Rejection.LastGlobalAdministrator")]
+    [InlineData("InsufficientPermissions", "Tenants.Commands.Rejection.InsufficientPermissions")]
+    [InlineData("UnknownBackendSecret", "Tenants.GlobalAdministrators.Grant.Status.Rejected")]
+    public async Task FixedAdministratorRejectedStatusPreservesOnlyRecognizedReasons(string code, string key)
+    {
+        StatusHandler handler = new($$"""
+            {
+              "correlationId": "correlation-global",
+              "status": "Rejected",
+              "statusCode": {{(int)CommandStatus.Rejected}},
+              "timestamp": "2026-06-06T02:00:00Z",
+              "aggregateId": "global-administrators",
+              "eventCount": 0,
+              "messageId": "message-global",
+              "rejectionEventType": "{{code}}Rejection",
+              "failureReason": "backend-secret-Canary"
+            }
+            """);
+        TenantCommandGateway gateway = new(
+            new CapturingGatewayClient(new SubmitCommandResponse("correlation-global")),
+            new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(handler) { BaseAddress = new Uri("https://eventstore.example/") });
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle("message-global", "correlation-global", GlobalAdministratorGrantPreview.FixedAggregateId), CancellationToken.None);
+        result.Status.ShouldBe(CommandStatus.Rejected);
+        result.SafeMessageKey.ShouldBe(key);
+        result.RejectionCode.ShouldBe(code == "UnknownBackendSecret" ? null : code);
+        AssertShippedWholeMessage(result.SafeMessageKey, result.SafeMessage);
+        JsonSerializer.Serialize(result).ShouldNotContain("backend-secret-Canary");
+        JsonSerializer.Serialize(result).ShouldNotContain("UnknownBackendSecret");
+    }
+
+    [Theory]
     [InlineData("Rejected", "Tenants.GlobalAdministrators.Grant.Status.Rejected")]
     [InlineData("PublishFailed", "Tenants.GlobalAdministrators.Grant.Status.PublishFailed")]
     [InlineData("TimedOut", "Tenants.GlobalAdministrators.Grant.Status.TimedOut")]
@@ -3273,7 +3308,7 @@ public sealed class TenantCommandGatewayTests
                 ("remove-configuration", "Tenants.Configuration.Remove.Submission.Invalid", "Tenants.Configuration.Remove.Unavailable.Authorization", "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous", "Tenants.Configuration.Remove.Submission.VerificationFailed"),
                 ("enable", "Tenants.Lifecycle.Submission.Invalid", "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions", "Tenants.Lifecycle.SubmissionEvidence.Ambiguous", "Tenants.Lifecycle.Submission.Failed"),
                 ("disable", "Tenants.Lifecycle.Submission.Invalid", "Tenants.Lifecycle.Message.Rejected.InsufficientPermissions", "Tenants.Lifecycle.SubmissionEvidence.Ambiguous", "Tenants.Lifecycle.Submission.Failed"),
-                ("grant", "Tenants.GlobalAdministrators.Grant.Submission.Invalid", "Tenants.GlobalAdministrators.Grant.Submission.Rejected", "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous", "Tenants.GlobalAdministrators.Grant.Submission.Failed"),
+                ("grant", "Tenants.GlobalAdministrators.Grant.Submission.Invalid", "Tenants.Commands.Rejection.InsufficientPermissions", "Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous", "Tenants.GlobalAdministrators.Grant.Submission.Failed"),
                 ("remove-global", "Tenants.GlobalAdministrators.Remove.Submission.Invalid", "Tenants.GlobalAdministrators.Remove.Submission.Unauthorized", "Tenants.GlobalAdministrators.Remove.SubmissionEvidence.Ambiguous", "Tenants.GlobalAdministrators.Remove.Submission.Failed"),
             })
             {

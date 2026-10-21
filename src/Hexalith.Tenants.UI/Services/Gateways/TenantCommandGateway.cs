@@ -628,7 +628,9 @@ internal sealed class TenantCommandGateway(
                 SafeMessageKey: globalAdministratorStatus
                     ? parsedStatus switch
                     {
-                        CommandStatus.Rejected => "Tenants.GlobalAdministrators.Grant.Status.Rejected",
+                        CommandStatus.Rejected => SafeGlobalAdministratorRejection(status.RejectionEventType) is { } rejection
+                            ? SafeSharedStatusRejection(rejection.Code)!.Value.Key
+                            : "Tenants.GlobalAdministrators.Grant.Status.Rejected",
                         CommandStatus.PublishFailed => "Tenants.GlobalAdministrators.Grant.Status.PublishFailed",
                         CommandStatus.TimedOut => "Tenants.GlobalAdministrators.Grant.Status.TimedOut",
                         _ => safeMessageKey,
@@ -850,14 +852,14 @@ internal sealed class TenantCommandGateway(
         (string Code, string Message, string Key)? rejection = SafeGlobalAdministratorRejection(exception);
         if (rejection is not null) {
             return TenantCommandSubmissionResult.RejectedWithKey(
-                "Tenants.GlobalAdministrators.Grant.Submission.Rejected",
+                SafeSharedStatusRejection(rejection.Value.Code)!.Value.Key,
                 rejection.Value.Code);
         }
 
         return exception.StatusCode switch {
             (int)HttpStatusCode.Unauthorized or (int)HttpStatusCode.Forbidden
                 => TenantCommandSubmissionResult.RejectedWithKey(
-                    "Tenants.GlobalAdministrators.Grant.Submission.Rejected",
+                    "Tenants.Commands.Rejection.InsufficientPermissions",
                     "InsufficientPermissions"),
             (int)HttpStatusCode.BadRequest
                 => TenantCommandSubmissionResult.FailedWithKey(

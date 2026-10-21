@@ -28,6 +28,10 @@ internal sealed class TenantsBffComposition(
     /// <summary>Gets every localized string required to render or safely fail the grant-preview interaction.</summary>
     internal static IReadOnlyList<string> RequiredGrantFactKeys { get; } =
     [
+        "Tenants.Commands.Rejection.GlobalAdministratorAlreadyExists",
+        "Tenants.Commands.Rejection.GlobalAdministratorNotFound",
+        "Tenants.Commands.Rejection.LastGlobalAdministrator",
+        "Tenants.Commands.Rejection.InsufficientPermissions",
         "Tenants.GlobalAdministrators.Availability.Grant.Available",
         "Tenants.GlobalAdministrators.Availability.Grant.Recovery.MissingConsequencePreview",
         "Tenants.GlobalAdministrators.Availability.Grant.Unavailable.AggregateBusy",
@@ -285,9 +289,22 @@ internal sealed class TenantsBffComposition(
             ? "Tenants.GlobalAdministrators.Grant.Preview.Recovery.Localization"
             : null;
 
+    private bool HasCompleteFixedRemoveLocalization
+        => _hasCompleteFixedRemoveLocalization ??= HasCompleteLocalization(RequiredRemoveFactKeys);
+
     public bool IsGlobalAdministratorRemovePreviewReady
         => principalResolver is not null
-            && (_hasCompleteFixedRemoveLocalization ??= HasCompleteLocalization(RequiredRemoveFactKeys));
+            && HasCompleteFixedRemoveLocalization;
+
+    public string? GlobalAdministratorRemovePreviewUnavailableReasonKey
+        => principalResolver is not null && !HasCompleteFixedRemoveLocalization
+            ? "Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Localization"
+            : null;
+
+    public string? GlobalAdministratorRemovePreviewRecoveryKey
+        => principalResolver is not null && !HasCompleteFixedRemoveLocalization
+            ? "Tenants.GlobalAdministrators.Remove.Preview.Recovery.Localization"
+            : null;
 
     public TenantLifecycleAuthorizationReflectionState LifecycleAuthorizationReflection
         => IsCommandSurfaceConnected
@@ -369,7 +386,7 @@ internal sealed class TenantsBffComposition(
             return preview;
         }
 
-        return HasCompleteLocalization(RequiredRemoveFactKeys)
+        return HasCompleteFixedRemoveLocalization
             ? preview
             : GlobalAdministratorRemovePreview.Unavailable(
                 targetUserId,
