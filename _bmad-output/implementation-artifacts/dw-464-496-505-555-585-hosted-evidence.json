@@ -1,0 +1,744 @@
+{
+  "entry_commit": "b02452a16869f265c21b1ae6c15f2f299677f139",
+  "runs": [
+    {
+      "file": "first-success-39167197905.json",
+      "retrieval_command": [
+        "gh",
+        "run",
+        "view",
+        "39167197905",
+        "--json",
+        "headSha,jobs,url"
+      ],
+      "raw_sha256": "5ab888734ffd8ac14deb51a62ac4fad122fbfdbe15409c9412e815d7f657b03c",
+      "raw_bytes": 2412,
+      "response": {
+        "headSha": "579ec157ac38eb30593e736042aedac4d1acd08d",
+        "jobs": [
+          {
+            "completedAt": "2026-10-18T21:30:35Z",
+            "conclusion": "success",
+            "databaseId": 117792500005,
+            "name": "validate-story-gitlinks",
+            "startedAt": "2026-10-18T21:30:29Z",
+            "status": "completed",
+            "steps": [
+              {
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run actions/checkout@v7.0.1",
+                "number": 2,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the gitlink guard regression lane",
+                "number": 3,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@v7.0.1",
+                "number": 6,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 7,
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39167197905/job/117792500005"
+          },
+          {
+            "completedAt": "2026-10-18T21:34:32Z",
+            "conclusion": "success",
+            "databaseId": 117792500177,
+            "name": "validate-remove-focus-in-chromium",
+            "startedAt": "2026-10-18T21:30:48Z",
+            "status": "completed",
+            "steps": [
+              {
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "number": 2,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Initialize root-declared submodules",
+                "number": 3,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Initialize .NET",
+                "number": 4,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Restore the UI browser-validation graph",
+                "number": 5,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Build the UI browser-validation graph",
+                "number": 6,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Install Chrome for the removal focus validator",
+                "number": 7,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Install the matching Chrome headless shell",
+                "number": 8,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Validate the shipped removal focus module in Chromium",
+                "number": 9,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Post Initialize .NET",
+                "number": 17,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "number": 18,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 19,
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39167197905/job/117792500177"
+          }
+        ],
+        "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39167197905"
+      },
+      "retrieval_exit_code": 0,
+      "raw_member": "first-success-39167197905.json"
+    },
+    {
+      "file": "last-success-39426910956.json",
+      "retrieval_command": [
+        "gh",
+        "run",
+        "view",
+        "39426910956",
+        "--json",
+        "headSha,jobs,url"
+      ],
+      "raw_sha256": "b53932f065c06960696940117eca1fee21ca5132bbeaa9a263eedbf955a7e002",
+      "raw_bytes": 2846,
+      "response": {
+        "headSha": "3ae9db014dfe52bdee4f6731465cc2a7b65701b7",
+        "jobs": [
+          {
+            "completedAt": "2026-10-20T13:05:56Z",
+            "conclusion": "success",
+            "databaseId": 118641663695,
+            "name": "validate-remove-focus-in-chromium",
+            "startedAt": "2026-10-20T13:01:32Z",
+            "status": "completed",
+            "steps": [
+              {
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "number": 2,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Initialize root-declared submodules",
+                "number": 3,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Initialize .NET",
+                "number": 4,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Restore the UI browser-validation graph",
+                "number": 5,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Build the UI browser-validation graph",
+                "number": 6,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Install Chrome for the removal focus validator",
+                "number": 7,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Install the matching Chrome headless shell",
+                "number": 8,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Validate the shipped removal focus module in Chromium",
+                "number": 9,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Post Initialize .NET",
+                "number": 17,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "number": 18,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 19,
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39426910956/job/118641663695"
+          },
+          {
+            "completedAt": "2026-10-20T13:02:19Z",
+            "conclusion": "success",
+            "databaseId": 118641663998,
+            "name": "validate-story-gitlinks",
+            "startedAt": "2026-10-20T13:01:33Z",
+            "status": "completed",
+            "steps": [
+              {
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run actions/checkout@v7.0.1",
+                "number": 2,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Validate changed story gitlinks",
+                "number": 3,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the changed-story CI regression lane",
+                "number": 4,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the gitlink guard regression lane",
+                "number": 5,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the pushall attachment gate regression lane",
+                "number": 6,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the pushall remote default regression lane",
+                "number": 7,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@v7.0.1",
+                "number": 14,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 15,
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39426910956/job/118641663998"
+          }
+        ],
+        "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39426910956"
+      },
+      "retrieval_exit_code": 0,
+      "raw_member": "last-success-39426910956.json"
+    },
+    {
+      "file": "current-39659580488.json",
+      "retrieval_command": [
+        "gh",
+        "run",
+        "view",
+        "39659580488",
+        "--json",
+        "headSha,jobs,url"
+      ],
+      "raw_sha256": "73cd93e13dd85c820ed74a16e801ccc433bf894e2de05f70308453b2bfa72488",
+      "raw_bytes": 2846,
+      "response": {
+        "headSha": "b02452a16869f265c21b1ae6c15f2f299677f139",
+        "jobs": [
+          {
+            "completedAt": "2026-10-21T19:16:31Z",
+            "conclusion": "failure",
+            "databaseId": 119428775389,
+            "name": "validate-remove-focus-in-chromium",
+            "startedAt": "2026-10-21T19:13:57Z",
+            "status": "completed",
+            "steps": [
+              {
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "number": 2,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Initialize root-declared submodules",
+                "number": 3,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Initialize .NET",
+                "number": 4,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Restore the UI browser-validation graph",
+                "number": 5,
+                "status": "completed"
+              },
+              {
+                "conclusion": "failure",
+                "name": "Build the UI browser-validation graph",
+                "number": 6,
+                "status": "completed"
+              },
+              {
+                "conclusion": "skipped",
+                "name": "Install Chrome for the removal focus validator",
+                "number": 7,
+                "status": "completed"
+              },
+              {
+                "conclusion": "skipped",
+                "name": "Install the matching Chrome headless shell",
+                "number": 8,
+                "status": "completed"
+              },
+              {
+                "conclusion": "skipped",
+                "name": "Validate the shipped removal focus module in Chromium",
+                "number": 9,
+                "status": "completed"
+              },
+              {
+                "conclusion": "skipped",
+                "name": "Post Initialize .NET",
+                "number": 17,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+                "number": 18,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 19,
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39659580488/job/119428775389"
+          },
+          {
+            "completedAt": "2026-10-21T19:19:32Z",
+            "conclusion": "success",
+            "databaseId": 119428776078,
+            "name": "validate-story-gitlinks",
+            "startedAt": "2026-10-21T19:18:05Z",
+            "status": "completed",
+            "steps": [
+              {
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run actions/checkout@v7.0.1",
+                "number": 2,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Validate changed story gitlinks",
+                "number": 3,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the changed-story CI regression lane",
+                "number": 4,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the gitlink guard regression lane",
+                "number": 5,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the pushall attachment gate regression lane",
+                "number": 6,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Run the pushall remote default regression lane",
+                "number": 7,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@v7.0.1",
+                "number": 14,
+                "status": "completed"
+              },
+              {
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 15,
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39659580488/job/119428776078"
+          }
+        ],
+        "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/39659580488"
+      },
+      "retrieval_exit_code": 0,
+      "raw_member": "current-39659580488.json"
+    }
+  ],
+  "logs": [
+    {
+      "file": "first-success-browser-117792500177.log",
+      "retrieval_command": [
+        "gh",
+        "api",
+        "repos/Hexalith/Hexalith.Tenants/actions/jobs/117792500177/logs"
+      ],
+      "raw_sha256": "eadccab49b62811f43dfa42cc79a683f4608ca6b7d1009c0fbaaeabe4bb077c9",
+      "raw_bytes": 53950,
+      "excerpts": [
+        {
+          "line": 52,
+          "text": "2026-10-18T21:30:50.3639690Z   CHROME_FOR_TESTING_VERSION: 153.0.8010.52"
+        },
+        {
+          "line": 296,
+          "text": "2026-10-18T21:32:32.0642926Z ##[group]Run dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -warnaserror -m:1 -nr:false"
+        },
+        {
+          "line": 315,
+          "text": "2026-10-18T21:33:54.2353438Z     0 Warning(s)"
+        },
+        {
+          "line": 369,
+          "text": "2026-10-18T21:34:03.3002021Z   TENANTS_HEADLESS_SHELL: /home/runner/work/_temp/chrome-headless-shell/chrome-headless-shell-linux64/chrome-headless-shell"
+        },
+        {
+          "line": 371,
+          "text": "2026-10-18T21:34:03.3004497Z   TENANTS_BROWSER_BUILD_CONFIGURATION: Release"
+        },
+        {
+          "line": 376,
+          "text": "2026-10-18T21:34:23.6356340Z Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed."
+        },
+        {
+          "line": 377,
+          "text": "2026-10-18T21:34:23.6359666Z Rendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed."
+        },
+        {
+          "line": 378,
+          "text": "2026-10-18T21:34:25.7984376Z Rendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected."
+        },
+        {
+          "line": 379,
+          "text": "2026-10-18T21:34:25.8342720Z Browser: Google Chrome for Testing 153.0.8010.52 "
+        },
+        {
+          "line": 383,
+          "text": "2026-10-18T21:34:25.8387138Z Return-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)"
+        },
+        {
+          "line": 384,
+          "text": "2026-10-18T21:34:25.8387752Z Removal-dialog in-flow and hidden CSS mutations: correctly rejected"
+        },
+        {
+          "line": 385,
+          "text": "2026-10-18T21:34:25.8388251Z Unstacked availability recoveries at 390px: correctly rejected"
+        }
+      ],
+      "retrieval_exit_code": 0,
+      "raw_member": "first-success-browser-117792500177.log"
+    },
+    {
+      "file": "last-success-browser-118641663695.log",
+      "retrieval_command": [
+        "gh",
+        "api",
+        "repos/Hexalith/Hexalith.Tenants/actions/jobs/118641663695/logs"
+      ],
+      "raw_sha256": "9eef8eb9dff1878a19ff00b75205a247300c89caca690a6b78f8ecfe02946a69",
+      "raw_bytes": 54025,
+      "excerpts": [
+        {
+          "line": 52,
+          "text": "2026-10-20T13:01:34.4247594Z   CHROME_FOR_TESTING_VERSION: 153.0.8010.52"
+        },
+        {
+          "line": 297,
+          "text": "2026-10-20T13:04:09.1895206Z ##[group]Run dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -warnaserror -m:1 -nr:false"
+        },
+        {
+          "line": 316,
+          "text": "2026-10-20T13:05:19.3634105Z     0 Warning(s)"
+        },
+        {
+          "line": 370,
+          "text": "2026-10-20T13:05:29.2713234Z   TENANTS_HEADLESS_SHELL: /home/runner/work/_temp/chrome-headless-shell/chrome-headless-shell-linux64/chrome-headless-shell"
+        },
+        {
+          "line": 372,
+          "text": "2026-10-20T13:05:29.2714628Z   TENANTS_BROWSER_BUILD_CONFIGURATION: Release"
+        },
+        {
+          "line": 377,
+          "text": "2026-10-20T13:05:47.6574482Z Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed."
+        },
+        {
+          "line": 378,
+          "text": "2026-10-20T13:05:47.6576593Z Rendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed."
+        },
+        {
+          "line": 379,
+          "text": "2026-10-20T13:05:49.7003794Z Rendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected."
+        },
+        {
+          "line": 380,
+          "text": "2026-10-20T13:05:49.7314121Z Browser: Google Chrome for Testing 153.0.8010.52 "
+        },
+        {
+          "line": 384,
+          "text": "2026-10-20T13:05:49.7347316Z Return-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)"
+        },
+        {
+          "line": 385,
+          "text": "2026-10-20T13:05:49.7347776Z Removal-dialog in-flow and hidden CSS mutations: correctly rejected"
+        },
+        {
+          "line": 386,
+          "text": "2026-10-20T13:05:49.7348152Z Unstacked availability recoveries at 390px: correctly rejected"
+        }
+      ],
+      "retrieval_exit_code": 0,
+      "raw_member": "last-success-browser-118641663695.log"
+    },
+    {
+      "file": "current-browser-119428775389.log",
+      "retrieval_command": [
+        "gh",
+        "api",
+        "repos/Hexalith/Hexalith.Tenants/actions/jobs/119428775389/logs"
+      ],
+      "raw_sha256": "dc7e49ea99f80cff53ab2316635728df202058ce6746f017824e33b92f4cf4b7",
+      "raw_bytes": 38869,
+      "excerpts": [
+        {
+          "line": 52,
+          "text": "2026-10-21T19:13:59.4736410Z   CHROME_FOR_TESTING_VERSION: 153.0.8010.52"
+        },
+        {
+          "line": 297,
+          "text": "2026-10-21T19:15:54.0500811Z ##[group]Run dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --configuration Release --no-restore -warnaserror -m:1 -nr:false"
+        },
+        {
+          "line": 306,
+          "text": "2026-10-21T19:16:00.1821665Z ##[error]/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/src/Hexalith.Tenants.Contracts/Queries/TenantReadAuthorityResult.cs(12,5): error CS0246: The type or namespace name 'NativeSourceProof' could not be found (are you missing a using directive or an assembly reference?) [/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj]"
+        },
+        {
+          "line": 312,
+          "text": "2026-10-21T19:16:29.2596208Z Build FAILED."
+        },
+        {
+          "line": 314,
+          "text": "2026-10-21T19:16:29.2600465Z ##[error]/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/src/Hexalith.Tenants.Contracts/Queries/TenantReadAuthorityResult.cs(12,5): error CS0246: The type or namespace name 'NativeSourceProof' could not be found (are you missing a using directive or an assembly reference?) [/home/runner/work/Hexalith.Tenants/Hexalith.Tenants/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj]"
+        },
+        {
+          "line": 315,
+          "text": "2026-10-21T19:16:29.2602983Z     0 Warning(s)"
+        },
+        {
+          "line": 316,
+          "text": "2026-10-21T19:16:29.2603186Z     1 Error(s)"
+        },
+        {
+          "line": 319,
+          "text": "2026-10-21T19:16:29.2875401Z ##[error]Process completed with exit code 1."
+        }
+      ],
+      "retrieval_exit_code": 0,
+      "raw_member": "current-browser-119428775389.log"
+    },
+    {
+      "file": "current-gitlink-119428776078.log",
+      "retrieval_command": [
+        "gh",
+        "api",
+        "repos/Hexalith/Hexalith.Tenants/actions/jobs/119428776078/logs"
+      ],
+      "raw_sha256": "e2663bc29e89fb7cd17f863291cda0bfc8b34b343f9c229792d1ace4efd569f5",
+      "raw_bytes": 31820,
+      "excerpts": [
+        {
+          "line": 190,
+          "text": "2026-10-21T19:18:48.6470077Z Event range: 0c10ef637171f9ac2639d4b5ac42f513ea9ef133..b02452a16869f265c21b1ae6c15f2f299677f139"
+        },
+        {
+          "line": 191,
+          "text": "2026-10-21T19:18:48.7623968Z Audit: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md at b2b80941df874c2ee6772ca316841c480e0e493b"
+        },
+        {
+          "line": 205,
+          "text": "2026-10-21T19:18:48.8097866Z RESULT: PASS"
+        },
+        {
+          "line": 206,
+          "text": "2026-10-21T19:18:48.8499413Z Audit: _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md at 2b91b05be9c927319fd207b02552d1213997776b"
+        },
+        {
+          "line": 216,
+          "text": "2026-10-21T19:18:48.8960084Z RESULT: PASS"
+        },
+        {
+          "line": 217,
+          "text": "2026-10-21T19:18:48.9108779Z Audit: _bmad-output/implementation-artifacts/spec-dw-297-462-533-549-558-evidence-reconciliation.md at b02452a16869f265c21b1ae6c15f2f299677f139"
+        },
+        {
+          "line": 224,
+          "text": "2026-10-21T19:18:48.9542370Z RESULT: PASS"
+        },
+        {
+          "line": 225,
+          "text": "2026-10-21T19:18:48.9587977Z Changed stories: 3; failed: 0"
+        },
+        {
+          "line": 232,
+          "text": "2026-10-21T19:18:56.6261677Z Ran 49 tests in 7.581s"
+        },
+        {
+          "line": 241,
+          "text": "2026-10-21T19:19:06.5585662Z Ran 77 tests in 9.819s"
+        },
+        {
+          "line": 263,
+          "text": "2026-10-21T19:19:10.7098986Z Ran 13 tests in 4.074s"
+        },
+        {
+          "line": 303,
+          "text": "2026-10-21T19:19:30.9493292Z Ran 31 tests in 20.163s"
+        }
+      ],
+      "retrieval_exit_code": 0,
+      "raw_member": "current-gitlink-119428776078.log"
+    }
+  ],
+  "source_blob_comparison": {
+    "command": [
+      "git",
+      "diff",
+      "3ae9db014dfe52bdee4f6731465cc2a7b65701b7..b02452a16869f265c21b1ae6c15f2f299677f139",
+      "--",
+      ".github/workflows/story-guards.yml",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/dump-validation-dom.mjs",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh"
+    ],
+    "exit_code": 0,
+    "diff_bytes": 0,
+    "trees": {
+      "3ae9db014dfe52bdee4f6731465cc2a7b65701b7": "100644 blob 6cfa604231c58dc9e507e5b4c24c88e2d6628855\t.github/workflows/story-guards.yml\n100644 blob 5487b9b5d647755430185341244a20d06b96686c\ttests/Hexalith.Tenants.UI.Tests/Browser/dump-validation-dom.mjs\n100755 blob fd76f0d1e7c2b8963b53785c736231b811c2fc75\ttests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh\n",
+      "b02452a16869f265c21b1ae6c15f2f299677f139": "100644 blob 6cfa604231c58dc9e507e5b4c24c88e2d6628855\t.github/workflows/story-guards.yml\n100644 blob 5487b9b5d647755430185341244a20d06b96686c\ttests/Hexalith.Tenants.UI.Tests/Browser/dump-validation-dom.mjs\n100755 blob fd76f0d1e7c2b8963b53785c736231b811c2fc75\ttests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh\n"
+    },
+    "identical": true
+  },
+  "entry_event": {
+    "before": "0c10ef637171f9ac2639d4b5ac42f513ea9ef133",
+    "after": "b02452a16869f265c21b1ae6c15f2f299677f139"
+  }
+}

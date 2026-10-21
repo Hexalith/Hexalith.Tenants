@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-464/DW-496/DW-505/DW-555/DW-585 closure (2026-10-21):** Immutable hosted logs qualify the existing Chrome 153/CDP repair, EN/FR correction fixture checks and negative controls; current hosted CI validates actual changed stories. The separate current NativeSourceProof package-build failure still prevents current browser execution. Exactly five stale CI records close: all 657 IDs remain, 465 done/192 open across 178 exact-covering maintenance rows. Original findings, unrelated work, dependency pointers, authenticated-runtime limitations and release holds remain preserved. See [validation evidence](dw-464-496-505-555-585-validation-evidence.md).
+
 **DW-297/DW-462/DW-533/DW-549/DW-558 closure (2026-10-21):** Historical validation commands, Story 5.4 evidence and Epic 5 constraints are qualified; Story 5.6 reverification binds its final historical endpoint, and the paging ownership report distinguishes reverted work from Story 5.7 integration. Only these five records close: 657 IDs remain, 460 done/197 open across 181 exact-covering maintenance rows. Separate baseline holds, original failures, unrelated work, dependencies and release limitations remain preserved. See [validation evidence](dw-297-462-533-549-558-validation-evidence.md).
 
 **DW-198/DW-246/DW-343/DW-360/DW-384 closure (2026-10-21):** Removal and grant audits bind immutable historical endpoints and exact dependency targets. The refresh inventory includes earlier gitlinks and the topology alias, with its preserved mid-story checkpoint explicitly qualified. Only these five records close: 657 IDs remain, 455 done/202 open across 186 exact-covering maintenance rows. Historical findings, independent dependency work and release holds remain preserved. See [validation evidence](dw-198-246-343-360-384-validation-evidence.md).
@@ -5535,17 +5537,24 @@ location: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-3.md`\n  summary: Repair `validate-remove-focus-in-chromium`, which aborts in CI with Chrome 153 (core dump, exit 134) on every `main` push.\n  evidence: `validate-tenants-focus-browser.sh` gets \"Aborted (core dumped)\" from `--headless=new --disable-dev-shm-usage --disable-gpu` in runs `36559824612` (`55f3dc63`) through `36747918865` (`a4a1ce13`). The workflow last passed on 2026-09-22 (`35782893330`), and local Chrome 154 passes. A runner sandbox restriction is suspected but unverified; settle it by uploading the `${output_path}.stderr` Chrome writes."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Verified current-head hosted failure: HEAD 7a2a126f, Story Guards run 38269520326, job 114880028087 (https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326/job/114880028087) logs Chrome 153.0.8010.52 and profile-shipped exit 124 after the 30-second bound. /tmp/tenants-ledger-current-chromium-job.log preserves that evidence. Current validate-tenants-focus-browser.sh has --no-sandbox, timeout and stderr reporting, but the hosted launch still times out before later preview scenarios.
+pre-ci-reconciliation-status: open
+status: done 2026-10-21
+pre-ci-reconciliation-disposition: actionable
+disposition: done
+pre-ci-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-ci-reconciliation-verification: Verified current-head hosted failure: HEAD 7a2a126f, Story Guards run 38269520326, job 114880028087 (https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326/job/114880028087) logs Chrome 153.0.8010.52 and profile-shipped exit 124 after the 30-second bound. /tmp/tenants-ledger-current-chromium-job.log preserves that evidence. Current validate-tenants-focus-browser.sh has --no-sandbox, timeout and stderr reporting, but the hosted launch still times out before later preview scenarios.
+verification: Hosted Chrome 153.0.8010.52 browser jobs 117792500177 and 118641663695 completed the shipped fixture checks after repairs 482b04769855531ec5630e01b4c0403444bad0d5 and 579ec157ac38eb30593e736042aedac4d1acd08d. The workflow, browser launcher and CDP helper retain identical blobs at entry b02452a16869f265c21b1ae6c15f2f299677f139. EN/FR tenant start/preview/recovery, desktop/narrow/forced-colors and missing-tabindex negative control ran in hosted CI. Entry-head browser job 119428775389 instead stops before Chrome installation on CS0246 NativeSourceProof; this separate package-build blocker and authenticated-browser limitations remain explicit in closure evidence.
 verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh
-evidence-kind: verified-defect
+pre-ci-reconciliation-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Hosted runner Chromium launch diagnosis
-next-action: Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios.
+pre-ci-reconciliation-next-action: Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios.
+next-action: None for this record; preserve the separately documented current NativeSourceProof build blocker, unrelated deferred work and release holds.
 related: DW-496,DW-555
+closure-evidence: `dw-464-496-505-555-585-validation-evidence.md`
 
 
 ### DW-465: Let the browser harness run against the local Debug build, so local UI evidence can be reproduced from the repository.
@@ -5955,18 +5964,25 @@ location: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: The Story 5.6 preview browser validation never runs in CI (pre-existing).\n  evidence: Story Guards aborts with exit 134 (\"Aborted (core dumped)\") at the first Chromium launch in `validate-tenants-focus-browser.sh` (`:266`), before the preview fixture steps (`:330-360`). The rendered EN/FR preview, focus, forced-colors and egress checks therefore run locally only."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Verified current-head hosted failure: HEAD 7a2a126f, Story Guards run 38269520326, job 114880028087 (https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326/job/114880028087) logs Chrome 153.0.8010.52 and profile-shipped exit 124 after the 30-second bound. /tmp/tenants-ledger-current-chromium-job.log preserves that evidence. Current validate-tenants-focus-browser.sh has --no-sandbox, timeout and stderr reporting, but the hosted launch still times out before later preview scenarios.
+pre-ci-reconciliation-status: open
+status: done 2026-10-21
+pre-ci-reconciliation-disposition: actionable
+disposition: done
+pre-ci-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-ci-reconciliation-verification: Verified current-head hosted failure: HEAD 7a2a126f, Story Guards run 38269520326, job 114880028087 (https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326/job/114880028087) logs Chrome 153.0.8010.52 and profile-shipped exit 124 after the 30-second bound. /tmp/tenants-ledger-current-chromium-job.log preserves that evidence. Current validate-tenants-focus-browser.sh has --no-sandbox, timeout and stderr reporting, but the hosted launch still times out before later preview scenarios.
+verification: Hosted Chrome 153.0.8010.52 browser jobs 117792500177 and 118641663695 completed the shipped fixture checks after repairs 482b04769855531ec5630e01b4c0403444bad0d5 and 579ec157ac38eb30593e736042aedac4d1acd08d. The workflow, browser launcher and CDP helper retain identical blobs at entry b02452a16869f265c21b1ae6c15f2f299677f139. EN/FR tenant start/preview/recovery, desktop/narrow/forced-colors and missing-tabindex negative control ran in hosted CI. Entry-head browser job 119428775389 instead stops before Chrome installation on CS0246 NativeSourceProof; this separate package-build blocker and authenticated-browser limitations remain explicit in closure evidence.
 verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh
-evidence-kind: verified-defect
+pre-ci-reconciliation-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Hosted runner Chromium launch diagnosis
-next-action: Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios.
+pre-ci-reconciliation-next-action: Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios.
+next-action: None for this record; preserve the separately documented current NativeSourceProof build blocker, unrelated deferred work and release holds.
 related: DW-464,DW-555
 duplicate-of: DW-464
+closure-evidence: `dw-464-496-505-555-585-validation-evidence.md`
 
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)
@@ -6093,16 +6109,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: CI still runs none of Story 5.6's pass-3 tests (already tracked; reconfirmed).\n  evidence: CI at `b6a271ed` fails at package validation (`Hexalith.Tenants.Server` → forbidden `Hexalith.EventStore.ServiceDefaults`) before Tier 1. Story Guards run 37223763857 aborts at the first Chromium launch (`validate-tenants-focus-browser.sh:226`, exit 134). That is before the new recovery-focus, forced-colors and missing-tabindex checks (`:330-375`). This extends the 2026-09-29 \"Restore CI test execution\" entry and the 2026-10-03 Story 5.6 entries."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: The package-boundary blocker is resolved: current-head CI run 38269521776 build-and-test job 114880391875 succeeds. The independent browser defect remains verified: HEAD 7a2a126f Story Guards run 38269520326 job 114880028087 times out in profile-shipped with Chrome 153.0.8010.52, exit 124 after 30 seconds, before preview scenarios. Original observations are preserved but current applicability is now limited to hosted browser validation.
-evidence-kind: verified-defect
+pre-ci-reconciliation-status: open
+status: done 2026-10-21
+pre-ci-reconciliation-disposition: actionable
+disposition: done
+pre-ci-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-ci-reconciliation-verification: The package-boundary blocker is resolved: current-head CI run 38269521776 build-and-test job 114880391875 succeeds. The independent browser defect remains verified: HEAD 7a2a126f Story Guards run 38269520326 job 114880028087 times out in profile-shipped with Chrome 153.0.8010.52, exit 124 after 30 seconds, before preview scenarios. Original observations are preserved but current applicability is now limited to hosted browser validation.
+verification: Hosted Chrome 153.0.8010.52 browser jobs 117792500177 and 118641663695 completed the shipped fixture checks after repairs 482b04769855531ec5630e01b4c0403444bad0d5 and 579ec157ac38eb30593e736042aedac4d1acd08d. The workflow, browser launcher and CDP helper retain identical blobs at entry b02452a16869f265c21b1ae6c15f2f299677f139. EN/FR tenant start/preview/recovery, desktop/narrow/forced-colors and missing-tabindex negative control ran in hosted CI. Entry-head browser job 119428775389 instead stops before Chrome installation on CS0246 NativeSourceProof; this separate package-build blocker and authenticated-browser limitations remain explicit in closure evidence. This closes the stale hosted-execution observation, not the current package-build gate or a claim that all current pass-3 tests ran.
+pre-ci-reconciliation-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: DW-464 hosted Chromium repair
-next-action: Repair and rerun the pinned hosted Chromium launch and subsequent correction preview/negative controls; no further package-boundary repair is needed for this record.
+pre-ci-reconciliation-next-action: Repair and rerun the pinned hosted Chromium launch and subsequent correction preview/negative controls; no further package-boundary repair is needed for this record.
+next-action: None for this record; preserve the separately documented current NativeSourceProof build blocker, unrelated deferred work and release holds.
 related: DW-463,DW-464,DW-496,DW-555
+closure-evidence: `dw-464-496-505-555-585-validation-evidence.md`
 
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 4 (2026-10-05)
@@ -6999,18 +7022,25 @@ location: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; carried, updates the Chromium entry at `:3338`. Story Guards still fails at HEAD, but the 30-second bound now ends it at once instead of a 15-minute hang.\n  evidence: Run 37843324360, job 113537923481, at `10c9f6f6`: \"Chromium scenario profile-shipped failed (exit 124; bound 30s)\" with Chrome for Testing 153.0.8010.52, preceded only by dbus connection errors. Since `9ee73062` added `--no-sandbox`, Chrome 153 hangs on its first DOM dump instead of aborting with exit 134, so the `:3338` and `:3508` descriptions are out of date. Repairing the CI Chromium launch remains runner work; the story's EN/FR browser evidence is local-only (Chrome 154)."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Verified current-head hosted failure: HEAD 7a2a126f, Story Guards run 38269520326, job 114880028087 (https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326/job/114880028087) logs Chrome 153.0.8010.52 and profile-shipped exit 124 after the 30-second bound. /tmp/tenants-ledger-current-chromium-job.log preserves that evidence. Current validate-tenants-focus-browser.sh has --no-sandbox, timeout and stderr reporting, but the hosted launch still times out before later preview scenarios.
+pre-ci-reconciliation-status: open
+status: done 2026-10-21
+pre-ci-reconciliation-disposition: actionable
+disposition: done
+pre-ci-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-ci-reconciliation-verification: Verified current-head hosted failure: HEAD 7a2a126f, Story Guards run 38269520326, job 114880028087 (https://github.com/Hexalith/Hexalith.Tenants/actions/runs/38269520326/job/114880028087) logs Chrome 153.0.8010.52 and profile-shipped exit 124 after the 30-second bound. /tmp/tenants-ledger-current-chromium-job.log preserves that evidence. Current validate-tenants-focus-browser.sh has --no-sandbox, timeout and stderr reporting, but the hosted launch still times out before later preview scenarios.
+verification: Hosted Chrome 153.0.8010.52 browser jobs 117792500177 and 118641663695 completed the shipped fixture checks after repairs 482b04769855531ec5630e01b4c0403444bad0d5 and 579ec157ac38eb30593e736042aedac4d1acd08d. The workflow, browser launcher and CDP helper retain identical blobs at entry b02452a16869f265c21b1ae6c15f2f299677f139. EN/FR tenant start/preview/recovery, desktop/narrow/forced-colors and missing-tabindex negative control ran in hosted CI. Entry-head browser job 119428775389 instead stops before Chrome installation on CS0246 NativeSourceProof; this separate package-build blocker and authenticated-browser limitations remain explicit in closure evidence.
 verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh
-evidence-kind: verified-defect
+pre-ci-reconciliation-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Hosted runner Chromium launch diagnosis
-next-action: Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios.
+pre-ci-reconciliation-next-action: Diagnose the bounded profile-shipped timeout with the exact pinned Chrome 153 hosted runner configuration, then rerun all preview/negative-control scenarios.
+next-action: None for this record; preserve the separately documented current NativeSourceProof build blocker, unrelated deferred work and release holds.
 related: DW-464,DW-496
 duplicate-of: DW-464
+closure-evidence: `dw-464-496-505-555-585-validation-evidence.md`
 
 
 ## Deferred from: Story 5.6 pass-20 independent review (2026-10-09)
@@ -7626,17 +7656,24 @@ location: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Run the story gitlink validator against changed story artifacts in CI.\n  evidence: `story-guards.yml` runs regression tests for the validator, and workflow searches found no invocation on changed stories."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: story-guards.yml invokes tests/scripts/test_validate_story_gitlinks.py but no workflow invokes validate-story-gitlinks.py on actual changed story artifacts.
+pre-ci-reconciliation-status: open
+status: done 2026-10-21
+pre-ci-reconciliation-disposition: actionable
+disposition: done
+pre-ci-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-ci-reconciliation-verification: story-guards.yml invokes tests/scripts/test_validate_story_gitlinks.py but no workflow invokes validate-story-gitlinks.py on actual changed story artifacts.
+verification: Actual changed-story enforcement landed in c2587b2654c7227d5fd6b6f3e33f341e9bc9ea14. Entry-head hosted gitlink job 119428776078 audits three selected committed stories with zero failures, in addition to all four regression lanes. Current focused changed-story 49/49 and production guard 77/77 pass. Historical endpoint, event-range and undeclared-pointer refusal semantics remain enforced.
 verification-files: .github/workflows/story-guards.yml; tests/scripts/test_validate_story_gitlinks.py; scripts/validate-story-gitlinks.py
-evidence-kind: verified-gap
+pre-ci-reconciliation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Changed-story selection/base revision
-next-action: Add actual changed-story validation alongside the validator regression lane.
+pre-ci-reconciliation-next-action: Add actual changed-story validation alongside the validator regression lane.
+next-action: None for this record; preserve the separately documented current NativeSourceProof build blocker, unrelated deferred work and release holds.
 related: DW-643,DW-584
+closure-evidence: `dw-464-496-505-555-585-validation-evidence.md`
 
 
 ### DW-586: Keep pending create-command status in a waiting state.
