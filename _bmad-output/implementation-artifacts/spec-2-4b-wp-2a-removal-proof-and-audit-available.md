@@ -203,6 +203,17 @@ Mirror `CorrectionStartPanel.QueryCorrectiveProofAsync`: query audit with a caus
 **Commands:**
 - `dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --filter "FullyQualifiedName~RemoveTenantMember|FullyQualifiedName~TenantRemoveMember|FullyQualifiedName~TenantAuditAvailability"` -- expected: matching tests pass
 
+### Historical Release validation (clarified 2026-10-21, DW-297)
+
+The 2026-08-22 Review Findings above record
+`dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore`:
+**0 Warning(s), 0 Error(s)** for the solution topology with Commons, EventStore
+and FrontComposer re-enabled and Memories excluded. This copies the existing
+historical result into formal verification; it is not a fresh build or evidence
+that the same command passes against today's dependency graph. The filtered
+test command above is also retained as historical syntax, not recommended for
+the current Microsoft.Testing.Platform lane.
+
 ## Suggested Review Order
 
 **Proof assembly entry**

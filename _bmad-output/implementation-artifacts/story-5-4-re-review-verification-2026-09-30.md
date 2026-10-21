@@ -1,5 +1,39 @@
 # Story 5.4 re-review verification — 2026-09-30
 
+## Reading the historical evidence (2026-10-21, DW-462)
+
+This report qualifies the linked [legacy Story 5.4 record](5-4-audit-availability-state-recovery.md).
+Its June approval, September review statuses and October completion notes describe
+different checkpoints; the retained story's current `Status: done` does not erase
+the recorded failures or prove today's runtime readiness. File:line citations in
+old review lists are historical coordinates. Current source anchors are:
+
+| Historical patch | Stable current symbol or markup |
+| --- | --- |
+| Atomic refresh gating/retry bookkeeping | `AuditAvailabilityState.razor`: `RefreshAsync` and `FinalizeRefreshAsync` |
+| Teardown-safe completion/focus | `FinalizeRefreshAsync` and `OnAfterRenderAsync` in the same component |
+| Accessible recovery groups | `role="group"` on the component's recovery `FluentStack`; fixture parity is covered separately below |
+
+The exact later Debug build and maintained MTP commands are in **Build and test
+commands** below. **Mutation results** identifies all nine September re-review
+mutations, their method patterns and failures. The October addendum records the
+two sort-direction controls and final restored-source validation separately.
+These later named experiments do not identify the earlier completion note's
+unnamed "three mutation rejections". Their identities and original console logs
+were not recovered; do not infer them from the later nine or claim a replay.
+
+The legacy story's earlier claim that its guard "reported no pointer changes"
+came from the `spec-5-4-understand-audit-availability-and-recovery-2.md`
+checkpoint (`d728ff46ca7df5f3c64f90ea057d7d62e7d8a652` baseline), according to
+its retained September re-review finding. The exact command below instead
+records the later `spec-…-3.md` checkpoint (`55fc6f91283399c50c92a40ee52c3b21ff3e9ea5`
+baseline). Those are distinct passes; neither proves the legacy story's own
+guard passes. Its invalid baseline still fails closed.
+DW-461, DW-467 and DW-478 retain that separate unresolved
+history problem; this report clarification does not change the baseline,
+exempt the story from CI or close those records. Browser checks below retain
+their original scope and do not prove assistive-technology first announcements.
+
 This run addresses the eight unchecked patches in the 2026-09-30 re-review. Its owning follow-up is `spec-5-4-understand-audit-availability-and-recovery-3.md`, based on canonical revision `55fc6f91283399c50c92a40ee52c3b21ff3e9ea5`. The legacy story's historical baseline and recorded deferrals remain unchanged.
 
 ## Build and test commands

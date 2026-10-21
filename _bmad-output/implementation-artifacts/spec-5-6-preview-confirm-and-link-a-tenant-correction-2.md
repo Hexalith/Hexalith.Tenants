@@ -6,6 +6,7 @@ status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 baseline_commit: fcdcb4205a3f6e46f736cdd3e6f2b20ca2f241df
+gitlink_audit_ref: '2b91b05be9c927319fd207b02552d1213997776b'
 context:
   - _bmad-output/project-context.md
   - _bmad-output/implementation-artifacts/epic-5-context.md
@@ -49,11 +50,49 @@ All six findings were resolved within the authorized cache/evidence refresh. No 
 
 ## File List
 
+- references/Hexalith.Builds
 - references/Hexalith.Memories
 - references/Hexalith.Platform
 
 ## Completion Notes List
 
+The two target rows below describe the original `5bfe0715591ecae8790472b29bb0e7d8986da4ae`
+checkpoint only. The dated final historical inventory following them supersedes
+their target claims for revalidation; the original run and its evidence stay intact.
+
 - The user's commit `5bfe0715591ecae8790472b29bb0e7d8986da4ae` carried these two pointer moves after the reverification run. The lanes ran at the previous committed gitlinks, and no built input changed.
 - references/Hexalith.Memories 3e18d0dcdceb387eff89862c382637da89ad7e47 -> c46973679fcf09bdc5aab19928f2fe03dae82226
 - references/Hexalith.Platform eb864b75439371d2bd8fd8047bccb291c699d84c -> 495d1d0dfceb33e6bb628809a42a284526707ff6
+
+**Final historical inventory (2026-10-21, DW-549)**
+
+This audit preserves baseline `fcdcb4205a3f6e46f736cdd3e6f2b20ca2f241df`
+and ends at `2b91b05be9c927319fd207b02552d1213997776b`, the final historical
+edit of this artifact before this documentation repair. The range includes
+independent dependency updates; inventorying them does not attribute them to
+the reverification behavior or claim the original lanes ran on their targets.
+Later `main` pointer updates are outside this immutable audit.
+
+| Dependency | Preserved baseline | Historical endpoint |
+| --- | --- | --- |
+| `references/Hexalith.Builds` | `f717a87c26a8266bdde95d18f998ef2ab366d43a` | `a283481c69393dcba911db6a0edcb152167238cc` |
+| `references/Hexalith.Memories` | `3e18d0dcdceb387eff89862c382637da89ad7e47` | `dbe4ce0a97c6a3a883af800f7873a99b79434d44` |
+| `references/Hexalith.Platform` | `eb864b75439371d2bd8fd8047bccb291c699d84c` | `3a99380e022bb5ba542eb1a191400f8b9e4b913c` |
+
+The complete first-parent pointer landing chain is
+`5bfe0715591ecae8790472b29bb0e7d8986da4ae`,
+`9ee73062b7e540b69f824803d182f151c96ddb24`, then
+`416ab32cca5d4b9d1f56bc5558bc2c974912a8cf`.
+The endpoint's later edit adds evidence without moving pointers.
+
+Run the supplied current Markdown against that historical tree:
+
+```bash
+python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md --ref 2b91b05be9c927319fd207b02552d1213997776b
+```
+
+Expected: three exact declared targets and `RESULT: PASS`. The frontmatter
+`gitlink_audit_ref` selects the same endpoint in changed-story CI for this
+pointer-free documentation repair. Running the legacy guard without `--ref`
+still compares with moving HEAD and can reject unrelated later dependency
+changes. The earlier failures remain valid historical observations.

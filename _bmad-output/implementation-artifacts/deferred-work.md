@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-297/DW-462/DW-533/DW-549/DW-558 closure (2026-10-21):** Historical validation commands, Story 5.4 evidence and Epic 5 constraints are qualified; Story 5.6 reverification binds its final historical endpoint, and the paging ownership report distinguishes reverted work from Story 5.7 integration. Only these five records close: 657 IDs remain, 460 done/197 open across 181 exact-covering maintenance rows. Separate baseline holds, original failures, unrelated work, dependencies and release limitations remain preserved. See [validation evidence](dw-297-462-533-549-558-validation-evidence.md).
+
 **DW-198/DW-246/DW-343/DW-360/DW-384 closure (2026-10-21):** Removal and grant audits bind immutable historical endpoints and exact dependency targets. The refresh inventory includes earlier gitlinks and the topology alias, with its preserved mid-story checkpoint explicitly qualified. Only these five records close: 657 IDs remain, 455 done/202 open across 186 exact-covering maintenance rows. Historical findings, independent dependency work and release holds remain preserved. See [validation evidence](dw-198-246-343-360-384-validation-evidence.md).
 
 **DW-344/DW-381/DW-393/DW-394/DW-395 closure (2026-10-21):** Provenance CI rejects skipped cases; parsed workflow commands and build-only edge metadata have executable mutation controls. The blocking AppHost model test proves its actual package mode and rejects source evidence. Exactly five records close: 657 IDs remain, 450 done/207 open across 189 exact-covering maintenance rows. The broader package IntegrationTests NativeSourceProof build blocker and unrelated release/runtime gates remain explicit. See [validation evidence](dw-344-381-393-394-395-validation-evidence.md).
@@ -2983,17 +2985,26 @@ location: dotnet build Hexalith.Tenants.slnx --configuration Release --no-restor
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md`
 reason: The legacy ledger defers this issue: The Release-build `.slnx` topology revert is validated only in review-findings prose, not captured as a reproducible command in the spec's formal Verification section. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md` summary: The Release-build `.slnx` topology revert is validated only in review-findings prose, not captured as a reproducible command in the spec's formal Verification section. evidence: `dotnet build Hexalith.Tenants.slnx --configuration Release --no-restore` (0 Warning(s), 0 Error(s)) is recorded only inside a Review Findings bullet; `## Verification` at `spec-2-4b-wp-2a-removal-proof-and-audit-available.md:123` lists only a filtered `dotnet test` command, so a reader relying on Verification alone would miss the full-solution Release build check.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md records the successful Release build in Review Findings, but formal Verification still lists only its filtered test command.
+pre-evidence-reconciliation-status: open
+status: done 2026-10-21
+pre-evidence-reconciliation-disposition: actionable
+disposition: done
+pre-evidence-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-evidence-reconciliation-verification: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md records the successful Release build in Review Findings, but formal Verification still lists only its filtered test command.
+verification: Formal Verification now includes the exact historical Release solution command and 0-warning/error result from the existing 2026-08-22 review, explicitly distinguished from current validation.
+pre-evidence-reconciliation-verification-files: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md
 verification-files: _bmad-output/implementation-artifacts/spec-2-4b-wp-2a-removal-proof-and-audit-available.md
-evidence-kind: verified-gap
+pre-evidence-reconciliation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Add the existing exact Release validation command/result to formal verification without rerunning historical work.
+pre-evidence-reconciliation-next-action: Add the existing exact Release validation command/result to formal verification without rerunning historical work.
+next-action: None for this record; preserve unrelated records, separate historical baseline holds and release limitations.
 related: none
+closure-evidence: `dw-297-462-533-549-558-validation-evidence.md`
+
 
 ### DW-298: The "blank `CommandSurfaceUnavailableReason` → `AggregateLocked` copy" deferred decision is now recorded independently, with drifting prose, in both `deferred-work.md` and the spec's own Review Findings section
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4b-wp-2a-removal-proof-and-audit-available (2026-08-22, pass 2)"), 2026-08-25
@@ -5484,17 +5495,25 @@ location: _bmad-output/implementation-artifacts/5-4-audit-availability-state-rec
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-2.md`\n  summary: Refresh the stale parts of the legacy Story 5.4 record.\n  evidence: `5-4-audit-availability-state-recovery.md:211` still reads \"Outcome: Approve (status → done)\" under a `Status: review` story. The ticked 2026-09-30 patch anchors point at `AuditAvailabilityState.razor:299/:220/:51`; the current locations are `:287-376`, `:236-243` and `:56`. The 2026-09-30 hardening has no Debug Log References with exact commands, and the \"three mutation rejections\" are never named, so the evidence cannot be reproduced."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md now says Status: done, so the status mismatch is resolved. Retained 2026-09-30 review patches still use obsolete source-line anchors, and the addendum says exact commands and mutation names were not recorded; story-5-4-re-review-verification-2026-09-30.md remains the evidence pointer.
-verification-files: _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md; _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
-evidence-kind: verified-gap
+pre-evidence-reconciliation-status: open
+status: done 2026-10-21
+pre-evidence-reconciliation-disposition: actionable
+disposition: done
+pre-evidence-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-evidence-reconciliation-verification: _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md now says Status: done, so the status mismatch is resolved. Retained 2026-09-30 review patches still use obsolete source-line anchors, and the addendum says exact commands and mutation names were not recorded; story-5-4-re-review-verification-2026-09-30.md remains the evidence pointer.
+verification: The already-linked Story 5.4 report now qualifies historical statuses/line anchors, names current refresh/focus/group symbols, points to exact later commands and nine mutation rows, and explicitly preserves the unrecovered earlier three-mutation limit. Legacy story bytes and separate baseline holds remain unchanged.
+pre-evidence-reconciliation-verification-files: _bmad-output/implementation-artifacts/5-4-audit-availability-state-recovery.md; _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
+verification-files: _bmad-output/implementation-artifacts/story-5-4-re-review-verification-2026-09-30.md
+pre-evidence-reconciliation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: DW-461 historical guard disposition
-next-action: Add a dated historical-evidence clarification with current symbol anchors and recover exact commands/mutation identities where available; preserve the original notes.
+pre-evidence-reconciliation-next-action: Add a dated historical-evidence clarification with current symbol anchors and recover exact commands/mutation identities where available; preserve the original notes.
+next-action: None for this record; preserve unrelated records, separate historical baseline holds and release limitations.
 related: DW-461
+closure-evidence: `dw-297-462-533-549-558-validation-evidence.md`
 
 
 ## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery-3.md (2026-09-30)
@@ -6612,17 +6631,25 @@ location: _bmad-output/implementation-artifacts/epic-5-context.md
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; restore the Epic 5 rules that the 2026-10-08 regeneration dropped from `epic-5-context.md`, before Story 5.7 is specified.\n  evidence: `5bfe0715` rewrote the context 9,595 → 6,688 bytes. It removed \"never announce success before projection confirm\" (`architecture.md:691`), McpCli-only CLI/MCP exposure (`architecture.md:66`), \"5.7a/5.7b, complete only as a whole\" (`epics.md:2671`), the `LastGlobalAdministrator` hard stop (`epics.md:2730`), the exclusive Set/RemoveGlobalAdministrator mapping, the `/api/global-administrators` read, the availability severity styling and \"seven fields only\" receipts, and it vaguened the recovery-verb, origin-state and entry-point lists. The R1–R4 additions come from the 5.5/5.6 specs, not the planning docs, so the next `compile-epic-context` run drops them again. Restore the `1cdcc0a9` content and add R1–R4 with source citations."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/implementation-artifacts/epic-5-context.md still omits McpCli-only exposure, explicit Set/Remove command naming, global-administrator read route, named LastGlobalAdministrator rejection and 5.7a/5.7b whole-story rule; it retains generic last-administrator blocking and seven receipt facts. Story 5.7 is now done, so this no longer blocks specification, but the generated context still incompletely carries authoritative planning constraints.
+pre-evidence-reconciliation-status: open
+status: done 2026-10-21
+pre-evidence-reconciliation-disposition: actionable
+disposition: done
+pre-evidence-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-evidence-reconciliation-verification: _bmad-output/implementation-artifacts/epic-5-context.md still omits McpCli-only exposure, explicit Set/Remove command naming, global-administrator read route, named LastGlobalAdministrator rejection and 5.7a/5.7b whole-story rule; it retains generic last-administrator blocking and seven receipt facts. Story 5.7 is now done, so this no longer blocks specification, but the generated context still incompletely carries authoritative planning constraints.
+verification: Epic 5 context restores source-cited McpCli exposure, no-success-before-confirmation, exact global commands/read route, LastGlobalAdministrator hard stop, whole-story 5.7a/5.7b scope, seven-field receipts, styling, entry/origin and named recovery constraints; retained R1-R4 implementation refinements have distinct citations and scope qualification.
+pre-evidence-reconciliation-verification-files: _bmad-output/implementation-artifacts/epic-5-context.md
 verification-files: _bmad-output/implementation-artifacts/epic-5-context.md
-evidence-kind: verified-gap
+pre-evidence-reconciliation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: Authoritative planning context sources
-next-action: Annotate the context’s historical/current scope and reconcile omitted authoritative constraints and citations before future regeneration or reuse.
+pre-evidence-reconciliation-next-action: Annotate the context’s historical/current scope and reconcile omitted authoritative constraints and citations before future regeneration or reuse.
+next-action: None for this record; preserve unrelated records, separate historical baseline holds and release limitations.
 related: none
+closure-evidence: `dw-297-462-533-549-558-validation-evidence.md`
 
 
 ### DW-534: Carried, with no new work item; see DW-162. CI still never runs `validate-story-gitlinks.py` against real story files.
@@ -6847,18 +6874,26 @@ location: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifa
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md`\n  summary: Carried, with no new work item; see DW-198. `validate-story-gitlinks.py` exits 1 on the historical reverification `-2.md` at HEAD.\n  evidence: At `0ac7c126` it reports 4× `[UNDECLARED]` (Builds, Commons, EventStore, McpCli) and 2× `[MISSTATED]` (Memories `906bc07a`, Platform `f5a0d72f`). The `-2.md` File List records `5bfe0715` values. `-3.md` calls `-2.md` historical, but the guard has no story-end ref, and `-3.md` will fail the same way at the next bump."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: Executed PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md: RESULT FAIL at current HEAD with five UNDECLARED later pointers and two MISSTATED targets (Memories f4c7d68 versus c469736; Platform 977f2e0 versus 495d1d0). The historical -2 artifact still lacks durable story-end selection, so later main changes contaminate revalidation.
-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md
-evidence-kind: verified-gap
+pre-evidence-reconciliation-status: open
+status: done 2026-10-21
+pre-evidence-reconciliation-disposition: awaiting-decision
+disposition: done
+pre-evidence-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-evidence-reconciliation-verification: Executed PYTHONDONTWRITEBYTECODE=1 python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md: RESULT FAIL at current HEAD with five UNDECLARED later pointers and two MISSTATED targets (Memories f4c7d68 versus c469736; Platform 977f2e0 versus 495d1d0). The historical -2 artifact still lacks durable story-end selection, so later main changes contaminate revalidation.
+verification: Preserved baseline and frozen intent now bind final historical endpoint 2b91b05be9c927319fd207b02552d1213997776b, all three exact dependency targets and complete first-parent pointer landing chain. The historical guard passes; old failures and original checkpoint targets remain historical evidence.
+pre-evidence-reconciliation-verification-files: scripts/validate-story-gitlinks.py; _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md
+verification-files: _bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md
+pre-evidence-reconciliation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: DW-198 historical story-range policy
-next-action: Set a durable story-end/provenance convention for historical artifacts and have the guard validate that range without rewriting their original findings.
+pre-evidence-reconciliation-next-action: Set a durable story-end/provenance convention for historical artifacts and have the guard validate that range without rewriting their original findings.
+next-action: None for this record; preserve unrelated records, separate historical baseline holds and release limitations.
 related: DW-198,DW-534
 duplicate-of: DW-198
+closure-evidence: `dw-297-462-533-549-558-validation-evidence.md`
 
 
 ## Deferred from: Story 5.6 remediation workflow review, pass 18 (2026-10-08)
@@ -7033,17 +7068,25 @@ location: _bmad-output/implementation-artifacts/spec-global-admin-projection-pag
 source_spec: `_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md`\n  summary: low; the paging spec still lists its reverted tenant-audit-page work as delivered.\n  evidence: Task `:64` (`TenantAuditPage.razor` complete reads for initial enrichment, correction-open refresh and confirmation, plus refreshed-intent re-derivation) is `[x]`, and AC4 (`:75`) describes correction-open re-evaluation. Story 5.6 removed the audit-page branch in `10c9f6f6` and the enrichment in `ded413df`. The spec's own 2026-10-08 triage note explains this. Qualify `:64` and AC4 as reverted until Story 5.7 in that spec's review."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: spec-global-admin-projection-paging.md:64/75 still claims page delivery while its 2026-10-08 triage note says reverted/in-review. Story 5.7 now independently supplies the integration in TenantAuditPage.razor.
-verification-files: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md; src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
-evidence-kind: verified-gap
+pre-evidence-reconciliation-status: open
+status: done 2026-10-21
+pre-evidence-reconciliation-disposition: actionable
+disposition: done
+pre-evidence-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-evidence-reconciliation-verification: spec-global-admin-projection-paging.md:64/75 still claims page delivery while its 2026-10-08 triage note says reverted/in-review. Story 5.7 now independently supplies the integration in TenantAuditPage.razor.
+verification: The dated ownership report qualifies every affected checked task, AC and historical test claim: audit-page branch/enrichment were reverted in 10c9f6f6/ded413df, while current integration belongs to Story 5.7 and its source/tests. The blocked paging artifact, frozen intent and in-review status remain byte-identical; its separate non-ancestor history hold is explicit.
+pre-evidence-reconciliation-verification-files: _bmad-output/implementation-artifacts/spec-global-admin-projection-paging.md; src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
+verification-files: _bmad-output/implementation-artifacts/dw-297-462-533-549-558-validation-evidence.md
+pre-evidence-reconciliation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: Story 5.7 completion evidence
-next-action: Reconcile the paging spec historical reversal with the final Story 5.7 ownership and verification.
+pre-evidence-reconciliation-next-action: Reconcile the paging spec historical reversal with the final Story 5.7 ownership and verification.
+next-action: None for this record; preserve unrelated records, separate historical baseline holds and release limitations.
 related: DW-559
+closure-evidence: `dw-297-462-533-549-558-validation-evidence.md`
 
 
 ### DW-559: low; Story 5.7 handoff. Story 5.6 reverted the tenant audit page's global-administrator integration, and Story 5.7 must re-derive it.

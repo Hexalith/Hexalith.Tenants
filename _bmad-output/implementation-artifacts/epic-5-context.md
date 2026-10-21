@@ -2,6 +2,45 @@
 
 <!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->
 
+## Scope and source precedence (reconciled 2026-10-21, DW-533)
+
+This is a planning/implementation handoff, not a completion certificate. Story
+5.7 is now recorded as done in its owning spec; historical "until complete"
+gates below describe sequencing and must not be read as today's backlog status.
+Before reuse or regeneration, carry the following source constraints forward.
+Planning sources govern the handoff except where an explicitly approved,
+scoped implementation decision supersedes earlier wording. In particular,
+Story 5.6's approved bounded tenant-retention expiry is an exception to the
+earlier terminal-evidence lock rule: it releases tenant admission while keeping
+the expired attempt's recovery identity. Do not extend that exception to
+global-administrator correction's separate terminal-evidence contract.
+
+- [Architecture: approved McpCli course correction](../planning-artifacts/architecture.md#architecture-decision-document): CLI/MCP exposure uses `Hexalith.McpCli` contract enrollment; never create a module-specific CLI or MCP host.
+- [Architecture: Process Patterns](../planning-artifacts/architecture.md#process-patterns): never announce success before projection confirmation. Dedicated announcement intent determines politeness; command acceptance and audit availability remain separate.
+- [Epics: Story 5.7](../planning-artifacts/epics.md#story-57-correct-global-administrator-authority-from-audit-evidence): `GlobalAdministratorRemoved` maps only to `SetGlobalAdministrator(UserId)`; `GlobalAdministratorSet` maps only to `RemoveGlobalAdministrator(UserId)`, in fixed `system` / `global-administrators` / `global-administrators` scope. Read current complete authority through `GET /api/global-administrators`, not tenant membership.
+- The same Story 5.7 contract makes `LastGlobalAdministrator` a hard stop, including raced rejections: no override or successful-removal announcement. Optional delivery tasks **5.7a** and **5.7b** are not story IDs; Story 5.7 completes only when both pass.
+- [Epics: Story 5.3](../planning-artifacts/epics.md#story-53-view-a-support-safe-audit-evidence-receipt) governs the **seven approved presentation fields**: actor, target, tenant scope, outcome, absolute timestamp with explicit UTC offset, projection marker and audit/command reference. The older [audit/recovery specification §3.1](../../docs/tenants-ui-audit-evidence-and-compensating-recovery-spec.md#31-receipt-content-enumerated-exactly) enumerates an additional optional command reference; do not import that as an eighth field into the corrected Story 5.3 presentation contract.
+- [Epics: Story 5.1](../planning-artifacts/epics.md#story-51-browse-tenant-audit-trail) keeps timestamp, actor, outcome, category, freshness/projection context and reference available at every width. [Story 5.2](../planning-artifacts/epics.md#story-52-reach-scoped-audit-evidence-from-context) entry points cover tenant rows, detail, user lookup/member rows and command results. Preserve origin tab, scope, search, filters, sort, cursor/page, selection and scroll where applicable, plus launcher focus or a heading fallback with a notice.
+- [DESIGN: truth-state-badge](../planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md#truth-state-badge) and [audit-evidence-receipt](../planning-artifacts/ux-designs/ux-tenants-2026-06-02/DESIGN.md#audit-evidence-receipt): audit available uses success styling; pending Informative, delayed Warning, unavailable Severe and missing support Subtle, always icon plus text. Preserve the named recovery vocabulary: wait, refresh, retry status lookup, inspect audit, continue read-only, request permission, escalate, start correction and restore intended access.
+
+The retained **R1–R4 implementation refinements** below come from
+[Story 5.6 reverification](spec-5-6-preview-confirm-and-link-a-tenant-correction-2.md#review-triage-log),
+whose source is [the approved Story 5.6 spec](spec-5-6-preview-confirm-and-link-a-tenant-correction.md):
+exact eventful committed-sequence confirmation, bounded retention expiry with
+old-attempt recovery and no expired redispatch, absent-target role-change
+blocking, and original timestamp/explicit intended role/owner-count preview
+facts. Preserve all four during regeneration; a generic version-advance rule
+must not replace the stricter tenant correction proof contract.
+
+Global correction has its own proof requirement. The planning Story 5.7
+postcondition plus advancement/attempt-provenance rule is further constrained
+by the [approved Story 5.7 spec](spec-5-7-correct-global-administrator-authority-from-audit-evidence.md):
+require the intended target presence/absence and a fresh complete projection
+reaching verified eventful command progress beyond the preview baseline.
+Presence/absence or generic projection advancement alone is insufficient;
+preserve `GlobalAdministratorCorrectionSnapshot`'s exact committed-sequence
+checks rather than substituting the older planning shorthand.
+
 ## Goal
 
 Enable authorized investigation and compensating access corrections with linked proof. History is immutable; command lifecycle, projection confirmation, and audit evidence remain separate. Historical implementation requires reverification.
