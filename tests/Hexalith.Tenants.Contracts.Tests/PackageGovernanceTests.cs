@@ -250,23 +250,254 @@ public class PackageGovernanceTests {
             "Cross-repository source builds must let EventStore select its own centrally pinned version without exporting it back into Tenants projects.");
     }
 
+    /// <summary>
+    /// Preserves the source workflow restrictions on shared builds and broad artifacts.
+    /// </summary>
     [Fact]
-    public void Source_reference_workflow_executes_real_handler_projection_provenance() {
+    public void Source_reference_workflow_avoids_forbidden_shared_builds_and_artifacts()
+    {
         string repoRoot = FindRepoRoot();
         string workflow = File.ReadAllText(Path.Combine(repoRoot, ".github/workflows/source-reference.yml"));
 
-        workflow.ShouldContain("git -c submodule.recurse=false submodule update --init");
-        workflow.ShouldContain("dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj");
-        workflow.ShouldContain("--configuration Debug -p:UseHexalithProjectReferences=true -warnaserror");
-        workflow.ShouldContain("dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj");
-        workflow.ShouldContain("--no-build");
-        workflow.ShouldContain("--minimum-expected-tests 4");
-        workflow.ShouldContain(
-            "--filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway");
-
-        foreach (string forbiddenFragment in ForbiddenWorkflowFragments) {
+        foreach (string forbiddenFragment in ForbiddenWorkflowFragments)
+        {
             workflow.ShouldNotContain(forbiddenFragment);
         }
+    }
+
+    /// <summary>
+    /// Verifies the three canonical EventStore child references remain pure Debug source build edges.
+    /// </summary>
+    [Fact]
+    public void AppHost_EventStore_child_projects_are_build_only_in_Debug_source_mode()
+    {
+        XDocument project = LoadAppHostProject();
+
+        AppHostBuildOnlyEventStoreViolations(project).ShouldBeEmpty();
+    }
+
+    /// <summary>
+    /// Qualifies rejection of missing, conditional, duplicated or enabled build-edge metadata.
+    /// </summary>
+    [Theory]
+    [InlineData("ReferenceOutputAssembly", "missing")]
+    [InlineData("ReferenceOutputAssembly", "true")]
+    [InlineData("ReferenceOutputAssembly", "conditional")]
+    [InlineData("ReferenceOutputAssembly", "override")]
+    [InlineData("ReferenceOutputAssembly", "blank-override")]
+    [InlineData("Private", "missing")]
+    [InlineData("Private", "true")]
+    [InlineData("Private", "conditional")]
+    [InlineData("Private", "override")]
+    [InlineData("Private", "blank-override")]
+    [InlineData("IsAspireProjectResource", "missing")]
+    [InlineData("IsAspireProjectResource", "true")]
+    [InlineData("IsAspireProjectResource", "conditional")]
+    [InlineData("IsAspireProjectResource", "override")]
+    [InlineData("IsAspireProjectResource", "blank-override")]
+    public void Build_only_governance_rejects_each_child_metadata_regression(string metadataName, string mutation)
+    {
+        foreach (string packageId in BuildOnlyEventStoreProjectIds())
+        {
+            XDocument project = LoadAppHostProject();
+            AppHostBuildOnlyEventStoreViolations(project).ShouldBeEmpty();
+            XElement edge = EventStoreReferences(project, "ProjectReference").Single(edge => edge.PackageId == packageId).Element;
+            edge.Attribute(metadataName)?.Remove();
+            edge.Elements(metadataName).Remove();
+
+            if (mutation == "true")
+            {
+                edge.SetAttributeValue(metadataName, "true");
+            }
+            else if (mutation == "conditional")
+            {
+                edge.Add(new XElement(metadataName, new XAttribute("Condition", "'$(EnableBuildOnlyMetadata)' == 'true'"), "false"));
+            }
+            else if (mutation is "override" or "blank-override")
+            {
+                edge.SetAttributeValue(metadataName, "false");
+                edge.Add(new XElement(metadataName, mutation == "override" ? "true" : string.Empty));
+            }
+
+            AppHostBuildOnlyEventStoreViolations(project).ShouldContain(
+                violation => violation.Contains($"{packageId}: {metadataName}", StringComparison.Ordinal),
+                $"The actual governance validator must reject {mutation} {metadataName} on {packageId}.");
+        }
+    }
+
+    /// <summary>
+    /// Qualifies rejection of weakened configuration, source-mode and existence guards.
+    /// </summary>
+    [Theory]
+    [InlineData("Debug")]
+    [InlineData("source")]
+    [InlineData("Exists")]
+    [InlineData("wrong-configuration")]
+    [InlineData("wrong-path")]
+    public void Build_only_governance_rejects_each_child_condition_regression(string mutation)
+    {
+        foreach (string packageId in BuildOnlyEventStoreProjectIds())
+        {
+            XDocument project = LoadAppHostProject();
+            AppHostBuildOnlyEventStoreViolations(project).ShouldBeEmpty();
+            XElement edge = EventStoreReferences(project, "ProjectReference").Single(edge => edge.PackageId == packageId).Element;
+            if (mutation == "Debug")
+            {
+                edge.Parent!.SetAttributeValue("Condition", "'$(UseHexalithProjectReferences)' == 'true'");
+            }
+            else if (mutation == "source")
+            {
+                edge.Parent!.SetAttributeValue("Condition", "'$(Configuration)' == 'Debug'");
+            }
+            else if (mutation == "wrong-configuration")
+            {
+                edge.Parent!.SetAttributeValue("Condition", "'$(Configuration)' == 'Release' and '$(UseHexalithProjectReferences)' == 'true'");
+            }
+            else
+            {
+                edge.SetAttributeValue("Condition", mutation == "Exists" ? null : "Exists('wrong.csproj')");
+            }
+
+            AppHostBuildOnlyEventStoreViolations(project).ShouldContain(
+                violation => violation.Contains($"{packageId}: Condition", StringComparison.Ordinal),
+                $"The actual governance validator must reject the {mutation} condition regression on {packageId}.");
+        }
+    }
+
+    /// <summary>
+    /// Qualifies rejection of absent or duplicated EventStore child declarations.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Build_only_governance_rejects_missing_or_duplicate_child_edges(bool duplicate)
+    {
+        foreach (string packageId in BuildOnlyEventStoreProjectIds())
+        {
+            XDocument project = LoadAppHostProject();
+            XElement edge = EventStoreReferences(project, "ProjectReference").Single(edge => edge.PackageId == packageId).Element;
+            if (duplicate)
+            {
+                edge.AddAfterSelf(new XElement(edge));
+            }
+            else
+            {
+                edge.Remove();
+            }
+
+            AppHostBuildOnlyEventStoreViolations(project).ShouldNotBeEmpty();
+        }
+    }
+
+    /// <summary>
+    /// Rejects source paths that agree with their existence guard but bypass the canonical EventStore root.
+    /// </summary>
+    [Fact]
+    public void Build_only_governance_rejects_self_consistent_wrong_source_paths()
+    {
+        foreach (string packageId in BuildOnlyEventStoreProjectIds())
+        {
+            XDocument project = LoadAppHostProject();
+            XElement edge = EventStoreReferences(project, "ProjectReference").Single(edge => edge.PackageId == packageId).Element;
+            string wrongInclude = $"$(UnrelatedSourceRoot)\\src\\{packageId}\\{packageId}.csproj";
+            edge.SetAttributeValue("Include", wrongInclude);
+            edge.SetAttributeValue("Condition", $"Exists('{wrongInclude}')");
+
+            AppHostBuildOnlyEventStoreViolations(project).ShouldContain(
+                violation => violation.Contains($"{packageId}: Include", StringComparison.Ordinal));
+        }
+    }
+
+    /// <summary>
+    /// Rejects subsequent authored item operations that can change or remove the checked build edges.
+    /// </summary>
+    [Theory]
+    [InlineData("Update", "ReferenceOutputAssembly")]
+    [InlineData("Update", "Private")]
+    [InlineData("Update", "IsAspireProjectResource")]
+    [InlineData("Remove", "")]
+    public void Build_only_governance_rejects_later_project_reference_operations(string operation, string metadataName)
+    {
+        foreach (string packageId in BuildOnlyEventStoreProjectIds())
+        {
+            XDocument project = LoadAppHostProject();
+            XElement item = new("ProjectReference", new XAttribute(operation, BuildOnlyEventStoreInclude(packageId)));
+            if (operation == "Update")
+            {
+                item.SetAttributeValue(metadataName, "true");
+            }
+
+            project.Root!.Add(new XElement("ItemGroup", item));
+            AppHostBuildOnlyEventStoreViolations(project).ShouldContain(
+                violation => violation.Contains($"ProjectReference {operation}", StringComparison.Ordinal));
+        }
+    }
+
+    private static XDocument LoadAppHostProject()
+        => XDocument.Load(Path.Combine(FindRepoRoot(), "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj"));
+
+    private static string[] BuildOnlyEventStoreProjectIds()
+        => ["Hexalith.EventStore", "Hexalith.EventStore.Admin.Server.Host", "Hexalith.EventStore.Admin.UI"];
+
+    private static string BuildOnlyEventStoreInclude(string packageId)
+        => $"$(HexalithEventStoreRoot)\\src\\{packageId}\\{packageId}.csproj";
+
+    private static string[] AppHostBuildOnlyEventStoreViolations(XDocument project)
+    {
+        List<string> violations = [];
+        foreach (XElement operation in project.Descendants("ProjectReference")
+            .Where(item => item.Attribute("Update") is not null || item.Attribute("Remove") is not null))
+        {
+            violations.Add($"ProjectReference {(operation.Attribute("Update") is not null ? "Update" : "Remove")} operations can override the required build-only declarations.");
+        }
+
+        List<(string PackageId, XElement Element)> allEdges = EventStoreReferences(project, "ProjectReference");
+        List<(string PackageId, XElement Element)> childEdges = allEdges
+            .Where(edge => edge.PackageId != "Hexalith.EventStore.Aspire")
+            .ToList();
+        string[] expectedIds = BuildOnlyEventStoreProjectIds();
+        if (childEdges.Count != expectedIds.Length || childEdges.Any(edge => !expectedIds.Contains(edge.PackageId, StringComparer.Ordinal)))
+        {
+            violations.Add("The AppHost must contain exactly the three expected EventStore child build edges; the Aspire compile helper is separate.");
+        }
+
+        foreach (string packageId in expectedIds)
+        {
+            XElement[] matches = childEdges.Where(edge => edge.PackageId == packageId).Select(edge => edge.Element).ToArray();
+            if (matches.Length != 1)
+            {
+                violations.Add($"{packageId}: expected one build-only edge, found {matches.Length}.");
+                continue;
+            }
+
+            XElement edge = matches[0];
+            string expectedInclude = BuildOnlyEventStoreInclude(packageId);
+            if (!string.Equals((string?)edge.Attribute("Include"), expectedInclude, StringComparison.Ordinal))
+            {
+                violations.Add($"{packageId}: Include must use the canonical EventStore source-root path {expectedInclude}.");
+            }
+
+            string expectedCondition = "'$(Configuration)' == 'Debug' and '$(UseHexalithProjectReferences)' == 'true' and "
+                + $"Exists('{expectedInclude}')";
+            if (!string.Equals(EffectiveCondition(edge), expectedCondition, StringComparison.Ordinal))
+            {
+                violations.Add($"{packageId}: Condition must require Debug, explicit source mode and existence of the referenced project.");
+            }
+
+            foreach (string metadataName in new[] { "ReferenceOutputAssembly", "Private", "IsAspireProjectResource" })
+            {
+                int declarations = edge.Attributes().Count(attribute => string.Equals(attribute.Name.LocalName, metadataName, StringComparison.OrdinalIgnoreCase))
+                    + edge.Elements().Count(element => string.Equals(element.Name.LocalName, metadataName, StringComparison.OrdinalIgnoreCase));
+                bool conditionalMetadata = edge.Elements()
+                    .Any(element => string.Equals(element.Name.LocalName, metadataName, StringComparison.OrdinalIgnoreCase) && element.HasAttributes);
+                if (declarations != 1 || !string.Equals(ItemMetadataValue(edge, metadataName), "false", StringComparison.Ordinal) || conditionalMetadata)
+                {
+                    violations.Add($"{packageId}: {metadataName} must be unconditionally false exactly once.");
+                }
+            }
+        }
+
+        return [.. violations];
     }
 
     [Theory]

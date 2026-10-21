@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-344/DW-381/DW-393/DW-394/DW-395 closure (2026-10-21):** Provenance CI rejects skipped cases; parsed workflow commands and build-only edge metadata have executable mutation controls. The blocking AppHost model test proves its actual package mode and rejects source evidence. Exactly five records close: 657 IDs remain, 450 done/207 open across 189 exact-covering maintenance rows. The broader package IntegrationTests NativeSourceProof build blocker and unrelated release/runtime gates remain explicit. See [validation evidence](dw-344-381-393-394-395-validation-evidence.md).
+
 **DW-504/DW-532/DW-564/DW-578/DW-596 closure (2026-10-21):** Historical tenant proof claims are qualified and revocation lag is documented, parsed-row equality is distinguished from catalog byte preservation, and CI/dependency guidance follows tracked authority. Exactly five documentation records close: all 657 IDs remain, 445 done/212 open across 193 exact-covering maintenance rows. Historical evidence, unrelated records and unresolved provenance/runtime/release gates remain preserved. See [validation evidence](dw-504-532-564-578-596-validation-evidence.md).
 
 **DW-252/DW-256/DW-258/DW-259/DW-282 closure (2026-10-21):** Six unused internal projection-evidence wrappers and two unused notification wrappers are retired; workspace composition is resolved once with live capability getters. Migrated confirmation/lease/receipt tests and command/read connectivity regressions pass. Reviewed Debug build has zero warnings/errors; focused 584/584 and full UI 7117/7117 pass with zero failures/skips. Independent recheck clears all findings. Only these five records close: 657 IDs remain, 440 done/217 open across 198 exact-covering maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [exact evidence](dw-252-256-258-259-282-validation-evidence.md).
@@ -3604,17 +3606,25 @@ origin: migrated from legacy ledger (""), 2026-09-05
 location: tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: The test was added by later dependency work in the baseline range and is outside Story 4.3's removal intent; it does not pin the package-mode properties needed to distinguish the NuGet resource graph from a default source-reference run.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs builds the AppHost model but does not assert evaluated package/source properties. Current root defaults prefer NuGet except UI, while an explicit source build can still run this same test without proving package mode.
-verification-files: tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs
-evidence-kind: verified-gap
+pre-provenance-governance-status: open
+status: done 2026-10-21
+pre-provenance-governance-disposition: actionable
+disposition: done
+pre-provenance-governance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-provenance-governance-verification: tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs builds the AppHost model but does not assert evaluated package/source properties. Current root defaults prefer NuGet except UI, while an explicit source build can still run this same test without proving package mode.
+verification: The model regression now runs in the blocking AppHost.Tests project and reads evaluated dependency-mode metadata from builder.AppHostAssembly before checking every existing Memories secret-store relationship. Explicit package mode passes; actual source-mode AppHost evidence fails the package assertion. The broader package IntegrationTests NativeSourceProof build blocker remains recorded separately.
+pre-provenance-governance-verification-files: tests/Hexalith.Tenants.IntegrationTests/MemoriesSecretStoreResourceGraphTests.cs
+verification-files: src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj; tests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs
+pre-provenance-governance-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
 dependencies: AppHost build-mode fixture
-next-action: Pin/record evaluated Memories package-mode properties in the model test lane.
+pre-provenance-governance-next-action: Pin/record evaluated Memories package-mode properties in the model test lane.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
 related: DW-334
+closure-evidence: `dw-344-381-393-394-395-validation-evidence.md`
 
 ### DW-345: `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the host that owns the Cancel id.
 
@@ -4158,17 +4168,25 @@ location: .github/workflows/source-reference.yml
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation-2.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation-2.md`\n  summary: MTP skipped results may satisfy the source-reference four-test floor.\n  evidence: maybe-false; prove it by running `--filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway` with one forced skip and `--minimum-expected-tests 4`. If that run still exits 0, add `--fail-skips`."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: .github/workflows/source-reference.yml still uses --minimum-expected-tests 4 without --fail-skips. PackageGovernanceTests::Source_reference_workflow_executes_real_handler_projection_provenance checks those command fragments only. No retained forced-skip run establishes whether the current pinned MTP/xUnit implementation counts skips toward this floor.
-verification-files: .github/workflows/source-reference.yml
-evidence-kind: unverified-risk
+pre-provenance-governance-status: open
+status: done 2026-10-21
+pre-provenance-governance-disposition: uncertain
+disposition: done
+pre-provenance-governance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-provenance-governance-verification: .github/workflows/source-reference.yml still uses --minimum-expected-tests 4 without --fail-skips. PackageGovernanceTests::Source_reference_workflow_executes_real_handler_projection_provenance checks those command fragments only. No retained forced-skip run establishes whether the current pinned MTP/xUnit implementation counts skips toward this floor.
+verification: The actual four-row provenance method passes the old minimum with one forced skip (three succeeded, one skipped, exit 0). The pinned xUnit MTP adapter requires --fail-skips on; with that setting the same control produces one failed/three succeeded/zero skipped and exit 2. Restored real source cases pass four/four with zero skips.
+pre-provenance-governance-verification-files: .github/workflows/source-reference.yml
+verification-files: .github/workflows/source-reference.yml; tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs
+pre-provenance-governance-evidence-kind: unverified-risk
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Run an isolated forced-skip probe of one provenance case with the current four-case MTP command; record exit code and passed/skipped counts.
+pre-provenance-governance-next-action: Run an isolated forced-skip probe of one provenance case with the current four-case MTP command; record exit code and passed/skipped counts.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
 related: DW-381, DW-393
+closure-evidence: `dw-344-381-393-394-395-validation-evidence.md`
 
 
 ### DW-382: Source-reference job may time out on a cold restore.
@@ -4371,18 +4389,26 @@ location: .github/workflows/source-reference.yml
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Prove whether skipped source-reference cases satisfy the minimum expected test floor.\n  evidence: This is maybe-false; force one of the four provenance cases to skip and run the current Microsoft.Testing.Platform command to determine whether `--fail-skips` is required."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: .github/workflows/source-reference.yml still uses --minimum-expected-tests 4 without --fail-skips. PackageGovernanceTests::Source_reference_workflow_executes_real_handler_projection_provenance checks those command fragments only. No retained forced-skip run establishes whether the current pinned MTP/xUnit implementation counts skips toward this floor.
-verification-files: .github/workflows/source-reference.yml
-evidence-kind: unverified-risk
+pre-provenance-governance-status: open
+status: done 2026-10-21
+pre-provenance-governance-disposition: uncertain
+disposition: done
+pre-provenance-governance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-provenance-governance-verification: .github/workflows/source-reference.yml still uses --minimum-expected-tests 4 without --fail-skips. PackageGovernanceTests::Source_reference_workflow_executes_real_handler_projection_provenance checks those command fragments only. No retained forced-skip run establishes whether the current pinned MTP/xUnit implementation counts skips toward this floor.
+verification: Duplicate of DW-381, qualified by the same actual four-row forced-skip control and restored four/four success. The workflow now uses the executed --fail-skips on setting, with YAML/command regression controls.
+pre-provenance-governance-verification-files: .github/workflows/source-reference.yml
+verification-files: .github/workflows/source-reference.yml; tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs
+pre-provenance-governance-evidence-kind: unverified-risk
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Run an isolated forced-skip probe of one provenance case with the current four-case MTP command; record exit code and passed/skipped counts.
+pre-provenance-governance-next-action: Run an isolated forced-skip probe of one provenance case with the current four-case MTP command; record exit code and passed/skipped counts.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
 related: DW-381
 duplicate-of: DW-381
+closure-evidence: `dw-344-381-393-394-395-validation-evidence.md`
 
 
 ### DW-394: Pin build-only EventStore project-reference metadata in package governance tests.
@@ -4392,17 +4418,25 @@ location: tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Pin build-only EventStore project-reference metadata in package governance tests.\n  evidence: Current tests verify edge presence and version isolation but not `Condition`, `ReferenceOutputAssembly`, `Private`, or `IsAspireProjectResource`, allowing dependency or Aspire-resource leakage to regress unnoticed."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Contracts.Tests/PackageGovernanceTests.cs pins the four AppHost EventStore edges and Version isolation, and its generic No_EventStore_project_reference_is_reachable_in_package_mode now checks source conditions. No assertion pins ReferenceOutputAssembly, Private, or IsAspireProjectResource on the build-only host edges; the original metadata regression gap remains partially unresolved.
+pre-provenance-governance-status: open
+status: done 2026-10-21
+pre-provenance-governance-disposition: actionable
+disposition: done
+pre-provenance-governance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-provenance-governance-verification: Contracts.Tests/PackageGovernanceTests.cs pins the four AppHost EventStore edges and Version isolation, and its generic No_EventStore_project_reference_is_reachable_in_package_mode now checks source conditions. No assertion pins ReferenceOutputAssembly, Private, or IsAspireProjectResource on the build-only host edges; the original metadata regression gap remains partially unresolved.
+verification: All three EventStore child-host build edges require exact Debug/source/Exists conditions and unconditional ReferenceOutputAssembly=false, Private=false and IsAspireProjectResource=false. The Aspire helper stays a compile edge. Independent missing/true/conditional/overriding metadata, condition, missing-edge and duplicate-edge mutation controls are rejected. Canonical source-root Includes are independently pinned; authored Update/Remove operations and blank overriding metadata are rejected.
+pre-provenance-governance-verification-files: tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
 verification-files: tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
-evidence-kind: verified-gap
+pre-provenance-governance-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Authoritative build-only metadata policy
-next-action: Add governance coverage for all three build-only edge metadata values and make mutations of each fail.
+pre-provenance-governance-next-action: Add governance coverage for all three build-only edge metadata values and make mutations of each fail.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
 related: DW-395
+closure-evidence: `dw-344-381-393-394-395-validation-evidence.md`
 
 
 ### DW-395: Validate source-reference workflow commands structurally rather than with independent substrings.
@@ -4412,17 +4446,25 @@ location: tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Validate source-reference workflow commands structurally rather than with independent substrings.\n  evidence: The current governance test can pass when required flags move to comments or unrelated steps, configurations diverge, or the YAML structure is invalid."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: PackageGovernanceTests.cs::Source_reference_workflow_executes_real_handler_projection_provenance (:254-268) still uses independent workflow.ShouldContain substrings. It does not parse the build/test run steps or bind matching configuration/source-mode/test-floor flags to their actual commands, although structural helper methods now exist for release jobs elsewhere in this class.
-verification-files: tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
-evidence-kind: verified-gap
+pre-provenance-governance-status: open
+status: done 2026-10-21
+pre-provenance-governance-disposition: actionable
+disposition: done
+pre-provenance-governance-verification-date: 2026-10-12
+verification-date: 2026-10-21
+pre-provenance-governance-verification: PackageGovernanceTests.cs::Source_reference_workflow_executes_real_handler_projection_provenance (:254-268) still uses independent workflow.ShouldContain substrings. It does not parse the build/test run steps or bind matching configuration/source-mode/test-floor flags to their actual commands, although structural helper methods now exist for release jobs elsewhere in this class.
+verification: Parsed YAML selects the real projection-provenance job and ordered executable initialization/build/test steps. Exact command vectors bind Debug/source/no-build/four-case/method/skip-failure flags to those steps. Executed controls reject comments, moved flags, altered configuration, skipped/ignored execution and malformed/duplicate YAML, while accepting equivalent scalar styles and explicit continuations. Main push/pull-request triggers and absence of job prerequisites are also qualified against suppression controls.
+pre-provenance-governance-verification-files: tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs
+verification-files: .github/workflows/source-reference.yml; tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs
+pre-provenance-governance-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: YAML/command structural validation helper
-next-action: Validate the actual source-reference YAML build/test step commands and bind every required flag to its command; cover comment/misplaced-flag mutations.
+pre-provenance-governance-next-action: Validate the actual source-reference YAML build/test step commands and bind every required flag to its command; cover comment/misplaced-flag mutations.
+next-action: None for this record; retain unrelated deferred work and existing release holds.
 related: DW-394
+closure-evidence: `dw-344-381-393-394-395-validation-evidence.md`
 
 
 ### DW-396: Cover correction-panel grant and removal behavior when tracked dispatch capability is false.

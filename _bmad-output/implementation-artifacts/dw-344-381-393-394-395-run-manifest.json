@@ -1,0 +1,1124 @@
+{
+  "baseline": "2cd3cc270e88d3cdbb47a1a938fd6a0951b6f0d4",
+  "archive": "dw-344-381-393-394-395-raw-logs.zip",
+  "archive_sha256": "3d975891697d1544466ac501ffcab2eadc1de85f0ad0adabcb10f1425d5dd486",
+  "restored_controller_sha256": "2a6edcdd7b6d7f7ac92821fcbcd38569a8c01d1d582fa27e2d899d2b47e0a821",
+  "entries": [
+    {
+      "file": "tenants-provenance-apphost-package-build.log",
+      "bytes": 777,
+      "sha256": "ef3edb9df673397edab0b109247e0ef9b7940b6e5c2117d2fb64eb7da252afac",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseNuGetDeps=true",
+        "-p:HexalithMemoriesFromSource=false",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "--no-incremental"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:04.09"
+    },
+    {
+      "file": "tenants-provenance-apphost-package-full.log",
+      "bytes": 3613,
+      "sha256": "a500cd3bba4c2b45a8a2a8a0c1b95573a4aaa258710f930858f5d43d3fde79cc",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseNuGetDeps=true",
+        "-p:HexalithMemoriesFromSource=false",
+        "--minimum-expected-tests",
+        "7",
+        "--fail-skips",
+        "on",
+        "--output",
+        "Detailed",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "apphost-package.trx",
+        "--results-directory",
+        "/tmp/tenants-provenance-apphost-results"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Passed!\n  total: 9\n  failed: 0\n  succeeded: 9\n  skipped: 0\n  duration: 5s 010ms"
+    },
+    {
+      "file": "tenants-provenance-apphost-source-build.log",
+      "bytes": 12018,
+      "sha256": "26c3a0181b2647a8a91c523fcf3a589f36e94a4b29fef81a80f23d6605162441",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:23.65"
+    },
+    {
+      "file": "tenants-provenance-apphost-uppercase-build.log",
+      "bytes": 991,
+      "sha256": "b552a8ee29e75b3b3d75c4aa5aee8fc117d020e0d31e74d102ac3e5593e86c5d",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=FALSE",
+        "-p:UseNuGetDeps=TRUE",
+        "-p:HexalithMemoriesFromSource=FALSE",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "--no-incremental"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.45"
+    },
+    {
+      "file": "tenants-provenance-contracts-build-fixed.log",
+      "bytes": 4747,
+      "sha256": "66a1e8f4b1da5ad43d30916d8b6abf505e55778a2224693cbd2bc14ce6ed2cf6",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:11.27"
+    },
+    {
+      "file": "tenants-provenance-contracts-build.log",
+      "bytes": 6272,
+      "sha256": "d6150a63849ddd4e8db2f1facee71a73a1e63552be04509a6b9e217f1e56ad45",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 1,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build FAILED.\n\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs(327,31): error CS1503: Argument 2: cannot convert from 'string' to 'System.Linq.Expressions.Expression<System.Func<char, bool>>' [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj]\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs(327,41): error CS1503: Argument 3: cannot convert from 'string' to 'int' [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj]\n    0 Warning(s)\n    2 Error(s)\n\nTime Elapsed 00:00:10.99"
+    },
+    {
+      "file": "tenants-provenance-contracts-full.log",
+      "bytes": 551,
+      "sha256": "b448207ae26ce119747c0247ed35a1d0923b76703aa7943a4c61d8796cb35869",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "1",
+        "--fail-skips",
+        "on",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "contracts.trx",
+        "--results-directory",
+        "/tmp/tenants-provenance-contracts-results"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Passed!\n  total: 630\n  failed: 0\n  succeeded: 630\n  skipped: 0\n  duration: 30s 273ms"
+    },
+    {
+      "file": "tenants-provenance-final-four-pass.log",
+      "bytes": 448,
+      "sha256": "5ec1afcad316c8b82a8bf3264962197c96ef9f3472018a343c273e8d9216cc2b",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "4",
+        "--filter-method",
+        "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Passed!\n  total: 4\n  failed: 0\n  succeeded: 4\n  skipped: 0\n  duration: 1s 514ms"
+    },
+    {
+      "file": "tenants-provenance-final-integration-build.log",
+      "bytes": 12422,
+      "sha256": "55677412621106366554b2449c86057b2df31f076fcca8812661690a7e4e09a5",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "--no-incremental"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:49.41"
+    },
+    {
+      "file": "tenants-provenance-final-integration-four.log",
+      "bytes": 448,
+      "sha256": "80eb926a9d30c1b71d365be270bab7613f21654d38120a891b6d91d6d000cd65",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "4",
+        "--filter-method",
+        "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Passed!\n  total: 4\n  failed: 0\n  succeeded: 4\n  skipped: 0\n  duration: 1s 688ms"
+    },
+    {
+      "file": "tenants-provenance-final-source-build.log",
+      "bytes": 12006,
+      "sha256": "2c23c5c5cd22c98f6530dc74414a0b341c35a5b551ebf52785f39abcd04ecd03",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "--no-incremental"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:36.71"
+    },
+    {
+      "file": "tenants-provenance-final-source-mode-rejected.log",
+      "bytes": 2893,
+      "sha256": "46b2a193596f92343289b8b26a06614256c1963b2ec0e98947b6e708e7b58b40",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "1",
+        "--filter-class",
+        "Hexalith.Tenants.AppHost.Tests.MemoriesSecretStoreResourceGraphTests",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 2,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Failed!\n  total: 1\n  failed: 1\n  succeeded: 0\n  skipped: 0\n  duration: 881ms\nTest run completed with non-success exit code: 2 (see: https://aka.ms/testingplatform/exitcodes)"
+    },
+    {
+      "file": "tenants-provenance-format.log",
+      "bytes": 123,
+      "sha256": "239c224f01960886368326d9ef5ebdcce071dcd0996d157bef6a963fc1eaa49c",
+      "command": [
+        "dotnet",
+        "format",
+        "whitespace",
+        "Hexalith.Tenants.slnx",
+        "--no-restore",
+        "--include",
+        "tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs",
+        "tests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs",
+        "--verify-no-changes"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Warnings were encountered while loading the workspace. Set the verbosity option to the 'diagnostic' level to log warnings."
+    },
+    {
+      "file": "tenants-provenance-four-pass.log",
+      "bytes": 448,
+      "sha256": "68987eff7b618ebcf7d21d6906057845581e590d8744468301087f0afb2b9351",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "4",
+        "--filter-method",
+        "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Passed!\n  total: 4\n  failed: 0\n  succeeded: 4\n  skipped: 0\n  duration: 2s 326ms"
+    },
+    {
+      "file": "tenants-provenance-metadata-focused.log",
+      "bytes": 450,
+      "sha256": "a8e2119005cfadb2dec5ba4297634c4b525896a3d09f2034fa0c99b2c44a8f14",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "1",
+        "--filter-class",
+        "*PackageGovernanceTests",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Passed!\n  total: 234\n  failed: 0\n  succeeded: 234\n  skipped: 0\n  duration: 17s 423ms"
+    },
+    {
+      "file": "tenants-provenance-package-build.log",
+      "bytes": 3443,
+      "sha256": "5fc1c4b27cd16ff4458323f7921cf74799435ba503c8547b19852e7d189c446e",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=false",
+        "-p:UseNuGetDeps=true",
+        "-p:HexalithMemoriesFromSource=false",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "--no-incremental"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 1,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build FAILED.\n\n/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/Queries/TenantReadAuthorityResult.cs(12,5): error CS0246: The type or namespace name 'NativeSourceProof' could not be found (are you missing a using directive or an assembly reference?) [/home/administrator/projects/hexalith/tenants/src/Hexalith.Tenants.Contracts/Hexalith.Tenants.Contracts.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:08.50"
+    },
+    {
+      "file": "tenants-provenance-review-apphost-package-build.log",
+      "bytes": 991,
+      "sha256": "7e8358aeeae966442df19b2add5eeca2c920dae5fc24840fd215a30a9e2187ed",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=FALSE",
+        "-p:UseNuGetDeps=TRUE",
+        "-p:HexalithMemoriesFromSource=FALSE",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "--no-incremental"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:31:40.821452+00:00",
+      "duration_seconds": 2.962,
+      "exit_code": 0,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs": {
+          "sha256": "77730a1440aeba8f3706f75bd9d89aa90e5f2be0c6674bb58e8cb233e6777a1b",
+          "normalized_lf_sha256": "e63b1b410f4542a39db59c909db2608243ece565b515f5f297d2f5e9a4656864"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll",
+      "assembly_sha256_before": "377c4f4c3cc459e9c92dbf37bd6990e5c696c788ce13f8b9b9aa031c8f828769",
+      "assembly_sha256_after": "f59011b9e98536c755df155bfc58bc4f5d06adecf0b4ca8f20757f955c0ed5b9",
+      "log_sha256": "7e8358aeeae966442df19b2add5eeca2c920dae5fc24840fd215a30a9e2187ed",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:02.68"
+    },
+    {
+      "file": "tenants-provenance-review-apphost-package-full.log",
+      "bytes": 3627,
+      "sha256": "2ff6989d603a722828a70f03950733c1870bddeb4855598a2066effe6c9f5657",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=FALSE",
+        "-p:UseNuGetDeps=TRUE",
+        "-p:HexalithMemoriesFromSource=FALSE",
+        "--minimum-expected-tests",
+        "9",
+        "--fail-skips",
+        "on",
+        "--output",
+        "Detailed",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "apphost-package-review.trx",
+        "--results-directory",
+        "/tmp/tenants-provenance-apphost-review-results"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:33:26.939317+00:00",
+      "duration_seconds": 4.843,
+      "exit_code": 0,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs": {
+          "sha256": "77730a1440aeba8f3706f75bd9d89aa90e5f2be0c6674bb58e8cb233e6777a1b",
+          "normalized_lf_sha256": "e63b1b410f4542a39db59c909db2608243ece565b515f5f297d2f5e9a4656864"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll",
+      "assembly_sha256_before": "f59011b9e98536c755df155bfc58bc4f5d06adecf0b4ca8f20757f955c0ed5b9",
+      "assembly_sha256_after": "f59011b9e98536c755df155bfc58bc4f5d06adecf0b4ca8f20757f955c0ed5b9",
+      "log_sha256": "2ff6989d603a722828a70f03950733c1870bddeb4855598a2066effe6c9f5657",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Test run summary: Passed!\n  total: 9\n  failed: 0\n  succeeded: 9\n  skipped: 0\n  duration: 4s 257ms"
+    },
+    {
+      "file": "tenants-provenance-review-apphost-package-proof.log",
+      "bytes": 436,
+      "sha256": "b802f5611d02985ea4a43e4302a33e3d980acbf90623753fa5f63cb5ded4ff84",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=FALSE",
+        "-p:UseNuGetDeps=TRUE",
+        "-p:HexalithMemoriesFromSource=FALSE",
+        "--minimum-expected-tests",
+        "1",
+        "--filter-method",
+        "Hexalith.Tenants.AppHost.Tests.MemoriesSecretStoreResourceGraphTests.PackageModeAppHostUsesTheConsumerOwnedMemoriesSecretStore",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:34:21.569496+00:00",
+      "duration_seconds": 1.857,
+      "exit_code": 0,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs": {
+          "sha256": "77730a1440aeba8f3706f75bd9d89aa90e5f2be0c6674bb58e8cb233e6777a1b",
+          "normalized_lf_sha256": "e63b1b410f4542a39db59c909db2608243ece565b515f5f297d2f5e9a4656864"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll",
+      "assembly_sha256_before": "f59011b9e98536c755df155bfc58bc4f5d06adecf0b4ca8f20757f955c0ed5b9",
+      "assembly_sha256_after": "f59011b9e98536c755df155bfc58bc4f5d06adecf0b4ca8f20757f955c0ed5b9",
+      "log_sha256": "b802f5611d02985ea4a43e4302a33e3d980acbf90623753fa5f63cb5ded4ff84",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Test run summary: Passed!\n  total: 1\n  failed: 0\n  succeeded: 1\n  skipped: 0\n  duration: 1s 396ms"
+    },
+    {
+      "file": "tenants-provenance-review-apphost-source-build.log",
+      "bytes": 11266,
+      "sha256": "9730f384c218ef11b5c106383286125fd949ec1c23cc9ba6749d1515425a2a67",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:30:52.301078+00:00",
+      "duration_seconds": 24.607,
+      "exit_code": 0,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs": {
+          "sha256": "77730a1440aeba8f3706f75bd9d89aa90e5f2be0c6674bb58e8cb233e6777a1b",
+          "normalized_lf_sha256": "e63b1b410f4542a39db59c909db2608243ece565b515f5f297d2f5e9a4656864"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll",
+      "assembly_sha256_before": "f59011b9e98536c755df155bfc58bc4f5d06adecf0b4ca8f20757f955c0ed5b9",
+      "assembly_sha256_after": "377c4f4c3cc459e9c92dbf37bd6990e5c696c788ce13f8b9b9aa031c8f828769",
+      "log_sha256": "9730f384c218ef11b5c106383286125fd949ec1c23cc9ba6749d1515425a2a67",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:24.30"
+    },
+    {
+      "file": "tenants-provenance-review-apphost-source-rejected.log",
+      "bytes": 2622,
+      "sha256": "d48dda99c4f826196621de7f84f20c97ee9c30c86bfb72af6b137c449ac6ad9c",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "1",
+        "--filter-class",
+        "Hexalith.Tenants.AppHost.Tests.MemoriesSecretStoreResourceGraphTests",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:31:22.031552+00:00",
+      "duration_seconds": 2.611,
+      "exit_code": 2,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs": {
+          "sha256": "77730a1440aeba8f3706f75bd9d89aa90e5f2be0c6674bb58e8cb233e6777a1b",
+          "normalized_lf_sha256": "e63b1b410f4542a39db59c909db2608243ece565b515f5f297d2f5e9a4656864"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.Tests.dll",
+      "assembly_sha256_before": "377c4f4c3cc459e9c92dbf37bd6990e5c696c788ce13f8b9b9aa031c8f828769",
+      "assembly_sha256_after": "377c4f4c3cc459e9c92dbf37bd6990e5c696c788ce13f8b9b9aa031c8f828769",
+      "log_sha256": "d48dda99c4f826196621de7f84f20c97ee9c30c86bfb72af6b137c449ac6ad9c",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Test run summary: Failed!\n  total: 1\n  failed: 1\n  succeeded: 0\n  skipped: 0\n  duration: 1s 809ms\nTest run completed with non-success exit code: 2 (see: https://aka.ms/testingplatform/exitcodes)"
+    },
+    {
+      "file": "tenants-provenance-review-contracts-build-fixed.log",
+      "bytes": 4747,
+      "sha256": "277ab006b870fa062d9e6fa512bfd47de1ae2e5e14574a3da841f7ac08d0bd4c",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:33:25.729457+00:00",
+      "duration_seconds": 11.783,
+      "exit_code": 0,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj": {
+          "sha256": "5b385649ee0bb71c99a51277178aa06bafc748a42d23396974d0457eff3158a9",
+          "normalized_lf_sha256": "c27281bae494c12c33c12713f777ee41261aeda4d7369a10e8518c40da94bdba"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": {
+          "sha256": "76d7950eb56f5ef30e78ac9c1d1ea0b062cae738beff34b7efd589d5e069a870",
+          "normalized_lf_sha256": "1d895aabef826b03bdcc03a15275efd0c392ae6f95efe06cd4c3638f105ac6ee"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs": {
+          "sha256": "6cec335adeb2b6f3aa0a83ce02bea50b3235d079818677e0cc7f97df69455764",
+          "normalized_lf_sha256": "09d0fc61cf9c4f937e9dd1d28b25dce761385cb5d1c0d543d6ca06cabe1280c9"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests.dll",
+      "assembly_sha256_before": "f04339fd8ce57f158be648d55dcd92edfaee0452012a49facf87bf40d4876f0f",
+      "assembly_sha256_after": "0584022b8d5c87717d135d00cc9929264239cdafda921c1be7002f98d2875073",
+      "log_sha256": "277ab006b870fa062d9e6fa512bfd47de1ae2e5e14574a3da841f7ac08d0bd4c",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:11.53"
+    },
+    {
+      "file": "tenants-provenance-review-contracts-build.log",
+      "bytes": 5871,
+      "sha256": "0231733aa611ee76d411af7248bebe9f8b6383a9d5e3e3d209031844ea7b572c",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:31:40.821874+00:00",
+      "duration_seconds": 16.762,
+      "exit_code": 1,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj": {
+          "sha256": "5b385649ee0bb71c99a51277178aa06bafc748a42d23396974d0457eff3158a9",
+          "normalized_lf_sha256": "c27281bae494c12c33c12713f777ee41261aeda4d7369a10e8518c40da94bdba"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": {
+          "sha256": "76d7950eb56f5ef30e78ac9c1d1ea0b062cae738beff34b7efd589d5e069a870",
+          "normalized_lf_sha256": "1d895aabef826b03bdcc03a15275efd0c392ae6f95efe06cd4c3638f105ac6ee"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs": {
+          "sha256": "94739c7f4754b729dbe8a2d7ebf05f8a44feec5e03ef80a89d65af901680ff2d",
+          "normalized_lf_sha256": "52c174b695522305338263a066842919f6de26e52dd046b458db6d84b47dd5e9"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests.dll",
+      "assembly_sha256_before": "f04339fd8ce57f158be648d55dcd92edfaee0452012a49facf87bf40d4876f0f",
+      "assembly_sha256_after": "f04339fd8ce57f158be648d55dcd92edfaee0452012a49facf87bf40d4876f0f",
+      "log_sha256": "0231733aa611ee76d411af7248bebe9f8b6383a9d5e3e3d209031844ea7b572c",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Build FAILED.\n\n/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs(280,18): error CA1062: In externally visible method 'void SourceReferenceWorkflowGovernanceTests.Workflow_governance_rejects_missing_automated_main_triggers(string mutation)', validate parameter 'mutation' is non-null before using it. If appropriate, throw an 'ArgumentNullException' when the argument is 'null'. (https://learn.microsoft.com/dotnet/fundamentals/code-analysis/quality-rules/ca1062) [/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj]\n    0 Warning(s)\n    1 Error(s)\n\nTime Elapsed 00:00:16.47"
+    },
+    {
+      "file": "tenants-provenance-review-contracts-full.log",
+      "bytes": 565,
+      "sha256": "dc2096282b298f09918c295db2c65c8fe34dcca7ad3557bd17e59ab4aa0312ae",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "654",
+        "--fail-skips",
+        "on",
+        "--report-xunit-trx",
+        "--report-xunit-trx-filename",
+        "contracts-review.trx",
+        "--results-directory",
+        "/tmp/tenants-provenance-contracts-review-results"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:34:45.242660+00:00",
+      "duration_seconds": 19.513,
+      "exit_code": 0,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj": {
+          "sha256": "5b385649ee0bb71c99a51277178aa06bafc748a42d23396974d0457eff3158a9",
+          "normalized_lf_sha256": "c27281bae494c12c33c12713f777ee41261aeda4d7369a10e8518c40da94bdba"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": {
+          "sha256": "76d7950eb56f5ef30e78ac9c1d1ea0b062cae738beff34b7efd589d5e069a870",
+          "normalized_lf_sha256": "1d895aabef826b03bdcc03a15275efd0c392ae6f95efe06cd4c3638f105ac6ee"
+        },
+        "tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs": {
+          "sha256": "6cec335adeb2b6f3aa0a83ce02bea50b3235d079818677e0cc7f97df69455764",
+          "normalized_lf_sha256": "09d0fc61cf9c4f937e9dd1d28b25dce761385cb5d1c0d543d6ca06cabe1280c9"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.Contracts.Tests/bin/Debug/net10.0/Hexalith.Tenants.Contracts.Tests.dll",
+      "assembly_sha256_before": "0584022b8d5c87717d135d00cc9929264239cdafda921c1be7002f98d2875073",
+      "assembly_sha256_after": "0584022b8d5c87717d135d00cc9929264239cdafda921c1be7002f98d2875073",
+      "log_sha256": "dc2096282b298f09918c295db2c65c8fe34dcca7ad3557bd17e59ab4aa0312ae",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Test run summary: Passed!\n  total: 654\n  failed: 0\n  succeeded: 654\n  skipped: 0\n  duration: 18s 970ms"
+    },
+    {
+      "file": "tenants-provenance-review-format.log",
+      "bytes": 123,
+      "sha256": "239c224f01960886368326d9ef5ebdcce071dcd0996d157bef6a963fc1eaa49c",
+      "command": [
+        "dotnet",
+        "format",
+        "whitespace",
+        "Hexalith.Tenants.slnx",
+        "--no-restore",
+        "--include",
+        "tests/Hexalith.Tenants.Contracts.Tests/SourceReferenceWorkflowGovernanceTests.cs",
+        "tests/Hexalith.Tenants.AppHost.Tests/MemoriesSecretStoreResourceGraphTests.cs",
+        "--verify-no-changes"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Warnings were encountered while loading the workspace. Set the verbosity option to the 'diagnostic' level to log warnings."
+    },
+    {
+      "file": "tenants-provenance-review-source-provenance.log",
+      "bytes": 448,
+      "sha256": "0c572e392d42446e02799240286243235912b0e10ee7d3293ba9799d5ed979a0",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "4",
+        "--filter-method",
+        "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "started_utc": "2026-10-21T17:34:45.331491+00:00",
+      "duration_seconds": 3.215,
+      "exit_code": 0,
+      "tested_sources": {
+        ".github/workflows/source-reference.yml": {
+          "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+          "normalized_lf_sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24"
+        },
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj": {
+          "sha256": "3e844728606e786791b861afcbe31058753105ea98115f65a69c1318aba17ea4",
+          "normalized_lf_sha256": "6647a3a3130502632cd1200b1451873b4194d7e1edae60ab997f976a000901c8"
+        },
+        "tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs": {
+          "sha256": "2a6edcdd7b6d7f7ac92821fcbcd38569a8c01d1d582fa27e2d899d2b47e0a821",
+          "normalized_lf_sha256": "b29923ea2f470be502292bbf1cf742944d5b08dbcba6b6f7622c0069a06a0ad3"
+        }
+      },
+      "assembly": "tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll",
+      "assembly_sha256_before": "8d959e1c2b06c84c2eaf5d582d1809360e830617a6fc6921d2e00dc375d709c1",
+      "assembly_sha256_after": "8d959e1c2b06c84c2eaf5d582d1809360e830617a6fc6921d2e00dc375d709c1",
+      "log_sha256": "0c572e392d42446e02799240286243235912b0e10ee7d3293ba9799d5ed979a0",
+      "invocation_record": "captured at execution; includes tested-source and binary hashes",
+      "summary": "Test run summary: Passed!\n  total: 4\n  failed: 0\n  succeeded: 4\n  skipped: 0\n  duration: 2s 715ms"
+    },
+    {
+      "file": "tenants-provenance-skip-build.log",
+      "bytes": 257,
+      "sha256": "6c6765820a064ea074a7ce93213621a79ff77262f6279ff5dcbfa80aec516ff1",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-p:BuildProjectReferences=false",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "--no-restore"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:03.46"
+    },
+    {
+      "file": "tenants-provenance-skip-hardened-on.log",
+      "bytes": 22721,
+      "sha256": "148e55868027f6caaf956b0b7b16128854d763df6ad039a3f09045141da13601",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "4",
+        "--filter-method",
+        "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 2,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Failed!\n  total: 4\n  failed: 1\n  succeeded: 3\n  skipped: 0\n  duration: 1s 679ms\nTest run completed with non-success exit code: 2 (see: https://aka.ms/testingplatform/exitcodes)"
+    },
+    {
+      "file": "tenants-provenance-skip-hardened.log",
+      "bytes": 638,
+      "sha256": "f55cf550e64e2bcef972767572c816b2df06cd9bac508968647d1798e2b3ecc8",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "4",
+        "--filter-method",
+        "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway",
+        "--fail-skips"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 5,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Minimum expected tests policy violation, tests ran 0, minimum expected 4\n  error: 1\n\n  total: 0\n  failed: 0\n  succeeded: 0\n  skipped: 0\n  duration: 119ms\nTest run completed with non-success exit code: 5 (see: https://aka.ms/testingplatform/exitcodes)\n\nHandshake failures:\n  /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll (net10.0)\nExit code: 5"
+    },
+    {
+      "file": "tenants-provenance-skip-with-floor.log",
+      "bytes": 989,
+      "sha256": "387731144df668ec495d580a58e85db9e7b9a1d66a669a517bc7069725d51a73",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "4",
+        "--filter-method",
+        "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Passed!\n  total: 4\n  failed: 0\n  succeeded: 3\n  skipped: 1\n  duration: 2s 109ms"
+    },
+    {
+      "file": "tenants-provenance-source-build.log",
+      "bytes": 16562,
+      "sha256": "f9d5ec97080d724c3bb4209e21922d577a0881cfecb2e0b8b407d241c9caa551",
+      "command": [
+        "dotnet",
+        "build",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "-p:UseHexalithProjectReferences=true",
+        "-warnaserror",
+        "-m:1",
+        "-nr:false",
+        "--no-incremental"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:29.96"
+    },
+    {
+      "file": "tenants-provenance-source-mode-rejected.log",
+      "bytes": 2935,
+      "sha256": "1c895238fb7fc16b227f35c235727af8444e8458f87497c85a488c3dcef64f1b",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "1",
+        "--filter-class",
+        "Hexalith.Tenants.IntegrationTests.MemoriesSecretStoreResourceGraphTests",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 2,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Failed!\n  total: 1\n  failed: 1\n  succeeded: 0\n  skipped: 0\n  duration: 1s 391ms\nTest run completed with non-success exit code: 2 (see: https://aka.ms/testingplatform/exitcodes)"
+    },
+    {
+      "file": "tenants-provenance-workflow-focused-final.log",
+      "bytes": 440,
+      "sha256": "49b9d23d4968821fc168b0c24c2ae1115d5dcd2f33ddcc9765de91b0e7b0245b",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "1",
+        "--filter-class",
+        "*SourceReferenceWorkflowGovernanceTests",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Passed!\n  total: 52\n  failed: 0\n  succeeded: 52\n  skipped: 0\n  duration: 806ms"
+    },
+    {
+      "file": "tenants-provenance-workflow-focused.log",
+      "bytes": 633,
+      "sha256": "995d5fd34cc71326f73d19fd542a0b65bd90a57df5217ee460408013a5041fb3",
+      "command": [
+        "dotnet",
+        "test",
+        "tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj",
+        "--configuration",
+        "Debug",
+        "--no-build",
+        "-p:UseHexalithProjectReferences=true",
+        "--minimum-expected-tests",
+        "1",
+        "--filter-class",
+        "*SourceReferenceWorkflowGovernanceTests",
+        "--fail-skips",
+        "on"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 8,
+      "invocation_record": "transcribed from tool execution history; superseded where post-review runs exist",
+      "summary": "Test run summary: Minimum expected tests policy violation, tests ran 0, minimum expected 1\n  error: 1\n\n  total: 0\n  failed: 0\n  succeeded: 0\n  skipped: 0\n  duration: 660ms\nTest run completed with non-success exit code: 8 (see: https://aka.ms/testingplatform/exitcodes)"
+    },
+    {
+      "file": "contracts.trx",
+      "bytes": 980701,
+      "sha256": "481228441123659a4d9695e008ef181962919b9ff491c3582adc3a4d66ce0a33",
+      "counters": {
+        "total": "630",
+        "executed": "630",
+        "passed": "630",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "produced_by": "tenants-provenance-contracts-full.log",
+      "build_mode_messages": []
+    },
+    {
+      "file": "apphost-package.trx",
+      "bytes": 14750,
+      "sha256": "af5cce18d342d347617d09532dcad952851daceb118d828e5e748cfb81ce1c1b",
+      "counters": {
+        "total": "9",
+        "executed": "9",
+        "passed": "9",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "produced_by": "tenants-provenance-apphost-package-full.log",
+      "build_mode_messages": [
+        "AppHost assembly: /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.dll",
+        "UseNuGetDeps=true",
+        "UseHexalithProjectReferences=false",
+        "HexalithMemoriesFromSource=false"
+      ]
+    },
+    {
+      "file": "contracts-review.trx",
+      "bytes": 1018463,
+      "sha256": "ffdc51936a33370a0508db8bf5f225300eb7a67e4a70ea5768b5a3bb1c264b94",
+      "counters": {
+        "total": "654",
+        "executed": "654",
+        "passed": "654",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "produced_by": "tenants-provenance-review-contracts-full.log",
+      "build_mode_messages": []
+    },
+    {
+      "file": "apphost-package-review.trx",
+      "bytes": 14750,
+      "sha256": "1eb6c8ce72d1ef33cee259731a36d1890f280149180af89946aa1bfe771fd136",
+      "counters": {
+        "total": "9",
+        "executed": "9",
+        "passed": "9",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "produced_by": "tenants-provenance-review-apphost-package-full.log",
+      "build_mode_messages": [
+        "AppHost assembly: /home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.AppHost.Tests/bin/Debug/net10.0/Hexalith.Tenants.AppHost.dll",
+        "UseNuGetDeps=TRUE",
+        "UseHexalithProjectReferences=FALSE",
+        "HexalithMemoriesFromSource=FALSE"
+      ]
+    },
+    {
+      "file": "tenants-provenance-aspire-final-states.json",
+      "bytes": 2027,
+      "sha256": "5046bb754f3f975c9215407b73a74133f0cb998124c33ac614bc4a7258fb85a1",
+      "command": [
+        "aspire",
+        "describe",
+        "--apphost",
+        "src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj",
+        "--format",
+        "Json"
+      ],
+      "cwd": "/home/administrator/projects/hexalith/tenants",
+      "exit_code": 0,
+      "processing": "Resource names, states and health only; environment and dashboard credentials excluded."
+    }
+  ]
+}

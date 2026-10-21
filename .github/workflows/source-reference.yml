@@ -41,3 +41,4 @@ jobs:
           -p:UseHexalithProjectReferences=true
           --minimum-expected-tests 4
           --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway
+          --fail-skips on
