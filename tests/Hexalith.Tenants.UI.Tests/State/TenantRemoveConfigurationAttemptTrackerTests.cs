@@ -10,6 +10,23 @@ namespace Hexalith.Tenants.UI.Tests.State;
 
 public sealed class TenantRemoveConfigurationAttemptTrackerTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NewRegistrationAfterForgetOrExpiryIsNotAResumedIdentity(bool expired)
+    {
+        DateTimeOffset now = new(2026, 10, 22, 10, 0, 0, TimeSpan.Zero);
+        var tracker = new TenantRemoveConfigurationAttemptTracker(() => now);
+        var intent = Intent("tenant.alpha", "billing.mode");
+        var first = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        if (expired) now += TenantRemoveConfigurationCommandSnapshot.MaximumRetainedAttemptDuration;
+        else tracker.Forget(intent.TenantId, first.MessageId);
+        var next = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        next.Resumed.ShouldBeFalse();
+        next.MessageId.ShouldNotBe(first.MessageId);
+        next.AttemptStartedAtUtc.ShouldBe(now);
+    }
+
     [Fact]
     public void Same_logical_dispatch_reuses_one_ulid_and_different_intent_is_rejected()
     {
@@ -18,15 +35,17 @@ public sealed class TenantRemoveConfigurationAttemptTrackerTests
         var tracker = new TenantRemoveConfigurationAttemptTracker(() => now, () => generated);
         TenantRemoveConfigurationIntent intent = Intent("tenant.alpha", "billing.mode");
 
-        (string first, DateTimeOffset firstStartedAt) = tracker.BeginDispatch(
+        (string first, DateTimeOffset firstStartedAt, bool firstResumed) = tracker.BeginDispatch(
             intent,
             "tenant-sequence:41",
             now);
-        (string second, DateTimeOffset secondStartedAt) = tracker.BeginDispatch(
+        (string second, DateTimeOffset secondStartedAt, bool secondResumed) = tracker.BeginDispatch(
             intent,
             "tenant-sequence:41",
             now.AddMinutes(1));
 
+        firstResumed.ShouldBeFalse();
+        secondResumed.ShouldBeTrue();
         first.ShouldBe(second);
         firstStartedAt.ShouldBe(secondStartedAt);
         NUlid.Ulid.TryParse(first, out _).ShouldBeTrue();
@@ -194,7 +213,7 @@ public sealed class TenantRemoveConfigurationAttemptTrackerTests
         DateTimeOffset now,
         TenantRemoveConfigurationIntent intent)
     {
-        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(
+        (string messageId, DateTimeOffset startedAt, _) = tracker.BeginDispatch(
             intent,
             "tenant-sequence:41",
             now);

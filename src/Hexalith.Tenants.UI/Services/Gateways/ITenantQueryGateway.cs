@@ -48,11 +48,7 @@ public interface ITenantQueryGateway
 
     Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
         TenantSetConfigurationIntent intent,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(intent);
-        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
-    }
+        CancellationToken cancellationToken = default);
 
     Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewAsync(
         TenantRemoveConfigurationIntent intent,
@@ -64,27 +60,15 @@ public interface ITenantQueryGateway
 
     Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
         TenantRemoveConfigurationIntent intent,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(intent);
-        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
-    }
+        CancellationToken cancellationToken = default);
 
     Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
         SetTenantConfiguration request,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
-    }
+        CancellationToken cancellationToken = default);
 
     Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
         RemoveTenantConfiguration request,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
-    }
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Reads authoritative confirmation evidence for a metadata update. Returning the full snapshot keeps the

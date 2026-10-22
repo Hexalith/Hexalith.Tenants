@@ -47,6 +47,8 @@ public interface ITenantCommandGateway {
         string? messageId = null,
         CancellationToken cancellationToken = default);
 
+    /// <summary>Compatibility entry point; use <c>SetTenantConfigurationTrackedAsync</c> with a retained caller-owned identity for new callers.</summary>
+    [Obsolete("Use SetTenantConfigurationTrackedAsync with a caller-owned messageId retained across retries.")]
     Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
         SetTenantConfiguration request,
         CancellationToken cancellationToken = default);
@@ -58,6 +60,8 @@ public interface ITenantCommandGateway {
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.Configuration.Set.Unavailable.TrackedDispatch"));
 
+    /// <summary>Compatibility entry point; use <c>RemoveTenantConfigurationTrackedAsync</c> with a retained caller-owned identity for new callers.</summary>
+    [Obsolete("Use RemoveTenantConfigurationTrackedAsync with a caller-owned messageId retained across retries.")]
     Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
         RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default)
@@ -70,6 +74,8 @@ public interface ITenantCommandGateway {
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.Configuration.Remove.Unavailable.TrackedDispatch"));
 
+    /// <summary>Compatibility entry point; use <c>SetGlobalAdministratorTrackedAsync</c> with a retained caller-owned identity for new callers.</summary>
+    [Obsolete("Use SetGlobalAdministratorTrackedAsync with a caller-owned messageId retained across retries.")]
     Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministrator request,
         CancellationToken cancellationToken = default)
@@ -87,6 +93,8 @@ public interface ITenantCommandGateway {
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch"));
 
+    /// <summary>Compatibility entry point; use <c>RemoveGlobalAdministratorTrackedAsync</c> with a retained caller-owned identity for new callers.</summary>
+    [Obsolete("Use RemoveGlobalAdministratorTrackedAsync with a caller-owned messageId retained across retries.")]
     Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministrator request,
         CancellationToken cancellationToken = default)
@@ -104,6 +112,8 @@ public interface ITenantCommandGateway {
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.GlobalAdministrators.Remove.Unavailable.TrackedDispatch"));
 
+    /// <summary>Compatibility entry point; use <c>EnableTenantTrackedAsync</c> with a retained caller-owned identity for new callers.</summary>
+    [Obsolete("Use EnableTenantTrackedAsync with a caller-owned messageId retained across retries.")]
     Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
@@ -116,6 +126,8 @@ public interface ITenantCommandGateway {
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.Lifecycle.Unavailable.CommandSurface"));
 
+    /// <summary>Compatibility entry point; use <c>DisableTenantTrackedAsync</c> with a retained caller-owned identity for new callers.</summary>
+    [Obsolete("Use DisableTenantTrackedAsync with a caller-owned messageId retained across retries.")]
     Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)

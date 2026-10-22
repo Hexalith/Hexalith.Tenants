@@ -32,6 +32,40 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PreDispatchFailureKeepsAuditVisibleOnlyForResumedRemovalRegistration(bool resumed)
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            SubmissionFactory = (_, _) => TenantCommandSubmissionResult.FailedWithKey(
+                "Tenants.Configuration.Remove.Unavailable.TrackedDispatch"),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "enabled" }))
+            .Add(p => p.TargetKey, "billing.mode").Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current).Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        TenantRemoveConfigurationPreview preview = cut.Instance.Snapshot.Preview.ShouldNotBeNull();
+        string? originalId = null;
+        // Reuse dispatch-only registration; unresolved retained snapshots still prevent UI redispatch.
+        if (resumed)
+        {
+            (originalId, _, _) = Services.GetRequiredService<TenantRemoveConfigurationAttemptTracker>()
+                .BeginDispatch(preview.Intent, preview.ProjectionVersion!, DateTimeOffset.UtcNow);
+        }
+        cut.Find("[data-testid='tenants-config-remove-confirmation']").Change("billing.mode");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+        cut.Instance.Snapshot.AuditState.ShouldBe(resumed
+            ? TenantCommandAuditStates.Unverifiable : TenantCommandAuditStates.NotStarted);
+        gateway.RemoveConfigurationCallCount.ShouldBe(1);
+        gateway.GetStatusCallCount.ShouldBe(0);
+        if (resumed) gateway.LastMessageId.ShouldBe(originalId);
+        cut.FindAll("[data-testid='tenants-audit-availability']").Count.ShouldBe(resumed ? 1 : 0);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
@@ -1616,6 +1650,9 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
     private sealed class StubTenantCommandGateway : ITenantCommandGateway
     {
         public bool SupportsTrackedRemoveConfigurationDispatch => true;
+        public Func<RemoveTenantConfiguration, string, TenantCommandSubmissionResult>? SubmissionFactory { get; init; }
+        public string? LastMessageId { get; private set; }
+
         public TenantCommandSubmissionResult Submission { get; init; }
             = TenantCommandSubmissionResult.Failed("Tenant command gateway is unavailable.");
 
@@ -1660,6 +1697,8 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         {
             RemoveConfigurationCallCount++;
             LastRemoveConfigurationRequest = request;
+            LastMessageId = messageId;
+            if (SubmissionFactory is not null) return SubmissionFactory(request, messageId);
             TenantCommandSubmissionResult submission = SubmissionGate is null
                 ? Submission
                 : await SubmissionGate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);

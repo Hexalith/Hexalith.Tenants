@@ -1,0 +1,209 @@
+{
+  "baseline": "b85896a9664331e6eee282546f7e92178dac828e",
+  "selected": [
+    220,
+    254,
+    319,
+    327,
+    469
+  ],
+  "build_command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 -v:q",
+  "build_result": "Build succeeded.\n    0 Warning(s)\n    0 Error(s)\n\nTime Elapsed 00:00:17.08",
+  "runs": [
+    {
+      "name": "new-retry",
+      "trx": "/tmp/tenants-five-deferred/new-retry/results.trx",
+      "sha256": "88e050ec951aac74b463d8f204d1832662cf2ce51778dec94ab7c44888092395",
+      "times": {
+        "creation": "2026-10-22T13:43:14.6870780+00:00",
+        "queuing": "2026-10-22T13:43:14.6870780+00:00",
+        "start": "2026-10-22T13:43:14.6870780+00:00",
+        "finish": "2026-10-22T13:43:15.3659566+00:00"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": "6",
+        "executed": "6",
+        "passed": "6",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "name": "full",
+      "trx": "/tmp/tenants-five-deferred/full/results.trx",
+      "sha256": "0858e2fede94b7cafc966599cf32a97adf8c627d875684b2d902780a28963c25",
+      "times": {
+        "creation": "2026-10-22T13:43:42.1429235+00:00",
+        "queuing": "2026-10-22T13:43:42.1429235+00:00",
+        "start": "2026-10-22T13:43:42.1429235+00:00",
+        "finish": "2026-10-22T13:45:26.7305857+00:00"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": "7178",
+        "executed": "7178",
+        "passed": "7178",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "name": "reviewed-retry",
+      "trx": "/tmp/tenants-five-deferred/reviewed-retry/results.trx",
+      "sha256": "a15b24d1ea3ee60a1a0844e8707828aaffa4912747d5cb96dcb2e63d0d6c2776",
+      "times": {
+        "creation": "2026-10-22T13:50:03.4493178+00:00",
+        "queuing": "2026-10-22T13:50:03.4493178+00:00",
+        "start": "2026-10-22T13:50:03.4493178+00:00",
+        "finish": "2026-10-22T13:50:04.3784265+00:00"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": "8",
+        "executed": "8",
+        "passed": "8",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "name": "original-behavior",
+      "trx": "/tmp/tenants-five-deferred/original-behavior/results.trx",
+      "sha256": "007205edea40b34600c6e84a1b96789ea7dc73afadf60f1842b42cd8c72934b2",
+      "times": {
+        "creation": "2026-10-22T13:51:06.3874873+00:00",
+        "queuing": "2026-10-22T13:51:06.3874873+00:00",
+        "start": "2026-10-22T13:51:06.3874873+00:00",
+        "finish": "2026-10-22T13:51:09.1281880+00:00"
+      },
+      "outcome": "Failed",
+      "counters": {
+        "total": "8",
+        "executed": "8",
+        "passed": "4",
+        "failed": "4",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    },
+    {
+      "name": "full-final",
+      "trx": "/tmp/tenants-five-deferred/full-final/results.trx",
+      "sha256": "03dbfa092362fcd652b6628765f25cd8317b332cef81804ce0b22956e5bba170",
+      "times": {
+        "creation": "2026-10-22T13:51:45.7360204+00:00",
+        "queuing": "2026-10-22T13:51:45.7360204+00:00",
+        "start": "2026-10-22T13:51:45.7360204+00:00",
+        "finish": "2026-10-22T13:53:35.9340942+00:00"
+      },
+      "outcome": "Completed",
+      "counters": {
+        "total": "7187",
+        "executed": "7187",
+        "passed": "7187",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      }
+    }
+  ],
+  "final_assembly": {
+    "path": "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+    "sha256": "a83f1eeadd91b6e2131106df48698b67adbf6fd453bc4e45d7042421ff806826",
+    "qualified_run": "full-final",
+    "earlier_run_assembly_hashes": "not attributed"
+  },
+  "source_sha256": {
+    "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor": "fbd8adf5267e8ef5e6b31c745225e0bd6f0bbf084b069d46a6fc4d823fdabd5a",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor": "848f850255d321bbc4bc494726a39cf950e15f04cb319585687b784fce182fda",
+    "src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor": "b71660ab0854320f62c36cd388965f572679908c7584b4bd833d42e77244f65a",
+    "src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs": "5b817f6483df1e5ed76846fb26ded8e674e4c1d369f29ca07504a97b9b2246a9",
+    "src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs": "41fa442c38fbfc2a91f6ce4b936e4d38427e1b126c45534d4665523a92d618ba",
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs": "27d6b2893d704b0bdd3f8e5ec569e4da6552b790f8f0f37913637fcdc5ba0a31",
+    "src/Hexalith.Tenants.UI/Services/Gateways/UnavailableTenantCommandGateway.cs": "ce7b22be01af104138fbbe4714591c4d2cf5ac71e3d0db83fc3a0b5d0c9c20eb",
+    "src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfigurationAttemptTracker.cs": "569320edc7a4ddea06f1a2fc92aade35b4dd454a6b39353c1aa66f5bb9090a35",
+    "src/Hexalith.Tenants.UI/State/TenantCommands/TenantSetConfigurationAttemptTracker.cs": "7c7efc6b18cdda30b59bb2ab0b90b54ab0248e0d066056ac11f36dd40d904ba8",
+    "tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs": "21f6216dc5cd56d6bfe95065dea4f6e32f33a234fdd38e62478863a3c07f6f24",
+    "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorCorrectionPanelTests.cs": "665cb6506ad979f4b47ed7d45099631ef46110a8a02d841aad4e57e20cf99c8c",
+    "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs": "ace10e7200d3b1c49c06c898ad50f9c4f1384d950a386d13263fa4c678351b8a",
+    "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantConfigurationFlowTests.cs": "2e34f2cac877d000488080036e8c90323990c6007f64d3649a98dd2bdf7e38d7",
+    "tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs": "1f8438976ebb3c0a13c1f737c3437554f0fe031ccf841fd3174b7be01a326caf",
+    "tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs": "b9ab2e31a6958080badda8549aeddae9722faae453da7aae796bc35b89e31456",
+    "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs": "875b401be194baf78dcd2083d4bb6142dbf7701b6dc177585d6214b04a9eee23",
+    "tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs": "0c335dfa2353c871239880c7bdffe5cf82f835e0c581123144deec94f1b4dbe0",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs": "b56a384178bea9213261bd85a95fdbc23b0cff9177291d8a86544a73cc9bcb33",
+    "tests/Hexalith.Tenants.UI.Tests/State/TenantRemoveConfigurationAttemptTrackerTests.cs": "5d2b6ad42e3760bf91b4f0220d4c5737b340edcab73ba03799a96ad26974b176",
+    "tests/Hexalith.Tenants.UI.Tests/State/TenantSetConfigurationAttemptTrackerTests.cs": "02ac1a6b975fac97f60499e966e0e68f5306a0c78e2fd94ad5c3db563e288ee3",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TrackedGatewayContractTests.cs": "7f3663a33fa8ba2665f79b0723b16a3c653375cab3659c5101a1e8781097bb4b"
+  },
+  "review": {
+    "findings": 6,
+    "patched": 6,
+    "deferred": 0,
+    "recheck": "all addressed; no remaining concrete findings"
+  },
+  "format": {
+    "result": "pass",
+    "log": "/tmp/tenants-five-deferred-format.log"
+  },
+  "commitlint": {
+    "version": "21.2.3",
+    "message": "fix(ui): resolve five deferred command tracking records\n",
+    "message_sha256": "ec5462b34b95a0afabbb048bff2f871036d32f49c4bbeafdd937c6690613195d",
+    "result": "\u29d7   --- input ---\nfix(ui): resolve five deferred command tracking records\n\u2714   found 0 problems, 0 warnings"
+  }
+}

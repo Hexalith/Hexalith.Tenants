@@ -34,7 +34,8 @@ public sealed class TenantSetConfigurationAttemptTracker
     internal object LeaseOwner { get; } = new();
 
     /// <summary>Starts or resumes the dispatch identity for one exact safe intent.</summary>
-    internal (string MessageId, DateTimeOffset AttemptStartedAtUtc) BeginDispatch(
+    /// <returns>The exact identity and start time, with Resumed true when an earlier registration was reused.</returns>
+    internal (string MessageId, DateTimeOffset AttemptStartedAtUtc, bool Resumed) BeginDispatch(
         TenantSetConfigurationIntent intent,
         string baselineProjectionVersion,
         DateTimeOffset attemptStartedAtUtc)
@@ -57,7 +58,7 @@ public sealed class TenantSetConfigurationAttemptTracker
                         "A different set-configuration intent already owns the tenant dispatch window.");
                 }
 
-                return (retained.MessageId, retained.AttemptStartedAtUtc);
+                return (retained.MessageId, retained.AttemptStartedAtUtc, true);
             }
 
             DateTimeOffset normalized = attemptStartedAtUtc.ToUniversalTime();
@@ -68,7 +69,7 @@ public sealed class TenantSetConfigurationAttemptTracker
             }
 
             _dispatches[intent.TenantId] = (intent, baselineProjectionVersion, normalized, messageId);
-            return (messageId, normalized);
+            return (messageId, normalized, false);
         }
     }
 

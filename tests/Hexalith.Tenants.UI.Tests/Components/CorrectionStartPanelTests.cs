@@ -2632,6 +2632,42 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
     private sealed class StubTenantQueryGateway(TenantDetail detail, TenantAuditSnapshot audit) : ITenantQueryGateway
     {
+        public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+            TenantSetConfigurationIntent intent,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(intent);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
+        }
+
+        public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+            TenantRemoveConfigurationIntent intent,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(intent);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
+        }
+
+        public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+            SetTenantConfiguration request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
+        }
+
+        public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+            RemoveTenantConfiguration request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
+        }
+
         public TenantRole? InitialRole { get; set; }
 
         public int CorrectionCaptureCount { get; private set; }

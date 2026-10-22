@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-220/DW-254/DW-319/DW-327/DW-469 closure (2026-10-22):** Configuration proof readers require explicit implementations, six legacy wrappers name their tracked replacements, legacy removal failures retain safe text, and reused identities preserve unverifiable audit state after pre-dispatch failure. Exactly five records close: all 657 IDs remain, 495 done/162 open across 152 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-220-254-319-327-469-validation-evidence.md).
+
 **DW-346/DW-369/DW-374/DW-377/DW-402 closure (2026-10-22):** Grant Cancel uses the existing Fluent component; deterministic refusal and EN/FR replacement-page recovery qualify retained retry identity. The approved grant localization and border-box scope notes close as preserved intentional behavior. Exactly five records close: all 657 IDs remain, 490 done/167 open across 157 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-346-369-374-377-402-validation-evidence.md).
 
 **DW-253/DW-261/DW-284/DW-475/DW-512 closure (2026-10-22):** Gateway-driven lost-tracking and minted-identity tests, actual scoped create remounts and seven-flow audit denial controls qualify command recovery. Correction rendering consumes the atomically retained delivery outcome; wrong-outcome and denial-bypass controls reject. Exactly five records close: all 657 IDs remain, 480 done/177 open across 167 maintenance rows. Historical evidence, unrelated work, dependency pointers, the existing local MCP edit and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-253-261-284-475-512-validation-evidence.md).
@@ -184,14 +186,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 490 |
-| actionable | 96 |
+| done | 495 |
+| actionable | 91 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 7 |
 | uncertain | 26 |
 
-**Remaining: 167 open records across 157 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 162 open records across 152 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -238,7 +240,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-418 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome. |
 | DW-444 | P2 | Defect / actionable | unassigned | Focus only when the removed panel actually owned focus | Capture/reset/remount focus and restore the actual correction launcher at safe and narrow widths. |
 | DW-448 | P2 | Defect / actionable | unassigned | Attempt wait/deadline threshold | Choose a bounded unmatched-walk/deadline threshold within the existing recovery contract and transition exhausted waiting to Delayed with tests. |
-| DW-469 | P2 | Defect / actionable | unassigned | Configuration tracker resumed-identity result | Pass retry identity to lifecycle audit mapping and expose whether configuration BeginDispatch resumed a retained identity; test pre-dispatch failure on retry. |
 | DW-511 | P2 | Defect / actionable | Hexalith.EventStore | EventStore ambiguity contract | Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions. |
 | DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
 | DW-522 | P2 | Defect / actionable | Hexalith.EventStore | DW-511 general ambiguity wording | Align the served ambiguity catalog and problem reference with the general scope-aware runtime remediation. |
@@ -343,9 +344,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-144 | P2 | Recommendation / actionable | unassigned | topology/security contract and DW-137 | Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks. |
 | DW-194 | P2 | Recommendation / actionable | unassigned | FrontComposer modal primitive and browser fixture | Adopt the recorded shared modal contract and obtain browser Tab/Escape/inert evidence. |
 | DW-201 | P2 | Recommendation / actionable | unassigned | create UX acceptance contract | Specify safe create viewport and open-existing navigation behavior, then cover the visible actions. |
-| DW-220 | P2 | Recommendation / actionable | unassigned | none | Remove the recorded default proof implementations and make every adapter/stub implement them explicitly. |
 | DW-221 | P2 | Recommendation / actionable | unassigned | configuration schema compatibility | Define backward-compatible shape metadata and provider tests distinguishing empty arrays from scalar declarations. |
-| DW-254 | P2 | Recommendation / actionable | unassigned | compatibility of tracked APIs | Reconcile the settled identity contract with tracked/untracked APIs and migrate or deprecate legacy methods consistently. |
 | DW-313 | P2 | Recommendation / actionable | unassigned | create identity/ownership contract | Address create retention/late completion before extracting reusable technical retention behavior. |
 | DW-408 | P2 | Recommendation / awaiting-decision | unassigned | Audit contract/versioning decision | Decide the unknown audit event compatibility contract, then update gateway behavior/tests and documentation to that single policy. |
 | DW-498 | P2 | Recommendation / awaiting-decision | unassigned | Product/authorization result-read policy | Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision. |
@@ -365,12 +364,10 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-267 | P3 | Recommendation / actionable | unassigned | DW-245 and DW-300 | Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics. |
 | DW-301 | P3 | Recommendation / actionable | unassigned | none | Extract a keyed proof-scope helper with cancellation and route-generation behavior pinned first. |
 | DW-302 | P3 | Recommendation / actionable | unassigned | public component compatibility | Make high-impact evidence canonical and retain only explicit compatibility shims for public parameters. |
-| DW-319 | P3 | Recommendation / actionable | unassigned | none | Mark the old methods obsolete with tracked replacements and pin compatibility behavior. |
 | DW-321 | P3 | Recommendation / actionable | unassigned | lease/focus regression coverage | Extract helpers after explicitly pinning surface owner identity and retention polarity. |
 | DW-322 | P3 | Recommendation / actionable | unassigned | none | Measure render cost and move pruning to a controlled mutation/expiry seam without losing expiration semantics. |
 | DW-323 | P3 | Recommendation / actionable | unassigned | configured poll budget | Implement the recorded tested poll cap and safe UnableToVerify transition. |
 | DW-326 | P3 | Recommendation / actionable | unassigned | existing ten-fact acceptance contract | Document/pin the intentional Current/Current proof fact and prune unreachable resource variants. |
-| DW-327 | P3 | Recommendation / actionable | unassigned | none | Apply the recorded deprecation and compatibility guidance with a direct overload regression. |
 | DW-328 | P3 | Recommendation / actionable | unassigned | independent review capacity | Run a separately scoped independent follow-up on retained removal expiry and proof behavior. |
 | DW-434 | P3 | Recommendation / actionable | unassigned | Approved Option A fallback remains valid; preserve rejected Option B | For the approved Option C follow-up, browser-check a collapsed in-flight lifecycle/configuration audit round trip and expand its matching item only if the launcher is unreachable. |
 | DW-438 | P3 | Recommendation / awaiting-decision | unassigned | Support-safety policy/opaque-reference contract decision | Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy. |

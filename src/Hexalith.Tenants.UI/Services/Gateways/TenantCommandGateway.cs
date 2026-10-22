@@ -217,6 +217,7 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    [Obsolete("Use SetTenantConfigurationTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
         SetTenantConfiguration request,
         CancellationToken cancellationToken = default)
@@ -263,10 +264,17 @@ internal sealed class TenantCommandGateway(
         }
     }
 
-    public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
+    [Obsolete("Use RemoveTenantConfigurationTrackedAsync with a caller-owned messageId retained across retries.")]
+    public async Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
         RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default)
-        => RemoveTenantConfigurationTrackedAsync(request, ulidFactory.NewUlid(), cancellationToken);
+    {
+        TenantCommandSubmissionResult result = await RemoveTenantConfigurationTrackedAsync(
+            request, ulidFactory.NewUlid(), cancellationToken).ConfigureAwait(false);
+        return result.State is not TenantCommandLifecycleState.Accepted && string.IsNullOrWhiteSpace(result.SafeMessage)
+            ? result with { SafeMessage = "Tenant configuration removal could not be verified. Refresh before trying again." }
+            : result;
+    }
 
     public async Task<TenantCommandSubmissionResult> RemoveTenantConfigurationTrackedAsync(
         RemoveTenantConfiguration request,
@@ -307,6 +315,7 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    [Obsolete("Use SetGlobalAdministratorTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministrator request,
         CancellationToken cancellationToken = default)
@@ -352,6 +361,7 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    [Obsolete("Use RemoveGlobalAdministratorTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministrator request,
         CancellationToken cancellationToken = default)
@@ -397,6 +407,7 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    [Obsolete("Use EnableTenantTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
@@ -449,6 +460,7 @@ internal sealed class TenantCommandGateway(
         }
     }
 
+    [Obsolete("Use DisableTenantTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)

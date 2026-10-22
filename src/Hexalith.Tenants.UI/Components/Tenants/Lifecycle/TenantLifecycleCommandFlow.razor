@@ -1233,7 +1233,7 @@
         }
     }
 
-    private async Task DispatchTrackedAttemptAsync(ITenantCommandGateway gateway, string messageId)
+    private async Task DispatchTrackedAttemptAsync(ITenantCommandGateway gateway, string messageId, bool isRetry = false)
     {
         TenantCommandSubmissionResult result;
         try
@@ -1309,6 +1309,13 @@
         {
             SetSnapshot(_snapshot.UnableToVerify("Tenants.Lifecycle.UnableToVerify.TrackingMismatch"));
         }
+        else if (isRetry && result.State is TenantCommandLifecycleState.Failed
+            && string.IsNullOrWhiteSpace(result.MessageId))
+        {
+            // This send failed before dispatch, but the earlier delivery is still unresolved.
+            // Keep its exact identity and bounded ownership for recovery and remount.
+            SetSnapshot(_snapshot.AmbiguousSubmission("Tenants.Lifecycle.SubmissionEvidence.Ambiguous"));
+        }
         else if (result.State is TenantCommandLifecycleState.Rejected
             or TenantCommandLifecycleState.Failed)
         {
@@ -1332,7 +1339,7 @@
                 },
                 RecoveryKey = null,
                 RejectionCode = result.RejectionCode,
-                AuditState = TenantCommandAuditStates.FromSubmission(result),
+                AuditState = TenantCommandAuditStates.FromSubmission(result, isRetry ? messageId : null),
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 EvidenceRevision = _snapshot.NextEvidenceRevision(),
@@ -1567,7 +1574,7 @@
                 _isSubmitting = true;
                 try
                 {
-                    await DispatchTrackedAttemptAsync(gateway, _snapshot.MessageId).ConfigureAwait(false);
+                    await DispatchTrackedAttemptAsync(gateway, _snapshot.MessageId, isRetry: true).ConfigureAwait(false);
                 }
                 finally
                 {

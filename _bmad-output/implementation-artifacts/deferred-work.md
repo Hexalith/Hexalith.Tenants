@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-220/DW-254/DW-319/DW-327/DW-469 closure (2026-10-22):** Configuration proof readers require explicit implementations, six legacy wrappers name their tracked replacements, legacy removal failures retain safe text, and reused identities preserve unverifiable audit state after pre-dispatch failure. Exactly five records close: all 657 IDs remain, 495 done/162 open across 152 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-220-254-319-327-469-validation-evidence.md).
+
 **DW-346/DW-369/DW-374/DW-377/DW-402 closure (2026-10-22):** Grant Cancel uses the existing Fluent component; deterministic refusal and EN/FR replacement-page recovery qualify retained retry identity. The approved grant localization and border-box scope notes close as preserved intentional behavior. Exactly five records close: all 657 IDs remain, 490 done/167 open across 157 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-346-369-374-377-402-validation-evidence.md).
 
 **DW-253/DW-261/DW-284/DW-475/DW-512 closure (2026-10-22):** Gateway-driven lost-tracking and minted-identity tests, actual scoped create remounts and seven-flow audit denial controls qualify command recovery. Correction rendering consumes the atomically retained delivery outcome; wrong-outcome and denial-bypass controls reject. Exactly five records close: all 657 IDs remain, 480 done/177 open across 167 maintenance rows. Historical evidence, unrelated work, dependency pointers, the existing local MCP edit and release holds remain preserved. See [validation evidence](dw-253-261-284-475-512-validation-evidence.md).
@@ -2019,18 +2021,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md`
 reason: The legacy ledger defers this issue: Remove default set/remove projection-proof implementations from ITenantQueryGateway so every gateway and decorator must implement the security-sensitive proof contract explicitly. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md` summary: Remove default set/remove projection-proof implementations from ITenantQueryGateway so every gateway and decorator must implement the security-sensitive proof contract explicitly. evidence: The pre-existing interface defaults allow a future implementation to omit both methods, compile successfully, and silently return unavailable proof; the concrete unavailable gateway is now covered directly, but the interface design debt remains outside this review diff.
-status: open
+pre-tracked-contract-status: open
+status: done 2026-10-22
 decision: 2026-08-28 Require explicit methods — Remove the default implementations and update every gateway and stub to implement the proof contracts explicitly.
 decision: 2026-08-28 Require explicit methods — Remove the default implementations and update every gateway and stub to implement the proof contracts explicitly.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs still supplies unavailable default bodies for set/remove projection proof, including tracked request overloads. Existing 2026-08-28 decision requires explicit methods.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs
-evidence-kind: recommendation
+pre-tracked-contract-disposition: actionable
+disposition: done
+pre-tracked-contract-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-tracked-contract-verification: src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs still supplies unavailable default bodies for set/remove projection proof, including tracked request overloads. Existing 2026-08-28 decision requires explicit methods.
+verification: All four set/remove configuration proof overloads are abstract; production implementations remain explicit and the four manual test adapters deliberately return unavailable. Contract reflection and the full UI suite qualify the compile-time boundary. Exact commands, outcomes, review and limits: dw-220-254-319-327-469-validation-evidence.md.
+pre-tracked-contract-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/ITenantQueryGateway.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TrackedGatewayContractTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/{CorrectionStartPanelTests,TenantAuditPageTests,GlobalAdministratorsPageTests,GlobalAdministratorCorrectionPanelTests}.cs
+pre-tracked-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
+pre-tracked-contract-dependencies: none
 dependencies: none
-next-action: Remove the recorded default proof implementations and make every adapter/stub implement them explicitly.
+pre-tracked-contract-next-action: Remove the recorded default proof implementations and make every adapter/stub implement them explicitly.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: none
 
 ### DW-221: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations
@@ -2443,18 +2453,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Optional messageId is now inconsistent across ITenantCommandGateway. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Optional messageId is now inconsistent across ITenantCommandGateway. evidence: Create, Add, Change, Remove and Update carry it; SetTenantConfigurationAsync, RemoveTenantConfigurationAsync, SetGlobalAdministratorAsync, RemoveGlobalAdministratorAsync, EnableTenantAsync and DisableTenantAsync do not. The reconnect/idempotency contract is therefore partial. Hexalith.Tenants.UI is not a published package, so there is no external consumer break.
-status: open
+pre-tracked-contract-status: open
+status: done 2026-10-22
 decision: 2026-08-26 Unify optional identity — Add optional messageId to every command method and update implementations, flows, and tests consistently.
 decision: 2026-08-25 Unify optional identity — Add optional messageId to every command method and update implementations, flows, and tests with consistent retry semantics.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs now has explicit tracked variants for configuration/lifecycle/global commands, but old untracked members still lack optional messageId. The recorded uniform optional-identity decision is only partially delivered by the new split API.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs
-evidence-kind: recommendation
+pre-tracked-contract-disposition: actionable
+disposition: done
+pre-tracked-contract-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-tracked-contract-verification: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs now has explicit tracked variants for configuration/lifecycle/global commands, but old untracked members still lack optional messageId. The recorded uniform optional-identity decision is only partially delivered by the new split API.
+verification: The tracked/untracked split is reconciled through compatible deprecation, as permitted by the recorded next-action: all six identity-minting legacy wrappers on interface and production gateways name their required-identity tracked replacements. Existing callable signatures remain; existing tracked variants retain caller-owned identity. The earlier optional-identity recommendation is preserved historically rather than implemented as extra overloads. Exact commands, outcomes, review and limits: dw-220-254-319-327-469-validation-evidence.md.
+pre-tracked-contract-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/{ITenantCommandGateway,TenantCommandGateway,UnavailableTenantCommandGateway}.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/{TrackedGatewayContractTests,TenantCommandGatewayTests}.cs
+pre-tracked-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: compatibility of tracked APIs
-next-action: Reconcile the settled identity contract with tracked/untracked APIs and migrate or deprecate legacy methods consistently.
+pre-tracked-contract-dependencies: compatibility of tracked APIs
+dependencies: none
+pre-tracked-contract-next-action: Reconcile the settled identity contract with tracked/untracked APIs and migrate or deprecate legacy methods consistently.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: DW-319, DW-327
 
 ### DW-255: `AttemptStartedAtUtc` ships on the public `TenantCreateCommandSnapshot` record but is never read, and defaults via `DateTimeOffset.UtcNow` instead of an injected clock
@@ -3298,17 +3316,25 @@ archived: 2026-10-12
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 location: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs (`EnableTenantAsync` and `DisableTenantAsync`)
 reason: The public, undeprecated methods have zero production callers after the tracked pair took over, but a future caller could use them to bypass `TenantLifecycleAttemptTracker`. Removal is breaking, so retire or deprecate the methods with an explicit compatibility plan.
-status: open
+pre-tracked-contract-status: open
+status: done 2026-10-22
 decision: 2026-08-26 Deprecate with guidance — Mark methods obsolete, document tracked replacements, and add compatibility tests before later removal.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs EnableTenantAsync/DisableTenantAsync remain public and undeprecated alongside tracked methods; no production flow uses the untracked pair. Recorded 2026-08-26 deprecate-with-guidance decision is pending.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs
-evidence-kind: recommendation
+pre-tracked-contract-disposition: actionable
+disposition: done
+pre-tracked-contract-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-tracked-contract-verification: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs EnableTenantAsync/DisableTenantAsync remain public and undeprecated alongside tracked methods; no production flow uses the untracked pair. Recorded 2026-08-26 deprecate-with-guidance decision is pending.
+verification: EnableTenantAsync and DisableTenantAsync are obsolete with guidance to tracked replacements on interface and concrete gateways. Legacy callable behavior remains covered; production flows continue to use retained caller-owned tracking. Exact commands, outcomes, review and limits: dw-220-254-319-327-469-validation-evidence.md.
+pre-tracked-contract-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/{ITenantCommandGateway,TenantCommandGateway,UnavailableTenantCommandGateway}.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/{TrackedGatewayContractTests,TenantCommandGatewayTests}.cs
+pre-tracked-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
+pre-tracked-contract-dependencies: none
 dependencies: none
-next-action: Mark the old methods obsolete with tracked replacements and pin compatibility behavior.
+pre-tracked-contract-next-action: Mark the old methods obsolete with tracked replacements and pin compatibility behavior.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: DW-254, DW-327
 
 ### DW-320: Remove the dead lifecycle `DuplicatePrevented` state path
@@ -3446,18 +3472,26 @@ location: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs:273
 source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
 severity: low
 reason: It now delegates to RemoveTenantConfigurationTrackedAsync, so it can return Ambiguous or FailedWithKey("Tenants.Commands.Unavailable.InvalidTrackingReference") with SafeMessage null. No production caller remains, and no test pins the overload, so a future caller rendering SafeMessage would show empty text.
-status: open
+pre-tracked-contract-status: open
+status: done 2026-10-22
 decision: 2026-08-28 Deprecate compatibly — Mark the overload obsolete, document the tracked replacement, and preserve safe compatibility behavior until a later removal.
 decision: 2026-08-28 Deprecate compatibly — Mark the overload obsolete, document the tracked replacement, and preserve safe compatibility behavior until a later removal.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs untracked RemoveTenantConfigurationAsync still delegates to tracked dispatch and may return keyed SafeMessage-null failures; ITenantCommandGateway.cs does not mark it obsolete. Existing compatible-deprecation decision remains pending.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs
-evidence-kind: recommendation
+pre-tracked-contract-disposition: actionable
+disposition: done
+pre-tracked-contract-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-tracked-contract-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs untracked RemoveTenantConfigurationAsync still delegates to tracked dispatch and may return keyed SafeMessage-null failures; ITenantCommandGateway.cs does not mark it obsolete. Existing compatible-deprecation decision remains pending.
+verification: Legacy RemoveTenantConfigurationAsync preserves existing text and supplies a fixed safe fallback only for key-only or ambiguous non-accepted outcomes. Tracking fields, localized keys and dispatch classification remain intact; tracked results remain unchanged. Direct compatibility regressions cover invalid factory identity and transport ambiguity. Exact commands, outcomes, review and limits: dw-220-254-319-327-469-validation-evidence.md.
+pre-tracked-contract-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; src/Hexalith.Tenants.UI/Services/Gateways/ITenantCommandGateway.cs
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantCommandGateway.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs
+pre-tracked-contract-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
+pre-tracked-contract-dependencies: none
 dependencies: none
-next-action: Apply the recorded deprecation and compatibility guidance with a direct overload regression.
+pre-tracked-contract-next-action: Apply the recorded deprecation and compatibility guidance with a direct overload regression.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: DW-319, DW-254
 
 ### DW-328: Follow-up review still recommended for 3-6-remove-configuration-key-with-complete-preview after the damping cap was spent
@@ -5736,16 +5770,24 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCo
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Use the retry-aware `TenantCommandAuditStates.FromSubmission(result, retriedMessageId)` in Lifecycle, Set configuration and Remove configuration.\n  evidence: Pre-existing; the 2026-10-01 fix pass wired it in AddMember, ChangeRole, RemoveMember and Metadata only. `TenantLifecycleCommandFlow.razor:1315`, `SetTenantConfigurationFlow.razor:698` and `RemoveTenantConfigurationFlow.razor:937` still call `FromSubmission(result)`. Their tracked gateways return `FailedWithKey` with no MessageId for failures before dispatch (`TenantCommandGateway.cs`, `UnavailableTenantCommandGateway.cs`), so a re-dispatch of a retained, possibly delivered identity that fails that way reports NotStarted and hides the control. Lifecycle's re-dispatch site (`:1550`) is explicit. The configuration flows first need the tracker to report whether `BeginDispatch` resumed a retained identity."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor:1315, Configuration/SetTenantConfigurationFlow.razor:702 and RemoveTenantConfigurationFlow.razor:937 still call TenantCommandAuditStates.FromSubmission(result) without a retained retry MessageId. Gateway FailedWithKey validation failures omit MessageId, allowing resumed ambiguous attempts to map to NotStarted.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor
-evidence-kind: verified-defect
+pre-tracked-contract-status: open
+status: done 2026-10-22
+pre-tracked-contract-disposition: actionable
+disposition: done
+pre-tracked-contract-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-tracked-contract-verification: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor:1315, Configuration/SetTenantConfigurationFlow.razor:702 and RemoveTenantConfigurationFlow.razor:937 still call TenantCommandAuditStates.FromSubmission(result) without a retained retry MessageId. Gateway FailedWithKey validation failures omit MessageId, allowing resumed ambiguous attempts to map to NotStarted.
+verification: Lifecycle redispatch carries explicit retry identity; pre-dispatch retry failure retains RequestSent and the original bounded ownership across parent remount instead of terminalizing an unresolved earlier delivery. Both configuration trackers atomically report reused registrations and both flows consume that flag. Eight rendered first/resumed failure cases pin NotStarted versus AuditUnavailable, exact identity and audit-control visibility. Configuration cases reuse dispatch-only registrations and do not claim or introduce ambiguous UI redelivery. Exact commands, outcomes, review and limits: dw-220-254-319-327-469-validation-evidence.md.
+pre-tracked-contract-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/{Lifecycle/TenantLifecycleCommandFlow,Configuration/SetTenantConfigurationFlow,Configuration/RemoveTenantConfigurationFlow}.razor; src/Hexalith.Tenants.UI/State/TenantCommands/Tenant{Set,Remove}ConfigurationAttemptTracker.cs; tests/Hexalith.Tenants.UI.Tests/Components/{TenantLifecycleActionAvailabilityTests,SetTenantConfigurationFlowTests,RemoveTenantConfigurationFlowTests}.cs
+pre-tracked-contract-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Configuration tracker resumed-identity result
-next-action: Pass retry identity to lifecycle audit mapping and expose whether configuration BeginDispatch resumed a retained identity; test pre-dispatch failure on retry.
+pre-tracked-contract-dependencies: Configuration tracker resumed-identity result
+dependencies: none
+pre-tracked-contract-next-action: Pass retry identity to lifecycle audit mapping and expose whether configuration BeginDispatch resumed a retained identity; test pre-dispatch failure on retry.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: none
 
 

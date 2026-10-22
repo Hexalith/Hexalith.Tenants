@@ -49,6 +49,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         CancellationToken cancellationToken = default)
         => Task.FromResult(TenantCommandSubmissionResult.Failed("Tenant command gateway configuration is missing.") with { SafeMessageKey = "Tenants.EditMetadata.Unavailable.GatewayConfiguration" });
 
+    [Obsolete("Use SetTenantConfigurationTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(
         SetTenantConfiguration request,
         CancellationToken cancellationToken = default)
@@ -61,6 +62,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.Configuration.Set.Unavailable.TrackedDispatch"));
 
+    [Obsolete("Use RemoveTenantConfigurationTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> RemoveTenantConfigurationAsync(
         RemoveTenantConfiguration request,
         CancellationToken cancellationToken = default)
@@ -73,6 +75,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.Configuration.Remove.Unavailable.TrackedDispatch"));
 
+    [Obsolete("Use SetGlobalAdministratorTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> SetGlobalAdministratorAsync(
         SetGlobalAdministrator request,
         CancellationToken cancellationToken = default)
@@ -85,6 +88,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.GlobalAdministrators.Grant.Unavailable.TrackedDispatch"));
 
+    [Obsolete("Use RemoveGlobalAdministratorTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> RemoveGlobalAdministratorAsync(
         RemoveGlobalAdministrator request,
         CancellationToken cancellationToken = default)
@@ -97,6 +101,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.GlobalAdministrators.Remove.Unavailable.TrackedDispatch"));
 
+    [Obsolete("Use EnableTenantTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> EnableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)
@@ -109,6 +114,7 @@ internal sealed class UnavailableTenantCommandGateway : ITenantCommandGateway
         => Task.FromResult(TenantCommandSubmissionResult.FailedWithKey(
             "Tenants.Lifecycle.Unavailable.CommandSurface"));
 
+    [Obsolete("Use DisableTenantTrackedAsync with a caller-owned messageId retained across retries.")]
     public Task<TenantCommandSubmissionResult> DisableTenantAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default)

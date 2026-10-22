@@ -10,6 +10,23 @@ namespace Hexalith.Tenants.UI.Tests.State;
 
 public sealed class TenantSetConfigurationAttemptTrackerTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NewRegistrationAfterForgetOrExpiryIsNotAResumedIdentity(bool expired)
+    {
+        DateTimeOffset now = new(2026, 10, 22, 10, 0, 0, TimeSpan.Zero);
+        var tracker = new TenantSetConfigurationAttemptTracker(() => now);
+        var intent = Intent("fingerprint-one");
+        var first = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        if (expired) now += TenantSetConfigurationCommandSnapshot.MaximumRetainedAttemptDuration;
+        else tracker.Forget(intent.TenantId, first.MessageId);
+        var next = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        next.Resumed.ShouldBeFalse();
+        next.MessageId.ShouldNotBe(first.MessageId);
+        next.AttemptStartedAtUtc.ShouldBe(now);
+    }
+
     [Fact]
     public void Same_logical_dispatch_reuses_one_random_ulid_and_rejects_a_different_intent()
     {
@@ -18,9 +35,11 @@ public sealed class TenantSetConfigurationAttemptTrackerTests
         var tracker = new TenantSetConfigurationAttemptTracker(() => now, () => generated);
         TenantSetConfigurationIntent intent = Intent("fingerprint-one");
 
-        (string first, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
-        (string second, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now.AddMinutes(1));
+        (string first, _, bool firstResumed) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        (string second, _, bool secondResumed) = tracker.BeginDispatch(intent, "tenant-sequence:41", now.AddMinutes(1));
 
+        firstResumed.ShouldBeFalse();
+        secondResumed.ShouldBeTrue();
         first.ShouldBe(second);
         NUlid.Ulid.TryParse(first, out _).ShouldBeTrue();
         Should.Throw<InvalidOperationException>(() => tracker.BeginDispatch(
@@ -40,9 +59,9 @@ public sealed class TenantSetConfigurationAttemptTrackerTests
         var tracker = new TenantSetConfigurationAttemptTracker(() => now, ids.Dequeue);
         TenantSetConfigurationIntent intent = Intent("fingerprint-one");
 
-        (string first, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        (string first, _, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
         tracker.Forget(intent.TenantId, first);
-        (string second, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        (string second, _, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
 
         second.ShouldNotBe(first);
     }
@@ -53,7 +72,7 @@ public sealed class TenantSetConfigurationAttemptTrackerTests
         DateTimeOffset now = new(2026, 8, 26, 10, 0, 0, TimeSpan.Zero);
         var tracker = new TenantSetConfigurationAttemptTracker(() => now);
         TenantSetConfigurationIntent intent = Intent("fingerprint-one");
-        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(
+        (string messageId, DateTimeOffset startedAt, _) = tracker.BeginDispatch(
             intent,
             "tenant-sequence:41",
             now);
@@ -151,7 +170,7 @@ public sealed class TenantSetConfigurationAttemptTrackerTests
         DateTimeOffset now)
     {
         TenantSetConfigurationIntent intent = Intent("fingerprint-one");
-        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        (string messageId, DateTimeOffset startedAt, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
         TenantSetConfigurationPreview preview = TenantSetConfigurationPreview.Create(
             intent,
             TenantStatus.Active,

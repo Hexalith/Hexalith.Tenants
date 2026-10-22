@@ -30,6 +30,35 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
 {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PreDispatchFailureKeepsAuditVisibleOnlyForResumedConfigurationRegistration(bool resumed)
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        gateway.SubmissionFactory = (_, _) => TenantCommandSubmissionResult.FailedWithKey(
+            "Tenants.Configuration.Set.Unavailable.TrackedDispatch");
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(
+            gateway, Context(["billing"]), intent => Preview(intent, TenantSetConfigurationCurrentState.Different));
+        CompleteForm(cut, "mode", "enabled");
+        TenantSetConfigurationPreview preview = cut.Instance.Snapshot.Preview.ShouldNotBeNull();
+        string? originalId = null;
+        // Reuse dispatch-only registration; unresolved retained snapshots still prevent UI redispatch.
+        if (resumed)
+        {
+            (originalId, _, _) = Services.GetRequiredService<TenantSetConfigurationAttemptTracker>()
+                .BeginDispatch(preview.Intent, preview.ProjectionVersion!, DateTimeOffset.UtcNow);
+        }
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Failed));
+        cut.Instance.Snapshot.AuditState.ShouldBe(resumed
+            ? TenantCommandAuditStates.Unverifiable : TenantCommandAuditStates.NotStarted);
+        gateway.SetConfigurationCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(0);
+        if (resumed) gateway.LastMessageId.ShouldBe(originalId);
+        cut.FindAll("[data-testid='tenants-audit-availability']").Count.ShouldBe(resumed ? 1 : 0);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]

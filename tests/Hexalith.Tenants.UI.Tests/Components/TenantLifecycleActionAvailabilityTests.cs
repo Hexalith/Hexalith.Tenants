@@ -34,6 +34,63 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
 {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void PreDispatchFailureKeepsAuditVisibleOnlyForRetriedLifecycleIdentity(bool retry, bool enable)
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            SubmissionProvider = (_, _, _) => retry
+                ? Task.FromException<TenantCommandSubmissionResult>(new HttpRequestException("unsafe backend detail"))
+                : Task.FromResult(TenantCommandSubmissionResult.FailedWithKey("Tenants.Lifecycle.Unavailable.CommandSurface")),
+        };
+        List<bool> activity = [];
+        RegisterServices(gateway);
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = RenderLifecycleAvailability(activity, enable ? TenantStatus.Disabled : TenantStatus.Active);
+        cut.Find(enable ? "[data-testid='tenants-lifecycle-enable']" : "[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        cut.Find("form").Submit();
+        cut.WaitForAssertion(() => (gateway.EnableSubmissions + gateway.DisableSubmissions).ShouldBe(1));
+        string? originalId = enable ? gateway.LastEnableMessageId : gateway.LastDisableMessageId;
+        if (retry)
+        {
+            cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.State
+                .ShouldBe(TenantCommandLifecycleState.RequestSent));
+            gateway.SubmissionProvider = (_, _, _) => Task.FromResult(
+                TenantCommandSubmissionResult.FailedWithKey("Tenants.Lifecycle.Unavailable.CommandSurface"));
+            cut.Find("[data-testid='tenants-lifecycle-refresh']").Click();
+        }
+        cut.WaitForAssertion(() => cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.State
+            .ShouldBe(retry ? TenantCommandLifecycleState.RequestSent : TenantCommandLifecycleState.Failed));
+        cut.FindComponent<TenantLifecycleCommandFlow>().Instance.Snapshot.AuditState.ShouldBe(retry
+            ? TenantCommandAuditStates.Unverifiable : TenantCommandAuditStates.NotStarted);
+        (enable ? gateway.LastEnableMessageId : gateway.LastDisableMessageId).ShouldBe(originalId);
+        (gateway.EnableSubmissions + gateway.DisableSubmissions).ShouldBe(retry ? 2 : 1);
+        gateway.StatusCalls.ShouldBe(0);
+        cut.FindAll("[data-testid='tenants-audit-availability']").Count.ShouldBe(retry ? 1 : 0);
+        cut.VisibleText().ShouldNotContain("unsafe backend detail");
+        TenantLifecycleAttemptTracker tracker = Services.GetRequiredService<TenantLifecycleAttemptTracker>();
+        if (retry)
+        {
+            tracker.Find("tenant.alpha").ShouldNotBeNull().MessageId.ShouldBe(originalId);
+            activity.Last().ShouldBeTrue();
+            cut.Dispose();
+            IRenderedComponent<TenantLifecycleActionAvailability> remount = RenderLifecycleAvailability(
+                activity, enable ? TenantStatus.Disabled : TenantStatus.Active);
+            remount.WaitForAssertion(() => remount.FindComponent<TenantLifecycleCommandFlow>()
+                .Instance.Snapshot.RetainsAttempt.ShouldBeTrue());
+            tracker.Find("tenant.alpha").ShouldNotBeNull().MessageId.ShouldBe(originalId);
+            (enable ? gateway.LastEnableMessageId : gateway.LastDisableMessageId).ShouldBe(originalId);
+        }
+        else
+        {
+            tracker.Find("tenant.alpha").ShouldBeNull();
+        }
+    }
+
+    [Theory]
     [InlineData(TenantStatus.Active, TenantStatus.Disabled, "disable")]
     [InlineData(TenantStatus.Disabled, TenantStatus.Active, "enable")]
     public void TenantNamedGlobalAdministratorsConfirmsLifecycleThroughStatusGateway(
@@ -3368,13 +3425,13 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Accepted(TenantCommandSubmissionResult.Accepted("message-life", "correlation-life"));
     }
 
-    private IRenderedComponent<TenantLifecycleActionAvailability> RenderLifecycleAvailability(List<bool> activity)
+    private IRenderedComponent<TenantLifecycleActionAvailability> RenderLifecycleAvailability(List<bool> activity, TenantStatus status = TenantStatus.Active)
         => Render<TenantLifecycleActionAvailability>(parameters => parameters
             .Add(component => component.Lifecycle, ProjectionLifecycleState.Current)
             .Add(component => component.TenantId, "tenant.alpha")
-            .Add(component => component.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(component => component.Detail, Detail("tenant.alpha", status))
             .Add(component => component.ProjectionVersion, "tenant-sequence:41")
-            .Add(component => component.CurrentStatus, TenantStatus.Active)
+            .Add(component => component.CurrentStatus, status)
             .Add(component => component.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(component => component.Freshness, ReadModelFreshnessState.Current)
             .Add(component => component.IsCommandSurfaceConnected, true)
@@ -3385,7 +3442,7 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             .Add(component => component.OnProjectionRefreshRequested, () => Task.CompletedTask)
             .Add(component => component.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(component => component.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
-                Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"))));
+                Proof(request.TenantId, status, "tenant-sequence:41"))));
 
     private IRenderedComponent<TenantLifecycleCommandFlow> RenderLifecycleFlow()
         => Render<TenantLifecycleCommandFlow>(parameters => parameters

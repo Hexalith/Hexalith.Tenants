@@ -871,9 +871,10 @@
             }
 
             DateTimeOffset startedAtUtc;
+            bool resumed;
             try
             {
-                (messageId, startedAtUtc) = tracker.BeginDispatch(
+                (messageId, startedAtUtc, resumed) = tracker.BeginDispatch(
                     intent,
                     preview.ProjectionVersion!,
                     DateTimeOffset.UtcNow);
@@ -942,7 +943,7 @@
                     SafeMessage = null,
                     SafeMessageKey = result.SafeMessageKey ?? SubmissionMessageKey(result.State),
                     RejectionCode = result.RejectionCode,
-                    AuditState = TenantCommandAuditStates.FromSubmission(result),
+                    AuditState = TenantCommandAuditStates.FromSubmission(result, resumed ? messageId : null),
                     FocusTarget = TenantCommandFocusTarget.Refresh,
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
                 });

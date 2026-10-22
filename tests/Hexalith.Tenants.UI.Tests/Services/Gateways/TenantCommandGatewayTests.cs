@@ -26,6 +26,73 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed class TenantCommandGatewayTests
 {
     [Theory]
+    [InlineData(TenantLifecycleOperation.EnableTenant)]
+    [InlineData(TenantLifecycleOperation.DisableTenant)]
+#pragma warning disable CS0618 // Verify callable legacy wrappers until their future removal.
+    public async Task LegacyLifecycleWrappersPreserveAcceptedIdentityAndPayload(TenantLifecycleOperation operation)
+    {
+        const string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-legacy"));
+        ITenantCommandGateway gateway = new TenantCommandGateway(client, new StubUlidFactory(messageId),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+        var request = new TenantLifecycleCommandRequest("Tenant.Mixed-01", operation);
+        TenantCommandSubmissionResult result = operation is TenantLifecycleOperation.EnableTenant
+            ? await gateway.EnableTenantAsync(request)
+            : await gateway.DisableTenantAsync(request);
+        SubmitCommandRequest submitted = client.SubmittedCommands.ShouldHaveSingleItem();
+        submitted.MessageId.ShouldBe(messageId);
+        submitted.Tenant.ShouldBe("system");
+        submitted.Domain.ShouldBe("tenants");
+        submitted.AggregateId.ShouldBe(request.TenantId);
+        submitted.CommandType.ShouldBe(operation.ToString());
+        submitted.Payload.GetProperty("TenantId").GetString().ShouldBe(request.TenantId);
+        result.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        result.MessageId.ShouldBe(messageId);
+        result.CorrelationId.ShouldBe("correlation-legacy");
+    }
+#pragma warning restore CS0618
+
+    [Fact]
+#pragma warning disable CS0618 // Verify the legacy cancellation contract.
+    public async Task LegacyRemovalPropagatesCallerCancellationWithTheExactToken()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        IEventStoreGatewayClient client = Substitute.For<IEventStoreGatewayClient>();
+        client.SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromCanceled<SubmitCommandResponse>(cancellation.Token));
+        TenantCommandGateway gateway = new(client, new StubUlidFactory("01ARZ3NDEKTSV4RRFFQ69G5FAV"),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+        OperationCanceledException error = await Should.ThrowAsync<OperationCanceledException>(() =>
+            gateway.RemoveTenantConfigurationAsync(new("tenant.alpha", "billing.mode"), cancellation.Token));
+        error.CancellationToken.ShouldBe(cancellation.Token);
+        _ = client.Received(1).SubmitCommandAsync(Arg.Any<SubmitCommandRequest>(), cancellation.Token);
+    }
+#pragma warning restore CS0618
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
+    public async Task LegacyRemovalRetainsSafeTextForKeyOnlyAndAmbiguousFailures(bool ambiguous)
+    {
+        CapturingGatewayClient client = new(new HttpRequestException("unsafe backend detail"));
+        TenantCommandGateway gateway = new(client,
+            new StubUlidFactory(ambiguous ? "01ARZ3NDEKTSV4RRFFQ69G5FAV" : "invalid identity"),
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+        TenantCommandSubmissionResult result = await gateway.RemoveTenantConfigurationAsync(new("tenant.alpha", "billing.mode"));
+        result.SafeMessage.ShouldNotBeNullOrWhiteSpace();
+        result.SafeMessage.ShouldNotContain("unsafe backend detail");
+        result.SafeMessageKey.ShouldBe(ambiguous
+            ? "Tenants.Configuration.Remove.SubmissionEvidence.Ambiguous"
+            : "Tenants.Commands.Unavailable.InvalidTrackingReference");
+        result.IsAmbiguousFailure.ShouldBe(ambiguous);
+        client.SubmittedCommands.Count.ShouldBe(ambiguous ? 1 : 0);
+        result.MessageId.ShouldBe(ambiguous ? "01ARZ3NDEKTSV4RRFFQ69G5FAV" : null);
+    }
+#pragma warning restore CS0618
+
+    [Theory]
     [InlineData("create", 408)]
     [InlineData("create", 429)]
     [InlineData("create", 500)]
@@ -714,6 +781,7 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Set_global_administrator_submits_fixed_scope_command_with_literal_user_payload()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
@@ -739,8 +807,10 @@ public sealed class TenantCommandGatewayTests
         result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.CorrelationId.ShouldBe("correlation-global-admin");
     }
+#pragma warning restore CS0618
 
     [Fact]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Remove_global_administrator_submits_fixed_scope_command_with_literal_user_payload()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin-remove"));
@@ -766,11 +836,13 @@ public sealed class TenantCommandGatewayTests
         result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.CorrelationId.ShouldBe("correlation-global-admin-remove");
     }
+#pragma warning restore CS0618
 
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Remove_global_administrator_validation_failure_does_not_submit_to_eventstore(string? userId)
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin-remove"));
@@ -787,8 +859,10 @@ public sealed class TenantCommandGatewayTests
         result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Remove.Preview.Unavailable.Target");
         client.SubmittedCommands.ShouldBeEmpty();
     }
+#pragma warning restore CS0618
 
     [Fact]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Global_administrator_gateway_accepts_256_character_literal_for_both_discriminators()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
@@ -809,8 +883,10 @@ public sealed class TenantCommandGatewayTests
         client.SubmittedCommands.ShouldAllBe(command =>
             command.Payload.GetProperty("UserId").GetString() == userId);
     }
+#pragma warning restore CS0618
 
     [Fact]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Global_administrator_gateway_rejects_257_character_literal_for_both_discriminators()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
@@ -829,11 +905,13 @@ public sealed class TenantCommandGatewayTests
         remove.State.ShouldBe(TenantCommandLifecycleState.Failed);
         client.SubmittedCommands.ShouldBeEmpty();
     }
+#pragma warning restore CS0618
 
     [Theory]
     [InlineData("LastGlobalAdministratorRejection", "LastGlobalAdministrator", "last global administrator")]
     [InlineData("GlobalAdministratorNotFoundRejection", "GlobalAdministratorNotFound", "not a global administrator")]
     [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "platform governance")]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Remove_global_administrator_maps_safe_rejection_text(
         string reason,
         string expectedCode,
@@ -862,11 +940,13 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("correlation-global-admin", Case.Insensitive);
         safeMessage.ShouldNotContain("secret-user", Case.Insensitive);
     }
+#pragma warning restore CS0618
 
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Set_global_administrator_validation_failure_does_not_submit_to_eventstore(string? userId)
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-global-admin"));
@@ -883,8 +963,10 @@ public sealed class TenantCommandGatewayTests
         result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.Validation.UserIdInvalid");
         client.SubmittedCommands.ShouldBeEmpty();
     }
+#pragma warning restore CS0618
 
     [Fact]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Set_global_administrator_service_unavailable_uses_platform_governance_copy()
     {
         CapturingGatewayClient client = new(new EventStoreGatewayException(
@@ -905,10 +987,12 @@ public sealed class TenantCommandGatewayTests
         result.SafeMessageKey.ShouldBe("Tenants.GlobalAdministrators.Grant.SubmissionEvidence.Ambiguous");
         result.SafeMessage.ShouldBeNull();
     }
+#pragma warning restore CS0618
 
     [Theory]
     [InlineData("GlobalAdministratorAlreadyExistsRejection", "GlobalAdministratorAlreadyExists")]
     [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions")]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Set_global_administrator_maps_rejection_to_stable_resource_key(
         string reason,
         string expectedCode)
@@ -932,6 +1016,7 @@ public sealed class TenantCommandGatewayTests
         result.SafeMessage.ShouldBeNull();
         result.SafeMessageKey.ShouldBe($"Tenants.Commands.Rejection.{expectedCode}");
     }
+#pragma warning restore CS0618
 
     [Fact]
     public async Task Status_lookup_maps_global_administrator_already_exists_to_rejected_safe_text()
@@ -1049,6 +1134,7 @@ public sealed class TenantCommandGatewayTests
     [InlineData("TenantDisabledRejection", "TenantDisabled", "disabled")]
     [InlineData("TenantNotFoundRejection", "TenantNotFound", "not found")]
     [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "not authorized")]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Lifecycle_command_maps_safe_rejection_text(
         string reason,
         string expectedCode,
@@ -1076,6 +1162,7 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("token", Case.Insensitive);
         safeMessage.ShouldNotContain("correlation-life", Case.Insensitive);
     }
+#pragma warning restore CS0618
 
     [Theory]
     [InlineData(HttpStatusCode.RequestTimeout)]
@@ -1291,6 +1378,7 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Set_tenant_configuration_submits_literal_command_with_payload_and_captures_correlation_id()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-config"));
@@ -1316,6 +1404,7 @@ public sealed class TenantCommandGatewayTests
         result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.CorrelationId.ShouldBe("correlation-config");
     }
+#pragma warning restore CS0618
 
     [Fact]
     public async Task Tracked_set_configuration_uses_the_callers_exact_message_id()
@@ -1362,6 +1451,7 @@ public sealed class TenantCommandGatewayTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Set_tenant_configuration_validation_failure_does_not_submit_to_eventstore(string? key)
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-config"));
@@ -1378,12 +1468,14 @@ public sealed class TenantCommandGatewayTests
         result.SafeMessage.ShouldNotBeNull().ShouldContain("configuration key");
         client.SubmittedCommands.ShouldBeEmpty();
     }
+#pragma warning restore CS0618
 
     [Theory]
     [InlineData("ConfigurationLimitExceededRejection", "ConfigurationLimitExceeded", "limits")]
     [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "not authorized")]
     [InlineData("TenantDisabledRejection", "TenantDisabled", "disabled")]
     [InlineData("TenantNotFoundRejection", "TenantNotFound", "not found")]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Set_tenant_configuration_maps_safe_rejection_text(
         string reason,
         string expectedCode,
@@ -1412,6 +1504,7 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("correlation-config", Case.Insensitive);
         safeMessage.ShouldNotContain("super-secret", Case.Insensitive);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public async Task Status_lookup_maps_configuration_limit_rejection_to_command_neutral_safe_text()
@@ -1450,6 +1543,7 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Remove_tenant_configuration_submits_literal_command_with_payload_and_captures_correlation_id()
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-remove-config"));
@@ -1474,6 +1568,7 @@ public sealed class TenantCommandGatewayTests
         result.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
         result.CorrelationId.ShouldBe("correlation-remove-config");
     }
+#pragma warning restore CS0618
 
     [Fact]
     public async Task Tracked_remove_configuration_uses_the_callers_exact_message_id()
@@ -1560,6 +1655,7 @@ public sealed class TenantCommandGatewayTests
     [Theory]
     [InlineData("")]
     [InlineData(null)]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Remove_tenant_configuration_validation_failure_does_not_submit_to_eventstore(string? key)
     {
         CapturingGatewayClient client = new(new SubmitCommandResponse("correlation-remove-config"));
@@ -1576,12 +1672,14 @@ public sealed class TenantCommandGatewayTests
         result.SafeMessage.ShouldNotBeNull().ShouldContain("configuration key");
         client.SubmittedCommands.ShouldBeEmpty();
     }
+#pragma warning restore CS0618
 
     [Theory]
     [InlineData("ConfigurationKeyNotFoundRejection", "ConfigurationKeyNotFound", "not found")]
     [InlineData("InsufficientPermissionsRejection", "InsufficientPermissions", "not authorized")]
     [InlineData("TenantDisabledRejection", "TenantDisabled", "disabled")]
     [InlineData("TenantNotFoundRejection", "TenantNotFound", "not found")]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Remove_tenant_configuration_maps_safe_rejection_text(
         string reason,
         string expectedCode,
@@ -1610,6 +1708,7 @@ public sealed class TenantCommandGatewayTests
         safeMessage.ShouldNotContain("correlation-config", Case.Insensitive);
         safeMessage.ShouldNotContain("super-secret", Case.Insensitive);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public async Task Status_lookup_maps_configuration_key_not_found_to_rejected_safe_text()
@@ -3268,6 +3367,7 @@ public sealed class TenantCommandGatewayTests
     }
 
     [Fact]
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     public async Task Stable_lifecycle_overload_fails_closed_for_a_legacy_style_gateway()
     {
         var legacy = new LegacyLifecycleGateway();
@@ -3295,6 +3395,7 @@ public sealed class TenantCommandGatewayTests
         stableDisableResult.State.ShouldBe(TenantCommandLifecycleState.Failed);
         stableDisableResult.SafeMessageKey.ShouldBe("Tenants.Lifecycle.Unavailable.CommandSurface");
     }
+#pragma warning restore CS0618
 
     [Fact]
     public async Task Unavailable_gateway_tracked_lifecycle_methods_use_localized_command_surface_key()
@@ -3569,6 +3670,7 @@ public sealed class TenantCommandGatewayTests
             rejectionEventType = rejection, failureReason = "backend-secret-Canary",
         });
 
+#pragma warning disable CS0618 // Deliberately exercise the preserved legacy compatibility contract.
     private static Task<TenantCommandSubmissionResult> SubmitOperation(ITenantCommandGateway gateway, string operation, bool invalid = false,
         string messageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV", CancellationToken cancellationToken = default)
     {
@@ -3595,6 +3697,7 @@ public sealed class TenantCommandGatewayTests
             _ => throw new ArgumentOutOfRangeException(nameof(operation)),
         };
     }
+#pragma warning restore CS0618
 
     private static void AssertShippedWholeMessage(string? key, string? fallback)
     {

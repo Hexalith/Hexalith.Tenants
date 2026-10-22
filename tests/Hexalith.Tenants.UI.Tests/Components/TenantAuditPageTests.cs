@@ -4991,6 +4991,42 @@ public sealed class TenantAuditPageTests : BunitContext
 
     private sealed class StubTenantQueryGateway(params TenantAuditSnapshot[] snapshots) : ITenantQueryGateway
     {
+        public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+            TenantSetConfigurationIntent intent,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(intent);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
+        }
+
+        public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+            TenantRemoveConfigurationIntent intent,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(intent);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(intent.TenantId));
+        }
+
+        public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(
+            SetTenantConfiguration request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
+        }
+
+        public Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofAsync(
+            RemoveTenantConfiguration request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(TenantConfigurationProjectionProof.Unavailable(request.TenantId));
+        }
+
         /// <summary>
         /// Explicit because <c>ITenantQueryGateway.GetTenantUsersAsync</c> is no longer a default interface
         /// method. These stubs previously inherited a silent <c>Unavailable</c> fallback, so a member-read

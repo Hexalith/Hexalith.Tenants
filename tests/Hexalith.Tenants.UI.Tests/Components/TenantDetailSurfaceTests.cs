@@ -1299,7 +1299,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
                 intent.AttemptFingerprint)));
         ConfigureAuthoritativeAuditCapability(queryGateway);
         var tracker = new TenantRemoveConfigurationAttemptTracker();
-        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(
+        (string messageId, DateTimeOffset startedAt, _) = tracker.BeginDispatch(
             intent,
             "tenant-sequence:41",
             DateTimeOffset.UtcNow);
@@ -1466,7 +1466,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         backendSubscription.SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>())
             .Returns(Task.CompletedTask);
         var tracker = new TenantRemoveConfigurationAttemptTracker();
-        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(
+        (string messageId, DateTimeOffset startedAt, _) = tracker.BeginDispatch(
             intent,
             "tenant-sequence:41",
             DateTimeOffset.UtcNow);
@@ -4832,7 +4832,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         TenantRemoveConfigurationPreview preview = TenantRemoveConfigurationPreview.Create(
             intent, TenantStatus.Active, TenantRemoveConfigurationCurrentState.Present,
             ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, "tenant-sequence:41", true);
-        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        (string messageId, DateTimeOffset startedAt, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
         tracker.Remember(TenantRemoveConfigurationCommandSnapshot.Idle().Previewed(preview)
             .RequestSent(preview, messageId, startedAt)
             .Accepted(TenantCommandSubmissionResult.Accepted(messageId, messageId))).ShouldBeTrue();
@@ -5064,7 +5064,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         TenantRemoveConfigurationPreview preview = TenantRemoveConfigurationPreview.Create(
             intent, TenantStatus.Active, TenantRemoveConfigurationCurrentState.Present,
             ReadModelFreshnessState.Current, ProjectionLifecycleState.Current, "tenant-sequence:41", true);
-        (string messageId, DateTimeOffset startedAt) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
+        (string messageId, DateTimeOffset startedAt, _) = tracker.BeginDispatch(intent, "tenant-sequence:41", now);
         tracker.Remember(TenantRemoveConfigurationCommandSnapshot.Idle().Previewed(preview)
             .RequestSent(preview, messageId, startedAt)
             .Accepted(TenantCommandSubmissionResult.Accepted(messageId, messageId))).ShouldBeTrue();
