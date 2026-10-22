@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-332/DW-388/DW-400/DW-409/DW-415 closure (2026-10-22):** Controlled render, authorization, published-delivery and held-projection interleavings qualify coherent action guidance and exact aggregate ownership. Obsolete removal I/O cancels, obsolete subscriptions detach, accepted grant evidence resumes once, and stale removal bases retain current unresolved ownership. Exactly five records close: all 657 IDs remain, 520 done/137 open across 127 maintenance rows. Original findings, unrelated records, dependency pointers and release holds remain preserved. See [validation evidence](dw-332-388-400-409-415-validation-evidence.md).
+
 **DW-602/DW-603/DW-610/DW-611/DW-619 closure (2026-10-22):** Requested summary bounds precede enrichment, timed-out refresh callbacks retain single-flight catch-up, membership paging rejects repeated transitions, and EN/FR sorting controls disclose current-page ordering. Exactly five records close: all 657 IDs remain, 515 done/142 open across 132 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-602-603-610-611-619-validation-evidence.md).
 
 **DW-591/DW-613/DW-614/DW-615/DW-616 closure (2026-10-22):** Localized unmatched-route recovery and mandatory real-host language, current-tenant alias and anonymous-scope checks qualify the Tenants UI host. Mounted production-router navigation qualifies shared home discovery and recovery. Exactly five records close: all 657 IDs remain, 510 done/147 open across 137 maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [validation evidence](dw-591-613-614-615-616-validation-evidence.md).
@@ -3051,17 +3053,25 @@ origin: spec-deferred cb19669a12d0
 location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:821
 source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
 reason: Grant and removal availability are recomputed independently for visible copy, disabled state, and aria-describedby. Blazor serializes renderer callbacks, but the admission gate's state can change before its notification callback is rendered; a deterministic test that changes gate or viewport evidence between those synchronous property reads is needed to establish whether an inconsistent render is reachable. The evaluation pattern predates this re-drive.
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor still recomputes availability across rendered attributes; no deterministic gate/viewport transition between synchronous reads establishes mismatched copy or associations.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: unverified-risk
+pre-async-consistency-status: open
+pre-async-consistency-disposition: uncertain
+pre-async-consistency-verification-date: 2026-10-12
+pre-async-consistency-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor still recomputes availability across rendered attributes; no deterministic gate/viewport transition between synchronous reads establishes mismatched copy or associations.
+pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+pre-async-consistency-evidence-kind: unverified-risk
 priority: P3
 owner: unassigned
-dependencies: none
-next-action: Drive a controlled evidence transition during a render and capture the resulting associations before choosing a fix.
+pre-async-consistency-dependencies: none
+pre-async-consistency-next-action: Drive a controlled evidence transition during a render and capture the resulting associations before choosing a fix.
 related: none
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Controlled admission and viewport changes during localized render reads reproduce incoherent disabled state and associations on the original page. A single captured action-evidence snapshot now supplies rendered grant/remove availability, reasons, recovery and descriptions; the next render adopts newer evidence and command admission still evaluates current state. Evidence: dw-332-388-400-409-415-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
+evidence-kind: verified-closure
+dependencies: none (existing component harness and shared services)
+next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
 
 ### DW-333: The concurrently introduced tenant-workspace tab migration lacks browser-level proof that inactive panels are not visible or focusable.
 origin: spec-deferred 55356cb8b10a
@@ -3638,17 +3648,25 @@ location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razo
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Make removal projection requery cancellable across supersession and disposal.\n  evidence: `RequeryRemoveProjectionAsync` starts the bounded population walk with `CancellationToken.None`, so a replaced operation cannot stop its I/O."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPage.razor::RequeryRemoveProjectionAsync:4809 still calls LoadCompletePopulationSafelyAsync(CancellationToken.None); supersession/disposal guards reject stale writes but cannot stop the already-running multi-page I/O.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: verified-defect
+pre-async-consistency-status: open
+pre-async-consistency-disposition: actionable
+pre-async-consistency-verification-date: 2026-10-12
+pre-async-consistency-verification: GlobalAdministratorsPage.razor::RequeryRemoveProjectionAsync:4809 still calls LoadCompletePopulationSafelyAsync(CancellationToken.None); supersession/disposal guards reject stale writes but cannot stop the already-running multi-page I/O.
+pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+pre-async-consistency-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
-dependencies: Removal operation cancellation lifetime
-next-action: Pass an attempt-owned cancellation token through removal projection requery and verify supersession/disposal cancels the bounded walk.
+pre-async-consistency-dependencies: Removal operation cancellation lifetime
+pre-async-consistency-next-action: Pass an attempt-owned cancellation token through removal projection requery and verify supersession/disposal cancels the bounded walk.
 related: none
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Held bounded removal population walks cancel on mutation invalidation and disposal, including the actual submitted removal/status path. The operation token reaches projection I/O; cancellation leaves the unresolved dispatched lease retained or owned, and completing the old operation cannot cancel a successor lifetime. Evidence: dw-332-388-400-409-415-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
+evidence-kind: verified-closure
+dependencies: none (existing component harness and shared services)
+next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
 
 
 ### DW-389: Determine whether remove-dialog JS interop can surface cancellation exceptions during browser teardown.
@@ -3780,17 +3798,25 @@ location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razo
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Close the global-administrator read-refresh subscription race across authorization collapse.\n  evidence: Authorization can become false after the post-subscribe guard and before `_readRefreshLease` assignment; the sign-out path can then miss and leave that callback subscribed because the post-assignment guard only rechecks disposal."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPage.razor::EnsureReadRefreshLeaseAsync checks _disposed/IsAuthorized before assignment (:2335), then assigns _readRefreshLease (:2352), and its post-assignment guard checks only _disposed (:2359). Authorization collapse between those points can still miss the assigned lease. The dispose-race test covers _disposed only.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: verified-defect
+pre-async-consistency-status: open
+pre-async-consistency-disposition: actionable
+pre-async-consistency-verification-date: 2026-10-12
+pre-async-consistency-verification: GlobalAdministratorsPage.razor::EnsureReadRefreshLeaseAsync checks _disposed/IsAuthorized before assignment (:2335), then assigns _readRefreshLease (:2352), and its post-assignment guard checks only _disposed (:2359). Authorization collapse between those points can still miss the assigned lease. The dispose-race test covers _disposed only.
+pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+pre-async-consistency-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
-dependencies: Captured authorization transition generation
-next-action: Guard subscription assignment against authorization generation/collapse and add the same interleaving with sign-out rather than disposal.
+pre-async-consistency-dependencies: Captured authorization transition generation
+pre-async-consistency-next-action: Guard subscription assignment against authorization generation/collapse and add the same interleaving with sign-out rather than disposal.
 related: DW-421
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: A principal transition inside the post-subscribe scope check reproduces authorization collapse before assignment. The post-assignment check now rejects the expired authorization version, disables callback adoption and disposes its lease. No unauthorized notification read remains; authorized recovery subscribes again within the existing retry budget. Evidence: dw-332-388-400-409-415-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
+evidence-kind: verified-closure
+dependencies: none (existing component harness and shared services)
+next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
 
 
 ## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22)
@@ -3880,17 +3906,25 @@ location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razo
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Verify grant completion is applied when the grant generation is superseded after the lease completion is published (unverified, would be medium).\n  evidence: `DispatchGrantAsync` syncs the published completion only while `CanApplyGrantMutation(generation)` holds, and the gate handler skips grant sync while `_isGrantSubmitting` is true; settle with a test that invalidates the generation between `TryCompleteReconciliationDispatch` and the renderer sync."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPage.razor::DispatchGrantAsync still applies a published lease completion only when CanApplyGrantMutation(generation), while ApplyFixedAggregateAdmissionChangeAsync skips grant sync during _isGrantSubmitting. Superseded_accepted_completion_is_immediately_adopted_and_resumed exists, but its test gates I/O/rendering rather than proving the exact ordering of lease publication, skipped notification, and generation supersession. Missing evidence is that exact same-owner publication-to-sync interleaving.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: unverified-risk
+pre-async-consistency-status: open
+pre-async-consistency-disposition: uncertain
+pre-async-consistency-verification-date: 2026-10-12
+pre-async-consistency-verification: GlobalAdministratorsPage.razor::DispatchGrantAsync still applies a published lease completion only when CanApplyGrantMutation(generation), while ApplyFixedAggregateAdmissionChangeAsync skips grant sync during _isGrantSubmitting. Superseded_accepted_completion_is_immediately_adopted_and_resumed exists, but its test gates I/O/rendering rather than proving the exact ordering of lease publication, skipped notification, and generation supersession. Missing evidence is that exact same-owner publication-to-sync interleaving.
+pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+pre-async-consistency-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
-dependencies: none
-next-action: Add or run a deterministic test that invalidates grant generation after durable completion publication but before renderer sync, and assert UI plus lease completion.
+pre-async-consistency-dependencies: none
+pre-async-consistency-next-action: Add or run a deterministic test that invalidates grant generation after durable completion publication but before renderer sync, and assert UI plus lease completion.
 related: DW-376, DW-421
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: An exact completion-publication barrier proves the admission callback skips synchronization while submission is active, then supersedes the mutation generation before renderer synchronization. Current authorized ownership now adopts Accepted evidence and performs exactly one status read without redispatch. Normal, authorization-loss and replacement-owner controls pass. Evidence: dw-332-388-400-409-415-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
+evidence-kind: verified-closure
+dependencies: none (existing component harness and shared services)
+next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
 
 
 ## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22, Group A production File List)
@@ -3944,17 +3978,25 @@ location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razo
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Verify the removal requery mismatch branch cannot release a live same-attempt lease from a stale confirming basis (unverified, would be medium).\n  evidence: In `RequeryRemoveProjectionAsync` (`GlobalAdministratorsPage.razor:4765-4773`), if `_removeSnapshot` advanced to the same attempt's next state during the held load, the lease still matches, so `RetainOrReleaseRemoveCompletion` can call `TryReleaseTerminal` for a terminal stale-basis projection while the UI keeps a non-terminal snapshot. Settle with a page test that advances the same attempt during a held confirming requery and asserts the lease and UI state together."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPage.razor::RequeryRemoveProjectionAsync still calls RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease, snapshot) when its captured snapshot is no longer current. Same-lease advancement can therefore reach terminal-release handling from an old confirming basis. Existing superseded projection tests inspect replacement attempts, but no retained test proves this exact same-attempt/nonterminal UI plus terminal stale-basis release ordering.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: unverified-risk
+pre-async-consistency-status: open
+pre-async-consistency-disposition: uncertain
+pre-async-consistency-verification-date: 2026-10-12
+pre-async-consistency-verification: GlobalAdministratorsPage.razor::RequeryRemoveProjectionAsync still calls RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease, snapshot) when its captured snapshot is no longer current. Same-lease advancement can therefore reach terminal-release handling from an old confirming basis. Existing superseded projection tests inspect replacement attempts, but no retained test proves this exact same-attempt/nonterminal UI plus terminal stale-basis release ordering.
+pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+pre-async-consistency-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
-dependencies: none
-next-action: Hold a confirming removal projection read, advance the same attempt snapshot, release the read, and assert retained UI state and lease ownership together.
+pre-async-consistency-dependencies: none
+pre-async-consistency-next-action: Hold a confirming removal projection read, advance the same attempt snapshot, release the read, and assert retained UI state and lease ownership together.
 related: DW-388, DW-421
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: A held confirming removal read followed by same-lease snapshot advancement reproduces a released lease beside an unresolved visible attempt on the original page. The stale basis now cannot release that advanced current snapshot; current unchanged terminal confirmation still releases, and replacement lease guards remain qualified. Evidence: dw-332-388-400-409-415-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
+evidence-kind: verified-closure
+dependencies: none (existing component harness and shared services)
+next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
 
 
 ### DW-416: Story gitlink guard still fails (`scripts/validate-story-gitlinks.py` exit 1). Already DW-347.

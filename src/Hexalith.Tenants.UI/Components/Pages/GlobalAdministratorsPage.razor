@@ -54,6 +54,10 @@
     }
     else
     {
+    GlobalAdministratorActionEvidence renderActionEvidence = ActionEvidence();
+    GlobalAdministratorActionAvailability renderGrantAvailability = GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(renderActionEvidence);
+    string? renderGrantReason = GrantUnavailableReasonFor(renderGrantAvailability);
+    string? renderGrantRecovery = GrantRecoveryFor(renderGrantAvailability);
     <FluentStack Orientation="Orientation.Vertical"
                  VerticalGap="20px"
                  Class="global-admins"
@@ -220,17 +224,17 @@
             <p>@Localizer["Tenants.GlobalAdministrators.Grant.Description"]</p>
         </FluentStack>
 
-        @if (!string.IsNullOrWhiteSpace(GrantUnavailableReason))
+        @if (!string.IsNullOrWhiteSpace(renderGrantReason))
         {
             <FluentText class="global-admins__grant-unavailable"
                         id="tenants-global-admin-grant-unavailable-reason"
                         role="alert"
                         data-testid="tenants-global-admin-grant-unavailable-reason">
-                @GrantUnavailableReason
+                @renderGrantReason
             </FluentText>
             <FluentText id="tenants-global-admin-grant-recovery"
                         data-testid="tenants-global-admin-grant-recovery">
-                @GrantRecovery
+                @renderGrantRecovery
             </FluentText>
         }
 
@@ -291,8 +295,8 @@
                                    appearance="primary"
                                    @ref="_grantLauncherElement"
                                    data-testid="tenants-global-admin-grant-submit"
-                                   aria-describedby="@(GrantAvailability.IsAvailable ? null : "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery")"
-                                   disabled="@IsGrantSubmitDisabled"
+                                   aria-describedby="@(renderGrantAvailability.IsAvailable ? null : "tenants-global-admin-grant-unavailable-reason tenants-global-admin-grant-recovery")"
+                                   disabled="@IsGrantSubmitDisabledFor(renderGrantAvailability)"
                                    @onclick="SubmitGrantAsync"
                                    @onclick:preventDefault="true">
                         @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Launch"]
@@ -481,27 +485,33 @@
                     <TemplateColumn Title="@Localizer["Tenants.GlobalAdministrators.Column.Actions"]"
                                     ColumnId="global-admin-actions"
                                     Width="300px">
+                        @{
+                            GlobalAdministratorActionAvailability renderRemoveAvailability = GlobalAdministratorActionAvailabilityEvaluator.EvaluateRemove(renderActionEvidence, context.UserId);
+                            string? renderRemoveReason = RemoveUnavailableReasonFor(renderRemoveAvailability);
+                            string? renderRemoveRecovery = RemoveRecoveryFor(renderRemoveAvailability);
+                            string? renderRemoveDescribedBy = renderRemoveAvailability.IsAvailable ? null : $"{RemoveReasonId(context)} {RemoveRecoveryId(context)}";
+                        }
                         <FluentStack Orientation="Orientation.Vertical"
                                      VerticalGap="0.375rem"
                                      Class="global-admins__actions"
                                      role="group"
-                                     aria-describedby="@RemoveDescribedBy(context)"
+                                     aria-describedby="@renderRemoveDescribedBy"
                                      data-testid="tenants-global-admins-action-reasons">
                             @* When grant is available, hide the affirmative Available claim with the initiation
                                controls on narrow viewports so AC5 does not advertise availability beside CSS-hidden
                                high-impact actions. The mobile-only reason stays visible at that breakpoint. *@
                             <FluentText data-testid="tenants-global-admins-grant-reason"
-                                  class="@(string.IsNullOrWhiteSpace(GrantUnavailableReason) ? "global-admins__mutation-initiation" : null)">
-                                @(GrantUnavailableReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])
+                                  class="@(string.IsNullOrWhiteSpace(renderGrantReason) ? "global-admins__mutation-initiation" : null)">
+                                @(renderGrantReason ?? Localizer["Tenants.GlobalAdministrators.Grant.Available"])
                             </FluentText>
                             <span class="global-admins__mobile-mutation-reason"
                                   data-testid="tenants-global-admins-grant-mobile-reason">
                                 @Localizer["Tenants.GlobalAdministrators.Mobile.ReadOnly.Message"]
                             </span>
-                            @if (RemoveUnavailableReason(context) is { Length: > 0 } removeUnavailableReason)
+                            @if (renderRemoveReason is { Length: > 0 } removeUnavailableReason)
                             {
                                 <span id="@RemoveReasonId(context)" data-testid="tenants-global-admins-remove-reason">@removeUnavailableReason</span>
-                                <span id="@RemoveRecoveryId(context)" data-testid="tenants-global-admins-remove-recovery">@RemoveRecoveryForUser(context.UserId)</span>
+                                <span id="@RemoveRecoveryId(context)" data-testid="tenants-global-admins-remove-recovery">@renderRemoveRecovery</span>
                             }
                             else
                             {
@@ -512,7 +522,7 @@
                                 <GlobalAdministratorRemoveLauncher UserId="@context.UserId"
                                                                    Label="@Localizer["Tenants.GlobalAdministrators.Remove.Launch"]"
                                                                    Disabled="@IsAnyPreviewOpen"
-                                                                   AriaDescribedBy="@RemoveDescribedBy(context)"
+                                                                   AriaDescribedBy="@renderRemoveDescribedBy"
                                                                    OnPreview="PreviewRemoveAsync" />
                             }
                         </FluentStack>
@@ -923,40 +933,36 @@
     private GlobalAdministratorActionAvailability GrantAvailability
         => GlobalAdministratorActionAvailabilityEvaluator.EvaluateGrant(ActionEvidence());
 
-    private string? GrantUnavailableReason
-    {
-        get
-        {
-            GlobalAdministratorActionAvailability availability = GrantAvailability;
-            if (availability.IsAvailable)
-            {
-                return null;
-            }
+    private string? GrantUnavailableReason => GrantUnavailableReasonFor(GrantAvailability);
 
-            string key = availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
-                && TryGetGrantPreviewLocalizationOverride(out string reasonKey, out _)
-                    ? reasonKey
-                    : availability.ReasonKey;
-            return Localizer[key].Value;
+    private string? GrantUnavailableReasonFor(GlobalAdministratorActionAvailability availability)
+    {
+        if (availability.IsAvailable)
+        {
+            return null;
         }
+
+        string key = availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
+            && TryGetGrantPreviewLocalizationOverride(out string reasonKey, out _)
+                ? reasonKey
+                : availability.ReasonKey;
+        return Localizer[key].Value;
     }
 
-    private string? GrantRecovery
-    {
-        get
-        {
-            GlobalAdministratorActionAvailability availability = GrantAvailability;
-            if (availability.IsAvailable)
-            {
-                return null;
-            }
+    private string? GrantRecovery => GrantRecoveryFor(GrantAvailability);
 
-            string key = availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
-                && TryGetGrantPreviewLocalizationOverride(out _, out string recoveryKey)
-                    ? recoveryKey
-                    : availability.RecoveryKey;
-            return Localizer[key].Value;
+    private string? GrantRecoveryFor(GlobalAdministratorActionAvailability availability)
+    {
+        if (availability.IsAvailable)
+        {
+            return null;
         }
+
+        string key = availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
+            && TryGetGrantPreviewLocalizationOverride(out _, out string recoveryKey)
+                ? recoveryKey
+                : availability.RecoveryKey;
+        return Localizer[key].Value;
     }
 
     private bool TryGetGrantPreviewLocalizationOverride(out string reasonKey, out string recoveryKey)
@@ -974,14 +980,20 @@
     // replaces _snapshot underneath a Previewed intent without resetting it, so the last-administrator,
     // freshness and completeness gates must be re-evaluated at submit or Remove fails open through them.
     private string? RemoveUnavailableReasonForUser(string? userId)
-        => RemoveAvailability(userId) is { IsAvailable: false } availability
+        => RemoveUnavailableReasonFor(RemoveAvailability(userId));
+
+    private string? RemoveUnavailableReasonFor(GlobalAdministratorActionAvailability availability)
+        => !availability.IsAvailable
             ? Localizer[availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
                 && TryGetRemovePreviewLocalizationOverride(out string reasonKey, out _)
                     ? reasonKey : availability.ReasonKey].Value
             : null;
 
     private string? RemoveRecoveryForUser(string? userId)
-        => RemoveAvailability(userId) is { IsAvailable: false } availability
+        => RemoveRecoveryFor(RemoveAvailability(userId));
+
+    private string? RemoveRecoveryFor(GlobalAdministratorActionAvailability availability)
+        => !availability.IsAvailable
             ? Localizer[availability.UnavailableReason is GlobalAdministratorActionUnavailableReason.MissingConsequencePreview
                 && TryGetRemovePreviewLocalizationOverride(out _, out string recoveryKey)
                     ? recoveryKey : availability.RecoveryKey].Value
@@ -1045,11 +1057,6 @@
     private string RemoveRecoveryId(GlobalAdministratorRow row)
         => $"tenants-global-admin-remove-recovery-{RowOrdinal(row)}";
 
-    private string? RemoveDescribedBy(GlobalAdministratorRow row)
-        => RemoveAvailability(row.UserId).IsAvailable
-            ? null
-            : $"{RemoveReasonId(row)} {RemoveRecoveryId(row)}";
-
     private int RowOrdinal(GlobalAdministratorRow row)
     {
         for (int index = 0; index < _snapshot.Rows.Count; index++)
@@ -1063,8 +1070,10 @@
         return -1;
     }
 
-    private bool IsGrantSubmitDisabled
-        => !string.IsNullOrWhiteSpace(GrantUnavailableReason)
+    private bool IsGrantSubmitDisabled => IsGrantSubmitDisabledFor(GrantAvailability);
+
+    private bool IsGrantSubmitDisabledFor(GlobalAdministratorActionAvailability availability)
+        => !availability.IsAvailable
             || Volatile.Read(ref _grantPreviewInFlight) != 0
             || _grantSnapshot.State is TenantCommandLifecycleState.Previewed
             || IsGrantInFlight;
@@ -2362,8 +2371,9 @@
             _readRefreshLease = lease;
             adopted = true;
             lease = null;
-            if (_disposed)
+            if (!IsReadRefreshScopeCurrent(version))
             {
+                acceptsNotifications = false;
                 IAsyncDisposable orphaned = _readRefreshLease;
                 _readRefreshLease = null;
                 await DisposeLeaseSupportSafelyAsync(orphaned);
@@ -3720,7 +3730,9 @@
                 GlobalAdministratorGrantCommandSnapshot? appliedCompletion = null;
                 _ = await InvokeRendererSafelyAsync(() =>
                 {
-                    if (CanApplyGrantMutation(generation)
+                    // Published delivery belongs to the exact lease and command, even after the read
+                    // generation expires. Current authorization and ownership still govern visible writes.
+                    if (IsAuthorized
                         && ReferenceEquals(_grantAdmissionLease, expectedLease)
                         && SynchronizeOwnedGrantReconciliation())
                     {
@@ -3731,7 +3743,14 @@
 
                 if (appliedCompletion?.State is TenantCommandLifecycleState.Accepted)
                 {
-                    await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+                    if (CanApplyGrantMutation(generation))
+                    {
+                        await RefreshGrantStatusCoreAsync(generation, cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await RefreshGrantStatusAsync(appliedCompletion, expectedLease).ConfigureAwait(false);
+                    }
                 }
             }
         }
@@ -4858,11 +4877,11 @@
             && statusSnapshot.Intent is not null
             && statusSnapshot.State is TenantCommandLifecycleState.ProjectionPending)
         {
-            await RequeryRemoveProjectionAsync(generation).ConfigureAwait(false);
+            await RequeryRemoveProjectionAsync(generation, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task RequeryRemoveProjectionAsync(long generation)
+    private async Task RequeryRemoveProjectionAsync(long generation, CancellationToken cancellationToken)
     {
         if (!CanApplyRemoveMutation(generation))
         {
@@ -4871,8 +4890,16 @@
 
         GlobalAdministratorRemoveCommandSnapshot projectionBasis = _removeSnapshot;
         TenantAggregateCommandLease? projectionLease = _removeAdmissionLease;
-        GlobalAdministratorsSnapshot snapshot = await LoadCompletePopulationSafelyAsync(CancellationToken.None)
-            .ConfigureAwait(false);
+        GlobalAdministratorsSnapshot snapshot;
+        try
+        {
+            snapshot = await LoadCompletePopulationSafelyAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            // Cancellation ends this obsolete read, without changing durable delivery ownership.
+            return;
+        }
         if (snapshot.Kind is GlobalAdministratorsSurfaceKind.Unauthorized)
         {
             await CollapseAuthorizationIfCurrentAsync(
@@ -4920,7 +4947,7 @@
                 || !ReferenceEquals(_removeSnapshot, projectionBasis)
                 || !ReferenceEquals(_removeAdmissionLease, projectionLease))
             {
-                if (projectionLease is not null)
+                if (projectionLease is not null && ReferenceEquals(_removeSnapshot, projectionBasis))
                 {
                     resumeAdopted = RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease, snapshot);
                 }

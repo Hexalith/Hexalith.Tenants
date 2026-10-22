@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-332/DW-388/DW-400/DW-409/DW-415 closure (2026-10-22):** Controlled render, authorization, published-delivery and held-projection interleavings qualify coherent action guidance and exact aggregate ownership. Obsolete removal I/O cancels, obsolete subscriptions detach, accepted grant evidence resumes once, and stale removal bases retain current unresolved ownership. Exactly five records close: all 657 IDs remain, 520 done/137 open across 127 maintenance rows. Original findings, unrelated records, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-332-388-400-409-415-validation-evidence.md).
+
 **DW-602/DW-603/DW-610/DW-611/DW-619 closure (2026-10-22):** Requested summary bounds precede enrichment, timed-out refresh callbacks retain single-flight catch-up, membership paging rejects repeated transitions, and EN/FR sorting controls disclose current-page ordering. Exactly five records close: all 657 IDs remain, 515 done/142 open across 132 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-602-603-610-611-619-validation-evidence.md).
 
 **DW-591/DW-613/DW-614/DW-615/DW-616 closure (2026-10-22):** Localized unmatched-route recovery and mandatory real-host language, current-tenant alias and anonymous-scope checks qualify the Tenants UI host. Mounted production-router navigation qualifies shared home discovery and recovery. Exactly five records close: all 657 IDs remain, 510 done/147 open across 137 maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-591-613-614-615-616-validation-evidence.md).
@@ -194,14 +196,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 515 |
-| actionable | 71 |
+| done | 520 |
+| actionable | 69 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 7 |
-| uncertain | 26 |
+| uncertain | 23 |
 
-**Remaining: 142 open records across 132 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 137 open records across 127 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -241,8 +243,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
 | DW-317 | P2 | Defect / actionable | unassigned | browser layout fixture | Repair the remaining form/label scope stamping and verify computed layout at supported widths. |
 | DW-387 | P2 | Defect / actionable | unassigned | Same-id idempotency/recovery contract | Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards. |
-| DW-388 | P2 | Defect / actionable | unassigned | Removal operation cancellation lifetime | Pass an attempt-owned cancellation token through removal projection requery and verify supersession/disposal cancels the bounded walk. |
-| DW-400 | P2 | Defect / actionable | unassigned | Captured authorization transition generation | Guard subscription assignment against authorization generation/collapse and add the same interleaving with sign-out rather than disposal. |
 | DW-417 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Add an explicit per-repository fetch-failure stop/skip path before merge, push, or pruning, and synchronize tracked skill copies. |
 | DW-418 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome. |
 | DW-444 | P2 | Defect / actionable | unassigned | Focus only when the removed panel actually owned focus | Capture/reset/remount focus and restore the actual correction launcher at safe and narrow widths. |
@@ -315,8 +315,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-372, DW-382 | P2 | Unverified / uncertain | unassigned | none | Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout. |
 | DW-390 | P2 | Unverified / uncertain | unassigned | none | Capture side-by-side supported-browser/font rendering of accepted whitespace identities and compare visible distinction with accessible names. |
 | DW-391 | P2 | Unverified / uncertain | unassigned | none | Capture authenticated grant and removal page keyboard/viewport/long-identity evidence at desktop, mobile, and short heights. |
-| DW-409 | P2 | Unverified / uncertain | unassigned | none | Add or run a deterministic test that invalidates grant generation after durable completion publication but before renderer sync, and assert UI plus lease completion. |
-| DW-415 | P2 | Unverified / uncertain | unassigned | none | Hold a confirming removal projection read, advance the same attempt snapshot, release the read, and assert retained UI state and lease ownership together. |
 | DW-446 | P2 | Unverified / uncertain | unassigned | none | Run NVDA with a supported browser through the first events-stored availability transition and record whether its first message is announced. |
 | DW-459 | P2 | Unverified / uncertain | unassigned | NVDA or VoiceOver authenticated browser session | Capture an assistive-technology browser trace of the first mounted state before deciding whether an always-mounted empty live container is required. |
 | DW-466 | P2 | Unverified / uncertain | unassigned | Historical full-suite raw logs; controlled load reproduction | Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization. |
@@ -345,7 +343,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-584 | P2 | Recommendation / awaiting-decision | unassigned | Release-gate policy owner | Decide which separate exact-source workflow outcomes must block publication and document the gate. |
 | DW-600 | P2 | Recommendation / awaiting-decision | unassigned | Complete-evidence duplicate-page policy | Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract. |
 | DW-276 | P3 | Unverified / uncertain | unassigned | none | Hold an existing lease and exercise each refusal path to establish the intended flag/owner behavior. |
-| DW-332 | P3 | Unverified / uncertain | unassigned | none | Drive a controlled evidence transition during a render and capture the resulting associations before choosing a fix. |
 | DW-248 | P3 | Recommendation / actionable | unassigned | membership coalescer design | Replace recursive tail replay with an iterative shared drain without dropping refresh intent. |
 | DW-255 | P3 | Recommendation / actionable | unassigned | none | Inject the chosen clock and consume timing in bounded retained create behavior while preserving the public member. |
 | DW-266 | P3 | Recommendation / actionable | unassigned | none | Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive. |
