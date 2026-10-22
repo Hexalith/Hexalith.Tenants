@@ -10,6 +10,11 @@ B6 separates the tenant aggregate named `system` from the global-administrator s
 
 The two dedicated keys are outside the entire `audit:{arbitraryTenantId}` namespace. A tenant identifier containing colons or a prefix-looking value cannot claim either dedicated audit key. Both audit writers use the EventStore read-model write policy to merge evidence by event identifier; duplicate and shorter replay deliveries preserve existing audit rows. Aggregate sequences remain local to their owner.
 
+The [module manifest inventory](module-manifest-inventory.md) maps these read
+models and singleton authority to declarative recovery entries and explains the
+existing administrator authorization inventory. Those entries supply no
+executable recovery hook; the rollout and replay prerequisites below still apply.
+
 ## Compatible reads
 
 `GET /api/tenants/{tenantId}/audit` keeps its response shape and authorization requirement: the requester must be present in the current persisted global-administrator model. Authorization runs before audit reads or ownership diagnostics.

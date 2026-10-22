@@ -302,7 +302,7 @@
             "exposure": "public",
             "surfaceClass": "service",
             "authorization": {
-              "policy": "authenticated",
+              "policy": "authenticated-current-global-administrator",
               "permissions": []
             },
             "callers": [],
@@ -310,17 +310,17 @@
               {
                 "name": "list-global-administrators",
                 "kind": "query",
-                "authorizationPolicy": "authenticated"
+                "authorizationPolicy": "authenticated-current-global-administrator"
               },
               {
                 "name": "set-global-administrator",
                 "kind": "command",
-                "authorizationPolicy": "authenticated"
+                "authorizationPolicy": "authenticated-current-global-administrator"
               },
               {
                 "name": "remove-global-administrator",
                 "kind": "command",
-                "authorizationPolicy": "authenticated"
+                "authorizationPolicy": "authenticated-current-global-administrator"
               }
             ]
           },
@@ -554,7 +554,8 @@
             "surface": "global-administrators-api",
             "operations": [
               "list-global-administrators",
-              "set-global-administrator"
+              "set-global-administrator",
+              "remove-global-administrator"
             ]
           }
         ],
@@ -563,7 +564,32 @@
           "changeClass": "additive",
           "reason": "Declare existing Tenants domain and public API services; readiness does not prove bootstrap completion."
         },
-        "recoveryInventory": []
+        "recoveryInventory": [
+          {
+            "name": "global-administrator-authority",
+            "recoveryClass": "rebuild-only",
+            "owner": "tenants",
+            "dependencies": [
+              "eventstore"
+            ]
+          },
+          {
+            "name": "global-administrator-audit",
+            "recoveryClass": "rebuild-only",
+            "owner": "tenants",
+            "dependencies": [
+              "eventstore"
+            ]
+          },
+          {
+            "name": "system-tenant-audit",
+            "recoveryClass": "rebuild-only",
+            "owner": "tenants",
+            "dependencies": [
+              "eventstore"
+            ]
+          }
+        ]
       }
     }
   ]

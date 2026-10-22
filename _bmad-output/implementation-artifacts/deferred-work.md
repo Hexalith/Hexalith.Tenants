@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-629/DW-630/DW-631/DW-635/DW-636 closure (2026-10-22):** The module manifest qualifies logical topics and complete public operations, includes administrator removal in its critical flow, records existing membership authorization and declares rebuild-only correction prerequisites without executable recovery hooks. Exactly five records close: all 657 IDs remain, 470 done/187 open across 173 exact-covering maintenance rows. Historical findings, unrelated work, dependency pointers and runtime/release holds remain preserved. See [validation evidence](dw-629-630-631-635-636-validation-evidence.md).
+
 **DW-464/DW-496/DW-505/DW-555/DW-585 closure (2026-10-21):** Immutable hosted logs qualify the existing Chrome 153/CDP repair, EN/FR correction fixture checks and negative controls; current hosted CI validates actual changed stories. The separate current NativeSourceProof package-build failure still prevents current browser execution. Exactly five stale CI records close: all 657 IDs remain, 465 done/192 open across 178 exact-covering maintenance rows. Original findings, unrelated work, dependency pointers, authenticated-runtime limitations and release holds remain preserved. See [validation evidence](dw-464-496-505-555-585-validation-evidence.md).
 
 **DW-297/DW-462/DW-533/DW-549/DW-558 closure (2026-10-21):** Historical validation commands, Story 5.4 evidence and Epic 5 constraints are qualified; Story 5.6 reverification binds its final historical endpoint, and the paging ownership report distinguishes reverted work from Story 5.7 integration. Only these five records close: 657 IDs remain, 460 done/197 open across 181 exact-covering maintenance rows. Separate baseline holds, original failures, unrelated work, dependencies and release limitations remain preserved. See [validation evidence](dw-297-462-533-549-558-validation-evidence.md).
@@ -8442,16 +8444,23 @@ location: module/hexalith.module-manifest.v2.json
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: Verify the independently committed module manifest's `tenants-events` topic against the deployed `tenants.events` topic.\n  evidence: Review 6 found that the manifest added by `711e100858e59cf8de2b626ea21790d59f969023` names `tenants-events`, while AppHost publishes `tenants.events`; the manifest schema's topic naming semantics need confirmation before changing it."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: module/hexalith.module-manifest.v2.json integration.topics names tenants-events while AppHost routing uses tenants.events. Missing evidence: owning v2 schema/consumer definition specifying whether name is a literal pubsub topic or an inventory identifier.
+pre-manifest-reconciliation-status: open
+status: done 2026-10-22
+pre-manifest-reconciliation-disposition: uncertain
+disposition: done
+pre-manifest-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-manifest-reconciliation-verification: module/hexalith.module-manifest.v2.json integration.topics names tenants-events while AppHost routing uses tenants.events. Missing evidence: owning v2 schema/consumer definition specifying whether name is a literal pubsub topic or an inventory identifier.
+verification: Verified the kebab-case logical topic inventory against the v2 schema and Platform subscription emitter. The unsubscribed tenants-events inventory creates no subscription or publisher mapping; the physical publisher remains tenants.events. See docs/module-manifest-inventory.md and dw-629-630-631-635-636-validation-evidence.md.
 verification-files: module/hexalith.module-manifest.v2.json
-evidence-kind: unverified-risk
+pre-manifest-reconciliation-evidence-kind: unverified-risk
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Module manifest v2 semantics owner
-next-action: Obtain the schema topic-name contract and compare runtime wiring before changing manifest content.
+pre-manifest-reconciliation-dependencies: Module manifest v2 semantics owner
+dependencies: none
+pre-manifest-reconciliation-next-action: Obtain the schema topic-name contract and compare runtime wiring before changing manifest content.
+next-action: none; closed by the scoped manifest inventory qualification
 related: DW-630
 
 
@@ -8462,15 +8471,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: Audit the independently committed module manifest's tenant API operation inventory.\n  evidence: Review 6 found existing audit, member, lifecycle, and configuration endpoints absent from the manifest added by `711e100858e59cf8de2b626ea21790d59f969023`; confirm whether the schema requires exhaustive operations."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: Manifest tenant-api operations still lists only create/list/get/update despite decorated audit/member/configuration/lifecycle contracts. Missing evidence: the v2 schema/consumer requirement for exhaustive versus representative operation inventory.
-evidence-kind: recommendation
+pre-manifest-reconciliation-status: open
+status: done 2026-10-22
+pre-manifest-reconciliation-disposition: uncertain
+disposition: done
+pre-manifest-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-manifest-reconciliation-verification: Manifest tenant-api operations still lists only create/list/get/update despite decorated audit/member/configuration/lifecycle contracts. Missing evidence: the v2 schema/consumer requirement for exhaustive versus representative operation inventory.
+verification: Verified exact equality between all 17 public REST-decorated contracts and the 13 tenant, three administrator and one user-membership manifest operations. The earlier missing tenant operations were already added by b185ae80de474bedc6c60af38bacc5550d4e8cd7; current inventory and exclusions are documented. See dw-629-630-631-635-636-validation-evidence.md.
+pre-manifest-reconciliation-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Module manifest v2 inventory contract
-next-action: Confirm required inventory completeness, then map every required decorated operation.
+pre-manifest-reconciliation-dependencies: Module manifest v2 inventory contract
+dependencies: none
+pre-manifest-reconciliation-next-action: Confirm required inventory completeness, then map every required decorated operation.
+next-action: none; closed by the scoped manifest inventory qualification
 related: DW-629,DW-631
 
 
@@ -8481,15 +8497,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: Decide whether the manifest's global-administrator critical flow should include removal.\n  evidence: Review 6 found removal declared as an operation but omitted from the critical flow in the independent `711e100858e59cf8de2b626ea21790d59f969023` manifest; determine whether that flow is intended as a representative subset."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: Manifest declares remove-global-administrator as an operation but global-administrator-management criticalFlows includes only list and set. No local decision says whether a critical flow is representative or lifecycle-complete.
-evidence-kind: recommendation
+pre-manifest-reconciliation-status: open
+status: done 2026-10-22
+pre-manifest-reconciliation-disposition: awaiting-decision
+disposition: done
+pre-manifest-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-manifest-reconciliation-verification: Manifest declares remove-global-administrator as an operation but global-administrator-management criticalFlows includes only list and set. No local decision says whether a critical flow is representative or lifecycle-complete.
+verification: The administrator critical flow now includes all three existing list/set/remove operations. The documented rule distinguishes complete public interface inventories from selected critical scenarios; no runtime operation or administrator mutation was added. See docs/module-manifest-inventory.md.
+pre-manifest-reconciliation-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
-dependencies: Manifest critical-flow scope decision
-next-action: Decide whether removal belongs in the critical flow and record the chosen inventory rule.
+pre-manifest-reconciliation-dependencies: Manifest critical-flow scope decision
+dependencies: none
+pre-manifest-reconciliation-next-action: Decide whether removal belongs in the critical flow and record the chosen inventory rule.
+next-action: none; closed by the scoped manifest inventory qualification
 related: DW-630
 
 
@@ -8528,15 +8551,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: medium; record current global-administrator membership in the independent module manifest authorization inventory.\n  evidence: `module/hexalith.module-manifest.v2.json`, as changed by `6b6a35f0`, lists `global-administrators-api` authorization policy `authenticated` at `:239` and operation `authorizationPolicy` `authenticated` at `:247`, `:252` and `:257`, while `GetGlobalAdministratorsQueryHandler` rejects authenticated users absent from the singleton administrator projection."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Manifest global-administrators-api surface/operations still declare authenticated only, while GetGlobalAdministratorsQueryHandler requires current singleton administrator membership. Manifest authorization inventory omits this additional runtime gate.
-evidence-kind: verified-gap
+pre-manifest-reconciliation-status: open
+status: done 2026-10-22
+pre-manifest-reconciliation-disposition: actionable
+disposition: done
+pre-manifest-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-manifest-reconciliation-verification: Manifest global-administrators-api surface/operations still declare authenticated only, while GetGlobalAdministratorsQueryHandler requires current singleton administrator membership. Manifest authorization inventory omits this additional runtime gate.
+verification: The surface and all three administrator operations now describe authentication plus current administrator membership. Documentation distinguishes query-model membership from command aggregate authority and preserves revocation-lag limits; the descriptive label registers no runtime policy. See docs/module-manifest-inventory.md.
+pre-manifest-reconciliation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Manifest authorization inventory semantics
-next-action: Record the current-global-administrator condition using the owning schema authorization representation.
+pre-manifest-reconciliation-dependencies: Manifest authorization inventory semantics
+dependencies: none
+pre-manifest-reconciliation-next-action: Record the current-global-administrator condition using the owning schema authorization representation.
+next-action: none; closed by the scoped manifest inventory qualification
 related: DW-630
 
 
@@ -8547,16 +8577,23 @@ location: docs/event-contract-reference.md
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: low; decide how the independent module manifest should expose the singleton projection replay prerequisite.\n  evidence: `module/hexalith.module-manifest.v2.json`, as changed by `6b6a35f0`, leaves `recoveryHooks` (`:417`) and `recoveryInventory` (`:446`) empty even though the replay prerequisite at `docs/event-contract-reference.md:127` requires replay of persisted singleton projections before correction becomes available; the appropriate manifest hook or inventory entry needs an owning manifest follow-up."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: Manifest recoveryHooks and recoveryInventory remain empty while event-contract-reference.md:127 requires persisted singleton replay before audit correction. The appropriate supported manifest recovery representation is unspecified.
+pre-manifest-reconciliation-status: open
+status: done 2026-10-22
+pre-manifest-reconciliation-disposition: awaiting-decision
+disposition: done
+pre-manifest-reconciliation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-manifest-reconciliation-verification: Manifest recoveryHooks and recoveryInventory remain empty while event-contract-reference.md:127 requires persisted singleton replay before audit correction. The appropriate supported manifest recovery representation is unspecified.
+verification: Declared rebuild-only singleton authority, global singleton audit and distinct system-tenant audit inventories under tenants, dependent on eventstore history. No executable task/restore hook/replay is supplied or authorized; multi-history rollout, serialization and persisted end-state prerequisites remain explicit. See docs/module-manifest-inventory.md.
 verification-files: docs/event-contract-reference.md
-evidence-kind: recommendation
+pre-manifest-reconciliation-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
-dependencies: Manifest recovery-hook/inventory contract
-next-action: Choose the supported representation for the documented singleton replay prerequisite.
+pre-manifest-reconciliation-dependencies: Manifest recovery-hook/inventory contract
+dependencies: none
+pre-manifest-reconciliation-next-action: Choose the supported representation for the documented singleton replay prerequisite.
+next-action: none; closed by the scoped manifest inventory qualification
 related: DW-604,DW-628
 
 
