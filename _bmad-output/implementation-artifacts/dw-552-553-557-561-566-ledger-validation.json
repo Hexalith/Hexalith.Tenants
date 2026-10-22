@@ -1,0 +1,18 @@
+{
+  "total_ids": 657,
+  "closed_ids": [
+    552,
+    553,
+    557,
+    561,
+    566
+  ],
+  "preserved_unrelated_records": 652,
+  "status_counts": {
+    "done": 505,
+    "open": 152
+  },
+  "open_index_rows": 142,
+  "indexed_open_records": 152,
+  "exact_index_coverage": true
+}

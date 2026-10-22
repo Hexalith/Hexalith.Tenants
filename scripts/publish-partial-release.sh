@@ -10,23 +10,15 @@ source_sha="$(cat "$state_directory/source-sha")"
 test "$source_sha" = "${GITHUB_SHA:?GITHUB_SHA is required}" || { echo '[partial-release-recovery] Source changed during recovery.' >&2; exit 1; }
 [ "$(cat "$state_directory/version")" = "$version" ] || { echo '[partial-release-recovery] Recovery version changed.' >&2; exit 1; }
 [ -f "$state_directory/missing-packages" ] || { echo '[partial-release-recovery] Missing-package state is absent.' >&2; exit 1; }
+nuget_key="${NUGET_API_KEY:-}"
+if [ -s "$state_directory/missing-packages" ] && [ -z "${nuget_key//[[:space:]]/}" ]; then
+  recovery_fail 'NUGET_API_KEY is required for missing packages.'
+fi
+
 recovery_require_manifest
+recovery_require_prepared
 live_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
 [ "$live_sha" = "$source_sha" ] || { echo '[partial-release-recovery] Live main changed before publication.' >&2; exit 1; }
-
-dotnet build Hexalith.Tenants.slnx --configuration Release -p:Version="$version"
-python3 scripts/pack-release-packages.py ./nupkgs "$version" --manifest "$manifest"
-python3 scripts/validate-nuget-packages.py ./nupkgs --manifest "$manifest"
-python3 scripts/validate-consumer-package-references.py ./nupkgs
-
-while IFS= read -r package_id || [ -n "$package_id" ]; do
-  [ -n "$package_id" ] || continue
-  package_file="nupkgs/${package_id}.${version}.nupkg"
-  expected_hash="$(awk -v id="$package_id" '$2 == id { print $1 }' "$state_directory/existing-package-sha256")"
-  [ -n "$expected_hash" ] || { echo "[partial-release-recovery] Existing package $package_id has no reviewed hash." >&2; exit 1; }
-  actual_hash="$(sha256sum "$package_file" | awk '{ print $1 }')"
-  [ "$actual_hash" = "$expected_hash" ] || { echo "[partial-release-recovery] Existing package $package_id does not match the reviewed source." >&2; exit 1; }
-done < "$state_directory/existing-packages"
 
 recovery_require_manifest
 release_status="$(gh api --include "repos/${repository}/releases/tags/v${version}" 2>/dev/null | sed -n '1p' | awk '{ print $2 }' || true)"
@@ -40,6 +32,7 @@ fi
 live_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
 [ "$live_sha" = "$source_sha" ] || { echo '[partial-release-recovery] Live main changed before publication.' >&2; exit 1; }
 recovery_require_manifest
+recovery_require_prepared
 
 while IFS= read -r package_id; do
   [ -n "$package_id" ] || continue

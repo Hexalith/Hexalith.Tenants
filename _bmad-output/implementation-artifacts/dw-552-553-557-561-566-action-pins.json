@@ -1,0 +1,62 @@
+[
+  {
+    "action": "actions/checkout",
+    "version": "v7.0.1",
+    "commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "upstream_refs": [
+      "3d3c42e5aac5ba805825da76410c181273ba90b1\trefs/tags/v7.0.1"
+    ],
+    "manifest_url": "https://raw.githubusercontent.com/actions/checkout/3d3c42e5aac5ba805825da76410c181273ba90b1/action.yml",
+    "manifest_sha256": "d59219cb79590abdb877deaa14e3b65a00c05318bf5a6f3b989b9162b5d08c35"
+  },
+  {
+    "action": "actions/setup-dotnet",
+    "version": "v6.0.0",
+    "commit": "a98b56852c35b8e3190ac28c8c2271da59106c68",
+    "upstream_refs": [
+      "a98b56852c35b8e3190ac28c8c2271da59106c68\trefs/tags/v6.0.0"
+    ],
+    "manifest_url": "https://raw.githubusercontent.com/actions/setup-dotnet/a98b56852c35b8e3190ac28c8c2271da59106c68/action.yml",
+    "manifest_sha256": "75999c0bf863f23de88dad047ccf176b5089454cf7e3264c3fee5bc47eba4cf1"
+  },
+  {
+    "action": "actions/setup-node",
+    "version": "v7.0.0",
+    "commit": "820762786026740c76f36085b0efc47a31fe5020",
+    "upstream_refs": [
+      "820762786026740c76f36085b0efc47a31fe5020\trefs/tags/v7.0.0"
+    ],
+    "manifest_url": "https://raw.githubusercontent.com/actions/setup-node/820762786026740c76f36085b0efc47a31fe5020/action.yml",
+    "manifest_sha256": "5d765941ab5d8bef27f08e81b0b041cdb2df2050ea0261dc925d157a2bafbd2b"
+  },
+  {
+    "action": "actions/cache",
+    "version": "v6.1.0",
+    "commit": "55cc8345863c7cc4c66a329aec7e433d2d1c52a9",
+    "upstream_refs": [
+      "55cc8345863c7cc4c66a329aec7e433d2d1c52a9\trefs/tags/v6.1.0"
+    ],
+    "manifest_url": "https://raw.githubusercontent.com/actions/cache/55cc8345863c7cc4c66a329aec7e433d2d1c52a9/action.yml",
+    "manifest_sha256": "c04edf35104c16c8944076df01561748bac9cd10941417e467a236e508e52dda"
+  },
+  {
+    "action": "actions/upload-artifact",
+    "version": "v7.0.1",
+    "commit": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+    "upstream_refs": [
+      "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a\trefs/tags/v7.0.1"
+    ],
+    "manifest_url": "https://raw.githubusercontent.com/actions/upload-artifact/043fb46d1a93c77aae656e7c1c64a875d1fc6a0a/action.yml",
+    "manifest_sha256": "c5979822866a72362e609844b6ebe77d4b7e759af68cc1c2c425dcf51481fab4"
+  },
+  {
+    "action": "NuGet/login",
+    "version": "v1.2.0",
+    "commit": "8d196754b4036150537f80ac539e15c2f1028841",
+    "upstream_refs": [
+      "8d196754b4036150537f80ac539e15c2f1028841\trefs/tags/v1.2.0"
+    ],
+    "manifest_url": "https://raw.githubusercontent.com/NuGet/login/8d196754b4036150537f80ac539e15c2f1028841/action.yml",
+    "manifest_sha256": "d423a0aeb912cc3d9b7611d5a810773f3c91cf275440806e3879f1c0cbe308b4"
+  }
+]

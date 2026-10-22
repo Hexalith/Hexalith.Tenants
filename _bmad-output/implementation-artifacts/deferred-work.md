@@ -7179,16 +7179,24 @@ location: .github/workflows/recover-partial-release.yml; scripts/publish-partial
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; partial-release recovery consumes temporary NuGet credential lifetime while preparing artifacts.\n  evidence: `recover-partial-release.yml` exchanges the documented one-hour key before `publish-partial-release.sh` builds, packs, validates, and compares package hashes. A long preparation leaves an expired key at publication. Prepare artifacts before exchanging credentials in the release recovery owner's work."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/recover-partial-release.yml:70-85 obtains the temporary NuGet key before scripts/publish-partial-release.sh:14-26 builds, packs, validates and compares hashes. Unlike release.yml’s explicit late exchange, recovery spends credential lifetime on preparation. Actual expiry has not been reproduced, but the timing/provenance gap is present.
+pre-release-credentials-status: open
+status: done 2026-10-22
+pre-release-credentials-disposition: actionable
+disposition: done
+pre-release-credentials-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-release-credentials-verification: .github/workflows/recover-partial-release.yml:70-85 obtains the temporary NuGet key before scripts/publish-partial-release.sh:14-26 builds, packs, validates and compares hashes. Unlike release.yml’s explicit late exchange, recovery spends credential lifetime on preparation. Actual expiry has not been reproduced, but the timing/provenance gap is present.
+verification: Recovery builds, packs, validates and compares existing package bytes in a separate preparation step before NuGet login. Source/version/manifest/inventory/destination context is bound before preparation; missing state or changes during/after preparation refuse. Publisher verifies prepared byte/state evidence before any client and immediately before publication; no package build/pack runs there. Offline source, hash, asset, failure-stage and no-key controls pass.
 verification-files: .github/workflows/recover-partial-release.yml; scripts/publish-partial-release.sh
-evidence-kind: verified-gap
+pre-release-credentials-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Release recovery artifact-preparation boundary
-next-action: Separate artifact preparation/hash verification from publication and exchange the temporary credential immediately before push.
+pre-release-credentials-dependencies: Release recovery artifact-preparation boundary
+dependencies: none
+pre-release-credentials-next-action: Separate artifact preparation/hash verification from publication and exchange the temporary credential immediately before push.
+next-action: None for this record; retain DW-560/DW-563 and unrelated runtime/provenance/release holds.
+closure-evidence: `dw-552-553-557-561-566-validation-evidence.md`
 related: none
 
 
@@ -7199,16 +7207,24 @@ location: .github/workflows/release.yml; .github/workflows/recover-partial-relea
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; release credential exchange executes a mutable NuGet action tag with OIDC issuance permission.\n  evidence: `release.yml` and `recover-partial-release.yml` invoke `NuGet/login@v1.2.0` in jobs with `id-token: write`. Moving that tag changes credential-exchange code independently of the reviewed source and Builds checkout identity. Pin the credential action to a reviewed commit in separate release governance work."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .github/workflows/release.yml:425 and recover-partial-release.yml:72 still use mutable NuGet/login@v1.2.0 with id-token:write in their jobs. This is verified unpinned credential-exchange code; no compromised action or credential leak is established.
+pre-release-credentials-status: open
+status: done 2026-10-22
+pre-release-credentials-disposition: actionable
+disposition: done
+pre-release-credentials-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-release-credentials-verification: .github/workflows/release.yml:425 and recover-partial-release.yml:72 still use mutable NuGet/login@v1.2.0 with id-token:write in their jobs. This is verified unpinned credential-exchange code; no compromised action or credential leak is established.
+verification: Both NuGet/login uses now pin the exact upstream commit for the previously declared v1.2.0 version. Upstream tag resolution and action manifest hashes are retained in dw-552-553-557-561-566-action-pins.json; workflow tests bind actual pins and version comments to that evidence.
 verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml
-evidence-kind: recommendation
+pre-release-credentials-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Reviewed credential-action revision
-next-action: Resolve the reviewed NuGet/login action revision and pin both invocations to that commit under release governance.
+pre-release-credentials-dependencies: Reviewed credential-action revision
+dependencies: none
+pre-release-credentials-next-action: Resolve the reviewed NuGet/login action revision and pin both invocations to that commit under release governance.
+next-action: None for this record; retain DW-560/DW-563 and unrelated runtime/provenance/release holds.
+closure-evidence: `dw-552-553-557-561-566-validation-evidence.md`
 related: none
 
 
@@ -7295,16 +7311,24 @@ location: .github/workflows/release.yml; .github/workflows/recover-partial-relea
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; manually dispatched release tests pass when the NuGet login step is disabled.\n  evidence: `PackageGovernanceTests.Release_workflows_publish_to_nuget_through_trusted_publishing` checks login text and step order but not a disabling condition. A login step with `if: ${{ false }}` still passes the test; the dependent publish step receives an empty `NUGET_API_KEY` and aborts. Validate the executable login-to-publish handoff in release-owner work with the protected GitHub environment."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: PackageGovernanceTests.AssertTrustedPublishingJob still inspects login text/order without evaluating login-step if conditions; release.yml and recover-partial-release.yml use that handoff. Inspected, not mutation-tested this triage.
+pre-release-credentials-status: open
+status: done 2026-10-22
+pre-release-credentials-disposition: actionable
+disposition: done
+pre-release-credentials-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-release-credentials-verification: PackageGovernanceTests.AssertTrustedPublishingJob still inspects login text/order without evaluating login-step if conditions; release.yml and recover-partial-release.yml use that handoff. Inspected, not mutation-tested this triage.
+verification: Parsed normal/recovery workflow contracts reject disabled account/login gates and empty key bindings. Actual normal verifyReleaseCmd and recovery publication commands reject absent/empty/whitespace login output before any client; supported recovery inventories retain valid-key and no-key success controls. These are offline boundary proofs, not a live OIDC exchange or GitHub runner proof.
 verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml
-evidence-kind: verified-gap
+pre-release-credentials-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Protected publication test environment
-next-action: Exercise enabled and disabled login-to-publish handoffs without publishing.
+pre-release-credentials-dependencies: Protected publication test environment
+dependencies: none
+pre-release-credentials-next-action: Exercise enabled and disabled login-to-publish handoffs without publishing.
+next-action: None for this record; retain DW-560/DW-563 and unrelated runtime/provenance/release holds.
+closure-evidence: `dw-552-553-557-561-566-validation-evidence.md`
 related: DW-566
 
 
@@ -7379,16 +7403,24 @@ location: .github/workflows/release.yml; .github/workflows/recover-partial-relea
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; release jobs execute movable action tags beyond the previously recorded NuGet login action.\n  evidence: `release.yml` runs `actions/checkout@v7.0.1` (`:312`, `:318`), `actions/setup-dotnet@v6.0.0` (`:340`), `actions/setup-node@v7.0.0` (`:343`), `actions/cache@v6.1.0` (`:347`) and `actions/upload-artifact@v7.0.1` (`:438`) in a job with publication authority. `recover-partial-release.yml` grants `id-token: write` (`:32`) and runs `actions/checkout@v7.0.1` (`:44`) and `actions/setup-dotnet@v6.0.0` (`:50`). Version tags can move without a reviewed workflow change. Pin reviewed action revisions in release-governance work; the prior ledger entry covers `NuGet/login` specifically."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: release.yml and recover-partial-release.yml still use movable checkout/setup-dotnet/setup-node/cache/upload-artifact tags in publication-authorized jobs; no exploit is established.
+pre-release-credentials-status: open
+status: done 2026-10-22
+pre-release-credentials-disposition: actionable
+disposition: done
+pre-release-credentials-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-release-credentials-verification: release.yml and recover-partial-release.yml still use movable checkout/setup-dotnet/setup-node/cache/upload-artifact tags in publication-authorized jobs; no exploit is established.
+verification: All external action uses in both release workflows pin immutable commits. The six newly pinned actions retain their prior versions and version comments; upstream resolution/action manifest hashes and executable workflow evidence checks are recorded. Existing immutable QEMU pin is preserved.
 verification-files: .github/workflows/release.yml; .github/workflows/recover-partial-release.yml
-evidence-kind: recommendation
+pre-release-credentials-evidence-kind: recommendation
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Review approved action revisions
-next-action: Pin reviewed immutable action SHAs in publication jobs.
+pre-release-credentials-dependencies: Review approved action revisions
+dependencies: none
+pre-release-credentials-next-action: Pin reviewed immutable action SHAs in publication jobs.
+next-action: None for this record; retain DW-560/DW-563 and unrelated runtime/provenance/release holds.
+closure-evidence: `dw-552-553-557-561-566-validation-evidence.md`
 related: DW-560
 
 
@@ -7488,15 +7520,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; Trusted Publishing account guards lack executable success and failure tests.\n  evidence: `PackageGovernanceTests.AssertTrustedPublishingJob` (`tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs:2209-2219`, called at `:904-905`) checks the two workflow guard blocks (`.github/workflows/release.yml:308`, `.github/workflows/recover-partial-release.yml:40`) for the `NUGET_USER` expansion text but does not execute their Bash conditions. Replacing `-z` with `-n` preserves that text and makes a configured account fail before publication. Release-governance work should execute both guards with populated and blank account values and assert the respective exit statuses."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: PackageGovernanceTests.AssertTrustedPublishingJob still asserts NUGET_USER expansion text, not Bash guard execution; both release workflows retain the populated/blank account check.
-evidence-kind: verified-gap
+pre-release-credentials-status: open
+status: done 2026-10-22
+pre-release-credentials-disposition: actionable
+disposition: done
+pre-release-credentials-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-release-credentials-verification: PackageGovernanceTests.AssertTrustedPublishingJob still asserts NUGET_USER expansion text, not Bash guard execution; both release workflows retain the populated/blank account check.
+verification: Both actual workflow account-guard Bash blocks execute with configured, unset, empty and whitespace-only accounts. Configured values pass; unavailable values fail. Guard condition, account variable, login order and output binding are checked from parsed production YAML, with negative mutation controls.
+pre-release-credentials-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Isolated workflow guard fixture
-next-action: Execute each account guard with populated, blank and whitespace values and assert exits.
+pre-release-credentials-dependencies: Isolated workflow guard fixture
+dependencies: none
+pre-release-credentials-next-action: Execute each account guard with populated, blank and whitespace values and assert exits.
+next-action: None for this record; retain DW-560/DW-563 and unrelated runtime/provenance/release holds.
+closure-evidence: `dw-552-553-557-561-566-validation-evidence.md`
 related: DW-557
 
 

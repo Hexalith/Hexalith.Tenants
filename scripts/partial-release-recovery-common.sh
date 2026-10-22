@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Internal functions shared by the three partial-release recovery steps.
+# Internal functions shared by the partial-release recovery steps.
 
 recovery_fail() { echo "[partial-release-recovery] $1" >&2; exit 1; }
 
@@ -64,4 +64,44 @@ recovery_check_release_assets() {
       release_missing_assets+=("nupkgs/$asset_name")
     fi
   done < <(printf '%s' "$expected_names" | jq -r '.[]')
+}
+
+
+# Bind prepared bytes to the validated inventory, source and destination decisions.
+recovery_preparation_state() {
+  local state_file
+  for state_file in source-sha version package-manifest-sha256 missing-packages existing-packages container-state; do
+    [ -f "$state_directory/$state_file" ] || recovery_fail "Required recovery state $state_file is absent."
+  done
+  case "$(cat "$state_directory/container-state")" in
+    present|absent) ;;
+    *) recovery_fail 'Container recovery state must be present or absent.' ;;
+  esac
+  printf 'repository %s\nregistry %s\ncontainer %s\n' "$repository" "${HEXALITH_ZOT_REGISTRY:-registry.hexalith.com}" "${HEXALITH_RECOVERY_CONTAINER_REPOSITORY:-tenants}"
+  for state_file in source-sha version package-manifest-sha256 missing-packages existing-packages existing-package-sha256 container-state; do
+    if [ -f "$state_directory/$state_file" ]; then
+      sha256sum "$state_directory/$state_file" || return 1
+    else
+      printf 'absent %s\n' "$state_file"
+    fi
+  done
+}
+
+recovery_package_hashes() {
+  local package_id
+  while IFS= read -r package_id; do
+    sha256sum "nupkgs/${package_id}.${version}.nupkg" || return 1
+  done < <(jq -r '.packages[].id' "$manifest")
+}
+
+recovery_require_prepared() {
+  local current_packages current_state
+  [ -s "$state_directory/prepared-packages-sha256" ] && [ -s "$state_directory/prepared-state-sha256" ] ||
+    recovery_fail 'Prepared package evidence is required before publication.'
+  current_packages="$(recovery_package_hashes)" || recovery_fail 'Prepared package bytes are missing.'
+  [ "$current_packages" = "$(cat "$state_directory/prepared-packages-sha256")" ] ||
+    recovery_fail 'Prepared package bytes changed before publication.'
+  current_state="$(recovery_preparation_state)" || recovery_fail 'Prepared recovery state could not be read.'
+  [ "$current_state" = "$(cat "$state_directory/prepared-state-sha256")" ] ||
+    recovery_fail 'Recovery state changed after package preparation.'
 }

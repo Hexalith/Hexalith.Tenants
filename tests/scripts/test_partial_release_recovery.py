@@ -62,6 +62,10 @@ elif kind == "gh":
             if state.get("mutate_manifest_on_download"):
                 path = pathlib.Path(os.environ["HEXALITH_RELEASE_PACKAGE_MANIFEST"])
                 path.write_text(path.read_text() + "\n")
+            if state.get("mutate_package_on_download"):
+                pathlib.Path("nupkgs/" + manifest["packages"][-1]["id"] + ".1.2.3.nupkg").write_text("changed after first proof")
+            if state.get("mutate_state_on_download"):
+                (root / "state/container-state").write_text("present\n")
             sys.stdout.write(asset["content"])
         else: fail()
     elif args[:2] in (["release", "upload"], ["release", "create"]):
@@ -77,8 +81,13 @@ elif kind == "gh":
         save()
     else: fail()
 elif kind == "dotnet":
-    if args[0] == "build": pass
+    if state.get("failure_stage") == args[0]: sys.exit(42)
+    if args[0] == "build":
+        if os.environ.get("NUGET_API_KEY"): fail()
+        if state.get("mutate_missing_on_build"):
+            (root / "state/missing-packages").write_text("")
     elif args[0] == "pack":
+        if os.environ.get("NUGET_API_KEY"): fail()
         project = args[1]
         package = next((p for p in manifest["packages"] if p["project"] == project), None)
         if package is None: fail()
@@ -149,15 +158,21 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
           python3() {
             case "$1" in
               scripts/validate-nuget-packages.py)
+                [ "${RECOVERY_FAILURE_STAGE:-}" != packages ] || return 42
                 [ "$#" = 4 ] && [ "$2" = ./nupkgs ] && [ "$3" = --manifest ] && [ "$4" = "$HEXALITH_RELEASE_PACKAGE_MANIFEST" ] ;;
-              scripts/validate-consumer-package-references.py) [ "$#" = 2 ] && [ "$2" = ./nupkgs ] ;;
+              scripts/validate-consumer-package-references.py)
+                [ "${RECOVERY_FAILURE_STAGE:-}" != consumers ] || return 42
+                [ "$#" = 2 ] && [ "$2" = ./nupkgs ] ;;
               *) command python3 "$@" ;;
             esac
           }
           source "$1" 1.2.3 "$GITHUB_SHA"
         '''
+        environment = self.environment.copy()
+        if name == "prepare-partial-release.sh":
+            environment.pop("NUGET_API_KEY", None)
         result = subprocess.run(["bash", "-c", shell, "fixture", str(ROOT / "scripts" / name)],
-                                cwd=self.root, env=self.environment, capture_output=True, text=True, timeout=30)
+                                cwd=self.root, env=environment, capture_output=True, text=True, timeout=30)
         if accepted:
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         else:
@@ -175,10 +190,118 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
 
     def prepare(self):
         self.run_script("validate-partial-release-recovery.sh")
+        before = self.destination_path.read_bytes()
+        self.run_script("prepare-partial-release.sh")
+        self.assertEqual(self.destination_path.read_bytes(), before)
 
     def publish(self):
         self.environment["NUGET_API_KEY"] = "fixture-key"
         self.run_script("publish-partial-release.sh")
+
+    def assert_no_publication(self):
+        self.assertFalse(any(c[:3] in (["gh", "release", "upload"], ["gh", "release", "create"],
+                                      ["dotnet", "nuget", "push"])
+                             or c[:2] == ["dotnet", "publish"] for c in self.calls()))
+
+    def test_publication_never_rebuilds_prepared_packages(self):
+        self.prepare()
+        (self.root / "calls.jsonl").write_text("")
+        self.publish()
+        self.assertFalse(any(c[:2] in (["dotnet", "build"], ["dotnet", "pack"]) for c in self.calls()))
+
+    def test_changed_or_missing_prepared_bytes_refuse(self):
+        for mutation in ("changed", "missing", "proof", "state-proof"):
+            with self.subTest(mutation=mutation):
+                self.prepare()
+                package = self.root / "nupkgs" / (self.ids[-1] + ".1.2.3.nupkg")
+                if mutation == "changed": package.write_text("changed bytes")
+                if mutation == "missing": package.unlink()
+                if mutation == "proof": (self.root / "state/prepared-packages-sha256").unlink()
+                if mutation == "state-proof": (self.root / "state/prepared-state-sha256").unlink()
+                self.environment["NUGET_API_KEY"] = "fixture-key"
+                self.run_script("publish-partial-release.sh", accepted=False)
+                self.assert_no_publication()
+
+    def test_changed_validated_state_refuses(self):
+        for name, content in (("missing-packages", ""), ("existing-packages", ""),
+                              ("existing-package-sha256", "altered\n"), ("container-state", "present\n")):
+            with self.subTest(name=name):
+                self.destinations.update(packages=[self.ids[0]], container=False)
+                self.save()
+                self.prepare()
+                (self.root / "calls.jsonl").write_text("")
+                (self.root / "state" / name).write_text(content)
+                self.environment["NUGET_API_KEY"] = "fixture-key"
+                result = self.run_script("publish-partial-release.sh", accepted=False)
+                self.assertIn("state changed after package preparation", result.stderr)
+                self.assert_no_publication()
+
+    def test_missing_or_invalid_container_state_refuses_preparation(self):
+        for value in (None, "", "unknown"):
+            with self.subTest(value=value):
+                self.run_script("validate-partial-release-recovery.sh")
+                path = self.root / "state/container-state"
+                if value is None: path.unlink()
+                else: path.write_text(value)
+                (self.root / "calls.jsonl").write_text("")
+                self.run_script("prepare-partial-release.sh", accepted=False)
+                self.assertFalse(any(c[0] == "dotnet" for c in self.calls()))
+                self.assert_no_publication()
+
+    def test_inventory_mutation_during_build_cannot_become_prepared_evidence(self):
+        self.destinations["mutate_missing_on_build"] = True
+        self.save()
+        self.run_script("validate-partial-release-recovery.sh")
+        result = self.run_script("prepare-partial-release.sh", accepted=False)
+        self.assertIn("state changed during package preparation", result.stderr)
+        self.assertFalse((self.root / "state/prepared-state-sha256").exists())
+        self.assert_no_publication()
+
+    def test_failed_preparation_revokes_old_evidence_and_stops_publication(self):
+        for stage in ("build", "pack", "packages", "consumers"):
+            with self.subTest(stage=stage):
+                self.destinations["failure_stage"] = stage
+                self.environment["RECOVERY_FAILURE_STAGE"] = stage
+                self.save()
+                self.run_script("validate-partial-release-recovery.sh")
+                for name in ("prepared-state-sha256", "prepared-packages-sha256"):
+                    (self.root / "state" / name).write_text("stale accepted evidence")
+                before = self.destination_path.read_bytes()
+                self.run_script("prepare-partial-release.sh", accepted=False)
+                self.assertEqual(self.destination_path.read_bytes(), before)
+                self.assertFalse((self.root / "state/prepared-state-sha256").exists())
+                self.assertFalse((self.root / "state/prepared-packages-sha256").exists())
+                self.environment["NUGET_API_KEY"] = "fixture-key"
+                result = self.run_script("publish-partial-release.sh", accepted=False)
+                self.assertIn("Prepared package evidence is required", result.stderr)
+                self.assert_no_publication()
+
+    def test_destination_context_changes_refuse_before_clients(self):
+        self.prepare()
+        for name, value in (("GITHUB_REPOSITORY", "other/repository"),
+                            ("HEXALITH_ZOT_REGISTRY", "other.invalid"),
+                            ("HEXALITH_RECOVERY_CONTAINER_REPOSITORY", "other-image")):
+            with self.subTest(name=name):
+                old_value = self.environment.get(name)
+                self.environment[name] = value
+                self.environment["NUGET_API_KEY"] = "fixture-key"
+                (self.root / "calls.jsonl").write_text("")
+                result = self.run_script("publish-partial-release.sh", accepted=False)
+                self.assertIn("state changed after package preparation", result.stderr)
+                self.assertEqual(self.calls(), [])
+                if old_value is None: self.environment.pop(name)
+                else: self.environment[name] = old_value
+
+    def test_missing_empty_or_whitespace_key_refuses_before_reads(self):
+        self.prepare()
+        for key in (None, "", " \t\r\n"):
+            with self.subTest(key=key):
+                if key is None: self.environment.pop("NUGET_API_KEY", None)
+                else: self.environment["NUGET_API_KEY"] = key
+                (self.root / "calls.jsonl").write_text("")
+                result = self.run_script("publish-partial-release.sh", accepted=False)
+                self.assertIn("NUGET_API_KEY is required for missing packages", result.stderr)
+                self.assertEqual(self.calls(), [])
 
     def test_entirely_absent_release_refuses_and_preserves_previous_state(self):
         self.destinations["tag"] = False
@@ -235,6 +358,7 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         self.prepare()
         self.environment["NUGET_API_KEY"] = "fixture-key"
         self.manifest_path.write_text(self.manifest_path.read_text() + "\n")
+        (self.root / "calls.jsonl").write_text("")
         result = self.run_script("publish-partial-release.sh", accepted=False)
         self.assertIn("manifest changed", result.stderr)
         self.assertFalse(any(c[0] in ("dotnet", "docker") for c in self.calls()))
@@ -242,6 +366,7 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
     def test_missing_manifest_proof_refuses(self):
         self.prepare()
         (self.root / "state/package-manifest-sha256").unlink()
+        (self.root / "calls.jsonl").write_text("")
         self.run_script("publish-partial-release.sh", accepted=False)
         self.assertFalse(any(c[0] == "dotnet" for c in self.calls()))
 
@@ -270,6 +395,20 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         self.assertIn("manifest changed", result.stderr)
         self.assertFalse(any(c[:3] in (["gh", "release", "upload"], ["dotnet", "nuget", "push"])
                              or c[:2] == ["dotnet", "publish"] for c in self.calls()))
+
+    def test_preparation_evidence_is_rechecked_after_asset_reads(self):
+        for mutation in ("mutate_package_on_download", "mutate_state_on_download"):
+            with self.subTest(mutation=mutation):
+                self.release(2)
+                self.destinations[mutation] = True
+                self.save()
+                self.prepare()
+                self.environment["NUGET_API_KEY"] = "fixture-key"
+                (self.root / "calls.jsonl").write_text("")
+                result = self.run_script("publish-partial-release.sh", accepted=False)
+                self.assertIn("changed", result.stderr)
+                self.assert_no_publication()
+                self.destinations.pop(mutation)
 
     def test_existing_release_repair_needs_no_nuget_key(self):
         self.release(2)

@@ -1,0 +1,40 @@
+{
+  "baseline_commit": "1e60af449c1fdc3f9801cf57e8847e00faab2394",
+  "branch": "main",
+  "build": {
+    "configuration": "Debug",
+    "source_references": true,
+    "warnings": 0,
+    "errors": 0,
+    "exit_code": 0
+  },
+  "contracts": {
+    "total": 687,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "not_run": 0,
+    "seconds": 48.984,
+    "exit_code": 0
+  },
+  "offline_pipeline": {
+    "total": 27,
+    "passed": 27
+  },
+  "behavioral_mutation_controls": {
+    "total": 4,
+    "rejected": 4
+  },
+  "review": {
+    "findings": 7,
+    "patched": 7,
+    "remaining": 0,
+    "deferred": 0
+  },
+  "commitlint": {
+    "version": "21.2.3",
+    "message": "fix(release): resolve five deferred credential records\n",
+    "output": "\u29d7   --- input ---\nfix(release): resolve five deferred credential records\n\u2714   found 0 problems, 0 warnings\n",
+    "exit_code": 0
+  }
+}

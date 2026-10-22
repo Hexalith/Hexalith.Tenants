@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-552/DW-553/DW-557/DW-561/DW-566 closure (2026-10-22):** Recovery package preparation and existing-byte comparisons precede NuGet login, and publication binds prepared bytes/state/context with fail-closed checks. Both release workflows use immutable action commits and executable account/credential guard tests. Exactly five records close: all 657 IDs remain, 505 done/152 open across 142 maintenance rows. DW-560/DW-563, historical findings, unrelated records, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-552-553-557-561-566-validation-evidence.md).
+
 **DW-341/DW-573/DW-581/DW-607/DW-620 closure (2026-10-22):** Partial-release recovery binds its validated manifest through packing, publication and verification, requires existing publication evidence, verifies existing GitHub asset bytes and repairs only missing assets. NuGet account/login gates follow validated missing-package output. Exactly five records close: all 657 IDs remain, 500 done/157 open across 147 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-341-573-581-607-620-validation-evidence.md).
 
 **DW-220/DW-254/DW-319/DW-327/DW-469 closure (2026-10-22):** Configuration proof readers require explicit implementations, six legacy wrappers name their tracked replacements, legacy removal failures retain safe text, and reused identities preserve unverifiable audit state after pre-dispatch failure. Exactly five records close: all 657 IDs remain, 495 done/162 open across 152 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-220-254-319-327-469-validation-evidence.md).
@@ -188,14 +190,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 500 |
-| actionable | 86 |
+| done | 505 |
+| actionable | 81 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 7 |
 | uncertain | 26 |
 
-**Remaining: 157 open records across 147 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 152 open records across 142 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -280,10 +282,7 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-540 | P2 | Gap / awaiting-decision | Hexalith.Builds | Maintainer CI gating decision | Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow. |
 | DW-544 | P2 | Gap / actionable | unassigned | DW-527 version-aware dependency validation | Validate exception dependency versions against owning restore/catalog evidence and add wrong-version fixtures. |
 | DW-551 | P2 | Gap / awaiting-decision | unassigned | Bootstrap authority compatibility decision | Choose a Keycloak-only documented contract or configurable/discovered token endpoint with validation and compatibility tests. |
-| DW-552 | P2 | Gap / actionable | unassigned | Release recovery artifact-preparation boundary | Separate artifact preparation/hash verification from publication and exchange the temporary credential immediately before push. |
 | DW-554 | P2 | Gap / awaiting-decision | unassigned | Published package dependency-layer decision | Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures. |
-| DW-557 | P2 | Gap / actionable | unassigned | Protected publication test environment | Exercise enabled and disabled login-to-publish handoffs without publishing. |
-| DW-566 | P2 | Gap / actionable | unassigned | Isolated workflow guard fixture | Execute each account guard with populated, blank and whitespace values and assert exits. |
 | DW-569, DW-592 | P2 | Gap / actionable | identity/integration owner; other records unassigned | Keycloak-enabled integration topology; Keycloak-enabled workload token fixture | Obtain a workload client_credentials token and assert an authorized domain-service call without retaining tokens. |
 | DW-572 | P2 | Gap / actionable | unassigned | Separate blocking in-process route lane | Place generated-route ETag agreement coverage in a blocking test lane without changing the accepted advisory topology tier. |
 | DW-576 | P2 | Gap / actionable | Tenants quickstart documentation | Local human-account and administrator handoff contract | Document an executable local administrator-to-human grant runbook. |
@@ -345,10 +344,8 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-313 | P2 | Recommendation / actionable | unassigned | create identity/ownership contract | Address create retention/late completion before extracting reusable technical retention behavior. |
 | DW-408 | P2 | Recommendation / awaiting-decision | unassigned | Audit contract/versioning decision | Decide the unknown audit event compatibility contract, then update gateway behavior/tests and documentation to that single policy. |
 | DW-498 | P2 | Recommendation / awaiting-decision | unassigned | Product/authorization result-read policy | Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision. |
-| DW-553 | P2 | Recommendation / actionable | unassigned | Reviewed credential-action revision | Resolve the reviewed NuGet/login action revision and pin both invocations to that commit under release governance. |
 | DW-556 | P2 | Recommendation / awaiting-decision | unassigned | Bootstrap recovery product/operator policy | Choose bounded in-process retry with identity-preserving delivery semantics or document an explicit operator recovery path. |
 | DW-560 | P2 | Recommendation / actionable | unassigned | Release workflow ownership | Separate build/dependency execution from the job allowed to request publication OIDC tokens. |
-| DW-561 | P2 | Recommendation / actionable | unassigned | Review approved action revisions | Pin reviewed immutable action SHAs in publication jobs. |
 | DW-563 | P2 | Recommendation / actionable | unassigned | Release build/publication separation | Build and validate immutable packages before credential exchange; limit credential-bearing work to publication. |
 | DW-570 | P2 | Recommendation / actionable | release workflow owner | Approved release-provenance policy | Add the owning workflow closure gate or document an approved equivalent closure procedure. |
 | DW-584 | P2 | Recommendation / awaiting-decision | unassigned | Release-gate policy owner | Decide which separate exact-source workflow outcomes must block publication and document the gate. |

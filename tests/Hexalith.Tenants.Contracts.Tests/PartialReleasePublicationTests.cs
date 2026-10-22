@@ -460,6 +460,9 @@ public class PartialReleasePublicationTests
                     *) unexpected "docker $*" ;;
                   esac
                 }
+                unset NUGET_API_KEY
+                source "$FIXTURE_PREPARER" "$FIXTURE_VERSION"
+                export NUGET_API_KEY=fixture-key
                 source "$FIXTURE_PUBLISHER" "$FIXTURE_VERSION"
                 """;
             using Process process = new()
@@ -479,6 +482,7 @@ public class PartialReleasePublicationTests
             environment["FIXTURE_PACKER"] = Path.Combine(repoRoot, "scripts/pack-release-packages.py");
             environment["FIXTURE_MANIFEST"] = manifestPath;
             environment["HEXALITH_RELEASE_PACKAGE_MANIFEST"] = manifestPath;
+            environment["FIXTURE_PREPARER"] = Path.Combine(repoRoot, "scripts/prepare-partial-release.sh");
             environment["FIXTURE_PUBLISHER"] = Path.Combine(repoRoot, "scripts/publish-partial-release.sh");
             environment["FIXTURE_SHA"] = sourceSha;
             environment["FIXTURE_VERSION"] = version;
@@ -532,8 +536,15 @@ public class PartialReleasePublicationTests
             string[] calls = await File.ReadAllLinesAsync(callLog);
             List<string> expected = ["main", "build", "pack", "packages", "consumers"];
             expected.AddRange(existingIds.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
-            expected.Add("release-read");
+            expected.AddRange(ids.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
+            expected.AddRange(ids.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
             expected.Add("main");
+            if (response == "stable")
+            {
+                expected.Add("release-read");
+                expected.Add("main");
+                expected.AddRange(ids.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
+            }
             string? refusal = response switch
             {
                 "source-mismatch" => "Source changed during recovery.",
@@ -602,8 +613,10 @@ public class PartialReleasePublicationTests
                 (await File.ReadAllTextAsync(Path.Combine(stateDirectory, file.Key))).ShouldBe(file.Value);
             }
 
+            string[] preparedFiles = response is "stable" or "changed" or "empty" or "malformed" or "unavailable"
+                ? ["prepared-packages-sha256", "prepared-state-sha256"] : [];
             Directory.GetFiles(stateDirectory).Select(Path.GetFileName).Order(StringComparer.Ordinal)
-                .ShouldBe(originalState.Keys.Order(StringComparer.Ordinal));
+                .ShouldBe(originalState.Keys.Concat(preparedFiles).Order(StringComparer.Ordinal));
         }
         finally
         {

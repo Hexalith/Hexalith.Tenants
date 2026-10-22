@@ -31,13 +31,13 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.source_sha }}
           fetch-depth: 0
           submodules: false
           persist-credentials: false
-      - uses: actions/setup-dotnet@v6.0.0
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           global-json-file: global.json
       - uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8
@@ -58,6 +58,12 @@ jobs:
           HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
         run: bash scripts/validate-partial-release-recovery.sh "$RECOVERY_VERSION" "$RECOVERY_SOURCE_SHA"
+      - name: Prepare recovery packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RECOVERY_VERSION: ${{ inputs.version }}
+          GITHUB_SHA: ${{ inputs.source_sha }}
+        run: bash scripts/prepare-partial-release.sh "$RECOVERY_VERSION"
       - name: Require the Trusted Publishing account
         if: steps.recovery.outputs.needs-nuget == 'true'
         shell: bash
@@ -72,7 +78,7 @@ jobs:
       - name: Exchange GitHub OIDC token for a temporary NuGet key
         if: steps.recovery.outputs.needs-nuget == 'true'
         id: nuget-login
-        uses: NuGet/login@v1.2.0
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ vars.NUGET_USER }}
       - name: Publish missing release artifacts
