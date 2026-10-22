@@ -6252,7 +6252,7 @@ disposition: done
 pre-status-documentation-verification-date: 2026-10-12
 verification-date: 2026-10-22
 pre-status-documentation-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Models/CommandStatusResponse.cs:21-23 serializes Retryable, RecoveryReasonCode and DrainAttemptCount; docs/reference/command-api.md status-response field table at :317-325 still omits them.
-verification: Added retryable, recoveryReasonCode and drainAttemptCount to the owning command API response table, with nullable/unrecorded semantics, zero-attempt behavior and a source-backed warning that armed PublishFailed recovery can continue without Retry-After. DW-523 runtime alignment remains open.
+verification: Added retryable, recoveryReasonCode and drainAttemptCount to the owning command API response table, with nullable/unrecorded semantics, zero-attempt behavior and a source-backed warning that armed or durably tracked PublishFailed recovery can continue without Retry-After. DW-523 runtime alignment remains open.
 verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Models/CommandStatusResponse.cs
 pre-status-documentation-evidence-kind: verified-gap
 evidence-kind: verified-resolution

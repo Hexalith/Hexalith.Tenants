@@ -6,9 +6,9 @@ Date: 2026-10-22. Scope: command status and replay documentation only.
 
 - Tenants starting revision: `1ccdacd11acb27fa9b7055ea2c44c98828867489`.
 - Original EventStore gitlink: `5ce5f1d84b88c808cc8a526b9decf149de977e55`.
-- EventStore implementation base: `92b22bac631cd27f67e81e48e800459bd91af77b` (fetched main, clean before editing). The six target documents and status/replay controller models were unchanged between the original gitlink and this main base. EventStore main was fast-forwarded before editing so the owning commit can be pushed without rewriting shared history. The final Tenants gitlink necessarily includes those already-published ancestor commits.
-- A concurrent session committed and pushed the six owning documentation files as `92b22bac631cd27f67e81e48e800459bd91af77b` (`build: sync local changes via /pushall`) before this task committed them. The review target was updated to that exact committed range; no owning documentation was lost. The independently validated documentation-message candidate below was therefore not used for that external commit.
-- Owning changes are six Markdown documents in EventStore. Tenants owns the five ledger closures, build spec, this evidence and the gitlink update. No nested submodule was initialized or updated.
+- EventStore implementation base: `70b2206b531a71c883fbe2e4749047b399d26447` (fetched main, clean before editing). The six target documents and status/replay controller models were unchanged between the original gitlink and this main base. EventStore main was fast-forwarded before editing so the owning commit can be pushed without rewriting shared history. The final Tenants gitlink necessarily includes those already-published ancestor commits.
+- A concurrent session committed and pushed the six owning documentation files as `92b22bac631cd27f67e81e48e800459bd91af77b` (`build: sync local changes via /pushall`) before this task committed them. The review target was updated to that exact committed range; no owning documentation was lost. The independently validated documentation-message candidate below was not used for that external commit; it is reserved for this task's review follow-up commit.
+- Owning changes are seven Markdown documents in EventStore after the review consistency patch added the linked recovery guide. Tenants owns the five ledger closures, build spec, this evidence and the gitlink update. No nested submodule was initialized or updated.
 
 ## Closure matrix
 
@@ -119,3 +119,18 @@ Exit 0:
 docs: close five deferred command status records
 ✔   found 0 problems, 0 warnings
 ```
+
+## Independent review
+
+The configured Blind Hunter layer reviewed the owning range and root artifacts. No configured review layer was skipped. All six findings were checked against source and patched:
+
+1. Medium: retryable true also covers durable recovery awaiting reminder re-arm (`drainReminderArmed || recoveryEntryTracked` in both first-pass and resumed publication failure). Corrected reference wording and clarified that tracking supplies no active-reminder or retry-deadline guarantee.
+2. Medium: the linked recovery guide retained overly narrow true/null and terminal false descriptions. Reconciled all optional recovery-field meanings with the reference.
+3. Medium: first-domain-service advised retaining message identity but omitted it from three required-field-validated requests. Added distinct message IDs, a matching returned ID and Location/polling example.
+4. Medium: lifecycle diagram and text still described correlation as the status key. Changed them and the request/response example to distinguish message tracking from correlation tracing.
+5. Medium: concurrent external commit advancement caused this evidence to capture the owning documentation commit as the clean editing base. Restored the previously recorded canonical base `70b2206b531a71c883fbe2e4749047b399d26447`; kept `92b22bac631cd27f67e81e48e800459bd91af77b` as the first owning documentation revision.
+6. Medium: the neighboring rejectionEventType row incorrectly limited the marker to Rejected. Documented the first-pass/resumed eventful PublishFailed rejection marker and nullable drain advisories.
+
+A nonexistent method name in preliminary evidence was also corrected to `WriteDrainAdvisoryStatusAsync` during source checking. No findings were deferred.
+
+The concurrent session also captured the initial root artifacts and other submodule pointer advances in `1012e1e9a7a31c85a4df9c8ab08b2c37407c12b7`. This task's final commit preserves that external commit and records only the review closeout and its owning reference update.
