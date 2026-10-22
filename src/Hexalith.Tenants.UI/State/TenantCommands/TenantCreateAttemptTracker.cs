@@ -9,6 +9,9 @@ namespace Hexalith.Tenants.UI.State.TenantCommands;
 /// new circuit starts with no retained attempt, so the create flow treats a re-submit as a fresh attempt
 /// only when nothing is retained for that tenant id; when a handle is retained the flow refreshes its
 /// status and reuses the original message id instead of dispatching the same create twice.
+/// Complete create attempts use the shared tenant attempt store. Unlike the lifecycle tracker's
+/// bounded ownership policy, dispatched create ownership survives uncertainty without expiry;
+/// pending-status deadlines change recovery guidance and never abandon that admission.
 /// </remarks>
 public sealed class TenantCreateAttemptTracker
 {

@@ -9,6 +9,42 @@ namespace Hexalith.Tenants.UI.Tests.State;
 /// <summary>Verifies terminal truth and exact retained admission independently of renderer lifetime.</summary>
 public sealed class TenantRetainedCommandAttemptTests
 {
+    [Fact]
+    public void LegacyForgetCannotDiscardCompleteCreateAndStaleDeliveryCannotReleaseReplacement()
+    {
+        TenantAggregateCommandAdmissionGate gate = new();
+        using TenantCommandAttemptTracker attempts = new(gate);
+        TenantCreateAttemptTracker adapter = new(attempts);
+        object firstOwner = new();
+        TenantCreateCommandSnapshot sent = TenantCreateCommandSnapshot.Idle()
+            .RequestSent(new("tenant.alpha", "Original", null), "baseline", true,
+                attemptStartedAtUtc: DateTimeOffset.UnixEpoch) with { MessageId = "original" };
+        attempts.TryBegin("tenant.alpha", firstOwner, sent, out var first).ShouldBeTrue();
+        attempts.TryStartDelivery(first!, firstOwner).ShouldBeTrue();
+        attempts.Detach(first, firstOwner);
+        adapter.Remember("tenant.alpha", new("legacy", "legacy-correlation"));
+        adapter.Forget("tenant.alpha");
+        attempts.Find<TenantCreateCommandSnapshot>("tenant.alpha").ShouldBeSameAs(sent);
+        object replacementOwner = new();
+        attempts.TryAdopt<TenantCreateCommandSnapshot>("tenant.alpha", replacementOwner,
+            out var adopted, out var evidence).ShouldBeTrue();
+        adopted.ShouldBeSameAs(first);
+        evidence.ShouldBeSameAs(sent);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        TenantCreateCommandSnapshot rejected = sent with { State = TenantCommandLifecycleState.Rejected };
+        attempts.TryCompleteDelivery(first!, sent, rejected).ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        TenantCreateCommandSnapshot next = sent with { MessageId = "replacement", Intent = new("tenant.alpha", "New", null) };
+        attempts.TryBegin("tenant.alpha", replacementOwner, next, out var second).ShouldBeTrue();
+        attempts.TryStartDelivery(second!, replacementOwner).ShouldBeTrue();
+        attempts.TryCompleteDelivery(first!, sent, rejected).ShouldBeFalse();
+        attempts.TryUpdate(first!, rejected, rejected).ShouldBeFalse();
+        adapter.Forget("tenant.alpha");
+        attempts.Find<TenantCreateCommandSnapshot>("tenant.alpha").ShouldBeSameAs(next);
+        attempts.IsAttached(second!, replacementOwner).ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+    }
+
     [Theory]
     [InlineData(TenantCommandLifecycleState.Confirmed)]
     [InlineData(TenantCommandLifecycleState.Rejected)]

@@ -334,8 +334,10 @@ public sealed partial class TenantDetailSurfaceTests
             await cut.InvokeAsync(() => services.Notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", baseline.TenantId));
             await boundaryEntered.Task.WaitAsync(DefaultWaitTimeout);
             AddTenantMemberFlow oldFlow = cut.FindComponent<AddTenantMemberFlow>().Instance;
-            Task replayCompletion = ((TaskCompletionSource)typeof(AddTenantMemberFlow)
-                .GetField("_refreshCompletion", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(oldFlow)!).Task;
+            object drain = typeof(AddTenantMemberFlow)
+                .GetField("_statusRefreshDrain", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(oldFlow)!;
+            Task replayCompletion = ((TaskCompletionSource)drain.GetType()
+                .GetField("_completion", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(drain)!).Task;
             replayCompletion.IsCompleted.ShouldBeFalse();
             services.Admission.IsLocked(TenantCommandAggregateLock.ForTenant(baseline.TenantId)).ShouldBeTrue();
 

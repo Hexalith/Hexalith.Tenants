@@ -4578,4 +4578,5 @@
   <data name="Tenants.List.SortScope" xml:space="preserve">
     <value>Le tri concerne uniquement les locataires de la page actuelle, y compris les résultats de recherche. Changer le tri ramène à la première page. Les autres pages peuvent contenir des noms ou des statuts qui devraient apparaître avant dans cet ordre.</value>
   </data>
+  <data name="Tenants.Create.StatusWait.Expired" xml:space="preserve"><value>Le résultat de la création n’a toujours pas été vérifié à l’issue du délai d’attente. Conservez cette tentative et actualisez son statut plus tard.</value></data>
 </root>

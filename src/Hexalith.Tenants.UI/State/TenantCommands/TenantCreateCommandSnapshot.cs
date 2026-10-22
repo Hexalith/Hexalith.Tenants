@@ -28,6 +28,9 @@ public sealed record TenantCreateCommandSnapshot(
     TenantCommandAuditState AuditState = TenantCommandAuditState.NotStarted,
     TenantCommandFocusTarget FocusTarget = TenantCommandFocusTarget.Submit,
     TenantCommandLiveRegionPoliteness LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite) {
+    /// <summary>Maximum pending-status wait before recoverable uncertainty; unresolved ownership is retained.</summary>
+    internal static readonly TimeSpan MaximumPendingStatusWait = TimeSpan.FromMinutes(5);
+
     public static TenantCreateCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 
@@ -102,7 +105,22 @@ public sealed record TenantCreateCommandSnapshot(
         };
     }
 
-    public TenantCreateCommandSnapshot ApplyStatus(TenantCommandStatusResult status) {
+    /// <summary>Applies status with legacy behavior, without a pending-wait deadline.</summary>
+    /// <param name="status">The current status lookup result.</param>
+    /// <returns>Updated command evidence.</returns>
+    /// <remarks>Hosts enforcing bounded waiting must use the overload accepting their clock's observation time.</remarks>
+    public TenantCreateCommandSnapshot ApplyStatus(TenantCommandStatusResult status)
+        => ApplyStatusCore(status, null);
+
+    /// <summary>Applies status using the host clock without renewing the original attempt's pending wait.</summary>
+    /// <param name="status">The current status lookup result.</param>
+    /// <param name="observedAtUtc">The host-clock time of this observation.</param>
+    /// <returns>Updated evidence retaining the original command identity and admission.</returns>
+    public TenantCreateCommandSnapshot ApplyStatus(TenantCommandStatusResult status, DateTimeOffset observedAtUtc)
+        => ApplyStatusCore(status, observedAtUtc);
+
+    private TenantCreateCommandSnapshot ApplyStatusCore(TenantCommandStatusResult status, DateTimeOffset? observedAtUtc)
+    {
         ArgumentNullException.ThrowIfNull(status);
 
         if (State is TenantCommandLifecycleState.Confirmed or TenantCommandLifecycleState.Rejected
@@ -122,6 +140,24 @@ public sealed record TenantCreateCommandSnapshot(
                 SafeMessage = status.SafeMessage,
                 SafeMessageKey = status.SafeMessageKey,
                 RejectionCode = null,
+                AuditState = TenantCommandAuditStates.Unverifiable,
+                FocusTarget = TenantCommandFocusTarget.Refresh,
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+            };
+        }
+
+        bool awaitingStatus = status.IsPending || status.IsRetryableFailure
+            || status.Status is CommandStatus.Received or CommandStatus.Processing;
+        // The compatibility overload has no observation clock. Only clock-aware callers opt into waiting policy.
+        if (awaitingStatus && !HasCommandEventEvidence && observedAtUtc is { } observed
+            && (AttemptStartedAtUtc is not { } started || observed < started
+                || observed - started >= MaximumPendingStatusWait))
+        {
+            return this with
+            {
+                State = TenantCommandLifecycleState.UnableToVerify,
+                SafeMessage = null,
+                SafeMessageKey = "Tenants.Create.StatusWait.Expired",
                 AuditState = TenantCommandAuditStates.Unverifiable,
                 FocusTarget = TenantCommandFocusTarget.Refresh,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,

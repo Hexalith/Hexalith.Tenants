@@ -37,6 +37,57 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task TerminalRemovalDrainsQueuedManualRecoveryAfterParentRefreshFailure(bool rejected)
+    {
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = rejected ? new(CommandStatus.Rejected, HasVerifiedCommandIdentity: true)
+                : new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+                    { CommittedEventSequence = 2 },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderConfirmedRemoval(gateway);
+        TenantCommandLifecycleState terminal = rejected ? TenantCommandLifecycleState.Rejected : TenantCommandLifecycleState.Confirmed;
+        cut.Instance.Snapshot.State.ShouldBe(terminal);
+        string? originalMessage = cut.Instance.Snapshot.MessageId;
+        TaskCompletionSource entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource release = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int reloads = 0;
+        cut.Render(parameters => parameters.Add(p => p.OnProjectionRefreshRequested, async () =>
+        {
+            if (++reloads == 1)
+            {
+                entered.TrySetResult();
+                await release.Task;
+                throw new InvalidOperationException("held parent refresh failed");
+            }
+        }));
+        MethodInfo refresh = typeof(RemoveTenantMemberFlow).GetMethod("RefreshCommandStatusAsync",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+        Task owner = cut.InvokeAsync(() => (Task)refresh.Invoke(cut.Instance, [true, true])!);
+        try
+        {
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            Task manual = cut.InvokeAsync(() => (Task)refresh.Invoke(cut.Instance, [true, true])!);
+            manual.IsCompleted.ShouldBeFalse();
+            release.TrySetResult();
+            await Should.ThrowAsync<InvalidOperationException>(() => owner.WaitAsync(TimeSpan.FromSeconds(5)));
+            await Should.ThrowAsync<InvalidOperationException>(() => manual.WaitAsync(TimeSpan.FromSeconds(5)));
+            reloads.ShouldBe(2);
+            cut.Instance.Snapshot.State.ShouldBe(terminal);
+            cut.Instance.Snapshot.MessageId.ShouldBe(originalMessage);
+            gateway.RemoveMemberCallCount.ShouldBe(1);
+        }
+        finally
+        {
+            release.TrySetResult();
+        }
+    }
+
     public RemoveTenantMemberFlowTests()
     {
         var viewport = new TenantHighImpactViewportObservation();

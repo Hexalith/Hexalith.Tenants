@@ -31,6 +31,115 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class CreateTenantFlowTests : FluentBunitContext
 {
+    [Theory]
+    [InlineData("en", "mounted")]
+    [InlineData("fr", "mounted")]
+    [InlineData("en", "remount")]
+    [InlineData("fr", "remount")]
+    [InlineData("en", "ambiguous")]
+    [InlineData("fr", "ambiguous")]
+    [InlineData("en", "rejected")]
+    [InlineData("fr", "rejected")]
+    public async Task HostClockBoundsPendingCreateWithoutRenewingOrReleasingItsRetainedAttempt(string culture, string scenario)
+    {
+        ManualTimeProvider clock = new();
+        Services.AddSingleton<TimeProvider>(clock);
+        TenantCommandStatusResult status = TenantCommandStatusResult.Pending("Pending");
+        TaskCompletionSource<TenantCommandSubmissionResult> heldDelivery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int deliveries = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            SubmissionAsync = (_, messageId) => scenario == "ambiguous" && ++deliveries == 1
+                ? heldDelivery.Task : Task.FromResult(TenantCommandSubmissionResult.Accepted(messageId!, "correlation-123")),
+            StatusAsync = _ => Task.FromResult(status),
+        };
+        IStringLocalizer resources = new ResourceManagerStringLocalizerFactory(
+            Microsoft.Extensions.Options.Options.Create(new LocalizationOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance).Create(typeof(TenantsResources));
+        CultureBoundTenantsLocalizer localizer = new(resources, CultureInfo.GetCultureInfo(culture));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(localizer);
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        string baseline = "baseline";
+        void Configure(ComponentParameterCollectionBuilder<CreateTenantFlow> parameters)
+            => parameters.Add(p => p.IsAuthorized, true)
+                .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+                .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+                .Add(p => p.BaselineTenantAbsent, true)
+                .Add(p => p.BaselineProjectionVersion, baseline);
+        IRenderedComponent<CascadingValue<bool>> host = Render<CascadingValue<bool>>(parameters => parameters
+            .Add(p => p.Name, "ClockFlowMounted").Add(p => p.Value, true)
+            .AddChildContent<CreateTenantFlow>(Configure));
+        IRenderedComponent<CreateTenantFlow> cut = host.FindComponent<CreateTenantFlow>();
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        Task submit = cut.Find("form").SubmitAsync();
+        if (scenario == "ambiguous")
+        {
+            cut.WaitForAssertion(() => gateway.CreateTenantCallCount.ShouldBe(1));
+            clock.Advance(TimeSpan.FromMinutes(5));
+            heldDelivery.SetResult(TenantCommandSubmissionResult.Ambiguous(gateway.LastMessageId!,
+                "Tenants.Commands.Unavailable.InvalidTrackingReference"));
+        }
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        TenantCreateCommandSnapshot original = cut.Instance.Snapshot;
+        original.AttemptStartedAtUtc.ShouldBe(DateTimeOffset.UnixEpoch);
+        original.State.ShouldBe(scenario == "ambiguous" ? TenantCommandLifecycleState.RequestSent : TenantCommandLifecycleState.Accepted);
+        if (scenario == "remount")
+        {
+            await host.InvokeAsync(() => host.Render(parameters => parameters
+                .Add(p => p.Name, "ClockFlowMounted").Add(p => p.Value, true)
+                .Add(p => p.ChildContent, (RenderFragment)(_ => { }))));
+            host.FindComponents<CreateTenantFlow>().ShouldBeEmpty();
+            clock.Advance(TimeSpan.FromMinutes(5));
+            baseline = "replacement-baseline";
+            host.Render(parameters => parameters.Add(p => p.Name, "ClockFlowMounted").Add(p => p.Value, true)
+                .AddChildContent<CreateTenantFlow>(Configure));
+            cut = host.FindComponent<CreateTenantFlow>();
+            cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+            cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+            await cut.Find("form").SubmitAsync();
+        }
+        else if (scenario == "ambiguous")
+        {
+            await cut.Find("form").SubmitAsync();
+        }
+        else
+        {
+            clock.Advance(TimeSpan.FromMinutes(5));
+        }
+        await cut.Find("[data-testid='tenants-create-refresh']").ClickAsync(new MouseEventArgs());
+        TenantCreateCommandSnapshot expired = cut.Instance.Snapshot;
+        expired.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        LocalizedString explanation = localizer["Tenants.Create.StatusWait.Expired"];
+        explanation.ResourceNotFound.ShouldBeFalse();
+        cut.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldBe(explanation.Value);
+        expired.MessageId.ShouldBe(original.MessageId);
+        expired.CorrelationId.ShouldBe("correlation-123");
+        expired.Intent.ShouldBe(original.Intent);
+        expired.BaselineProjectionVersion.ShouldBe(original.BaselineProjectionVersion);
+        expired.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().Find<TenantCreateCommandSnapshot>("tenant.alpha")
+            .ShouldBe(expired);
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        string key = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        gate.IsLocked(key).ShouldBeTrue();
+        status = scenario == "rejected" ? new(CommandStatus.Rejected, HasVerifiedCommandIdentity: true)
+            : new(CommandStatus.EventsStored, EventCount: 1, HasVerifiedCommandIdentity: true);
+        object foreignOwner = new();
+        string foreignKey = TenantCommandAggregateLock.ForTenant("tenant.beta");
+        gate.TryAcquireLease(foreignKey, foreignOwner, out TenantAggregateCommandLease? foreignLease).ShouldBeTrue();
+        await cut.Find("[data-testid='tenants-create-refresh']").ClickAsync(new MouseEventArgs());
+        cut.Instance.Snapshot.State.ShouldBe(scenario == "rejected" ? TenantCommandLifecycleState.Rejected : TenantCommandLifecycleState.ProjectionPending);
+        cut.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        gate.IsLocked(key).ShouldBe(scenario != "rejected");
+        gate.IsOwnedBy(foreignKey, foreignLease!).ShouldBeTrue();
+        foreignLease!.CurrentOwner.ShouldBeSameAs(foreignOwner);
+        foreignLease!.TryAbandonBeforeDispatch(foreignOwner).ShouldBeTrue();
+        gateway.CreateTenantCallCount.ShouldBe(scenario == "ambiguous" ? 2 : 1);
+        gateway.LastMessageId.ShouldBe(original.MessageId);
+    }
+
     [Fact]
     public void Audit_return_restores_create_command_state_once_within_the_circuit()
     {
@@ -1404,6 +1513,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
 
         public Func<CreateTenant, string?, TenantCommandSubmissionResult>? SubmissionFactory { get; init; }
 
+        public Func<CreateTenant, string?, Task<TenantCommandSubmissionResult>>? SubmissionAsync { get; init; }
+
         public CreateTenant? LastRequest { get; private set; }
 
         public int CreateTenantCallCount { get; private set; }
@@ -1420,7 +1531,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             LastMessageId = messageId;
             CreateTenantCallCount++;
             LastRequest = request;
-            return Task.FromResult(SubmissionFactory is null ? Submission : SubmissionFactory(request, messageId));
+            return SubmissionAsync is null
+                ? Task.FromResult(SubmissionFactory is null ? Submission : SubmissionFactory(request, messageId))
+                : SubmissionAsync(request, messageId);
         }
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)

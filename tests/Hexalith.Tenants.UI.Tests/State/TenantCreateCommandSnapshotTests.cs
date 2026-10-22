@@ -12,6 +12,66 @@ namespace Hexalith.Tenants.UI.Tests.State;
 
 public sealed class TenantCreateCommandSnapshotTests
 {
+    [Theory]
+    [InlineData("pending", -1)]
+    [InlineData("pending", 0)]
+    [InlineData("pending", 1)]
+    [InlineData("retryable", -1)]
+    [InlineData("retryable", 0)]
+    [InlineData("retryable", 1)]
+    [InlineData("received", -1)]
+    [InlineData("received", 0)]
+    [InlineData("received", 1)]
+    [InlineData("processing", -1)]
+    [InlineData("processing", 0)]
+    [InlineData("processing", 1)]
+    public void PendingWaitUsesOriginalTimestampAndKeepsRecoverableIdentity(string kind, int boundaryTicks)
+    {
+        DateTimeOffset started = DateTimeOffset.UnixEpoch;
+        TenantCreateCommandSnapshot original = TenantCreateCommandSnapshot.Idle()
+            .RequestSent(new("tenant.alpha", "Alpha", null), "baseline", true, attemptStartedAtUtc: started)
+            .Accepted(TenantCommandSubmissionResult.Accepted("original", "correlation"));
+        TenantCommandStatusResult status = kind switch
+        {
+            "pending" => TenantCommandStatusResult.Pending("Pending"),
+            "retryable" => TenantCommandStatusResult.RetryableFailure("Retry"),
+            "received" => new(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+            _ => new(CommandStatus.Processing, HasVerifiedCommandIdentity: true),
+        };
+        TenantCreateCommandSnapshot result = original.ApplyStatus(status,
+            started + TenantCreateCommandSnapshot.MaximumPendingStatusWait + TimeSpan.FromTicks(boundaryTicks));
+        result.State.ShouldBe(boundaryTicks < 0 ? TenantCommandLifecycleState.Accepted : TenantCommandLifecycleState.UnableToVerify);
+        result.Intent.ShouldBe(original.Intent);
+        result.MessageId.ShouldBe(original.MessageId);
+        result.CorrelationId.ShouldBe(original.CorrelationId);
+        result.AttemptStartedAtUtc.ShouldBe(started);
+        if (boundaryTicks >= 0)
+        {
+            result.SafeMessageKey.ShouldBe("Tenants.Create.StatusWait.Expired");
+            result.AuditState.ShouldBe(TenantCommandAuditStates.Unverifiable);
+            result.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        }
+        result.ApplyStatus(new(CommandStatus.EventsStored, EventCount: 1, HasVerifiedCommandIdentity: true),
+            started.AddHours(1)).State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+    }
+
+    [Fact]
+    public void RepeatedPendingObservationsCannotRenewCreateWaitOrExpireStoredEventEvidence()
+    {
+        DateTimeOffset started = DateTimeOffset.UnixEpoch;
+        TenantCreateCommandSnapshot original = TenantCreateCommandSnapshot.Idle()
+            .RequestSent(new("tenant.alpha", "Alpha", null), null, true, attemptStartedAtUtc: started)
+            .Accepted(TenantCommandSubmissionResult.Accepted("original", "correlation"));
+        TenantCommandStatusResult pending = TenantCommandStatusResult.Pending("Pending");
+        TenantCreateCommandSnapshot first = original.ApplyStatus(pending, started.AddMinutes(4));
+        first.ApplyStatus(pending, started.AddMinutes(5)).State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        TenantCreateCommandSnapshot stored = original.ApplyStatus(new(CommandStatus.EventsStored,
+            EventCount: 1, HasVerifiedCommandIdentity: true), started);
+        stored.ApplyStatus(pending, started.AddHours(1)).State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        original.ApplyStatus(pending, started.AddTicks(-1)).State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        (original with { AttemptStartedAtUtc = null }).ApplyStatus(pending, started).State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+    }
+
     [Fact]
     public void Completed_status_requires_projection_evidence_before_confirmation()
     {

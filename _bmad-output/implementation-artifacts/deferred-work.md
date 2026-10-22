@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-248/DW-255/DW-269/DW-276/DW-313 closure (2026-10-22):** Membership status recovery shares an iterative generation-aware drain; create status waiting uses the injected clock without expiring unresolved ownership. Current audit-availability values are explicit; held-lease refusal and shared complete create retention are qualified. Exactly five records close: all 657 IDs remain, 525 done/132 open across 122 maintenance rows. Historical findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-248-255-269-276-313-validation-evidence.md).
+
 **DW-332/DW-388/DW-400/DW-409/DW-415 closure (2026-10-22):** Controlled render, authorization, published-delivery and held-projection interleavings qualify coherent action guidance and exact aggregate ownership. Obsolete removal I/O cancels, obsolete subscriptions detach, accepted grant evidence resumes once, and stale removal bases retain current unresolved ownership. Exactly five records close: all 657 IDs remain, 520 done/137 open across 127 maintenance rows. Original findings, unrelated records, dependency pointers and release holds remain preserved. See [validation evidence](dw-332-388-400-409-415-validation-evidence.md).
 
 **DW-602/DW-603/DW-610/DW-611/DW-619 closure (2026-10-22):** Requested summary bounds precede enrichment, timed-out refresh callbacks retain single-flight catch-up, membership paging rejects repeated transitions, and EN/FR sorting controls disclose current-page ordering. Exactly five records close: all 657 IDs remain, 515 done/142 open across 132 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-602-603-610-611-619-validation-evidence.md).
@@ -2229,16 +2231,24 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Refresh-coalescing re-enters recursively instead of iterating. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Refresh-coalescing re-enters recursively instead of iterating. evidence: RefreshCommandStatusAsync calls itself after the finally block when a request arrived during the in-flight release window. Under a sustained nudge stream this grows the async frame chain without bound. The dropped-request windows reported by review did not reproduce on inspection. Duplicated verbatim across AddTenantMemberFlow, ChangeTenantMemberRoleFlow and RemoveTenantMemberFlow, so any rewrite should extract a shared helper.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still recursively re-enter RefreshCommandStatusAsync after the finally release window; continuous nudges can grow the async chain.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-evidence-kind: recommendation
+pre-command-recovery-status: open
+status: done 2026-10-22
+pre-command-recovery-disposition: actionable
+disposition: done
+pre-command-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still recursively re-enter RefreshCommandStatusAsync after the finally release window; continuous nudges can grow the async chain.
+verification: All three membership flows use TenantMembershipStatusRefreshDrain. Controlled queued/faulted/generation/sustained-nudge tests qualify iterative batches and manual projection intent; removal retains terminal audit recovery. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
+pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipStatusRefreshDrain.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipStatusRefreshDrainTests.cs
+pre-command-recovery-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
-dependencies: membership coalescer design
-next-action: Replace recursive tail replay with an iterative shared drain without dropping refresh intent.
+pre-command-recovery-dependencies: membership coalescer design
+dependencies: none
+pre-command-recovery-next-action: Replace recursive tail replay with an iterative shared drain without dropping refresh intent.
+next-action: None; closed by the command recovery safety batch.
 related: DW-245, DW-265, DW-290
 
 ### DW-249: AttemptStartedAtUtc and hasQualifyingAuditProvenance are dead in production for metadata; the snapshot test pins a branch no production call site can reach
@@ -2293,18 +2303,26 @@ location: AttemptStartedAtUtc
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: `AttemptStartedAtUtc` ships on the public `TenantCreateCommandSnapshot` record but is never read, and defaults via `DateTimeOffset.UtcNow` instead of an injected clock. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: `AttemptStartedAtUtc` ships on the public `TenantCreateCommandSnapshot` record but is never read, and defaults via `DateTimeOffset.UtcNow` instead of an injected clock. evidence: The audit-provenance branch it feeds (`HasQualifyingAuditProvenance`) is never called for create and is already recorded as deferred work from the 2026-08-08 review; removing or wiring the field belongs with that slice.
-status: open
+pre-command-recovery-status: open
+status: done 2026-10-22
 decision: 2026-08-27 Wire injected timing — Inject a clock, stamp create attempts deterministically, and consume AttemptStartedAtUtc in bounded retained-attempt or provenance behavior while preserving the public member.
 decision: 2026-08-27 Wire injected timing — Inject a clock, stamp create attempts deterministically, and consume AttemptStartedAtUtc in bounded retained-attempt or provenance behavior while preserving the public member.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs TenantCreateCommandSnapshot still stamps AttemptStartedAtUtc with DateTimeOffset.UtcNow; CreateTenantFlow.razor has no injected clock or consumption of that field. Existing 2026-08-27 injected-timing decision remains pending.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-evidence-kind: recommendation
+pre-command-recovery-disposition: actionable
+disposition: done
+pre-command-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs TenantCreateCommandSnapshot still stamps AttemptStartedAtUtc with DateTimeOffset.UtcNow; CreateTenantFlow.razor has no injected clock or consumption of that field. Existing 2026-08-27 injected-timing decision remains pending.
+verification: CreateTenantFlow supplies host TimeProvider UTC timestamps at dispatch and status observation. The original AttemptStartedAtUtc bounds missing/transient status waiting to five minutes and recoverable UnableToVerify without releasing admission. Boundary, repeated-wait, stored-event, later-recovery and shipped EN/FR component tests qualify this behavior. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
+pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCreateCommandSnapshotTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs
+pre-command-recovery-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
+pre-command-recovery-dependencies: none
 dependencies: none
-next-action: Inject the chosen clock and consume timing in bounded retained create behavior while preserving the public member.
+pre-command-recovery-next-action: Inject the chosen clock and consume timing in bounded retained create behavior while preserving the public member.
+next-action: None; closed by the command recovery safety batch.
 related: DW-313
 
 ### DW-256: `CreateTenantFlow.ApplyProjectionEvidence` has no callers in `src/` or `tests/` and bypasses `SetSnapshot`, so it would not honour the assertive-focus rule if wired
@@ -2448,16 +2466,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantAuditAvailability.cs:5-11
 reason: The legacy ledger defers this issue: Inserting `Available` mid-enum shifts `MissingSupport`'s numeric value. Original context is preserved in legacy-detail.
 legacy-detail: - summary: Inserting `Available` mid-enum shifts `MissingSupport`'s numeric value. evidence: `TenantAuditAvailability.cs:5-11`. Harmless today (no numeric persistence or interop), but it makes the enum unsafe to serialize by value later.
-status: open
-disposition: accepted-limitation
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs still places Available before MissingSupport with implicit values. No numeric persistence/interoperability usage is established; the original finding explicitly records a harmless historical shift rather than an active serialized contract.
-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs
-evidence-kind: accepted-limitation
+pre-command-recovery-status: open
+status: done 2026-10-22
+pre-command-recovery-disposition: accepted-limitation
+disposition: done
+pre-command-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs still places Available before MissingSupport with implicit values. No numeric persistence/interoperability usage is established; the original finding explicitly records a harmless historical shift rather than an active serialized contract.
+verification: Explicit values preserve the current Pending=0, Delayed=1, Unavailable=2, Available=3, MissingSupport=4 observations, with five contract checks. The historical shift remains recorded; no unsupported numeric persistence migration is claimed. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
+pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantAuditAvailabilityStateTests.cs
+pre-command-recovery-evidence-kind: accepted-limitation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
+pre-command-recovery-dependencies: none
 dependencies: none
-next-action: Assign/pin values before introducing numeric serialization; retain the historical observation.
+pre-command-recovery-next-action: Assign/pin values before introducing numeric serialization; retain the historical observation.
+next-action: None; closed by the command recovery safety batch.
 related: none
 
 ### DW-270: French resource additions are inconsistently accented against their neighbours
@@ -2513,16 +2539,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantDetailPage.razor:1681-1686
 reason: The legacy ledger defers this issue: `_commandInFlight` is handled inconsistently across the two lease-refusal paths in one method. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `_commandInFlight` is handled inconsistently across the two lease-refusal paths in one method. evidence: `TenantDetailPage.razor:1681-1686` returns `false` leaving a stale `true`; `:1705-1709` explicitly clears it first. The removed code carried a comment explaining the no-lockable-identity path; it was dropped rather than preserved or refuted.
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor SetCommandActivityLeaseAsync still returns false for missing identity/gate without clearing _commandInFlight, while contention clears it. The owning-lease invariants may make unconditional clearing incorrect; no reproduced stale-true path is established.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-evidence-kind: unverified-risk
+pre-command-recovery-status: open
+status: done 2026-10-22
+pre-command-recovery-disposition: uncertain
+disposition: done
+pre-command-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor SetCommandActivityLeaseAsync still returns false for missing identity/gate without clearing _commandInFlight, while contention clears it. The owning-lease invariants may make unconditional clearing incorrect; no reproduced stale-true path is established.
+verification: Five held-lease cases exercise another surface with same, mismatched, empty, whitespace and null tenant identity. Refusal preserves _commandInFlight, exact holder and gate owner; refused release cannot free admission, and the real owner releases normally. The historical stale-true risk is disproved for supported held ownership, with the intentional asymmetry documented. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
+pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+pre-command-recovery-evidence-kind: unverified-risk
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
+pre-command-recovery-dependencies: none
 dependencies: none
-next-action: Hold an existing lease and exercise each refusal path to establish the intended flag/owner behavior.
+pre-command-recovery-next-action: Hold an existing lease and exercise each refusal path to establish the intended flag/owner behavior.
+next-action: None; closed by the command recovery safety batch.
 related: none
 
 ### DW-277: A `TenantId` change does not notify non-keyed command surfaces that their lease was revoked
@@ -2823,16 +2857,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs:24-70; TenantsUiServiceCollectionExtensions.cs:98
 reason: The legacy ledger defers this issue: `TenantLifecycleAttemptTracker` reimplements `TenantCreateAttemptTracker` without sharing. Original context is preserved in legacy-detail.
 legacy-detail: - **`TenantLifecycleAttemptTracker` reimplements `TenantCreateAttemptTracker` without sharing** — `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs:24-70` is the same circuit-scoped, `StringComparer.Ordinal`-keyed, lock-guarded per-tenant retention concept, but with no expiry, no terminal tombstones, and a `Forget(tenantId)` carrying exactly the late-completion race the new tracker's docs warn about. Both are registered side by side (`TenantsUiServiceCollectionExtensions.cs:98`). Pre-existing; the create flow is Story 3.1 territory and sharing a generic base is a cross-story refactor. Either share a base or file the create-flow gap explicitly — two divergent answers to one question is the worse outcome.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs still stores only handles and Forget(tenantId), without expiry/tombstones/intent; TenantLifecycleAttemptTracker.cs has bounded snapshots and dispatch-identity ownership. The trackers remain divergent.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
-evidence-kind: recommendation
+pre-command-recovery-status: open
+status: done 2026-10-22
+pre-command-recovery-disposition: actionable
+disposition: done
+pre-command-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs still stores only handles and Forget(tenantId), without expiry/tombstones/intent; TenantLifecycleAttemptTracker.cs has bounded snapshots and dispatch-identity ownership. The trackers remain divergent.
+verification: The existing create adapter uses the shared complete TenantCommandAttemptTracker. Legacy Forget cannot discard complete intent/timing/baseline or admission, replacement adopts exact retained evidence, and stale delivery/update cannot replace or release a successor. Lifecycle-specific bounded ownership remains a deliberate separate policy; dispatched create ownership never expires. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
+pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAttemptTracker.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantRetainedCommandAttemptTests.cs
+pre-command-recovery-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P2
 owner: unassigned
-dependencies: create identity/ownership contract
-next-action: Address create retention/late completion before extracting reusable technical retention behavior.
+pre-command-recovery-dependencies: create identity/ownership contract
+dependencies: none
+pre-command-recovery-next-action: Address create retention/late completion before extracting reusable technical retention behavior.
+next-action: None; closed by the command recovery safety batch.
 related: DW-255, DW-284, DW-288
 
 ### DW-314: `TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it

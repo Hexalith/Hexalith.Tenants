@@ -2740,8 +2740,13 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         admissionGate.IsLocked(lockKey).ShouldBeFalse();
     }
 
-    [Fact]
-    public async Task A_second_command_surface_cannot_share_or_release_the_aggregate_lease_of_another()
+    [Theory]
+    [InlineData("tenant.alpha")]
+    [InlineData("tenant.beta")]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public async Task A_second_command_surface_cannot_share_or_release_the_aggregate_lease_of_another(string? refusedTenant)
     {
         // Regression for the multi-owner lease: the re-acquire branch used to grant the lease to any surface
         // once the key matched, so whichever surface finished first released the aggregate while the other
@@ -2771,13 +2776,18 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         System.Reflection.MethodInfo leaseMethod = typeof(TenantDetailPage)
             .GetMethod("SetCommandActivityLeaseAsync", Flags)!;
         bool sharedByOtherSurface = await cut.InvokeAsync(
-            () => (Task<bool>)leaseMethod.Invoke(cut.Instance, ["tenant.alpha", true, metadataOwner])!);
+            () => (Task<bool>)leaseMethod.Invoke(cut.Instance, [refusedTenant, true, metadataOwner])!);
 
         sharedByOtherSurface.ShouldBeFalse();
+        typeof(TenantDetailPage).GetField("_commandInFlight", Flags)!.GetValue(cut.Instance).ShouldBe(true);
+        typeof(TenantDetailPage).GetField("_aggregateLeaseHolder", Flags)!.GetValue(cut.Instance)
+            .ShouldBeSameAs(typeof(TenantDetailPage).GetField("_membershipLeaseOwner", Flags)!.GetValue(cut.Instance));
+        object admissionOwner = typeof(TenantDetailPage).GetField("_commandLockOwner", Flags)!.GetValue(cut.Instance)!;
+        admissionGate.IsOwnedBy(lockKey, admissionOwner).ShouldBeTrue();
 
         // The refused surface reporting completion must not free a lock it never held.
         _ = await cut.InvokeAsync(
-            () => (Task<bool>)leaseMethod.Invoke(cut.Instance, ["tenant.alpha", false, metadataOwner])!);
+            () => (Task<bool>)leaseMethod.Invoke(cut.Instance, [refusedTenant, false, metadataOwner])!);
         admissionGate.IsLocked(lockKey).ShouldBeTrue();
 
         // The real holder still releases it.

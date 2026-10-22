@@ -605,6 +605,8 @@
         _description = value;
     }
 
+    private TimeProvider Clock => Services.GetService<TimeProvider>() ?? TimeProvider.System;
+
     private bool CanRetryDelivery
         => !_isSubmitting && _snapshot.State is TenantCommandLifecycleState.RequestSent
             && _snapshot.MessageId is not null && _snapshot.CorrelationId is null
@@ -738,7 +740,8 @@
         Attempts.Detach(_retainedAttempt, this);
         _retainedAttempt = null;
         _returnStateConsumed = false;
-        _snapshot = TenantCreateCommandSnapshot.Idle().RequestSent(request, BaselineProjectionVersion, BaselineTenantAbsent);
+        _snapshot = TenantCreateCommandSnapshot.Idle().RequestSent(
+            request, BaselineProjectionVersion, BaselineTenantAbsent, attemptStartedAtUtc: Clock.GetUtcNow());
         if (!Attempts.TryBegin(request.TenantId, this, _snapshot, out _retainedAttempt))
         {
             SetSnapshot(TenantCreateCommandSnapshot.Blocked(Localizer["Tenants.Commands.Unavailable.AggregateInFlight"].Value,
@@ -889,7 +892,7 @@
             ? TenantCommandStatusResult.Unknown(Localizer["Tenants.Create.Unavailable.CommandSurface"].Value)
             : await gateway.GetStatusAsync(new TenantCommandTrackingHandle(expected.MessageId, expected.CorrelationId, expected.Intent?.TenantId)
                 { ExpectedDomain = TenantIdentity.Domain }, CancellationToken.None).ConfigureAwait(false);
-        if (!PublishResult(attempt, generation, expected, expected.ApplyStatus(status)))
+        if (!PublishResult(attempt, generation, expected, expected.ApplyStatus(status, Clock.GetUtcNow())))
         {
             return;
         }

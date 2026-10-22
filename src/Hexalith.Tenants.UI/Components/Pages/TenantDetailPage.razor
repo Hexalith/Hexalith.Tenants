@@ -3329,6 +3329,8 @@
                 || !string.Equals(leaseTenantId, TenantId, StringComparison.Ordinal)
                 || gate is null)
             {
+                // A refused callback does not own any existing activity. Preserve the current holder's
+                // flag and admission; only its matching release may clear them.
                 return false;
             }
 
