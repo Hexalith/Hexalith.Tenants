@@ -306,13 +306,15 @@ jobs:
       issues: write
       pull-requests: write
     env:
-      HEXALITH_BUILDS_EXECUTION_SHA: 53d53ae42abf7c87d385a078ab260531480bbf8a
+      HEXALITH_BUILDS_EXECUTION_SHA: 22a578b576a515d2af214fe81859447fffc97981
       HEXALITH_RELEASE_ENVIRONMENT: production
       HEXALITH_RELEASE_SOURCE_BRANCH: main
       HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml
       HEXALITH_RELEASE_PACKAGE_MANIFEST: tools/release-packages.json
       # Declared rather than counted from the manifest so an inventory change fails closed.
       HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT: '5'
+      # Normal protected release; no corrective reservation or one-use authority inputs.
+      HEXALITH_RELEASE_REQUIRE_AUTHORITY: 'false'
       HEXALITH_CONTAINER_PROJECTS: |
         src/Hexalith.Tenants/Hexalith.Tenants.csproj|tenants
     # CI (the verify-source gate above) already tested this exact head, so the release path
