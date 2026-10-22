@@ -134,3 +134,18 @@ The configured Blind Hunter layer reviewed the owning range and root artifacts. 
 A nonexistent method name in preliminary evidence was also corrected to `WriteDrainAdvisoryStatusAsync` during source checking. No findings were deferred.
 
 The concurrent session also captured the initial root artifacts and other submodule pointer advances in `1012e1e9a7a31c85a4df9c8ab08b2c37407c12b7`. This task's final commit preserves that external commit and records only the review closeout and its owning reference update.
+
+## Final review validation and publication
+
+Final seven-page commands:
+
+```bash
+npx --yes markdownlint-cli2 docs/reference/command-api.md docs/guides/security-model.md docs/concepts/command-lifecycle.md docs/getting-started/first-domain-service.md docs/brownfield/api-contracts.md docs/brownfield/architecture.md docs/operations/drain-failure-reason-codes.md
+lychee --config /tmp/tenants-dw-status-lychee.toml --offline docs/reference/command-api.md docs/guides/security-model.md docs/concepts/command-lifecycle.md docs/getting-started/first-domain-service.md docs/brownfield/api-contracts.md docs/brownfield/architecture.md docs/operations/drain-failure-reason-codes.md
+```
+
+Both exit 0. Lint: seven files, zero issues. Local links: 83 total, 44 unique, 69 OK, zero errors, 14 existing exclusions. A Python JSON/identifier check also passed: all three first-domain-service requests carry distinct valid required message identities, the first response matches its request identity/correlation, and the lifecycle response retains its request identity. `git diff --check` passed in both owners after the patches.
+
+Final owning revision: `f4df781cb7247c6a5f7549106b90d3748151edba` (`docs: correct command status and replay contracts`), pushed on EventStore main. The exact candidate above passed EventStore commitlint again immediately before publication. A concurrent commit writer advanced HEAD to this same desired commit while this session's `git commit --only -F /tmp/tenants-dw-status-owner-message.txt -- docs/reference/command-api.md docs/concepts/command-lifecycle.md docs/getting-started/first-domain-service.md docs/operations/drain-failure-reason-codes.md` was running; that command returned 128 (`cannot lock ref HEAD`, expected `92b22bac631cd27f67e81e48e800459bd91af77b`). Inspection confirmed all four reviewed follow-up files, the validated full message and a clean worktree in the resulting commit. `git push origin main` returned `Everything up-to-date`; no history rewrite or force push was needed.
+
+The five closed ledger records retain their original evidence. Comparison to the starting Tenants revision confirms only DW-507/509/510/513/518 changed and DW-523 remains open. The broad docs gate still has the separately recorded 13-issue blocker; no runtime test or production acceptance claim is made.

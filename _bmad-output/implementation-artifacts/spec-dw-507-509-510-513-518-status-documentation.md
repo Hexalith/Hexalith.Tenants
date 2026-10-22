@@ -2,7 +2,7 @@
 title: 'Qualify five deferred command status documentation records'
 type: 'refactor'
 created: '2026-10-22'
-status: 'in-progress'
+status: 'done'
 route: 'oneshot'
 review_loop_iteration: 0
 context: []
@@ -28,3 +28,17 @@ context: []
 - Focused Markdown lint and local links/anchors pass. Full docs validation stops on 13 existing lint issues in seven untouched pages; installed lychee also requires a temporary option-shape adaptation. Exact commands, outcomes and commitlint successes are retained in `dw-507-509-510-513-518-validation-evidence.md`.
 - Concurrent-session coordination: another session committed and pushed the six owning docs as `92b22bac631cd27f67e81e48e800459bd91af77b` while review started. The reviewer now examines that exact range from the recorded owner base. Unrelated submodule pointer advances from that session are excluded from this task's parent commit.
 - Review patched six source-verified consistency issues: tracked-but-unarmed recovery, linked nullable recovery semantics, required tutorial message identities, lifecycle diagram tracing/tracking, base-revision evidence and rejection markers retained on publication failure. The linked operations guide is the seventh touched owner page. No runtime/API change was added, and no finding was deferred.
+- Final seven-page lint, local links/anchors and tutorial JSON/identifier checks pass. Owning final revision: `f4df781cb7247c6a5f7549106b90d3748151edba`, published on EventStore main. Simultaneous Git writers caused a redundant commit attempt to fail its HEAD compare-and-swap; verified desired commit/content and clean owner state, with no history rewrite.
+
+## Review Triage Log
+
+| Finding | Verdict | Disposition and evidence |
+| --- | --- | --- |
+| Retryable true may describe durable recovery awaiting re-arm. | medium | Patched reference against first-pass/resumed `drainReminderArmed || recoveryEntryTracked`. |
+| Linked recovery guide contradicts true/null/false semantics. | medium | Patched all three optional field descriptions; no active-reminder or retry-deadline guarantee. |
+| Tutorial commands omit the identity that new polling advice requires. | medium | Added distinct required IDs, matching response and Location example; JSON/identifier check passes. |
+| Lifecycle diagram/text uses correlation as status key. | medium | Corrected diagram, description, request and response to separate tracing from message tracking. |
+| Concurrent commit was captured as pre-edit base. | medium | Corrected evidence to canonical base `70b2206b531a71c883fbe2e4749047b399d26447`; retained both owning commits separately. |
+| Rejection marker incorrectly restricted to Rejected status. | medium | Included eventful PublishFailed marker and nullable drain advisories, verified against both failure writers. |
+
+No findings deferred. Blind Hunter was the only configured review layer; none skipped.
