@@ -1,0 +1,295 @@
+========================================================================
+dw345-build.log
+========================================================================
+<repo>/tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs(37,43): error CS0103: The name 'TenantLifecycleAuthorizationReflectionState' does not exist in the current context [<repo>/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj]
+
+Build FAILED.
+
+<repo>/tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs(37,43): error CS0103: The name 'TenantLifecycleAuthorizationReflectionState' does not exist in the current context [<repo>/tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj]
+    0 Warning(s)
+    1 Error(s)
+
+Time Elapsed 00:00:40.36
+
+========================================================================
+dw345-fixture-tests.log
+========================================================================
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 0
+
+========================================================================
+dw345-build-fixed.log
+========================================================================
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:34.41
+
+========================================================================
+dw345-fixture-tests-fixed.log
+========================================================================
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 2, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.735s
+
+========================================================================
+dw345-browser.log
+========================================================================
+Breakpoint asset provenance: {"BuildConfiguration":"Debug","Manifest":"<repo>/src/Hexalith.Tenants.UI/obj/Debug/net10.0/staticwebassets.build.json","ManifestSha256":"9d7cd100d86048bf9e5c68a6eef3725d350a457b2109de2252172ecdb8537d3e","SourceId":"Hexalith.FrontComposer.Shell","SourceType":"Project","Identity":"<repo>/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js","RelativePath":"js/fc-layout-breakpoints#[.{fingerprint}]?.js","Integrity":"R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=","Sha256":"475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a"}
+Shipped focus module failed real-Chromium validation:
+<output id="validation-report">FAIL start-to-exact-cancel expected tenants-global-admin-remove-cancel-button but focused remove-focus-start;missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:remove-focus-start
+
+========================================================================
+dw345-browser-foreground.log
+========================================================================
+Breakpoint asset provenance: {"BuildConfiguration":"Debug","Manifest":"<repo>/src/Hexalith.Tenants.UI/obj/Debug/net10.0/staticwebassets.build.json","ManifestSha256":"9d7cd100d86048bf9e5c68a6eef3725d350a457b2109de2252172ecdb8537d3e","SourceId":"Hexalith.FrontComposer.Shell","SourceType":"Project","Identity":"<repo>/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js","RelativePath":"js/fc-layout-breakpoints#[.{fingerprint}]?.js","Integrity":"R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=","Sha256":"475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a"}
+<output id="validation-report">PASS {"culture":"en","width":500,"observations":[{"scenario":"direct","helperResult":true,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"hidden","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f38cd51e"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f38cd51e"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f38cd51e"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"en","width":1024,"observations":[{"scenario":"direct","helperResult":true,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"hidden","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f38cd51e"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f38cd51e"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f38cd51e"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"fr","width":500,"observations":[{"scenario":"direct","helperResult":true,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"hidden","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f531a223"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f531a223"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f531a223"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"fr","width":1024,"observations":[{"scenario":"direct","helperResult":true,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"hidden","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f531a223"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f531a223"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f531a223"},{"tag":"INPUT","id":"control"}]}]}
+Actual Blazor remove Cancel EN/FR: document/shadow focus and unavailable-target fallback passed at 390/1024px; return-true/false controls rejected.
+<output id="validation-report">PASS 33 exotic anchors, 12 audit returns, 4 actual panel detail returns; all-tenants heading, lookup subject guard, exact DOM active element and rerender stability
+Rendered tenant identity wrong-row focus control: correctly rejected.
+Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed.
+Rendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed.
+Rendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected.
+Browser: Google Chrome 154.0.8037.57
+Shipped module: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Shipped desktop: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-desktop-row;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-desktop-row;availability-state-line-programmatic-focus:availability-state;desktop-correction-retry-visible;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Shipped forced colors: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;availability-forced-colors-active-visible-text-icon-focus-outline;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Return-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)
+Removal-dialog in-flow and hidden CSS mutations: correctly rejected
+Unstacked availability recoveries at 390px: correctly rejected
+{"browser":{"protocolVersion":"1.3","product":"Chrome/154.0.8037.57","revision":"@73c14f6228d7cd537c855007e8f88678969cc0eb","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36","jsVersion":"15.4.80.11"},"modulePath":"<nuget>/microsoft.fluentui.aspnetcore.components/5.0.1/staticwebassets/Microsoft.FluentUI.AspNetCore.Components.lib.module.js","results":[{"culture":"en","mode":"ordinary","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"fallback","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"authoritative","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"partial","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"empty","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-0","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"transition-1","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-2","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"transition-3","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-4","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"delayed-0","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"delayed-1","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"status-0","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"status-1","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"status-2","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"fr","mode":"ordinary","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"fallback","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"authoritative","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"partial","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"empty","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-0","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"transition-1","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-2","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"transition-3","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-4","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"delayed-0","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"delayed-1","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"status-0","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"status-1","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"status-2","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"}],"staleNameControl":"rejected","scope":"rendered Fluent fixtures; no authenticated topology or human AT claim"}
+tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh: line 667: unexpected EOF while looking for matching `"'
+
+========================================================================
+dw345-browser-final.log
+========================================================================
+Breakpoint asset provenance: {"BuildConfiguration":"Debug","Manifest":"<repo>/src/Hexalith.Tenants.UI/obj/Debug/net10.0/staticwebassets.build.json","ManifestSha256":"9d7cd100d86048bf9e5c68a6eef3725d350a457b2109de2252172ecdb8537d3e","SourceId":"Hexalith.FrontComposer.Shell","SourceType":"Project","Identity":"<repo>/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js","RelativePath":"js/fc-layout-breakpoints#[.{fingerprint}]?.js","Integrity":"R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=","Sha256":"475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a"}
+<output id="validation-report">PASS {"culture":"en","width":500,"observations":[{"scenario":"direct","helperResult":true,"shadowActiveElement":null,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"hidden","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f52d4a5e"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f52d4a5e"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f52d4a5e"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"en","width":1024,"observations":[{"scenario":"direct","helperResult":true,"shadowActiveElement":null,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"hidden","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f52d4a5e"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f52d4a5e"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f52d4a5e"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"fr","width":500,"observations":[{"scenario":"direct","helperResult":true,"shadowActiveElement":null,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"hidden","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1e6ea56"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1e6ea56"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1e6ea56"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"fr","width":1024,"observations":[{"scenario":"direct","helperResult":true,"shadowActiveElement":null,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"hidden","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1e6ea56"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1e6ea56"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1e6ea56"},{"tag":"INPUT","id":"control"}]}]}
+Actual Blazor remove Cancel EN/FR: document/shadow focus and unavailable-target fallback passed at measured 500/1024px; return-true/false controls rejected.
+<output id="validation-report">PASS 33 exotic anchors, 12 audit returns, 4 actual panel detail returns; all-tenants heading, lookup subject guard, exact DOM active element and rerender stability
+Rendered tenant identity wrong-row focus control: correctly rejected.
+Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed.
+Rendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed.
+Rendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected.
+Browser: Google Chrome 154.0.8037.57
+Shipped module: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Shipped desktop: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-desktop-row;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-desktop-row;availability-state-line-programmatic-focus:availability-state;desktop-correction-retry-visible;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Shipped forced colors: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;availability-forced-colors-active-visible-text-icon-focus-outline;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Return-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)
+Removal-dialog in-flow and hidden CSS mutations: correctly rejected
+Unstacked availability recoveries at 390px: correctly rejected
+{"browser":{"protocolVersion":"1.3","product":"Chrome/154.0.8037.57","revision":"@73c14f6228d7cd537c855007e8f88678969cc0eb","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36","jsVersion":"15.4.80.11"},"modulePath":"<nuget>/microsoft.fluentui.aspnetcore.components/5.0.1/staticwebassets/Microsoft.FluentUI.AspNetCore.Components.lib.module.js","results":[{"culture":"en","mode":"ordinary","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"fallback","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"authoritative","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"partial","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"empty","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-0","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"transition-1","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-2","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"transition-3","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-4","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"delayed-0","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"delayed-1","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"status-0","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"status-1","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"status-2","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"fr","mode":"ordinary","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"fallback","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"authoritative","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"partial","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"empty","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-0","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"transition-1","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-2","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"transition-3","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-4","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"delayed-0","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"delayed-1","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"status-0","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"status-1","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"status-2","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"}],"staleNameControl":"rejected","scope":"rendered Fluent fixtures; no authenticated topology or human AT claim"}
+
+========================================================================
+dw345-full.log
+========================================================================
+Running tests from <repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)
+<repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) passed (2m 01s 976ms)
+
+  In process file artifacts produced:
+    - /tmp/dw345-full/results.trx
+
+Test run summary: Passed!
+  total: 7119
+  failed: 0
+  succeeded: 7119
+  skipped: 0
+  duration: 2m 02s 160ms
+
+========================================================================
+dw345-focused-final.log
+========================================================================
+Running tests from <repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)
+<repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) passed (23s 157ms)
+
+  In process file artifacts produced:
+    - /tmp/dw345-focused-final/results.trx
+
+Test run summary: Passed!
+  total: 276
+  failed: 0
+  succeeded: 276
+  skipped: 0
+  duration: 23s 333ms
+
+========================================================================
+dw345-build-review.log
+========================================================================
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:00:17.79
+
+========================================================================
+dw345-fixture-tests-review.log
+========================================================================
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 2, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.708s
+
+========================================================================
+dw345-browser-review.log
+========================================================================
+Actual remove Cancel browser input SHA-256:
+fdcfb40106330898d0d9ca1bc723e1fc6d76beb90add9f7549a220b87c11ec93  /tmp/tenants-focus-browser.SZZzZL/remove-cancel-en.html
+9d38968a6348b1be79b0b96196c549747b28cd21cc8e1727ae791da21d2273bc  /tmp/tenants-focus-browser.SZZzZL/remove-cancel-fr.html
+a660a33eb1f7e9dcb503779e19e21b58a51e7ba2e60eaacc920cdc53c2bf8465  /tmp/tenants-focus-browser.SZZzZL/global-admins.css
+a2fa67b23f625aae2a4d0ec87812117ed99c451963a7530793c3836812f2c056  <repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.dll
+Breakpoint asset provenance: {"BuildConfiguration":"Debug","Manifest":"<repo>/src/Hexalith.Tenants.UI/obj/Debug/net10.0/staticwebassets.build.json","ManifestSha256":"9d7cd100d86048bf9e5c68a6eef3725d350a457b2109de2252172ecdb8537d3e","SourceId":"Hexalith.FrontComposer.Shell","SourceType":"Project","Identity":"<repo>/references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/wwwroot/js/fc-layout-breakpoints.js","RelativePath":"js/fc-layout-breakpoints#[.{fingerprint}]?.js","Integrity":"R1uPLg594OgyueHWt/ZJFtNTNOp0f9GDXpxqwoK9rwo=","Sha256":"475b8f2e0e7de0e832b9e1d6b7f64916d35334ea747fd1835e9c6ac282bdaf0a"}
+<output id="validation-report">PASS {"culture":"en","width":500,"observations":[{"scenario":"direct","helperResult":true,"shadowActiveElement":null,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"disabled","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1574cc5"},{"tag":"INPUT","id":"control"}]},{"scenario":"hidden","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1574cc5"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1574cc5"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":4,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1574cc5"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"en","width":1024,"observations":[{"scenario":"direct","helperResult":true,"shadowActiveElement":null,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"disabled","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1574cc5"},{"tag":"INPUT","id":"control"}]},{"scenario":"hidden","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1574cc5"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1574cc5"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":4,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f1574cc5"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"fr","width":500,"observations":[{"scenario":"direct","helperResult":true,"shadowActiveElement":null,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"disabled","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f352cd28"},{"tag":"INPUT","id":"control"}]},{"scenario":"hidden","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f352cd28"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f352cd28"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":4,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f352cd28"},{"tag":"INPUT","id":"control"}]}]}
+<output id="validation-report">PASS {"culture":"fr","width":1024,"observations":[{"scenario":"direct","helperResult":true,"shadowActiveElement":null,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"sentinel-contract","helperResult":true,"fallbacks":0,"active":[{"tag":"FLUENT-BUTTON","id":"tenants-global-admin-remove-cancel-button"}]},{"scenario":"disabled","helperResult":false,"fallbacks":1,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f352cd28"},{"tag":"INPUT","id":"control"}]},{"scenario":"hidden","helperResult":false,"fallbacks":2,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f352cd28"},{"tag":"INPUT","id":"control"}]},{"scenario":"inert","helperResult":false,"fallbacks":3,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f352cd28"},{"tag":"INPUT","id":"control"}]},{"scenario":"missing","helperResult":false,"fallbacks":4,"active":[{"tag":"FLUENT-TEXT-INPUT","id":"f352cd28"},{"tag":"INPUT","id":"control"}]}]}
+Actual Blazor remove Cancel EN/FR: document/shadow focus and unavailable-target fallback passed at measured 500/1024px; direct-result, sentinel-result and missing-fallback controls rejected.
+<output id="validation-report">PASS 33 exotic anchors, 12 audit returns, 4 actual panel detail returns; all-tenants heading, lookup subject guard, exact DOM active element and rerender stability
+Rendered tenant identity wrong-row focus control: correctly rejected.
+Rendered tenant start/preview/recovery EN/FR: desktop, narrow, forced colors and recovery-reason DOM focus passed; missing-tabindex control rejected. Static cancel/Escape focus helpers and zero fixture browser egress passed.
+Rendered global correction preview and paired receipt EN/FR: desktop, narrow read-only, forced colors, safety facts and focus passed.
+Rendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected.
+Browser: Google Chrome 154.0.8037.57
+Shipped module: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Shipped desktop: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-desktop-row;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-desktop-row;availability-state-line-programmatic-focus:availability-state;desktop-correction-retry-visible;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Shipped forced colors: PASS missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;availability-forced-colors-active-visible-text-icon-focus-outline;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait
+Return-true mutation: correctly rejected (FAIL missing receipt launcher was reported focused;)
+Removal-dialog in-flow and hidden CSS mutations: correctly rejected
+Unstacked availability recoveries at 390px: correctly rejected
+{"browser":{"protocolVersion":"1.3","product":"Chrome/154.0.8037.57","revision":"@73c14f6228d7cd537c855007e8f88678969cc0eb","userAgent":"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36","jsVersion":"15.4.80.11"},"modulePath":"<nuget>/microsoft.fluentui.aspnetcore.components/5.0.1/staticwebassets/Microsoft.FluentUI.AspNetCore.Components.lib.module.js","results":[{"culture":"en","mode":"ordinary","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"fallback","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"authoritative","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"partial","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"empty","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-0","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"transition-1","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-2","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"transition-3","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"transition-4","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"delayed-0","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"delayed-1","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"status-0","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"en","mode":"status-1","visible":"Status on current page","accessibleName":"Status on current page"},{"culture":"en","mode":"status-2","visible":"Status across indexed candidates","accessibleName":"Status across indexed candidates"},{"culture":"fr","mode":"ordinary","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"fallback","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"authoritative","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"partial","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"empty","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-0","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"transition-1","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-2","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"transition-3","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"transition-4","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"delayed-0","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"delayed-1","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"status-0","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"},{"culture":"fr","mode":"status-1","visible":"Statut sur la page actuelle","accessibleName":"Statut sur la page actuelle"},{"culture":"fr","mode":"status-2","visible":"Statut parmi les candidats indexés","accessibleName":"Statut parmi les candidats indexés"}],"staleNameControl":"rejected","scope":"rendered Fluent fixtures; no authenticated topology or human AT claim"}
+
+========================================================================
+dw345-full-review.log
+========================================================================
+Running tests from <repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)
+failed Hexalith.Tenants.UI.Tests.Components.EditTenantMetadataFlowTests.LifecycleRoundTripClosesMetadataAfterProvisionalAdmissionUnwinds(holdSecondAuthority: True) (9ms)
+  from <repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)
+  Shouldly.ShouldAssertException : cut.Instance.Snapshot.State
+      should be
+  TenantCommandLifecycleState.Idle
+      but was
+  TenantCommandLifecycleState.UnableToVerify
+    at Hexalith.Tenants.UI.Tests.Components.EditTenantMetadataFlowTests.LifecycleRoundTripClosesMetadataAfterProvisionalAdmissionUnwinds(Boolean holdSecondAuthority) in <repo>/tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs:171
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+    --- End of stack trace from previous location ---
+    at System.Runtime.ExceptionServices.ExceptionDispatchInfo.Throw()
+    at System.Runtime.CompilerServices.TaskAwaiter.ThrowForNonSuccess(Task task)
+    at System.Runtime.CompilerServices.TaskAwaiter.HandleNonSuccessAndDebuggerNotification(Task task, ConfigureAwaitOptions options)
+<repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) failed with 1 error(s) (2m 03s 589ms)
+Exit code: 2
+  Standard output: info: Microsoft.Hosting.Lifetime[0]
+        Application started. Press Ctrl+C to shut down.
+  info: Microsoft.Hosting.Lifetime[0]
+        Hosting environment: Development
+  info: Microsoft.Hosting.Lifetime[0]
+        Content root path: <repo>/src/Hexalith.Tenants.UI
+  info: Microsoft.Hosting.Lifetime[0]
+        Application is shutting down...
+  info: Microsoft.Hosting.Lifetime[0]
+        Application started. Press Ctrl+C to shut down.
+  info: Microsoft.Hosting.Lifetime[0]
+        Hosting environment: Development
+  info: Microsoft.Hosting.Lifetime[0]
+        Content root path: <repo>/src/Hexalith.Tenants.UI
+  info: Microsoft.Hosting.Lifetime[0]
+        Application is shutting down...
+  info: Microsoft.Hosting.Lifetime[0]
+        Application started. Press Ctrl+C to shut down.
+  info: Microsoft.Hosting.Lifetime[0]
+        Hosting environment: Development
+  info: Microsoft.Hosting.Lifetime[0]
+        Content root path: <repo>/src/Hexalith.Tenants.UI
+  info: Microsoft.Hosting.Lifetime[0]
+        Application is shutting down...
+  info: Microsoft.Hosting.Lifetime[0]
+        Application started. Press Ctrl+C to shut down.
+  info: Microsoft.Hosting.Lifetime[0]
+        Hosting environment: Development
+  info: Microsoft.Hosting.Lifetime[0]
+        Content root path: <repo>/src/Hexalith.Tenants.UI
+  info: Microsoft.Hosting.Lifetime[0]
+        Application is shutting down...
+  info: Microsoft.Hosting.Lifetime[0]
+        Application started. Press Ctrl+C to shut down.
+  info: Microsoft.Hosting.Lifetime[0]
+        Hosting environment: Development
+  info: Microsoft.Hosting.Lifetime[0]
+        Content root path: <repo>/src/Hexalith.Tenants.UI
+  info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[100]
+        Start processing HTTP request GET https://memories.invalid/v1/search?*
+  info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[100]
+        Sending HTTP request GET https://memories.invalid/v1/search?*
+  info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.ClientHandler[101]
+        Received HTTP response headers after 0.003ms - 200
+  info: System.Net.Http.HttpClient.tenants-ui-tests-control-client.LogicalHandler[101]
+        End processing HTTP request after 2.2669ms - 200
+  info: Microsoft.Hosting.Lifetime[0]
+        Application is shutting down...
+
+  In process file artifacts produced:
+    - /tmp/dw345-full-review/results.trx
+
+Test run summary: Failed!
+  total: 7119
+  failed: 1
+  succeeded: 7118
+  skipped: 0
+  duration: 2m 03s 755ms
+Test run completed with non-success exit code: 2 (see: https://aka.ms/testingplatform/exitcodes)
+
+========================================================================
+dw345-metadata-recheck.log
+========================================================================
+xUnit.net v3 In-Process Runner v4.0.2+0c7aa4991f (64-bit .NET 10.0.13)
+  Discovering: Hexalith.Tenants.UI.Tests
+  Discovered:  Hexalith.Tenants.UI.Tests
+  Starting:    Hexalith.Tenants.UI.Tests
+  Finished:    Hexalith.Tenants.UI.Tests (ID = 'ebdcd5ef4d4208b1f7bffe68a07b7c3b73336a0f9a7665a5af5a18fe6557b4fa')
+=== TEST EXECUTION SUMMARY ===
+   Hexalith.Tenants.UI.Tests  Total: 2, Errors: 0, Failed: 0, Skipped: 0, Not Run: 0, Time: 0.501s
+
+
+========================================================================
+FINAL REVIEWED FULL-SUITE RECHECK
+========================================================================
+Running tests from <repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64)
+<repo>/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll (net10.0|x64) passed (1m 56s 982ms)
+
+  In process file artifacts produced:
+    - /tmp/dw345-full-recheck/results.trx
+
+Test run summary: Passed!
+  total: 7119
+  failed: 0
+  succeeded: 7119
+  skipped: 0
+  duration: 1m 57s 175ms
+
+========================================================================
+PINNED COMMITLINT VALIDATION
+========================================================================
+⧗   --- input ---
+test(ui): qualify five deferred Cancel focus records
+✔   found 0 problems, 0 warnings

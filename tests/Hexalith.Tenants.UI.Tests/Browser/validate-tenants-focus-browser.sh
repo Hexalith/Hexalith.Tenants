@@ -240,6 +240,38 @@ for culture in en fr; do
 done
 cp -- "$script_dir/global-correction-browser-validation.html" "$validation_tmp/global-correction.html"
 
+# Qualify Cancel using the actual GlobalAdministratorsPage FluentButton output.
+if ! TENANTS_REMOVE_FOCUS_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -method '*GlobalAdministratorsPageTests.RemoveCancelExportsActualFluentControlForBrowserFocus' \
+    >"$validation_tmp/remove-focus-fixture-tests.log" 2>&1; then
+    echo "Actual remove Cancel fixture export failed." >&2
+    cat "$validation_tmp/remove-focus-fixture-tests.log" >&2
+    exit 1
+fi
+for culture in en fr; do
+    if [[ ! -s "$validation_tmp/remove-cancel-${culture}.html" ]]; then
+        echo "Actual remove Cancel fixture export is incomplete." >&2
+        exit 1
+    fi
+done
+cp -- "$script_dir/global-administrator-remove-focus-browser-validation.html" "$validation_tmp/remove-cancel.html"
+printf '%s\n' 'export function focusElementById(id) { document.getElementById(id)?.focus(); return false; }' > "$validation_tmp/tenantsFocus-return-false.js"
+
+printf '%s\n' 'let calls = 0; export function focusElementById(id) { const target = document.getElementById(id); target?.focus(); return ++calls === 1 && document.activeElement === target; }' > "$validation_tmp/tenantsFocus-sentinel-false.js"
+python3 - "$validation_tmp/remove-cancel.html" "$validation_tmp/remove-cancel-no-fallback.html" <<'PYMUTATION'
+from pathlib import Path
+import sys
+source = Path(sys.argv[1]).read_text(encoding="utf-8")
+required = "                    acknowledgement.focus();"
+if source.count(required) != 1:
+    raise SystemExit("Could not isolate the actual Cancel fallback for mutation validation.")
+Path(sys.argv[2]).write_text(source.replace(required, "                    // Mutation: omit required fallback focus."), encoding="utf-8")
+PYMUTATION
+printf '%s\n' 'Actual remove Cancel browser input SHA-256:'
+sha256sum "$validation_tmp/remove-cancel-en.html" "$validation_tmp/remove-cancel-fr.html" \
+    "$validation_tmp/global-admins.css" "$(dirname -- "$start_test_executable")/Hexalith.Tenants.UI.dll"
+
+
 # B7 uses actual localized removal markup plus the shipped FrontComposer measurement module.
 if ! TENANTS_LIVE_ADMISSION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
     -method '*RemoveTenantMemberFlowTests.LiveRemovalExportsLocalizedMeasuredViewportFixtures' \
@@ -446,6 +478,56 @@ if ! grep -q 'data-validation-status="passed"' "$positive_output"; then
     sed -n '1,120p' "${positive_output}.stderr" >&2
     exit 1
 fi
+
+for culture in en fr; do
+    for width in 500 1024; do
+        remove_focus_output="$validation_tmp/remove-cancel-${culture}-${width}.output"
+        dump_dom "actual remove Cancel ${culture}/${width}" "$remove_focus_output" \
+            --window-size="${width},800" --user-data-dir="$validation_tmp/profile-remove-cancel-${culture}-${width}" \
+            "http://127.0.0.1:${validation_port}/remove-cancel.html?culture=${culture}&width=${width}"
+        if ! grep -q 'data-validation-status="passed"' "$remove_focus_output"; then
+            echo "Actual remove Cancel focus ${culture}/${width} failed:" >&2
+            grep -o '<output id="validation-report">[^<]*' "$remove_focus_output" >&2 || true
+            exit 1
+        fi
+        grep -o '<output id="validation-report">[^<]*' "$remove_focus_output"
+    done
+done
+for result in true false; do
+    remove_focus_mutation="$validation_tmp/remove-cancel-return-${result}.output"
+    dump_dom "actual remove Cancel return-${result} control" "$remove_focus_mutation" \
+        --window-size=1024,800 --user-data-dir="$validation_tmp/profile-remove-cancel-return-${result}" \
+        "http://127.0.0.1:${validation_port}/remove-cancel.html?module=./tenantsFocus-return-${result}.js"
+    if ! grep -q 'data-validation-status="failed"' "$remove_focus_mutation"; then
+        echo "Actual remove Cancel validator accepted the return-${result} control or did not complete." >&2
+        exit 1
+    fi
+    validation_report_contains "$remove_focus_mutation" 'Actual Cancel host focus was not reported successful' || {
+        echo "The return-${result} control did not fail the expected focus check." >&2
+        exit 1
+    }
+done
+for control in sentinel-false no-fallback; do
+    control_module=tenantsFocus.js
+    control_page=remove-cancel.html
+    expected_failure='Successful Cancel focus incorrectly entered acknowledgement fallback'
+    if [[ "$control" == sentinel-false ]]; then
+        control_module=tenantsFocus-sentinel-false.js
+    else
+        control_page=remove-cancel-no-fallback.html
+        expected_failure='Unavailable Cancel disabled did not report failure and preserve fallback'
+    fi
+    control_output="$validation_tmp/remove-cancel-${control}.output"
+    dump_dom "actual remove Cancel ${control} control" "$control_output" \
+        --window-size=1024,800 --user-data-dir="$validation_tmp/profile-remove-cancel-${control}" \
+        "http://127.0.0.1:${validation_port}/${control_page}?module=./${control_module}"
+    if ! grep -q 'data-validation-status="failed"' "$control_output" \
+        || ! validation_report_contains "$control_output" "$expected_failure"; then
+        echo "Actual remove Cancel ${control} control did not fail its specific assertion." >&2
+        exit 1
+    fi
+done
+printf '%s\n' "Actual Blazor remove Cancel EN/FR: document/shadow focus and unavailable-target fallback passed at measured 500/1024px; direct-result, sentinel-result and missing-fallback controls rejected."
 
 identity_output="$validation_tmp/identity.html.output"
 dump_dom "rendered tenant identity" "$identity_output" \

@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Rendered administrator removal Cancel focus</title>
+    <link rel="stylesheet" href="./fluent-ui.css">
+    <link rel="stylesheet" href="./global-admins.css">
+</head>
+<body>
+    <div id="fixture"></div>
+    <output id="validation-report">RUNNING</output>
+    <script type="module">
+        const report = document.getElementById('validation-report');
+        const observations = [];
+        try {
+            const parameters = new URLSearchParams(location.search);
+            const culture = parameters.get('culture') ?? 'en';
+            if (!['en', 'fr'].includes(culture)) throw new Error('Unsupported fixture culture');
+            document.documentElement.lang = culture;
+            const expectedWidth = Number(parameters.get('width') ?? '1024');
+            if (innerWidth !== expectedWidth) throw new Error(`Unexpected viewport width ${innerWidth}`);
+            const response = await fetch(`./remove-cancel-${culture}.html`);
+            if (!response.ok) throw new Error('Actual rendered removal fixture is missing');
+            const fluent = await import('./fluent-ui.js');
+            fluent.beforeStart(document, 'web');
+            await customElements.whenDefined('fluent-button');
+            document.getElementById('fixture').innerHTML = await response.text();
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const { focusElementById } = await import(parameters.get('module') ?? './tenantsFocus.js');
+            const dialog = document.querySelector('[data-testid="tenants-global-admin-remove-preview"]');
+            const cancel = dialog?.querySelector('[data-testid="tenants-global-admin-remove-cancel"]');
+            const sentinel = dialog?.querySelector('[data-testid="tenants-global-admin-remove-focus-start"]');
+            const acknowledgement = dialog?.querySelector('[data-testid="tenants-global-admin-remove-acknowledge"]');
+            if (!cancel || !sentinel || !acknowledgement || cancel.tagName !== 'FLUENT-BUTTON'
+                || cancel.id !== 'tenants-global-admin-remove-cancel-button'
+                || cancel.textContent.trim() !== (culture === 'fr' ? 'Annuler' : 'Cancel')) {
+                throw new Error('The actual localized Blazor Cancel control was not rendered');
+            }
+            const shadowTrace = () => {
+                const chain = [];
+                let active = document.activeElement;
+                while (active) {
+                    chain.push({ tag: active.tagName, id: active.id });
+                    active = active.shadowRoot?.activeElement;
+                }
+                return chain;
+            };
+            const focusSentinel = () => {
+                acknowledgement.focus();
+                sentinel.focus();
+            };
+            // The component suite covers the real Blazor callback. This browser shim exercises its
+            // helper-result/fallback contract against the actual rendered controls and Fluent JS.
+            let helperResult;
+            let fallbacks = 0;
+            sentinel.addEventListener('focus', () => {
+                helperResult = focusElementById(cancel.id);
+                if (!helperResult) {
+                    fallbacks++;
+                    acknowledgement.focus();
+                }
+            });
+            const directResult = focusElementById(cancel.id);
+            observations.push({ scenario: 'direct', helperResult: directResult, shadowActiveElement: cancel.shadowRoot?.activeElement?.tagName ?? null, active: shadowTrace() });
+            if (directResult !== true || document.activeElement !== cancel) {
+                throw new Error('Actual Cancel host focus was not reported successful');
+            }
+            if (!document.hasFocus()) throw new Error('Browser document must have foreground focus');
+            focusSentinel();
+            if (helperResult !== true || document.activeElement !== cancel || fallbacks !== 0) {
+                throw new Error('Successful Cancel focus incorrectly entered acknowledgement fallback');
+            }
+            observations.push({ scenario: 'sentinel-contract', helperResult, fallbacks, active: shadowTrace() });
+            for (const state of ['disabled', 'hidden', 'inert', 'missing']) {
+                if (state === 'disabled') cancel.setAttribute('disabled', '');
+                if (state === 'hidden') cancel.hidden = true;
+                if (state === 'inert') cancel.inert = true;
+                if (state === 'missing') cancel.remove();
+                const previousFallbacks = fallbacks;
+                focusSentinel();
+                if (helperResult !== false || document.activeElement !== acknowledgement
+                    || acknowledgement.shadowRoot?.activeElement?.tagName !== 'INPUT'
+                    || fallbacks !== previousFallbacks + 1) {
+                    throw new Error(`Unavailable Cancel ${state} did not report failure and preserve fallback`);
+                }
+                observations.push({ scenario: state, helperResult, fallbacks, active: shadowTrace() });
+                cancel.removeAttribute('disabled');
+                cancel.hidden = false;
+                cancel.inert = false;
+            }
+            report.textContent = `PASS ${JSON.stringify({ culture, width: innerWidth, observations })}`;
+            document.documentElement.dataset.validationStatus = 'passed';
+        } catch (error) {
+            report.textContent = `FAIL ${error.message}; ${JSON.stringify(observations)}`;
+            document.documentElement.dataset.validationStatus = 'failed';
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-345/DW-362/DW-378/DW-383/DW-412 closure (2026-10-22):** Actual production-rendered EN/FR Cancel controls in Chromium qualify the existing strict host-focus check and unavailable-target fallback. The shared capture driver now supplies foreground focus for focus-event dispatch; wrong-result controls reject. Exactly five duplicate risks close: all 657 IDs remain, 475 done/182 open across 172 exact-covering maintenance rows. Broader authenticated modal/keyboard evidence, historical findings, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-345-362-378-383-412-validation-evidence.md).
+
 **DW-629/DW-630/DW-631/DW-635/DW-636 closure (2026-10-22):** The module manifest qualifies logical topics and complete public operations, includes administrator removal in its critical flow, records existing membership authorization and declares rebuild-only correction prerequisites without executable recovery hooks. Exactly five records close: all 657 IDs remain, 470 done/187 open across 173 exact-covering maintenance rows. Historical findings, unrelated work, dependency pointers and runtime/release holds remain preserved. See [validation evidence](dw-629-630-631-635-636-validation-evidence.md).
 
 **DW-464/DW-496/DW-505/DW-555/DW-585 closure (2026-10-21):** Immutable hosted logs qualify the existing Chrome 153/CDP repair, EN/FR correction fixture checks and negative controls; current hosted CI validates actual changed stories. The separate current NativeSourceProof package-build failure still prevents current browser execution. Exactly five stale CI records close: all 657 IDs remain, 465 done/192 open across 178 exact-covering maintenance rows. Original findings, unrelated work, dependency pointers, authenticated-runtime limitations and release holds remain preserved. See [validation evidence](dw-464-496-505-555-585-validation-evidence.md).
@@ -3676,16 +3678,24 @@ origin: migrated from legacy ledger (""), 2026-09-05
 location: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23-35
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: `tenantsFocus.js` returns `document.activeElement === target` after `target.focus()`. A real-browser trace of `document.activeElement` after focusing the rendered Cancel host would settle whether a successful inner-control focus is reported as false and wrap fallback incorrectly skips Cancel.
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js focusElementById still checks document.activeElement===target. The host/inner Fluent-control behavior is not settled by raw custom-element or bUnit interop tests; a successful real control trace is missing.
-evidence-kind: unverified-risk
+pre-cancel-focus-status: open
+pre-cancel-focus-disposition: uncertain
+pre-cancel-focus-verification-date: 2026-10-12
+pre-cancel-focus-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js focusElementById still checks document.activeElement===target. The host/inner Fluent-control behavior is not settled by raw custom-element or bUnit interop tests; a successful real control trace is missing.
+pre-cancel-focus-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: authenticated rendered-control browser fixture
-next-action: Trace document.activeElement/shadow activeElement after focusing the actual Blazor Fluent Cancel control.
+pre-cancel-focus-next-action: Trace document.activeElement/shadow activeElement after focusing the actual Blazor Fluent Cancel control.
 related: DW-336, DW-362
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Actual GlobalAdministratorsPage Blazor FluentButton output and restored Fluent 5.0.1 JavaScript in Chromium show successful direct and sentinel-contract Cancel focus: focusElementById returns true and document.activeElement is the exact Cancel host, with no shadow active element. EN/FR and measured narrow/desktop fixtures retain hidden/inert/missing target fallback and reject wrong-result helpers. The hypothesized false failure is not reproduced; no production helper change is warranted. Authorization/read state is supplied by a component fixture, not a live authenticated topology; broader modal/keyboard evidence remains separately open.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs; tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-remove-focus-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh; _bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-evidence.md
+evidence-kind: browser-verified-refutation
+next-action: none for this shared helper risk; broader authenticated modal and keyboard qualification remains separately tracked.
+
 
 ### DW-346: Grant preview Cancel remains a raw lowercase fluent-button.
 
@@ -3952,18 +3962,25 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3
 location: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the host that owns the Cancel id. Already DW-345; a real-browser `document.activeElement` trace after focusing the rendered Cancel host would settle it."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:39-53 still checks document.activeElement === target. story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md and tenants-focus-browser-validation.html prove focus for a constructed fluent-button host; the page renders Blazor FluentButton for Cancel. Missing evidence is an activeElement/shadowRoot trace for that actual rendered Blazor host, not the raw-element fixture.
-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
-evidence-kind: unverified-risk
+pre-cancel-focus-status: open
+pre-cancel-focus-disposition: uncertain
+pre-cancel-focus-verification-date: 2026-10-12
+pre-cancel-focus-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:39-53 still checks document.activeElement === target. story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md and tenants-focus-browser-validation.html prove focus for a constructed fluent-button host; the page renders Blazor FluentButton for Cancel. Missing evidence is an activeElement/shadowRoot trace for that actual rendered Blazor host, not the raw-element fixture.
+pre-cancel-focus-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
+pre-cancel-focus-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Capture document.activeElement and shadow-root activeElement after focusing the actual rendered remove Cancel FluentButton.
+pre-cancel-focus-next-action: Capture document.activeElement and shadow-root activeElement after focusing the actual rendered remove Cancel FluentButton.
 related: DW-345, DW-391
 duplicate-of: DW-345
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Actual GlobalAdministratorsPage Blazor FluentButton output and restored Fluent 5.0.1 JavaScript in Chromium show successful direct and sentinel-contract Cancel focus: focusElementById returns true and document.activeElement is the exact Cancel host, with no shadow active element. EN/FR and measured narrow/desktop fixtures retain hidden/inert/missing target fallback and reject wrong-result helpers. The hypothesized false failure is not reproduced; no production helper change is warranted. Authorization/read state is supplied by a component fixture, not a live authenticated topology; broader modal/keyboard evidence remains separately open.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs; tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-remove-focus-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh; _bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-evidence.md
+evidence-kind: browser-verified-refutation
+next-action: none for this shared helper risk; broader authenticated modal and keyboard qualification remains separately tracked.
 
 
 ### DW-363: Story 4.3 File List gitlink SHAs still do not match the current tree. Already DW-347; `validate-story-gitlinks.py` now reports Builds `6daad3d`, EventStore `9a20c05`, FrontComposer `f0c3b6f` versus File List `39debe9` / `7b7f876` / `0a4c4ad`. Updating the record edits this spec; restoring the tree reverts later `build(deps)` work.
@@ -4183,18 +4200,25 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3
 location: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- `focusElementById` may report a false failure when FluentButton focuses an inner native control instead of the Cancel host id. Already DW-345; a real-browser `document.activeElement` trace after host `.focus()` would settle it. [`src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:23`]"
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:39-53 still checks document.activeElement === target. story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md and tenants-focus-browser-validation.html prove focus for a constructed fluent-button host; the page renders Blazor FluentButton for Cancel. Missing evidence is an activeElement/shadowRoot trace for that actual rendered Blazor host, not the raw-element fixture.
-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
-evidence-kind: unverified-risk
+pre-cancel-focus-status: open
+pre-cancel-focus-disposition: uncertain
+pre-cancel-focus-verification-date: 2026-10-12
+pre-cancel-focus-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:39-53 still checks document.activeElement === target. story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md and tenants-focus-browser-validation.html prove focus for a constructed fluent-button host; the page renders Blazor FluentButton for Cancel. Missing evidence is an activeElement/shadowRoot trace for that actual rendered Blazor host, not the raw-element fixture.
+pre-cancel-focus-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
+pre-cancel-focus-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Capture document.activeElement and shadow-root activeElement after focusing the actual rendered remove Cancel FluentButton.
+pre-cancel-focus-next-action: Capture document.activeElement and shadow-root activeElement after focusing the actual rendered remove Cancel FluentButton.
 related: DW-345, DW-391
 duplicate-of: DW-345
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Actual GlobalAdministratorsPage Blazor FluentButton output and restored Fluent 5.0.1 JavaScript in Chromium show successful direct and sentinel-contract Cancel focus: focusElementById returns true and document.activeElement is the exact Cancel host, with no shadow active element. EN/FR and measured narrow/desktop fixtures retain hidden/inert/missing target fallback and reject wrong-result helpers. The hypothesized false failure is not reproduced; no production helper change is warranted. Authorization/read state is supplied by a component fixture, not a live authenticated topology; broader modal/keyboard evidence remains separately open.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs; tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-remove-focus-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh; _bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-evidence.md
+evidence-kind: browser-verified-refutation
+next-action: none for this shared helper risk; broader authenticated modal and keyboard qualification remains separately tracked.
 
 
 ### DW-379: Correction outer catch may overlay Ambiguous after Accepted delivery. Unverified medium: settle by showing `RefreshStatusCoreAsync` throwing after `TryCompleteReconciliationDispatch` already published Accepted. [`src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:1082`]
@@ -4270,18 +4294,25 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- `focusElementById` may treat a successful Fluent button focus as failure. maybe-false, high if true. Settle with a browser trace of `document.activeElement` after focusing the remove-cancel Fluent button host. [`src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:34`]"
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:39-53 still checks document.activeElement === target. story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md and tenants-focus-browser-validation.html prove focus for a constructed fluent-button host; the page renders Blazor FluentButton for Cancel. Missing evidence is an activeElement/shadowRoot trace for that actual rendered Blazor host, not the raw-element fixture.
-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
-evidence-kind: unverified-risk
+pre-cancel-focus-status: open
+pre-cancel-focus-disposition: uncertain
+pre-cancel-focus-verification-date: 2026-10-12
+pre-cancel-focus-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:39-53 still checks document.activeElement === target. story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md and tenants-focus-browser-validation.html prove focus for a constructed fluent-button host; the page renders Blazor FluentButton for Cancel. Missing evidence is an activeElement/shadowRoot trace for that actual rendered Blazor host, not the raw-element fixture.
+pre-cancel-focus-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
+pre-cancel-focus-evidence-kind: unverified-risk
 priority: P1
 owner: unassigned
 dependencies: none
-next-action: Capture document.activeElement and shadow-root activeElement after focusing the actual rendered remove Cancel FluentButton.
+pre-cancel-focus-next-action: Capture document.activeElement and shadow-root activeElement after focusing the actual rendered remove Cancel FluentButton.
 related: DW-345, DW-391
 duplicate-of: DW-345
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Actual GlobalAdministratorsPage Blazor FluentButton output and restored Fluent 5.0.1 JavaScript in Chromium show successful direct and sentinel-contract Cancel focus: focusElementById returns true and document.activeElement is the exact Cancel host, with no shadow active element. EN/FR and measured narrow/desktop fixtures retain hidden/inert/missing target fallback and reject wrong-result helpers. The hypothesized false failure is not reproduced; no production helper change is warranted. Authorization/read state is supplied by a component fixture, not a live authenticated topology; broader modal/keyboard evidence remains separately open.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs; tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-remove-focus-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh; _bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-evidence.md
+evidence-kind: browser-verified-refutation
+next-action: none for this shared helper risk; broader authenticated modal and keyboard qualification remains separately tracked.
 
 
 ### DW-384: `validate-story-gitlinks.py` FAILs against HEAD. This grant-core chunk excluded gitlinks. UNDECLARED `references/Hexalith.AI.Tools de38f78 -> 5f93d2e` and `references/Hexalith.Memories d1b95ab -> 8884933`. MISSTATED Builds `2fba349` (story says `9d77ed7`), Commons `9f4809d` (`372d715`), EventStore `66cb4ed` (`e38c125`), FrontComposer `0276424` (`c6fe14c`), PolymorphicSerializations `7e95556` (`8aeed1d`). Declare or revert in the gitlink chunk. [`scripts/validate-story-gitlinks.py`]
@@ -4785,18 +4816,25 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3
 location: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- `focusElementById` may report failure when focus lands on an inner Fluent control, and the Chromium harness mounts a raw `<fluent-button>` rather than the Blazor `FluentButton` host. Already DW-345; a real-browser `activeElement` trace of the rendered Cancel host would settle it."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:39-53 still checks document.activeElement === target. story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md and tenants-focus-browser-validation.html prove focus for a constructed fluent-button host; the page renders Blazor FluentButton for Cancel. Missing evidence is an activeElement/shadowRoot trace for that actual rendered Blazor host, not the raw-element fixture.
-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
-evidence-kind: unverified-risk
+pre-cancel-focus-status: open
+pre-cancel-focus-disposition: uncertain
+pre-cancel-focus-verification-date: 2026-10-12
+pre-cancel-focus-verification: src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js:39-53 still checks document.activeElement === target. story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md and tenants-focus-browser-validation.html prove focus for a constructed fluent-button host; the page renders Blazor FluentButton for Cancel. Missing evidence is an activeElement/shadowRoot trace for that actual rendered Blazor host, not the raw-element fixture.
+pre-cancel-focus-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
+pre-cancel-focus-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Capture document.activeElement and shadow-root activeElement after focusing the actual rendered remove Cancel FluentButton.
+pre-cancel-focus-next-action: Capture document.activeElement and shadow-root activeElement after focusing the actual rendered remove Cancel FluentButton.
 related: DW-345, DW-391
 duplicate-of: DW-345
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Actual GlobalAdministratorsPage Blazor FluentButton output and restored Fluent 5.0.1 JavaScript in Chromium show successful direct and sentinel-contract Cancel focus: focusElementById returns true and document.activeElement is the exact Cancel host, with no shadow active element. EN/FR and measured narrow/desktop fixtures retain hidden/inert/missing target fallback and reject wrong-result helpers. The hypothesized false failure is not reproduced; no production helper change is warranted. Authorization/read state is supplied by a component fixture, not a live authenticated topology; broader modal/keyboard evidence remains separately open.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs; tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-remove-focus-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh; _bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-evidence.md
+evidence-kind: browser-verified-refutation
+next-action: none for this shared helper risk; broader authenticated modal and keyboard qualification remains separately tracked.
 
 
 ### DW-413: Correction outer catch can overlay Ambiguous after Accepted if `RefreshStatusCoreAsync` throws. Maybe-false; settle by showing that throw after `TryCompleteReconciliationDispatch` already published Accepted. Already recorded on iteration 6.

@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-345/DW-362/DW-378/DW-383/DW-412 closure (2026-10-22):** Actual production-rendered EN/FR Cancel controls in Chromium qualify the existing strict host-focus check and unavailable-target fallback. The shared capture driver now supplies foreground focus for focus-event dispatch; wrong-result controls reject. Exactly five duplicate risks close: all 657 IDs remain, 475 done/182 open across 172 exact-covering maintenance rows. Broader authenticated modal/keyboard evidence, historical findings, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-evidence.md).
+
 **DW-629/DW-630/DW-631/DW-635/DW-636 closure (2026-10-22):** The module manifest qualifies logical topics and complete public operations, includes administrator removal in its critical flow, records existing membership authorization and declares rebuild-only correction prerequisites without executable recovery hooks. Exactly five records close: all 657 IDs remain, 470 done/187 open across 173 exact-covering maintenance rows. Historical findings, unrelated work, dependency pointers and runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-629-630-631-635-636-validation-evidence.md).
 
 **DW-464/DW-496/DW-505/DW-555/DW-585 closure (2026-10-21):** Immutable hosted logs qualify the existing Chrome 153/CDP repair, EN/FR correction fixture checks and negative controls; current hosted CI validates actual changed stories. The separate current NativeSourceProof package-build failure still prevents current browser execution. Exactly five stale CI records close: all 657 IDs remain, 465 done/192 open across 178 exact-covering maintenance rows. Original findings, unrelated work, dependency pointers, authenticated-runtime limitations and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-464-496-505-555-585-validation-evidence.md).
@@ -178,14 +180,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 470 |
+| done | 475 |
 | actionable | 108 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 9 |
-| uncertain | 32 |
+| uncertain | 27 |
 
-**Remaining: 187 open records across 173 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 182 open records across 172 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -322,7 +324,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
-| DW-345, DW-362, DW-378, DW-383, DW-412 | P1 | Unverified / uncertain | unassigned | authenticated rendered-control browser fixture | Trace document.activeElement/shadow activeElement after focusing the actual Blazor Fluent Cancel control. |
 | DW-116 | P2 | Unverified / blocked | unassigned | BROWSER-SEARCH-1.9 and AT-NVDA-1.9 | Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime. |
 | DW-119 | P2 | Unverified / uncertain | unassigned | authenticated browser search fixture | Record document.activeElement during paging and determine whether restoration is required. |
 | DW-127 | P2 | Unverified / awaiting-decision | Story 1.9 | product/security requirement | Set the privacy/completeness acceptance requirement for partially hidden search windows. |

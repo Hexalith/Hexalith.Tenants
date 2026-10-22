@@ -1,0 +1,795 @@
+{
+  "baseline": "ab6e99f656eaae14a01c021cf0c6eadf9f38cefe",
+  "configuration": "Debug; UseNuGetDeps=false",
+  "browser": "Google Chrome 154.0.8037.57 ",
+  "fluent_package": "Microsoft.FluentUI.AspNetCore.Components/5.0.1",
+  "fluent_module_sha256": "3ac6e00ddff6fd456dae1c544ade7fa2a44cb8d8c3114a11932e345170356771",
+  "browser_observations": [
+    {
+      "culture": "en",
+      "width": 500,
+      "observations": [
+        {
+          "scenario": "direct",
+          "helperResult": true,
+          "shadowActiveElement": null,
+          "active": [
+            {
+              "tag": "FLUENT-BUTTON",
+              "id": "tenants-global-admin-remove-cancel-button"
+            }
+          ]
+        },
+        {
+          "scenario": "sentinel-contract",
+          "helperResult": true,
+          "fallbacks": 0,
+          "active": [
+            {
+              "tag": "FLUENT-BUTTON",
+              "id": "tenants-global-admin-remove-cancel-button"
+            }
+          ]
+        },
+        {
+          "scenario": "disabled",
+          "helperResult": false,
+          "fallbacks": 1,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f1574cc5"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "hidden",
+          "helperResult": false,
+          "fallbacks": 2,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f1574cc5"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "inert",
+          "helperResult": false,
+          "fallbacks": 3,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f1574cc5"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "missing",
+          "helperResult": false,
+          "fallbacks": 4,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f1574cc5"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "en",
+      "width": 1024,
+      "observations": [
+        {
+          "scenario": "direct",
+          "helperResult": true,
+          "shadowActiveElement": null,
+          "active": [
+            {
+              "tag": "FLUENT-BUTTON",
+              "id": "tenants-global-admin-remove-cancel-button"
+            }
+          ]
+        },
+        {
+          "scenario": "sentinel-contract",
+          "helperResult": true,
+          "fallbacks": 0,
+          "active": [
+            {
+              "tag": "FLUENT-BUTTON",
+              "id": "tenants-global-admin-remove-cancel-button"
+            }
+          ]
+        },
+        {
+          "scenario": "disabled",
+          "helperResult": false,
+          "fallbacks": 1,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f1574cc5"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "hidden",
+          "helperResult": false,
+          "fallbacks": 2,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f1574cc5"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "inert",
+          "helperResult": false,
+          "fallbacks": 3,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f1574cc5"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "missing",
+          "helperResult": false,
+          "fallbacks": 4,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f1574cc5"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "fr",
+      "width": 500,
+      "observations": [
+        {
+          "scenario": "direct",
+          "helperResult": true,
+          "shadowActiveElement": null,
+          "active": [
+            {
+              "tag": "FLUENT-BUTTON",
+              "id": "tenants-global-admin-remove-cancel-button"
+            }
+          ]
+        },
+        {
+          "scenario": "sentinel-contract",
+          "helperResult": true,
+          "fallbacks": 0,
+          "active": [
+            {
+              "tag": "FLUENT-BUTTON",
+              "id": "tenants-global-admin-remove-cancel-button"
+            }
+          ]
+        },
+        {
+          "scenario": "disabled",
+          "helperResult": false,
+          "fallbacks": 1,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f352cd28"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "hidden",
+          "helperResult": false,
+          "fallbacks": 2,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f352cd28"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "inert",
+          "helperResult": false,
+          "fallbacks": 3,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f352cd28"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "missing",
+          "helperResult": false,
+          "fallbacks": 4,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f352cd28"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "culture": "fr",
+      "width": 1024,
+      "observations": [
+        {
+          "scenario": "direct",
+          "helperResult": true,
+          "shadowActiveElement": null,
+          "active": [
+            {
+              "tag": "FLUENT-BUTTON",
+              "id": "tenants-global-admin-remove-cancel-button"
+            }
+          ]
+        },
+        {
+          "scenario": "sentinel-contract",
+          "helperResult": true,
+          "fallbacks": 0,
+          "active": [
+            {
+              "tag": "FLUENT-BUTTON",
+              "id": "tenants-global-admin-remove-cancel-button"
+            }
+          ]
+        },
+        {
+          "scenario": "disabled",
+          "helperResult": false,
+          "fallbacks": 1,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f352cd28"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "hidden",
+          "helperResult": false,
+          "fallbacks": 2,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f352cd28"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "inert",
+          "helperResult": false,
+          "fallbacks": 3,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f352cd28"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        },
+        {
+          "scenario": "missing",
+          "helperResult": false,
+          "fallbacks": 4,
+          "active": [
+            {
+              "tag": "FLUENT-TEXT-INPUT",
+              "id": "f352cd28"
+            },
+            {
+              "tag": "INPUT",
+              "id": "control"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "new_controls": {
+    "return_true_without_focus": "rejected",
+    "return_false_after_focus": "rejected",
+    "sentinel_false_after_direct_success": "rejected",
+    "required_fallback_focus_omitted": "rejected"
+  },
+  "ui_suite": {
+    "counters": {
+      "total": "7119",
+      "executed": "7119",
+      "passed": "7119",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "trx_sha256": "c0095a6c68566f1a8fe39c7a94600c28a6fe2a8b1f2082881d8c8a345ae675f8",
+    "log": "/tmp/dw345-full-recheck.log",
+    "scope": "Final reviewed assembly; browser lane completed separately before this run."
+  },
+  "source_and_assembly_sha256": {
+    "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs": "a4a9179e2c89228ecaa44d82fab3bc173b9579cd0a5d193e4d2b9062d79c4878",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-remove-focus-browser-validation.html": "500d901319613582d181cf0ac49ca6705072750c4ed648c2b46370fd04dfdd5b",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh": "d6581aca134854dae8da71e446feffb66d11b0ac421b45cc406656e98797d0cd",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/dump-validation-dom.mjs": "6c19ec2427919f09e214b983815f54971f9db0d3a523e362da83e0df138b9de6",
+    "src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js": "a644196715637c2c10373a61460b087b24867f87ca2bfa59e76da052d08d186f",
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll": "1ae41a1b5d452b7c11bbe77d9d70385d31c5231333f4b1d7246fe0fd1a82341c",
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.dll": "a2fa67b23f625aae2a4d0ec87812117ed99c451963a7530793c3836812f2c056"
+  },
+  "log_sha256": {
+    "/tmp/dw345-build.log": "e894521ee694884fa1a4cf005039a2b824db1b773869785bcf3d04d4099a96a8",
+    "/tmp/dw345-build-fixed.log": "5567b4896e853f18bbb2d21db8bd42c2c017dcfc44475da2f699a49ba69d46a7",
+    "/tmp/dw345-fixture-tests.log": "0113c555f7f9fd8c021867571e8526816dae555bac459eaf7a1556ff9dd85c29",
+    "/tmp/dw345-fixture-tests-fixed.log": "8e14d61d567da2a670c3e8c2797607e1151a57bb59a940d87dbd4424b37ec3fe",
+    "/tmp/dw345-browser.log": "704b17534f02e2525282931b496b5e9611b347ceb3bd1110c7633e186c50d3b5",
+    "/tmp/dw345-browser-foreground.log": "f56b7ca8ae6925f09b1eddbac0438c5d4215389bae230851e81187e46feaf9ab",
+    "/tmp/dw345-browser-final.log": "25f60f0e85cca7a73db405e86501b4fcfd78176b93b91ecb1f021dc7ca38e9a5",
+    "/tmp/dw345-full.log": "8d7b27402b3819da1e512c50cc8d2755fc07d58c94cab4ded8e55112104e3a4c",
+    "/tmp/dw345-focused-final.log": "98a93e1d619ed314aadd57be92ff547a6d07043609f2881fc8fec7fd30937414",
+    "/tmp/dw345-browser-review.log": "e9c8f55293c1cd47d1007d454c56f32e94ab68d40c5a2c649e7642c42925fe6a",
+    "/tmp/dw345-build-review.log": "2185519b8a5fc483cecfede41685b0d57a6f1b741dd5dbd6fbe6b62c8099c615",
+    "/tmp/dw345-fixture-tests-review.log": "13e8553aeca711cc9ac8c362f42d267a8021be68af142203d0b57e0a133cf9a6",
+    "/tmp/dw345-full-review.log": "6c6e0bdf8d2f27586ed27536bab2e793e1c10b6d33ecfb8cdcbce4024efa1fa0",
+    "/tmp/dw345-metadata-recheck.log": "dfdd61ae33f209db36a9781263a3609a5cb3c51926d5322b6d1f0dc7fc2d0a63",
+    "/tmp/dw345-full-recheck.log": "e885745ba51522c51c73b5ba058652682c2408edd4174c5e4d36a97851915f2b"
+  },
+  "limits": "Actual Blazor markup with substituted authorized read state in a static browser fixture; no live authenticated topology, actual Blazor sentinel callback, Tab trapping, human AT, or release acceptance claim.",
+  "initial_accepted_runs": {
+    "ui_suite": {
+      "counters": {
+        "total": "7119",
+        "executed": "7119",
+        "passed": "7119",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx_sha256": "11163549f3789e389f44b6c54ad195352a1610fb72b425f6d07ed92d82f7040b"
+    },
+    "focused_suite": {
+      "filter_class": "*GlobalAdministratorsPageTests",
+      "counters": {
+        "total": "276",
+        "executed": "276",
+        "passed": "276",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx_sha256": "940c0878c0abcbbe402bfa269e36009535ca60dd9eb9a7caaa133d5177e2c77b"
+    },
+    "source_and_assembly_sha256": {
+      "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs": "7e9e1b7ae3e6db0e66e6fbb102412b744a2b6370671ae4a1f7686f2397012c29",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-remove-focus-browser-validation.html": "a8fd8f8ff8aa52d5556d1665c5d781a49544c8b087e6bf804f7505c0c0f9a629",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh": "60c7e4f342df27dfed7799df3ff6d73abc38edf3b06e16e1e824e37cc714a95b",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/dump-validation-dom.mjs": "6c19ec2427919f09e214b983815f54971f9db0d3a523e362da83e0df138b9de6",
+      "src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js": "a644196715637c2c10373a61460b087b24867f87ca2bfa59e76da052d08d186f",
+      "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll": "c43f7b38d35615295cd902346116001c6915a97222fc0fd11d69034fe0071006"
+    },
+    "browser_observations": [
+      {
+        "culture": "en",
+        "width": 500,
+        "observations": [
+          {
+            "scenario": "direct",
+            "helperResult": true,
+            "shadowActiveElement": null,
+            "active": [
+              {
+                "tag": "FLUENT-BUTTON",
+                "id": "tenants-global-admin-remove-cancel-button"
+              }
+            ]
+          },
+          {
+            "scenario": "sentinel-contract",
+            "helperResult": true,
+            "fallbacks": 0,
+            "active": [
+              {
+                "tag": "FLUENT-BUTTON",
+                "id": "tenants-global-admin-remove-cancel-button"
+              }
+            ]
+          },
+          {
+            "scenario": "hidden",
+            "helperResult": false,
+            "fallbacks": 1,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f52d4a5e"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          },
+          {
+            "scenario": "inert",
+            "helperResult": false,
+            "fallbacks": 2,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f52d4a5e"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          },
+          {
+            "scenario": "missing",
+            "helperResult": false,
+            "fallbacks": 3,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f52d4a5e"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "culture": "en",
+        "width": 1024,
+        "observations": [
+          {
+            "scenario": "direct",
+            "helperResult": true,
+            "shadowActiveElement": null,
+            "active": [
+              {
+                "tag": "FLUENT-BUTTON",
+                "id": "tenants-global-admin-remove-cancel-button"
+              }
+            ]
+          },
+          {
+            "scenario": "sentinel-contract",
+            "helperResult": true,
+            "fallbacks": 0,
+            "active": [
+              {
+                "tag": "FLUENT-BUTTON",
+                "id": "tenants-global-admin-remove-cancel-button"
+              }
+            ]
+          },
+          {
+            "scenario": "hidden",
+            "helperResult": false,
+            "fallbacks": 1,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f52d4a5e"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          },
+          {
+            "scenario": "inert",
+            "helperResult": false,
+            "fallbacks": 2,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f52d4a5e"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          },
+          {
+            "scenario": "missing",
+            "helperResult": false,
+            "fallbacks": 3,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f52d4a5e"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "culture": "fr",
+        "width": 500,
+        "observations": [
+          {
+            "scenario": "direct",
+            "helperResult": true,
+            "shadowActiveElement": null,
+            "active": [
+              {
+                "tag": "FLUENT-BUTTON",
+                "id": "tenants-global-admin-remove-cancel-button"
+              }
+            ]
+          },
+          {
+            "scenario": "sentinel-contract",
+            "helperResult": true,
+            "fallbacks": 0,
+            "active": [
+              {
+                "tag": "FLUENT-BUTTON",
+                "id": "tenants-global-admin-remove-cancel-button"
+              }
+            ]
+          },
+          {
+            "scenario": "hidden",
+            "helperResult": false,
+            "fallbacks": 1,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f1e6ea56"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          },
+          {
+            "scenario": "inert",
+            "helperResult": false,
+            "fallbacks": 2,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f1e6ea56"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          },
+          {
+            "scenario": "missing",
+            "helperResult": false,
+            "fallbacks": 3,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f1e6ea56"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "culture": "fr",
+        "width": 1024,
+        "observations": [
+          {
+            "scenario": "direct",
+            "helperResult": true,
+            "shadowActiveElement": null,
+            "active": [
+              {
+                "tag": "FLUENT-BUTTON",
+                "id": "tenants-global-admin-remove-cancel-button"
+              }
+            ]
+          },
+          {
+            "scenario": "sentinel-contract",
+            "helperResult": true,
+            "fallbacks": 0,
+            "active": [
+              {
+                "tag": "FLUENT-BUTTON",
+                "id": "tenants-global-admin-remove-cancel-button"
+              }
+            ]
+          },
+          {
+            "scenario": "hidden",
+            "helperResult": false,
+            "fallbacks": 1,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f1e6ea56"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          },
+          {
+            "scenario": "inert",
+            "helperResult": false,
+            "fallbacks": 2,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f1e6ea56"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          },
+          {
+            "scenario": "missing",
+            "helperResult": false,
+            "fallbacks": 3,
+            "active": [
+              {
+                "tag": "FLUENT-TEXT-INPUT",
+                "id": "f1e6ea56"
+              },
+              {
+                "tag": "INPUT",
+                "id": "control"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "browser_input_sha256": {
+    "remove-cancel-en.html": "fdcfb40106330898d0d9ca1bc723e1fc6d76beb90add9f7549a220b87c11ec93",
+    "remove-cancel-fr.html": "9d38968a6348b1be79b0b96196c549747b28cd21cc8e1727ae791da21d2273bc",
+    "global-admins.css": "a660a33eb1f7e9dcb503779e19e21b58a51e7ba2e60eaacc920cdc53c2bf8465",
+    "Hexalith.Tenants.UI.dll": "a2fa67b23f625aae2a4d0ec87812117ed99c451963a7530793c3836812f2c056"
+  },
+  "review_ui_initial_failure": {
+    "counters": {
+      "total": "7119",
+      "executed": "7119",
+      "passed": "7118",
+      "failed": "1",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "trx_sha256": "1b61504fb60536c32914c8ba359768c616911a01191f1629e343b1242d633d33",
+    "failed_case": "EditTenantMetadataFlowTests.LifecycleRoundTripClosesMetadataAfterProvisionalAdmissionUnwinds(holdSecondAuthority: true)",
+    "isolated_recheck": "2/2 pass"
+  },
+  "historical_identity_correction": "Original initial-run hash snapshot restored verbatim from the independent reviewer's retained first-review manifest observation. Current corrected hashes remain separate; no historical passing TRX is attributed to the reviewed assembly.",
+  "sanitized_transcript_sha256": "113d7a0f962b12e814d8bb05618e992b4918d607b2230c8b3a60605a0b8bbeee"
+}

@@ -1,0 +1,42 @@
+{
+  "baseline": "ab6e99f656eaae14a01c021cf0c6eadf9f38cefe",
+  "selected": [
+    345,
+    362,
+    378,
+    383,
+    412
+  ],
+  "records": 657,
+  "done": 475,
+  "open": 182,
+  "index_rows": 172,
+  "dispositions": {
+    "done": 475,
+    "blocked": 15,
+    "accepted-limitation": 9,
+    "uncertain": 27,
+    "actionable": 108,
+    "awaiting-decision": 23
+  },
+  "duplicate_controls_rejected": 3,
+  "current_field_controls_rejected": 2,
+  "allowed_change_paths": [
+    "_bmad-output/implementation-artifacts/deferred-work.md",
+    "_bmad-output/implementation-artifacts/dw-345-362-378-383-412-ledger-validation.json",
+    "_bmad-output/implementation-artifacts/dw-345-362-378-383-412-run-manifest.json",
+    "_bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-evidence.md",
+    "_bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-transcript.txt",
+    "_bmad-output/implementation-artifacts/dw-345-362-378-383-412-verify.py",
+    "_bmad-output/implementation-artifacts/spec-dw-345-362-378-383-412-rendered-cancel-focus.md",
+    "docs/maintenance-backlog.md",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/dump-validation-dom.mjs",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-remove-focus-browser-validation.html",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+    "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs"
+  ],
+  "preserved_external_changes": {
+    ".mcp.json": "86a1149a70d7f29f97b596bd4b3ed2d76f844abe14eb2b0dd779fc57e5cf13c1"
+  },
+  "result": "pass"
+}

@@ -101,6 +101,9 @@ async function evaluate(expression) {
     return result.result.value;
 }
 
+// Headless targets can change activeElement without dispatching focus events while unfocused.
+// Exercise the same event contract as a foreground document.
+await cdp('Emulation.setFocusEmulationEnabled', { enabled: true });
 await cdp('Page.enable');
 await cdp('Page.navigate', { url });
 const deadline = Date.now() + 20000;
