@@ -663,12 +663,13 @@
                               OnClick="ConfirmGrantAsync">
                     @Localizer["Tenants.GlobalAdministrators.Grant.Preview.Confirm"]
                 </FluentButton>
-                <fluent-button appearance="outline"
-                               @ref="_grantPreviewCancelElement"
-                               data-testid="tenants-global-admin-grant-preview-cancel"
-                               @onclick="CancelGrantAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline"
+                              @ref="_grantPreviewCancelElement"
+                              Id="tenants-global-admin-grant-cancel-button"
+                              data-testid="tenants-global-admin-grant-preview-cancel"
+                              OnClick="CancelGrantAsync">
                     @Localizer["Tenants.GlobalAdministrators.Grant.Cancel"]
-                </fluent-button>
+                </FluentButton>
             </FluentStack>
             <span class="global-admins__grant-focus-sentinel"
                   tabindex="0"
@@ -746,7 +747,7 @@
     private FluentTextInput _grantUserIdElement = default!;
     private FluentCheckbox _grantAcknowledgementElement = default!;
     private ElementReference _grantLauncherElement;
-    private ElementReference _grantPreviewCancelElement;
+    private FluentButton _grantPreviewCancelElement = default!;
     private ElementReference _grantLifecycleElement;
     private ElementReference _removeLifecycleElement;
     private FluentTextInput _removeAcknowledgementElement = default!;
@@ -4083,7 +4084,7 @@
         => await FocusSafelyAsync(_grantAcknowledgementElement.Element).ConfigureAwait(false);
 
     private async Task FocusGrantCancelAsync(FocusEventArgs args)
-        => await FocusSafelyAsync(_grantPreviewCancelElement).ConfigureAwait(false);
+        => await FocusSafelyAsync(_grantPreviewCancelElement.Element).ConfigureAwait(false);
 
     private void InvalidateUndispatchedGrantPreview(
         GlobalAdministratorGrantCommandSnapshot expectedSnapshot,

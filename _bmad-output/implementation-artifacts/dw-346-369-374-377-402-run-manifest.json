@@ -1,0 +1,160 @@
+{
+  "entry_revision": "f0792c44f98b4dd9492020e1bb6b108e84dc12e7",
+  "configuration": "Debug",
+  "use_nuget_deps": false,
+  "focused": {
+    "passed": 281,
+    "failed": 0,
+    "skipped": 0
+  },
+  "full_ui": {
+    "passed": 7163,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "exit_code": 0,
+    "version": "154.0.8037.57",
+    "new_cases": 4,
+    "scope": "actual exported Fluent markup; component callbacks separately tested",
+    "grant_negative_controls_rejected": [
+      "suppress-focus",
+      "transparent"
+    ]
+  },
+  "silent_return_control": {
+    "failed": 1,
+    "reason": "IsDeliveryRetryWithdrawn true observed false"
+  },
+  "source_and_assembly_sha256": {
+    "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor": "3470a0ea06cedca07570a99c6763be60ebf7f8d48f817c8a69e3c74688356279",
+    "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css": "038650143b2b27fbf27a0ad9aa8af9209d15b5750a71da4d9c2ce3cf11bb7aeb",
+    "src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs": "b08fe88448da3f82db17032f11f71aa42292c9fe61df7b8647df58f2684ac6b8",
+    "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs": "dd55e0cac792805587066321b249036b151f836c93b0a0f0180b5d5152baba32",
+    "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs": "bd569aa5e4ba6490d1262a2a93a9fac27634b73ae53cbc197cff1798b5cde12b",
+    "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.DeferredGrant.cs": "b010551302e8f4630f7bb8de8a3c7c7a222fef1ae980b7f55024b7f5d31b796d",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-grant-focus-browser-validation.html": "63a898eedad39ab77db1c1350a70947a4e19912e196511f4e2dd7e4bb658607e",
+    "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh": "d02ed4f0a8c07f1e2c70f71f1faa6d6374787b0a22ac727183dacd1be0bb9239",
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.dll": "01c5b42fe91dda797f83d4753c20bc37155d11fafd3fa99115869f2554d016f8",
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll": "729e860ef4ba9e700b2f59136b501522dfe817f9d18e8ed9c1ab195ca47c8a10",
+    "_bmad-output/implementation-artifacts/dw-346-369-374-377-402-check-refusal.py": "b8ce6b7196298f0466cdcc56a905bc5243324f18f10028fb3aefc4e7fe091db2",
+    "_bmad-output/implementation-artifacts/dw-346-369-374-377-402-verify.py": "0d5864a5b0d2b123af5b7b5c7cdf2fb0edb4e8b766ade970ca2112b3be2da687"
+  },
+  "logs": {
+    "review-build": {
+      "local_path": "/tmp/dw-grant-review-build.log",
+      "sha256": "d3db1bdc7e2fa89ff364d855d879ee5dc334a0467ad6aa0be43bd82faefe922b"
+    },
+    "review-focused": {
+      "local_path": "/tmp/dw-grant-review-focused.log",
+      "sha256": "8adf36336798b23dc46a6964220ca662548367c340926f10652c63517c2fec0f"
+    },
+    "review-control": {
+      "local_path": "/tmp/dw-grant-review-control.log",
+      "sha256": "c21fa494ac467104a328386158920bcf1bfd28321bcb3a5d511156c5311832e8"
+    },
+    "review-mutation-build": {
+      "local_path": "/tmp/dw-grant-review-control/mutation-build.log",
+      "sha256": "5c66ad6097d51b76ff2dbfebc45289f480381a9c38d4c262640c22aa6267a6f4"
+    },
+    "review-mutation-test": {
+      "local_path": "/tmp/dw-grant-review-control/mutation-test.log",
+      "sha256": "67074f430c9d3a2d17e59b68bd98d1946d443050ebce344889db972c2ed87c60"
+    },
+    "review-restored-build": {
+      "local_path": "/tmp/dw-grant-review-control/restored-build.log",
+      "sha256": "3a2d4d2eb44d3fe6048a4b98698673ae372db977b76bbe0c2cd7d170ad3c111e"
+    },
+    "review-full": {
+      "local_path": "/tmp/dw-grant-review-full.log",
+      "sha256": "81a29616ede3dc5958d26eda4de1a661ae1e1ad82a238c6f9388f813c4afc2f7"
+    },
+    "review-browser": {
+      "local_path": "/tmp/dw-grant-review-browser.log",
+      "sha256": "6968fcf6c6aa1e9229df47e62a2cf6800210ec5b7fc585e048e3d44e29f854ce"
+    },
+    "review-commitlint": {
+      "local_path": "/tmp/dw-grant-commitlint-final.log",
+      "sha256": "ca55995c878b1a0dc63c14e6862bfe99da0815ea0bc30c6fbb1b58cd4818a4fa"
+    }
+  },
+  "transcript": {
+    "path": "_bmad-output/implementation-artifacts/dw-346-369-374-377-402-reviewed-validation-transcript.txt",
+    "sha256": "662530973513db24e03fc6a28170a333765f921d2c80b6f097ce148e63d9a9e0"
+  },
+  "initial_accepted_runs": {
+    "entry_revision": "f0792c44f98b4dd9492020e1bb6b108e84dc12e7",
+    "configuration": "Debug",
+    "use_nuget_deps": false,
+    "focused": {
+      "passed": 281,
+      "failed": 0,
+      "skipped": 0
+    },
+    "full_ui": {
+      "passed": 7163,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browser": {
+      "exit_code": 0,
+      "version": "154.0.8037.57",
+      "new_cases": 4,
+      "scope": "actual exported Fluent markup; component callbacks separately tested"
+    },
+    "silent_return_control": {
+      "failed": 1,
+      "reason": "IsDeliveryRetryWithdrawn true observed false"
+    },
+    "source_and_assembly_sha256": {
+      "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor": "3470a0ea06cedca07570a99c6763be60ebf7f8d48f817c8a69e3c74688356279",
+      "src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css": "038650143b2b27fbf27a0ad9aa8af9209d15b5750a71da4d9c2ce3cf11bb7aeb",
+      "src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs": "b08fe88448da3f82db17032f11f71aa42292c9fe61df7b8647df58f2684ac6b8",
+      "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs": "dd55e0cac792805587066321b249036b151f836c93b0a0f0180b5d5152baba32",
+      "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs": "bd569aa5e4ba6490d1262a2a93a9fac27634b73ae53cbc197cff1798b5cde12b",
+      "tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.DeferredGrant.cs": "5e986aac4660a3b8f3d07d4eb90ee15222b6d0bed633bae9a80316bb0a1bc9ba",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/global-administrator-grant-focus-browser-validation.html": "5bcd558474ea60e36057c64e19d3e41853a4fa1d8d0c3a3384b04a81f9b0e90b",
+      "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh": "4fb0d5ef15c92a2b56d90d98be840b27e5db5e2fc2a38a907ba854ff997eabca",
+      "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.dll": "01c5b42fe91dda797f83d4753c20bc37155d11fafd3fa99115869f2554d016f8",
+      "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll": "a9d23e3f9ab93e0446aeed3a86e7baa12c8ebcb662b8708396e5fda2e750da56"
+    },
+    "logs": {
+      "build": {
+        "local_path": "/tmp/dw-grant-build.log",
+        "sha256": "8aff4f75f1cd3dda568be427da24d6782944989c5c22d3f67432ed61ea3f6424"
+      },
+      "focused": {
+        "local_path": "/tmp/dw-grant-focused.log",
+        "sha256": "8927df3f3d02a36ef80813fc3eb13426143eed89bbd09f071b157f58b7511ef6"
+      },
+      "mutation-build": {
+        "local_path": "/tmp/dw-grant-mutation-build.log",
+        "sha256": "83639fbb3fd6eca9a48a54f958c7264eed7667e6724510cb821c69aea36af301"
+      },
+      "mutation-test": {
+        "local_path": "/tmp/dw-grant-mutation-test.log",
+        "sha256": "abdf48526fd1a4c850274eafe6672c18101052298cea443cba2f7e4cd5c8e923"
+      },
+      "restored-build": {
+        "local_path": "/tmp/dw-grant-restored-build.log",
+        "sha256": "4bc7165cb54f9951225a64581351e591643911e18ef099145004c671774d1341"
+      },
+      "full": {
+        "local_path": "/tmp/dw-grant-full.log",
+        "sha256": "75272cc10c9f52fd37cc0c38125c2c390de14541e2bc2a6d8e91cba18be07529"
+      },
+      "browser": {
+        "local_path": "/tmp/dw-grant-browser.log",
+        "sha256": "480d87a894a47a8c47dfe1673ab075fd9a5032990c67a83f492339fd7fe82d79"
+      },
+      "commitlint": {
+        "local_path": "/tmp/dw-grant-commitlint.log",
+        "sha256": "ca55995c878b1a0dc63c14e6862bfe99da0815ea0bc30c6fbb1b58cd4818a4fa"
+      }
+    },
+    "transcript": {
+      "path": "_bmad-output/implementation-artifacts/dw-346-369-374-377-402-validation-transcript.txt",
+      "sha256": "8fd7babf39e8258a30cc2662640d264e55e22b68969b8b650e1d5e33ed9056ef"
+    }
+  }
+}

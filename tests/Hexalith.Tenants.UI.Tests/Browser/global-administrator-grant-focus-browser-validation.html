@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Rendered administrator grant Cancel focus</title>
+    <link rel="stylesheet" href="./fluent-ui.css">
+    <link rel="stylesheet" href="./global-admins.css">
+</head>
+<body>
+    <div id="fixture"></div>
+    <output id="validation-report">RUNNING</output>
+    <script type="module">
+        const report = document.getElementById('validation-report');
+        try {
+            const parameters = new URLSearchParams(location.search);
+            const culture = parameters.get('culture') ?? 'en';
+            if (!['en', 'fr'].includes(culture)) throw new Error('Unsupported fixture culture');
+            document.documentElement.lang = culture;
+            const expectedWidth = Number(parameters.get('width') ?? '1024');
+            if (innerWidth !== expectedWidth) throw new Error(`Unexpected viewport width ${innerWidth}`);
+            const response = await fetch(`./grant-cancel-${culture}.html`);
+            if (!response.ok) throw new Error('Actual rendered grant fixture is missing');
+            const fluent = await import('./fluent-ui.js');
+            fluent.beforeStart(document, 'web');
+            await customElements.whenDefined('fluent-button');
+            document.getElementById('fixture').innerHTML = await response.text();
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            const dialog = document.querySelector('[data-testid="tenants-global-admin-grant-preview"]');
+            const cancel = dialog?.querySelector('[data-testid="tenants-global-admin-grant-preview-cancel"]');
+            const acknowledgement = dialog?.querySelector('[data-testid="tenants-global-admin-grant-acknowledge"]');
+            const sentinel = dialog?.querySelector('[data-testid="tenants-global-admin-grant-focus-start"]');
+            if (!cancel || !acknowledgement || !sentinel || cancel.tagName !== 'FLUENT-BUTTON'
+                || cancel.id !== 'tenants-global-admin-grant-cancel-button'
+                || cancel.getAttribute('appearance') !== 'outline'
+                || cancel.textContent.trim() !== (culture === 'fr' ? 'Annuler' : 'Cancel')) {
+                throw new Error('Actual localized grant Cancel is missing');
+            }
+            // The component test drives the real Blazor sentinel callback and dismissal. Here the
+            // actual exported FluentButton.Element host must accept DOM focus with restored Fluent JS.
+            const mutation = parameters.get('mutation');
+            if (mutation === 'transparent') cancel.style.opacity = '0';
+            acknowledgement.focus();
+            if (document.activeElement !== acknowledgement) throw new Error('Acknowledgement did not receive focus');
+            sentinel.addEventListener('focus', () => { if (mutation !== 'suppress-focus') cancel.focus(); });
+            sentinel.focus();
+            if (!document.hasFocus() || document.activeElement !== cancel || cancel.matches(':disabled, [disabled]')
+                || !cancel.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
+                || !cancel.getClientRects().length || cancel.closest('[inert], [hidden]')) {
+                throw new Error('Actual grant Cancel host did not receive visible focus');
+            }
+            if (getComputedStyle(dialog).boxSizing !== 'border-box') throw new Error('Approved grant border-box chrome changed');
+            const bounds = dialog.getBoundingClientRect();
+            const controlBounds = cancel.getBoundingClientRect();
+            if (controlBounds.left < Math.max(0, bounds.left) || controlBounds.right > Math.min(innerWidth, bounds.right)
+                || controlBounds.top < Math.max(0, bounds.top) || controlBounds.bottom > Math.min(innerHeight, bounds.bottom)) {
+                throw new Error('Focused grant Cancel is outside visible modal bounds');
+            }
+            if (bounds.left < 0 || bounds.right > innerWidth) throw new Error('Grant preview exceeds the viewport');
+            report.textContent = `PASS ${JSON.stringify({ culture, width: innerWidth, focusedTag: document.activeElement.tagName, focusedId: document.activeElement.id, boxSizing: getComputedStyle(dialog).boxSizing })}`;
+            document.documentElement.dataset.validationStatus = 'passed';
+        } catch (error) {
+            report.textContent = `FAIL ${error.message}`;
+            document.documentElement.dataset.validationStatus = 'failed';
+        }
+    </script>
+</body>
+</html>

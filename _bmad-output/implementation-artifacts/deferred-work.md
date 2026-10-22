@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-346/DW-369/DW-374/DW-377/DW-402 closure (2026-10-22):** Grant Cancel uses the existing Fluent component; deterministic refusal and EN/FR replacement-page recovery qualify retained retry identity. The approved grant localization and border-box scope notes close as preserved intentional behavior. Exactly five records close: all 657 IDs remain, 490 done/167 open across 157 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-346-369-374-377-402-validation-evidence.md).
+
 **DW-253/DW-261/DW-284/DW-475/DW-512 closure (2026-10-22):** Gateway-driven lost-tracking and minted-identity tests, actual scoped create remounts and seven-flow audit denial controls qualify command recovery. Correction rendering consumes the atomically retained delivery outcome; wrong-outcome and denial-bypass controls reject. Exactly five records close: all 657 IDs remain, 480 done/177 open across 167 maintenance rows. Historical evidence, unrelated work, dependency pointers, the existing local MCP edit and release holds remain preserved. See [validation evidence](dw-253-261-284-475-512-validation-evidence.md).
 
 **DW-345/DW-362/DW-378/DW-383/DW-412 closure (2026-10-22):** Actual production-rendered EN/FR Cancel controls in Chromium qualify the existing strict host-focus check and unavailable-target fallback. The shared capture driver now supplies foreground focus for focus-event dispatch; wrong-result controls reject. Exactly five duplicate risks close: all 657 IDs remain, 475 done/182 open across 172 exact-covering maintenance rows. Broader authenticated modal/keyboard evidence, historical findings, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-345-362-378-383-412-validation-evidence.md).
@@ -3733,16 +3735,24 @@ location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razo
 source_spec: `_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 severity: low
 reason: Story 4.3 required Fluent V5 actions on the removal dialog. The grant preview Cancel control is pre-existing KEEP grant chrome (`<fluent-button appearance="outline" @ref>`), not introduced by this removal pass.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor grant-preview Cancel remains a lowercase fluent-button with @onclick/@ref (around line 666); removal Cancel is already FluentButton.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: verified-defect
+pre-grant-surface-status: open
+status: done 2026-10-22
+pre-grant-surface-disposition: actionable
+disposition: done
+pre-grant-surface-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-grant-surface-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor grant-preview Cancel remains a lowercase fluent-button with @onclick/@ref (around line 666); removal Cancel is already FluentButton.
+verification: Grant preview Cancel now uses FluentButton with an explicit ID, existing outline appearance, OnClick dismissal and the component Element for focus. Existing actual Blazor sentinel, Escape and Cancel tests remain; actual EN/FR control export and Chromium host-focus checks qualify the migration. See dw-346-369-374-377-402-validation-evidence.md.
+pre-grant-surface-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.DeferredGrant.cs; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs
+pre-grant-surface-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
-dependencies: grant chrome ownership
-next-action: Migrate the grant Cancel to the existing Fluent V5 component and verify focus behavior.
+pre-grant-surface-dependencies: grant chrome ownership
+dependencies: none
+pre-grant-surface-next-action: Migrate the grant Cancel to the existing Fluent V5 component and verify focus behavior.
+next-action: none; closed by scoped grant-surface qualification
 related: none
 
 ### DW-347: Story 4.3 File List gitlink SHAs do not match the current tree.
@@ -4092,16 +4102,24 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- The `DispatchGrantAsync` redispatch-guard call site has no test. Filed by the verification-gap layer with a defer disposition: the window sits between an off-dispatcher `AreGrantDispatchCapabilitiesCurrent()` read and the on-dispatcher `livePrerequisites` re-read, with no injectable seam in the bUnit harness, and the deterministic sibling guard is now covered. Reverting the call to a bare `return;` fails nothing. [`src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:3316`]"
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPage.razor::DispatchGrantAsync still has a redispatch livePrerequisites refusal branch that calls SurfaceAmbiguousGrantRetryUnavailable. Existing AmbiguousGrantDeliveryRetryPrerequisiteRaceSurfacesRecovery and FinalRendererPrerequisiteLossReleasesExactUndispatchedLeaseAndRequiresFreshReview cover outer retry/initial-dispatch boundaries, not a deterministic capability flip at this inner redispatch branch.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: verified-gap
+pre-grant-surface-status: open
+status: done 2026-10-22
+pre-grant-surface-disposition: actionable
+disposition: done
+pre-grant-surface-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-grant-surface-verification: GlobalAdministratorsPage.razor::DispatchGrantAsync still has a redispatch livePrerequisites refusal branch that calls SurfaceAmbiguousGrantRetryUnavailable. Existing AmbiguousGrantDeliveryRetryPrerequisiteRaceSurfacesRecovery and FinalRendererPrerequisiteLossReleasesExactUndispatchedLeaseAndRequiresFreshReview cover outer retry/initial-dispatch boundaries, not a deterministic capability flip at this inner redispatch branch.
+verification: A deterministic final renderer refusal test reuses the existing tracked-capability provider and invokes the retained dispatch boundary without an event-triggered render that could mask a silent return. It asserts withdrawal, exact identity, lease retention and zero extra delivery; deleting the exact inner refusal call fails. See dw-346-369-374-377-402-validation-evidence.md.
+pre-grant-surface-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.DeferredGrant.cs; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs
+pre-grant-surface-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: A controllable final-dispatch capability boundary
-next-action: Add a deterministic dispatch-capability read seam or equivalent test that fails when this inner refusal silently returns.
+pre-grant-surface-dependencies: A controllable final-dispatch capability boundary
+dependencies: none
+pre-grant-surface-next-action: Add a deterministic dispatch-capability read seam or equivalent test that fails when this inner refusal silently returns.
+next-action: none; closed by scoped grant-surface qualification
 related: DW-396
 
 
@@ -4177,16 +4195,24 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3
 location: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs; src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- Grant withdrawn-retry is a snapshot bit that cannot survive adoption. Grant KEEP / Story 4.2 chrome, not last-administrator removal. [`src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs:24`]"
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs still stores IsDeliveryRetryWithdrawn only in the page snapshot; CreateGrantSnapshot in GlobalAdministratorsPage.razor omits it during reconciliation adoption. OnAfterRenderAsync recomputes live withdrawal/rearm state, so a lost bit alone is not proof of incorrect recovery. Missing evidence is a replacement/adoption regression specifying whether a still-blocked retry retains its withdrawal reason and label.
-verification-files: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs; src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: unverified-risk
+pre-grant-surface-status: open
+status: done 2026-10-22
+pre-grant-surface-disposition: uncertain
+disposition: done
+pre-grant-surface-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-grant-surface-verification: State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs still stores IsDeliveryRetryWithdrawn only in the page snapshot; CreateGrantSnapshot in GlobalAdministratorsPage.razor omits it during reconciliation adoption. OnAfterRenderAsync recomputes live withdrawal/rearm state, so a lost bit alone is not proof of incorrect recovery. Missing evidence is a replacement/adoption regression specifying whether a still-blocked retry retains its withdrawal reason and label.
+verification: Actual EN/FR replacement pages adopt a withdrawn ambiguous grant while preview readiness remains blocked, reconstruct the disabled retry and associated reason/recovery from live prerequisites, retain the exact message ID and lease, then rearm and retry that same ID when readiness recovers. No persisted presentation flag or production recovery change is needed. See dw-346-369-374-377-402-validation-evidence.md.
+pre-grant-surface-verification-files: src/Hexalith.Tenants.UI/State/GlobalAdministrators/GlobalAdministratorGrantCommandSnapshot.cs; src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.DeferredGrant.cs; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.FocusBrowserFixtures.cs
+pre-grant-surface-evidence-kind: unverified-risk
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
+pre-grant-surface-dependencies: none
 dependencies: none
-next-action: Verify adoption of a withdrawn ambiguous grant under unchanged blocked prerequisites and assert the reason, label, and disabled state.
+pre-grant-surface-next-action: Verify adoption of a withdrawn ambiguous grant under unchanged blocked prerequisites and assert the reason, label, and disabled state.
+next-action: none; closed by scoped grant-surface qualification
 related: DW-370
 
 
@@ -4210,16 +4236,24 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3
 location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css; _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- `RequiredGrantFactKeys` grew to 89 keys and grant-preview gained `box-sizing: border-box` on this removal story. KEEP grant localization/chrome; belongs with Story 4.2. [`src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs:25`]"
-status: open
-disposition: accepted-limitation
-verification-date: 2026-10-12
-verification: The original entry is a KEEP grant-scope note. TenantsBffComposition.RequiredGrantFactKeys now contains 104 grant-surface keys; GlobalAdministratorsPage.razor.css retains the intentional grant-preview border-box rule. spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md explicitly rejects treating grant modal box-sizing as a removal defect and identifies the 4.2 commits.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css; _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md
-evidence-kind: accepted-limitation
+pre-grant-surface-status: open
+status: done 2026-10-22
+pre-grant-surface-disposition: accepted-limitation
+disposition: done
+pre-grant-surface-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-grant-surface-verification: The original entry is a KEEP grant-scope note. TenantsBffComposition.RequiredGrantFactKeys now contains 104 grant-surface keys; GlobalAdministratorsPage.razor.css retains the intentional grant-preview border-box rule. spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md explicitly rejects treating grant modal box-sizing as a removal defect and identifies the 4.2 commits.
+verification: Closed as a preserved historical scope-attribution note. The current 108 required grant localization keys and approved grant-preview border-box rule remain unchanged. Component localization checks and Chromium computed styles qualify the retained grant surface; no removal defect or localization reduction is claimed. See dw-346-369-374-377-402-validation-evidence.md.
+pre-grant-surface-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css; _bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs; src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css
+pre-grant-surface-evidence-kind: accepted-limitation
+evidence-kind: verified-preserved-scope
 priority: P3
 owner: unassigned
+pre-grant-surface-dependencies: none
 dependencies: none
-next-action: Retain the historical grant attribution; no removal fix is needed.
+pre-grant-surface-next-action: Retain the historical grant attribution; no removal fix is needed.
+next-action: none; closed by scoped grant-surface qualification
 related: DW-402, DW-405
 
 
@@ -4686,16 +4720,24 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3
 location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- Grant preview `box-sizing: border-box` is in `.global-admins__grant-preview`. Already deferred as KEEP grant chrome for Story 4.2, not last-administrator removal."
-status: open
-disposition: accepted-limitation
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPage.razor.css retains .global-admins__grant-preview box-sizing: border-box. The removal spec review explicitly records that this is approved KEEP grant chrome from Story 4.2, not a removal change needing correction.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css
-evidence-kind: accepted-limitation
+pre-grant-surface-status: open
+status: done 2026-10-22
+pre-grant-surface-disposition: accepted-limitation
+disposition: done
+pre-grant-surface-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-grant-surface-verification: GlobalAdministratorsPage.razor.css retains .global-admins__grant-preview box-sizing: border-box. The removal spec review explicitly records that this is approved KEEP grant chrome from Story 4.2, not a removal change needing correction.
+verification: Closed as the duplicate preserved grant scope-attribution note. The intentional grant-preview border-box rule remains unchanged and is checked on actual rendered EN/FR previews in Chromium. Historical Story 4.2 ownership is retained; no removal styling fix is claimed. See dw-346-369-374-377-402-validation-evidence.md.
+pre-grant-surface-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsBffComposition.cs; src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css
+pre-grant-surface-evidence-kind: accepted-limitation
+evidence-kind: verified-preserved-scope
 priority: P3
 owner: unassigned
+pre-grant-surface-dependencies: none
 dependencies: none
-next-action: Preserve the scope attribution and style; no maintenance fix follows from this note.
+pre-grant-surface-next-action: Preserve the scope attribution and style; no maintenance fix follows from this note.
+next-action: none; closed by scoped grant-surface qualification
 related: DW-377
 
 

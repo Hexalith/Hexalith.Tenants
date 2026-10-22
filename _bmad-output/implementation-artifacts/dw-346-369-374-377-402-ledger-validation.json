@@ -1,0 +1,31 @@
+{
+  "baseline": "f0792c44f98b4dd9492020e1bb6b108e84dc12e7",
+  "selected": [
+    346,
+    369,
+    374,
+    377,
+    402
+  ],
+  "records": 657,
+  "done": 490,
+  "open": 167,
+  "index_rows": 157,
+  "stale_index_reconciled": [
+    507,
+    509,
+    510,
+    513,
+    518
+  ],
+  "dispositions": {
+    "done": 490,
+    "blocked": 15,
+    "accepted-limitation": 7,
+    "uncertain": 26,
+    "actionable": 96,
+    "awaiting-decision": 23
+  },
+  "immutable_field_controls_rejected": 4,
+  "result": "pass"
+}

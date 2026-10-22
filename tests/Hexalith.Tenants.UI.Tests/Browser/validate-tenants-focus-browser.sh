@@ -272,6 +272,23 @@ sha256sum "$validation_tmp/remove-cancel-en.html" "$validation_tmp/remove-cancel
     "$validation_tmp/global-admins.css" "$(dirname -- "$start_test_executable")/Hexalith.Tenants.UI.dll"
 
 
+# Export the migrated grant Cancel through the actual page and Fluent component.
+if ! TENANTS_GRANT_FOCUS_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -method '*GlobalAdministratorsPageTests.GrantCancelExportsActualFluentControlForBrowserFocus' \
+    >"$validation_tmp/grant-focus-fixture-tests.log" 2>&1; then
+    cat "$validation_tmp/grant-focus-fixture-tests.log" >&2
+    exit 1
+fi
+for culture in en fr; do
+    [[ -s "$validation_tmp/grant-cancel-${culture}.html" ]] || exit 1
+done
+cp -- "$script_dir/global-administrator-grant-focus-browser-validation.html" "$validation_tmp/grant-cancel.html"
+printf '%s\n' 'Actual grant Cancel browser input SHA-256:'
+sha256sum "$validation_tmp/grant-cancel-en.html" "$validation_tmp/grant-cancel-fr.html" \
+    "$validation_tmp/grant-cancel.html" "$validation_tmp/global-admins.css" \
+    "$fluent_module_path" "$fluent_css_path" "$(dirname -- "$start_test_executable")/Hexalith.Tenants.UI.dll"
+
+
 # B7 uses actual localized removal markup plus the shipped FrontComposer measurement module.
 if ! TENANTS_LIVE_ADMISSION_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
     -method '*RemoveTenantMemberFlowTests.LiveRemovalExportsLocalizedMeasuredViewportFixtures' \
@@ -493,6 +510,31 @@ for culture in en fr; do
         grep -o '<output id="validation-report">[^<]*' "$remove_focus_output"
     done
 done
+for culture in en fr; do
+    for width in 768 1024; do
+        grant_focus_output="$validation_tmp/grant-cancel-${culture}-${width}.output"
+        dump_dom "actual grant Cancel ${culture}/${width}" "$grant_focus_output" \
+            --window-size="${width},800" --user-data-dir="$validation_tmp/profile-grant-cancel-${culture}-${width}" \
+            "http://127.0.0.1:${validation_port}/grant-cancel.html?culture=${culture}&width=${width}"
+        if ! grep -q 'data-validation-status="passed"' "$grant_focus_output"; then
+            grep -o '<output id="validation-report">[^<]*' "$grant_focus_output" >&2 || true
+            exit 1
+        fi
+        grep -o '<output id="validation-report">[^<]*' "$grant_focus_output"
+    done
+done
+for grant_control in suppress-focus transparent; do
+    grant_control_output="$validation_tmp/grant-control-${grant_control}.output"
+    dump_dom "grant Cancel ${grant_control} control" "$grant_control_output" \
+        --window-size=1024,800 --user-data-dir="$validation_tmp/profile-grant-control-${grant_control}" \
+        "http://127.0.0.1:${validation_port}/grant-cancel.html?mutation=${grant_control}"
+    if ! grep -q 'data-validation-status="failed"' "$grant_control_output" \
+        || ! validation_report_contains "$grant_control_output" 'Actual grant Cancel host did not receive visible focus'; then
+        echo "Grant Cancel ${grant_control} control was not rejected by its focus assertion." >&2
+        exit 1
+    fi
+done
+printf '%s\n' 'Actual grant Cancel: omitted focus forwarding and transparent-control mutations correctly rejected.'
 for result in true false; do
     remove_focus_mutation="$validation_tmp/remove-cancel-return-${result}.output"
     dump_dom "actual remove Cancel return-${result} control" "$remove_focus_mutation" \

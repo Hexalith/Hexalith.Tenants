@@ -3026,7 +3026,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             "_grantAcknowledgementElement"));
         cut.Find("[data-testid='tenants-global-admin-grant-focus-start']")
             .TriggerEvent("onfocus", new FocusEventArgs());
-        FocusedElementIds()[^1].ShouldBe(CapturedElementReferenceId(
+        FocusedElementIds()[^1].ShouldBe(CapturedChildElementReferenceId(
             cut.Instance,
             "_grantPreviewCancelElement"));
 
