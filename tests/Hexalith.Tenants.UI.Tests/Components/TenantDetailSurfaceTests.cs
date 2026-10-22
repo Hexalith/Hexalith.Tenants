@@ -2704,6 +2704,122 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         commandGateway.AddMemberCallCount.ShouldBe(0);
     }
 
+    [Theory]
+    [InlineData("lifecycle", false, true)]
+    [InlineData("lifecycle", true, true)]
+    [InlineData("set", false, true)]
+    [InlineData("set", true, true)]
+    [InlineData("remove", false, true)]
+    [InlineData("remove", true, true)]
+    [InlineData("lifecycle", false, false)]
+    [InlineData("set", false, false)]
+    [InlineData("remove", false, false)]
+    public async Task ActiveLeaseCleanupPreservesOnlyMatchingTrackerRetentionAndLateReleaseRespectsNewOwner(
+        string surface, bool pending, bool trackerPresent)
+    {
+        DateTimeOffset now = DateTimeOffset.Parse("2026-06-01T12:00:00Z");
+        var lifecycle = new TenantLifecycleAttemptTracker(() => now);
+        var set = new TenantSetConfigurationAttemptTracker(() => now);
+        var remove = new TenantRemoveConfigurationAttemptTracker(() => now);
+        Services.RemoveAll<TenantLifecycleAttemptTracker>();
+        Services.RemoveAll<TenantSetConfigurationAttemptTracker>();
+        Services.RemoveAll<TenantRemoveConfigurationAttemptTracker>();
+        if (trackerPresent)
+        {
+            Services.AddSingleton(lifecycle);
+            Services.AddSingleton(set);
+            Services.AddSingleton(remove);
+        }
+        RegisterServices(_ => Task.FromResult(ReadyWithSafeConfiguration(
+            Detail("tenant.alpha"), projectionVersion: "tenant-sequence:41")));
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForElement("[data-testid='tenants-detail-identity']");
+        const BindingFlags Flags = BindingFlags.Instance | BindingFlags.NonPublic;
+        string ownerField = surface switch
+        {
+            "lifecycle" => "_lifecycleLeaseOwner",
+            "set" => "_setConfigurationLeaseOwner",
+            _ => "_removeConfigurationLeaseOwner",
+        };
+        object surfaceOwner = typeof(TenantDetailPage).GetField(ownerField, Flags)!
+            .GetValue(cut.Instance).ShouldNotBeNull();
+        object pageAdmissionOwner = typeof(TenantDetailPage).GetField("_commandLockOwner", Flags)!
+            .GetValue(cut.Instance).ShouldNotBeNull();
+        object trackerOwner = !trackerPresent ? pageAdmissionOwner : surface switch
+        {
+            "lifecycle" => lifecycle.LeaseOwner,
+            "set" => set.LeaseOwner,
+            _ => remove.LeaseOwner,
+        };
+        string? messageId = null;
+        if (pending)
+        {
+            messageId = surface switch
+            {
+                "lifecycle" => lifecycle.BeginDispatch(
+                    new TenantLifecycleCommandRequest("tenant.alpha", TenantLifecycleOperation.DisableTenant),
+                    "tenant-sequence:41", now).MessageId,
+                "set" => set.BeginDispatch(new TenantSetConfigurationIntent(
+                    "tenant.alpha", "app:", "key", "app:key", "safe-fingerprint"), "tenant-sequence:41", now).MessageId,
+                _ => remove.BeginDispatch(new TenantRemoveConfigurationIntent(
+                    "tenant.alpha", "app:", "app:key"), "tenant-sequence:41", now).MessageId,
+            };
+        }
+
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        string lockKey = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        gate.TryAcquire(lockKey, trackerOwner).ShouldBeTrue();
+        typeof(TenantDetailPage).GetField("_activeAggregateLockKey", Flags)!.SetValue(cut.Instance, lockKey);
+        typeof(TenantDetailPage).GetField("_activeAggregateTenantId", Flags)!.SetValue(cut.Instance, "tenant.alpha");
+        typeof(TenantDetailPage).GetField("_aggregateLeaseHolder", Flags)!.SetValue(cut.Instance, surfaceOwner);
+        typeof(TenantDetailPage).GetField("_commandInFlight", Flags)!.SetValue(cut.Instance, true);
+
+        // Route replacement and disposal share this cleanup seam. Both retire page bookkeeping while
+        // tracker-owned work keeps admission until its own terminal callback arrives.
+        await cut.InvokeAsync(() => typeof(TenantDetailPage).GetMethod("ReleaseActiveAggregateLease", Flags)!
+            .Invoke(cut.Instance, null));
+
+        gate.IsOwnedBy(lockKey, trackerOwner).ShouldBe(pending);
+        typeof(TenantDetailPage).GetField("_aggregateLeaseHolder", Flags)!.GetValue(cut.Instance).ShouldBeNull();
+        typeof(TenantDetailPage).GetField("_commandInFlight", Flags)!.GetValue(cut.Instance).ShouldBe(false);
+        MethodInfo leaseMethod = typeof(TenantDetailPage).GetMethod("SetCommandActivityLeaseAsync", Flags)!;
+        _ = await cut.InvokeAsync(() => (Task<bool>)leaseMethod.Invoke(cut.Instance,
+            ["tenant.alpha", false, surfaceOwner])!);
+        gate.IsOwnedBy(lockKey, trackerOwner).ShouldBe(pending);
+        if (pending)
+        {
+            switch (surface)
+            {
+                case "lifecycle": lifecycle.Forget("tenant.alpha", messageId!); break;
+                case "set": set.Forget("tenant.alpha", messageId!); break;
+                default: remove.Forget("tenant.alpha", messageId!); break;
+            }
+
+            _ = await cut.InvokeAsync(() => (Task<bool>)leaseMethod.Invoke(cut.Instance,
+                ["tenant.alpha", false, surfaceOwner])!);
+            gate.IsLocked(lockKey).ShouldBeFalse();
+        }
+
+        // Without a tracker, both old and new surfaces resolve to the page admission owner. The late
+        // callback must distinguish unknown retention from explicitly absent retained ownership.
+        object newerOwner = pageAdmissionOwner;
+        object newerSurface = typeof(TenantDetailPage).GetField("_membershipLeaseOwner", Flags)!
+            .GetValue(cut.Instance).ShouldNotBeNull();
+        gate.TryAcquire(lockKey, newerOwner).ShouldBeTrue();
+        typeof(TenantDetailPage).GetField("_activeAggregateLockKey", Flags)!.SetValue(cut.Instance, lockKey);
+        typeof(TenantDetailPage).GetField("_activeAggregateTenantId", Flags)!.SetValue(cut.Instance, "tenant.alpha");
+        typeof(TenantDetailPage).GetField("_aggregateLeaseHolder", Flags)!.SetValue(cut.Instance, newerSurface);
+        typeof(TenantDetailPage).GetField("_commandInFlight", Flags)!.SetValue(cut.Instance, true);
+        _ = await cut.InvokeAsync(() => (Task<bool>)leaseMethod.Invoke(cut.Instance,
+            ["tenant.alpha", false, surfaceOwner])!);
+        gate.IsOwnedBy(lockKey, newerOwner).ShouldBeTrue();
+        typeof(TenantDetailPage).GetField("_aggregateLeaseHolder", Flags)!.GetValue(cut.Instance)
+            .ShouldBeSameAs(newerSurface);
+        typeof(TenantDetailPage).GetField("_commandInFlight", Flags)!.GetValue(cut.Instance).ShouldBe(true);
+        gate.Release(lockKey, newerOwner);
+    }
+
     [Fact]
     public async Task Reacquiring_the_page_owned_aggregate_lease_is_idempotent_and_keeps_the_release_key()
     {

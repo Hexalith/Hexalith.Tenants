@@ -234,7 +234,6 @@
                                                         EnableEvidence="@HighImpactEvidence(TenantHighImpactAction.EnableTenant)"
                                                         DisableEvidence="@HighImpactEvidence(TenantHighImpactAction.DisableTenant)"
                                                         IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                                        ProjectionVersion="@_snapshot.ProjectionVersion"
                                                         OnProjectionRefreshRequested="@RefreshTenantDetailAsync"
                                                         CommandActivityLease="@LifecycleCommandActivityLease"
                                                         ProjectionEvidenceProvider="@GetLifecycleProjectionEvidenceAsync"
@@ -345,8 +344,6 @@
     private bool _consumedFocuslessReturn;
     private string? _callerScope;
     private string? _loadCallerScope;
-    private string? _metadataProofCallerScope;
-    private string? _lifecycleProofCallerScope;
     private long _auditCallerVersion;
     private long _resolvedAuditCallerVersion;
     private long _pendingAuditCallerVersion;
@@ -395,14 +392,8 @@
     // a List; nothing ever read it, so it is removed rather than left to read as a retention mechanism.
     private readonly Lock _cancellationLock = new();
     private long _loadGeneration;
-    private readonly Lock _metadataProofLock = new();
-    private readonly HashSet<CancellationTokenSource> _metadataProofCancellations = [];
-    private string? _metadataProofTenantId;
-    private long _metadataProofGeneration;
-    private readonly Lock _lifecycleProofLock = new();
-    private readonly HashSet<CancellationTokenSource> _lifecycleProofCancellations = [];
-    private string? _lifecycleProofTenantId;
-    private long _lifecycleProofGeneration;
+    private readonly TenantProofScope _metadataProofScope = new();
+    private readonly TenantProofScope _lifecycleProofScope = new();
     private bool _disposed;
 
     /// <summary>Upper bound on optional notification-setup attempts for one route.</summary>
@@ -630,14 +621,11 @@
         // lifecycle or set-configuration command can own the same tenant's key while a stale remove
         // retention expires; clearing the bookkeeping then abandoned that surface's gate entry (Release
         // above is owner-scoped, so it is a no-op for a different holder) and lowered _commandInFlight
-        // mid-command. TryReclaimExpiredRemoveConfigurationLease already guards on the same identity.
+        // mid-command. TryReclaimExpiredLease already guards on the same identity.
         if (ReferenceEquals(_aggregateLeaseHolder, _removeConfigurationLeaseOwner)
             && string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal))
         {
-            _activeAggregateLockKey = null;
-            _activeAggregateTenantId = null;
-            _aggregateLeaseHolder = null;
-            _commandInFlight = false;
+            ClearActiveAggregateLease();
         }
 
         if (_disposed)
@@ -828,7 +816,7 @@
         }
 
         string tenantId = TenantId;
-        bool tenantRouteChanged = !string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal);
+        bool tenantRouteChanged = !_lifecycleProofScope.IsForTenant(tenantId);
         if (tenantRouteChanged)
         {
             _ = Interlocked.Increment(ref _readRefreshRouteVersion);
@@ -842,8 +830,7 @@
         // suspend, and allowing a render during that suspension retained the old detail (and therefore the old
         // metadata flow) under the new route parameter. The keyed flow is then constructed only from the
         // incoming tenant's completed detail, never from the outgoing tenant's intent or confirmed snapshot.
-        ResetMetadataProofScope(tenantId);
-        ResetLifecycleProofScope(tenantId);
+        ResetProofScopes(tenantId);
         _snapshot = TenantDetailSnapshot.Loading();
         _ = Interlocked.Increment(ref _highImpactRefreshGeneration);
         _detailRefreshInFlight = false;
@@ -888,30 +875,10 @@
         string? incomingAggregateLockKey = string.IsNullOrWhiteSpace(tenantId)
             ? null
             : TenantCommandAggregateLock.ForTenant(tenantId);
-        if (incomingAggregateLockKey is not null
-            && LifecycleAttemptTracker is { } lifecycleTracker
-            && !lifecycleTracker.HasPendingOwnership(tenantId)
-            && !ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner)
-            && AggregateAdmissionGate?.IsOwnedBy(incomingAggregateLockKey, lifecycleTracker.LeaseOwner) is true)
-        {
-            AggregateAdmissionGate.Release(incomingAggregateLockKey, lifecycleTracker.LeaseOwner);
-        }
-
-        if (incomingAggregateLockKey is not null
-            && SetConfigurationAttemptTracker is { } setTracker
-            && !setTracker.HasPendingOwnership(tenantId)
-            && AggregateAdmissionGate?.IsOwnedBy(incomingAggregateLockKey, setTracker.LeaseOwner) is true)
-        {
-            AggregateAdmissionGate.Release(incomingAggregateLockKey, setTracker.LeaseOwner);
-        }
-
-        if (incomingAggregateLockKey is not null
-            && RemoveConfigurationAttemptTracker is { } removeTracker
-            && !removeTracker.HasPendingOwnership(tenantId)
-            && AggregateAdmissionGate?.IsOwnedBy(incomingAggregateLockKey, removeTracker.LeaseOwner) is true)
-        {
-            AggregateAdmissionGate.Release(incomingAggregateLockKey, removeTracker.LeaseOwner);
-        }
+        _ = TryReleaseExpiredTrackerLease(incomingAggregateLockKey, tenantId, _lifecycleLeaseOwner,
+            excludeActiveSurface: true);
+        _ = TryReleaseExpiredTrackerLease(incomingAggregateLockKey, tenantId, _setConfigurationLeaseOwner);
+        _ = TryReleaseExpiredTrackerLease(incomingAggregateLockKey, tenantId, _removeConfigurationLeaseOwner);
 
         // Route-change scoped companion to the reclamation above, for the case where this page's own
         // lifecycle surface still holds the key. Same-route expiry is owned by
@@ -921,42 +888,15 @@
         // in-flight submit.
         if (tenantRouteChanged)
         {
-            _ = TryReclaimExpiredLifecycleLease(incomingAggregateLockKey, tenantId);
-            _ = TryReclaimExpiredSetConfigurationLease(incomingAggregateLockKey, tenantId);
-            _ = TryReclaimExpiredRemoveConfigurationLease(incomingAggregateLockKey, tenantId);
+            _ = TryReclaimExpiredLease(incomingAggregateLockKey, tenantId, _lifecycleLeaseOwner);
+            _ = TryReclaimExpiredLease(incomingAggregateLockKey, tenantId, _setConfigurationLeaseOwner);
+            _ = TryReclaimExpiredLease(incomingAggregateLockKey, tenantId, _removeConfigurationLeaseOwner);
         }
 
         if (_activeAggregateLockKey is not null
             && !string.Equals(_activeAggregateLockKey, incomingAggregateLockKey, StringComparison.Ordinal))
         {
-            bool lifecycleSurface = ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner);
-            bool setConfigurationSurface = ReferenceEquals(_aggregateLeaseHolder, _setConfigurationLeaseOwner);
-            bool removeConfigurationSurface = ReferenceEquals(_aggregateLeaseHolder, _removeConfigurationLeaseOwner);
-            bool retainedLifecycleLease = lifecycleSurface
-                && _activeAggregateTenantId is not null
-                && LifecycleAttemptTracker?.HasPendingOwnership(_activeAggregateTenantId) is true;
-            bool retainedSetConfigurationLease = setConfigurationSurface
-                && _activeAggregateTenantId is not null
-                && SetConfigurationAttemptTracker?.HasPendingOwnership(_activeAggregateTenantId) is true;
-            bool retainedRemoveConfigurationLease = removeConfigurationSurface
-                && _activeAggregateTenantId is not null
-                && RemoveConfigurationAttemptTracker?.HasPendingOwnership(_activeAggregateTenantId) is true;
-            if (!retainedLifecycleLease && !retainedSetConfigurationLease && !retainedRemoveConfigurationLease)
-            {
-                object admissionOwner = lifecycleSurface && LifecycleAttemptTracker is not null
-                    ? LifecycleAttemptTracker.LeaseOwner
-                    : setConfigurationSurface && SetConfigurationAttemptTracker is not null
-                        ? SetConfigurationAttemptTracker.LeaseOwner
-                    : removeConfigurationSurface && RemoveConfigurationAttemptTracker is not null
-                        ? RemoveConfigurationAttemptTracker.LeaseOwner
-                    : _commandLockOwner;
-                AggregateAdmissionGate?.Release(_activeAggregateLockKey, admissionOwner);
-            }
-
-            _activeAggregateLockKey = null;
-            _activeAggregateTenantId = null;
-            _aggregateLeaseHolder = null;
-            _commandInFlight = false;
+            ReleaseActiveAggregateLease();
         }
 
         // Every parameter load refreshes projection evidence, including same-tenant audit returns.
@@ -1078,8 +1018,7 @@
 
         CancelActiveCancellation();
         CancelSupplementaryReads();
-        ResetMetadataProofScope(tenantId: null);
-        ResetLifecycleProofScope(tenantId: null);
+        ResetProofScopes(tenantId: null);
         _snapshot = TenantDetailSnapshot.Loading();
         _tenantUsersSnapshot = TenantUsersSnapshot.Loading(TenantId);
         _globalAdministratorsSnapshot = null;
@@ -1135,8 +1074,7 @@
                 return;
             }
 
-            ResetMetadataProofScope(TenantId);
-            ResetLifecycleProofScope(TenantId);
+            ResetProofScopes(TenantId);
             if (hadPageLoad || Volatile.Read(ref _loadGeneration) > invalidatedGeneration)
             {
                 if (!hadPageLoad)
@@ -2564,138 +2502,28 @@
             && IsCurrentCallerScope(_loadCallerScope)
             && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
 
-    private void ResetMetadataProofScope(string? tenantId)
+    private void ResetProofScopes(string? tenantId)
     {
-        lock (_metadataProofLock)
-        {
-            if (string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal)
-                && string.Equals(_metadataProofCallerScope, _callerScope, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            _metadataProofTenantId = tenantId;
-            _metadataProofCallerScope = _callerScope;
-            _ = Interlocked.Increment(ref _metadataProofGeneration);
-            // Each proof operation owns disposal of its source. Route invalidation only cancels it, avoiding
-            // the CancellationToken.Register-after-Dispose race described for the main page-load path. Keep
-            // cancellation under the same lock as completion so a source cannot be disposed between selection
-            // and Cancel.
-            foreach (CancellationTokenSource source in _metadataProofCancellations)
-            {
-                RetireCancellationCore(source);
-            }
-
-            _metadataProofCancellations.Clear();
-        }
+        _metadataProofScope.Reset(tenantId, _callerScope);
+        _lifecycleProofScope.Reset(tenantId, _callerScope);
     }
 
-    private PendingOperation? BeginMetadataProof(string tenantId)
+    private TenantProofOperation? BeginProof(TenantProofScope scope, string tenantId)
     {
-        lock (_metadataProofLock)
-        {
-            if (_disposed
-                || !IsCurrentCallerScope(_metadataProofCallerScope)
-                || !string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal)
-                || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
-            {
-                return null;
-            }
-
-            var source = new CancellationTokenSource();
-            _ = _metadataProofCancellations.Add(source);
-            long generation = Volatile.Read(ref _metadataProofGeneration);
-            return new PendingOperation(generation, source, () => CompleteMetadataProof(source));
-        }
+        string? callerScope = _callerScope;
+        return scope.Begin(tenantId, callerScope, () => IsCurrentProofScope(tenantId, callerScope));
     }
 
-    private bool CanApplyMetadataProof(long generation, string tenantId)
+    private bool CanApplyProof(TenantProofScope scope, long generation, string tenantId)
     {
-        lock (_metadataProofLock)
-        {
-            return CanApplyMetadataProofCore(generation, tenantId);
-        }
+        string? callerScope = _callerScope;
+        return scope.CanApply(generation, tenantId, callerScope, () => IsCurrentProofScope(tenantId, callerScope));
     }
 
-    private bool CanApplyMetadataProofCore(long generation, string tenantId)
+    private bool IsCurrentProofScope(string tenantId, string? callerScope)
         => !_disposed
-            && generation == Volatile.Read(ref _metadataProofGeneration)
-            && IsCurrentCallerScope(_metadataProofCallerScope)
-            && string.Equals(_metadataProofTenantId, tenantId, StringComparison.Ordinal)
+            && IsCurrentCallerScope(callerScope)
             && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
-
-    private void CompleteMetadataProof(CancellationTokenSource source)
-    {
-        lock (_metadataProofLock)
-        {
-            _ = _metadataProofCancellations.Remove(source);
-        }
-
-        source.Dispose();
-    }
-
-    private void ResetLifecycleProofScope(string? tenantId)
-    {
-        lock (_lifecycleProofLock)
-        {
-            if (string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal)
-                && string.Equals(_lifecycleProofCallerScope, _callerScope, StringComparison.Ordinal))
-            {
-                return;
-            }
-
-            _lifecycleProofTenantId = tenantId;
-            _lifecycleProofCallerScope = _callerScope;
-            _ = Interlocked.Increment(ref _lifecycleProofGeneration);
-            foreach (CancellationTokenSource source in _lifecycleProofCancellations)
-            {
-                RetireCancellationCore(source);
-            }
-
-            _lifecycleProofCancellations.Clear();
-        }
-    }
-
-    private PendingOperation? BeginLifecycleProof(string tenantId)
-    {
-        lock (_lifecycleProofLock)
-        {
-            if (_disposed
-                || !IsCurrentCallerScope(_lifecycleProofCallerScope)
-                || !string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal)
-                || !string.Equals(TenantId, tenantId, StringComparison.Ordinal))
-            {
-                return null;
-            }
-
-            var source = new CancellationTokenSource();
-            _ = _lifecycleProofCancellations.Add(source);
-            long generation = Volatile.Read(ref _lifecycleProofGeneration);
-            return new PendingOperation(generation, source, () => CompleteLifecycleProof(source));
-        }
-    }
-
-    private bool CanApplyLifecycleProof(long generation, string tenantId)
-    {
-        lock (_lifecycleProofLock)
-        {
-            return !_disposed
-                && generation == Volatile.Read(ref _lifecycleProofGeneration)
-                && IsCurrentCallerScope(_lifecycleProofCallerScope)
-                && string.Equals(_lifecycleProofTenantId, tenantId, StringComparison.Ordinal)
-                && string.Equals(TenantId, tenantId, StringComparison.Ordinal);
-        }
-    }
-
-    private void CompleteLifecycleProof(CancellationTokenSource source)
-    {
-        lock (_lifecycleProofLock)
-        {
-            _ = _lifecycleProofCancellations.Remove(source);
-        }
-
-        source.Dispose();
-    }
 
     private Task<TenantDetailSnapshot?> GetAddMemberProjectionEvidenceAsync(AddUserToTenant request)
         => GetMemberProjectionEvidenceAsync(request.TenantId);
@@ -2708,7 +2536,7 @@
 
     private async Task<TenantDetailSnapshot?> GetMemberProjectionEvidenceAsync(string tenantId)
     {
-        using PendingOperation? operation = BeginLifecycleProof(tenantId);
+        using TenantProofOperation? operation = BeginProof(_lifecycleProofScope, tenantId);
         if (operation is null)
         {
             return null;
@@ -2725,14 +2553,14 @@
             return null;
         }
 
-        return CanApplyLifecycleProof(operation.Generation, tenantId)
+        return CanApplyProof(_lifecycleProofScope, operation.Generation, tenantId)
             && IsCurrentCallerScope(proof.CallerScope)
             ? proof : null;
     }
 
     private async Task<TenantDetailSnapshot?> GetUpdateMetadataProjectionEvidenceAsync(UpdateTenant request)
     {
-        using PendingOperation? operation = BeginMetadataProof(request.TenantId);
+        using TenantProofOperation? operation = BeginProof(_metadataProofScope, request.TenantId);
         if (operation is null)
         {
             return null;
@@ -2750,7 +2578,7 @@
             return null;
         }
 
-        if (!CanApplyMetadataProof(operation.Generation, request.TenantId))
+        if (!CanApplyProof(_metadataProofScope, operation.Generation, request.TenantId))
         {
             return null;
         }
@@ -2769,7 +2597,7 @@
             return null;
         }
 
-        return CanApplyMetadataProof(operation.Generation, request.TenantId)
+        return CanApplyProof(_metadataProofScope, operation.Generation, request.TenantId)
             && IsCurrentCallerScope(proof.CallerScope) ? proof : null;
     }
 
@@ -2783,7 +2611,7 @@
             return null;
         }
 
-        using PendingOperation? operation = BeginMetadataProof(request.TenantId);
+        using TenantProofOperation? operation = BeginProof(_metadataProofScope, request.TenantId);
         if (operation is null)
         {
             return null;
@@ -2810,7 +2638,7 @@
                 return null;
             }
 
-            if (!CanApplyMetadataProof(operation.Generation, request.TenantId))
+            if (!CanApplyProof(_metadataProofScope, operation.Generation, request.TenantId))
             {
                 return null;
             }
@@ -2821,7 +2649,7 @@
             // the whole attempt window (bounded by MetadataAuditProofMaximumPageCount) may confirm.
             projectionVersion ??= audit.ProjectionVersion;
             bool authoritativePage = audit.Kind is TenantAuditSurfaceKind.Ready
-                && audit.MatchesScope(auditRequest, _metadataProofCallerScope!)
+                && audit.MatchesScope(auditRequest, operation.CallerScope!)
                 && audit.Freshness is ReadModelFreshnessState.Current
                 && audit.Lifecycle is ProjectionLifecycleState.Current
                 && !string.IsNullOrWhiteSpace(audit.ProjectionVersion)
@@ -2848,7 +2676,7 @@
 
             if (!audit.HasMore)
             {
-                return CanApplyMetadataProof(operation.Generation, request.TenantId)
+                return CanApplyProof(_metadataProofScope, operation.Generation, request.TenantId)
                     && IsCurrentCallerScope(audit.CallerScope)
                     && matches.Count == 1 ? matches[0] : null;
             }
@@ -2887,7 +2715,7 @@
     private async Task<T> ReadConfigurationEvidenceAsync<T>(
         string tenantId, Func<CancellationToken, Task<T>> read, Func<T> unavailable)
     {
-        using PendingOperation? operation = BeginMetadataProof(tenantId);
+        using TenantProofOperation? operation = BeginProof(_metadataProofScope, tenantId);
         if (operation is null)
         {
             return unavailable();
@@ -2896,7 +2724,7 @@
         try
         {
             T proof = await read(operation.CancellationToken).ConfigureAwait(false);
-            return CanApplyMetadataProof(operation.Generation, tenantId) ? proof : unavailable();
+            return CanApplyProof(_metadataProofScope, operation.Generation, tenantId) ? proof : unavailable();
         }
         catch (OperationCanceledException) when (operation.CancellationToken.IsCancellationRequested)
         {
@@ -2920,7 +2748,7 @@
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken)
     {
-        using PendingOperation? operation = BeginLifecycleProof(request.TenantId);
+        using TenantProofOperation? operation = BeginProof(_lifecycleProofScope, request.TenantId);
         if (operation is null)
         {
             return null;
@@ -2942,7 +2770,7 @@
         }
 
         return !linked.IsCancellationRequested
-            && CanApplyLifecycleProof(operation.Generation, request.TenantId)
+            && CanApplyProof(_lifecycleProofScope, operation.Generation, request.TenantId)
             && IsCurrentCallerScope(proof.CallerScope)
             ? proof
             : null;
@@ -3226,6 +3054,7 @@
     /// </summary>
     /// <param name="aggregateLockKey">Aggregate lock key for <paramref name="tenantId"/>, or null when there is no route tenant.</param>
     /// <param name="tenantId">Literal tenant id whose retained attempt is being checked.</param>
+    /// <param name="surfaceOwner">Exact page surface whose tracker-owned lease may be reclaimed.</param>
     /// <returns><see langword="true"/> when a stale lease was reclaimed.</returns>
     /// <remarks>
     /// A retained attempt can expire on the clock with no state transition to release its lease: the tracker
@@ -3241,82 +3070,88 @@
     /// handled by TenantLifecycleActionAvailability, which can tell the two states apart because it observes
     /// the retained attempt going from present to absent.
     /// </remarks>
-    private bool TryReclaimExpiredLifecycleLease(string? aggregateLockKey, string tenantId)
+    private bool TryReclaimExpiredLease(string? aggregateLockKey, string tenantId, object surfaceOwner)
     {
-        if (aggregateLockKey is null
-            || AggregateAdmissionGate is not { } gate
-            || LifecycleAttemptTracker is not { } tracker
-            || !ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner)
+        if (!ReferenceEquals(_aggregateLeaseHolder, surfaceOwner)
             || !string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal)
-            || tracker.HasPendingOwnership(tenantId)
-            || !gate.IsOwnedBy(aggregateLockKey, tracker.LeaseOwner))
+            || !TryReleaseExpiredTrackerLease(aggregateLockKey, tenantId, surfaceOwner))
         {
             return false;
         }
 
-        gate.Release(aggregateLockKey, tracker.LeaseOwner);
-        _activeAggregateLockKey = null;
-        _activeAggregateTenantId = null;
-        _aggregateLeaseHolder = null;
-        _commandInFlight = false;
+        ClearActiveAggregateLease();
         return true;
     }
 
-    private bool TryReclaimExpiredSetConfigurationLease(string? aggregateLockKey, string tenantId)
+    private bool TryReleaseExpiredTrackerLease(
+        string? aggregateLockKey, string tenantId, object surfaceOwner, bool excludeActiveSurface = false)
     {
         if (aggregateLockKey is null
             || AggregateAdmissionGate is not { } gate
-            || SetConfigurationAttemptTracker is not { } tracker
-            || !ReferenceEquals(_aggregateLeaseHolder, _setConfigurationLeaseOwner)
-            || !string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal)
-            || tracker.HasPendingOwnership(tenantId)
-            || !gate.IsOwnedBy(aggregateLockKey, tracker.LeaseOwner))
+            || PendingCommandOwnership(surfaceOwner, tenantId) is not false
+            || excludeActiveSurface && ReferenceEquals(_aggregateLeaseHolder, surfaceOwner))
         {
             return false;
         }
 
-        gate.Release(aggregateLockKey, tracker.LeaseOwner);
-        _activeAggregateLockKey = null;
-        _activeAggregateTenantId = null;
-        _aggregateLeaseHolder = null;
-        _commandInFlight = false;
+        object admissionOwner = CommandAdmissionOwner(surfaceOwner);
+        if (!gate.IsOwnedBy(aggregateLockKey, admissionOwner))
+        {
+            return false;
+        }
+
+        gate.Release(aggregateLockKey, admissionOwner);
         return true;
     }
 
-    private bool TryReclaimExpiredRemoveConfigurationLease(string? aggregateLockKey, string tenantId)
+    private object CommandAdmissionOwner(object? surfaceOwner)
+        => ReferenceEquals(surfaceOwner, _lifecycleLeaseOwner) && LifecycleAttemptTracker is { } lifecycle
+            ? lifecycle.LeaseOwner
+            : ReferenceEquals(surfaceOwner, _setConfigurationLeaseOwner) && SetConfigurationAttemptTracker is { } set
+                ? set.LeaseOwner
+                : ReferenceEquals(surfaceOwner, _removeConfigurationLeaseOwner) && RemoveConfigurationAttemptTracker is { } remove
+                    ? remove.LeaseOwner
+                    : _commandLockOwner;
+
+    // Null means that this surface has no retained tracker. Ordinary page-owned completion may release
+    // it, while a late completion must prove an existing tracker has no newer pending ownership.
+    private bool? PendingCommandOwnership(object? surfaceOwner, string? tenantId)
+        => tenantId is null ? null
+            : ReferenceEquals(surfaceOwner, _lifecycleLeaseOwner)
+                ? LifecycleAttemptTracker?.HasPendingOwnership(tenantId)
+                : ReferenceEquals(surfaceOwner, _setConfigurationLeaseOwner)
+                    ? SetConfigurationAttemptTracker?.HasPendingOwnership(tenantId)
+                    : ReferenceEquals(surfaceOwner, _removeConfigurationLeaseOwner)
+                        ? RemoveConfigurationAttemptTracker?.HasPendingOwnership(tenantId)
+                        : null;
+
+    private void ReleaseActiveAggregateLease()
     {
-        if (aggregateLockKey is null
-            || AggregateAdmissionGate is not { } gate
-            || RemoveConfigurationAttemptTracker is not { } tracker
-            || !ReferenceEquals(_aggregateLeaseHolder, _removeConfigurationLeaseOwner)
-            || !string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal)
-            || tracker.HasPendingOwnership(tenantId)
-            || !gate.IsOwnedBy(aggregateLockKey, tracker.LeaseOwner))
+        string? aggregateLockKey = _activeAggregateLockKey;
+        object? surfaceOwner = _aggregateLeaseHolder;
+        if (aggregateLockKey is not null
+            && PendingCommandOwnership(surfaceOwner, _activeAggregateTenantId) is not true)
         {
-            return false;
+            // The remove tracker can raise its expiry callback during the ownership check. Capture the
+            // key and surface first so that callback cannot change which admission identity we release.
+            AggregateAdmissionGate?.Release(aggregateLockKey, CommandAdmissionOwner(surfaceOwner));
         }
 
-        gate.Release(aggregateLockKey, tracker.LeaseOwner);
+        ClearActiveAggregateLease();
+    }
+
+    private void ClearActiveAggregateLease()
+    {
         _activeAggregateLockKey = null;
         _activeAggregateTenantId = null;
         _aggregateLeaseHolder = null;
         _commandInFlight = false;
-        return true;
     }
 
     private async Task<bool> SetCommandActivityLeaseAsync(string leaseTenantId, bool isActive, object surfaceOwner)
     {
         ArgumentNullException.ThrowIfNull(surfaceOwner);
-        bool lifecycleSurface = ReferenceEquals(surfaceOwner, _lifecycleLeaseOwner);
-        bool setConfigurationSurface = ReferenceEquals(surfaceOwner, _setConfigurationLeaseOwner);
-        bool removeConfigurationSurface = ReferenceEquals(surfaceOwner, _removeConfigurationLeaseOwner);
-        object admissionOwner = lifecycleSurface && LifecycleAttemptTracker is not null
-            ? LifecycleAttemptTracker.LeaseOwner
-            : setConfigurationSurface && SetConfigurationAttemptTracker is not null
-                ? SetConfigurationAttemptTracker.LeaseOwner
-            : removeConfigurationSurface && RemoveConfigurationAttemptTracker is not null
-                ? RemoveConfigurationAttemptTracker.LeaseOwner
-            : _commandLockOwner;
+        object admissionOwner = CommandAdmissionOwner(surfaceOwner);
         if (isActive)
         {
             if (_disposed)
@@ -3379,29 +3214,13 @@
             if (aggregateLockKey is not null
                 && string.Equals(_activeAggregateLockKey, aggregateLockKey, StringComparison.Ordinal)
                 && ReferenceEquals(_aggregateLeaseHolder, surfaceOwner)
-                && (!lifecycleSurface
-                    || LifecycleAttemptTracker?.HasPendingOwnership(leaseTenantId) is not true)
-                && (!setConfigurationSurface
-                    || SetConfigurationAttemptTracker?.HasPendingOwnership(leaseTenantId) is not true)
-                && (!removeConfigurationSurface
-                    || RemoveConfigurationAttemptTracker?.HasPendingOwnership(leaseTenantId) is not true))
+                && PendingCommandOwnership(surfaceOwner, leaseTenantId) is not true)
             {
                 AggregateAdmissionGate?.Release(aggregateLockKey, admissionOwner);
-                _commandInFlight = false;
-                _activeAggregateLockKey = null;
-                _activeAggregateTenantId = null;
-                _aggregateLeaseHolder = null;
+                ClearActiveAggregateLease();
             }
             else if (aggregateLockKey is not null
-                && (lifecycleSurface || setConfigurationSurface || removeConfigurationSurface)
-                && (lifecycleSurface
-                    ? LifecycleAttemptTracker is not null
-                        && !LifecycleAttemptTracker.HasPendingOwnership(leaseTenantId)
-                    : setConfigurationSurface
-                        ? SetConfigurationAttemptTracker is not null
-                            && !SetConfigurationAttemptTracker.HasPendingOwnership(leaseTenantId)
-                        : RemoveConfigurationAttemptTracker is not null
-                            && !RemoveConfigurationAttemptTracker.HasPendingOwnership(leaseTenantId)))
+                && PendingCommandOwnership(surfaceOwner, leaseTenantId) is false)
             {
                 // Route change and page disposal deliberately clear page-local bookkeeping while a retained
                 // lifecycle attempt keeps the tracker-owned gate lease. A late terminal callback must still
@@ -3461,8 +3280,7 @@
         }
         _ = Interlocked.Increment(ref _loadGeneration);
         _ = Interlocked.Increment(ref _lifecycleAuthorizationGeneration);
-        ResetMetadataProofScope(tenantId: null);
-        ResetLifecycleProofScope(tenantId: null);
+        ResetProofScopes(tenantId: null);
         if (_authenticationStateProvider is not null)
         {
             _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
@@ -3497,34 +3315,7 @@
 
         if (_activeAggregateLockKey is not null)
         {
-            bool lifecycleSurface = ReferenceEquals(_aggregateLeaseHolder, _lifecycleLeaseOwner);
-            bool setConfigurationSurface = ReferenceEquals(_aggregateLeaseHolder, _setConfigurationLeaseOwner);
-            bool removeConfigurationSurface = ReferenceEquals(_aggregateLeaseHolder, _removeConfigurationLeaseOwner);
-            bool retainLifecycleLease = lifecycleSurface
-                && _activeAggregateTenantId is not null
-                && LifecycleAttemptTracker?.HasPendingOwnership(_activeAggregateTenantId) is true;
-            bool retainSetConfigurationLease = setConfigurationSurface
-                && _activeAggregateTenantId is not null
-                && SetConfigurationAttemptTracker?.HasPendingOwnership(_activeAggregateTenantId) is true;
-            bool retainRemoveConfigurationLease = removeConfigurationSurface
-                && _activeAggregateTenantId is not null
-                && RemoveConfigurationAttemptTracker?.HasPendingOwnership(_activeAggregateTenantId) is true;
-            if (!retainLifecycleLease && !retainSetConfigurationLease && !retainRemoveConfigurationLease)
-            {
-                object admissionOwner = lifecycleSurface && LifecycleAttemptTracker is not null
-                    ? LifecycleAttemptTracker.LeaseOwner
-                    : setConfigurationSurface && SetConfigurationAttemptTracker is not null
-                        ? SetConfigurationAttemptTracker.LeaseOwner
-                    : removeConfigurationSurface && RemoveConfigurationAttemptTracker is not null
-                        ? RemoveConfigurationAttemptTracker.LeaseOwner
-                    : _commandLockOwner;
-                AggregateAdmissionGate?.Release(_activeAggregateLockKey, admissionOwner);
-            }
-
-            _activeAggregateLockKey = null;
-            _activeAggregateTenantId = null;
-            _aggregateLeaseHolder = null;
-            _commandInFlight = false;
+            ReleaseActiveAggregateLease();
         }
 
         if (_readRefreshLease is not null)

@@ -33,6 +33,9 @@ public sealed record TenantLifecycleCommandSnapshot(
 {
     internal static readonly TimeSpan MaximumRetainedAttemptDuration = TimeSpan.FromMinutes(5);
 
+    /// <summary>Bounds inconclusive status observations without renewing the attempt deadline.</summary>
+    internal const int MaximumPendingStatusPollCount = 30;
+
     public static TenantLifecycleCommandSnapshot Idle(TenantDetailProjection? lastConfirmedProjection = null)
         => new(
             TenantCommandLifecycleState.Idle,
@@ -215,21 +218,28 @@ public sealed record TenantLifecycleCommandSnapshot(
 
         DateTimeOffset observed = (observedAtUtc ?? DateTimeOffset.UtcNow).ToUniversalTime();
         bool attemptExpired = IsRetentionExpired(observed);
+        bool awaitingStatus = status.IsPending || status.IsRetryableFailure
+            || status.Status is CommandStatus.Received or CommandStatus.Processing;
+        int nextPendingPollCount = awaitingStatus
+            ? PendingStatusPollCount == int.MaxValue ? int.MaxValue : PendingStatusPollCount + 1
+            : PendingStatusPollCount;
+        if (awaitingStatus
+            && !(State is TenantCommandLifecycleState.ProjectionPending && HasCommandEventEvidence)
+            && (attemptExpired || nextPendingPollCount >= MaximumPendingStatusPollCount))
+        {
+            return (attemptExpired
+                ? StatusTimedOut()
+                : UnableToVerify("Tenants.Lifecycle.UnableToVerify.PollBudget") with
+                {
+                    AuditState = TenantCommandAuditStates.Delayed,
+                }) with
+            {
+                PendingStatusPollCount = nextPendingPollCount,
+            };
+        }
 
         if (status.IsPending || status.IsRetryableFailure)
         {
-            int nextPendingPollCount = PendingStatusPollCount == int.MaxValue
-                ? int.MaxValue
-                : PendingStatusPollCount + 1;
-            if (attemptExpired
-                && !(State is TenantCommandLifecycleState.ProjectionPending && HasCommandEventEvidence))
-            {
-                return StatusTimedOut() with
-                {
-                    PendingStatusPollCount = nextPendingPollCount,
-                };
-            }
-
             return this with
             {
                 SafeMessage = status.SafeMessage,
@@ -264,14 +274,6 @@ public sealed record TenantLifecycleCommandSnapshot(
             };
         }
 
-        if (attemptExpired
-            && !(State is TenantCommandLifecycleState.ProjectionPending && HasCommandEventEvidence)
-            && status.Status.Value is CommandStatus.Received
-                or CommandStatus.Processing)
-        {
-            return StatusTimedOut();
-        }
-
         return status.Status.Value switch
         {
             CommandStatus.Received or CommandStatus.Processing
@@ -285,6 +287,7 @@ public sealed record TenantLifecycleCommandSnapshot(
                     RecoveryKey = null,
                     AuditState = TenantCommandAuditStates.FromCommandStatus(status.Status, status.EventCount, HasCommandEventEvidence),
                     LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
+                    PendingStatusPollCount = nextPendingPollCount,
                     EvidenceRevision = NextEvidenceRevision(),
                 },
             CommandStatus.EventsStored or CommandStatus.EventsPublished

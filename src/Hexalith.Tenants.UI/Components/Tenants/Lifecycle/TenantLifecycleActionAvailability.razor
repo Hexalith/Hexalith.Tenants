@@ -1,5 +1,4 @@
 @using Hexalith.Tenants.Contracts.Enums
-@using Microsoft.JSInterop
 @using Hexalith.Tenants.Contracts.Queries
 @using Hexalith.Tenants.UI.State.TenantCommands
 @using Microsoft.Extensions.DependencyInjection
@@ -160,7 +159,6 @@
                                     Detail="@Detail"
                                     Availability="@_activeAvailability"
                                     IsCommandSurfaceAvailable="@IsCommandSurfaceAvailable"
-                                    ProjectionVersion="@ProjectionVersion"
                                     OnProjectionRefreshRequested="@OnProjectionRefreshRequested"
                                     OnCloseRequested="@CloseFlowAsync"
                                     OnCommandActivityChanged="@OnCommandActivityChanged"
@@ -221,6 +219,7 @@
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
+    /// <summary>Gets or sets the compatibility projection marker used only when typed evidence is absent.</summary>
     [Parameter]
     public string? ProjectionVersion { get; set; }
 
@@ -419,25 +418,11 @@
         _returnFocusOperation = null;
         if (operation is TenantLifecycleOperation.EnableTenant)
         {
-            await FocusSafelyAsync(_enableElement).ConfigureAwait(false);
+            await TenantLifecycleFocus.FocusSafelyAsync(_enableElement).ConfigureAwait(false);
             return;
         }
 
-        await FocusSafelyAsync(_disableElement).ConfigureAwait(false);
-    }
-
-    private static async Task FocusSafelyAsync(ElementReference element)
-    {
-        try
-        {
-            await element.FocusAsync().ConfigureAwait(false);
-        }
-        catch (JSDisconnectedException)
-        {
-        }
-        catch (JSException)
-        {
-        }
+        await TenantLifecycleFocus.FocusSafelyAsync(_disableElement).ConfigureAwait(false);
     }
 
     internal Task ApplySignalRNudgeAsync()
@@ -517,10 +502,7 @@
         if (string.Equals(suppliedEvidence.TenantId, TenantId, StringComparison.Ordinal)
             && suppliedEvidence.Action == expectedAction)
         {
-            return TenantLifecycleAvailability.FromEvidence(suppliedEvidence with
-            {
-                ProjectionVersion = ProjectionVersion ?? suppliedEvidence.ProjectionVersion,
-            });
+            return TenantLifecycleAvailability.FromEvidence(suppliedEvidence);
         }
 
         // Never render or evaluate another tenant/action slot's facts. Preserve only the parameters for the

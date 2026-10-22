@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-301/DW-302/DW-321/DW-322/DW-323 closure (2026-10-22):** Shared lifecycle proof, lease and focus handling preserves caller/cancellation and exact ownership; typed evidence governs versions, routine tracker reads allocate no dictionary snapshots, and thirty inconclusive polls bound status waiting without discarding final event-backed proof. Exactly five records close: all 657 IDs remain, 530 done/127 open across 117 maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md).
+
 **DW-248/DW-255/DW-269/DW-276/DW-313 closure (2026-10-22):** Membership status recovery shares an iterative generation-aware drain; create status waiting uses the injected clock without expiring unresolved ownership. Current audit-availability values are explicit; held-lease refusal and shared complete create retention are qualified. Exactly five records close: all 657 IDs remain, 525 done/132 open across 122 maintenance rows. Historical findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-248-255-269-276-313-validation-evidence.md).
 
 **DW-332/DW-388/DW-400/DW-409/DW-415 closure (2026-10-22):** Controlled render, authorization, published-delivery and held-projection interleavings qualify coherent action guidance and exact aggregate ownership. Obsolete removal I/O cancels, obsolete subscriptions detach, accepted grant evidence resumes once, and stale removal bases retain current unresolved ownership. Exactly five records close: all 657 IDs remain, 520 done/137 open across 127 maintenance rows. Original findings, unrelated records, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-332-388-400-409-415-validation-evidence.md).
@@ -198,14 +200,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 525 |
-| actionable | 66 |
+| done | 530 |
+| actionable | 61 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 6 |
 | uncertain | 22 |
 
-**Remaining: 132 open records across 122 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 127 open records across 117 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -345,11 +347,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-600 | P2 | Recommendation / awaiting-decision | unassigned | Complete-evidence duplicate-page policy | Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract. |
 | DW-266 | P3 | Recommendation / actionable | unassigned | none | Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive. |
 | DW-267 | P3 | Recommendation / actionable | unassigned | DW-245 and DW-300 | Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics. |
-| DW-301 | P3 | Recommendation / actionable | unassigned | none | Extract a keyed proof-scope helper with cancellation and route-generation behavior pinned first. |
-| DW-302 | P3 | Recommendation / actionable | unassigned | public component compatibility | Make high-impact evidence canonical and retain only explicit compatibility shims for public parameters. |
-| DW-321 | P3 | Recommendation / actionable | unassigned | lease/focus regression coverage | Extract helpers after explicitly pinning surface owner identity and retention polarity. |
-| DW-322 | P3 | Recommendation / actionable | unassigned | none | Measure render cost and move pruning to a controlled mutation/expiry seam without losing expiration semantics. |
-| DW-323 | P3 | Recommendation / actionable | unassigned | configured poll budget | Implement the recorded tested poll cap and safe UnableToVerify transition. |
 | DW-326 | P3 | Recommendation / actionable | unassigned | existing ten-fact acceptance contract | Document/pin the intentional Current/Current proof fact and prune unreachable resource variants. |
 | DW-328 | P3 | Recommendation / actionable | unassigned | independent review capacity | Run a separately scoped independent follow-up on retained removal expiry and proof behavior. |
 | DW-434 | P3 | Recommendation / actionable | unassigned | Approved Option A fallback remains valid; preserve rejected Option B | For the approved Option C follow-up, browser-check a collapsed in-flight lifecycle/configuration audit round trip and expand its matching item only if the launcher is unreachable. |

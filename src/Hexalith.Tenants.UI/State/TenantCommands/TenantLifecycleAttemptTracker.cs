@@ -91,7 +91,7 @@ public sealed class TenantLifecycleAttemptTracker
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
         lock (_sync)
         {
-            PruneExpiredLocked(_utcNow().ToUniversalTime());
+            ExpireTenantLocked(tenantId, _utcNow().ToUniversalTime());
             return _dispatchIdentityByTenantId.TryGetValue(tenantId, out var existing)
                 ? existing.Intent
                 : null;
@@ -112,7 +112,7 @@ public sealed class TenantLifecycleAttemptTracker
 
         lock (_sync)
         {
-            PruneExpiredLocked(_utcNow().ToUniversalTime());
+            ExpireTenantLocked(tenantId, _utcNow().ToUniversalTime());
             return _snapshotByTenantId.TryGetValue(tenantId, out TenantLifecycleCommandSnapshot? snapshot)
                 ? snapshot
                 : null;
@@ -268,7 +268,7 @@ public sealed class TenantLifecycleAttemptTracker
 
         lock (_sync)
         {
-            PruneExpiredLocked(_utcNow().ToUniversalTime());
+            ExpireTenantLocked(tenantId, _utcNow().ToUniversalTime());
             return _snapshotByTenantId.ContainsKey(tenantId)
                 || _dispatchIdentityByTenantId.ContainsKey(tenantId);
         }
@@ -333,45 +333,42 @@ public sealed class TenantLifecycleAttemptTracker
             : string.CompareOrdinal(incomingMessageId, retainedMessageId);
     }
 
-    private void PruneExpiredLocked(DateTimeOffset observedAtUtc)
+    // Render-time reads check only the requested tenant. Existing mutation seams perform the
+    // full sweep, so routine rerenders never allocate snapshots of unrelated attempt dictionaries.
+    private void ExpireTenantLocked(string tenantId, DateTimeOffset observedAtUtc)
     {
-        foreach (string tenantId in _terminalByTenantId
-            .Where(item => IsExpired(item.Value.TerminalObservedAtUtc, observedAtUtc))
-            .Select(static item => item.Key)
-            .ToArray())
+        if (_terminalByTenantId.TryGetValue(tenantId, out var terminal)
+            && IsExpired(terminal.TerminalObservedAtUtc, observedAtUtc))
         {
             _ = _terminalByTenantId.Remove(tenantId);
         }
 
-        foreach ((string tenantId, TenantLifecycleCommandSnapshot snapshot) in _snapshotByTenantId.ToArray())
+        if (_snapshotByTenantId.TryGetValue(tenantId, out TenantLifecycleCommandSnapshot? snapshot)
+            && snapshot.IsRetentionExpired(observedAtUtc))
         {
-            if (!snapshot.IsRetentionExpired(observedAtUtc))
-            {
-                continue;
-            }
-
-            RememberTerminalLocked(
-                tenantId,
-                snapshot.MessageId!,
-                snapshot.AttemptStartedAtUtc,
-                observedAtUtc);
+            RememberTerminalLocked(tenantId, snapshot.MessageId!, snapshot.AttemptStartedAtUtc, observedAtUtc);
             _ = _snapshotByTenantId.Remove(tenantId);
             _ = _dispatchIdentityByTenantId.Remove(tenantId);
         }
 
-        foreach ((string tenantId, var dispatch) in _dispatchIdentityByTenantId.ToArray())
+        if (_dispatchIdentityByTenantId.TryGetValue(tenantId, out var dispatch)
+            && IsExpired(dispatch.AttemptStartedAtUtc, observedAtUtc))
         {
-            if (!IsExpired(dispatch.AttemptStartedAtUtc, observedAtUtc))
-            {
-                continue;
-            }
-
-            RememberTerminalLocked(
-                tenantId,
-                dispatch.MessageId,
-                dispatch.AttemptStartedAtUtc,
-                observedAtUtc);
+            RememberTerminalLocked(tenantId, dispatch.MessageId, dispatch.AttemptStartedAtUtc, observedAtUtc);
             _ = _dispatchIdentityByTenantId.Remove(tenantId);
+        }
+    }
+
+    private void PruneExpiredLocked(DateTimeOffset observedAtUtc)
+    {
+        // Enumeration belongs to mutation seams; both reads and sweeps use the same per-tenant policy.
+        foreach (string tenantId in _terminalByTenantId.Keys
+            .Concat(_snapshotByTenantId.Keys)
+            .Concat(_dispatchIdentityByTenantId.Keys)
+            .Distinct(StringComparer.Ordinal)
+            .ToArray())
+        {
+            ExpireTenantLocked(tenantId, observedAtUtc);
         }
     }
 

@@ -948,6 +948,9 @@
   <data name="Tenants.Lifecycle.UnableToVerify.StatusTimeout" xml:space="preserve">
     <value>The lifecycle attempt exceeded its verification time limit. Its outcome remains unverified; refresh tenant detail before starting another action.</value>
   </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.PollBudget" xml:space="preserve">
+    <value>The lifecycle attempt reached its status check limit. Its outcome remains unverified; refresh tenant detail before starting another action.</value>
+  </data>
   <data name="Tenants.Lifecycle.StatusEvidence.Pending" xml:space="preserve">
     <value>The lifecycle command is accepted, but status evidence is not available yet. Keep this attempt open and refresh.</value>
   </data>

@@ -377,19 +377,23 @@ internal sealed class TenantQueryGateway(
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
 
-        // previous is null on purpose: the conditional-GET path must not short-circuit to the cached
-        // snapshot, or confirmation would read its own pre-submit state back as proof.
-        return GetTenantAsync(new TenantDetailRequest(request.TenantId), null, cancellationToken);
+        return GetUnconditionalDetailProofAsync(request.TenantId, cancellationToken);
     }
 
     public Task<TenantDetailSnapshot> GetLifecycleProjectionProofAsync(
         TenantLifecycleCommandRequest request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        return GetUnconditionalDetailProofAsync(request.TenantId, cancellationToken);
+    }
 
-        // Lifecycle proof must never reuse the page ETag or retained snapshot. The unconditional read keeps
-        // the sanitized detail, freshness, projection lifecycle, and ordered version in one response.
-        return GetTenantAsync(new TenantDetailRequest(request.TenantId), null, cancellationToken);
+    private Task<TenantDetailSnapshot> GetUnconditionalDetailProofAsync(
+        string tenantId,
+        CancellationToken cancellationToken)
+    {
+        // Proof never reuses a page ETag or retained snapshot. Keep sanitized detail, freshness,
+        // projection lifecycle and ordered version together in one unconditional response.
+        return GetTenantAsync(new TenantDetailRequest(tenantId), previous: null, cancellationToken);
     }
 
     public Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofAsync(

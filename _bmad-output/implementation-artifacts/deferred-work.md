@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-301/DW-302/DW-321/DW-322/DW-323 closure (2026-10-22):** Shared lifecycle proof, lease and focus handling preserves caller/cancellation and exact ownership; typed evidence governs versions, routine tracker reads allocate no dictionary snapshots, and thirty inconclusive polls bound status waiting without discarding final event-backed proof. Exactly five records close: all 657 IDs remain, 530 done/127 open across 117 maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-301-302-321-322-323-validation-evidence.md).
+
 **DW-248/DW-255/DW-269/DW-276/DW-313 closure (2026-10-22):** Membership status recovery shares an iterative generation-aware drain; create status waiting uses the injected clock without expiring unresolved ownership. Current audit-availability values are explicit; held-lease refusal and shared complete create retention are qualified. Exactly five records close: all 657 IDs remain, 525 done/132 open across 122 maintenance rows. Historical findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-248-255-269-276-313-validation-evidence.md).
 
 **DW-332/DW-388/DW-400/DW-409/DW-415 closure (2026-10-22):** Controlled render, authorization, published-delivery and held-projection interleavings qualify coherent action guidance and exact aggregate ownership. Obsolete removal I/O cancels, obsolete subscriptions detach, accepted grant evidence resumes once, and stale removal bases retain current unresolved ownership. Exactly five records close: all 657 IDs remain, 520 done/137 open across 127 maintenance rows. Original findings, unrelated records, dependency pointers and release holds remain preserved. See [validation evidence](dw-332-388-400-409-415-validation-evidence.md).
@@ -2757,16 +2759,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: TenantDetailPage
 reason: The legacy ledger defers this issue: `TenantDetailPage`'s `ResetLifecycleProofScope`/`BeginLifecycleProof`/`CanApplyLifecycleProof`/`CompleteLifecycleProof` quartet is a verbatim copy of the metadata quartet, and `TenantQueryGateway.GetLifecycleProjectionProofAsync` is byte-identical to `GetMetadataProjectionProofAsync`. Original context is preserved in legacy-detail.
 legacy-detail: - `TenantDetailPage`'s `ResetLifecycleProofScope`/`BeginLifecycleProof`/`CanApplyLifecycleProof`/`CompleteLifecycleProof` quartet is a verbatim copy of the metadata quartet, and `TenantQueryGateway.GetLifecycleProjectionProofAsync` is byte-identical to `GetMetadataProjectionProofAsync`. Extract a keyed `ProofScope` helper before a third command surface needs one.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor still has separate metadata/lifecycle proof-generation/CTS blocks; Services/Gateways/TenantQueryGateway.cs has parallel unconditional proof seams.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
-evidence-kind: recommendation
+pre-lifecycle-maintenance-status: open
+status: done 2026-10-22
+pre-lifecycle-maintenance-disposition: actionable
+disposition: done
+pre-lifecycle-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor still has separate metadata/lifecycle proof-generation/CTS blocks; Services/Gateways/TenantQueryGateway.cs has parallel unconditional proof seams.
+verification: Independent tenant/caller-keyed proof scopes preserve concurrent reads, cancellation generation and operation-owned disposal, including reentrant and competing-thread completion. The gateway shares its unconditional detail proof read. Focused and complete UI regressions pass; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantProofScope.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantProofOperation.cs; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantProofScopeTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
-dependencies: none
-next-action: Extract a keyed proof-scope helper with cancellation and route-generation behavior pinned first.
+pre-lifecycle-maintenance-dependencies: none
+dependencies: none (compatibility and regression gates satisfied)
+pre-lifecycle-maintenance-next-action: Extract a keyed proof-scope helper with cancellation and route-generation behavior pinned first.
+next-action: None; closed by the lifecycle maintenance batch.
 related: none
 
 ### DW-302: `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). In production all four agree, so the override is untestable no-op logic that diverges only under test doubles. Pick one carrier
@@ -2774,18 +2784,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-dis
 location: ProjectionVersion
 reason: The legacy ledger defers this issue: `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). Original context is preserved in legacy-detail.
 legacy-detail: - `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). In production all four agree, so the override is untestable no-op logic that diverges only under test doubles. Pick one carrier.
-status: open
+pre-lifecycle-maintenance-status: open
+status: done 2026-10-22
 decision: 2026-08-27 Evidence is canonical — Make TenantHighImpactActionEvidence the canonical version source, remove the override path, and retain compatibility shims for public component parameters during migration.
 decision: 2026-08-27 Evidence is canonical — Make TenantHighImpactActionEvidence the canonical version source, remove the override path, and retain compatibility shims for public component parameters during migration.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor ResolveAvailability still overlays ProjectionVersion onto supplied evidence; TenantLifecycleCommandFlow.razor carries its own override. Existing 2026-08-27 evidence-canonical decision is not implemented.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor
-evidence-kind: recommendation
+pre-lifecycle-maintenance-disposition: actionable
+disposition: done
+pre-lifecycle-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor ResolveAvailability still overlays ProjectionVersion onto supplied evidence; TenantLifecycleCommandFlow.razor carries its own override. Existing 2026-08-27 evidence-canonical decision is not implemented.
+verification: Supplied high-impact evidence is the canonical projection marker, including absent versions; compatibility scalar parameters apply only without typed evidence. Preview, remount, submit and conflicting-version regressions pass in the focused and complete UI lanes; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
-dependencies: public component compatibility
-next-action: Make high-impact evidence canonical and retain only explicit compatibility shims for public parameters.
+pre-lifecycle-maintenance-dependencies: public component compatibility
+dependencies: none (compatibility and regression gates satisfied)
+pre-lifecycle-maintenance-next-action: Make high-impact evidence canonical and retain only explicit compatibility shims for public parameters.
+next-action: None; closed by the lifecycle maintenance batch.
 related: none
 
 ### DW-303: A blank `ProjectionVersion` fails closed as `UnavailableReason.StaleData`, bricking both lifecycle buttons behind "authoritative data is not current" — a cause no refresh can fix and which misdirects support. Needs a distinct reason or recovery key
@@ -2939,50 +2957,74 @@ archived: 2026-10-22
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:560,576,593,2336; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor
 reason: Four admission-owner, retained-lease, and release blocks repeat the same logic with small identity and ownership-polarity differences, while `FocusSafelyAsync` is byte-identical across the two lifecycle components. Extract shared helpers that preserve those deliberate differences.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor retains repeated lifecycle/set/remove-config reclamation and release blocks; Lifecycle/TenantLifecycleCommandFlow.razor and TenantLifecycleActionAvailability.razor duplicate FocusSafelyAsync.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor
-evidence-kind: recommendation
+pre-lifecycle-maintenance-status: open
+status: done 2026-10-22
+pre-lifecycle-maintenance-disposition: actionable
+disposition: done
+pre-lifecycle-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor retains repeated lifecycle/set/remove-config reclamation and release blocks; Lifecycle/TenantLifecycleCommandFlow.razor and TenantLifecycleActionAvailability.razor duplicate FocusSafelyAsync.
+verification: Shared detail-page helpers preserve exact surface admission identity, nullable tracker retention polarity, route reclamation and successor ownership. Both lifecycle components share the existing focus exception policy. Nine page ownership cases and supported/unsupported focus checks pass with the complete UI suite; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleFocus.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
-dependencies: lease/focus regression coverage
-next-action: Extract helpers after explicitly pinning surface owner identity and retention polarity.
+pre-lifecycle-maintenance-dependencies: lease/focus regression coverage
+dependencies: none (compatibility and regression gates satisfied)
+pre-lifecycle-maintenance-next-action: Extract helpers after explicitly pinning surface owner identity and retention polarity.
+next-action: None; closed by the lifecycle maintenance batch.
 related: none
 
 ### DW-322: Move `TenantLifecycleAttemptTracker` pruning off the render path
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs; TenantLifecycleCommandFlow.OnParametersSet; TenantLifecycleActionAvailability.OnParametersSet
 reason: `Find` prunes under lock and allocates `ToArray` snapshots of three dictionaries, and both lifecycle components invoke it unconditionally during parameter rendering. Prune on mutation or on a timer so routine renders do not pay the repeated lock and allocation cost.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs Find invokes PruneExpiredLocked under lock, which ToArray-copies three dictionaries; both lifecycle components call Find from parameter rendering.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
-evidence-kind: recommendation
+pre-lifecycle-maintenance-status: open
+status: done 2026-10-22
+pre-lifecycle-maintenance-disposition: actionable
+disposition: done
+pre-lifecycle-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs Find invokes PruneExpiredLocked under lock, which ToArray-copies three dictionaries; both lifecycle components call Find from parameter rendering.
+verification: Render-time tracker reads apply constant-size requested-tenant expiry; mutation sweeps reuse that policy. The original snapshot-only workload allocated 13176000 bytes; the strengthened three-collection workload allocates zero. Exact-deadline, dispatch-only, clock-regression and stale-arrival regressions pass with the complete UI suite; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleMaintenanceTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
-dependencies: none
-next-action: Measure render cost and move pruning to a controlled mutation/expiry seam without losing expiration semantics.
+pre-lifecycle-maintenance-dependencies: none
+dependencies: none (compatibility and regression gates satisfied)
+pre-lifecycle-maintenance-next-action: Measure render cost and move pruning to a controlled mutation/expiry seam without losing expiration semantics.
+next-action: None; closed by the lifecycle maintenance batch.
 related: none
 
 ### DW-323: Enforce or remove `PendingStatusPollCount`
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
 reason: `PendingStatusPollCount` is incremented, saturated, and merged across attempts but never read as a budget; only the five-minute deadline bounds polling. Enforce a poll cap or remove the unused counter and its `MergeSameAttempt` plumbing.
-status: open
+pre-lifecycle-maintenance-status: open
+status: done 2026-10-22
 decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.
 decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs lifecycle pending polls increment PendingStatusPollCount, but only elapsed five-minute expiry bounds them; TenantLifecycleAttemptTracker.cs only merges the count. Existing 2026-08-27 poll-budget decision remains pending.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
-evidence-kind: recommendation
+pre-lifecycle-maintenance-disposition: actionable
+disposition: done
+pre-lifecycle-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs lifecycle pending polls increment PendingStatusPollCount, but only elapsed five-minute expiry bounds them; TenantLifecycleAttemptTracker.cs only merges the count. Existing 2026-08-27 poll-budget decision remains pending.
+verification: Thirty inconclusive polls bound missing/transient and verified pre-event status alongside the unchanged five-minute deadline. Remounts preserve identity and budget; terminal results and the stored-event final proof retain their semantics. Boundary, rendered held-proof and shipped EN/FR recovery regressions pass with the complete UI suite; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleMaintenanceTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
+pre-lifecycle-maintenance-evidence-kind: recommendation
+evidence-kind: executed-regression
 priority: P3
 owner: unassigned
-dependencies: configured poll budget
-next-action: Implement the recorded tested poll cap and safe UnableToVerify transition.
+pre-lifecycle-maintenance-dependencies: configured poll budget
+dependencies: none (compatibility and regression gates satisfied)
+pre-lifecycle-maintenance-next-action: Implement the recorded tested poll cap and safe UnableToVerify transition.
+next-action: None; closed by the lifecycle maintenance batch.
 related: DW-247
 
 ### DW-324: French audit resource values spell "Reference" without its accent, so a French operator reads unaccented labels where the rest of the file is correctly accented.

@@ -4,7 +4,6 @@
 @using Hexalith.Tenants.UI.State.TenantDetail
 @using Microsoft.Extensions.DependencyInjection
 @using Microsoft.Extensions.Logging
-@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 @implements IAsyncDisposable
@@ -231,6 +230,7 @@
     [Parameter]
     public bool IsCommandSurfaceAvailable { get; set; } = true;
 
+    /// <summary>Gets or sets the compatibility projection marker used only when typed evidence is absent.</summary>
     [Parameter]
     public string? ProjectionVersion { get; set; }
 
@@ -342,12 +342,12 @@
         => _preview?.Availability.Evidence;
 
     private TenantHighImpactActionEvidence? CurrentResolvedEvidence
-        => Availability.Evidence is null
-            ? null
-            : Availability.Evidence with
-            {
-                ProjectionVersion = ProjectionVersion ?? Availability.Evidence.ProjectionVersion,
-            };
+        => Availability.Evidence;
+
+    private string? CurrentProjectionVersion
+        => Availability.Evidence is { } evidence
+            ? evidence.ProjectionVersion
+            : ProjectionVersion;
 
     private bool IsOwnedCommandInFlight
         => TenantCommandFlowGuard.RetainsCommandActivity(_snapshot.State, _isSubmitting);
@@ -540,7 +540,7 @@
         var parameterFingerprint = new SubmitParameterFingerprint(
             Detail,
             Availability,
-            ProjectionVersion,
+            CurrentProjectionVersion,
             IsCommandSurfaceAvailable);
         if (!Equals(_submitParameterFingerprint, parameterFingerprint))
         {
@@ -572,7 +572,7 @@
                 retained.LastConfirmedProjection ?? Detail,
                 retained.LastObservedProjectionVersion
                     ?? retained.PreviewProjectionVersion
-                    ?? ProjectionVersion
+                    ?? CurrentProjectionVersion
                     ?? string.Empty,
                 Availability,
                 IsCommandSurfaceAvailable);
@@ -602,19 +602,17 @@
     private bool TryCaptureParameterPreview(out LifecyclePreviewSnapshot? preview)
     {
         preview = null;
-        if (string.IsNullOrWhiteSpace(ProjectionVersion)
+        string? projectionVersion = CurrentProjectionVersion;
+        if (string.IsNullOrWhiteSpace(projectionVersion)
             || !Enum.IsDefined(Availability.Operation))
         {
             return false;
         }
 
-        TenantLifecycleAvailability capturedAvailability = Availability.Evidence is null
-            ? Availability
-            : Availability with { Evidence = CurrentResolvedEvidence };
         var candidate = new LifecyclePreviewSnapshot(
             Detail,
-            ProjectionVersion,
-            capturedAvailability,
+            projectionVersion,
+            Availability,
             IsCommandSurfaceAvailable);
         if (!IsCompletePreview(candidate, ownedCommandInFlight: false))
         {
@@ -730,13 +728,13 @@
         if (_focusConfirmationPending && !_disposed)
         {
             _focusConfirmationPending = false;
-            await FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
+            await TenantLifecycleFocus.FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending && !_disposed)
         {
             _focusLifecyclePending = false;
-            await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(false);
+            await TenantLifecycleFocus.FocusSafelyAsync(_lifecycleElement).ConfigureAwait(false);
         }
 
         if (_refreshRetainedAttemptPending && !_disposed)
@@ -1782,10 +1780,10 @@
     }
 
     private async Task FocusConfirmationAsync(FocusEventArgs args)
-        => await FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
+        => await TenantLifecycleFocus.FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
 
     private async Task FocusCancelAsync(FocusEventArgs args)
-        => await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
+        => await TenantLifecycleFocus.FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
 
     private async Task CloseAsync()
     {
@@ -1924,20 +1922,6 @@
                 "Lifecycle command path failed. ReasonCode={LifecycleReasonCode} ExceptionType={ExceptionType}",
                 reasonCode,
                 exception.GetType().Name);
-    }
-
-    private static async Task FocusSafelyAsync(ElementReference element)
-    {
-        try
-        {
-            await element.FocusAsync().ConfigureAwait(false);
-        }
-        catch (JSDisconnectedException)
-        {
-        }
-        catch (JSException)
-        {
-        }
     }
 
     private static bool IsAuthoritativeProjectionProof(

@@ -948,6 +948,9 @@
   <data name="Tenants.Lifecycle.UnableToVerify.StatusTimeout" xml:space="preserve">
     <value>La tentative de cycle de vie a dépassé sa limite de temps de vérification. Son résultat reste non vérifié ; actualisez les détails du locataire avant une autre action.</value>
   </data>
+  <data name="Tenants.Lifecycle.UnableToVerify.PollBudget" xml:space="preserve">
+    <value>La tentative de cycle de vie a atteint sa limite de vérifications d’état. Son résultat reste non vérifié ; actualisez les détails du locataire avant une autre action.</value>
+  </data>
   <data name="Tenants.Lifecycle.StatusEvidence.Pending" xml:space="preserve">
     <value>La commande de cycle de vie est acceptée, mais la preuve d'état n'est pas encore disponible. Gardez cette tentative ouverte et actualisez.</value>
   </data>
