@@ -24,6 +24,8 @@ public sealed partial class TenantReadRefreshSubscription(
     private readonly Dictionary<(string ProjectionType, string TenantId), Dictionary<Guid, Func<Task>>> _callbacks = [];
     private readonly HashSet<(string ProjectionType, string TenantId)> _pending = [];
     private readonly HashSet<(string ProjectionType, string TenantId)> _running = [];
+    private readonly Dictionary<Guid, TaskCompletionSource> _activeCallbacks = [];
+    private readonly HashSet<Guid> _pendingCallbacks = [];
     private readonly Dictionary<(string ProjectionType, string TenantId), TaskCompletionSource> _unsettled = [];
     private readonly CancellationTokenSource _lifetimeCancellation = new();
     private readonly TenantUiOperationPolicy _policy = TenantUiOperationPolicy.FromServices(services);
@@ -44,6 +46,9 @@ public sealed partial class TenantReadRefreshSubscription(
     /// Returns the concrete lease so callers can distinguish a live registration from
     /// <see cref="TenantReadRefreshLease.Empty"/> via <see cref="TenantReadRefreshLease.IsSubscribed"/>.
     /// Recording an Empty lease as an established subscription made a transient setup failure permanent.
+    /// Callbacks must return promptly without synchronous blocking. Invocation is serialized with lease
+    /// detachment; the shared deadline bounds only the asynchronous work represented by the returned task.
+    /// Renderer-dispatch callbacks retain ownership of dispatching their work to their renderer.
     /// </remarks>
     public async Task<TenantReadRefreshLease> SubscribeAsync(
         string projectionType,
@@ -213,6 +218,8 @@ public sealed partial class TenantReadRefreshSubscription(
         if (_callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? callbacks))
         {
             _ = callbacks.Remove(callbackId);
+            _activeCallbacks.Remove(callbackId);
+            _pendingCallbacks.Remove(callbackId);
             if (callbacks.Count == 0)
             {
                 _callbacks.Remove(key);
@@ -392,6 +399,8 @@ public sealed partial class TenantReadRefreshSubscription(
 
             _callbacks.Clear();
             _pending.Clear();
+            _activeCallbacks.Clear();
+            _pendingCallbacks.Clear();
             _subscription = null;
             _notifier = null;
         }
@@ -457,9 +466,19 @@ public sealed partial class TenantReadRefreshSubscription(
                                 continue;
                             }
 
+                            if (_activeCallbacks.ContainsKey(callback.Key))
+                            {
+                                _pendingCallbacks.Add(callback.Key);
+                                continue;
+                            }
+
+                            var retired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                            _activeCallbacks.Add(callback.Key, retired);
                             // Invocation and removal share the lock; a captured callback cannot start
                             // after its lease or circuit has detached it. Awaiting never holds this lock.
-                            refresh = callback.Value();
+                            refresh = _policy.RunAsync(
+                                _ => RefreshCallbackAsync(key, callback.Key, callback.Value, retired),
+                                _lifetimeCancellation.Token);
                         }
 
                         await refresh.ConfigureAwait(false);
@@ -489,6 +508,40 @@ public sealed partial class TenantReadRefreshSubscription(
                     _ = RunRefreshLoopAsync(key);
                 }
             }
+        }
+    }
+
+    private async Task RefreshCallbackAsync(
+        (string ProjectionType, string TenantId) key, Guid callbackId, Func<Task> refresh, TaskCompletionSource retired)
+    {
+        try
+        {
+            await refresh().ConfigureAwait(false);
+        }
+        finally
+        {
+            // A deadline only releases the waiter. This registration remains quarantined until the
+            // actual callback finishes; the operation policy observes any late failure.
+            bool restart = false;
+            lock (_sync)
+            {
+                _activeCallbacks.Remove(callbackId);
+                if (_pendingCallbacks.Remove(callbackId)
+                    && !_disposed
+                    && _callbacks.TryGetValue(key, out Dictionary<Guid, Func<Task>>? current)
+                    && current.ContainsKey(callbackId))
+                {
+                    _pending.Add(key);
+                    restart = _running.Add(key);
+                }
+            }
+
+            if (restart)
+            {
+                _ = RunRefreshLoopAsync(key);
+            }
+
+            retired.TrySetResult();
         }
     }
 

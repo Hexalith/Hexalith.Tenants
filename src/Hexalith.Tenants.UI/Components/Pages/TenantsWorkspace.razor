@@ -279,6 +279,8 @@
                     }
                     @if (IsRetainedTenantListView && ShowList)
                     {
+                        <FluentText As="TextTag.Paragraph" Size="TextSize.Size200" Color="Color.Lightweight"
+                                    data-testid="tenants-list-sort-scope">@Localizer["Tenants.List.SortScope"]</FluentText>
                         <TenantDataGrid Rows="@_visibleRows"
                                         AuditReadAvailable="@(AuditReadAvailable && _snapshot.Kind is TenantListSurfaceKind.Ready
                                             && _snapshot.Freshness is ReadModelFreshnessState.Current

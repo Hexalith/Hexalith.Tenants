@@ -14,6 +14,38 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 public sealed class TenantsRestQueryClientTests
 {
     [Theory]
+    [InlineData(0, 20)]
+    [InlineData(-1, 20)]
+    [InlineData(1, 1)]
+    [InlineData(20, 20)]
+    [InlineData(100, 100)]
+    [InlineData(101, 100)]
+    public async Task TenantSummaryCountIsBoundedByNormalizedRequestedSize(int requested, int normalized)
+    {
+        string Page(int count) => System.Text.Json.JsonSerializer.Serialize(new
+        {
+            items = Enumerable.Range(0, count).Select(index => new { tenantId = $"tenant.{index}", name = "Name", status = "Active" }),
+            cursor = (string?)null,
+            hasMore = false,
+        });
+        var handler = new RecordingHandler(Success(Page(normalized)), Success(Page(normalized + 1)), Success(Page(0)));
+        using var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://tenants.invalid") };
+        var client = new TenantsRestQueryClient(httpClient);
+        var query = new ListTenantsQuery { PageSize = requested };
+
+        var boundary = await client.ListTenantsAsync(query, null, TestContext.Current.CancellationToken);
+        var oversized = await client.ListTenantsAsync(query, null, TestContext.Current.CancellationToken);
+        var empty = await client.ListTenantsAsync(query, null, TestContext.Current.CancellationToken);
+
+        boundary.IsSuccess.ShouldBeTrue();
+        boundary.Payload.ShouldNotBeNull().Items.Count.ShouldBe(normalized);
+        oversized.FailureKind.ShouldBe(TenantsRestQueryFailureKind.InvalidPayload);
+        oversized.Payload.ShouldBeNull();
+        empty.IsSuccess.ShouldBeTrue();
+        empty.Payload.ShouldNotBeNull().Items.ShouldBeEmpty();
+    }
+
+    [Theory]
     [InlineData("tenant")]
     [InlineData("global-administrators")]
     public async Task Audit_stream_selector_survives_the_direct_rest_transport(string stream)

@@ -44,6 +44,73 @@ public sealed class TenantListSurfaceTests : BunitContext
 #endif
     }
 
+    [Theory]
+    [InlineData("en", "name", "current page")]
+    [InlineData("fr", "name", "page actuelle")]
+    [InlineData("en", "status", "current page")]
+    [InlineData("fr", "status", "page actuelle")]
+    public async Task SearchSortControlsDiscloseScopeAcrossInterleavedPages(string culture, string sort, string scope)
+    {
+        List<TenantListRequest> requests = [];
+        var factory = new Microsoft.Extensions.Localization.ResourceManagerStringLocalizerFactory(
+            Microsoft.Extensions.Options.Options.Create(new Microsoft.Extensions.Localization.LocalizationOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+        var localizer = new CultureBoundTenantsLocalizer(factory.Create(typeof(TenantsResources)), CultureInfo.GetCultureInfo(culture));
+        RegisterServices(call =>
+        {
+            var request = call.ArgAt<TenantListRequest>(0);
+            requests.Add(request);
+            TenantListRow[] rows = request.SearchCursor is null
+                ? [Row("tenant.z", "Zulu", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None),
+                   Row("tenant.c", "Charlie", TenantStatus.Disabled, ReadModelFreshnessState.Current, TenantPendingState.None)]
+                : [Row("tenant.b", "Bravo", TenantStatus.Active, ReadModelFreshnessState.Current, TenantPendingState.None),
+                   Row("tenant.a", "Alpha", TenantStatus.Disabled, ReadModelFreshnessState.Current, TenantPendingState.None)];
+            rows = request.SortColumn == "name"
+                ? rows.OrderBy(row => row.Name, StringComparer.Ordinal).ToArray()
+                : rows.OrderBy(row => row.Status).ToArray();
+            return Task.FromResult(AuthoritativeSnapshot(rows,
+                request.SearchCursor is null ? "opaque-next" : null,
+                request.SearchCursor is null));
+        }, localizer);
+        string reset = culture == "fr" ? "première page" : "first page";
+        string[] firstOrder = sort == "name" ? ["tenant.c", "tenant.z"] : ["tenant.z", "tenant.c"];
+        string[] secondOrder = sort == "name" ? ["tenant.a", "tenant.b"] : ["tenant.b", "tenant.a"];
+        Services.GetRequiredService<NavigationManager>().NavigateTo($"/tenants?search=needle&sort={sort}");
+        var cut = Render<TenantsWorkspace>();
+        cut.WaitForElement("[data-testid='tenants-list-grid']");
+        cut.Find("[data-testid='tenants-list-sort-tenant']").Closest("fluent-button").ShouldNotBeNull().TextContent.ShouldContain(scope);
+        cut.Find("[data-testid='tenants-list-sort-status']").Closest("fluent-button").ShouldNotBeNull().TextContent.ShouldContain(scope);
+        cut.Find("[data-testid='tenants-list-sort-scope']").TextContent.ShouldContain(scope);
+        cut.Find("[data-testid='tenants-list-sort-scope']").TextContent.ShouldContain(reset);
+        cut.FindAll("[data-testid='tenants-list-tenant-id'] strong").Select(element => element.TextContent).ShouldBe(firstOrder);
+
+        cut.Find("[data-testid='tenants-list-next']").Click();
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-list-tenant-id'] strong")
+            .Select(element => element.TextContent).ShouldBe(secondOrder));
+        requests.Count.ShouldBe(2);
+        requests[1].SearchCursor.ShouldBe("opaque-next");
+        requests.ShouldAllBe(request => request.SortColumn == sort);
+        string changedSort = sort == "name" ? "status" : "name";
+        string sortTitle = localizer[changedSort == "name" ? "Tenants.List.CurrentPageSort.Tenant" : "Tenants.List.CurrentPageSort.Status"];
+        var grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+
+        await cut.InvokeAsync(() => grid.SortByColumnAsync(sortTitle, DataGridSortDirection.Ascending));
+
+        cut.WaitForAssertion(() =>
+        {
+            requests.Count.ShouldBe(3);
+            requests[2].SearchCursor.ShouldBeNull();
+            requests[2].Cursor.ShouldBeNull();
+            requests[2].SortColumn.ShouldBe(changedSort);
+            cut.FindAll("[data-testid='tenants-list-tenant-id'] strong").Select(element => element.TextContent)
+                .ShouldBe(changedSort == "name" ? ["tenant.c", "tenant.z"] : ["tenant.z", "tenant.c"]);
+            cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue();
+        });
+        cut.Find("[data-testid='tenants-list-sort-scope']").TextContent.ShouldContain(scope);
+        cut.Find("[data-testid='tenants-list-sort-scope']").TextContent.ShouldContain(reset);
+    }
+
     [Fact]
     public void Workspace_renders_grid_controls_stable_selectors_and_truth_state()
     {
@@ -205,7 +272,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         // column headers. The Tenant column sorts by display name; sorting it descending must place
         // "Beta" before "Alpha" while preserving the truth-state and pending safety markers.
         FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
-        await cut.InvokeAsync(() => grid.SortByColumnAsync("Tenant", DataGridSortDirection.Descending));
+        await cut.InvokeAsync(() => grid.SortByColumnAsync("Tenant (current page)", DataGridSortDirection.Descending));
 
         cut.WaitForAssertion(() =>
             cut.Markup.IndexOf("tenant.beta", StringComparison.Ordinal).ShouldBeLessThan(
@@ -272,7 +339,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         cut.WaitForElement("[data-testid='tenants-list-grid']");
 
         FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
-        await cut.InvokeAsync(() => grid.SortByColumnAsync("Tenant", DataGridSortDirection.Descending));
+        await cut.InvokeAsync(() => grid.SortByColumnAsync("Tenant (current page)", DataGridSortDirection.Descending));
 
         cut.WaitForAssertion(() =>
         {
@@ -630,9 +697,9 @@ public sealed class TenantListSurfaceTests : BunitContext
     }
 
     [Theory]
-    [InlineData("Tenant", "tenant-id", TenantListSortColumns.Name, true)]
-    [InlineData("Status", "tenant-status", TenantListSortColumns.Status, true)]
-    [InlineData("Status", "tenant-status", TenantListSortColumns.Status, false)]
+    [InlineData("Tenant (current page)", "tenant-id", TenantListSortColumns.Name, true)]
+    [InlineData("Status (current page)", "tenant-status", TenantListSortColumns.Status, true)]
+    [InlineData("Status (current page)", "tenant-status", TenantListSortColumns.Status, false)]
     public async Task AscendingSortSelectsTheRequestedColumnAndRestartsAtFirstPage(
         string columnTitle,
         string columnId,
@@ -2756,7 +2823,9 @@ public sealed class TenantListSurfaceTests : BunitContext
         icon.QuerySelector("title").ShouldBeNull();
     }
 
-    private void RegisterServices(Func<NSubstitute.Core.CallInfo, Task<TenantListSnapshot>> resultFactory)
+    private void RegisterServices(
+        Func<NSubstitute.Core.CallInfo, Task<TenantListSnapshot>> resultFactory,
+        IStringLocalizer<TenantsResources>? localizer = null)
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
         ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
@@ -2780,7 +2849,7 @@ public sealed class TenantListSurfaceTests : BunitContext
         userContext.UserId.Returns("operator-user");
         Services.AddSingleton(userContext);
         Services.AddScoped<TenantSearchPagingState>();
-        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(localizer ?? new StubTenantsLocalizer());
         Services.AddFluentUIComponents();
         SetRendererInfo(new RendererInfo("Server", isInteractive: true));
     }
@@ -2924,6 +2993,8 @@ public sealed class TenantListSurfaceTests : BunitContext
             ["Tenants.List.Previous"] = "Previous",
             ["Tenants.List.Next"] = "Next",
             ["Tenants.List.Column.Tenant"] = "Tenant",
+            ["Tenants.List.CurrentPageSort.Tenant"] = "Tenant (current page)",
+            ["Tenants.List.CurrentPageSort.Status"] = "Status (current page)",
             ["Tenants.List.Column.Status"] = "Status",
             ["Tenants.List.Column.Members"] = "Members",
             ["Tenants.List.Column.Owners"] = "Owners",

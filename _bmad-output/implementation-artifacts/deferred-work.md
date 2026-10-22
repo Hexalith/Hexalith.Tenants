@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-602/DW-603/DW-610/DW-611/DW-619 closure (2026-10-22):** Requested summary bounds precede enrichment, timed-out refresh callbacks retain single-flight catch-up, membership paging rejects repeated transitions, and EN/FR sorting controls disclose current-page ordering. Exactly five records close: all 657 IDs remain, 515 done/142 open across 132 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-602-603-610-611-619-validation-evidence.md).
+
 **DW-591/DW-613/DW-614/DW-615/DW-616 closure (2026-10-22):** Localized unmatched-route recovery and mandatory real-host language, current-tenant alias and anonymous-scope checks qualify the Tenants UI host. Mounted production-router navigation qualifies shared home discovery and recovery. Exactly five records close: all 657 IDs remain, 510 done/147 open across 137 maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [validation evidence](dw-591-613-614-615-616-validation-evidence.md).
 
 **DW-341/DW-573/DW-581/DW-607/DW-620 closure (2026-10-22):** Partial-release recovery binds its validated manifest through packing, publication and verification, requires existing publication evidence, verifies existing GitHub asset bytes and repairs only missing assets. NuGet account/login gates follow validated missing-package output. Exactly five records close: all 657 IDs remain, 500 done/157 open across 147 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-341-573-581-607-620-validation-evidence.md).
@@ -6447,15 +6449,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Bound tenant list payload count to the requested page size before enrichment.\n  evidence: TenantsRestQueryClient validates item shape but not count, and TenantQueryGateway schedules one detail read per returned summary, expanding memory and read work for malformed large pages."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantsRestQueryClient.IsValidPayload validates item shape but not requested page count; TenantQueryGateway enriches every returned tenant summary. The 16 MiB body cap does not enforce the requested page-size bound.
-evidence-kind: verified-gap
+pre-read-paging-status: open
+status: done 2026-10-22
+pre-read-paging-disposition: actionable
+disposition: done
+pre-read-paging-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-read-paging-verification: TenantsRestQueryClient.IsValidPayload validates item shape but not requested page count; TenantQueryGateway enriches every returned tenant summary. The 16 MiB body cap does not enforce the requested page-size bound.
+verification: The typed REST client and composition gateway reject summaries exceeding the normalized requested page size before detail enrichment. Boundary, invalid-payload, zero-fanout and retained-snapshot regressions pass; existing conditional reads remain qualified. See dw-602-603-610-611-619-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs
+pre-read-paging-evidence-kind: verified-gap
+evidence-kind: verified-regression
 priority: P2
 owner: unassigned
-dependencies: Requested page-size propagation to payload validator
-next-action: Reject oversized item counts before hydration and test bounded detail-call fanout.
+pre-read-paging-dependencies: Requested page-size propagation to payload validator
+dependencies: none
+pre-read-paging-next-action: Reject oversized item counts before hydration and test bounded detail-call fanout.
+next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
 related: none
 
 
@@ -6466,15 +6476,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Prevent one stalled tenant refresh callback from blocking later notifications.\n  evidence: TenantReadRefreshSubscription awaits callbacks serially without a deadline and retains the projection key in _running until the stalled callback returns."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantReadRefreshSubscription.RunRefreshLoopAsync awaits callbacks sequentially while _running retains the projection key; no deadline isolates a callback that never completes. Subsequent notifications cannot start an independent loop.
-evidence-kind: verified-defect
+pre-read-paging-status: open
+status: done 2026-10-22
+pre-read-paging-disposition: actionable
+disposition: done
+pre-read-paging-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-read-paging-verification: TenantReadRefreshSubscription.RunRefreshLoopAsync awaits callbacks sequentially while _running retains the projection key; no deadline isolates a callback that never completes. Subsequent notifications cannot start an independent loop.
+verification: The existing shared operation deadline bounds callback waits. Per-registration ownership prevents overlap, retains a coalesced catch-up nudge until actual completion, and rejects detached/disposed restarts. Manual-clock regressions qualify healthy siblings, later nudges, late success/failure and safe diagnostics. See dw-602-603-610-611-619-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Services/TenantReadRefreshSubscription.cs; tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs
+pre-read-paging-evidence-kind: verified-defect
+evidence-kind: verified-regression
 priority: P2
 owner: unassigned
-dependencies: Refresh callback cancellation/deadline contract
-next-action: Bound or isolate callbacks so a stalled subscriber cannot block later refresh notifications.
+pre-read-paging-dependencies: Refresh callback cancellation/deadline contract
+dependencies: none
+pre-read-paging-next-action: Bound or isolate callbacks so a stalled subscriber cannot block later refresh notifications.
+next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
 related: none
 
 
@@ -6556,15 +6574,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Guard membership paging against repeated Next events while a page read is in flight.\n  evidence: Both membership panels advance cursor history from the current snapshot without checking an in-flight read or HasMore in the event handler; a repeated event can push a loading cursor."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: MyTenantsPanel.NextPageAsync unconditionally pushes cursor; UserMembershipLookupPanel.NextPageAsync checks only snapshot non-null. Neither handler rejects loading/repeated Next or missing HasMore before advancing history.
-evidence-kind: verified-defect
+pre-read-paging-status: open
+status: done 2026-10-22
+pre-read-paging-disposition: actionable
+disposition: done
+pre-read-paging-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-read-paging-verification: MyTenantsPanel.NextPageAsync unconditionally pushes cursor; UserMembershipLookupPanel.NextPageAsync checks only snapshot non-null. Neither handler rejects loading/repeated Next or missing HasMore before advancing history.
+verification: Both membership panels require an arrived usable page, HasMore, a nonblank next cursor and no transition in progress before mutating cursor history. Captured repeated events during held reads advance once; Previous returns directly to the original page, and exhausted/error events refuse. See dw-602-603-610-611-619-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor; src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor; tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs
+pre-read-paging-evidence-kind: verified-defect
+evidence-kind: verified-regression
 priority: P2
 owner: unassigned
-dependencies: Membership paging in-flight state
-next-action: Guard Next with arrived-page/HasMore and an in-flight gate; cover repeated clicks during a delayed read.
+pre-read-paging-dependencies: Membership paging in-flight state
+dependencies: none
+pre-read-paging-next-action: Guard Next with arrived-page/HasMore and an in-flight gate; cover repeated clicks during a delayed read.
+next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
 related: none
 
 
@@ -6575,15 +6601,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Make user-membership lookup sorting consistent across cursor pages.\n  evidence: The UI sorts only the current 20 rows while GetUserTenantsQuery carries no sort field, so page boundaries do not follow the selected order."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: UserMembershipLookupPanel.VisibleRows orders only current rows; GetUserTenantsQuery contains UserId/Cursor/PageSize and no sort contract. Selected order therefore does not span cursor boundaries.
-evidence-kind: verified-defect
+pre-read-paging-status: open
+status: done 2026-10-22
+pre-read-paging-disposition: actionable
+disposition: done
+pre-read-paging-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-read-paging-verification: UserMembershipLookupPanel.VisibleRows orders only current rows; GetUserTenantsQuery contains UserId/Cursor/PageSize and no sort contract. Selected order therefore does not span cursor boundaries.
+verification: The approved current-page alternative is explicit in the actual EN/FR lookup sort selector, helper text and sorted announcement. Interleaved two-page name/status regressions qualify local ordering without claiming ordering across cursor pages. See dw-602-603-610-611-619-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs
+pre-read-paging-evidence-kind: verified-defect
+evidence-kind: verified-regression
 priority: P2
 owner: unassigned
-dependencies: Server/authorized membership ordering contract
-next-action: Define globally ordered protected paging or explicitly constrain the UI sort promise to the current page.
+pre-read-paging-dependencies: Server/authorized membership ordering contract
+dependencies: none
+pre-read-paging-next-action: Define globally ordered protected paging or explicitly constrain the UI sort promise to the current page.
+next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
 related: DW-619
 
 
@@ -6745,15 +6779,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Make tenant search sorting consistent across page boundaries.\n  evidence: SortSearchRows orders each hydrated index window after page selection, so later pages can contain names or statuses that should precede rows on earlier pages."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantQueryGateway.SortSearchRows sorts only the hydrated raw window after Memories selects page boundaries; name/status ordering is not global across protected search pages.
-evidence-kind: verified-defect
+pre-read-paging-status: open
+status: done 2026-10-22
+pre-read-paging-disposition: actionable
+disposition: done
+pre-read-paging-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-read-paging-verification: TenantQueryGateway.SortSearchRows sorts only the hydrated raw window after Memories selects page boundaries; name/status ordering is not global across protected search pages.
+verification: The approved current-page alternative is explicit in actual EN/FR list sort headers and helper text, including search. Two-page hydrated search and rendered name/status regressions qualify existing local ordering; protected paging and authorized hydration remain unchanged. See dw-602-603-610-611-619-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs
+pre-read-paging-evidence-kind: verified-defect
+evidence-kind: verified-regression
 priority: P2
 owner: unassigned
-dependencies: Authorized search ordering contract
-next-action: Move ordering before page selection or specify an honest current-window sorting UX.
+pre-read-paging-dependencies: Authorized search ordering contract
+dependencies: none
+pre-read-paging-next-action: Move ordering before page selection or specify an honest current-window sorting UX.
+next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
 related: DW-611,DW-618
 
 

@@ -377,7 +377,8 @@ public sealed partial class GlobalAdministratorsPageTests
         PrivateField<long>(cut.Instance, "_authorizationTransitionVersion").ShouldBe(callerVersion);
         PrivateField<int>(cut.Instance, "_readRefreshAttempts").ShouldBe(0);
         gateway.Requests.ShouldAllBe(request => request.Cursor == null);
-        clock.PendingTimerCount.ShouldBe(0);
+        // Visible renderer state precedes retirement of the bounded notification callback.
+        cut.WaitForAssertion(() => clock.PendingTimerCount.ShouldBe(0));
         await subscription.Received(1).SubscribeAsync(GetGlobalAdministratorsQuery.ProjectionType, "system", Arg.Any<CancellationToken>());
         await subscription.DidNotReceive().UnsubscribeAsync(GetGlobalAdministratorsQuery.ProjectionType, "system", Arg.Any<CancellationToken>());
 

@@ -91,10 +91,10 @@
 
         <nav class="my-tenants-page__pager" aria-label="@Localizer["Tenants.MyTenants.PaginationLabel"]" data-testid="tenants-my-pager">
             <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="HorizontalAlignment.End" HorizontalGap="12px" Wrap="true">
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-previous" Disabled="@(!CanPreviousPage)" OnClick="PreviousPageAsync">
                     @Localizer["Tenants.MyTenants.Previous"]
                 </FluentButton>
-                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-my-next" Disabled="@(!CanNextPage)" OnClick="NextPageAsync">
                     @Localizer["Tenants.MyTenants.Next"]
                 </FluentButton>
             </FluentStack>
@@ -107,6 +107,19 @@
     private readonly Stack<string?> _cursorHistory = new();
     private bool _parametersInitialized;
     private long _loadVersion;
+    private long? _pageTransitionVersion;
+
+    private bool CanNextPage
+        => _pageTransitionVersion != _loadVersion
+            && _snapshot is { Kind: UserTenantMembershipSurfaceKind.Ready
+                or UserTenantMembershipSurfaceKind.Stale or UserTenantMembershipSurfaceKind.Degraded,
+                HasMore: true }
+            && !string.IsNullOrWhiteSpace(_snapshot.NextCursor);
+
+    private bool CanPreviousPage
+        => _pageTransitionVersion != _loadVersion
+            && _snapshot is { Kind: not UserTenantMembershipSurfaceKind.Loading }
+            && _cursorHistory.Count > 0;
     private string? _currentCursor;
 
     [Parameter]
@@ -217,15 +230,35 @@
 
     private async Task NextPageAsync()
     {
-        _cursorHistory.Push(_currentCursor);
-        _currentCursor = _snapshot.NextCursor;
-        await InvokeAsync(() => Navigation.NavigateTo(BuildReturnUrl(), replace: true)).ConfigureAwait(false);
-        await InvokeAsync(() => LoadAsync(reuseETag: false)).ConfigureAwait(false);
+        if (!CanNextPage)
+        {
+            return;
+        }
+
+        long transitionVersion = _loadVersion;
+        _pageTransitionVersion = transitionVersion;
+        try
+        {
+            _cursorHistory.Push(_currentCursor);
+            _currentCursor = _snapshot.NextCursor;
+            await InvokeAsync(() => Navigation.NavigateTo(BuildReturnUrl(), replace: true)).ConfigureAwait(false);
+            await InvokeAsync(() => LoadAsync(reuseETag: false)).ConfigureAwait(false);
+        }
+        finally
+        {
+            await InvokeAsync(() =>
+            {
+                if (_pageTransitionVersion == transitionVersion)
+                {
+                    _pageTransitionVersion = null;
+                }
+            }).ConfigureAwait(false);
+        }
     }
 
     private async Task PreviousPageAsync()
     {
-        if (_cursorHistory.Count > 0)
+        if (CanPreviousPage)
         {
             _currentCursor = _cursorHistory.Pop();
             await InvokeAsync(() => Navigation.NavigateTo(BuildReturnUrl(), replace: true)).ConfigureAwait(false);

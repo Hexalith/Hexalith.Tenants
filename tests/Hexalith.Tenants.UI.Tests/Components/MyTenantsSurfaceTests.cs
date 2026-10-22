@@ -16,6 +16,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -37,6 +38,156 @@ public sealed class MyTenantsSurfaceTests : BunitContext
 #if HFC_ROUTE_OPTIONS
         Services.AddScoped<Hexalith.FrontComposer.Shell.Services.NavigationFailureNotifier>();
 #endif
+    }
+
+    [Theory]
+    [InlineData("refresh")]
+    [InlineData("cursor")]
+    public async Task SupersedingHeldNextLetsReplacementResultsPageBeforeOldReadSettles(string supersession)
+    {
+        var obsolete = new TaskCompletionSource<UserTenantMembershipSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var replacement = new TaskCompletionSource<UserTenantMembershipSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<UserTenantMembershipRequest> requests = [];
+        UserTenantMembershipSnapshot initial = ReadySnapshot(
+            [Row("tenant.initial", "Initial", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)], "obsolete-next", true);
+        UserTenantMembershipSnapshot arrived = ReadySnapshot(
+            [Row("tenant.replacement", "Replacement", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)], "replacement-next", true);
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<UserTenantMembershipRequest>(0));
+            return requests.Count switch
+            {
+                1 => Task.FromResult(initial),
+                2 => obsolete.Task,
+                3 => Task.FromResult(arrived),
+                _ => replacement.Task,
+            };
+        });
+        var cut = Render<MyTenantsPanel>();
+        cut.WaitForElement("[data-testid='tenants-my-next']");
+        EventCallback<MouseEventArgs> obsoleteNext = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-my-next").OnClick;
+        Task obsoleteTransition = cut.InvokeAsync(() => obsoleteNext.InvokeAsync(new MouseEventArgs()));
+        cut.WaitForAssertion(() => requests.Count.ShouldBe(2));
+        if (supersession == "cursor")
+        {
+            cut.Render(p => p.Add(x => x.InitialCursor, "replacement-cursor"));
+        }
+        else
+        {
+            cut.Find("[data-testid='tenants-my-refresh']").Click();
+        }
+        cut.WaitForAssertion(() =>
+        {
+            requests.Count.ShouldBe(3);
+            cut.Find("[data-testid='tenants-my-next']").HasAttribute("disabled").ShouldBeFalse();
+        });
+        EventCallback<MouseEventArgs> replacementNext = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-my-next").OnClick;
+        Task replacementTransition = cut.InvokeAsync(() => replacementNext.InvokeAsync(new MouseEventArgs()));
+        cut.WaitForAssertion(() => requests.Count.ShouldBe(4));
+        requests[3].Cursor.ShouldBe("replacement-next");
+        obsoleteTransition.IsCompleted.ShouldBeFalse();
+
+        obsolete.SetResult(initial);
+        await obsoleteTransition.WaitAsync(TimeSpan.FromSeconds(2));
+        await cut.InvokeAsync(() => replacementNext.InvokeAsync(new MouseEventArgs())).WaitAsync(TimeSpan.FromSeconds(2));
+        requests.Count.ShouldBe(4);
+        replacementTransition.IsCompleted.ShouldBeFalse();
+        replacement.SetResult(ReadySnapshot(
+            [Row("tenant.final", "Final", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)]));
+        await replacementTransition.WaitAsync(TimeSpan.FromSeconds(2));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-tenant-id']").TextContent.ShouldBe("tenant.final"));
+    }
+
+    [Fact]
+    public async Task CapturedNextCannotAdvanceAfterAnErrorReplacesTheArrivedPage()
+    {
+        int reads = 0;
+        RegisterServices(_ => Task.FromResult(++reads == 1
+            ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)], "opaque-next", true)
+            : UserTenantMembershipSnapshot.Unavailable() with { NextCursor = "unusable-next", HasMore = true }));
+        var cut = Render<MyTenantsPanel>();
+        cut.WaitForElement("[data-testid='tenants-my-next']");
+        EventCallback<MouseEventArgs> next = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-my-next").OnClick;
+        cut.Find("[data-testid='tenants-my-refresh']").Click();
+        cut.WaitForAssertion(() => reads.ShouldBe(2));
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-my-next']").ShouldBeEmpty());
+
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+
+        reads.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task RepeatedCapturedNextDuringHeldReadAddsOnlyOneHistoryEntry()
+    {
+        var pending = new TaskCompletionSource<UserTenantMembershipSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<UserTenantMembershipRequest> requests = [];
+        UserTenantMembershipSnapshot firstPage = ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+            nextCursor: "opaque-next", hasMore: true);
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<UserTenantMembershipRequest>(0));
+            return requests.Count == 2 ? pending.Task : Task.FromResult(firstPage);
+        });
+        var cut = Render<MyTenantsPanel>();
+        cut.WaitForElement("[data-testid='tenants-my-next']");
+        EventCallback<MouseEventArgs> next = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-my-next").OnClick;
+
+        Task first = cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+        cut.WaitForAssertion(() => requests.Count.ShouldBe(2));
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs())).WaitAsync(TimeSpan.FromSeconds(2));
+        requests.Count.ShouldBe(2);
+        requests[1].Cursor.ShouldBe("opaque-next");
+        pending.SetResult(ReadySnapshot(
+            [Row("tenant.beta", "Beta", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)]));
+        await first.WaitAsync(TimeSpan.FromSeconds(2));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-next']").HasAttribute("disabled").ShouldBeTrue());
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+        requests.Count.ShouldBe(2);
+
+        cut.Find("[data-testid='tenants-my-previous']").Click();
+        cut.WaitForAssertion(() =>
+        {
+            requests.Count.ShouldBe(3);
+            requests[2].Cursor.ShouldBeNull();
+            cut.Find("[data-testid='tenants-my-previous']").HasAttribute("disabled").ShouldBeTrue();
+        });
+    }
+
+    [Theory]
+    [InlineData(false, "unused")]
+    [InlineData(true, null)]
+    [InlineData(true, "   ")]
+    public async Task ExhaustedOrMissingCursorDisablesAndRefusesNext(bool hasMore, string? nextCursor)
+    {
+        int reads = 0;
+        RegisterServices(_ =>
+        {
+            reads++;
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+                nextCursor, hasMore));
+        });
+        var cut = Render<MyTenantsPanel>();
+        cut.WaitForElement("[data-testid='tenants-my-next']");
+        cut.Find("[data-testid='tenants-my-next']").HasAttribute("disabled").ShouldBeTrue();
+        EventCallback<MouseEventArgs> next = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-my-next").OnClick;
+
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+
+        reads.ShouldBe(1);
+        cut.Find("[data-testid='tenants-my-previous']").HasAttribute("disabled").ShouldBeTrue();
     }
 
     [Fact]

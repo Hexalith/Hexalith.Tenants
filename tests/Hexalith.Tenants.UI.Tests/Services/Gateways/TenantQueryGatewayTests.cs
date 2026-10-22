@@ -46,6 +46,96 @@ namespace Hexalith.Tenants.UI.Tests.Services.Gateways;
 
 public sealed class TenantQueryGatewayTests
 {
+    [Theory]
+    [InlineData(TenantListSortColumns.Name)]
+    [InlineData(TenantListSortColumns.Status)]
+    public async Task SearchSortsOnlyEachBoundedPageAcrossGloballyInterleavedNamesAndStatuses(string sort)
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult("needle", 4, Hit("tenant:tenant.z"), Hit("tenant:tenant.c")));
+        memories.Enqueue(SearchResult("needle", 4, Hit("tenant:tenant.b"), Hit("tenant:tenant.a")));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> responses);
+        EnqueueQueryResult(responses, Detail("tenant.z") with { Name = "Zulu", Status = TenantStatus.Active });
+        EnqueueQueryResult(responses, Detail("tenant.c") with { Name = "Charlie", Status = TenantStatus.Disabled });
+        EnqueueQueryResult(responses, Detail("tenant.b") with { Name = "Bravo", Status = TenantStatus.Active });
+        EnqueueQueryResult(responses, Detail("tenant.a") with { Name = "Alpha", Status = TenantStatus.Disabled });
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+        var request = new TenantListRequest(Search: "needle", SortColumn: sort, PageSize: 2);
+
+        TenantListSnapshot first = await gateway.ListTenantsAsync(request, null);
+        TenantListSnapshot second = await gateway.ListTenantsAsync(request with { SearchCursor = first.NextCursor }, null);
+
+        first.Rows.Select(row => row.TenantId).ShouldBe(sort == TenantListSortColumns.Name ? ["tenant.c", "tenant.z"] : ["tenant.z", "tenant.c"]);
+        second.Rows.Select(row => row.TenantId).ShouldBe(sort == TenantListSortColumns.Name ? ["tenant.a", "tenant.b"] : ["tenant.b", "tenant.a"]);
+        first.HasMore.ShouldBeTrue();
+        second.HasMore.ShouldBeFalse();
+        memories.SearchRequests.Select(query => query.Offset).ShouldBe([0, 2]);
+        ReadCalls(client).Count.ShouldBe(4);
+    }
+
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(1, 1)]
+    [InlineData(20, 20)]
+    [InlineData(101, 100)]
+    public async Task OversizedTypedTenantPageCannotStartDetailEnrichment(int requested, int normalized)
+    {
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> responses);
+        EnqueueQueryResult(responses, new PaginatedResult<TenantSummary>(
+            Enumerable.Range(0, normalized + 1).Select(index => new TenantSummary($"tenant.{index}", "Name", TenantStatus.Active)).ToArray(),
+            null, false));
+
+        TenantListSnapshot snapshot = await CreateGateway(client).ListTenantsAsync(new TenantListRequest(PageSize: requested), null);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Error);
+        ReadCalls(client).ShouldHaveSingleItem().GetArguments()[0].ShouldBeOfType<ListTenantsQuery>().PageSize.ShouldBe(normalized);
+        snapshot.Rows.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task OversizedTypedTenantPageRetainsMatchingConfirmedEvidenceWithoutEnrichment()
+    {
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> responses);
+        EnqueueQueryResult(responses, new PaginatedResult<TenantSummary>(
+            [new TenantSummary("tenant.beta", "Beta", TenantStatus.Active), new TenantSummary("tenant.gamma", "Gamma", TenantStatus.Active)], null, false));
+        TenantListSnapshot previous = TenantListSnapshot.Ready(
+            [TenantListRow.FromSummary(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active))],
+            null, false, "known", ReadModelFreshnessState.Current, false) with
+        {
+            CallerScope = TenantQueryGateway.AuditCallerScope("operator-user"),
+            RequestPageSize = 1,
+        };
+
+        TenantListSnapshot snapshot = await CreateGateway(client).ListTenantsAsync(new TenantListRequest(PageSize: 1, ETag: "known"), previous);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Degraded);
+        snapshot.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("tenant.alpha");
+        snapshot.ETag.ShouldBe("known");
+        ReadCalls(client).ShouldHaveSingleItem();
+    }
+
+    [Theory]
+    [InlineData(0, 20)]
+    [InlineData(1, 1)]
+    [InlineData(101, 100)]
+    public async Task ExactNormalizedTypedTenantPageStillEnrichesEverySummary(int requested, int normalized)
+    {
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> responses);
+        TenantSummary[] summaries = Enumerable.Range(0, normalized)
+            .Select(index => new TenantSummary($"tenant.{index}", "Name", TenantStatus.Active)).ToArray();
+        EnqueueQueryResult(responses, new PaginatedResult<TenantSummary>(summaries, null, false));
+        foreach (TenantSummary summary in summaries)
+        {
+            EnqueueQueryResult(responses, Detail(summary.TenantId));
+        }
+
+        TenantListSnapshot snapshot = await CreateGateway(client).ListTenantsAsync(new TenantListRequest(PageSize: requested), null);
+
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.Ready);
+        snapshot.Rows.Count.ShouldBe(normalized);
+        ReadCalls(client).Count(call => call.GetArguments()[0] is GetTenantQuery).ShouldBe(normalized);
+    }
+
     [Fact]
     public async Task My_tenants_never_retargets_a_scoped_read_during_an_A_B_A_context_sequence()
     {

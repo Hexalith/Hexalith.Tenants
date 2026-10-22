@@ -15,6 +15,7 @@ using Hexalith.EventStore.Contracts.Queries;
 using Hexalith.Tenants.UI.State.UserTenants;
 
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -28,6 +29,231 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class UserMembershipLookupSurfaceTests : BunitContext
 {
+    [Theory]
+    [InlineData("refresh")]
+    [InlineData("target")]
+    [InlineData("cursor")]
+    [InlineData("clear")]
+    public async Task SupersedingHeldNextLetsReplacementResultsPageBeforeOldReadSettles(string supersession)
+    {
+        var obsolete = new TaskCompletionSource<UserTenantMembershipSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var replacement = new TaskCompletionSource<UserTenantMembershipSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<UserTenantMembershipRequest> requests = [];
+        UserTenantMembershipSnapshot initial = ReadySnapshot(
+            [Row("tenant.initial", "Initial", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)], "obsolete-next", true);
+        UserTenantMembershipSnapshot arrived = ReadySnapshot(
+            [Row("tenant.replacement", "Replacement", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)], "replacement-next", true);
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<UserTenantMembershipRequest>(0));
+            return requests.Count switch
+            {
+                1 => Task.FromResult(initial),
+                2 => obsolete.Task,
+                3 => Task.FromResult(arrived),
+                _ => replacement.Task,
+            };
+        });
+        var cut = Render<UserMembershipLookupPanel>(p => p.Add(p => p.InitialUserId, "user.alpha"));
+        cut.WaitForElement("[data-testid='tenants-user-lookup-next']");
+        EventCallback<MouseEventArgs> obsoleteNext = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-user-lookup-next").OnClick;
+        Task obsoleteTransition = cut.InvokeAsync(() => obsoleteNext.InvokeAsync(new MouseEventArgs()));
+        cut.WaitForAssertion(() => requests.Count.ShouldBe(2));
+        switch (supersession)
+        {
+            case "target":
+                cut.Render(p => p.Add(x => x.InitialUserId, "user.beta"));
+                break;
+            case "cursor":
+                cut.Render(p => p.Add(x => x.InitialCursor, "replacement-cursor"));
+                break;
+            case "clear":
+                cut.Find("[data-testid='tenants-user-lookup-clear']").Click();
+                cut.FindAll("[data-testid='tenants-user-lookup-next']").ShouldBeEmpty();
+                cut.Render(p => p.Add(x => x.InitialUserId, "user.beta"));
+                break;
+            default:
+                cut.Find("[data-testid='tenants-user-lookup-refresh']").Click();
+                break;
+        }
+        cut.WaitForAssertion(() =>
+        {
+            requests.Count.ShouldBe(3);
+            cut.Find("[data-testid='tenants-user-lookup-next']").HasAttribute("disabled").ShouldBeFalse();
+        });
+        EventCallback<MouseEventArgs> replacementNext = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-user-lookup-next").OnClick;
+        Task replacementTransition = cut.InvokeAsync(() => replacementNext.InvokeAsync(new MouseEventArgs()));
+        cut.WaitForAssertion(() => requests.Count.ShouldBe(4));
+        requests[3].Cursor.ShouldBe("replacement-next");
+        obsoleteTransition.IsCompleted.ShouldBeFalse();
+
+        obsolete.SetResult(initial);
+        await obsoleteTransition.WaitAsync(TimeSpan.FromSeconds(2));
+        await cut.InvokeAsync(() => replacementNext.InvokeAsync(new MouseEventArgs())).WaitAsync(TimeSpan.FromSeconds(2));
+        requests.Count.ShouldBe(4);
+        replacementTransition.IsCompleted.ShouldBeFalse();
+        replacement.SetResult(ReadySnapshot(
+            [Row("tenant.final", "Final", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)]));
+        await replacementTransition.WaitAsync(TimeSpan.FromSeconds(2));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-user-tenant-id']").TextContent.ShouldBe("tenant.final"));
+    }
+
+    [Fact]
+    public async Task CapturedNextCannotAdvanceAfterAnErrorReplacesTheArrivedPage()
+    {
+        int reads = 0;
+        RegisterServices(_ => Task.FromResult(++reads == 1
+            ? ReadySnapshot([Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)], "opaque-next", true)
+            : UserTenantMembershipSnapshot.Unavailable() with { NextCursor = "unusable-next", HasMore = true }));
+        var cut = Render<UserMembershipLookupPanel>(p => p.Add(p => p.InitialUserId, "user.alpha"));
+        cut.WaitForElement("[data-testid='tenants-user-lookup-next']");
+        EventCallback<MouseEventArgs> next = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-user-lookup-next").OnClick;
+        cut.Find("[data-testid='tenants-user-lookup-refresh']").Click();
+        cut.WaitForAssertion(() => reads.ShouldBe(2));
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-user-lookup-next']").ShouldBeEmpty());
+
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+
+        reads.ShouldBe(2);
+    }
+
+    [Theory]
+    [InlineData("en", "name", "current page")]
+    [InlineData("fr", "name", "page actuelle")]
+    [InlineData("en", "status", "current page")]
+    [InlineData("fr", "status", "page actuelle")]
+    public void LookupSortControlsDiscloseScopeAcrossInterleavedPages(string culture, string sort, string scope)
+    {
+        List<UserTenantMembershipRequest> requests = [];
+        RegisterServices(call =>
+        {
+            var request = call.ArgAt<UserTenantMembershipRequest>(0);
+            requests.Add(request);
+            return Task.FromResult(request.Cursor is null
+                ? ReadySnapshot([
+                    Row("tenant.z", "Zulu", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current),
+                    Row("tenant.c", "Charlie", TenantStatus.Disabled, TenantRole.TenantReader, ReadModelFreshnessState.Current)], "opaque-next", true)
+                : ReadySnapshot([
+                    Row("tenant.b", "Bravo", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current),
+                    Row("tenant.a", "Alpha", TenantStatus.Disabled, TenantRole.TenantReader, ReadModelFreshnessState.Current)]));
+        });
+        var factory = new Microsoft.Extensions.Localization.ResourceManagerStringLocalizerFactory(
+            Microsoft.Extensions.Options.Options.Create(new Microsoft.Extensions.Localization.LocalizationOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new CultureBoundTenantsLocalizer(
+            factory.Create(typeof(TenantsResources)), CultureInfo.GetCultureInfo(culture)));
+        string reset = culture == "fr" ? "première page" : "first page";
+        string[] firstOrder = sort == "name" ? ["tenant.c", "tenant.z"] : ["tenant.z", "tenant.c"];
+        string[] secondOrder = sort == "name" ? ["tenant.a", "tenant.b"] : ["tenant.b", "tenant.a"];
+        var cut = Render<UserMembershipLookupPanel>(p => p.Add(x => x.InitialUserId, "user.alpha").Add(x => x.InitialSort, sort));
+        cut.WaitForElement("[data-testid='tenants-user-lookup-sort']");
+        var selector = cut.FindComponents<FluentSelect<string, string>>()
+            .Single(component => component.Instance.AdditionalAttributes?["data-testid"] as string == "tenants-user-lookup-sort");
+        selector.Instance.Label.ShouldNotBeNull().ShouldContain(scope);
+        cut.Find("[data-testid='tenants-user-lookup-sort']").Closest("fluent-field").ShouldNotBeNull().TextContent.ShouldContain(scope);
+        cut.Find("[data-testid='tenants-user-lookup-sort-scope']").TextContent.ShouldContain(scope);
+        cut.FindAll("[data-testid='tenants-user-tenant-id']").Select(element => element.TextContent).ShouldBe(firstOrder);
+
+        cut.Find("[data-testid='tenants-user-lookup-next']").Click();
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-user-tenant-id']")
+            .Select(element => element.TextContent).ShouldBe(secondOrder));
+        requests.Count.ShouldBe(2);
+        requests[1].Cursor.ShouldBe("opaque-next");
+        selector.Instance.Label.ShouldNotBeNull().ShouldContain(scope);
+        cut.Find("[data-testid='tenants-user-lookup-sort-scope']").TextContent.ShouldContain(scope);
+        cut.Find("[data-testid='tenants-user-lookup-sort-scope']").TextContent.ShouldContain(reset);
+
+        string changedSort = sort == "name" ? "status" : "name";
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-user-lookup-sort", changedSort);
+
+        cut.WaitForAssertion(() =>
+        {
+            requests.Count.ShouldBe(3);
+            requests[2].Cursor.ShouldBeNull();
+            cut.FindAll("[data-testid='tenants-user-tenant-id']").Select(element => element.TextContent)
+                .ShouldBe(changedSort == "name" ? ["tenant.c", "tenant.z"] : ["tenant.z", "tenant.c"]);
+            cut.Find("[data-testid='tenants-user-lookup-previous']").HasAttribute("disabled").ShouldBeTrue();
+            cut.Find("[data-testid='tenants-user-lookup-status']").ParentElement.ShouldNotBeNull().TextContent
+                .ShouldContain(culture == "fr" ? "Page actuelle triée." : "Current page sorted.");
+        });
+        cut.Find("[data-testid='tenants-user-lookup-sort-scope']").TextContent.ShouldContain(scope);
+        cut.Find("[data-testid='tenants-user-lookup-sort-scope']").TextContent.ShouldContain(reset);
+    }
+
+    [Fact]
+    public async Task RepeatedCapturedNextDuringHeldReadAddsOnlyOneHistoryEntry()
+    {
+        var pending = new TaskCompletionSource<UserTenantMembershipSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        List<UserTenantMembershipRequest> requests = [];
+        UserTenantMembershipSnapshot firstPage = ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+            nextCursor: "opaque-next", hasMore: true);
+        RegisterServices(call =>
+        {
+            requests.Add(call.ArgAt<UserTenantMembershipRequest>(0));
+            return requests.Count == 2 ? pending.Task : Task.FromResult(firstPage);
+        });
+        var cut = Render<UserMembershipLookupPanel>(p => p.Add(p => p.InitialUserId, "user.alpha"));
+        cut.WaitForElement("[data-testid='tenants-user-lookup-next']");
+        EventCallback<MouseEventArgs> next = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-user-lookup-next").OnClick;
+
+        Task first = cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+        cut.WaitForAssertion(() => requests.Count.ShouldBe(2));
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs())).WaitAsync(TimeSpan.FromSeconds(2));
+        requests.Count.ShouldBe(2);
+        requests[1].Cursor.ShouldBe("opaque-next");
+        pending.SetResult(ReadySnapshot(
+            [Row("tenant.beta", "Beta", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)]));
+        await first.WaitAsync(TimeSpan.FromSeconds(2));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-user-lookup-next']").HasAttribute("disabled").ShouldBeTrue());
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+        requests.Count.ShouldBe(2);
+
+        cut.Find("[data-testid='tenants-user-lookup-previous']").Click();
+        cut.WaitForAssertion(() =>
+        {
+            requests.Count.ShouldBe(3);
+            requests[2].Cursor.ShouldBeNull();
+            cut.Find("[data-testid='tenants-user-lookup-previous']").HasAttribute("disabled").ShouldBeTrue();
+        });
+    }
+
+    [Theory]
+    [InlineData(false, "unused")]
+    [InlineData(true, null)]
+    [InlineData(true, "   ")]
+    public async Task ExhaustedOrMissingCursorDisablesAndRefusesNext(bool hasMore, string? nextCursor)
+    {
+        int reads = 0;
+        RegisterServices(_ =>
+        {
+            reads++;
+            return Task.FromResult(ReadySnapshot(
+                [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+                nextCursor, hasMore));
+        });
+        var cut = Render<UserMembershipLookupPanel>(p => p.Add(p => p.InitialUserId, "user.alpha"));
+        cut.WaitForElement("[data-testid='tenants-user-lookup-next']");
+        cut.Find("[data-testid='tenants-user-lookup-next']").HasAttribute("disabled").ShouldBeTrue();
+        EventCallback<MouseEventArgs> next = cut.FindComponents<FluentButton>()
+            .Select(component => component.Instance)
+            .Single(button => button.AdditionalAttributes?["data-testid"] as string == "tenants-user-lookup-next").OnClick;
+
+        await cut.InvokeAsync(() => next.InvokeAsync(new MouseEventArgs()));
+
+        reads.ShouldBe(1);
+        cut.Find("[data-testid='tenants-user-lookup-previous']").HasAttribute("disabled").ShouldBeTrue();
+    }
+
     [Fact]
     public void Lookup_refresh_waits_for_suspended_owner_then_renders_loading_and_result()
     {
@@ -605,7 +831,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         {
             requests[2].Cursor.ShouldBeNull();
             cut.Markup.ShouldContain("tenant.alpha");
-            cut.Markup.ShouldContain("Visible memberships sorted.");
+            cut.Markup.ShouldContain("Current page sorted.");
             cut.Find("[data-testid='tenants-user-lookup-previous']").HasAttribute("disabled").ShouldBeTrue();
         });
         Services.GetRequiredService<NavigationManager>().Uri.ShouldBe("http://localhost/tenants/workspace-users?userId=target.user&sort=name");
@@ -644,7 +870,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
         await sortTask.WaitAsync(TimeSpan.FromSeconds(5));
 
         cut.WaitForAssertion(() => cut.Markup.ShouldContain("User membership lookup cleared."));
-        cut.Markup.ShouldNotContain("Visible memberships sorted.");
+        cut.Markup.ShouldNotContain("Current page sorted.");
         cut.FindAll("[data-testid='tenants-user-lookup-results']").ShouldBeEmpty();
     }
 
@@ -789,7 +1015,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             ["Tenants.UserLookup.Announcement.Ready"] = "{0} visible memberships loaded for {1}.",
             ["Tenants.UserLookup.Recovery.PageRecovered"] = "The results restarted at the first page because the previous page reference expired.",
             ["Tenants.UserLookup.Announcement.PageRecovered"] = "The tenant results for {0} restarted at the first page because the previous page reference expired.",
-            ["Tenants.UserLookup.Announcement.Sorted"] = "Visible memberships sorted.",
+            ["Tenants.UserLookup.Announcement.Sorted"] = "Current page sorted.",
             ["Tenants.UserLookup.Announcement.Stale"] = "Membership evidence for {0} is stale.",
             ["Tenants.UserLookup.Announcement.Unauthorized"] = "The user membership lookup is not authorized for {0}.",
             ["Tenants.UserLookup.Announcement.Unavailable"] = "The user membership lookup is unavailable for {0}.",
@@ -821,7 +1047,7 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
             ["Tenants.UserLookup.Sort.Role"] = "Role",
             ["Tenants.UserLookup.Sort.Status"] = "Status",
             ["Tenants.UserLookup.Sort.Tenant"] = "Tenant identifier",
-            ["Tenants.UserLookup.SortLabel"] = "Sort results",
+            ["Tenants.UserLookup.SortLabel"] = "Sort current page",
             ["Tenants.UserLookup.State.Degraded.Message"] = "Some membership evidence is degraded. Visible rows are not represented as current.",
             ["Tenants.UserLookup.State.Degraded.Title"] = "User membership data is degraded",
             ["Tenants.UserLookup.State.Empty.Message"] = "No memberships are visible for this lookup. This does not reveal whether hidden, missing, orphaned, or out-of-scope memberships exist.",

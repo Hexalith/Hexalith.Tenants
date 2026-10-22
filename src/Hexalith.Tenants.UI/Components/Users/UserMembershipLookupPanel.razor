@@ -151,6 +151,8 @@
                                 <FluentOption TValue="string" Value="@UserTenantMembershipSortColumns.Role">@Localizer["Tenants.UserLookup.Sort.Role"]</FluentOption>
                                 <FluentOption TValue="string" Value="@UserTenantMembershipSortColumns.Status">@Localizer["Tenants.UserLookup.Sort.Status"]</FluentOption>
                             </FluentSelect>
+                            <FluentText As="TextTag.Paragraph" Size="TextSize.Size200" Color="Color.Lightweight"
+                                        data-testid="tenants-user-lookup-sort-scope">@Localizer["Tenants.UserLookup.SortScope"]</FluentText>
                         </FluentStack>
 
                         <MyTenantsDataGrid Rows="@VisibleRows"
@@ -169,10 +171,10 @@
 
                         <nav class="user-lookup-page__pager" aria-label="@Localizer["Tenants.UserLookup.PaginationLabel"]">
                             <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="12px" Wrap="true">
-                                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-previous" Disabled="@(_cursorHistory.Count == 0)" OnClick="PreviousPageAsync">
+                                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-previous" Disabled="@(!CanPreviousPage)" OnClick="PreviousPageAsync">
                                     @Localizer["Tenants.UserLookup.Previous"]
                                 </FluentButton>
-                                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-next" Disabled="@(!_snapshot.HasMore)" OnClick="NextPageAsync">
+                                <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-user-lookup-next" Disabled="@(!CanNextPage)" OnClick="NextPageAsync">
                                     @Localizer["Tenants.UserLookup.Next"]
                                 </FluentButton>
                             </FluentStack>
@@ -200,6 +202,19 @@
     private bool _parametersInitialized;
     private string _announcement = string.Empty;
     private long _loadVersion;
+    private long? _pageTransitionVersion;
+
+    private bool CanNextPage
+        => _pageTransitionVersion != _loadVersion
+            && _snapshot is { Kind: UserTenantMembershipSurfaceKind.Ready
+                or UserTenantMembershipSurfaceKind.Stale or UserTenantMembershipSurfaceKind.Degraded,
+                HasMore: true }
+            && !string.IsNullOrWhiteSpace(_snapshot.NextCursor);
+
+    private bool CanPreviousPage
+        => _pageTransitionVersion != _loadVersion
+            && _snapshot is { Kind: not UserTenantMembershipSurfaceKind.Loading }
+            && _cursorHistory.Count > 0;
 
     [Parameter]
     public string? InitialUserId { get; set; }
@@ -442,19 +457,34 @@
 
     private async Task NextPageAsync()
     {
-        if (_snapshot is null)
+        if (!CanNextPage)
         {
             return;
         }
 
-        _cursorHistory.Push(_currentCursor);
-        _currentCursor = _snapshot.NextCursor;
-        await RunLookupAsync(_targetUserId, reuseETag: false).ConfigureAwait(false);
+        long transitionVersion = _loadVersion;
+        _pageTransitionVersion = transitionVersion;
+        try
+        {
+            _cursorHistory.Push(_currentCursor);
+            _currentCursor = _snapshot!.NextCursor;
+            await RunLookupAsync(_targetUserId, reuseETag: false).ConfigureAwait(false);
+        }
+        finally
+        {
+            await InvokeAsync(() =>
+            {
+                if (_pageTransitionVersion == transitionVersion)
+                {
+                    _pageTransitionVersion = null;
+                }
+            }).ConfigureAwait(false);
+        }
     }
 
     private async Task PreviousPageAsync()
     {
-        if (_cursorHistory.Count > 0)
+        if (CanPreviousPage)
         {
             _currentCursor = _cursorHistory.Pop();
             await RunLookupAsync(_targetUserId, reuseETag: false).ConfigureAwait(false);

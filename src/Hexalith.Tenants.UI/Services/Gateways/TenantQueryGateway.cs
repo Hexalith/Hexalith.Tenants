@@ -181,8 +181,6 @@ internal sealed class TenantQueryGateway(
 
     private const string SearchAxis = "syntactic";
     private const string TenantSourcePrefix = "tenant:";
-    private const int DefaultPageSize = 20;
-    private const int MaximumPageSize = 100;
 
     public Task<TenantDetailSnapshot> GetTenantAsync(
         TenantDetailRequest request,
@@ -1724,11 +1722,7 @@ internal sealed class TenantQueryGateway(
     /// still fall to the default.
     /// </remarks>
     private static int NormalizePageSize(int pageSize)
-        => pageSize switch {
-            < 1 => DefaultPageSize,
-            > MaximumPageSize => MaximumPageSize,
-            _ => pageSize,
-        };
+        => TenantQueryPagePolicy.NormalizePageSize(pageSize);
 
     private static TenantListRequest CanonicalizeListRequest(TenantListRequest request) {
         int pageSize = NormalizePageSize(request.PageSize);
@@ -2376,7 +2370,7 @@ internal sealed class TenantQueryGateway(
         }
 
         PaginatedResult<TenantSummary>? payload = result.Payload;
-        if (payload is null || payload.Items is null)
+        if (payload is null || payload.Items is null || payload.Items.Count > query.PageSize)
         {
             return hasMatchingPrevious && MatchesRetainedValidator(request.ETag, previous!.ETag)
                 ? RetainTenantList(previous, TenantListReason.GatewayUnavailable)

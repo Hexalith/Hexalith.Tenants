@@ -18,6 +18,205 @@ public sealed class TenantReadRefreshSubscriptionTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task DisposingCoordinatorDropsPendingCatchUpBeforeLateCallbackRetires(bool lateFailure)
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        var logger = new CapturingLogger();
+        var stalled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var firstHealthy = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var laterHealthy = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services, logger);
+        int stalledCalls = 0;
+        int healthyCalls = 0;
+        await using TenantReadRefreshLease slow = await sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            Interlocked.Increment(ref stalledCalls);
+            return stalled.Task;
+        });
+        await using TenantReadRefreshLease healthy = await sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            if (Interlocked.Increment(ref healthyCalls) == 1)
+            {
+                firstHealthy.TrySetResult();
+            }
+            else
+            {
+                laterHealthy.TrySetResult();
+            }
+
+            return Task.CompletedTask;
+        });
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await firstHealthy.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await laterHealthy.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        Task retirement = CallbackRetirementAsync(sut);
+
+        await sut.DisposeAsync().AsTask().WaitAsync(TimeSpan.FromSeconds(2));
+        retirement.IsCompleted.ShouldBeFalse();
+        if (lateFailure)
+        {
+            stalled.SetException(new InvalidOperationException("unsafe tenant.alpha late callback"));
+        }
+        else
+        {
+            stalled.SetResult();
+        }
+
+        await retirement.WaitAsync(TimeSpan.FromSeconds(2));
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        clock.Advance(TimeSpan.FromSeconds(1));
+        stalledCalls.ShouldBe(1);
+        healthyCalls.ShouldBe(2);
+        await subscription.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        string logged = string.Join(" ", logger.Messages);
+        logged.ShouldContain(TenantReadRefreshSubscription.CallbackFailureReasonCode);
+        logged.ShouldNotContain("unsafe");
+        logged.ShouldNotContain("tenant.alpha");
+        logger.Exceptions.ShouldAllBe(exception => exception == null);
+    }
+
+    private static Task CallbackRetirementAsync(TenantReadRefreshSubscription coordinator)
+    {
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        object sync = typeof(TenantReadRefreshSubscription).GetField("_sync", flags).ShouldNotBeNull()
+            .GetValue(coordinator).ShouldNotBeNull();
+        var active = typeof(TenantReadRefreshSubscription).GetField("_activeCallbacks", flags).ShouldNotBeNull()
+            .GetValue(coordinator).ShouldBeOfType<Dictionary<Guid, TaskCompletionSource>>();
+        lock (sync)
+        {
+            active.Count.ShouldBeGreaterThan(0);
+            return Task.WhenAll(active.Values.Select(owner => owner.Task));
+        }
+    }
+
+    [Fact]
+    public async Task CallbackCapturedBeforeDeadlineDoesNotStartAfterItsLeaseDetaches()
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        TaskCompletionSource stalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource healthyCalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services);
+        await using TenantReadRefreshLease slow = await sut.SubscribeAsync("tenants", "tenant.alpha", () => stalled.Task);
+        int detachedCalls = 0;
+        TenantReadRefreshLease captured = await sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            detachedCalls++;
+            return Task.CompletedTask;
+        });
+        await using TenantReadRefreshLease healthy = await sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            healthyCalled.TrySetResult();
+            return Task.CompletedTask;
+        });
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await captured.DisposeAsync();
+
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await healthyCalled.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        detachedCalls.ShouldBe(0);
+        Task retirement = CallbackRetirementAsync(sut);
+        stalled.SetResult();
+        await retirement.WaitAsync(TimeSpan.FromSeconds(2));
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task StalledCallbackIsBoundedAndCatchesUpWithoutOverlapUnlessDetached(bool lateFailure, bool detach)
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        var clock = new ManualTimeProvider();
+        var logger = new CapturingLogger();
+        TaskCompletionSource stalled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource caughtUp = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource firstHealthy = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource laterHealthy = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        await using ServiceProvider services = BoundedServices(subscription, notifier, clock);
+        await using TenantReadRefreshSubscription sut = new(services, logger);
+        int stalledCalls = 0;
+        int healthyCalls = 0;
+        TenantReadRefreshLease slow = await sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            if (Interlocked.Increment(ref stalledCalls) == 1)
+            {
+                return stalled.Task;
+            }
+
+            caughtUp.TrySetResult();
+            return Task.CompletedTask;
+        });
+        await using TenantReadRefreshLease healthy = await sut.SubscribeAsync("tenants", "tenant.alpha", () =>
+        {
+            if (Interlocked.Increment(ref healthyCalls) == 1)
+            {
+                firstHealthy.TrySetResult();
+            }
+            else
+            {
+                laterHealthy.TrySetResult();
+            }
+
+            return Task.CompletedTask;
+        });
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        stalledCalls.ShouldBe(1);
+        healthyCalls.ShouldBe(0);
+        clock.Advance(TimeSpan.FromSeconds(1));
+        await firstHealthy.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        await laterHealthy.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        stalledCalls.ShouldBe(1);
+        Task retirement = CallbackRetirementAsync(sut);
+        if (detach)
+        {
+            await slow.DisposeAsync();
+        }
+
+        if (lateFailure)
+        {
+            stalled.SetException(new InvalidOperationException("unsafe tenant.alpha callback"));
+        }
+        else
+        {
+            stalled.SetResult();
+        }
+
+        await retirement.WaitAsync(TimeSpan.FromSeconds(2));
+        if (!detach)
+        {
+            await caughtUp.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            stalledCalls.ShouldBe(2);
+        }
+        else
+        {
+            // The retirement barrier includes the coordinator's late-completion and restart decision.
+            stalledCalls.ShouldBe(1);
+            caughtUp.Task.IsCompleted.ShouldBeFalse();
+        }
+
+        string logged = string.Join(" ", logger.Messages);
+        logged.ShouldContain(TenantReadRefreshSubscription.CallbackFailureReasonCode);
+        logged.ShouldNotContain("unsafe");
+        logged.ShouldNotContain("tenant.alpha");
+        logger.Exceptions.ShouldAllBe(exception => exception == null);
+        await slow.DisposeAsync();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task Timed_out_setup_keeps_only_its_scope_quarantined_until_late_setup_and_cleanup_finish(bool lateFailure)
     {
         IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();

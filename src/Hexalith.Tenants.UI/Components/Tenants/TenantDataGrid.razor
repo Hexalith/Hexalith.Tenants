@@ -10,7 +10,7 @@
                     GenerateHeader="DataGridGeneratedHeaderType.Sticky"
                     ItemKey="@(row => row.TenantId)"
                     OnSortChanged="@SortChanged">
-        <TemplateColumn Title="@Localizer["Tenants.List.Column.Tenant"]"
+        <TemplateColumn Title="@Localizer["Tenants.List.CurrentPageSort.Tenant"]"
                         ColumnId="tenant-id"
                         Class="tenants-critical tenants-critical--identity"
                         Width="220px"
@@ -20,7 +20,7 @@
                         InitialSortDirection="@InitialSortDirection"
                         Pin="DataGridColumnPin.Start">
             <HeaderCellTitleTemplate>
-                <FluentText As="TextTag.Span" data-testid="tenants-list-sort-tenant">@Localizer["Tenants.List.Column.Tenant"]</FluentText>
+                <FluentText As="TextTag.Span" data-testid="tenants-list-sort-tenant">@Localizer["Tenants.List.CurrentPageSort.Tenant"]</FluentText>
             </HeaderCellTitleTemplate>
             <ChildContent>
                 <div class="tenant-data-grid__identity"
@@ -51,7 +51,7 @@
                 </div>
             </ChildContent>
         </TemplateColumn>
-        <TemplateColumn Title="@Localizer["Tenants.List.Column.Status"]"
+        <TemplateColumn Title="@Localizer["Tenants.List.CurrentPageSort.Status"]"
                         ColumnId="tenant-status"
                         Class="tenants-critical tenants-critical--status"
                         Width="130px"
@@ -61,7 +61,7 @@
                         InitialSortDirection="@InitialSortDirection"
                         Pin="DataGridColumnPin.Start">
             <HeaderCellTitleTemplate>
-                <FluentText As="TextTag.Span" data-testid="tenants-list-sort-status">@Localizer["Tenants.List.Column.Status"]</FluentText>
+                <FluentText As="TextTag.Span" data-testid="tenants-list-sort-status">@Localizer["Tenants.List.CurrentPageSort.Status"]</FluentText>
             </HeaderCellTitleTemplate>
             <ChildContent>
                 <FluentBadge Appearance="BadgeAppearance.Tint"

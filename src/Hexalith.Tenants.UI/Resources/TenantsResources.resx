@@ -424,7 +424,7 @@
     <value>{0} visible memberships loaded for {1}.</value>
   </data>
   <data name="Tenants.UserLookup.Announcement.Sorted" xml:space="preserve">
-    <value>Visible memberships sorted.</value>
+    <value>Current page sorted.</value>
   </data>
   <data name="Tenants.UserLookup.Announcement.Stale" xml:space="preserve">
     <value>Membership evidence for {0} is stale.</value>
@@ -529,7 +529,7 @@
     <value>Tenant identifier</value>
   </data>
   <data name="Tenants.UserLookup.SortLabel" xml:space="preserve">
-    <value>Sort results</value>
+    <value>Sort current page</value>
   </data>
   <data name="Tenants.UserLookup.State.Degraded.Message" xml:space="preserve">
     <value>Some membership evidence is degraded. Visible rows are not represented as current.</value>
@@ -4566,4 +4566,16 @@
   <data name="Tenants.Routes.NotFound.Title" xml:space="preserve"><value>Page not found</value></data>
   <data name="Tenants.Routes.NotFound.Message" xml:space="preserve"><value>The requested page is unavailable. Return to the workspace home to continue.</value></data>
   <data name="Tenants.Routes.NotFound.Recovery" xml:space="preserve"><value>Return to home</value></data>
+  <data name="Tenants.UserLookup.SortScope" xml:space="preserve">
+    <value>Sorting applies only to memberships on the current page. Changing the sort returns to the first page. Other pages may contain entries that belong earlier in the order.</value>
+  </data>
+  <data name="Tenants.List.CurrentPageSort.Tenant" xml:space="preserve">
+    <value>Tenant (current page)</value>
+  </data>
+  <data name="Tenants.List.CurrentPageSort.Status" xml:space="preserve">
+    <value>Status (current page)</value>
+  </data>
+  <data name="Tenants.List.SortScope" xml:space="preserve">
+    <value>Sorting applies only to tenants on the current page, including search results. Changing the sort returns to the first page. Other pages may contain names or statuses that belong earlier in the order.</value>
+  </data>
 </root>

@@ -51,7 +51,8 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
         return SendAsync<PaginatedResult<TenantSummary>>(
             BuildUri("/api/tenants", ("cursor", query.Cursor), ("pageSize", query.PageSize)),
             eTag,
-            cancellationToken);
+            cancellationToken,
+            maximumSummaryCount: TenantQueryPagePolicy.NormalizePageSize(query.PageSize));
     }
 
     /// <inheritdoc />
@@ -173,7 +174,8 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
     private async Task<TenantsRestQueryResponse<TPayload>> SendAsync<TPayload>(
         string path,
         string? eTag,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        int? maximumSummaryCount = null)
     {
         using CancellationTokenSource transportDeadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         if (httpClient.Timeout != Timeout.InfiniteTimeSpan)
@@ -305,7 +307,7 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
                 return Failure<TPayload>(TenantsRestQueryFailureKind.InvalidPayload, statusCode);
             }
 
-            if (!HasValidPayloadShape(payload))
+            if (!HasValidPayloadShape(payload, maximumSummaryCount))
             {
                 return Failure<TPayload>(TenantsRestQueryFailureKind.InvalidPayload, statusCode);
             }
@@ -418,14 +420,16 @@ internal sealed class TenantsRestQueryClient(HttpClient httpClient) : ITenantsRe
             && metadata.IsDegraded != true
             && freshness is ReadModelFreshnessState.Current or ReadModelFreshnessState.Stale;
 
-    private static bool HasValidPayloadShape<TPayload>(TPayload payload)
+    private static bool HasValidPayloadShape<TPayload>(TPayload payload, int? maximumSummaryCount)
         => payload switch
         {
-            PaginatedResult<TenantSummary> page => IsValidPage(
-                page.Items,
-                page.Cursor,
-                page.HasMore,
-                static item => !string.IsNullOrWhiteSpace(item.TenantId) && item.Name is not null),
+            PaginatedResult<TenantSummary> page => page.Items is not null
+                && (maximumSummaryCount is null || page.Items.Count <= maximumSummaryCount)
+                && IsValidPage(
+                    page.Items,
+                    page.Cursor,
+                    page.HasMore,
+                    static item => !string.IsNullOrWhiteSpace(item.TenantId) && item.Name is not null),
             PaginatedResult<TenantMember> page => IsValidPage(
                 page.Items,
                 page.Cursor,
