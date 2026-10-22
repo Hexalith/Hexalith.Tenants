@@ -1,0 +1,23 @@
+{
+  "baseline": "7cfa1c38847f7f4340b1cc11a9137f28430bd6c6",
+  "selected": [
+    341,
+    573,
+    581,
+    607,
+    620
+  ],
+  "records": 657,
+  "done": 500,
+  "open": 157,
+  "index_rows": 147,
+  "dispositions": {
+    "done": 500,
+    "blocked": 15,
+    "accepted-limitation": 7,
+    "uncertain": 26,
+    "actionable": 86,
+    "awaiting-decision": 23
+  },
+  "result": "pass"
+}

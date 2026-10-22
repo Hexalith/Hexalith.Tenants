@@ -12,6 +12,7 @@ manifest="${HEXALITH_RELEASE_PACKAGE_MANIFEST:-tools/release-packages.json}"
 state_directory="${HEXALITH_RECOVERY_STATE_DIRECTORY:-.hexalith/recovery}"
 registry="${HEXALITH_ZOT_REGISTRY:-registry.hexalith.com}"
 container_repository="${HEXALITH_RECOVERY_CONTAINER_REPOSITORY:-tenants}"
+source "$(dirname "${BASH_SOURCE[0]}")/partial-release-recovery-common.sh"
 
 fail() { echo "[partial-release-recovery] $1" >&2; exit 1; }
 
@@ -22,6 +23,8 @@ fail() { echo "[partial-release-recovery] $1" >&2; exit 1; }
 [[ "$builds_sha" =~ ^[0-9a-f]{40}$ ]] || fail "Approved Builds execution SHA is required."
 [[ "$environment_name" = production ]] || fail "Recovery requires the production environment."
 [ -f "$manifest" ] || fail "The authoritative package manifest is missing."
+recovery_validate_manifest
+manifest_hash="$(sha256sum "$manifest" | awk '{ print $1 }')"
 
 live_sha="$(gh api "repos/${repository}/git/ref/heads/main" --jq '.object.sha')"
 [ "$live_sha" = "$source_sha" ] || fail "The requested source is not the live main tip."
@@ -70,7 +73,10 @@ esac
 
 mapfile -t package_ids < <(jq -r '.packages[] | .id' "$manifest")
 [ "${#package_ids[@]}" -eq 5 ] || fail "The package manifest must contain exactly five packages."
-mkdir -p "$state_directory"
+validated_state_directory="$state_directory"
+recovery_temporary_directory="$(mktemp -d)"
+trap 'rm -rf -- "$recovery_temporary_directory"' EXIT
+state_directory="$recovery_temporary_directory"
 : > "$state_directory/missing-packages"
 : > "$state_directory/existing-packages"
 : > "$state_directory/existing-package-sha256"
@@ -102,5 +108,14 @@ printf '%s\n' "$([ "$existing" -eq 5 ] && echo complete || echo partial)" > "$st
 printf '%s\n' "$([ "$container_status" = 200 ] && echo present || echo absent)" > "$state_directory/container-state"
 if [ "$container_status" != 404 ] && [ "$container_status" != 200 ]; then
   fail "The container destination state could not be proved."
+fi
+if [ "$existing" -eq 0 ] && [ "$container_status" = 404 ] && [ "$tag_status" = 404 ] && [ "$release_status" = 404 ]; then
+  fail "Recovery requires evidence of an existing partial release."
+fi
+printf '%s\n' "$manifest_hash" > "$state_directory/package-manifest-sha256"
+mkdir -p "$validated_state_directory"
+cp "$state_directory/"* "$validated_state_directory/"
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+  printf 'needs-nuget=%s\n' "$([ -s "$state_directory/missing-packages" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 fi
 echo "Validated recovery with ${existing} existing and $((5 - existing)) missing packages."

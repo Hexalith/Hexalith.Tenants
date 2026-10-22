@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-341/DW-573/DW-581/DW-607/DW-620 closure (2026-10-22):** Partial-release recovery binds its validated manifest through packing, publication and verification, requires existing publication evidence, verifies existing GitHub asset bytes and repairs only missing assets. NuGet account/login gates follow validated missing-package output. Exactly five records close: all 657 IDs remain, 500 done/157 open across 147 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-341-573-581-607-620-validation-evidence.md).
+
 **DW-220/DW-254/DW-319/DW-327/DW-469 closure (2026-10-22):** Configuration proof readers require explicit implementations, six legacy wrappers name their tracked replacements, legacy removal failures retain safe text, and reused identities preserve unverifiable audit state after pre-dispatch failure. Exactly five records close: all 657 IDs remain, 495 done/162 open across 152 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-220-254-319-327-469-validation-evidence.md).
 
 **DW-346/DW-369/DW-374/DW-377/DW-402 closure (2026-10-22):** Grant Cancel uses the existing Fluent component; deterministic refusal and EN/FR replacement-page recovery qualify retained retry identity. The approved grant localization and border-box scope notes close as preserved intentional behavior. Exactly five records close: all 657 IDs remain, 490 done/167 open across 157 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-346-369-374-377-402-validation-evidence.md).
@@ -186,14 +188,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 495 |
-| actionable | 91 |
+| done | 500 |
+| actionable | 86 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 7 |
 | uncertain | 26 |
 
-**Remaining: 162 open records across 152 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 157 open records across 147 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -232,7 +234,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-268 | P2 | Defect / actionable | unassigned | browser style evidence | Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width. |
 | DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
 | DW-317 | P2 | Defect / actionable | unassigned | browser layout fixture | Repair the remaining form/label scope stamping and verify computed layout at supported widths. |
-| DW-341 | P2 | Defect / actionable | unassigned | release recovery inventory contract | Use one validated manifest consistently through recovery validation, packing and publication. |
 | DW-387 | P2 | Defect / actionable | unassigned | Same-id idempotency/recovery contract | Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards. |
 | DW-388 | P2 | Defect / actionable | unassigned | Removal operation cancellation lifetime | Pass an attempt-owned cancellation token through removal projection requery and verify supersession/disposal cancels the bounded walk. |
 | DW-400 | P2 | Defect / actionable | unassigned | Captured authorization transition generation | Guard subscription assignment against authorization generation/collapse and add the same interleaving with sign-out rather than disposal. |
@@ -246,14 +247,11 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-523 | P2 | Defect / actionable | Hexalith.EventStore | EventStore publication recovery status contract | Define recoverable versus exhausted PublishFailed polling semantics and align runtime Retry-After plus all lifecycle/replay documentation. |
 | DW-524 | P2 | Defect / actionable | unassigned | Shared singleton-index sequence contract | Add per-aggregate index replay ordering and persisted-index end-state regression covering older TenantUpdated and membership/lifecycle events. |
 | DW-525 | P2 | Defect / actionable | unassigned | EventStore legacy projection admission contract | Add equivalent fail-closed projection evolution admission at this custom route and route-level no-persistence rejection coverage. |
-| DW-573 | P2 | Defect / actionable | release owner | Validated recovery missing-package inventory | Condition account validation/login on packages needing publication while retaining their publication gate. |
 | DW-575 | P2 | Defect / actionable | Tenants bootstrap and quickstart documentation | DW-567 bootstrap identity boundary | Require configured administrator verification before optional bootstrap checks, and replace the wrong-subject command example. |
-| DW-581 | P2 | Defect / actionable | unassigned | Release asset inventory | Upload verified missing assets to existing releases without replacing matching assets. |
 | DW-594 | P2 | Defect / actionable | Tenants integration-test fixture | Runner TLS trust or selected HTTP endpoint | Expose safe inner TLS cause, repair endpoint/trust, then require this exact live test to pass in CI. |
 | DW-595 | P2 | Defect / blocked | EventStore (Story 6.1-P1R evidence, contracts packaging) | EventStore-maintainer fixes at adopted source revision | Route current failing upstream tests to EventStore and capture a green exact-pin CI result. |
 | DW-597 | P2 | Defect / actionable | unassigned | Multitenant claim normalization contract | Allow explicit unambiguous system membership within valid multivalued claims and add the shipped-realm principal regression. |
 | DW-603 | P2 | Defect / actionable | unassigned | Refresh callback cancellation/deadline contract | Bound or isolate callbacks so a stalled subscriber cannot block later refresh notifications. |
-| DW-607 | P2 | Defect / actionable | unassigned | Partial-release eligibility policy | Require concrete existing publication evidence before admitting recovery, with an all-destinations-absent rejection case. |
 | DW-610 | P2 | Defect / actionable | unassigned | Membership paging in-flight state | Guard Next with arrived-page/HasMore and an in-flight gate; cover repeated clicks during a delayed read. |
 | DW-611 | P2 | Defect / actionable | unassigned | Server/authorized membership ordering contract | Define globally ordered protected paging or explicitly constrain the UI sort promise to the current page. |
 | DW-618 | P2 | Defect / actionable | unassigned | Authorization-safe index paging design | Design bounded authorized paging that continues through hidden windows without exposing raw-result pagination facts. |
@@ -300,7 +298,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-609 | P2 | Gap / actionable | unassigned | Permission-change invalidation/reauthorization contract | Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts. |
 | DW-614 | P2 | Gap / actionable | unassigned | Authenticated real Tenants host fixture | Issue a safe multi-tenant test principal and prove the selected current-tenant alias through the rendered host. |
 | DW-615 | P2 | Gap / actionable | unassigned | Blocking in-process host fixture | Add a mandatory anonymous host scope-denial lane without depending on the advisory topology tier. |
-| DW-620 | P2 | Gap / actionable | unassigned | Immutable expected package hashes; recovery asset inventory | Download existing release assets safely and compare each content hash with the reviewed package manifest. |
 | DW-212 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Implement the recorded shared parameter diagnostic and its component regression. |
 | DW-213 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Add a rendered-element readiness guard and an explicit pre-render focus test. |
 | DW-571 | P3 | Defect / actionable | unassigned | EventStore hosting helper/runtime token contract | Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial. |

@@ -31,16 +31,6 @@ jobs:
       contents: write
       id-token: write
     steps:
-      - name: Require the Trusted Publishing account
-        shell: bash
-        env:
-          NUGET_USER: ${{ vars.NUGET_USER }}
-        run: |
-          set -euo pipefail
-          if [ -z "${NUGET_USER//[[:space:]]/}" ]; then
-            echo "The repository variable NUGET_USER must name the individual nuget.org account that created the Trusted Publishing policy." >&2
-            exit 1
-          fi
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.source_sha }}
@@ -54,6 +44,7 @@ jobs:
       - name: Initialize root-declared build submodule
         run: git submodule update --init references/Hexalith.Builds
       - name: Validate partial release state
+        id: recovery
         env:
           GH_TOKEN: ${{ github.token }}
           RECOVERY_VERSION: ${{ inputs.version }}
@@ -67,7 +58,19 @@ jobs:
           HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
         run: bash scripts/validate-partial-release-recovery.sh "$RECOVERY_VERSION" "$RECOVERY_SOURCE_SHA"
+      - name: Require the Trusted Publishing account
+        if: steps.recovery.outputs.needs-nuget == 'true'
+        shell: bash
+        env:
+          NUGET_USER: ${{ vars.NUGET_USER }}
+        run: |
+          set -euo pipefail
+          if [ -z "${NUGET_USER//[[:space:]]/}" ]; then
+            echo "The repository variable NUGET_USER must name the individual nuget.org account that created the Trusted Publishing policy." >&2
+            exit 1
+          fi
       - name: Exchange GitHub OIDC token for a temporary NuGet key
+        if: steps.recovery.outputs.needs-nuget == 'true'
         id: nuget-login
         uses: NuGet/login@v1.2.0
         with:

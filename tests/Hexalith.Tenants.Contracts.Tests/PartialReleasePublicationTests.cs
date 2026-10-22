@@ -329,6 +329,7 @@ public class PartialReleasePublicationTests
             }
 
             Dictionary<string, string> packageContents = ids.ToDictionary(id => id, id => $"reviewed fixture package {id}\n", StringComparer.Ordinal);
+            string manifestPath = Path.Combine(repoRoot, "tools/release-packages.json");
             Dictionary<string, string> originalState = new(StringComparer.Ordinal)
             {
                 ["source-sha"] = response == "source-mismatch" ? new string('b', 40) + "\n" : sourceSha + "\n",
@@ -337,6 +338,7 @@ public class PartialReleasePublicationTests
                 ["existing-packages"] = existingIds.Length == 0 ? string.Empty : string.Join('\n', existingIds) + (terminateExistingInventory ? "\n" : string.Empty),
                 ["existing-package-sha256"] = string.Concat(existingIds.Reverse().Select(id =>
                     $"{Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(packageContents[id])))} {id}\n")),
+                ["package-manifest-sha256"] = Convert.ToHexStringLower(SHA256.HashData(await File.ReadAllBytesAsync(manifestPath))) + "\n",
                 ["container-state"] = inventory is "container" or "mixed" or "mixed-existing" or "all-missing" ? "absent\n" : "present\n",
             };
             if (response == "missing-inventory")
@@ -407,6 +409,9 @@ public class PartialReleasePublicationTests
                         printf 'HTTP/2.0 404 Not Found\n'; return 1
                       fi
                       printf 'HTTP/2.0 200 OK\n' ;;
+                    "api repos/fixture/recovery/releases/tags/v${FIXTURE_VERSION}")
+                      printf '{"tag_name":"v%s","draft":false,"prerelease":%s,"assets":[]}\n' "$FIXTURE_VERSION" "$FIXTURE_PRERELEASE" ;;
+                    'release upload '*) : ;;
                     'release create '*)
                       mapfile -t expected_arguments < "$FIXTURE_RELEASE_ARGUMENTS"
                       [ "$#" = "${#expected_arguments[@]}" ] || { unexpected "gh argument count $*"; return 97; }
@@ -435,14 +440,15 @@ public class PartialReleasePublicationTests
                 }
                 python3() {
                   case "$*" in
-                    "scripts/pack-release-packages.py ./nupkgs ${FIXTURE_VERSION}") prepare pack ;;
-                    'scripts/validate-nuget-packages.py ./nupkgs') prepare packages ;;
+                    "${FIXTURE_PACKER} --manifest ${FIXTURE_MANIFEST} --validate-only") command python3 "$@" ;;
+                    "scripts/pack-release-packages.py ./nupkgs ${FIXTURE_VERSION} --manifest ${FIXTURE_MANIFEST}") prepare pack ;;
+                    "scripts/validate-nuget-packages.py ./nupkgs --manifest ${FIXTURE_MANIFEST}") prepare packages ;;
                     'scripts/validate-consumer-package-references.py ./nupkgs') prepare consumers ;;
                     *) unexpected "python3 $*" ;;
                   esac
                 }
                 sha256sum() {
-                  printf 'hash %s\n' "$1" >> "$FIXTURE_CALLS"
+                  if [[ "$1" == nupkgs/* ]]; then printf 'hash %s\n' "$1" >> "$FIXTURE_CALLS"; fi
                   if [ "$FIXTURE_STAGE" = hash ] && [ "$1" = "$FIXTURE_LAST_EXISTING_FILE" ]; then touch "$FIXTURE_PREPARED"; fi
                   command sha256sum "$@"
                 }
@@ -470,9 +476,13 @@ public class PartialReleasePublicationTests
             process.StartInfo.ArgumentList.Add("-c");
             process.StartInfo.ArgumentList.Add(fixture.ReplaceLineEndings("\n"));
             var environment = process.StartInfo.Environment;
+            environment["FIXTURE_PACKER"] = Path.Combine(repoRoot, "scripts/pack-release-packages.py");
+            environment["FIXTURE_MANIFEST"] = manifestPath;
+            environment["HEXALITH_RELEASE_PACKAGE_MANIFEST"] = manifestPath;
             environment["FIXTURE_PUBLISHER"] = Path.Combine(repoRoot, "scripts/publish-partial-release.sh");
             environment["FIXTURE_SHA"] = sourceSha;
             environment["FIXTURE_VERSION"] = version;
+            environment["FIXTURE_PRERELEASE"] = prerelease ? "true" : "false";
             environment["FIXTURE_STAGE"] = existingIds.Length == 0 && stage == "hash" ? "consumers" : stage;
             environment["FIXTURE_RESPONSE"] = response.StartsWith("hash-", StringComparison.Ordinal) ? "stable" : response;
             environment["FIXTURE_INVENTORY"] = inventory;
@@ -522,6 +532,7 @@ public class PartialReleasePublicationTests
             string[] calls = await File.ReadAllLinesAsync(callLog);
             List<string> expected = ["main", "build", "pack", "packages", "consumers"];
             expected.AddRange(existingIds.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
+            expected.Add("release-read");
             expected.Add("main");
             string? refusal = response switch
             {
@@ -562,7 +573,6 @@ public class PartialReleasePublicationTests
                     expected.AddRange(["container-login", "container-publish"]);
                 }
 
-                expected.Add("release-read");
                 if (inventory is "release" or "mixed" or "mixed-existing" or "all-missing")
                 {
                     expected.Add("release-publish");

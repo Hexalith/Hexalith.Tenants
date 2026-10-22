@@ -14,22 +14,22 @@ ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "tools" / "release-packages.json"
 
 
-def load_package_projects() -> list[str]:
+def load_package_projects(manifest: Path = MANIFEST) -> list[str]:
     """Read the authoritative release inventory.
 
     The manifest is the single source of truth: the publication preflight freezes it
     and proves each ID absent before publishing, so packing from a second hard-coded
     list would let published output drift from the inventory that was proven.
     """
-    with MANIFEST.open("r", encoding="utf-8") as handle:
+    with manifest.open("r", encoding="utf-8") as handle:
         data = json.load(handle)
 
     if not isinstance(data, dict):
-        raise ValueError(f"{MANIFEST} must contain a JSON object.")
+        raise ValueError(f"{manifest} must contain a JSON object.")
 
     packages = data.get("packages")
     if not isinstance(packages, list) or not packages:
-        raise ValueError(f"{MANIFEST} must contain a non-empty 'packages' array.")
+        raise ValueError(f"{manifest} must contain a non-empty 'packages' array.")
 
     seen_ids: set[str] = set()
     seen_projects: set[str] = set()
@@ -50,9 +50,9 @@ def load_package_projects() -> list[str]:
         if not package_id or not project:
             raise ValueError(f"Package entry #{index} must define non-empty 'id' and 'project'.")
         if package_id.lower() in seen_ids:
-            raise ValueError(f"Duplicate package id in {MANIFEST}: {package_id}")
+            raise ValueError(f"Duplicate package id in {manifest}: {package_id}")
         if project.lower() in seen_projects:
-            raise ValueError(f"Duplicate package project in {MANIFEST}: {project}")
+            raise ValueError(f"Duplicate package project in {manifest}: {project}")
 
         # The manifest is data, so confine it before it becomes argv: a value like "--interactive"
         # would otherwise be read by dotnet as a flag, and "../" would escape the repository.
@@ -73,17 +73,24 @@ def load_package_projects() -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Pack Hexalith.Tenants release packages.")
-    parser.add_argument("output_directory", type=Path, help="Directory where .nupkg files are written.")
-    parser.add_argument("version", help="Package version to apply.")
+    parser.add_argument("output_directory", type=Path, nargs="?", help="Directory where .nupkg files are written.")
+    parser.add_argument("version", nargs="?", help="Package version to apply.")
+    parser.add_argument("--manifest", type=Path, default=MANIFEST, help="Validated release package inventory.")
+    parser.add_argument("--validate-only", action="store_true", help="Validate inventory without building or touching artifacts.")
     args = parser.parse_args()
 
     # Resolve the inventory before touching the output directory so a manifest problem is
     # reported as such, rather than surfacing later mixed in with packing failures.
     try:
-        projects = load_package_projects()
+        projects = load_package_projects(args.manifest)
     except (OSError, ValueError) as exc:
         print(f"Release package manifest is unusable: {exc}", file=sys.stderr)
         return 1
+
+    if args.validate_only:
+        return 0
+    if args.output_directory is None or args.version is None:
+        parser.error("output_directory and version are required when packing")
 
     output_directory = args.output_directory
     output_directory.mkdir(parents=True, exist_ok=True)

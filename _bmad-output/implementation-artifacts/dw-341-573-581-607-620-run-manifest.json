@@ -1,0 +1,162 @@
+{
+  "baseline": "7cfa1c38847f7f4340b1cc11a9137f28430bd6c6",
+  "selected": [
+    341,
+    573,
+    581,
+    607,
+    620
+  ],
+  "review": {
+    "layer": "Blind Hunter",
+    "findings": 6,
+    "patched": 6,
+    "deferred": 0,
+    "recheck": "All six findings are addressed; no remaining concrete findings."
+  },
+  "commands": [
+    {
+      "command": "dotnet build tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Debug -m:1 -p:UseHexalithProjectReferences=true -p:NuGetAudit=false",
+      "result": "pass",
+      "warnings": 0,
+      "errors": 0,
+      "duration_seconds": 24.44
+    },
+    {
+      "command": "dotnet test --project tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj -c Debug --no-build --no-restore -p:UseHexalithProjectReferences=true",
+      "result": "pass",
+      "total": 659,
+      "passed": 659,
+      "failed": 0,
+      "skipped": 0,
+      "duration_seconds": 26.97
+    },
+    {
+      "command": "python3 tests/scripts/test_partial_release_recovery.py",
+      "result": "pass",
+      "total": 18,
+      "note": "Also executed through RecoveryPipelinePassesOfflineDestinationControls in the final mandatory Contracts run."
+    },
+    {
+      "command": "actionlint .github/workflows/recover-partial-release.yml",
+      "result": "pass"
+    },
+    {
+      "command": "bash -n scripts/partial-release-recovery-common.sh scripts/validate-partial-release-recovery.sh scripts/publish-partial-release.sh scripts/verify-partial-release.sh",
+      "result": "pass"
+    },
+    {
+      "command": "dotnet format whitespace tests/Hexalith.Tenants.Contracts.Tests/Hexalith.Tenants.Contracts.Tests.csproj --no-restore --include tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryWorkflowTests.cs --verify-no-changes --verbosity quiet",
+      "result": "pass"
+    },
+    {
+      "command": "node_modules/.bin/commitlint --edit /tmp/tenants-dw-recovery-commit-message.txt --verbose",
+      "result": "pass",
+      "cli_version": "21.2.3",
+      "output": "\u29d7   --- input ---\nfix(release): resolve five deferred recovery records\n\u2714   found 0 problems, 0 warnings\n"
+    },
+    {
+      "command": "git -c core.safecrlf=false diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-dw-341-573-581-607-620-partial-release-recovery.md --ref HEAD",
+      "result": "pass",
+      "note": "No references/ pointer changes in range."
+    }
+  ],
+  "mutation_controls": [
+    {
+      "control": "eligibility-guard-removed",
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "result": "rejected"
+    },
+    {
+      "control": "manifest-binding-removed",
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "result": "rejected"
+    },
+    {
+      "control": "asset-hash-check-removed",
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "result": "rejected"
+    },
+    {
+      "control": "default-verification-inventory-restored",
+      "tests": 1,
+      "failures": 1,
+      "errors": 0,
+      "result": "rejected"
+    },
+    {
+      "control": "release-metadata-check-removed",
+      "tests": 1,
+      "failures": 3,
+      "errors": 0,
+      "result": "rejected"
+    }
+  ],
+  "ledger": {
+    "baseline": "7cfa1c38847f7f4340b1cc11a9137f28430bd6c6",
+    "selected": [
+      341,
+      573,
+      581,
+      607,
+      620
+    ],
+    "records": 657,
+    "done": 500,
+    "open": 157,
+    "index_rows": 147,
+    "dispositions": {
+      "done": 500,
+      "blocked": 15,
+      "accepted-limitation": 7,
+      "uncertain": 26,
+      "actionable": 86,
+      "awaiting-decision": 23
+    },
+    "result": "pass"
+  },
+  "limits": [
+    "All destination traffic is mocked; no protected production workflow, registry publication or NuGet/OIDC exchange was executed.",
+    "Initial parallel source build hit MSB4018 GenerateDepsFile in the shared McpCli dependency; serialized builds pass.",
+    "Initial canonical-verifier mutation control was accepted by an incomplete fixture. The final distinct-ID fixture supplies the canonical manifest and asserts exact final URLs; all five final mutation controls reject.",
+    "Unrelated release/runtime/provenance holds and all dependency pointers remain preserved."
+  ],
+  "source_working_tree_sha256": {
+    ".github/workflows/recover-partial-release.yml": "f3864619344a474c835c0ad556be858b2be4268b68251d578c42f43ff8d8a053",
+    "scripts/partial-release-recovery-common.sh": "4b1d67983437bafb40cd8d3838da2386f4352f3a94f327f8925cd161133de384",
+    "scripts/pack-release-packages.py": "f66a903afa595cbd403a7a0e10fa4e900e1f221a1cd8a591694e24e475c1ca7e",
+    "scripts/validate-partial-release-recovery.sh": "977cd4ffd47c4795c305932f2376b280ae259e95cb0b90e7057c80db20d0c489",
+    "scripts/publish-partial-release.sh": "e31985374fea35f4f5c2d3291c41df13488310cce155d56f6820b4bd4bbdf856",
+    "scripts/verify-partial-release.sh": "ffb598c97033d0787949d56bf6f365352271ae5b3b1382ac888b944a81ae84af",
+    "tests/scripts/test_partial_release_recovery.py": "a21a947dca8876430a25c493c166dd47d15a65393dc35d4791a06682913229fd",
+    "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryWorkflowTests.cs": "7763862c0c0065393576f46824a214b2a939f959bc57304a305a34805e805304",
+    "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": "e2a56d676d0a1ba2488e37a642b2611de64cfef7edd964ed4d67824a7c169289",
+    "tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs": "8054a02240b90b5e39bad0a0a23e7e3bc43270745052577a8b89c9f1385c6659",
+    "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryTests.cs": "93e962fd1b5ea2cd8727f096987dde8f7b53c8972588ef2d7108778ee9efce85",
+    "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseVerificationTests.cs": "8fc0537ba269bb0cc9ef39478b99362734aa4494f79195e3563277b756d8e887"
+  },
+  "source_blob_sha256": {
+    ".github/workflows/recover-partial-release.yml": "f3864619344a474c835c0ad556be858b2be4268b68251d578c42f43ff8d8a053",
+    "scripts/partial-release-recovery-common.sh": "4b1d67983437bafb40cd8d3838da2386f4352f3a94f327f8925cd161133de384",
+    "scripts/pack-release-packages.py": "f66a903afa595cbd403a7a0e10fa4e900e1f221a1cd8a591694e24e475c1ca7e",
+    "scripts/validate-partial-release-recovery.sh": "977cd4ffd47c4795c305932f2376b280ae259e95cb0b90e7057c80db20d0c489",
+    "scripts/publish-partial-release.sh": "e31985374fea35f4f5c2d3291c41df13488310cce155d56f6820b4bd4bbdf856",
+    "scripts/verify-partial-release.sh": "ffb598c97033d0787949d56bf6f365352271ae5b3b1382ac888b944a81ae84af",
+    "tests/scripts/test_partial_release_recovery.py": "a21a947dca8876430a25c493c166dd47d15a65393dc35d4791a06682913229fd",
+    "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryWorkflowTests.cs": "59db61726e7376fc28a8361d916271374ba19233c5d67525b2268be2c3fa2fea",
+    "tests/Hexalith.Tenants.Contracts.Tests/PackageGovernanceTests.cs": "e2a56d676d0a1ba2488e37a642b2611de64cfef7edd964ed4d67824a7c169289",
+    "tests/Hexalith.Tenants.Contracts.Tests/PartialReleasePublicationTests.cs": "2abdcace318bcb92adca2adf0eb60557966452824f091d879378dd2d109f10c2",
+    "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryTests.cs": "86e936f054c0f5bacfb5d98cce76b158a008c3ab98317a500f0b473d4ef691a6",
+    "tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseVerificationTests.cs": "10b8f7c66b4a13bf709a31194e5c0ae0f869eb261ca4f99c296c8d46c4005ad0"
+  }
+}

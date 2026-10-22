@@ -167,7 +167,7 @@ public class PartialReleaseRecoveryTests
                       else printf 404; fi ;;
                     https://api.nuget.org/v3-flatcontainer/*/1.2.3/*.1.2.3.nupkg) printf 404 ;;
                     https://fixture.invalid/v2/tenants/manifests/1.2.3)
-                      if [ "$FIXTURE_SCENARIO" = existing-artifacts ]; then printf 200; else printf 404; fi ;;
+                      if [ "$FIXTURE_SCENARIO" = existing-artifacts ] || [ "$FIXTURE_SCENARIO" = both-absent ]; then printf 200; else printf 404; fi ;;
                     *) printf 'curl %s\n' "$url" >> "$FIXTURE_UNEXPECTED_LOG"; echo "Unexpected curl request: $url" >&2; return 97 ;;
                   esac
                 }
@@ -265,7 +265,7 @@ public class PartialReleaseRecoveryTests
                 (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "version"))).ShouldBe("1.2.3\n");
                 (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "package-state"))).ShouldBe("partial\n");
                 (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "container-state")))
-                    .ShouldBe(hasExistingArtifacts ? "present\n" : "absent\n");
+                    .ShouldBe(hasExistingArtifacts || scenario == "both-absent" ? "present\n" : "absent\n");
                 (await File.ReadAllTextAsync(Path.Combine(stateDirectory, "existing-package-count")))
                     .ShouldBe(hasExistingArtifacts ? "1\n" : "0\n");
                 (await File.ReadAllLinesAsync(Path.Combine(stateDirectory, "existing-packages")))

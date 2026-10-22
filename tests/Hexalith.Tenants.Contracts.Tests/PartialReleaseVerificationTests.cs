@@ -54,11 +54,21 @@ public class PartialReleaseVerificationTests
             {
                 ["tag_name"] = $"v{version}",
                 ["draft"] = false,
-                ["assets"] = new JsonArray(assets.Select(name => (JsonNode)new JsonObject { ["name"] = name }).ToArray()),
+                ["assets"] = new JsonArray(assets.Select((name, index) => (JsonNode)new JsonObject { ["name"] = name, ["id"] = index + 1 }).ToArray()),
             };
             if (classification is not null)
             {
                 release["prerelease"] = JsonNode.Parse(classification);
+            }
+
+            string stateDirectory = Path.Combine(temporaryRoot, "state");
+            Directory.CreateDirectory(stateDirectory);
+            Directory.CreateDirectory(Path.Combine(temporaryRoot, "nupkgs"));
+            await File.WriteAllTextAsync(Path.Combine(stateDirectory, "package-manifest-sha256"),
+                Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(manifestPath))) + "\n");
+            foreach (string asset in assets)
+            {
+                await File.WriteAllTextAsync(Path.Combine(temporaryRoot, "nupkgs", asset), "reviewed fixture bytes\n");
             }
 
             string releasePath = Path.Combine(temporaryRoot, "release.json");
@@ -70,7 +80,8 @@ public class PartialReleaseVerificationTests
                     "api repos/fixture/recovery/git/ref/tags/v${FIXTURE_VERSION} --jq .object.sha") echo "$GITHUB_SHA" ;;
                     "api repos/fixture/recovery/git/ref/tags/v${FIXTURE_VERSION} --jq .object.type") echo commit ;;
                     "api repos/fixture/recovery/releases/tags/v${FIXTURE_VERSION}") cat "$FIXTURE_RELEASE" ;;
-                    *) echo 'Unexpected GitHub call.' >&2; return 97 ;;
+                    'api repos/fixture/recovery/releases/assets/'*) printf 'reviewed fixture bytes\n' ;;
+                    *) echo 'Unexpected GitHub call.'  >&2; return 97 ;;
                   esac
                 }
                 curl() { echo 200; }
@@ -90,6 +101,7 @@ public class PartialReleaseVerificationTests
             process.StartInfo.ArgumentList.Add("-c");
             process.StartInfo.ArgumentList.Add(fixture.ReplaceLineEndings("\n"));
             var environment = process.StartInfo.Environment;
+            environment["HEXALITH_RECOVERY_STATE_DIRECTORY"] = stateDirectory;
             environment["FIXTURE_VERIFIER"] = Path.Combine(repoRoot, "scripts/verify-partial-release.sh");
             environment["FIXTURE_RELEASE"] = releasePath;
             environment["FIXTURE_VERSION"] = version;

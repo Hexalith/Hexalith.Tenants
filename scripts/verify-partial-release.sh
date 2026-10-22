@@ -6,8 +6,12 @@ repository="${GITHUB_REPOSITORY:-Hexalith/Hexalith.Tenants}"
 source_sha="${GITHUB_SHA:?GITHUB_SHA is required}"
 registry="${HEXALITH_ZOT_REGISTRY:-registry.hexalith.com}"
 container_repository="${HEXALITH_RECOVERY_CONTAINER_REPOSITORY:-tenants}"
+manifest="${HEXALITH_RELEASE_PACKAGE_MANIFEST:-tools/release-packages.json}"
+state_directory="${HEXALITH_RECOVERY_STATE_DIRECTORY:-.hexalith/recovery}"
+source "$(dirname "${BASH_SOURCE[0]}")/partial-release-recovery-common.sh"
+recovery_require_manifest
 
-for package_id in $(jq -r '.packages[].id' tools/release-packages.json); do
+for package_id in $(jq -r '.packages[].id' "$manifest"); do
   lower_id="$(printf '%s' "$package_id" | tr '[:upper:]' '[:lower:]')"
   status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "https://api.nuget.org/v3-flatcontainer/${lower_id}/${version}/${lower_id}.${version}.nupkg")"
   [ "$status" = 200 ] || { echo "[partial-release-recovery] Package verification failed." >&2; exit 1; }
@@ -33,13 +37,6 @@ printf '%s' "$release_json" | jq -e --argjson expected "$expected_prerelease" '.
   echo '[partial-release-recovery] Release prerelease classification does not match the reviewed version.' >&2
   exit 1
 }
-mapfile -t release_assets < <(printf '%s' "$release_json" | jq -r '.assets[].name')
-[ "${#release_assets[@]}" -eq 5 ] || { echo '[partial-release-recovery] Release asset count is not five.' >&2; exit 1; }
-for package_id in $(jq -r '.packages[].id' tools/release-packages.json); do
-  expected_asset="${package_id}.${version}.nupkg"
-  printf '%s\n' "${release_assets[@]}" | grep -Fx -- "$expected_asset" >/dev/null || {
-    echo "[partial-release-recovery] Missing release asset $expected_asset." >&2
-    exit 1
-  }
-done
+recovery_check_release_assets "$release_json" true
+recovery_require_manifest
 echo "Verified release v${version} for source ${source_sha}."

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-341/DW-573/DW-581/DW-607/DW-620 closure (2026-10-22):** Partial-release recovery binds its validated manifest through packing, publication and verification, requires existing publication evidence, verifies existing GitHub asset bytes and repairs only missing assets. NuGet account/login gates follow validated missing-package output. Exactly five records close: all 657 IDs remain, 500 done/157 open across 147 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-341-573-581-607-620-validation-evidence.md).
+
 **DW-220/DW-254/DW-319/DW-327/DW-469 closure (2026-10-22):** Configuration proof readers require explicit implementations, six legacy wrappers name their tracked replacements, legacy removal failures retain safe text, and reused identities preserve unverifiable audit state after pre-dispatch failure. Exactly five records close: all 657 IDs remain, 495 done/162 open across 152 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-220-254-319-327-469-validation-evidence.md).
 
 **DW-346/DW-369/DW-374/DW-377/DW-402 closure (2026-10-22):** Grant Cancel uses the existing Fluent component; deterministic refusal and EN/FR replacement-page recovery qualify retained retry identity. The approved grant localization and border-box scope notes close as preserved intentional behavior. Exactly five records close: all 657 IDs remain, 490 done/167 open across 157 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-346-369-374-377-402-validation-evidence.md).
@@ -3665,16 +3667,24 @@ location: scripts/publish-partial-release.sh:6
 source_spec: `spec-package-boundary-source.md`
 severity: low
 reason: `scripts/publish-partial-release.sh:6` assigns `manifest="${HEXALITH_RELEASE_PACKAGE_MANIFEST:-tools/release-packages.json}"` and no later line references `$manifest`; `grep -n manifest scripts/publish-partial-release.sh` returns line 6 only. The variable was already dead at `bbb0b11a` (the file is untouched by this change), and `scripts/pack-release-packages.py` accepts no manifest argument either, so threading the new `--manifest` flag alone would not make the override effective. Pre-existing, not caused by this story.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: scripts/publish-partial-release.sh sets manifest from HEXALITH_RELEASE_PACKAGE_MANIFEST but never consumes it; scripts/pack-release-packages.py fixes MANIFEST to tools/release-packages.json. Overrides are still silently ignored.
-verification-files: scripts/publish-partial-release.sh; scripts/pack-release-packages.py
-evidence-kind: verified-defect
+pre-partial-recovery-status: open
+status: done 2026-10-22
+pre-partial-recovery-disposition: actionable
+disposition: done
+pre-partial-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-partial-recovery-verification: scripts/publish-partial-release.sh sets manifest from HEXALITH_RELEASE_PACKAGE_MANIFEST but never consumes it; scripts/pack-release-packages.py fixes MANIFEST to tools/release-packages.json. Overrides are still silently ignored.
+verification: One validated manifest is hash-bound across recovery steps, passed to packing and package validation, and used for exact publication and verification inventories. The packer supplies shared project-path preflight; inventory changes before publication fail closed. Exact commands, review and limits: dw-341-573-581-607-620-validation-evidence.md.
+pre-partial-recovery-verification-files: scripts/publish-partial-release.sh; scripts/pack-release-packages.py
+verification-files: scripts/{pack-release-packages.py,partial-release-recovery-common.sh,validate-partial-release-recovery.sh,publish-partial-release.sh,verify-partial-release.sh}; tests/scripts/test_partial_release_recovery.py
+pre-partial-recovery-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: release recovery inventory contract
-next-action: Use one validated manifest consistently through recovery validation, packing and publication.
+pre-partial-recovery-dependencies: release recovery inventory contract
+dependencies: none
+pre-partial-recovery-next-action: Use one validated manifest consistently through recovery validation, packing and publication.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: none
 
 ### DW-342: Sprint tracking marks Story 4.3 in progress while Epic 4 remains done.
@@ -7621,16 +7631,24 @@ location: .github/workflows/recover-partial-release.yml; scripts/publish-partial
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; container- or GitHub-Release-only partial release recovery depends on a successful NuGet account guard and login even when no package needs publication.\n  evidence: Commit `390da330` introduced the `NUGET_USER` guard and `NuGet/login` step within the Story 5.6 baseline range; neither exists at baseline `11e65e37`. `.github/workflows/recover-partial-release.yml:34-43,70-81` unconditionally requires the account and runs login before the recovery script. `scripts/publish-partial-release.sh:28-33` reads `NUGET_API_KEY` only while pushing entries from `missing-packages`, then handles an absent container at `:35` and a missing GitHub Release at `:46-52`. A NuGet account or login failure therefore blocks container- or GitHub-Release-only recovery. The related pass-25 entry above (Trusted Publishing account guards lack executable tests) covers guard verification; the release owner should condition the account guard and login on missing packages while preserving the package-publish gate."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: recover-partial-release.yml still unconditionally requires NUGET_USER and runs NuGet/login, while publish-partial-release.sh only reads NUGET_API_KEY for missing-packages. Container/release-only repair still depends on NuGet authentication.
-verification-files: .github/workflows/recover-partial-release.yml; scripts/publish-partial-release.sh
-evidence-kind: verified-defect
+pre-partial-recovery-status: open
+status: done 2026-10-22
+pre-partial-recovery-disposition: actionable
+disposition: done
+pre-partial-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-partial-recovery-verification: recover-partial-release.yml still unconditionally requires NUGET_USER and runs NuGet/login, while publish-partial-release.sh only reads NUGET_API_KEY for missing-packages. Container/release-only repair still depends on NuGet authentication.
+verification: Only a successful validated missing-package inventory emits needs-nuget=true. Both the Trusted Publishing account guard and NuGet login require that output; existing-release asset repair and container-only recovery pass with no NuGet key. Exact commands, review and limits: dw-341-573-581-607-620-validation-evidence.md.
+pre-partial-recovery-verification-files: .github/workflows/recover-partial-release.yml; scripts/publish-partial-release.sh
+verification-files: .github/workflows/recover-partial-release.yml; tests/Hexalith.Tenants.Contracts.Tests/PartialReleaseRecoveryWorkflowTests.cs; tests/scripts/test_partial_release_recovery.py
+pre-partial-recovery-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: release owner
-dependencies: Validated recovery missing-package inventory
-next-action: Condition account validation/login on packages needing publication while retaining their publication gate.
+pre-partial-recovery-dependencies: Validated recovery missing-package inventory
+dependencies: none
+pre-partial-recovery-next-action: Condition account validation/login on packages needing publication while retaining their publication gate.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: DW-566
 
 
@@ -7787,16 +7805,24 @@ location: scripts/publish-partial-release.sh; scripts/verify-partial-release.sh
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Recover missing package assets on an existing GitHub Release.\n  evidence: `publish-partial-release.sh` uploads assets only when creating a release, leaving a 200 release with missing assets incomplete."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: publish-partial-release.sh creates/uploads nupkg assets only for release HTTP 404 and does nothing for existing HTTP 200 releases; verify-partial-release.sh then requires five assets.
-verification-files: scripts/publish-partial-release.sh; scripts/verify-partial-release.sh
-evidence-kind: verified-defect
+pre-partial-recovery-status: open
+status: done 2026-10-22
+pre-partial-recovery-disposition: actionable
+disposition: done
+pre-partial-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-partial-recovery-verification: publish-partial-release.sh creates/uploads nupkg assets only for release HTTP 404 and does nothing for existing HTTP 200 releases; verify-partial-release.sh then requires five assets.
+verification: Existing GitHub Releases are requalified before mutation. Matching asset bytes remain intact and only missing manifest-listed package assets are uploaded, without --clobber; duplicate, unexpected and unverifiable inventories reject. Exact commands, review and limits: dw-341-573-581-607-620-validation-evidence.md.
+pre-partial-recovery-verification-files: scripts/publish-partial-release.sh; scripts/verify-partial-release.sh
+verification-files: scripts/{partial-release-recovery-common.sh,publish-partial-release.sh}; tests/scripts/test_partial_release_recovery.py
+pre-partial-recovery-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Release asset inventory
-next-action: Upload verified missing assets to existing releases without replacing matching assets.
+pre-partial-recovery-dependencies: Release asset inventory
+dependencies: none
+pre-partial-recovery-next-action: Upload verified missing assets to existing releases without replacing matching assets.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: DW-620
 
 
@@ -8299,16 +8325,24 @@ location: scripts/validate-partial-release-recovery.sh
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Require partial-release evidence before recovery can publish a version.\n  evidence: validate-partial-release-recovery.sh checks the source and CI run but has no guard requiring an existing package, container, tag, or release, so an entirely absent release can enter recovery."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: validate-partial-release-recovery.sh still permits all packages/container/tag/release absent after only source/CI checks; existing=0 merely writes package-state=partial. Recovery can publish an arbitrary absent version.
-verification-files: scripts/validate-partial-release-recovery.sh
-evidence-kind: verified-defect
+pre-partial-recovery-status: open
+status: done 2026-10-22
+pre-partial-recovery-disposition: actionable
+disposition: done
+pre-partial-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-partial-recovery-verification: validate-partial-release-recovery.sh still permits all packages/container/tag/release absent after only source/CI checks; existing=0 merely writes package-state=partial. Recovery can publish an arbitrary absent version.
+verification: Recovery rejects all destinations absent, preserving any previous state and withholding credential output. Existing package or container evidence supports full recovery without a tag, while matching source tags and consistent releases remain supported evidence. Exact commands, review and limits: dw-341-573-581-607-620-validation-evidence.md.
+pre-partial-recovery-verification-files: scripts/validate-partial-release-recovery.sh
+verification-files: scripts/validate-partial-release-recovery.sh; tests/scripts/test_partial_release_recovery.py
+pre-partial-recovery-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Partial-release eligibility policy
-next-action: Require concrete existing publication evidence before admitting recovery, with an all-destinations-absent rejection case.
+pre-partial-recovery-dependencies: Partial-release eligibility policy
+dependencies: none
+pre-partial-recovery-next-action: Require concrete existing publication evidence before admitting recovery, with an all-destinations-absent rejection case.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: DW-588
 
 
@@ -8526,16 +8560,24 @@ location: scripts/verify-partial-release.sh; scripts/publish-partial-release.sh
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Verify the contents of existing GitHub Release package assets during partial-release recovery.\n  evidence: Final verification checks release asset names and count but not hashes, and the publisher leaves existing release assets untouched, so different binaries can pass."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: verify-partial-release.sh validates exactly five expected release asset names but never their hashes; publish-partial-release.sh skips assets on existing releases. Matching names can conceal different binaries.
-verification-files: scripts/verify-partial-release.sh; scripts/publish-partial-release.sh
-evidence-kind: verified-gap
+pre-partial-recovery-status: open
+status: done 2026-10-22
+pre-partial-recovery-disposition: actionable
+disposition: done
+pre-partial-recovery-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-partial-recovery-verification: verify-partial-release.sh validates exactly five expected release asset names but never their hashes; publish-partial-release.sh skips assets on existing releases. Matching names can conceal different binaries.
+verification: Authenticated asset-ID downloads are SHA-256 compared with reviewed local package bytes before repair and during final verification. Conflicting bytes, unsafe metadata, missing downloads and duplicate names/IDs fail closed before publication. Exact commands, review and limits: dw-341-573-581-607-620-validation-evidence.md.
+pre-partial-recovery-verification-files: scripts/verify-partial-release.sh; scripts/publish-partial-release.sh
+verification-files: scripts/{partial-release-recovery-common.sh,publish-partial-release.sh,verify-partial-release.sh}; tests/scripts/test_partial_release_recovery.py
+pre-partial-recovery-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Immutable expected package hashes; recovery asset inventory
-next-action: Download existing release assets safely and compare each content hash with the reviewed package manifest.
+pre-partial-recovery-dependencies: Immutable expected package hashes; recovery asset inventory
+dependencies: none
+pre-partial-recovery-next-action: Download existing release assets safely and compare each content hash with the reviewed package manifest.
+next-action: none; this record is closed, with unrelated deferred work and existing release holds preserved.
 related: DW-581,DW-608,DW-583
 
 

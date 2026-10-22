@@ -1236,7 +1236,7 @@ public class PackageGovernanceTests {
         publisher.ShouldContain("while IFS= read -r package_id");
         publisher.ShouldNotContain("--skip-duplicate");
         publisher.ShouldContain("gh release create");
-        File.ReadAllText(Path.Combine(repoRoot, "scripts/verify-partial-release.sh")).ShouldContain("Release asset count is not five");
+        File.ReadAllText(Path.Combine(repoRoot, "scripts/partial-release-recovery-common.sh")).ShouldContain("Release asset count is not five");
     }
 
     [Fact]
@@ -2878,7 +2878,14 @@ public class PackageGovernanceTests {
         int guardIndex = job.IndexOf("- name: Require the Trusted Publishing account", StringComparison.Ordinal);
         int loginIndex = job.IndexOf("- name: Exchange GitHub OIDC token for a temporary NuGet key", StringComparison.Ordinal);
         int publishIndex = job.IndexOf($"- name: {publishStepName}", StringComparison.Ordinal);
-        guardIndex.ShouldBeLessThan(job.IndexOf("uses: actions/checkout@", StringComparison.Ordinal));
+        if (publishStepName == "Publish missing release artifacts") {
+            guardIndex.ShouldBeGreaterThan(job.IndexOf("- name: Validate partial release state", StringComparison.Ordinal));
+            guardStep.ShouldContain("if: steps.recovery.outputs.needs-nuget == 'true'");
+            loginStep.ShouldContain("if: steps.recovery.outputs.needs-nuget == 'true'");
+        }
+        else {
+            guardIndex.ShouldBeLessThan(job.IndexOf("uses: actions/checkout@", StringComparison.Ordinal));
+        }
         loginIndex.ShouldBeGreaterThan(job.IndexOf("actions/setup-dotnet@", StringComparison.Ordinal));
         loginIndex.ShouldBeLessThan(publishIndex);
         job[loginIndex..publishIndex].Split("- name: ").Length.ShouldBe(2, "No step may run between NuGet login and publication.");
