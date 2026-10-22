@@ -6245,16 +6245,24 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore/Models/CommandS
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Document `retryable`, `recoveryReasonCode` and `drainAttemptCount` in the EventStore status API reference.\n  evidence: `CommandStatusResponse` (`src/Hexalith.EventStore/Models/CommandStatusResponse.cs`) serializes all three, but `docs/reference/command-api.md:308-322` lists none of them. A consumer cannot tell that an automatic retry is still armed on `PublishFailed`. The fields arrived in EventStore `86308550`, before the story baseline."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Models/CommandStatusResponse.cs:21-23 serializes Retryable, RecoveryReasonCode and DrainAttemptCount; docs/reference/command-api.md status-response field table at :317-325 still omits them.
+pre-status-documentation-status: open
+status: done 2026-10-22
+pre-status-documentation-disposition: actionable
+disposition: done
+pre-status-documentation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-status-documentation-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Models/CommandStatusResponse.cs:21-23 serializes Retryable, RecoveryReasonCode and DrainAttemptCount; docs/reference/command-api.md status-response field table at :317-325 still omits them.
+verification: Added retryable, recoveryReasonCode and drainAttemptCount to the owning command API response table, with nullable/unrecorded semantics, zero-attempt behavior and a source-backed warning that armed PublishFailed recovery can continue without Retry-After. DW-523 runtime alignment remains open.
 verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Models/CommandStatusResponse.cs
-evidence-kind: verified-gap
+pre-status-documentation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: Hexalith.EventStore
-dependencies: EventStore status documentation
-next-action: Document all three advisory recovery fields, null/legacy behavior and polling implications in the status response reference.
+pre-status-documentation-dependencies: EventStore status documentation
+dependencies: none
+pre-status-documentation-next-action: Document all three advisory recovery fields, null/legacy behavior and polling implications in the status response reference.
+next-action: None for this record; see dw-507-509-510-513-518-validation-evidence.md for source, validation and owning-revision evidence.
+closure-evidence: `dw-507-509-510-513-518-validation-evidence.md`
 related: DW-523
 
 
@@ -6285,15 +6293,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Move the remaining EventStore docs from `/status/{correlationId}` to the messageId route.\n  evidence: `docs/guides/security-model.md:209-210,280`, `docs/concepts/command-lifecycle.md:210`, `docs/getting-started/first-domain-service.md:277` and the brownfield docs still name the correlation ID as the status key. `CommandStatusController` routes `{messageId}`, and correlation lookup is a bounded compatibility path that can return 409."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/docs/guides/security-model.md:209, docs/concepts/command-lifecycle.md:210, docs/getting-started/first-domain-service.md:277 and docs/brownfield/{api-contracts,architecture}.md still document status/{correlationId}; CommandStatusController routes {messageId} and correlation fallback can be ambiguous.
-evidence-kind: verified-gap
+pre-status-documentation-status: open
+status: done 2026-10-22
+pre-status-documentation-disposition: actionable
+disposition: done
+pre-status-documentation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-status-documentation-verification: references/Hexalith.EventStore/docs/guides/security-model.md:209, docs/concepts/command-lifecycle.md:210, docs/getting-started/first-domain-service.md:277 and docs/brownfield/{api-contracts,architecture}.md still document status/{correlationId}; CommandStatusController routes {messageId} and correlation fallback can be ambiguous.
+verification: Replaced all seven obsolete status/{correlationId} route examples across the owning guides and brownfield references, including the submission Location example; corrected the tenant/message-primary status key and documented bounded tenant-scoped compatibility and 409 ambiguity.
+pre-status-documentation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: Hexalith.EventStore
-dependencies: EventStore documentation owner
-next-action: Update each remaining status-route example to MessageId-first guidance and explain bounded correlation compatibility.
+pre-status-documentation-dependencies: EventStore documentation owner
+dependencies: none
+pre-status-documentation-next-action: Update each remaining status-route example to MessageId-first guidance and explain bounded correlation compatibility.
+next-action: None for this record; see dw-507-509-510-513-518-validation-evidence.md for source, validation and owning-revision evidence.
+closure-evidence: `dw-507-509-510-513-518-validation-evidence.md`
 related: none
 
 
@@ -6308,16 +6324,24 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/Rep
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Finish converting the EventStore replay reference to messageId semantics.\n  evidence: `docs/reference/command-api.md:425` says `originalCorrelationId` \"matches the path parameter\", but `ReplayController` resolves the path value as a messageId first and returns `archivedCommand.CorrelationId ?? correlationId`. So they differ when a messageId is passed. The replay error table (`:448`) omits the correlation-ambiguity 409 that `ReplayController` returns. These rows predate the story; pass 4 converted only the polling guidance. Pass-12 BH7 reconfirmed this and notes that `OriginalCorrelationId` and `OriginalMessageId` are separate response fields; pass 13 folds that duplicate entry into this work item."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/docs/reference/command-api.md:427 still says originalCorrelationId matches the replay path, and :450 lacks correlation-ambiguity 409. ReplayController.cs:264-266 returns distinct OriginalCorrelationId and OriginalMessageId after message-first lookup.
+pre-status-documentation-status: open
+status: done 2026-10-22
+pre-status-documentation-disposition: actionable
+disposition: done
+pre-status-documentation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-status-documentation-verification: references/Hexalith.EventStore/docs/reference/command-api.md:427 still says originalCorrelationId matches the replay path, and :450 lacks correlation-ambiguity 409. ReplayController.cs:264-266 returns distinct OriginalCorrelationId and OriginalMessageId after message-first lookup.
+verification: Documented message-first replay lookup while preserving the actual correlationId route parameter name, distinct retained originalCorrelationId/originalMessageId semantics, a message-ID example and identifier-ambiguity 409 responses.
 verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/ReplayController.cs
-evidence-kind: verified-gap
+pre-status-documentation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: Hexalith.EventStore
-dependencies: EventStore replay API reference
-next-action: Document separate replay MessageId/correlation fields and the identifier-ambiguity 409 outcome.
+pre-status-documentation-dependencies: EventStore replay API reference
+dependencies: none
+pre-status-documentation-next-action: Document separate replay MessageId/correlation fields and the identifier-ambiguity 409 outcome.
+next-action: None for this record; see dw-507-509-510-513-518-validation-evidence.md for source, validation and owning-revision evidence.
+closure-evidence: `dw-507-509-510-513-518-validation-evidence.md`
 related: none
 
 
@@ -6385,15 +6409,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Correct the EventStore `failureReason` row, which says \"PublishFailed status only\".\n  evidence: `docs/reference/command-api.md:325` dates from EventStore `6a901adf` (2026-03-01). `ConcurrencyConflictExceptionHandler.cs:51-60` and the `SubmitCommandHandler` coordinated-conflict writer put `FailureReason: \"ConcurrencyConflict\"` on `Rejected` records. Pre-existing; not caused by Story 5.6."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/docs/reference/command-api.md:325 still describes failureReason as PublishFailed-only, while current concurrency-conflict paths write Rejected with FailureReason ConcurrencyConflict (reference docs :207 already acknowledge it).
-evidence-kind: verified-gap
+pre-status-documentation-status: open
+status: done 2026-10-22
+pre-status-documentation-disposition: actionable
+disposition: done
+pre-status-documentation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-status-documentation-verification: references/Hexalith.EventStore/docs/reference/command-api.md:325 still describes failureReason as PublishFailed-only, while current concurrency-conflict paths write Rejected with FailureReason ConcurrencyConflict (reference docs :207 already acknowledge it).
+verification: Corrected failureReason to include publication/infrastructure details and Rejected ConcurrencyConflict; distinguished optional domain rejection markers and preserved null when no failure detail is recorded.
+pre-status-documentation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: Hexalith.EventStore
-dependencies: EventStore status API reference
-next-action: Correct the status field table to include concurrency-conflict rejection reasons and distinguish domain rejection markers.
+pre-status-documentation-dependencies: EventStore status API reference
+dependencies: none
+pre-status-documentation-next-action: Correct the status field table to include concurrency-conflict rejection reasons and distinguish domain rejection markers.
+next-action: None for this record; see dw-507-509-510-513-518-validation-evidence.md for source, validation and owning-revision evidence.
+closure-evidence: `dw-507-509-510-513-518-validation-evidence.md`
 related: none
 
 
@@ -6456,15 +6488,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Correct EventStore command-status documentation to include positive event counts on eventful rejections.\n  evidence: Pass-12 BH6: command-api.md says eventCount is Completed-only, but CompleteTerminalAsync passes a positive count for Rejected. Both wording and behavior predate the preserved EventStore baseline; correction confirmation remains gated on Completed and verified proof."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/docs/reference/command-api.md:322 still says eventCount is Completed-only; AggregateActor.CompleteTerminalAsync at :6725-6729 passes positive counts on eventful Rejected outcomes as well.
-evidence-kind: verified-gap
+pre-status-documentation-status: open
+status: done 2026-10-22
+pre-status-documentation-disposition: actionable
+disposition: done
+pre-status-documentation-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-status-documentation-verification: references/Hexalith.EventStore/docs/reference/command-api.md:322 still says eventCount is Completed-only; AggregateActor.CompleteTerminalAsync at :6725-6729 passes positive counts on eventful Rejected outcomes as well.
+verification: Corrected eventCount to include positive counts on eventful Rejected outcomes and publication recovery, without treating event count as success or weakening the separate committedEventSequence proof contract.
+pre-status-documentation-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: Hexalith.EventStore
-dependencies: EventStore status API reference
-next-action: Document positive event counts on eventful rejections and preserve the separate Completed-only correction-proof contract.
+pre-status-documentation-dependencies: EventStore status API reference
+dependencies: none
+pre-status-documentation-next-action: Document positive event counts on eventful rejections and preserve the separate Completed-only correction-proof contract.
+next-action: None for this record; see dw-507-509-510-513-518-validation-evidence.md for source, validation and owning-revision evidence.
+closure-evidence: `dw-507-509-510-513-518-validation-evidence.md`
 related: DW-507,DW-513
 
 
