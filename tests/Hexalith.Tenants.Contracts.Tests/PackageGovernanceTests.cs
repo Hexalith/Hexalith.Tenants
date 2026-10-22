@@ -997,6 +997,10 @@ public class PackageGovernanceTests {
         releaseJob.ShouldContain("HEXALITH_RELEASE_PACKAGE_MANIFEST: tools/release-packages.json");
         releaseJob.ShouldContain("HEXALITH_RELEASE_SOURCE_BRANCH: main");
         releaseJob.ShouldContain("HEXALITH_RELEASE_SOURCE_CI_WORKFLOW: ci.yml");
+        releaseJob.ShouldContain("HEXALITH_RELEASE_REQUIRE_AUTHORITY: 'false'");
+        releaseJob.ShouldNotContain("HEXALITH_RELEASE_RESERVED_VERSION:");
+        releaseJob.ShouldNotContain("HEXALITH_RELEASE_AUTHORITY_ISSUE_URL:");
+        releaseJob.ShouldNotContain("HEXALITH_RELEASE_AUTHORITY_OWNER:");
         workflow.ShouldContain("cancel-in-progress: false");
         releaseJob.ShouldContain("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror");
 
