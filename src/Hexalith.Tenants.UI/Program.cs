@@ -7,6 +7,7 @@ using Hexalith.Tenants.UI.Extensions;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Components.Endpoints;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -66,6 +67,17 @@ builder.Services.AddHexalithTenantsUiModule(builder.Configuration, authEnabled);
 
 WebApplication app = builder.Build();
 
+app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.Use(async (context, next) =>
+{
+    await next(context).ConfigureAwait(false);
+    // Only missing destinations use this recovery page; other HTTP failures retain their semantics.
+    if (context.Response.StatusCode != StatusCodes.Status404NotFound
+        && context.Features.Get<IStatusCodePagesFeature>() is { } statusPages)
+    {
+        statusPages.Enabled = false;
+    }
+});
 app.MapStaticAssets();
 app.UseStaticFiles();
 app.UseRequestLocalization();

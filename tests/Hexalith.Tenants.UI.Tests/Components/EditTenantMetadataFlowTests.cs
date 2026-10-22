@@ -167,11 +167,15 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         lease.TrySetResult(true);
         authority.TrySetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
         await submit.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-edit-metadata-name']").ShouldBeEmpty());
-        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
-        gateway.UpdateTenantCallCount.ShouldBe(0);
-        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
-        cut.WaitForAssertion(() => activity.ToArray().ShouldBe(new[] { true, false }));
+        // Closing the editor can render before the held admission continuation finishes unwinding.
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindAll("[data-testid='tenants-edit-metadata-name']").ShouldBeEmpty();
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Idle);
+            gateway.UpdateTenantCallCount.ShouldBe(0);
+            Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+            activity.ToArray().ShouldBe(new[] { true, false });
+        });
     }
 
     [Theory]

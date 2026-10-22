@@ -305,6 +305,7 @@ public sealed class DomainUiFluentConformanceTests
             ("TenantDetailPage.razor", "FcPageLayoutMode.Constrained", "tenant detail is a readable detail and command composition page"),
             ("UserMembershipLookupPage.razor", "FcPageLayoutMode.Constrained", "lookup form and status copy need readable measure"),
             ("TenantSummaryProjectionPage.razor", "FcPageLayoutMode.FullWidth", "tenant summary projection is a DataGrid-first operational surface"),
+            ("RouteNotFoundPage.razor", "FcPageLayoutMode.Constrained", "route recovery is a short readable message with one navigation action"),
         ];
 
         List<string> offenders = [];

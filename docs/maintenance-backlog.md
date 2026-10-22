@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-591/DW-613/DW-614/DW-615/DW-616 closure (2026-10-22):** Localized unmatched-route recovery and mandatory real-host language, current-tenant alias and anonymous-scope checks qualify the Tenants UI host. Mounted production-router navigation qualifies shared home discovery and recovery. Exactly five records close: all 657 IDs remain, 510 done/147 open across 137 maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-591-613-614-615-616-validation-evidence.md).
+
 **DW-552/DW-553/DW-557/DW-561/DW-566 closure (2026-10-22):** Recovery package preparation and existing-byte comparisons precede NuGet login, and publication binds prepared bytes/state/context with fail-closed checks. Both release workflows use immutable action commits and executable account/credential guard tests. Exactly five records close: all 657 IDs remain, 505 done/152 open across 142 maintenance rows. DW-560/DW-563, historical findings, unrelated records, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-552-553-557-561-566-validation-evidence.md).
 
 **DW-341/DW-573/DW-581/DW-607/DW-620 closure (2026-10-22):** Partial-release recovery binds its validated manifest through packing, publication and verification, requires existing publication evidence, verifies existing GitHub asset bytes and repairs only missing assets. NuGet account/login gates follow validated missing-package output. Exactly five records close: all 657 IDs remain, 500 done/157 open across 147 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-341-573-581-607-620-validation-evidence.md).
@@ -190,14 +192,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 505 |
-| actionable | 81 |
+| done | 510 |
+| actionable | 76 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 7 |
 | uncertain | 26 |
 
-**Remaining: 152 open records across 142 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 147 open records across 137 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -295,8 +297,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-602 | P2 | Gap / actionable | unassigned | Requested page-size propagation to payload validator | Reject oversized item counts before hydration and test bounded detail-call fanout. |
 | DW-604 | P2 | Gap / actionable | unassigned | Platform projection rebuild/versioning contract | Specify a safe tenant projection schema rebuild/version path and its rollout verification. |
 | DW-609 | P2 | Gap / actionable | unassigned | Permission-change invalidation/reauthorization contract | Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts. |
-| DW-614 | P2 | Gap / actionable | unassigned | Authenticated real Tenants host fixture | Issue a safe multi-tenant test principal and prove the selected current-tenant alias through the rendered host. |
-| DW-615 | P2 | Gap / actionable | unassigned | Blocking in-process host fixture | Add a mandatory anonymous host scope-denial lane without depending on the advisory topology tier. |
 | DW-212 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Implement the recorded shared parameter diagnostic and its component regression. |
 | DW-213 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Add a rendered-element readiness guard and an explicit pre-render focus test. |
 | DW-571 | P3 | Defect / actionable | unassigned | EventStore hosting helper/runtime token contract | Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial. |
@@ -305,9 +305,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-211 | P3 | Gap / actionable | unassigned | authenticated browser navigation fixture | Capture browser activeElement after a missing-row detail return and assert the list heading is focused. |
 | DW-292 | P3 | Gap / actionable | unassigned | TEA hook test harness | Add focused scanner mode/registry/failure regressions in owning tooling tests. |
 | DW-397 | P3 | Gap / actionable | unassigned | Python 3.11+ and temporary fixture roots | Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics. |
-| DW-591 | P3 | Gap / actionable | unassigned | Rendered host fixture | Render actual host documents under en/fr cultures and assert html lang. |
-| DW-613 | P3 | Gap / actionable | unassigned | Existing FrontComposer not-found conventions | Add a framework-conforming in-app unmatched-route message and safe recovery link. |
-| DW-616 | P3 | Gap / actionable | unassigned | Interactive host/browser fixture | Navigate the running interactive router to a FrontComposer-owned route and assert correct shell content. |
 
 ## Unverified risks and recommendations
 

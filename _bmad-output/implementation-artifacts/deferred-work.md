@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-591/DW-613/DW-614/DW-615/DW-616 closure (2026-10-22):** Localized unmatched-route recovery and mandatory real-host language, current-tenant alias and anonymous-scope checks qualify the Tenants UI host. Mounted production-router navigation qualifies shared home discovery and recovery. Exactly five records close: all 657 IDs remain, 510 done/147 open across 137 maintenance rows. Historical fields, unrelated work, dependencies and release holds remain preserved. See [validation evidence](dw-591-613-614-615-616-validation-evidence.md).
+
 **DW-341/DW-573/DW-581/DW-607/DW-620 closure (2026-10-22):** Partial-release recovery binds its validated manifest through packing, publication and verification, requires existing publication evidence, verifies existing GitHub asset bytes and repairs only missing assets. NuGet account/login gates follow validated missing-package output. Exactly five records close: all 657 IDs remain, 500 done/157 open across 147 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-341-573-581-607-620-validation-evidence.md).
 
 **DW-220/DW-254/DW-319/DW-327/DW-469 closure (2026-10-22):** Configuration proof readers require explicit implementations, six legacy wrappers name their tracked replacements, legacy removal failures retain safe text, and reused identities preserve unverifiable audit state after pre-dispatch failure. Exactly five records close: all 657 IDs remain, 495 done/162 open across 152 maintenance rows. Historical evidence, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-220-254-319-327-469-validation-evidence.md).
@@ -6238,17 +6240,24 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Add a rendered document-language test for English and French UI cultures.\n  evidence: `App.razor` derives `html lang` from UI culture, while existing tests assert only source text."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: App.razor derives html lang from UI culture, while TenantsUiCompositionTests.Document_language_uses_the_active_request_culture still reads source text only. No rendered EN/FR document assertion was found.
-evidence-kind: verified-gap
+pre-ui-host-routing-status: open
+pre-ui-host-routing-disposition: actionable
+pre-ui-host-routing-verification-date: 2026-10-12
+pre-ui-host-routing-verification: App.razor derives html lang from UI culture, while TenantsUiCompositionTests.Document_language_uses_the_active_request_culture still reads source text only. No rendered EN/FR document assertion was found.
+pre-ui-host-routing-evidence-kind: verified-gap
 priority: P3
 owner: unassigned
-dependencies: Rendered host fixture
-next-action: Render actual host documents under en/fr cultures and assert html lang.
+pre-ui-host-routing-dependencies: Rendered host fixture
+pre-ui-host-routing-next-action: Render actual host documents under en/fr cultures and assert html lang.
 related: DW-614
-
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Real WebApplicationFactory requests render html lang=en/fr with matching localized denial headings; unsupported de falls back to en. Assertions parse the actual response DOM in the blocking UI suite. Evidence: dw-591-613-614-615-616-validation-evidence.md.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs
+evidence-kind: verified-closure
+dependencies: none (in-process host and mounted production router fixtures)
+next-action: none; preserve the mandatory UI regression checks and historical finding.
 
 ### DW-592: Verify the imported Keycloak project scope through an issued workload token and protected endpoint.
 
@@ -6593,17 +6602,24 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Render a recovery surface for unmatched interactive UI routes.\n  evidence: Routes.razor defines only Found content; an unmatched interactive route has no in-app not-found message or navigation link."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: UI Components/Routes.razor still defines Router Found only and no NotFound recovery surface. Interactive unmatched-route recovery remains undocumented/unrendered.
-evidence-kind: verified-gap
+pre-ui-host-routing-status: open
+pre-ui-host-routing-disposition: actionable
+pre-ui-host-routing-verification-date: 2026-10-12
+pre-ui-host-routing-verification: UI Components/Routes.razor still defines Router Found only and no NotFound recovery surface. Interactive unmatched-route recovery remains undocumented/unrendered.
+pre-ui-host-routing-evidence-kind: verified-gap
 priority: P3
 owner: unassigned
-dependencies: Existing FrontComposer not-found conventions
-next-action: Add a framework-conforming in-app unmatched-route message and safe recovery link.
+pre-ui-host-routing-dependencies: Existing FrontComposer not-found conventions
+pre-ui-host-routing-next-action: Add a framework-conforming in-app unmatched-route message and safe recovery link.
 related: DW-616
-
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: The production .NET 10 Router supplies RouteNotFoundPage. The routed recovery page uses the existing layout, Fluent components and EN/FR resources with a fixed /home destination; only HTTP404 fallbacks re-execute there, preserving other statuses; mounted-router tests navigate an actually unmatched three-segment path and recover without replacing the router. Evidence: dw-591-613-614-615-616-validation-evidence.md.
+verification-files: src/Hexalith.Tenants.UI/Components/Routes.razor; src/Hexalith.Tenants.UI/Program.cs; src/Hexalith.Tenants.UI/Components/Pages/RouteNotFoundPage.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/TenantsRouterTests.cs; tests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs
+evidence-kind: verified-closure
+dependencies: none (in-process host and mounted production router fixtures)
+next-action: none; preserve the mandatory UI regression checks and historical finding.
 
 ### DW-614: Verify the signed-in tenant claim alias through the real Tenants host.
 
@@ -6612,17 +6628,24 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Verify the signed-in tenant claim alias through the real Tenants host.\n  evidence: Program.cs selects eventstore:current-tenant, but current tests use anonymous requests, inspect endpoint metadata, or substitute the user context; none verifies a multi-tenant authenticated principal."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: UI Program.cs configures tenantClaimType eventstore:current-tenant; current host smoke tests are anonymous and other tests inspect source or substitute user context. No real-host multitenant authenticated alias assertion was found.
-evidence-kind: verified-gap
+pre-ui-host-routing-status: open
+pre-ui-host-routing-disposition: actionable
+pre-ui-host-routing-verification-date: 2026-10-12
+pre-ui-host-routing-verification: UI Program.cs configures tenantClaimType eventstore:current-tenant; current host smoke tests are anonymous and other tests inspect source or substitute user context. No real-host multitenant authenticated alias assertion was found.
+pre-ui-host-routing-evidence-kind: verified-gap
 priority: P2
 owner: unassigned
-dependencies: Authenticated real Tenants host fixture
-next-action: Issue a safe multi-tenant test principal and prove the selected current-tenant alias through the rendered host.
+pre-ui-host-routing-dependencies: Authenticated real Tenants host fixture
+pre-ui-host-routing-next-action: Issue a safe multi-tenant test principal and prove the selected current-tenant alias through the rendered host.
 related: DW-597
-
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Host-protected authentication cookies carry two eventstore:tenant values and one current-tenant alias. Real rendered requests observe ServerCircuitUserContextAccessor selecting either exact current tenant and sub. Missing/conflicting current-tenant aliases and subjects render denial before domain gateway resolution. Evidence: dw-591-613-614-615-616-validation-evidence.md.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs; src/Hexalith.Tenants.UI/Program.cs
+evidence-kind: verified-closure
+dependencies: none (in-process host and mounted production router fixtures)
+next-action: none; preserve the mandatory UI regression checks and historical finding.
 
 ### DW-615: Add a blocking anonymous Tenants-host scope-boundary test.
 
@@ -6631,17 +6654,24 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Add a blocking anonymous Tenants-host scope-boundary test.\n  evidence: The hosted smoke assertions use DaprFact and can skip, while the Aspire CI lane is nonblocking; component and source checks do not render an anonymous request through the Tenants host."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantsUiRouteSmokeTests does render anonymous routes but remains DaprFact/IntegrationTests in advisory Aspire CI; current CI run 38269521776 executed it with zero skips, yet it is still not a blocking regression boundary.
-evidence-kind: verified-gap
+pre-ui-host-routing-status: open
+pre-ui-host-routing-disposition: actionable
+pre-ui-host-routing-verification-date: 2026-10-12
+pre-ui-host-routing-verification: TenantsUiRouteSmokeTests does render anonymous routes but remains DaprFact/IntegrationTests in advisory Aspire CI; current CI run 38269521776 executed it with zero skips, yet it is still not a blocking regression boundary.
+pre-ui-host-routing-evidence-kind: verified-gap
 priority: P2
 owner: unassigned
-dependencies: Blocking in-process host fixture
-next-action: Add a mandatory anonymous host scope-denial lane without depending on the advisory topology tier.
+pre-ui-host-routing-dependencies: Blocking in-process host fixture
+pre-ui-host-routing-next-action: Add a mandatory anonymous host scope-denial lane without depending on the advisory topology tier.
 related: DW-614,DW-572
-
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: Twelve mandatory WebApplicationFactory HTTP cases cover both OIDC-enabled and disabled hosts across canonical anonymous workspace/detail/audit/my-tenants/user-lookup/global-administrator routes. Parsed DOM assertions require scope denial, absence of domain markers and caller identifiers from visible content, and zero domain query-gateway resolutions. The UI project is already in the blocking CI unit-test list. Evidence: dw-591-613-614-615-616-validation-evidence.md.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs; .github/workflows/ci.yml
+evidence-kind: verified-closure
+dependencies: none (in-process host and mounted production router fixtures)
+next-action: none; preserve the mandatory UI regression checks and historical finding.
 
 ### DW-616: Verify FrontComposer-owned routes through interactive Tenants router navigation.
 
@@ -6650,17 +6680,24 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Verify FrontComposer-owned routes through interactive Tenants router navigation.\n  evidence: Routes.razor includes the FrontComposer assembly, but existing tests do not navigate the interactive router to /home; fresh HTTP GET tests exercise separate endpoint mapping."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Routes.razor includes the FrontComposer shell assembly; existing HTTP smoke checks do not perform interactive-router navigation to /home. No actual interactive Tenants router navigation coverage was found.
-evidence-kind: verified-gap
+pre-ui-host-routing-status: open
+pre-ui-host-routing-disposition: actionable
+pre-ui-host-routing-verification-date: 2026-10-12
+pre-ui-host-routing-verification: Routes.razor includes the FrontComposer shell assembly; existing HTTP smoke checks do not perform interactive-router navigation to /home. No actual interactive Tenants router navigation coverage was found.
+pre-ui-host-routing-evidence-kind: verified-gap
 priority: P3
 owner: unassigned
-dependencies: Interactive host/browser fixture
-next-action: Navigate the running interactive router to a FrontComposer-owned route and assert correct shell content.
+pre-ui-host-routing-dependencies: Interactive host/browser fixture
+pre-ui-host-routing-next-action: Navigate the running interactive router to a FrontComposer-owned route and assert correct shell content.
 related: DW-613
-
+status: done 2026-10-22
+disposition: done
+verification-date: 2026-10-22
+verification: The actual production Routes component remains mounted while NavigationManager moves from /tenants/my to /home and back. Tests require FcHomeRouteView, FcHomeDirectory and FrontComposerShell, correct removal of prior content, and the same Router instance; no fresh HTTP request substitutes for interactive routing. Evidence: dw-591-613-614-615-616-validation-evidence.md.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantsRouterTests.cs; src/Hexalith.Tenants.UI/Components/Routes.razor
+evidence-kind: verified-closure
+dependencies: none (in-process host and mounted production router fixtures)
+next-action: none; preserve the mandatory UI regression checks and historical finding.
 
 ### DW-617: Reconcile global administrator revocation with the freshness of the authorization read model.
 

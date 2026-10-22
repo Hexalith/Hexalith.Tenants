@@ -4563,4 +4563,7 @@
   </data>
   <data name="Tenants.Lifecycle.Unavailable.MissingProjectionVersion" xml:space="preserve"><value>Cette action de cycle de vie est indisponible car la projection du locataire ne fournit aucune preuve de version permettant sa vérification.</value></data>
   <data name="Tenants.Lifecycle.Recovery.MissingProjectionVersion" xml:space="preserve"><value>Poursuivez en lecture seule et demandez au support de rétablir les preuves de version de la projection avant de réessayer cette action.</value></data>
+  <data name="Tenants.Routes.NotFound.Title" xml:space="preserve"><value>Page introuvable</value></data>
+  <data name="Tenants.Routes.NotFound.Message" xml:space="preserve"><value>La page demandée est indisponible. Revenez à l’accueil de l’espace de travail pour continuer.</value></data>
+  <data name="Tenants.Routes.NotFound.Recovery" xml:space="preserve"><value>Revenir à l’accueil</value></data>
 </root>

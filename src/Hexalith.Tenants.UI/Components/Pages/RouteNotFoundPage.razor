@@ -1,0 +1,14 @@
+@page "/not-found"
+@layout Hexalith.Tenants.UI.Components.Layout.MainLayout
+@inject IStringLocalizer<TenantsResources> Localizer
+
+<FcPageLayout Mode="FcPageLayoutMode.Constrained">
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px" data-testid="tenants-route-not-found">
+        <FcPageHeader PageTitle="@Localizer["Tenants.Routes.NotFound.Title"]"
+                      Heading="@Localizer["Tenants.Routes.NotFound.Title"]"
+                      HeadingId="tenants-route-not-found-heading"
+                      HeadingTabIndex="-1"
+                      Description="@Localizer["Tenants.Routes.NotFound.Message"]" />
+        <FluentAnchorButton Href="/home" Appearance="ButtonAppearance.Primary" data-testid="tenants-route-recovery">@Localizer["Tenants.Routes.NotFound.Recovery"]</FluentAnchorButton>
+    </FluentStack>
+</FcPageLayout>

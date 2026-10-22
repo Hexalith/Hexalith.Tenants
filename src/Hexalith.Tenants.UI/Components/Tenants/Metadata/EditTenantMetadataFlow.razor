@@ -720,8 +720,6 @@
 
     protected override void OnParametersSet()
     {
-        ObserveAdmissionParameters();
-        RestoreRetainedAttempt();
         var lifecycle = (Detail.Status, Lifecycle);
         bool lifecycleChanged = _editorLifecycle is { } previous && previous != lifecycle;
         _editorLifecycle = lifecycle;
@@ -729,6 +727,10 @@
         {
             _editorLifecycleRevision++;
         }
+        // Admission cancellation can resume the held submit on another thread. Publish the
+        // lifecycle revision first so its unwind cannot retain a provisional failure as current.
+        ObserveAdmissionParameters();
+        RestoreRetainedAttempt();
         // A recovered lifecycle requires a deliberate new editor. Dispatched/uncertain attempts keep
         // their ownership and continuation generation so late delivery and proof can still reconcile.
         if (lifecycleChanged && _isOpen && !IsOwnedCommandInFlight)
