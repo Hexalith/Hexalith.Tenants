@@ -113,6 +113,62 @@ public sealed class TenantCommandGatewayTests
         replay.Payload.GetRawText().ShouldBe(dispatched.Payload.GetRawText());
     }
 
+    [Theory]
+    [InlineData(503)]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(-2)]
+    public async Task IndeterminateCreateDeliveryRetainsTheMintedUlidForExactRetry(int failureKind)
+    {
+        Exception failure = failureKind switch
+        {
+            503 => new EventStoreGatewayException(503, "unsafe create transport payload"),
+            -1 => new TimeoutException("unsafe create transport payload"),
+            -2 => new JsonException("unsafe create transport payload"),
+            _ => new HttpRequestException("unsafe create transport payload"),
+        };
+        const string mintedId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
+        StubUlidFactory factory = new(mintedId);
+        CapturingGatewayClient failedClient = new(failure);
+        TenantCommandGateway gateway = new(failedClient, factory,
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+        CreateTenant request = new("tenant.alpha", "Original", "Original intent");
+
+        // Omitting the optional messageId exercises minting rather than caller-owned identity propagation.
+        TenantCommandSubmissionResult result = await gateway.CreateTenantAsync(request);
+
+        factory.CallCount.ShouldBe(1);
+        result.IsAmbiguousFailure.ShouldBeTrue();
+        result.MessageId.ShouldBe(mintedId);
+        NUlid.Ulid.TryParse(result.MessageId, out _).ShouldBeTrue();
+        result.CorrelationId.ShouldBeNull();
+        result.SafeMessage.ShouldNotBeNull().ShouldNotContain("unsafe create transport payload");
+        SubmitCommandRequest original = failedClient.SubmittedCommands.ShouldHaveSingleItem();
+        original.MessageId.ShouldBe(mintedId);
+        original.Tenant.ShouldBe("system");
+        original.Domain.ShouldBe("tenants");
+        original.AggregateId.ShouldBe(request.TenantId);
+        original.CommandType.ShouldBe(nameof(CreateTenant));
+
+        StubUlidFactory retryFactory = new("01ARZ3NDEKTSV4RRFFQ69G5FB0");
+        CapturingGatewayClient acceptedClient = new(new SubmitCommandResponse("correlation-create"));
+        TenantCommandGateway retry = new(acceptedClient, retryFactory,
+            new HttpClient(new StatusHandler("{}")) { BaseAddress = new Uri("https://eventstore.example/") });
+        TenantCommandSubmissionResult accepted = await retry.CreateTenantAsync(request, result.MessageId);
+
+        retryFactory.CallCount.ShouldBe(0);
+        accepted.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        accepted.MessageId.ShouldBe(mintedId);
+        accepted.CorrelationId.ShouldBe("correlation-create");
+        SubmitCommandRequest replay = acceptedClient.SubmittedCommands.ShouldHaveSingleItem();
+        replay.MessageId.ShouldBe(original.MessageId);
+        replay.Tenant.ShouldBe(original.Tenant);
+        replay.Domain.ShouldBe(original.Domain);
+        replay.AggregateId.ShouldBe(original.AggregateId);
+        replay.CommandType.ShouldBe(original.CommandType);
+        replay.Payload.GetRawText().ShouldBe(original.Payload.GetRawText());
+    }
+
     [Fact]
     public void FixedScopeGatewayCapabilitiesFailClosedOrAdvertiseOnlyConcreteSupport()
     {

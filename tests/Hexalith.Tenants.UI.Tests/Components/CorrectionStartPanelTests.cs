@@ -129,6 +129,152 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         }
     }
 
+    /// <summary>Consumes the atomically retained delivery result without a later write concealing a wrong handoff.</summary>
+    /// <param name="outcome">The result supplied by the command gateway.</param>
+    [Theory]
+    [InlineData("accepted")]
+    [InlineData("ambiguous")]
+    [InlineData("failed")]
+    [InlineData("rejected")]
+    public async Task DeliveryCompletionRendersTheAtomicallyRetainedOutcome(string outcome)
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        using TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TaskCompletionSource<TenantCommandSubmissionResult> delivery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantCommandStatusResult> statusRead = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource statusReadStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway commands = new()
+        {
+            AddUserResultTask = delivery.Task,
+            StatusTask = outcome == "accepted" ? statusRead.Task : null,
+            StatusReadStarted = () => statusReadStarted.TrySetResult(),
+            Status = TenantCommandStatusResult.Pending("Status pending."),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection!)));
+
+        Task submit = cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => commands.AddUserRequests.ShouldHaveSingleItem());
+        TenantCorrectionAttempt sent = tracker.Find("tenant.alpha")!;
+        sent.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        tracker.TryStartRetry(sent.TenantId, sent.MessageId).ShouldBeFalse();
+        TenantCommandSubmissionResult result = outcome switch
+        {
+            "accepted" => TenantCommandSubmissionResult.Accepted(sent.MessageId, "tracking-safe"),
+            "ambiguous" => TenantCommandSubmissionResult.Ambiguous(sent.MessageId, "Tenants.Correction.State.UnableToVerify"),
+            "rejected" => TenantCommandSubmissionResult.Rejected("Request rejected", "InsufficientPermissions"),
+            _ => TenantCommandSubmissionResult.Failed("Request failed"),
+        };
+        delivery.SetResult(result);
+        if (outcome == "accepted")
+        {
+            try
+            {
+                await statusReadStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                commands.StatusHandles.ShouldHaveSingleItem();
+                TenantCorrectionPreviewSnapshot delivered = tracker.Find(sent.TenantId)!.Snapshot;
+                delivered.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
+                delivered.CorrelationId.ShouldBe("tracking-safe");
+                delivered.SafeMessage.ShouldBeNull();
+                delivered.SafeMessageKey.ShouldBeNull();
+                delivered.RejectionCode.ShouldBeNull();
+                delivered.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+                delivered.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
+                delivered.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Polite);
+                cut.Instance.Snapshot.ShouldBe(delivered);
+                tracker.TryStartRetry(sent.TenantId, sent.MessageId).ShouldBeFalse();
+            }
+            finally
+            {
+                statusRead.TrySetResult(TenantCommandStatusResult.Pending("Status pending."));
+            }
+        }
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+
+        TenantCommandLifecycleState expected = outcome switch
+        {
+            "accepted" => TenantCommandLifecycleState.Accepted,
+            "ambiguous" => TenantCommandLifecycleState.RequestSent,
+            "rejected" => TenantCommandLifecycleState.Rejected,
+            _ => TenantCommandLifecycleState.Failed,
+        };
+        TenantCorrectionAttempt retained = tracker.Find(sent.TenantId)!;
+        retained.Snapshot.LifecycleState.ShouldBe(expected);
+        cut.Instance.Snapshot.ShouldBe(retained.Snapshot);
+        retained.MessageId.ShouldBe(sent.MessageId);
+        retained.Snapshot.BaselineProjectionVersion.ShouldBe(sent.Snapshot.BaselineProjectionVersion);
+        retained.Snapshot.CorrelationId.ShouldBe(outcome == "accepted" ? "tracking-safe" : null);
+        retained.Snapshot.SafeMessage.ShouldBeNull();
+        retained.Snapshot.SafeMessageKey.ShouldBe(outcome switch
+        {
+            "accepted" => "Tenants.Correction.Status.Pending",
+            "ambiguous" => "Tenants.Correction.State.UnableToVerify",
+            "rejected" => "Tenants.Correction.Rejection.InsufficientPermissions",
+            _ => "Tenants.Correction.Failure.Failed",
+        });
+        retained.Snapshot.RejectionCode.ShouldBe(outcome == "rejected" ? "InsufficientPermissions" : null);
+        retained.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        retained.Snapshot.FocusTarget.ShouldBe(outcome == "failed"
+            ? TenantCommandFocusTarget.Lifecycle : TenantCommandFocusTarget.Refresh);
+        retained.Snapshot.LiveRegionPoliteness.ShouldBe(outcome == "accepted"
+            ? TenantCommandLiveRegionPoliteness.Polite : TenantCommandLiveRegionPoliteness.Assertive);
+        cut.Find("[data-testid='tenants-correction-live-region']").GetAttribute("aria-live")
+            .ShouldBe(outcome == "accepted" ? "polite" : "assertive");
+        commands.StatusHandles.Count.ShouldBe(outcome == "accepted" ? 1 : 0);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(sent.TenantId)).ShouldBe(outcome is "accepted" or "ambiguous");
+        tracker.TryStartRetry(sent.TenantId, sent.MessageId).ShouldBe(outcome == "ambiguous");
+        commands.AddUserMessageIds.ShouldHaveSingleItem().ShouldBe(sent.MessageId);
+        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
+    }
+
+    /// <summary>Retains the command-support failure even when no command gateway can be resolved at delivery.</summary>
+    [Fact]
+    public void GatewayLostAfterCaptureRendersTheAtomicallyRetainedUnavailableOutcome()
+    {
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        using TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        StubTenantCommandGateway commands = new();
+        bool gatewayAvailable = true;
+        Services.AddTransient<ITenantCommandGateway>(_ => gatewayAvailable ? commands : null!);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), intendedRole: TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(component => component.Intent, intent)
+            .Add(component => component.CurrentCaptureProvider, () =>
+            {
+                gatewayAvailable = false;
+                return Task.FromResult(intent.CurrentProjection!);
+            }));
+
+        cut.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeFalse();
+        cut.Find("[data-testid='tenants-correction-confirm']").Click();
+
+        TenantCorrectionAttempt retained = tracker.Find("tenant.alpha")!;
+        retained.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        retained.Snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.CommandSupportUnavailable");
+        retained.Snapshot.SafeMessage.ShouldBeNull();
+        retained.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.MissingSupport);
+        retained.Snapshot.FocusTarget.ShouldBe(TenantCommandFocusTarget.Lifecycle);
+        retained.Snapshot.LiveRegionPoliteness.ShouldBe(TenantCommandLiveRegionPoliteness.Assertive);
+        cut.Instance.Snapshot.ShouldBe(retained.Snapshot);
+        retained.Snapshot.CorrelationId.ShouldBeNull();
+        commands.AddUserRequests.ShouldBeEmpty();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(retained.TenantId)).ShouldBeTrue();
+        tracker.TryStartRetry(retained.TenantId, retained.MessageId).ShouldBeTrue();
+        cut.FindAll("[data-testid='tenants-correction-proof-link']").ShouldBeEmpty();
+    }
+
     [Fact]
     public void Panel_renders_original_evidence_current_snapshot_and_single_confirm_without_submission()
     {
@@ -2418,6 +2564,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         public Task<TenantCommandStatusResult>? StatusTask { get; set; }
 
+        /// <summary>Signals entry into the substituted status read before its held response completes.</summary>
+        public Action? StatusReadStarted { get; init; }
+
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(
             AddUserToTenant request,
             string? messageId = null,
@@ -2452,6 +2601,7 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
             CancellationToken cancellationToken = default)
         {
             StatusHandles.Add(handle);
+            StatusReadStarted?.Invoke();
             if (ThrowFirstStatus && StatusHandles.Count == 1) throw new HttpRequestException("status failure");
             return StatusTask ?? Task.FromResult(Status);
         }

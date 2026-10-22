@@ -1,0 +1,327 @@
+{
+  "baseline": "772fd4d8fb995c95efea5288edcc9d06b6cfe5f0",
+  "accepted_phase": "reviewed-final",
+  "configuration": "Debug",
+  "use_nuget_deps": false,
+  "accepted_build": {
+    "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 -v:q",
+    "log": "/tmp/tenants-command-recovery-reviewed-final-build.log",
+    "log_sha256": "91c3711e574acec27f594dcc917bb626de5a30e062763097d83e092b8e067a90",
+    "warnings": 0,
+    "errors": 0
+  },
+  "accepted_assembly_sha256": "c73e5961157e3650d2d4859e4d97ef6a3a4a0815bf4320eb84f283c0306761eb",
+  "source_sha256": {
+    "src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor": "da6e459355ec021abd5f4c41fc7b9de14896f95e5ed0c2d5cbe92f33976fecb2",
+    "tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs": "2f8c61418b464387f82371e95b8c59c68ab254a510b5fc5f4133bf5b1c58f5ba",
+    "tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs": "5f3d0ddf65877f37b4ab2d74272699c83f5712ed6412ae8f39aeb4ac1d188ce0",
+    "tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs": "30e2b146c68777c3a2af0a08f03da4dada9e6f016be7bc004cde03ccfda29ddd",
+    "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs": "3376f103574b0d3c18e47adbf46eeab272a6df7568878f9461b9dcfb77332f49",
+    "tests/Hexalith.Tenants.UI.Tests/Components/CommandFlowAuditDenialTests.cs": "3275860d5dd4ff11b3456b19199ca3edff8afa585c553315225821a665bde988",
+    "tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs": "124e594cc913d89e4b2133a7aac3b81e1947b0ef8bf1b5e0f32c023c361f29c1",
+    "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs": "33c1ff69e8014e807e9cf417bc54a474690da8a590b78ce8702acb44d96845af"
+  },
+  "accepted_runs": {
+    "focused": {
+      "xml_path": "/tmp/tenants-command-recovery-reviewed-final-focused.xml",
+      "xml_sha256": "e82f0b6a2165ac8c4b25e357c539f2297f846a69bdff17f839bb28a35d6b9d31",
+      "counters": {
+        "total": "1578",
+        "passed": "1578",
+        "failed": "0",
+        "skipped": "0",
+        "not-run": "0",
+        "errors": "0",
+        "time": "28.367"
+      },
+      "run_date": "2026-10-22",
+      "run_time": "10:09:53",
+      "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -class '*CorrectionStartPanelTests' -class '*CommandFlowAuditDenialTests' -class '*CreateTenantFlowTests' -class '*EditTenantMetadataFlowTests' -class '*RemoveTenantMemberFlowTests' -class '*TenantCommandGatewayTests' -class '*TenantCorrectionAttemptTrackerTests' -class '*AuditAvailabilityStateTests' -class '*TenantRetainedCommandFlowTests' -result-xml /tmp/tenants-command-recovery-reviewed-final-focused.xml"
+    },
+    "full": {
+      "xml_path": "/tmp/tenants-command-recovery-reviewed-final-full.xml",
+      "xml_sha256": "7dd026cca06f74e76ecaf74108442b5530be7e585cc501a96c321bfa05ef9932",
+      "counters": {
+        "total": "7158",
+        "passed": "7158",
+        "failed": "0",
+        "skipped": "0",
+        "not-run": "0",
+        "errors": "0",
+        "time": "104.575"
+      },
+      "run_date": "2026-10-22",
+      "run_time": "10:10:22",
+      "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -result-xml /tmp/tenants-command-recovery-reviewed-final-full.xml"
+    }
+  },
+  "pre_review_acceptance": {
+    "baseline": "772fd4d8fb995c95efea5288edcc9d06b6cfe5f0",
+    "configuration": "Debug",
+    "use_nuget_deps": false,
+    "accepted_build_log": "/tmp/tenants-command-recovery-build-remount-2.log",
+    "accepted_build_log_sha256": "bf099181b4b33c38fdbdb304c164eb92d0fd18551796dc9c391a9a6656afec23",
+    "accepted_assembly_sha256": "4ad2ea53c8c8350c928719e5847002bbf1199a498ee26e6ad9f630d1a90f17c2",
+    "source_sha256": {
+      "src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor": "da6e459355ec021abd5f4c41fc7b9de14896f95e5ed0c2d5cbe92f33976fecb2",
+      "tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs": "21f8e9c58469ba76fd584dfd4f0c0066736bedadc5be5c49483049fc5d65b1b2",
+      "tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs": "c375965bea629eac47f5258161faaa9bad347d2b7fce046575efbd0f6b3616c3",
+      "tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs": "30e2b146c68777c3a2af0a08f03da4dada9e6f016be7bc004cde03ccfda29ddd",
+      "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs": "3376f103574b0d3c18e47adbf46eeab272a6df7568878f9461b9dcfb77332f49",
+      "tests/Hexalith.Tenants.UI.Tests/Components/CommandFlowAuditDenialTests.cs": "a349d6e0a82bcf438c760984e38998a46e5ebf366b1b23043881f57cb90af121",
+      "tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs": "124e594cc913d89e4b2133a7aac3b81e1947b0ef8bf1b5e0f32c023c361f29c1",
+      "tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs": "33c1ff69e8014e807e9cf417bc54a474690da8a590b78ce8702acb44d96845af"
+    },
+    "accepted_runs": {
+      "focused-final": {
+        "xml_path": "/tmp/tenants-command-recovery-focused-final.xml",
+        "xml_sha256": "96a5e6c6df8d842d2cd88407f1c7fed8d899f7099cba26e98f2e58c18ef83161",
+        "counters": {
+          "total": "1364",
+          "passed": "1364",
+          "failed": "0",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "6.234"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:54:03"
+      },
+      "full": {
+        "xml_path": "/tmp/tenants-command-recovery-full.xml",
+        "xml_sha256": "e2f8b40efbb8d4823290d58c3b7dfd170f7c802e6628cdf2556effd8a3d5cc3e",
+        "counters": {
+          "total": "7151",
+          "passed": "7151",
+          "failed": "0",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "97.858"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:54:09"
+      }
+    },
+    "prior_fixture_runs": {
+      "correction": {
+        "xml_path": "/tmp/tenants-command-recovery-correction.xml",
+        "xml_sha256": "8971c9e32c370e84fb1e55ec0182e166309dce57f127c118ad92fa0f474e1046",
+        "counters": {
+          "total": "123",
+          "passed": "121",
+          "failed": "2",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "1.302"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:44:04"
+      },
+      "correction-2": {
+        "xml_path": "/tmp/tenants-command-recovery-correction-2.xml",
+        "xml_sha256": "673b80a3e2ac225b8b514fbfc48c73f9cb973579bd650bae239259d3953bd617",
+        "counters": {
+          "total": "123",
+          "passed": "123",
+          "failed": "0",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "1.268"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:46:13"
+      },
+      "denial": {
+        "xml_path": "/tmp/tenants-command-recovery-denial.xml",
+        "xml_sha256": "1e746550ebdd491df6c76d68d3935b6dfec11cc4d23074c98ca16dd01c4fd222",
+        "counters": {
+          "total": "14",
+          "passed": "12",
+          "failed": "2",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "0.783"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:47:08"
+      },
+      "focused": {
+        "xml_path": "/tmp/tenants-command-recovery-focused.xml",
+        "xml_sha256": "c47fa00f12cb12a227889aab29495517228bd28f9d49cfbc8dcdaacf7b4c2a53",
+        "counters": {
+          "total": "1364",
+          "passed": "1362",
+          "failed": "2",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "5.821"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:48:30"
+      },
+      "focused-restored": {
+        "xml_path": "/tmp/tenants-command-recovery-focused-restored.xml",
+        "xml_sha256": "1a3d25840002a9c6723a404e84fc599e4b5397b01d5e88538228e8f7689d6a43",
+        "counters": {
+          "total": "1364",
+          "passed": "1362",
+          "failed": "2",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "6.157"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:51:20"
+      },
+      "remount": {
+        "xml_path": "/tmp/tenants-command-recovery-remount.xml",
+        "xml_sha256": "c0c8488c2ba1dabdae9c9b382e0793a66d3ac5e66a3cbf3c7b48088caad2e8b2",
+        "counters": {
+          "total": "2",
+          "passed": "0",
+          "failed": "2",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "0.449"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:52:50"
+      },
+      "remount-2": {
+        "xml_path": "/tmp/tenants-command-recovery-remount-2.xml",
+        "xml_sha256": "fc1c7572f16971a05abef44a80f40f9035af5859b4f5a7ee3d90ae4340c4dcc6",
+        "counters": {
+          "total": "2",
+          "passed": "2",
+          "failed": "0",
+          "skipped": "0",
+          "not-run": "0",
+          "errors": "0",
+          "time": "0.479"
+        },
+        "run_date": "2026-10-22",
+        "run_time": "09:53:36"
+      }
+    },
+    "wrong_outcome_controls": [
+      {
+        "control": "wrong-next",
+        "total": 4,
+        "failed": 4,
+        "expected_rejection": true
+      },
+      {
+        "control": "wrong-unavailable",
+        "total": 1,
+        "failed": 1,
+        "expected_rejection": true
+      }
+    ],
+    "audit_guard_control": {
+      "control": "all-seven-audit-denial-guards-bypassed",
+      "total": 14,
+      "failed": 7,
+      "passed": 7,
+      "denied_cases_rejected": true,
+      "allowed_controls_passed": true
+    },
+    "commit_candidate_sha256": "6d302e0b09b733ccb9fa5e557981e6d524679d45d9ba3eae398ec3e8169a64e7",
+    "commitlint_version": "21.2.3",
+    "commitlint_output": "\u29d7   --- input ---\ntest(ui): qualify five deferred command recovery records\n\u2714   found 0 problems, 0 warnings\n",
+    "preserved_external_changes": {
+      ".mcp.json": "86a1149a70d7f29f97b596bd4b3ed2d76f844abe14eb2b0dd779fc57e5cf13c1"
+    }
+  },
+  "prior_reviewed_runs": {
+    "focused-reviewed": {
+      "xml_path": "/tmp/tenants-command-recovery-focused-reviewed.xml",
+      "xml_sha256": "148f96f51c65e44068089218c8104b08ce999bbbe464f31699d347d83b6ac976",
+      "counters": {
+        "total": "1578",
+        "passed": "1577",
+        "failed": "1",
+        "skipped": "0",
+        "not-run": "0",
+        "errors": "0",
+        "time": "27.588"
+      },
+      "run_date": "2026-10-22",
+      "run_time": "10:04:33"
+    },
+    "focused-accepted": {
+      "xml_path": "/tmp/tenants-command-recovery-focused-accepted.xml",
+      "xml_sha256": "14373add30bfaf472f015d24ff565e8b391f147817336e5e9e014fc86108b5dc",
+      "counters": {
+        "total": "1578",
+        "passed": "1578",
+        "failed": "0",
+        "skipped": "0",
+        "not-run": "0",
+        "errors": "0",
+        "time": "27.987"
+      },
+      "run_date": "2026-10-22",
+      "run_time": "10:06:34"
+    },
+    "full-accepted": {
+      "xml_path": "/tmp/tenants-command-recovery-full-accepted.xml",
+      "xml_sha256": "ce2b9657ddd56618c6d9423dab402053c4dd808add4dfc39a46c147f1d2d2892",
+      "counters": {
+        "total": "7158",
+        "passed": "7157",
+        "failed": "1",
+        "skipped": "0",
+        "not-run": "0",
+        "errors": "0",
+        "time": "118.473"
+      },
+      "run_date": "2026-10-22",
+      "run_time": "10:07:03"
+    }
+  },
+  "wrong_outcome_controls": [
+    {
+      "control": "wrong-next",
+      "total": 4,
+      "failed": 4,
+      "expected_rejection": true
+    },
+    {
+      "control": "wrong-unavailable",
+      "total": 1,
+      "failed": 1,
+      "expected_rejection": true
+    }
+  ],
+  "audit_guard_control": {
+    "control": "all-seven-audit-denial-guards-bypassed",
+    "total": 21,
+    "failed": 14,
+    "passed": 7,
+    "denied_cases_rejected": true,
+    "revocation_cases_rejected": true,
+    "indeterminate_controls_passed": true
+  },
+  "tracking_guard_control": {
+    "control": "tracking-loss-submit-block-removed",
+    "total": 6,
+    "failed": 6,
+    "expected_rejection": true,
+    "coverage_kind": "existing defensive state-injection tests; no natural orphan-state path claimed"
+  },
+  "commit_candidate": "test(ui): qualify five deferred command recovery records\n",
+  "commit_candidate_sha256": "6d302e0b09b733ccb9fa5e557981e6d524679d45d9ba3eae398ec3e8169a64e7",
+  "commitlint_version": "21.2.3",
+  "commitlint_output": "\u29d7   --- input ---\ntest(ui): qualify five deferred command recovery records\n\u2714   found 0 problems, 0 warnings\n",
+  "preserved_external_changes": {
+    ".mcp.json": "86a1149a70d7f29f97b596bd4b3ed2d76f844abe14eb2b0dd779fc57e5cf13c1"
+  }
+}

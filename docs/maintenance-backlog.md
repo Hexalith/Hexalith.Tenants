@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-253/DW-261/DW-284/DW-475/DW-512 closure (2026-10-22):** Gateway-driven lost-tracking and minted-identity tests, actual scoped create remounts and seven-flow audit denial controls qualify command recovery. Correction rendering consumes the atomically retained delivery outcome; wrong-outcome and denial-bypass controls reject. Exactly five records close: all 657 IDs remain, 480 done/177 open across 167 maintenance rows. Historical evidence, unrelated work, dependency pointers, the existing local MCP edit and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-253-261-284-475-512-validation-evidence.md).
+
 **DW-345/DW-362/DW-378/DW-383/DW-412 closure (2026-10-22):** Actual production-rendered EN/FR Cancel controls in Chromium qualify the existing strict host-focus check and unavailable-target fallback. The shared capture driver now supplies foreground focus for focus-event dispatch; wrong-result controls reject. Exactly five duplicate risks close: all 657 IDs remain, 475 done/182 open across 172 exact-covering maintenance rows. Broader authenticated modal/keyboard evidence, historical findings, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-345-362-378-383-412-validation-evidence.md).
 
 **DW-629/DW-630/DW-631/DW-635/DW-636 closure (2026-10-22):** The module manifest qualifies logical topics and complete public operations, includes administrator removal in its critical flow, records existing membership authorization and declares rebuild-only correction prerequisites without executable recovery hooks. Exactly five records close: all 657 IDs remain, 470 done/187 open across 173 exact-covering maintenance rows. Historical findings, unrelated work, dependency pointers and runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-629-630-631-635-636-validation-evidence.md).
@@ -180,14 +182,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 475 |
-| actionable | 108 |
+| done | 480 |
+| actionable | 103 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 9 |
 | uncertain | 27 |
 
-**Remaining: 182 open records across 172 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 177 open records across 167 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -260,7 +262,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-154 | P2 | Gap / blocked | unassigned | concurrent teardown harness | Use a concurrency-capable renderer/browser harness to pin reset and disposed-notification behavior. |
 | DW-161 | P2 | Gap / blocked | unassigned | healthy live topology and endpoint/auth evidence | Capture all six production-client routes, conditional 304 and headers through a healthy authenticated deployed topology. |
 | DW-200 | P2 | Gap / actionable | unassigned | none | Wire workspace notification nudges to create authoritative requery without notify-only confirmation. |
-| DW-284 | P2 | Gap / actionable | unassigned | none | Dispatch through the first component, remount using real scoped services, and assert no redispatch plus correct baseline retention. |
 | DW-299 | P2 | Gap / blocked | unassigned | authenticated browser configuration fixture | Capture real set/remove form and warning visibility at both sides of the breakpoint. |
 | DW-333, DW-335 | P2 | Gap / blocked | unassigned | authenticated real-browser workspace fixture | Capture authenticated tab switches with computed visibility, activeElement and accessibility-tree evidence. |
 | DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
@@ -272,12 +273,10 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-457 | P2 | Gap / awaiting-decision | Hexalith.Builds | Builds toolchain qualification decision | Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings. |
 | DW-460 | P2 | Gap / awaiting-decision | unassigned | Public receipt API decision | Choose an authoritative-metadata overload or deprecate the misleading FromEntry factory, preserving provenance checks. |
 | DW-461, DW-467, DW-478 | P2 | Gap / awaiting-decision | unassigned | Historical artifact validation policy | Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role. |
-| DW-475 | P2 | Gap / actionable | unassigned | Reusable rendered flow fixtures | Add a rendered denied-audit theory across member, metadata, lifecycle and configuration flows and assert no inspectaudit recovery control or shell appears. |
 | DW-507 | P2 | Gap / actionable | Hexalith.EventStore | EventStore status documentation | Document all three advisory recovery fields, null/legacy behavior and polling implications in the status response reference. |
 | DW-508 | P2 | Gap / actionable | Hexalith.EventStore | EventStore API metadata owner | Declare and verify the status endpoint’s 409 ProblemDetails response in generated OpenAPI. |
 | DW-509 | P2 | Gap / actionable | Hexalith.EventStore | EventStore documentation owner | Update each remaining status-route example to MessageId-first guidance and explain bounded correlation compatibility. |
 | DW-510 | P2 | Gap / actionable | Hexalith.EventStore | EventStore replay API reference | Document separate replay MessageId/correlation fields and the identifier-ambiguity 409 outcome. |
-| DW-512 | P2 | Gap / actionable | unassigned | Controllable concurrent retry test seam | Add a deterministic tracker/consumer regression that observes the EndDelivery outcome before subsequent rendering/update; decide whether rendering should consume only the atomically retained result. |
 | DW-513 | P2 | Gap / actionable | Hexalith.EventStore | EventStore status API reference | Correct the status field table to include concurrency-conflict rejection reasons and distinguish domain rejection markers. |
 | DW-518 | P2 | Gap / actionable | Hexalith.EventStore | EventStore status API reference | Document positive event counts on eventful rejections and preserve the separate Completed-only correction-proof contract. |
 | DW-519 | P2 | Gap / actionable | Hexalith.EventStore | EventStore actor test fixtures | Invoke real AggregateActor.GetEventsAsync at count/payload boundaries and assert LegacyArrayLimit, including an arrayBudget.Add removal control. |
@@ -312,8 +311,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-601 | P3 | Defect / actionable | unassigned | Local elicitation catalog ownership | Reject or allocate unique explicit replacement method numbers and add collision coverage. |
 | DW-209 | P3 | Gap / actionable | unassigned | none | Add runtime shell layout assertions for the three remaining dense pages. |
 | DW-211 | P3 | Gap / actionable | unassigned | authenticated browser navigation fixture | Capture browser activeElement after a missing-row detail return and assert the list heading is focused. |
-| DW-253 | P3 | Gap / actionable | unassigned | none | Drive the defensive branches through a gateway substitute returning the malformed Accepted response. |
-| DW-261 | P3 | Gap / actionable | unassigned | shared flow test seam | Add create minted-ID retention on an indeterminate result and a gateway-driven accepted-with-lost-tracking submission regression. |
 | DW-292 | P3 | Gap / actionable | unassigned | TEA hook test harness | Add focused scanner mode/registry/failure regressions in owning tooling tests. |
 | DW-397 | P3 | Gap / actionable | unassigned | Python 3.11+ and temporary fixture roots | Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics. |
 | DW-591 | P3 | Gap / actionable | unassigned | Rendered host fixture | Render actual host documents under en/fr cultures and assert html lang. |

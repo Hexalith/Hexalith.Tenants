@@ -1,0 +1,26 @@
+{
+  "baseline": "772fd4d8fb995c95efea5288edcc9d06b6cfe5f0",
+  "selected": [
+    253,
+    261,
+    284,
+    475,
+    512
+  ],
+  "records": 657,
+  "done": 480,
+  "open": 177,
+  "index_rows": 167,
+  "dispositions": {
+    "done": 480,
+    "blocked": 15,
+    "accepted-limitation": 9,
+    "uncertain": 27,
+    "actionable": 103,
+    "awaiting-decision": 23
+  },
+  "duplicate_controls_rejected": 3,
+  "current_field_controls_rejected": 2,
+  "narrative_controls_rejected": 2,
+  "result": "pass"
+}

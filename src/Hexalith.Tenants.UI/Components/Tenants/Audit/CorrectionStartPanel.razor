@@ -879,7 +879,7 @@
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
             _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId, unavailable);
-            SetRetainedSnapshot(attempt, unavailable, focusTerminalState: true);
+            RenderRetainedDeliveryOutcome(attempt);
             return;
         }
 
@@ -944,8 +944,8 @@
                         ?? result.SafeMessageKey ?? FailureMessageKey(result.State),
                 };
         _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId, next);
-        SetRetainedSnapshot(attempt, next, focusTerminalState: true);
-        if (next.LifecycleState is TenantCommandLifecycleState.Accepted)
+        RenderRetainedDeliveryOutcome(attempt);
+        if (_snapshot?.LifecycleState is TenantCommandLifecycleState.Accepted)
         {
             await RefreshStatusAsync(afterDispatch: true).ConfigureAwait(false);
         }
@@ -1059,6 +1059,17 @@
     private static string? RejectionMessageKey(string? code)
         => code is "UserAlreadyInTenant" or "UserNotInTenant" or "RoleEscalation" or "InsufficientPermissions" or "TenantDisabled" or "TenantNotFound"
             ? $"Tenants.Correction.Rejection.{code}" : null;
+
+    private void RenderRetainedDeliveryOutcome(TenantCorrectionAttempt attempt)
+    {
+        // EndDelivery publishes the outcome before another panel can retry. Consume that
+        // exact retained value; writing the candidate again would hide an incorrect handoff.
+        TenantCorrectionAttempt? retained = _attemptTracker.Find(attempt.TenantId);
+        if (string.Equals(retained?.MessageId, attempt.MessageId, StringComparison.Ordinal))
+        {
+            SetSnapshot(retained!.Snapshot, focusTerminalState: true);
+        }
+    }
 
     private void SetRetainedSnapshot(TenantCorrectionAttempt attempt,
         TenantCorrectionPreviewSnapshot candidate, bool focusTerminalState = false)

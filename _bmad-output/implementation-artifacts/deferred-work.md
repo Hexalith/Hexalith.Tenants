@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-253/DW-261/DW-284/DW-475/DW-512 closure (2026-10-22):** Gateway-driven lost-tracking and minted-identity tests, actual scoped create remounts and seven-flow audit denial controls qualify command recovery. Correction rendering consumes the atomically retained delivery outcome; wrong-outcome and denial-bypass controls reject. Exactly five records close: all 657 IDs remain, 480 done/177 open across 167 maintenance rows. Historical evidence, unrelated work, dependency pointers, the existing local MCP edit and release holds remain preserved. See [validation evidence](dw-253-261-284-475-512-validation-evidence.md).
+
 **DW-345/DW-362/DW-378/DW-383/DW-412 closure (2026-10-22):** Actual production-rendered EN/FR Cancel controls in Chromium qualify the existing strict host-focus check and unavailable-target fallback. The shared capture driver now supplies foreground focus for focus-event dispatch; wrong-result controls reject. Exactly five duplicate risks close: all 657 IDs remain, 475 done/182 open across 172 exact-covering maintenance rows. Broader authenticated modal/keyboard evidence, historical findings, unrelated work, dependency pointers and release holds remain preserved. See [validation evidence](dw-345-362-378-383-412-validation-evidence.md).
 
 **DW-629/DW-630/DW-631/DW-635/DW-636 closure (2026-10-22):** The module manifest qualifies logical topics and complete public operations, includes administrator removal in its critical flow, records existing membership authorization and declares rebuild-only correction prerequisites without executable recovery hooks. Exactly five records close: all 657 IDs remain, 470 done/187 open across 173 exact-covering maintenance rows. Historical findings, unrelated work, dependency pointers and runtime/release holds remain preserved. See [validation evidence](dw-629-630-631-635-636-validation-evidence.md).
@@ -2412,16 +2414,25 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: New defensive branches are covered only by reflection-poking private fields, so they will break silently on rename and do not exercise the real gateway path. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: New defensive branches are covered only by reflection-poking private fields, so they will break silently on rename and do not exercise the real gateway path. evidence: EditTenantMetadataFlowTests.cs sets the private _snapshot field and invokes private RefreshStatusAsync to build an Accepted snapshot with null tracking ids. The only realistic production route to that state is a gateway returning Accepted with a blank CorrelationId, which no test drives.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs still sets _snapshot via GetField for tracking-loss branches. A source rename can invalidate the fixture and it does not establish the real Accepted/blank-correlation gateway route.
+pre-command-recovery-verification-status: open
+status: done 2026-10-22
+pre-command-recovery-verification-disposition: actionable
+disposition: done
+pre-command-recovery-verification-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification-verification: tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs still sets _snapshot via GetField for tracking-loss branches. A source rename can invalidate the fixture and it does not establish the real Accepted/blank-correlation gateway route.
+verification: Real metadata gateway Accepted responses with null, empty and whitespace correlation exercise submit/recovery refusal without private snapshot injection. A valid-correlation control qualifies status lookup; original intent, baseline, identity, activity and admission remain retained.
+pre-command-recovery-verification-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs
 verification-files: tests/Hexalith.Tenants.UI.Tests/Components/EditTenantMetadataFlowTests.cs
-evidence-kind: verified-gap
+pre-command-recovery-verification-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
+pre-command-recovery-verification-dependencies: none
 dependencies: none
-next-action: Drive the defensive branches through a gateway substitute returning the malformed Accepted response.
+pre-command-recovery-verification-next-action: Drive the defensive branches through a gateway substitute returning the malformed Accepted response.
+next-action: none; closed by command recovery verification
+closure-evidence: `dw-253-261-284-475-512-validation-evidence.md`
 related: none
 
 ### DW-254: Optional messageId is now inconsistent across ITenantCommandGateway
@@ -2560,16 +2571,25 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantCommandGatewayTests.cs:1137-1184; tests/
 reason: The legacy ledger defers this issue: Missing test coverage for three branches this story introduced. Original context is preserved in legacy-detail.
 legacy-detail: - **Missing test coverage for three branches this story introduced.** No test asserts `CreateTenantAsync`/`UpdateTenantAsync` retain the minted ULID on indeterminate failure (the three membership equivalents exist at `TenantCommandGatewayTests.cs:1137-1184`); no test hands any flow a denying `CommandActivityLease` (every stub returns `Task.FromResult(true)`, and `FromResult(false)` appears nowhere in `tests/`), so the pre-dispatch lease guard at `RemoveTenantMemberFlow.razor:742-750` can be deleted with the suite still green; and no test observes the tracking-lost submit branch at `:669-690`. Test files are chunk C of this review.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted now covers denial, and Services/Gateways/TenantCommandGatewayTests.cs Update_tenant_gateway_exception_retains_resolved_message_id_for_exact_retry covers update identity retention. A create indeterminate minted-ID case and the original no-tracking submission branch still lack demonstrated behavior coverage; the original three-part gap is only partially resolved.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs
-evidence-kind: verified-gap
+pre-command-recovery-verification-status: open
+status: done 2026-10-22
+pre-command-recovery-verification-disposition: actionable
+disposition: done
+pre-command-recovery-verification-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification-verification: tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs ActivityLeaseRefusalReportsARetryAsUnverifiableAndAFirstAttemptAsNotStarted now covers denial, and Services/Gateways/TenantCommandGatewayTests.cs Update_tenant_gateway_exception_retains_resolved_message_id_for_exact_retry covers update identity retention. A create indeterminate minted-ID case and the original no-tracking submission branch still lack demonstrated behavior coverage; the original three-part gap is only partially resolved.
+verification: Omitted-ID create submissions retain a minted ULID across four indeterminate transport failures and exact payload retries. Gateway-driven malformed Accepted removal responses qualify public refresh/repeated-submit refusal through owned-attempt duplicate prevention. The separate TrackingLost branch already has six defensive state-injection cases at entry revision; those cases and existing lease-denial/update-identity coverage are requalified. No natural gateway route into that orphan-state branch is claimed.
+pre-command-recovery-verification-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs
+verification-files: tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantCommandGatewayTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
+pre-command-recovery-verification-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P3
 owner: unassigned
-dependencies: shared flow test seam
-next-action: Add create minted-ID retention on an indeterminate result and a gateway-driven accepted-with-lost-tracking submission regression.
+pre-command-recovery-verification-dependencies: shared flow test seam
+dependencies: none
+pre-command-recovery-verification-next-action: Add create minted-ID retention on an indeterminate result and a gateway-driven accepted-with-lost-tracking submission regression.
+next-action: none; closed by command recovery verification
+closure-evidence: `dw-253-261-284-475-512-validation-evidence.md`
 related: none
 
 ### DW-262: Legacy FAST token `--neutral-stroke-rest` survives in `RemoveTenantMemberFlow.razor.css:4`
@@ -2834,16 +2854,25 @@ location: Remember
 source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md`
 reason: The legacy ledger defers this issue: Exercise the production create-attempt tracker across a real component remount. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadata-with-recorded-updates.md` summary: Exercise the production create-attempt tracker across a real component remount. evidence: Existing remount coverage pre-seeds a tracker manually and does not prove the scoped registration plus production `Remember` call preserve the original intent and baseline from the first dispatched flow.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs retained-create cases seed a tracker; State/TenantCommands/TenantCreateAttemptTracker.cs stores only a handle. No production-dispatch-to-remount proof preserves original intent/baseline through registration plus Remember.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs
-evidence-kind: verified-gap
+pre-command-recovery-verification-status: open
+status: done 2026-10-22
+pre-command-recovery-verification-disposition: actionable
+disposition: done
+pre-command-recovery-verification-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification-verification: tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs retained-create cases seed a tracker; State/TenantCommands/TenantCreateAttemptTracker.cs stores only a handle. No production-dispatch-to-remount proof preserves original intent/baseline through registration plus Remember.
+verification: Production scoped service registration, real first dispatch and renderer unmount/remount retain the original create intent, baseline, message/correlation and admission. Changed replacement drafts cannot redispatch; matching recovery queries the original attempt, including projection confirmation and independent-circuit controls. No tracker is preseeded.
+pre-command-recovery-verification-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs
+pre-command-recovery-verification-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
+pre-command-recovery-verification-dependencies: none
 dependencies: none
-next-action: Dispatch through the first component, remount using real scoped services, and assert no redispatch plus correct baseline retention.
+pre-command-recovery-verification-next-action: Dispatch through the first component, remount using real scoped services, and assert no redispatch plus correct baseline retention.
+next-action: none; closed by command recovery verification
+closure-evidence: `dw-253-261-284-475-512-validation-evidence.md`
 related: none
 
 ### DW-285: Guard create and membership submit flows against re-entrant snapshot replacement while a dispatch is awaiting completion
@@ -5757,16 +5786,25 @@ location: tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Replace the source-text pin of the seven flows' denied-read Inspect-audit wiring with a rendered theory.\n  evidence: `AuditAvailabilityStateTests.cs:924-966` asserts `=> AuditReadDenied ? null : CommandAuditEntryPointTemplate;` through `File.ReadAllText`. Only Create has rendered coverage (`CreateTenantFlowTests.cs:226-256`), and `RemoveTenantMemberFlowTests.cs:67-77` checks only that the entry point is absent, which an empty `[data-recovery-verb='inspectaudit']` shell would also pass. Add one theory across AddMember, ChangeRole, RemoveMember, Metadata, Lifecycle, Set configuration and Remove configuration that asserts no `inspectaudit` recovery renders when the audit read is denied."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:969-988 still reads source to pin AuditReadDenied entry-point wiring. Member rendered denial coverage checks the handoff entry point but does not provide the proposed seven-flow rendered theory excluding the inspectaudit recovery shell.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs
-evidence-kind: verified-gap
+pre-command-recovery-verification-status: open
+status: done 2026-10-22
+pre-command-recovery-verification-disposition: actionable
+disposition: done
+pre-command-recovery-verification-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification-verification: tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs:969-988 still reads source to pin AuditReadDenied entry-point wiring. Member rendered denial coverage checks the handoff entry point but does not provide the proposed seven-flow rendered theory excluding the inspectaudit recovery shell.
+verification: Twenty-one gateway-driven rendered cases qualify denied, allowed and indeterminate audit recovery in all seven affected flows. Denied callers receive neither entry point nor inspectaudit shell; allowed controls retain enabled scoped links and lose them on same-component revocation; indeterminate controls remain disabled. Bypassed denial guards fail all seven initial-denial and seven revocation cases while seven indeterminate controls pass.
+pre-command-recovery-verification-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs
+verification-files: tests/Hexalith.Tenants.UI.Tests/Components/CommandFlowAuditDenialTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/AuditAvailabilityStateTests.cs
+pre-command-recovery-verification-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Reusable rendered flow fixtures
-next-action: Add a rendered denied-audit theory across member, metadata, lifecycle and configuration flows and assert no inspectaudit recovery control or shell appears.
+pre-command-recovery-verification-dependencies: Reusable rendered flow fixtures
+dependencies: none
+pre-command-recovery-verification-next-action: Add a rendered denied-audit theory across member, metadata, lifecycle and configuration flows and assert no inspectaudit recovery control or shell appears.
+next-action: none; closed by command recovery verification
+closure-evidence: `dw-253-261-284-475-512-validation-evidence.md`
 related: none
 
 
@@ -6314,16 +6352,25 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Pin the value, not just the presence, of the tenant correction delivery outcome passed to `EndDelivery`.\n  evidence: `TenantCorrectionAttemptTracker.EndDelivery` (`src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:126`) now requires an outcome, but passing `request` or `attempt.Snapshot` instead of `next`/`unavailable` at `CorrectionStartPanel.razor:868`/`:933` still compiles and passes. `SetRetainedSnapshot` re-applies the right snapshot one statement later and bUnit is single-threaded, so no test can see the window in which another panel's `TryStartRetry` could send a duplicate same-id delivery. Closing it needs a production change, such as having `SetRetainedSnapshot` render only what `EndDelivery` retained."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantCorrectionAttemptTracker.EndDelivery retains the supplied outcome atomically, and current CorrectionStartPanel.razor:881,946 passes unavailable/next correctly. Immediately following SetRetainedSnapshot still calls TryUpdate(candidate), so a wrong EndDelivery argument can be repaired before rendered tests notice; no exact retained-outcome window test was found. This is a mutation/concurrency verification gap, not a reproduced current duplicate dispatch.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
-evidence-kind: verified-gap
+pre-command-recovery-verification-status: open
+status: done 2026-10-22
+pre-command-recovery-verification-disposition: actionable
+disposition: done
+pre-command-recovery-verification-verification-date: 2026-10-12
+verification-date: 2026-10-22
+pre-command-recovery-verification-verification: TenantCorrectionAttemptTracker.EndDelivery retains the supplied outcome atomically, and current CorrectionStartPanel.razor:881,946 passes unavailable/next correctly. Immediately following SetRetainedSnapshot still calls TryUpdate(candidate), so a wrong EndDelivery argument can be repaired before rendered tests notice; no exact retained-outcome window test was found. This is a mutation/concurrency verification gap, not a reproduced current duplicate dispatch.
+verification: Correction delivery renders only the outcome atomically retained by EndDelivery, without a candidate update masking the handoff. Accepted, ambiguous, failed, rejected and post-capture missing-gateway cases pin retained state and retry/admission behavior. Wrong next/unavailable arguments are independently rejected by four/one tests. This closes the verification gap, without claiming a previously reproduced duplicate dispatch.
+pre-command-recovery-verification-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor; tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionAttemptTrackerTests.cs
+pre-command-recovery-verification-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
-dependencies: Controllable concurrent retry test seam
-next-action: Add a deterministic tracker/consumer regression that observes the EndDelivery outcome before subsequent rendering/update; decide whether rendering should consume only the atomically retained result.
+pre-command-recovery-verification-dependencies: Controllable concurrent retry test seam
+dependencies: none
+pre-command-recovery-verification-next-action: Add a deterministic tracker/consumer regression that observes the EndDelivery outcome before subsequent rendering/update; decide whether rendering should consume only the atomically retained result.
+next-action: none; closed by command recovery verification
+closure-evidence: `dw-253-261-284-475-512-validation-evidence.md`
 related: none
 
 

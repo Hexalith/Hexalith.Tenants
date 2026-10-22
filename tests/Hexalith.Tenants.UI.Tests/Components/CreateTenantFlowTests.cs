@@ -10,6 +10,7 @@ using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.UI.Components.Tenants;
+using Hexalith.Tenants.UI.Extensions;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantCommands;
@@ -17,7 +18,9 @@ using Hexalith.Tenants.UI.State.TenantDetail;
 
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Localization;
 
 using NSubstitute;
@@ -1179,6 +1182,136 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditPending);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ProductionScopedCreateAttemptSurvivesDispatchUnmountAndRemount(bool completeAfterRemount)
+    {
+        bool remounted = false;
+        List<TenantCommandTrackingHandle> statusHandles = [];
+        StubTenantCommandGateway gateway = new()
+        {
+            SubmissionFactory = (_, messageId) => TenantCommandSubmissionResult.Accepted(messageId!, "correlation-create"),
+            StatusAsync = handle =>
+            {
+                statusHandles.Add(handle);
+                return Task.FromResult(new TenantCommandStatusResult(
+                    remounted && completeAfterRemount ? CommandStatus.Completed : CommandStatus.Received,
+                    EventCount: remounted && completeAfterRemount ? 1 : null,
+                    HasVerifiedCommandIdentity: true));
+            },
+        };
+        // Replace the convenience singleton fixture registrations with the actual production circuit services.
+        Services.RemoveAll<TenantAggregateCommandAdmissionGate>();
+        Services.RemoveAll<TenantCommandAttemptTracker>();
+        Services.RemoveAll<TenantCreateAttemptTracker>();
+        Services.AddHexalithTenantsUiModule(new ConfigurationBuilder().Build(), enableGatewayAuthorization: false);
+        Services.Single(descriptor => descriptor.ServiceType == typeof(TenantCreateAttemptTracker))
+            .Lifetime.ShouldBe(ServiceLifetime.Scoped);
+        Services.Single(descriptor => descriptor.ServiceType == typeof(TenantCommandAttemptTracker))
+            .Lifetime.ShouldBe(ServiceLifetime.Scoped);
+        Services.Single(descriptor => descriptor.ServiceType == typeof(TenantAggregateCommandAdmissionGate))
+            .Lifetime.ShouldBe(ServiceLifetime.Scoped);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        IRenderedComponent<CascadingValue<bool>> host = Render<CascadingValue<bool>>(parameters => parameters
+            .Add(p => p.Name, "CreateFlowMounted")
+            .Add(p => p.Value, true)
+            .AddChildContent<CreateTenantFlow>(child => child
+                .Add(p => p.IsAuthorized, true)
+                .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+                .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+                .Add(p => p.BaselineTenantAbsent, true)
+                .Add(p => p.BaselineProjectionVersion, "tenant-sequence:1")));
+        IRenderedComponent<CreateTenantFlow> first = host.FindComponent<CreateTenantFlow>();
+        CreateTenantFlow firstInstance = first.Instance;
+        first.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        first.Find("[data-testid='tenants-create-name']").Change("Original");
+        await first.Find("form").SubmitAsync();
+        first.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        gateway.CreateTenantCallCount.ShouldBe(1);
+        TenantCreateCommandSnapshot original = first.Instance.Snapshot;
+        string messageId = original.MessageId.ShouldNotBeNull();
+        NUlid.Ulid.TryParse(messageId, out _).ShouldBeTrue();
+        original.Intent.ShouldBe(new CreateTenant("tenant.alpha", "Original", null));
+        original.BaselineProjectionVersion.ShouldBe("tenant-sequence:1");
+        original.BaselineTenantAbsent.ShouldBeTrue();
+        TenantCreateAttemptTracker tracker = Services.GetRequiredService<TenantCreateAttemptTracker>();
+        TenantCommandAttemptTracker attempts = Services.GetRequiredService<TenantCommandAttemptTracker>();
+        tracker.Attempts.ShouldBeSameAs(attempts);
+        attempts.Find<TenantCreateCommandSnapshot>("tenant.alpha").ShouldBe(original);
+        TenantAggregateCommandAdmissionGate admission = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        admission.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+
+        // Removing child content forces real renderer disposal while the circuit provider stays alive.
+        await host.InvokeAsync(() => host.Render(parameters => parameters
+            .Add(p => p.Name, "CreateFlowMounted").Add(p => p.Value, true)
+            .Add(p => p.ChildContent, (RenderFragment)(_ => { }))));
+        host.FindComponents<CreateTenantFlow>().ShouldBeEmpty();
+        remounted = true;
+        attempts.Find<TenantCreateCommandSnapshot>("tenant.alpha").ShouldBe(original);
+        admission.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        host.Render(parameters => parameters.Add(p => p.Name, "CreateFlowMounted").Add(p => p.Value, true).AddChildContent<CreateTenantFlow>(child => child
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.BaselineTenantAbsent, false)
+            .Add(p => p.BaselineProjectionVersion, "tenant-sequence:99")
+            .Add(p => p.ProjectionEvidenceProvider, tenantId => Task.FromResult<TenantListSnapshot?>(
+                ListProof(new TenantSummary(tenantId, "Original", TenantStatus.Active), "tenant-sequence:2")))));
+        IRenderedComponent<CreateTenantFlow> replacement = host.FindComponent<CreateTenantFlow>();
+        replacement.Instance.ShouldNotBeSameAs(firstInstance);
+        replacement.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        replacement.Find("[data-testid='tenants-create-name']").Change("Edited replacement");
+        await replacement.Find("form").SubmitAsync();
+        gateway.CreateTenantCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(1);
+        replacement.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+        replacement.Instance.Snapshot.BaselineProjectionVersion.ShouldBe(original.BaselineProjectionVersion);
+        replacement.Instance.Snapshot.BaselineTenantAbsent.ShouldBeTrue();
+        replacement.Find("[data-testid='tenants-create-safe-message']").TextContent.ShouldNotBeNullOrWhiteSpace();
+
+        replacement.Find("[data-testid='tenants-create-name']").Change("Original");
+        await replacement.Find("form").SubmitAsync();
+        replacement.Instance.Snapshot.State.ShouldBe(completeAfterRemount
+            ? TenantCommandLifecycleState.Confirmed : TenantCommandLifecycleState.Accepted);
+        gateway.CreateTenantCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(2);
+        gateway.LastMessageId.ShouldBe(messageId);
+        gateway.LastRequest.ShouldBe(original.Intent);
+        replacement.Instance.Snapshot.MessageId.ShouldBe(messageId);
+        replacement.Instance.Snapshot.CorrelationId.ShouldBe(original.CorrelationId);
+        replacement.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+        replacement.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(original.AttemptStartedAtUtc);
+        replacement.Instance.Snapshot.BaselineProjectionVersion.ShouldBe(original.BaselineProjectionVersion);
+        replacement.Instance.Snapshot.BaselineDetailProjectionVersion.ShouldBe(original.BaselineDetailProjectionVersion);
+        replacement.Instance.Snapshot.BaselineTenantAbsent.ShouldBe(original.BaselineTenantAbsent);
+        statusHandles.ShouldAllBe(handle => handle.MessageId == messageId
+            && handle.CorrelationId == original.CorrelationId && handle.AggregateId == "tenant.alpha"
+            && handle.ExpectedDomain == TenantIdentity.Domain);
+        admission.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBe(!completeAfterRemount);
+
+        // A different circuit receives new production scoped services and inherits no protected attempt.
+        using IServiceScope otherCircuit = Services.CreateScope();
+        TenantCreateAttemptTracker otherTracker = otherCircuit.ServiceProvider.GetRequiredService<TenantCreateAttemptTracker>();
+        otherTracker.ShouldNotBeSameAs(tracker);
+        otherTracker.Find("tenant.alpha").ShouldBeNull();
+        otherCircuit.ServiceProvider.GetRequiredService<TenantCommandAttemptTracker>()
+            .Find<TenantCreateCommandSnapshot>("tenant.alpha").ShouldBeNull();
+        TenantAggregateCommandAdmissionGate otherAdmission = otherCircuit.ServiceProvider
+            .GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        otherAdmission.ShouldNotBeSameAs(admission);
+        string tenantLock = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        otherAdmission.IsLocked(tenantLock).ShouldBeFalse();
+        object independentOwner = new();
+        otherAdmission.TryAcquire(tenantLock, independentOwner).ShouldBeTrue();
+        otherAdmission.IsLocked(tenantLock).ShouldBeTrue();
+        admission.IsLocked(tenantLock).ShouldBe(!completeAfterRemount);
+        otherAdmission.Release(tenantLock, independentOwner);
+        otherAdmission.IsLocked(tenantLock).ShouldBeFalse();
+        admission.IsLocked(tenantLock).ShouldBe(!completeAfterRemount);
+    }
+
     [Fact]
     public void A_retained_circuit_attempt_is_adopted_instead_of_dispatched_again()
     {
@@ -1269,6 +1402,8 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
 
         public Func<TenantCommandTrackingHandle, Task<TenantCommandStatusResult>>? StatusAsync { get; init; }
 
+        public Func<CreateTenant, string?, TenantCommandSubmissionResult>? SubmissionFactory { get; init; }
+
         public CreateTenant? LastRequest { get; private set; }
 
         public int CreateTenantCallCount { get; private set; }
@@ -1285,7 +1420,7 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
             LastMessageId = messageId;
             CreateTenantCallCount++;
             LastRequest = request;
-            return Task.FromResult(Submission);
+            return Task.FromResult(SubmissionFactory is null ? Submission : SubmissionFactory(request, messageId));
         }
 
         public Task<TenantCommandSubmissionResult> AddUserToTenantAsync(AddUserToTenant request, string? messageId = null, CancellationToken cancellationToken = default)

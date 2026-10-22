@@ -981,7 +981,6 @@ public sealed class AuditAvailabilityStateTests : FluentBunitContext
             source.ShouldContain("TenantAuditAvailability.StateLabelKeyFor(_snapshot.AuditState)", Case.Sensitive, flow);
             source.ShouldNotContain("AvailabilityText", Case.Sensitive, flow);
             source.ShouldContain("InspectAuditAction=\"@CommandAuditEntryPoint\"", Case.Sensitive, flow);
-            source.ShouldContain("=> AuditReadDenied ? null : CommandAuditEntryPointTemplate;", Case.Sensitive, flow);
             source.ShouldNotContain("<InspectAuditAction>", Case.Sensitive, flow);
             source.ShouldContain("OnRefresh=\"@(CanRequeryAudit ? EventCallback.Factory.Create(this, ", Case.Sensitive, flow);
             source.ShouldNotContain("AuditText", Case.Sensitive, flow);

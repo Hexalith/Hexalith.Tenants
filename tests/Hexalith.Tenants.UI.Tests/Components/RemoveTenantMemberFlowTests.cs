@@ -2481,6 +2481,81 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         gateway.LastRemoveMemberMessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("correlation-remove")]
+    public async Task AcceptedRemovalTrackingIsValidatedThroughGatewaySubmissionAndPublicRecovery(string? correlationId)
+    {
+        bool hasTracking = !string.IsNullOrWhiteSpace(correlationId);
+        List<bool> activity = [];
+        List<TenantCommandTrackingHandle> statusHandles = [];
+        StubTenantCommandGateway gateway = new()
+        {
+            RemoveMemberSubmission = (_, messageId) => TenantCommandSubmissionResult.Accepted(messageId!, correlationId!),
+            StatusAsync = (handle, _) =>
+            {
+                statusHandles.Add(handle);
+                return Task.FromResult(new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
+            },
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(active =>
+        {
+            activity.Add(active);
+            return Task.FromResult(true);
+        });
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        string messageId = gateway.LastRemoveMemberMessageId.ShouldNotBeNull();
+        NUlid.Ulid.TryParse(messageId, out _).ShouldBeTrue();
+        TenantRemoveMemberCommandSnapshot submitted = cut.Instance.Snapshot;
+        submitted.Intent.ShouldBe(new RemoveUserFromTenant("tenant.alpha", "reader-user"));
+        submitted.BaselineProjectionVersion.ShouldBe("tenant-sequence:1");
+
+        // Refresh must reject malformed Accepted tracking before touching the status gateway.
+        await cut.Find("[data-testid='tenants-remove-member-refresh']").ClickAsync(new MouseEventArgs());
+        cut.Instance.Snapshot.State.ShouldBe(hasTracking
+            ? TenantCommandLifecycleState.Accepted : TenantCommandLifecycleState.UnableToVerify);
+        if (!hasTracking)
+        {
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+            cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldNotBeNullOrWhiteSpace();
+            cut.Find("[data-testid='tenants-remove-member-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+        }
+
+        // A queued repeat submit remains an owned attempt even though its Accepted response was malformed.
+        await cut.Find("form").SubmitAsync();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(hasTracking ? 3 : 0);
+        cut.Instance.Snapshot.State.ShouldBe(hasTracking
+            ? TenantCommandLifecycleState.Accepted : TenantCommandLifecycleState.DuplicatePrevented);
+        cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+        cut.Instance.Snapshot.CorrelationId.ShouldBe(correlationId);
+        cut.Instance.Snapshot.Intent.ShouldBe(submitted.Intent);
+        cut.Instance.Snapshot.BaselineProjectionVersion.ShouldBe(submitted.BaselineProjectionVersion);
+        cut.Instance.Snapshot.BaselinePostconditionMet.ShouldBeFalse();
+        cut.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(submitted.AttemptStartedAtUtc);
+        cut.Instance.Snapshot.LastConfirmedMemberProjection.ShouldBe(submitted.LastConfirmedMemberProjection);
+        activity.ShouldBe([true]);
+        Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
+            .IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        if (hasTracking)
+        {
+            statusHandles.ShouldAllBe(handle => handle.MessageId == messageId
+                && handle.CorrelationId == correlationId && handle.AggregateId == "tenant.alpha"
+                && handle.ExpectedDomain == TenantIdentity.Domain);
+        }
+        else
+        {
+            statusHandles.ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-remove-member-safe-message']").TextContent.ShouldNotBeNullOrWhiteSpace();
+            cut.FindAll("[data-testid='tenants-audit-receipt']").ShouldBeEmpty();
+        }
+    }
+
     /// <summary>Unknown delivered-attempt state without tracking cannot be reset as a new preview.</summary>
     /// <param name="state">The uncertain lifecycle whose tracking is missing.</param>
     /// <param name="messageId">The remaining message identifier, if any.</param>
@@ -4761,6 +4836,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 
         public Func<RemoveUserFromTenant, Task<TenantCommandSubmissionResult>>? RemoveMemberAsync { get; init; }
 
+        public Func<RemoveUserFromTenant, string?, TenantCommandSubmissionResult>? RemoveMemberSubmission { get; init; }
+
         public RemoveUserFromTenant? LastRemoveMemberRequest { get; private set; }
 
         public string? LastRemoveMemberMessageId { get; private set; }
@@ -4783,7 +4860,9 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             RemoveMemberCallCount++;
             LastRemoveMemberRequest = request;
             LastRemoveMemberMessageId = messageId;
-            return RemoveMemberAsync is null ? Task.FromResult(Submission) : RemoveMemberAsync(request);
+            return RemoveMemberSubmission is not null
+                ? Task.FromResult(RemoveMemberSubmission(request, messageId))
+                : RemoveMemberAsync is null ? Task.FromResult(Submission) : RemoveMemberAsync(request);
         }
 
         public Task<TenantCommandSubmissionResult> UpdateTenantAsync(UpdateTenant request, string? messageId = null, CancellationToken cancellationToken = default)

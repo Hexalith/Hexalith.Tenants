@@ -1289,59 +1289,86 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
         NUlid.Ulid.TryParse(gateway.LastUpdateTenantMessageId, out _).ShouldBeTrue();
     }
 
-    [Fact]
-    public void In_flight_retry_without_tracking_blocks_with_in_flight_reason_and_does_not_dispatch_again()
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData("correlation-update")]
+    public void AcceptedMetadataTrackingIsValidatedThroughGatewaySubmissionAndPublicRecovery(string? correlationId)
     {
+        bool hasTracking = !string.IsNullOrWhiteSpace(correlationId);
         List<bool> activity = [];
+        List<TenantCommandTrackingHandle> statusHandles = [];
         StubTenantCommandGateway gateway = new()
         {
-            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-update"),
-            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+            UpdateTenantSubmission = (_, messageId) => TenantCommandSubmissionResult.Accepted(messageId!, correlationId!),
+            StatusAsync = handle =>
+            {
+                statusHandles.Add(handle);
+                return Task.FromResult(new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true));
+            },
         };
         RegisterServices(gateway);
-
+        TenantDetail original = Detail("tenant.alpha", "Alpha", "Tenant alpha description");
         IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(parameters => parameters
             .Add(p => p.IsAuthorized, true)
             .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
-            .Add(p => p.Detail, Detail("tenant.alpha", "Alpha", "Tenant alpha description"))
+            .Add(p => p.Detail, original)
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current)
-            .Add(p => p.ProjectionVersion, "v1")
+            .Add(p => p.ProjectionVersion, "tenant-sequence:1")
             .Add(p => p.OnCommandActivityChanged, active => activity.Add(active)));
 
         cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
         cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
         cut.Find("form").Submit();
+        cut.WaitForAssertion(() => gateway.UpdateTenantCallCount.ShouldBe(1));
+        string messageId = gateway.LastUpdateTenantMessageId.ShouldNotBeNull();
+        NUlid.Ulid.TryParse(messageId, out _).ShouldBeTrue();
+        DateTimeOffset started = cut.Instance.Snapshot.AttemptStartedAtUtc.ShouldNotBeNull();
+        cut.Instance.Snapshot.State.ShouldBe(correlationId is null || hasTracking
+            ? TenantCommandLifecycleState.Accepted : TenantCommandLifecycleState.UnableToVerify);
 
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
-        activity.ShouldContain(true);
-
-        System.Reflection.FieldInfo snapshotField = typeof(EditTenantMetadataFlow)
-            .GetField("_snapshot", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-        TenantUpdateMetadataCommandSnapshot snapshot = (TenantUpdateMetadataCommandSnapshot)snapshotField.GetValue(cut.Instance)!;
-        TenantDetail confirmed = Detail("tenant.alpha", "Previously confirmed", "Confirmed description");
-        snapshotField.SetValue(cut.Instance, snapshot with
-        {
-            MessageId = null,
-            CorrelationId = null,
-            LastConfirmedName = confirmed.Name,
-            LastConfirmedDescription = confirmed.Description,
-            LastConfirmedDetailProjection = confirmed,
-        });
-        cut.Render();
-
+        // Ambient detail/version churn must never replace the dispatched intent or its confirmed baseline.
+        cut.Render(parameters => parameters
+            .Add(p => p.Detail, Detail("tenant.alpha", "Ambient name", "Ambient description"))
+            .Add(p => p.ProjectionVersion, "tenant-sequence:99"));
         cut.Find("form").Submit();
 
-        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted));
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.State.ShouldBe(hasTracking
+            ? TenantCommandLifecycleState.Accepted : TenantCommandLifecycleState.UnableToVerify));
         gateway.UpdateTenantCallCount.ShouldBe(1);
-        cut.Instance.Snapshot.MessageId.ShouldBe(snapshot.MessageId);
-        cut.Instance.Snapshot.CorrelationId.ShouldBe(snapshot.CorrelationId);
-        cut.Instance.Snapshot.LastConfirmedName.ShouldBe(snapshot.LastConfirmedName);
-        activity.Last().ShouldBeTrue();
+        gateway.StatusCallCount.ShouldBe(hasTracking ? 2 : 0);
+        cut.Instance.Snapshot.MessageId.ShouldBe(messageId);
+        cut.Instance.Snapshot.CorrelationId.ShouldBe(correlationId);
+        cut.Instance.Snapshot.Intent.ShouldBe(new UpdateTenant("tenant.alpha", "Updated", "Tenant alpha description"));
+        cut.Instance.Snapshot.BaselineProjectionVersion.ShouldBe("tenant-sequence:1");
+        cut.Instance.Snapshot.AttemptStartedAtUtc.ShouldBe(started);
+        cut.Instance.Snapshot.LastConfirmedName.ShouldBe(original.Name);
+        cut.Instance.Snapshot.LastConfirmedDescription.ShouldBe(original.Description);
+        cut.Instance.Snapshot.LastConfirmedDetailProjection.ShouldBe(original);
+        cut.Find("[data-testid='tenants-edit-metadata-confirmed']").TextContent.ShouldContain("Alpha");
+        cut.Find("[data-testid='tenants-edit-metadata-confirmed']").TextContent.ShouldNotContain("Ambient name");
+        activity.ShouldBe([true]);
         Services.GetRequiredService<TenantAggregateCommandAdmissionGate>()
             .IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        if (hasTracking)
+        {
+            statusHandles.ShouldAllBe(handle => handle.MessageId == messageId
+                && handle.CorrelationId == correlationId && handle.AggregateId == "tenant.alpha"
+                && handle.ExpectedDomain == TenantIdentity.Domain);
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.NotStarted);
+        }
+        else
+        {
+            statusHandles.ShouldBeEmpty();
+            cut.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+            cut.Find("[data-testid='tenants-edit-metadata-safe-message']").TextContent.ShouldNotBeNullOrWhiteSpace();
+            cut.Find("[data-testid='tenants-edit-metadata-live-region']").GetAttribute("aria-live").ShouldBe("assertive");
+            cut.Find("[data-testid='tenants-edit-metadata-refresh']").GetAttribute("disabled").ShouldNotBeNull();
+        }
     }
 
     [Fact]
@@ -2172,6 +2199,8 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
 
         public Func<UpdateTenant, Task<TenantCommandSubmissionResult>>? UpdateTenantSubmissionAsync { get; init; }
 
+        public Func<UpdateTenant, string?, TenantCommandSubmissionResult>? UpdateTenantSubmission { get; init; }
+
         public Func<TenantCommandTrackingHandle, Task<TenantCommandStatusResult>>? StatusAsync { get; init; }
 
         public UpdateTenant? LastUpdateTenantRequest { get; private set; }
@@ -2199,7 +2228,9 @@ public sealed class EditTenantMetadataFlowTests : FluentBunitContext
             UpdateTenantCallCount++;
             LastUpdateTenantRequest = request;
             LastUpdateTenantMessageId = messageId;
-            return UpdateTenantSubmissionAsync is null ? Task.FromResult(Submission) : UpdateTenantSubmissionAsync(request);
+            return UpdateTenantSubmission is not null
+                ? Task.FromResult(UpdateTenantSubmission(request, messageId))
+                : UpdateTenantSubmissionAsync is null ? Task.FromResult(Submission) : UpdateTenantSubmissionAsync(request);
         }
 
         public Task<TenantCommandSubmissionResult> SetTenantConfigurationAsync(SetTenantConfiguration request, CancellationToken cancellationToken = default)
