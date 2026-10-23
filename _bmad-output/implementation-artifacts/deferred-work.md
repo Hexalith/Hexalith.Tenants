@@ -1542,29 +1542,11 @@ priority: P2
 archived: 2026-10-12
 
 ### DW-180: `LoadAsync` version bump after `BeginLoad` leaves a stale-apply window — deferred, pre-existing workspace load pattern
-origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679
-reason: The legacy ledger defers this issue: `LoadAsync` version bump after `BeginLoad` leaves a stale-apply window — deferred, pre-existing workspace load pattern. Original context is preserved in legacy-detail.
-legacy-detail: - `LoadAsync` version bump after `BeginLoad` leaves a stale-apply window — deferred, pre-existing workspace load pattern. Distinct from soft `RefreshAsync` blanking above (same approximate line region, different method). [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
-pre-async-ownership-status: open
+
 status: done 2026-10-23
-pre-async-ownership-disposition: uncertain
-disposition: done
-pre-async-ownership-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-async-ownership-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor LoadAsync still calls BeginLoad before incrementing _loadVersion; the ordering is confirmed, but no held cancellation/dispatcher reproduction establishes a stale snapshot application in that interval.
-verification: Replacement load generation retires before synchronous cancellation callbacks; the controlled old-load completion cannot replace confirmed evidence. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
-pre-async-ownership-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.AsyncOwnership.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
-pre-async-ownership-evidence-kind: unverified-risk
-evidence-kind: verified-closure
+origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-authorized-global-administrator-review.md (2026-08-08, loop 6 chunk 3)"), 2026-08-25
 priority: P2
-owner: unassigned
-pre-async-ownership-dependencies: none
-dependencies: none for this selected closure; independent release and authority holds remain tracked separately
-pre-async-ownership-next-action: Create a deterministic cancellation callback interleaving and assert the older load cannot apply.
-next-action: none; selected record closed with maintained behavioral evidence
-related: none
+archived: 2026-10-23
 
 ### DW-181: TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only
 
@@ -2242,30 +2224,12 @@ priority: P2
 archived: 2026-10-16
 
 ### DW-248: Refresh-coalescing re-enters recursively instead of iterating
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
-reason: The legacy ledger defers this issue: Refresh-coalescing re-enters recursively instead of iterating. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Refresh-coalescing re-enters recursively instead of iterating. evidence: RefreshCommandStatusAsync calls itself after the finally block when a request arrived during the in-flight release window. Under a sustained nudge stream this grows the async frame chain without bound. The dropped-request windows reported by review did not reproduce on inspection. Duplicated verbatim across AddTenantMemberFlow, ChangeTenantMemberRoleFlow and RemoveTenantMemberFlow, so any rewrite should extract a shared helper.
-pre-command-recovery-status: open
+
 status: done 2026-10-22
-pre-command-recovery-disposition: actionable
-disposition: done
-pre-command-recovery-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-command-recovery-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still recursively re-enter RefreshCommandStatusAsync after the finally release window; continuous nudges can grow the async chain.
-verification: All three membership flows use TenantMembershipStatusRefreshDrain. Controlled queued/faulted/generation/sustained-nudge tests qualify iterative batches and manual projection intent; removal retains terminal audit recovery. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
-pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipStatusRefreshDrain.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; tests/Hexalith.Tenants.UI.Tests/State/TenantMembershipStatusRefreshDrainTests.cs
-pre-command-recovery-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof (2026-08-20)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 priority: P3
-owner: unassigned
-pre-command-recovery-dependencies: membership coalescer design
-dependencies: none
-pre-command-recovery-next-action: Replace recursive tail replay with an iterative shared drain without dropping refresh intent.
-next-action: None; closed by the command recovery safety batch.
-related: DW-245, DW-265, DW-290
+archived: 2026-10-23
 
 ### DW-249: AttemptStartedAtUtc and hasQualifyingAuditProvenance are dead in production for metadata; the snapshot test pins a branch no production call site can reach
 
@@ -2314,32 +2278,12 @@ priority: P2
 archived: 2026-10-22
 
 ### DW-255: `AttemptStartedAtUtc` ships on the public `TenantCreateCommandSnapshot` record but is never read, and defaults via `DateTimeOffset.UtcNow` instead of an injected clock
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-1-create-tenant-with-projection-confirmation.md (2026-08-21)"), 2026-08-25
-location: AttemptStartedAtUtc
-source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
-reason: The legacy ledger defers this issue: `AttemptStartedAtUtc` ships on the public `TenantCreateCommandSnapshot` record but is never read, and defaults via `DateTimeOffset.UtcNow` instead of an injected clock. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: `AttemptStartedAtUtc` ships on the public `TenantCreateCommandSnapshot` record but is never read, and defaults via `DateTimeOffset.UtcNow` instead of an injected clock. evidence: The audit-provenance branch it feeds (`HasQualifyingAuditProvenance`) is never called for create and is already recorded as deferred work from the 2026-08-08 review; removing or wiring the field belongs with that slice.
-pre-command-recovery-status: open
+
 status: done 2026-10-22
-decision: 2026-08-27 Wire injected timing — Inject a clock, stamp create attempts deterministically, and consume AttemptStartedAtUtc in bounded retained-attempt or provenance behavior while preserving the public member.
-decision: 2026-08-27 Wire injected timing — Inject a clock, stamp create attempts deterministically, and consume AttemptStartedAtUtc in bounded retained-attempt or provenance behavior while preserving the public member.
-pre-command-recovery-disposition: actionable
-disposition: done
-pre-command-recovery-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-command-recovery-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs TenantCreateCommandSnapshot still stamps AttemptStartedAtUtc with DateTimeOffset.UtcNow; CreateTenantFlow.razor has no injected clock or consumption of that field. Existing 2026-08-27 injected-timing decision remains pending.
-verification: CreateTenantFlow supplies host TimeProvider UTC timestamps at dispatch and status observation. The original AttemptStartedAtUtc bounds missing/transient status waiting to five minutes and recoverable UnableToVerify without releasing admission. Boundary, repeated-wait, stored-event, later-recovery and shipped EN/FR component tests qualify this behavior. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
-pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandSnapshot.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantCreateCommandSnapshotTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs
-pre-command-recovery-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-1-create-tenant-with-projection-confirmation.md (2026-08-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 priority: P3
-owner: unassigned
-pre-command-recovery-dependencies: none
-dependencies: none
-pre-command-recovery-next-action: Inject the chosen clock and consume timing in bounded retained create behavior while preserving the public member.
-next-action: None; closed by the command recovery safety batch.
-related: DW-313
+archived: 2026-10-23
 
 ### DW-256: `CreateTenantFlow.ApplyProjectionEvidence` has no callers in `src/` or `tests/` and bypasses `SetSnapshot`, so it would not honour the assertive-focus rule if wired
 
@@ -2427,29 +2371,11 @@ priority: P2
 archived: 2026-10-16
 
 ### DW-266: `AsyncLocal<bool>` is the wrong primitive for dispatcher-bound re-entrancy state
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: AddTenantMemberFlow.razor:160; ChangeTenantMemberRoleFlow.razor:178
-reason: The legacy ledger defers this issue: `AsyncLocal<bool>` is the wrong primitive for dispatcher-bound re-entrancy state. Original context is preserved in legacy-detail.
-legacy-detail: - summary: `AsyncLocal<bool>` is the wrong primitive for dispatcher-bound re-entrancy state. evidence: `AddTenantMemberFlow.razor:160`, `ChangeTenantMemberRoleFlow.razor:178`. Blazor components already run serialized on the renderer dispatcher, so a plain field is correct and avoids an ExecutionContext copy-on-write per set; the AsyncLocal also fails to flow into callbacks invoked from a context it was not captured on.
-pre-async-ownership-status: open
+
 status: done 2026-10-23
-pre-async-ownership-disposition: actionable
-disposition: done
-pre-async-ownership-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-async-ownership-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still use AsyncLocal<bool> _isProjectionRefreshCallback. A simpler dispatcher-state primitive is recommended, but no distinct production failure is demonstrated.
-verification: Causal parent callback reentry is suppressed while independent overlapping nudges retain catch-up work. AsyncLocal is the verified intentional policy; component-wide boolean negative controls fail for both flows. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
-pre-async-ownership-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
-pre-async-ownership-evidence-kind: recommendation
-evidence-kind: verified-closure
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
 priority: P3
-owner: unassigned
-pre-async-ownership-dependencies: none
-dependencies: none for this selected closure; independent release and authority holds remain tracked separately
-pre-async-ownership-next-action: Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive.
-next-action: none; selected record closed with maintained behavioral evidence
-related: DW-267
+archived: 2026-10-23
 
 ### DW-267: Coalescer, submit guard, lease plumbing and `SafeMessageText` are copy-pasted across flow components
 origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
@@ -2486,29 +2412,11 @@ next-action: Audit each host selector, repair ownership/::deep where needed and 
 related: DW-317
 
 ### DW-269: Inserting `Available` mid-enum shifts `MissingSupport`'s numeric value
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: TenantAuditAvailability.cs:5-11
-reason: The legacy ledger defers this issue: Inserting `Available` mid-enum shifts `MissingSupport`'s numeric value. Original context is preserved in legacy-detail.
-legacy-detail: - summary: Inserting `Available` mid-enum shifts `MissingSupport`'s numeric value. evidence: `TenantAuditAvailability.cs:5-11`. Harmless today (no numeric persistence or interop), but it makes the enum unsafe to serialize by value later.
-pre-command-recovery-status: open
+
 status: done 2026-10-22
-pre-command-recovery-disposition: accepted-limitation
-disposition: done
-pre-command-recovery-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-command-recovery-verification: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs still places Available before MissingSupport with implicit values. No numeric persistence/interoperability usage is established; the original finding explicitly records a harmless historical shift rather than an active serialized contract.
-verification: Explicit values preserve the current Pending=0, Delayed=1, Unavailable=2, Available=3, MissingSupport=4 observations, with five contract checks. The historical shift remains recorded; no unsupported numeric persistence migration is claimed. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
-pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs
-verification-files: src/Hexalith.Tenants.UI/State/TenantAudit/TenantAuditAvailabilityState.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantAuditAvailabilityStateTests.cs
-pre-command-recovery-evidence-kind: accepted-limitation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
 priority: P3
-owner: unassigned
-pre-command-recovery-dependencies: none
-dependencies: none
-pre-command-recovery-next-action: Assign/pin values before introducing numeric serialization; retain the historical observation.
-next-action: None; closed by the command recovery safety batch.
-related: none
+archived: 2026-10-23
 
 ### DW-270: French resource additions are inconsistently accented against their neighbours
 
@@ -2559,29 +2467,11 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 archived: 2026-10-12
 
 ### DW-276: `_commandInFlight` is handled inconsistently across the two lease-refusal paths in one method
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
-location: TenantDetailPage.razor:1681-1686
-reason: The legacy ledger defers this issue: `_commandInFlight` is handled inconsistently across the two lease-refusal paths in one method. Original context is preserved in legacy-detail.
-legacy-detail: - summary: `_commandInFlight` is handled inconsistently across the two lease-refusal paths in one method. evidence: `TenantDetailPage.razor:1681-1686` returns `false` leaving a stale `true`; `:1705-1709` explicitly clears it first. The removed code carried a comment explaining the no-lockable-identity path; it was dropped rather than preserved or refuted.
-pre-command-recovery-status: open
+
 status: done 2026-10-22
-pre-command-recovery-disposition: uncertain
-disposition: done
-pre-command-recovery-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-command-recovery-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor SetCommandActivityLeaseAsync still returns false for missing identity/gate without clearing _commandInFlight, while contention clears it. The owning-lease invariants may make unconditional clearing incorrect; no reproduced stale-true path is established.
-verification: Five held-lease cases exercise another surface with same, mismatched, empty, whitespace and null tenant identity. Refusal preserves _commandInFlight, exact holder and gate owner; refused release cannot free admission, and the real owner releases normally. The historical stale-true risk is disproved for supported held ownership, with the intentional asymmetry documented. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
-pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
-pre-command-recovery-evidence-kind: unverified-risk
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md — loop 3 chunk B (2026-08-21)"), 2026-08-25
 priority: P3
-owner: unassigned
-pre-command-recovery-dependencies: none
-dependencies: none
-pre-command-recovery-next-action: Hold an existing lease and exercise each refusal path to establish the intended flag/owner behavior.
-next-action: None; closed by the command recovery safety batch.
-related: none
+archived: 2026-10-23
 
 ### DW-277: A `TenantId` change does not notify non-keyed command surfaces that their lease was revoked
 
@@ -2689,27 +2579,12 @@ source_spec: `_bmad-output/implementation-artifacts/spec-3-2-edit-tenant-metadat
 archived: 2026-10-12
 
 ### DW-292: Add executable in-repository verification for the TEA enforcement hook assets included in the reviewed range
-origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof — loop 3 final verification (2026-08-21)"), 2026-08-25
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
-reason: The legacy ledger defers this issue: Add executable in-repository verification for the TEA enforcement hook assets included in the reviewed range. Original context is preserved in legacy-detail.
-legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Add executable in-repository verification for the TEA enforcement hook assets included in the reviewed range. evidence: The mirrored `tea-enforce.cjs` assets advertise focused-test and registry-completeness enforcement, but no repository test imports the scanner or executes its pre/post/stop modes, so a disabled rule or an always-successful entry point would remain green.
-pre-tooling-status: open
+
 status: done 2026-10-23
-pre-tooling-disposition: actionable
-disposition: done
-pre-tooling-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-tooling-verification: .claude/skills/bmad-testarch-framework/resources/hooks/tea-enforce.cjs and .agents/skills/bmad-testarch-framework/resources/hooks/tea-enforce.cjs remain; repository tests do not import/execute their pre/post/stop scanner contract.
-verification: Both mirrored TEA hooks pass executable scanner/registry/pre/post/stop/fail-open regressions in temporary roots; the suites are enrolled in the blocking Story Guards job. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
-pre-tooling-evidence-kind: verified-gap
-evidence-kind: verified-closure
+origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-remove-tenant-member-with-complete-preview-and-proof — loop 3 final verification (2026-08-21)"), 2026-08-25
+source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 priority: P3
-owner: unassigned
-dependencies: TEA hook test harness
-pre-tooling-next-action: Add focused scanner mode/registry/failure regressions in owning tooling tests.
-next-action: none; selected record closed with executable tooling evidence
-related: none
+archived: 2026-10-23
 
 ### DW-293: Blank `CommandSurfaceUnavailableReason` maps to `UnavailableReason.AggregateLocked`'s copy, which asserts a specific ("another command is already in progress") cause that may not be true
 
@@ -2783,56 +2658,18 @@ priority: P1
 archived: 2026-10-13
 
 ### DW-301: `TenantDetailPage`'s `ResetLifecycleProofScope`/`BeginLifecycleProof`/`CanApplyLifecycleProof`/`CompleteLifecycleProof` quartet is a verbatim copy of the metadata quartet, and `TenantQueryGateway.GetLifecycleProjectionProofAsync` is byte-identical to `GetMetadataProjectionProofAsync`. Extract a keyed `ProofScope` helper before a third command surface needs one
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
-location: TenantDetailPage
-reason: The legacy ledger defers this issue: `TenantDetailPage`'s `ResetLifecycleProofScope`/`BeginLifecycleProof`/`CanApplyLifecycleProof`/`CompleteLifecycleProof` quartet is a verbatim copy of the metadata quartet, and `TenantQueryGateway.GetLifecycleProjectionProofAsync` is byte-identical to `GetMetadataProjectionProofAsync`. Original context is preserved in legacy-detail.
-legacy-detail: - `TenantDetailPage`'s `ResetLifecycleProofScope`/`BeginLifecycleProof`/`CanApplyLifecycleProof`/`CompleteLifecycleProof` quartet is a verbatim copy of the metadata quartet, and `TenantQueryGateway.GetLifecycleProjectionProofAsync` is byte-identical to `GetMetadataProjectionProofAsync`. Extract a keyed `ProofScope` helper before a third command surface needs one.
-pre-lifecycle-maintenance-status: open
+
 status: done 2026-10-22
-pre-lifecycle-maintenance-disposition: actionable
-disposition: done
-pre-lifecycle-maintenance-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor still has separate metadata/lifecycle proof-generation/CTS blocks; Services/Gateways/TenantQueryGateway.cs has parallel unconditional proof seams.
-verification: Independent tenant/caller-keyed proof scopes preserve concurrent reads, cancellation generation and operation-owned disposal, including reentrant and competing-thread completion. The gateway shares its unconditional detail proof read. Focused and complete UI regressions pass; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantProofScope.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantProofOperation.cs; src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantProofScopeTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
 priority: P3
-owner: unassigned
-pre-lifecycle-maintenance-dependencies: none
-dependencies: none (compatibility and regression gates satisfied)
-pre-lifecycle-maintenance-next-action: Extract a keyed proof-scope helper with cancellation and route-generation behavior pinned first.
-next-action: None; closed by the lifecycle maintenance batch.
-related: none
+archived: 2026-10-23
 
 ### DW-302: `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). In production all four agree, so the override is untestable no-op logic that diverges only under test doubles. Pick one carrier
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
-location: ProjectionVersion
-reason: The legacy ledger defers this issue: `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). Original context is preserved in legacy-detail.
-legacy-detail: - `ProjectionVersion` is threaded through four carriers (page parameter, `HighImpactEvidence`, `ResolveAvailability` override, `TenantLifecycleAvailabilityInput`). In production all four agree, so the override is untestable no-op logic that diverges only under test doubles. Pick one carrier.
-pre-lifecycle-maintenance-status: open
+
 status: done 2026-10-22
-decision: 2026-08-27 Evidence is canonical — Make TenantHighImpactActionEvidence the canonical version source, remove the override path, and retain compatibility shims for public component parameters during migration.
-decision: 2026-08-27 Evidence is canonical — Make TenantHighImpactActionEvidence the canonical version source, remove the override path, and retain compatibility shims for public component parameters during migration.
-pre-lifecycle-maintenance-disposition: actionable
-disposition: done
-pre-lifecycle-maintenance-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor ResolveAvailability still overlays ProjectionVersion onto supplied evidence; TenantLifecycleCommandFlow.razor carries its own override. Existing 2026-08-27 evidence-canonical decision is not implemented.
-verification: Supplied high-impact evidence is the canonical projection marker, including absent versions; compatibility scalar parameters apply only without typed evidence. Preview, remount, submit and conflicting-version regressions pass in the focused and complete UI lanes; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25, loop 2)"), 2026-08-25
 priority: P3
-owner: unassigned
-pre-lifecycle-maintenance-dependencies: public component compatibility
-dependencies: none (compatibility and regression gates satisfied)
-pre-lifecycle-maintenance-next-action: Make high-impact evidence canonical and retain only explicit compatibility shims for public parameters.
-next-action: None; closed by the lifecycle maintenance batch.
-related: none
+archived: 2026-10-23
 
 ### DW-303: A blank `ProjectionVersion` fails closed as `UnavailableReason.StaleData`, bricking both lifecycle buttons behind "authoritative data is not current" — a cause no refresh can fix and which misdirects support. Needs a distinct reason or recovery key
 
@@ -2899,29 +2736,11 @@ source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-t
 archived: 2026-10-12
 
 ### DW-313: `TenantLifecycleAttemptTracker` reimplements `TenantCreateAttemptTracker` without sharing
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25)"), 2026-08-25
-location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs:24-70; TenantsUiServiceCollectionExtensions.cs:98
-reason: The legacy ledger defers this issue: `TenantLifecycleAttemptTracker` reimplements `TenantCreateAttemptTracker` without sharing. Original context is preserved in legacy-detail.
-legacy-detail: - **`TenantLifecycleAttemptTracker` reimplements `TenantCreateAttemptTracker` without sharing** — `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs:24-70` is the same circuit-scoped, `StringComparer.Ordinal`-keyed, lock-guarded per-tenant retention concept, but with no expiry, no terminal tombstones, and a `Forget(tenantId)` carrying exactly the late-completion race the new tracker's docs warn about. Both are registered side by side (`TenantsUiServiceCollectionExtensions.cs:98`). Pre-existing; the create flow is Story 3.1 territory and sharing a generic base is a cross-story refactor. Either share a base or file the create-flow gap explicitly — two divergent answers to one question is the worse outcome.
-pre-command-recovery-status: open
+
 status: done 2026-10-22
-pre-command-recovery-disposition: actionable
-disposition: done
-pre-command-recovery-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-command-recovery-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs still stores only handles and Forget(tenantId), without expiry/tombstones/intent; TenantLifecycleAttemptTracker.cs has bounded snapshots and dispatch-identity ownership. The trackers remain divergent.
-verification: The existing create adapter uses the shared complete TenantCommandAttemptTracker. Legacy Forget cannot discard complete intent/timing/baseline or admission, replacement adopts exact retained evidence, and stale delivery/update cannot replace or release a successor. Lifecycle-specific bounded ownership remains a deliberate separate policy; dispatched create ownership never expires. Exact evidence: dw-248-255-269-276-313-validation-evidence.md
-pre-command-recovery-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateAttemptTracker.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCommandAttemptTracker.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantRetainedCommandAttemptTests.cs
-pre-command-recovery-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-25)"), 2026-08-25
 priority: P2
-owner: unassigned
-pre-command-recovery-dependencies: create identity/ownership contract
-dependencies: none
-pre-command-recovery-next-action: Address create retention/late completion before extracting reusable technical retention behavior.
-next-action: None; closed by the command recovery safety batch.
-related: DW-255, DW-284, DW-288
+archived: 2026-10-23
 
 ### DW-314: `TenantConfigurationManagementContext.Available` documents the `authorityState = null` landmine instead of removing it
 
@@ -2982,78 +2801,25 @@ priority: P3
 archived: 2026-10-22
 
 ### DW-321: Extract shared lifecycle lease-reclamation and focus helpers
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
-location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor:560,576,593,2336; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor
-reason: Four admission-owner, retained-lease, and release blocks repeat the same logic with small identity and ownership-polarity differences, while `FocusSafelyAsync` is byte-identical across the two lifecycle components. Extract shared helpers that preserve those deliberate differences.
-pre-lifecycle-maintenance-status: open
+
 status: done 2026-10-22
-pre-lifecycle-maintenance-disposition: actionable
-disposition: done
-pre-lifecycle-maintenance-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor retains repeated lifecycle/set/remove-config reclamation and release blocks; Lifecycle/TenantLifecycleCommandFlow.razor and TenantLifecycleActionAvailability.razor duplicate FocusSafelyAsync.
-verification: Shared detail-page helpers preserve exact surface admission identity, nullable tracker retention polarity, route reclamation and successor ownership. Both lifecycle components share the existing focus exception policy. Nine page ownership cases and supported/unsupported focus checks pass with the complete UI suite; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleActionAvailability.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleFocus.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 priority: P3
-owner: unassigned
-pre-lifecycle-maintenance-dependencies: lease/focus regression coverage
-dependencies: none (compatibility and regression gates satisfied)
-pre-lifecycle-maintenance-next-action: Extract helpers after explicitly pinning surface owner identity and retention polarity.
-next-action: None; closed by the lifecycle maintenance batch.
-related: none
+archived: 2026-10-23
 
 ### DW-322: Move `TenantLifecycleAttemptTracker` pruning off the render path
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
-location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs; TenantLifecycleCommandFlow.OnParametersSet; TenantLifecycleActionAvailability.OnParametersSet
-reason: `Find` prunes under lock and allocates `ToArray` snapshots of three dictionaries, and both lifecycle components invoke it unconditionally during parameter rendering. Prune on mutation or on a timer so routine renders do not pay the repeated lock and allocation cost.
-pre-lifecycle-maintenance-status: open
+
 status: done 2026-10-22
-pre-lifecycle-maintenance-disposition: actionable
-disposition: done
-pre-lifecycle-maintenance-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs Find invokes PruneExpiredLocked under lock, which ToArray-copies three dictionaries; both lifecycle components call Find from parameter rendering.
-verification: Render-time tracker reads apply constant-size requested-tenant expiry; mutation sweeps reuse that policy. The original snapshot-only workload allocated 13176000 bytes; the strengthened three-collection workload allocates zero. Exact-deadline, dispatch-only, clock-regression and stale-arrival regressions pass with the complete UI suite; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleMaintenanceTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 priority: P3
-owner: unassigned
-pre-lifecycle-maintenance-dependencies: none
-dependencies: none (compatibility and regression gates satisfied)
-pre-lifecycle-maintenance-next-action: Measure render cost and move pruning to a controlled mutation/expiry seam without losing expiration semantics.
-next-action: None; closed by the lifecycle maintenance batch.
-related: none
+archived: 2026-10-23
 
 ### DW-323: Enforce or remove `PendingStatusPollCount`
-origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
-location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
-reason: `PendingStatusPollCount` is incremented, saturated, and merged across attempts but never read as a budget; only the five-minute deadline bounds polling. Enforce a poll cap or remove the unused counter and its `MergeSameAttempt` plumbing.
-pre-lifecycle-maintenance-status: open
+
 status: done 2026-10-22
-decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.
-decision: 2026-08-27 Enforce poll budget — Define a tested maximum pending-poll count, transition safely to UnableToVerify when exhausted, and keep the existing public field operational.
-pre-lifecycle-maintenance-disposition: actionable
-disposition: done
-pre-lifecycle-maintenance-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-lifecycle-maintenance-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs lifecycle pending polls increment PendingStatusPollCount, but only elapsed five-minute expiry bounds them; TenantLifecycleAttemptTracker.cs only merges the count. Existing 2026-08-27 poll-budget decision remains pending.
-verification: Thirty inconclusive polls bound missing/transient and verified pre-event status alongside the unchanged five-minute deadline. Remounts preserve identity and budget; terminal results and the stored-event final proof retain their semantics. Boundary, rendered held-proof and shipped EN/FR recovery regressions pass with the complete UI suite; see _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleCommandSnapshot.cs; src/Hexalith.Tenants.UI/State/TenantCommands/TenantLifecycleAttemptTracker.cs; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/State/TenantLifecycleMaintenanceTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs; _bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md
-pre-lifecycle-maintenance-evidence-kind: recommendation
-evidence-kind: executed-regression
+origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 priority: P3
-owner: unassigned
-pre-lifecycle-maintenance-dependencies: configured poll budget
-dependencies: none (compatibility and regression gates satisfied)
-pre-lifecycle-maintenance-next-action: Implement the recorded tested poll cap and safe UnableToVerify transition.
-next-action: None; closed by the lifecycle maintenance batch.
-related: DW-247
+archived: 2026-10-23
 
 ### DW-324: French audit resource values spell "Reference" without its accent, so a French operator reads unaccented labels where the rest of the file is correctly accented.
 
@@ -3161,29 +2927,12 @@ priority: P2
 archived: 2026-10-17
 
 ### DW-332: Repeated availability evaluation during one Razor render could theoretically produce mismatched reason and recovery associations.
-origin: spec-deferred cb19669a12d0
-location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor:821
-source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
-reason: Grant and removal availability are recomputed independently for visible copy, disabled state, and aria-describedby. Blazor serializes renderer callbacks, but the admission gate's state can change before its notification callback is rendered; a deterministic test that changes gate or viewport evidence between those synchronous property reads is needed to establish whether an inconsistent render is reachable. The evaluation pattern predates this re-drive.
-pre-async-consistency-status: open
-pre-async-consistency-disposition: uncertain
-pre-async-consistency-verification-date: 2026-10-12
-pre-async-consistency-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor still recomputes availability across rendered attributes; no deterministic gate/viewport transition between synchronous reads establishes mismatched copy or associations.
-pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-pre-async-consistency-evidence-kind: unverified-risk
-priority: P3
-owner: unassigned
-pre-async-consistency-dependencies: none
-pre-async-consistency-next-action: Drive a controlled evidence transition during a render and capture the resulting associations before choosing a fix.
-related: none
+
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: Controlled admission and viewport changes during localized render reads reproduce incoherent disabled state and associations on the original page. A single captured action-evidence snapshot now supplies rendered grant/remove availability, reasons, recovery and descriptions; the next render adopts newer evidence and command admission still evaluates current state. Evidence: dw-332-388-400-409-415-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
-evidence-kind: verified-closure
-dependencies: none (existing component harness and shared services)
-next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
+origin: spec-deferred cb19669a12d0
+source_spec: `spec-4-1-fixed-scope-global-administrator-action-availability.md`
+priority: P3
+archived: 2026-10-23
 
 ### DW-333: The concurrently introduced tenant-workspace tab migration lacks browser-level proof that inactive panels are not visible or focusable.
 origin: spec-deferred 55356cb8b10a
@@ -3755,31 +3504,11 @@ related: DW-373
 
 ### DW-388: Make removal projection requery cancellable across supersession and disposal.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Make removal projection requery cancellable across supersession and disposal.\n  evidence: `RequeryRemoveProjectionAsync` starts the bounded population walk with `CancellationToken.None`, so a replaced operation cannot stop its I/O."
-pre-async-consistency-status: open
-pre-async-consistency-disposition: actionable
-pre-async-consistency-verification-date: 2026-10-12
-pre-async-consistency-verification: GlobalAdministratorsPage.razor::RequeryRemoveProjectionAsync:4809 still calls LoadCompletePopulationSafelyAsync(CancellationToken.None); supersession/disposal guards reject stale writes but cannot stop the already-running multi-page I/O.
-pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-pre-async-consistency-evidence-kind: verified-defect
-priority: P2
-owner: unassigned
-pre-async-consistency-dependencies: Removal operation cancellation lifetime
-pre-async-consistency-next-action: Pass an attempt-owned cancellation token through removal projection requery and verify supersession/disposal cancels the bounded walk.
-related: none
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: Held bounded removal population walks cancel on mutation invalidation and disposal, including the actual submitted removal/status path. The operation token reaches projection I/O; cancellation leaves the unresolved dispatched lease retained or owned, and completing the old operation cannot cancel a successor lifetime. Evidence: dw-332-388-400-409-415-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
-evidence-kind: verified-closure
-dependencies: none (existing component harness and shared services)
-next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
-
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
+priority: P2
+archived: 2026-10-23
 
 ### DW-389: Determine whether remove-dialog JS interop can surface cancellation exceptions during browser teardown.
 
@@ -3870,28 +3599,11 @@ archived: 2026-10-22
 
 ### DW-397: Add real explicit-project-root tests for the BMAD customization resolver.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Add real explicit-project-root tests for the BMAD customization resolver.\n  evidence: Wrapper tests only inspect mocked argv; execute the resolver from a conflicting working directory and cover explicit-root precedence, fallback precedence, and warnings in the Python guard lane."
-pre-tooling-status: open
 status: done 2026-10-23
-pre-tooling-disposition: actionable
-disposition: done
-pre-tooling-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-tooling-verification: _bmad/scripts/resolve_customization.py implements --project-root, candidate_project_roots precedence, and warn_on_masked_override. The tracked Python tests under tests/scripts only contain the gitlink regression lane; no direct resolver test executes conflicting cwd/explicit-root precedence and warnings.
-verification: Real resolver subprocesses prove explicit-root, cwd/script/skill fallback ordering, nested Git precedence, three-layer merge and masked-override diagnostics using isolated temporary installations. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
-pre-tooling-evidence-kind: verified-gap
-evidence-kind: verified-closure
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 priority: P3
-owner: unassigned
-dependencies: Python 3.11+ and temporary fixture roots
-pre-tooling-next-action: Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics.
-next-action: none; selected record closed with executable tooling evidence
-related: none
-
+archived: 2026-10-23
 
 ### DW-398: Update the quickstart for generated local Keycloak credentials.
 
@@ -3911,31 +3623,11 @@ archived: 2026-10-12
 
 ### DW-400: Close the global-administrator read-refresh subscription race across authorization collapse.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Close the global-administrator read-refresh subscription race across authorization collapse.\n  evidence: Authorization can become false after the post-subscribe guard and before `_readRefreshLease` assignment; the sign-out path can then miss and leave that callback subscribed because the post-assignment guard only rechecks disposal."
-pre-async-consistency-status: open
-pre-async-consistency-disposition: actionable
-pre-async-consistency-verification-date: 2026-10-12
-pre-async-consistency-verification: GlobalAdministratorsPage.razor::EnsureReadRefreshLeaseAsync checks _disposed/IsAuthorized before assignment (:2335), then assigns _readRefreshLease (:2352), and its post-assignment guard checks only _disposed (:2359). Authorization collapse between those points can still miss the assigned lease. The dispose-race test covers _disposed only.
-pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-pre-async-consistency-evidence-kind: verified-defect
-priority: P2
-owner: unassigned
-pre-async-consistency-dependencies: Captured authorization transition generation
-pre-async-consistency-next-action: Guard subscription assignment against authorization generation/collapse and add the same interleaving with sign-out rather than disposal.
-related: DW-421
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: A principal transition inside the post-subscribe scope check reproduces authorization collapse before assignment. The post-assignment check now rejects the expired authorization version, disables callback adoption and disposes its lease. No unauthorized notification read remains; authorized recovery subscribes again within the existing retry budget. Evidence: dw-332-388-400-409-415-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
-evidence-kind: verified-closure
-dependencies: none (existing component harness and shared services)
-next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
-
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+priority: P2
+archived: 2026-10-23
 
 ## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22)
 
@@ -4019,31 +3711,11 @@ related: none
 
 ### DW-409: Verify grant completion is applied when the grant generation is superseded after the lease completion is published (unverified, would be medium).
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22, Group A removal core)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Verify grant completion is applied when the grant generation is superseded after the lease completion is published (unverified, would be medium).\n  evidence: `DispatchGrantAsync` syncs the published completion only while `CanApplyGrantMutation(generation)` holds, and the gate handler skips grant sync while `_isGrantSubmitting` is true; settle with a test that invalidates the generation between `TryCompleteReconciliationDispatch` and the renderer sync."
-pre-async-consistency-status: open
-pre-async-consistency-disposition: uncertain
-pre-async-consistency-verification-date: 2026-10-12
-pre-async-consistency-verification: GlobalAdministratorsPage.razor::DispatchGrantAsync still applies a published lease completion only when CanApplyGrantMutation(generation), while ApplyFixedAggregateAdmissionChangeAsync skips grant sync during _isGrantSubmitting. Superseded_accepted_completion_is_immediately_adopted_and_resumed exists, but its test gates I/O/rendering rather than proving the exact ordering of lease publication, skipped notification, and generation supersession. Missing evidence is that exact same-owner publication-to-sync interleaving.
-pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-pre-async-consistency-evidence-kind: unverified-risk
-priority: P2
-owner: unassigned
-pre-async-consistency-dependencies: none
-pre-async-consistency-next-action: Add or run a deterministic test that invalidates grant generation after durable completion publication but before renderer sync, and assert UI plus lease completion.
-related: DW-376, DW-421
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: An exact completion-publication barrier proves the admission callback skips synchronization while submission is active, then supersedes the mutation generation before renderer synchronization. Current authorized ownership now adopts Accepted evidence and performs exactly one status read without redispatch. Normal, authorization-loss and replacement-owner controls pass. Evidence: dw-332-388-400-409-415-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
-evidence-kind: verified-closure
-dependencies: none (existing component harness and shared services)
-next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
-
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22, Group A removal core)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+priority: P2
+archived: 2026-10-23
 
 ## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22, Group A production File List)
 
@@ -4091,31 +3763,11 @@ archived: 2026-10-22
 
 ### DW-415: Verify the removal requery mismatch branch cannot release a live same-attempt lease from a stale confirming basis (unverified, would be medium).
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Verify the removal requery mismatch branch cannot release a live same-attempt lease from a stale confirming basis (unverified, would be medium).\n  evidence: In `RequeryRemoveProjectionAsync` (`GlobalAdministratorsPage.razor:4765-4773`), if `_removeSnapshot` advanced to the same attempt's next state during the held load, the lease still matches, so `RetainOrReleaseRemoveCompletion` can call `TryReleaseTerminal` for a terminal stale-basis projection while the UI keeps a non-terminal snapshot. Settle with a page test that advances the same attempt during a held confirming requery and asserts the lease and UI state together."
-pre-async-consistency-status: open
-pre-async-consistency-disposition: uncertain
-pre-async-consistency-verification-date: 2026-10-12
-pre-async-consistency-verification: GlobalAdministratorsPage.razor::RequeryRemoveProjectionAsync still calls RetainOrReleaseRemoveCompletion(projectionSnapshot, projectionLease, snapshot) when its captured snapshot is no longer current. Same-lease advancement can therefore reach terminal-release handling from an old confirming basis. Existing superseded projection tests inspect replacement attempts, but no retained test proves this exact same-attempt/nonterminal UI plus terminal stale-basis release ordering.
-pre-async-consistency-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-pre-async-consistency-evidence-kind: unverified-risk
-priority: P2
-owner: unassigned
-pre-async-consistency-dependencies: none
-pre-async-consistency-next-action: Hold a confirming removal projection read, advance the same attempt snapshot, release the read, and assert retained UI state and lease ownership together.
-related: DW-388, DW-421
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: A held confirming removal read followed by same-lease snapshot advancement reproduces a released lease beside an unresolved visible attempt on the original page. The stale basis now cannot release that advanced current snapshot; current unchanged terminal confirmation still releases, and replacement lease guards remain qualified. Evidence: dw-332-388-400-409-415-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor; tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
-evidence-kind: verified-closure
-dependencies: none (existing component harness and shared services)
-next-action: none; preserve deterministic asynchronous-consistency regression checks and original finding.
-
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
+priority: P2
+archived: 2026-10-23
 
 ### DW-416: Story gitlink guard still fails (`scripts/validate-story-gitlinks.py` exit 1). Already DW-347.
 
@@ -4126,55 +3778,19 @@ archived: 2026-10-12
 
 ### DW-417: Stop the pushall per-repository procedure when its initial fetch fails.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: .agents/skills/pushall/SKILL.md
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Stop the pushall per-repository procedure when its initial fetch fails.\n  evidence: `.agents/skills/pushall/SKILL.md` step 1 runs `fetch --all --prune` but does not branch on failure; later merge and pruning steps can use stale remote-tracking refs."
-pre-tooling-status: open
 status: done 2026-10-23
-pre-tooling-disposition: actionable
-disposition: done
-pre-tooling-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-tooling-verification: .agents/skills/pushall/SKILL.md per-repo step 1 runs fetch --all --prune with no failure branch; later merge/prune steps assume refreshed remote-tracking refs. The initial fetch prerequisite is still not enforced in the procedure.
-verification: All three tracked pushall manifests explicitly stop the per-repository session after initial fetch failure, with failure recorded and every later numbered step skipped; execution tests prove no later Git operations or state changes. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
-verification-files: .agents/skills/pushall/SKILL.md
-pre-tooling-evidence-kind: verified-defect
-evidence-kind: verified-closure
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 priority: P2
-owner: unassigned
-dependencies: Future authorized pushall skill change
-pre-tooling-next-action: Add an explicit per-repository fetch-failure stop/skip path before merge, push, or pruning, and synchronize tracked skill copies.
-next-action: none; selected record closed with executable tooling evidence
-related: DW-418, DW-428, DW-429
-
+archived: 2026-10-23
 
 ### DW-418: Handle pushall checkout failure before continuing merge and final-branch steps.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
-location: .agents/skills/pushall/SKILL.md
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Handle pushall checkout failure before continuing merge and final-branch steps.\n  evidence: `.agents/skills/pushall/SKILL.md` step 4 checks out the chosen default without a failure path, while steps 5–11 assume the checkout succeeded."
-pre-tooling-status: open
 status: done 2026-10-23
-pre-tooling-disposition: actionable
-disposition: done
-pre-tooling-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-tooling-verification: .agents/skills/pushall/SKILL.md step 4 checks out the chosen default branch without checking its result; steps 5-11 proceed and the final-branch guarantee can fail.
-verification: Existing switch error exits now have explicit diagnostics and an exact attached-HEAD postcondition. Execution tests cover real/simulated switch refusals, missing defaults, detached/wrong success and failed final inspection before merge or push. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
-verification-files: .agents/skills/pushall/SKILL.md
-pre-tooling-evidence-kind: verified-defect
-evidence-kind: verified-closure
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-23, Group B1 page tests)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 priority: P2
-owner: unassigned
-dependencies: Future authorized pushall skill change
-pre-tooling-next-action: Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome.
-next-action: none; selected record closed with executable tooling evidence
-related: DW-417, DW-428, DW-429
-
+archived: 2026-10-23
 
 ### DW-419: Fail the legacy story gitlink guard when its baseline already contains story work.
 
@@ -4853,31 +4469,11 @@ archived: 2026-10-13
 
 ### DW-473: Unverified (would be medium): Create's projection reconcile may write UnableToVerify onto the panel that Continue read-only reset.
 
-origin: migrated from unnumbered ledger ("Deferred from: build review of spec-5-4-understand-audit-availability-and-recovery-5.md (2026-10-01, review 1)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`\n  summary: Unverified (would be medium): Create's projection reconcile may write UnableToVerify onto the panel that Continue read-only reset.\n  evidence: The message-id guard covers only the status apply. If Continue read-only lands during the reconcile's `ProjectionEvidenceProvider` await, the next `_snapshot.Intent.TenantId` throws, and the catch arm writes an Assertive `UnableToVerify` from the Idle snapshot (`CreateTenantFlow.razor:590-609`). In the only host, `TenantsWorkspace.razor:188-189`, `OnProjectionRefreshRequested` re-renders the flow to AuditPending (no Continue read-only verb) before the reconcile reads, so the path looks unreachable there. To settle it, write a host-level test, or a bUnit test without the callback, that clicks Continue read-only during a held `ProjectionEvidenceProvider` and asserts the panel stays Idle."
-pre-async-ownership-status: open
 status: done 2026-10-23
-pre-async-ownership-disposition: uncertain
-disposition: done
-pre-async-ownership-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-async-ownership-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:591-613 reads _snapshot.Intent after ProjectionEvidenceProvider awaits and catches errors by writing UnableToVerify. The production OnProjectionRefreshRequested callback changes the mounted host state first; no controlled test demonstrates that Continue read-only can remain reachable during that await in the actual host.
-verification: Existing captured intent/generation checks drop late list/detail success and failure after callback-free dismissal. The real workspace host withholds dismissal throughout held proof and retains exact unresolved ownership. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
-pre-async-ownership-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.AsyncOwnership.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
-pre-async-ownership-evidence-kind: unverified-risk
-evidence-kind: verified-closure
+origin: migrated from unnumbered ledger ("Deferred from: build review of spec-5-4-understand-audit-availability-and-recovery-5.md (2026-10-01, review 1)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`
 priority: P2
-owner: unassigned
-pre-async-ownership-dependencies: Held projection-provider continuation and host callback scheduling evidence
-dependencies: none for this selected closure; independent release and authority holds remain tracked separately
-pre-async-ownership-next-action: Hold ProjectionEvidenceProvider across Continue read-only in a host-level test and a callback-free component test; determine reachability and assert no stale reconciliation overwrites Idle.
-next-action: none; selected record closed with maintained behavioral evidence
-related: none
-
+archived: 2026-10-23
 
 ## Deferred from: code review of spec-5-4-understand-audit-availability-and-recovery.md (2026-10-01, review 7)
 
@@ -5192,31 +4788,11 @@ archived: 2026-10-15
 
 ### DW-503: Verify whether correction delivery/status continuations outside the renderer can corrupt visible state during remount or expiry (medium, unverified).
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)"), 2026-10-12
-location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Verify whether correction delivery/status continuations outside the renderer can corrupt visible state during remount or expiry (medium, unverified).\n  evidence: Final BH4 observes ConfigureAwait(false) continuations assigning component fields. The actual page unmounts on cleared intent and the tracker rejects mismatched or terminal regression, so user-visible corruption was not established. A controlled late status response overlapped with parameter change, expiry notification, and remount must demonstrate or refute a concrete outcome before any state-management patch."
-pre-async-ownership-status: open
 status: done 2026-10-23
-pre-async-ownership-disposition: uncertain
-disposition: done
-pre-async-ownership-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-async-ownership-verification: CorrectionStartPanel.razor delivery/status continuations still use ConfigureAwait(false) followed by SetRetainedSnapshot; that helper writes the component snapshot directly at :1063-1071. Tracker identity/terminal checks and actual remounts may contain visible effects. No controlled late status+expiry+parameter-change/remount outcome establishes corruption.
-verification: Exact status/delivery snapshots and projection targets remain captured across replacement, expiry and remount. Renderer publication consumes retained truth, remounts receive notifications and obsolete operations cannot acquire or clear successor busy guards. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
-pre-async-ownership-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs; tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
-pre-async-ownership-evidence-kind: unverified-risk
-evidence-kind: verified-closure
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 2 (2026-10-03)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P2
-owner: unassigned
-pre-async-ownership-dependencies: Controlled renderer/continuation scheduling evidence
-dependencies: none for this selected closure; independent release and authority holds remain tracked separately
-pre-async-ownership-next-action: Hold a status response across expiry, parameter replacement and remount, then establish or refute a concrete visible state regression before changing threading.
-next-action: none; selected record closed with maintained behavioral evidence
-related: none
-
+archived: 2026-10-23
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 3 (2026-10-04)
 
@@ -6182,30 +5758,11 @@ Diff reviewed: Tenants baseline `11e65e37` through `c21bf7be` plus the uncommitt
 
 ### DW-574: medium if rendered facts are exposed; a principal change within one Blazor circuit retains the previous principal's correction attempt. Owner: Story 5.6 tracker in Tenants UI.
 
-origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 36 (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium if rendered facts are exposed; a principal change within one Blazor circuit retains the previous principal's correction attempt. Owner: Story 5.6 tracker in Tenants UI.\n  evidence: `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:9` keys attempts by tenant, and `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1513` looks up the retained attempt by `TenantId`. The tracker is circuit-scoped (`src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:102`). A SignalR reconnect after the cookie changes can replace the principal in that live circuit: `ComponentHub.ConnectCircuit` calls `SetCircuitUser`, which calls `SetAuthenticationState`. New gateway reads use the new principal because `FrontComposerGatewayAuthorizationHandler` resolves `sub` per request. Neither `TenantAuditPage` nor `CorrectionStartPanel` subscribes to `AuthenticationStateChanged`, unlike `TenantDetailPage.razor:713,940`, `GlobalAdministratorCorrectionPanel.razor:548`, and `TenantCreateAuditReturnState.cs:24`. A bUnit authentication-state transition and rendered-content assertion, on the same page and after in-circuit navigation back to the tenant, must establish whether attempt-specific facts such as an uncommitted intent are visible to the new audit-authorized principal."
-pre-async-ownership-status: open
 status: done 2026-10-23
-pre-async-ownership-disposition: uncertain
-disposition: done
-pre-async-ownership-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-async-ownership-verification: TenantAuditPage now subscribes to authentication changes and clears displayed state, superseding part of the finding. TenantCorrectionAttemptTracker still keys only tenant and ResumeCorrection restores retained intent once any caller has an authorized audit snapshot. Missing: same-circuit new-principal rendered/navigation test proving attempt facts are withheld.
-verification: Production DI binds retained intent visibility to literal authenticated subjects; pending/faulted identity and replacement/sign-out hide prior facts. Controlled held delivery/status and authorized remounts retain exact unresolved leases and permit original-owner terminal recovery. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
-pre-async-ownership-evidence-kind: unverified-risk
-evidence-kind: verified-closure
+origin: migrated from unnumbered ledger ("Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 36 (2026-10-10)"), 2026-10-12
+source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 priority: P2
-owner: Story 5.6 tracker in Tenants UI
-pre-async-ownership-dependencies: Caller-bound retained tenant attempts
-dependencies: none for this selected closure; independent release and authority holds remain tracked separately
-pre-async-ownership-next-action: Add a principal-transition/remount rendered regression; bind or reauthorize retained attempt provenance if previous-user intent is exposed.
-next-action: none; selected record closed with maintained behavioral evidence
-related: DW-580,DW-609
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs; src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs; src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor; tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionAttemptCallerTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
-
+archived: 2026-10-23
 
 ### DW-575: medium; the optional quickstart bootstrap check can install the wrong administrator after automatic bootstrap fails. Owners: Tenants bootstrap and quickstart documentation.
 
@@ -6448,29 +6005,11 @@ archived: 2026-10-21
 
 ### DW-591: Add a rendered document-language test for English and French UI cultures.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Add a rendered document-language test for English and French UI cultures.\n  evidence: `App.razor` derives `html lang` from UI culture, while existing tests assert only source text."
-pre-ui-host-routing-status: open
-pre-ui-host-routing-disposition: actionable
-pre-ui-host-routing-verification-date: 2026-10-12
-pre-ui-host-routing-verification: App.razor derives html lang from UI culture, while TenantsUiCompositionTests.Document_language_uses_the_active_request_culture still reads source text only. No rendered EN/FR document assertion was found.
-pre-ui-host-routing-evidence-kind: verified-gap
-priority: P3
-owner: unassigned
-pre-ui-host-routing-dependencies: Rendered host fixture
-pre-ui-host-routing-next-action: Render actual host documents under en/fr cultures and assert html lang.
-related: DW-614
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: Real WebApplicationFactory requests render html lang=en/fr with matching localized denial headings; unsupported de falls back to en. Assertions parse the actual response DOM in the blocking UI suite. Evidence: dw-591-613-614-615-616-validation-evidence.md.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs
-evidence-kind: verified-closure
-dependencies: none (in-process host and mounted production router fixtures)
-next-action: none; preserve the mandatory UI regression checks and historical finding.
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+priority: P3
+archived: 2026-10-23
 
 ### DW-592: Verify the imported Keycloak project scope through an issued workload token and protected endpoint.
 
@@ -6636,82 +6175,27 @@ related: none
 
 ### DW-601: Preserve unique method numbers when elicitation catalog overrides replace shipped methods.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Preserve unique method numbers when elicitation catalog overrides replace shipped methods.\n  evidence: merge_extra accepts a replacement num that can collide with an existing method, while numeric lookup keeps the first collision and makes the other method unreachable by number."
-pre-tooling-status: open
 status: done 2026-10-23
-pre-tooling-disposition: actionable
-disposition: done
-pre-tooling-verification-date: 2026-10-12
-verification-date: 2026-10-23
-pre-tooling-verification: .agents/skills/bmad-advanced-elicitation/scripts/pick_methods.py merge_extra accepts replacement num unchanged; numeric lookup uses setdefault, so duplicate numbers leave later methods unreachable. Existing tests cover inherited numbering, not explicit collisions.
-verification: Both elicitation catalog scripts reject duplicate merged method numbers while preserving inherited numbers, unique explicit numbers, automatic allocation and numeric lookup. CLI collisions exit 2 without partial output. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
-pre-tooling-evidence-kind: verified-defect
-evidence-kind: verified-closure
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P3
-owner: unassigned
-dependencies: Local elicitation catalog ownership
-pre-tooling-next-action: Reject or allocate unique explicit replacement method numbers and add collision coverage.
-next-action: none; selected record closed with executable tooling evidence
-related: none
-
+archived: 2026-10-23
 
 ### DW-602: Bound tenant list payload count to the requested page size before enrichment.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Bound tenant list payload count to the requested page size before enrichment.\n  evidence: TenantsRestQueryClient validates item shape but not count, and TenantQueryGateway schedules one detail read per returned summary, expanding memory and read work for malformed large pages."
-pre-read-paging-status: open
 status: done 2026-10-22
-pre-read-paging-disposition: actionable
-disposition: done
-pre-read-paging-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-read-paging-verification: TenantsRestQueryClient.IsValidPayload validates item shape but not requested page count; TenantQueryGateway enriches every returned tenant summary. The 16 MiB body cap does not enforce the requested page-size bound.
-verification: The typed REST client and composition gateway reject summaries exceeding the normalized requested page size before detail enrichment. Boundary, invalid-payload, zero-fanout and retained-snapshot regressions pass; existing conditional reads remain qualified. See dw-602-603-610-611-619-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsRestQueryClient.cs; src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantsRestQueryClientTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs
-pre-read-paging-evidence-kind: verified-gap
-evidence-kind: verified-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-pre-read-paging-dependencies: Requested page-size propagation to payload validator
-dependencies: none
-pre-read-paging-next-action: Reject oversized item counts before hydration and test bounded detail-call fanout.
-next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
-related: none
-
+archived: 2026-10-23
 
 ### DW-603: Prevent one stalled tenant refresh callback from blocking later notifications.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Prevent one stalled tenant refresh callback from blocking later notifications.\n  evidence: TenantReadRefreshSubscription awaits callbacks serially without a deadline and retains the projection key in _running until the stalled callback returns."
-pre-read-paging-status: open
 status: done 2026-10-22
-pre-read-paging-disposition: actionable
-disposition: done
-pre-read-paging-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-read-paging-verification: TenantReadRefreshSubscription.RunRefreshLoopAsync awaits callbacks sequentially while _running retains the projection key; no deadline isolates a callback that never completes. Subsequent notifications cannot start an independent loop.
-verification: The existing shared operation deadline bounds callback waits. Per-registration ownership prevents overlap, retains a coalesced catch-up nudge until actual completion, and rejects detached/disposed restarts. Manual-clock regressions qualify healthy siblings, later nudges, late success/failure and safe diagnostics. See dw-602-603-610-611-619-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Services/TenantReadRefreshSubscription.cs; tests/Hexalith.Tenants.UI.Tests/Services/TenantReadRefreshSubscriptionTests.cs
-pre-read-paging-evidence-kind: verified-defect
-evidence-kind: verified-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-pre-read-paging-dependencies: Refresh callback cancellation/deadline contract
-dependencies: none
-pre-read-paging-next-action: Bound or isolate callbacks so a stalled subscriber cannot block later refresh notifications.
-next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
-related: none
-
+archived: 2026-10-23
 
 ### DW-604: Define a projection schema rebuild path for historical tenant events.
 
@@ -6786,57 +6270,19 @@ related: DW-580,DW-574
 
 ### DW-610: Guard membership paging against repeated Next events while a page read is in flight.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Guard membership paging against repeated Next events while a page read is in flight.\n  evidence: Both membership panels advance cursor history from the current snapshot without checking an in-flight read or HasMore in the event handler; a repeated event can push a loading cursor."
-pre-read-paging-status: open
 status: done 2026-10-22
-pre-read-paging-disposition: actionable
-disposition: done
-pre-read-paging-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-read-paging-verification: MyTenantsPanel.NextPageAsync unconditionally pushes cursor; UserMembershipLookupPanel.NextPageAsync checks only snapshot non-null. Neither handler rejects loading/repeated Next or missing HasMore before advancing history.
-verification: Both membership panels require an arrived usable page, HasMore, a nonblank next cursor and no transition in progress before mutating cursor history. Captured repeated events during held reads advance once; Previous returns directly to the original page, and exhausted/error events refuse. See dw-602-603-610-611-619-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Users/MyTenantsPanel.razor; src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor; tests/Hexalith.Tenants.UI.Tests/Components/MyTenantsSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs
-pre-read-paging-evidence-kind: verified-defect
-evidence-kind: verified-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-pre-read-paging-dependencies: Membership paging in-flight state
-dependencies: none
-pre-read-paging-next-action: Guard Next with arrived-page/HasMore and an in-flight gate; cover repeated clicks during a delayed read.
-next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
-related: none
-
+archived: 2026-10-23
 
 ### DW-611: Make user-membership lookup sorting consistent across cursor pages.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Make user-membership lookup sorting consistent across cursor pages.\n  evidence: The UI sorts only the current 20 rows while GetUserTenantsQuery carries no sort field, so page boundaries do not follow the selected order."
-pre-read-paging-status: open
 status: done 2026-10-22
-pre-read-paging-disposition: actionable
-disposition: done
-pre-read-paging-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-read-paging-verification: UserMembershipLookupPanel.VisibleRows orders only current rows; GetUserTenantsQuery contains UserId/Cursor/PageSize and no sort contract. Selected order therefore does not span cursor boundaries.
-verification: The approved current-page alternative is explicit in the actual EN/FR lookup sort selector, helper text and sorted announcement. Interleaved two-page name/status regressions qualify local ordering without claiming ordering across cursor pages. See dw-602-603-610-611-619-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/UserMembershipLookupSurfaceTests.cs
-pre-read-paging-evidence-kind: verified-defect
-evidence-kind: verified-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-pre-read-paging-dependencies: Server/authorized membership ordering contract
-dependencies: none
-pre-read-paging-next-action: Define globally ordered protected paging or explicitly constrain the UI sort promise to the current page.
-next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
-related: DW-619
-
+archived: 2026-10-23
 
 ### DW-612: Replace legacy Fluent border variables in tenant metadata and member-removal CSS.
 
@@ -6848,107 +6294,35 @@ archived: 2026-10-21
 
 ### DW-613: Render a recovery surface for unmatched interactive UI routes.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Render a recovery surface for unmatched interactive UI routes.\n  evidence: Routes.razor defines only Found content; an unmatched interactive route has no in-app not-found message or navigation link."
-pre-ui-host-routing-status: open
-pre-ui-host-routing-disposition: actionable
-pre-ui-host-routing-verification-date: 2026-10-12
-pre-ui-host-routing-verification: UI Components/Routes.razor still defines Router Found only and no NotFound recovery surface. Interactive unmatched-route recovery remains undocumented/unrendered.
-pre-ui-host-routing-evidence-kind: verified-gap
-priority: P3
-owner: unassigned
-pre-ui-host-routing-dependencies: Existing FrontComposer not-found conventions
-pre-ui-host-routing-next-action: Add a framework-conforming in-app unmatched-route message and safe recovery link.
-related: DW-616
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: The production .NET 10 Router supplies RouteNotFoundPage. The routed recovery page uses the existing layout, Fluent components and EN/FR resources with a fixed /home destination; only HTTP404 fallbacks re-execute there, preserving other statuses; mounted-router tests navigate an actually unmatched three-segment path and recover without replacing the router. Evidence: dw-591-613-614-615-616-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Routes.razor; src/Hexalith.Tenants.UI/Program.cs; src/Hexalith.Tenants.UI/Components/Pages/RouteNotFoundPage.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/TenantsRouterTests.cs; tests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs
-evidence-kind: verified-closure
-dependencies: none (in-process host and mounted production router fixtures)
-next-action: none; preserve the mandatory UI regression checks and historical finding.
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+priority: P3
+archived: 2026-10-23
 
 ### DW-614: Verify the signed-in tenant claim alias through the real Tenants host.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Verify the signed-in tenant claim alias through the real Tenants host.\n  evidence: Program.cs selects eventstore:current-tenant, but current tests use anonymous requests, inspect endpoint metadata, or substitute the user context; none verifies a multi-tenant authenticated principal."
-pre-ui-host-routing-status: open
-pre-ui-host-routing-disposition: actionable
-pre-ui-host-routing-verification-date: 2026-10-12
-pre-ui-host-routing-verification: UI Program.cs configures tenantClaimType eventstore:current-tenant; current host smoke tests are anonymous and other tests inspect source or substitute user context. No real-host multitenant authenticated alias assertion was found.
-pre-ui-host-routing-evidence-kind: verified-gap
-priority: P2
-owner: unassigned
-pre-ui-host-routing-dependencies: Authenticated real Tenants host fixture
-pre-ui-host-routing-next-action: Issue a safe multi-tenant test principal and prove the selected current-tenant alias through the rendered host.
-related: DW-597
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: Host-protected authentication cookies carry two eventstore:tenant values and one current-tenant alias. Real rendered requests observe ServerCircuitUserContextAccessor selecting either exact current tenant and sub. Missing/conflicting current-tenant aliases and subjects render denial before domain gateway resolution. Evidence: dw-591-613-614-615-616-validation-evidence.md.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs; src/Hexalith.Tenants.UI/Program.cs
-evidence-kind: verified-closure
-dependencies: none (in-process host and mounted production router fixtures)
-next-action: none; preserve the mandatory UI regression checks and historical finding.
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+priority: P2
+archived: 2026-10-23
 
 ### DW-615: Add a blocking anonymous Tenants-host scope-boundary test.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Add a blocking anonymous Tenants-host scope-boundary test.\n  evidence: The hosted smoke assertions use DaprFact and can skip, while the Aspire CI lane is nonblocking; component and source checks do not render an anonymous request through the Tenants host."
-pre-ui-host-routing-status: open
-pre-ui-host-routing-disposition: actionable
-pre-ui-host-routing-verification-date: 2026-10-12
-pre-ui-host-routing-verification: TenantsUiRouteSmokeTests does render anonymous routes but remains DaprFact/IntegrationTests in advisory Aspire CI; current CI run 38269521776 executed it with zero skips, yet it is still not a blocking regression boundary.
-pre-ui-host-routing-evidence-kind: verified-gap
-priority: P2
-owner: unassigned
-pre-ui-host-routing-dependencies: Blocking in-process host fixture
-pre-ui-host-routing-next-action: Add a mandatory anonymous host scope-denial lane without depending on the advisory topology tier.
-related: DW-614,DW-572
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: Twelve mandatory WebApplicationFactory HTTP cases cover both OIDC-enabled and disabled hosts across canonical anonymous workspace/detail/audit/my-tenants/user-lookup/global-administrator routes. Parsed DOM assertions require scope denial, absence of domain markers and caller identifiers from visible content, and zero domain query-gateway resolutions. The UI project is already in the blocking CI unit-test list. Evidence: dw-591-613-614-615-616-validation-evidence.md.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Host/TenantsUiHostBoundaryTests.cs; .github/workflows/ci.yml
-evidence-kind: verified-closure
-dependencies: none (in-process host and mounted production router fixtures)
-next-action: none; preserve the mandatory UI regression checks and historical finding.
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+priority: P2
+archived: 2026-10-23
 
 ### DW-616: Verify FrontComposer-owned routes through interactive Tenants router navigation.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Verify FrontComposer-owned routes through interactive Tenants router navigation.\n  evidence: Routes.razor includes the FrontComposer assembly, but existing tests do not navigate the interactive router to /home; fresh HTTP GET tests exercise separate endpoint mapping."
-pre-ui-host-routing-status: open
-pre-ui-host-routing-disposition: actionable
-pre-ui-host-routing-verification-date: 2026-10-12
-pre-ui-host-routing-verification: Routes.razor includes the FrontComposer shell assembly; existing HTTP smoke checks do not perform interactive-router navigation to /home. No actual interactive Tenants router navigation coverage was found.
-pre-ui-host-routing-evidence-kind: verified-gap
-priority: P3
-owner: unassigned
-pre-ui-host-routing-dependencies: Interactive host/browser fixture
-pre-ui-host-routing-next-action: Navigate the running interactive router to a FrontComposer-owned route and assert correct shell content.
-related: DW-613
 status: done 2026-10-22
-disposition: done
-verification-date: 2026-10-22
-verification: The actual production Routes component remains mounted while NavigationManager moves from /tenants/my to /home and back. Tests require FcHomeRouteView, FcHomeDirectory and FrontComposerShell, correct removal of prior content, and the same Router instance; no fresh HTTP request substitutes for interactive routing. Evidence: dw-591-613-614-615-616-validation-evidence.md.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantsRouterTests.cs; src/Hexalith.Tenants.UI/Components/Routes.razor
-evidence-kind: verified-closure
-dependencies: none (in-process host and mounted production router fixtures)
-next-action: none; preserve the mandatory UI regression checks and historical finding.
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
+priority: P3
+archived: 2026-10-23
 
 ### DW-617: Reconcile global administrator revocation with the freshness of the authorization read model.
 
@@ -6991,30 +6365,11 @@ related: DW-619
 
 ### DW-619: Make tenant search sorting consistent across page boundaries.
 
-origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
-location: n/a
-source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
-reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
-legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Make tenant search sorting consistent across page boundaries.\n  evidence: SortSearchRows orders each hydrated index window after page selection, so later pages can contain names or statuses that should precede rows on earlier pages."
-pre-read-paging-status: open
 status: done 2026-10-22
-pre-read-paging-disposition: actionable
-disposition: done
-pre-read-paging-verification-date: 2026-10-12
-verification-date: 2026-10-22
-pre-read-paging-verification: TenantQueryGateway.SortSearchRows sorts only the hydrated raw window after Memories selects page boundaries; name/status ordering is not global across protected search pages.
-verification: The approved current-page alternative is explicit in actual EN/FR list sort headers and helper text, including search. Two-page hydrated search and rendered name/status regressions qualify existing local ordering; protected paging and authorized hydration remain unchanged. See dw-602-603-610-611-619-validation-evidence.md.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/TenantDataGrid.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs
-pre-read-paging-evidence-kind: verified-defect
-evidence-kind: verified-regression
+origin: migrated from unnumbered ledger ("Deferred from: spec-gh-actions-28944933021-85877006572.md, continued (2026-10-10)"), 2026-10-12
+source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 priority: P2
-owner: unassigned
-pre-read-paging-dependencies: Authorized search ordering contract
-dependencies: none
-pre-read-paging-next-action: Move ordering before page selection or specify an honest current-window sorting UX.
-next-action: Closed by the qualified read/paging repair; preserve the original finding under its pre-read-paging field names.
-related: DW-611,DW-618
-
+archived: 2026-10-23
 
 ### DW-620: Verify the contents of existing GitHub Release package assets during partial-release recovery.
 
