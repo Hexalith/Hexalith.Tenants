@@ -352,6 +352,38 @@ public sealed class TenantRemoveMemberCommandSnapshotTests
     }
 
     [Fact]
+    public void Complete_unmatched_removal_walks_exhaust_a_retained_budget_and_late_exact_proof_recovers()
+    {
+        var confirmed = new TenantRemoveMemberCommandSnapshot(
+            TenantCommandLifecycleState.Confirmed,
+            Intent: new RemoveUserFromTenant("tenant.alpha", "literal-user"),
+            MessageId: "message-1", CorrelationId: "correlation-1",
+            AuditState: TenantCommandAuditState.AuditPending) { CommittedEventSequence = 2 };
+        TenantRemoveMemberCommandSnapshot current = confirmed;
+        for (int walk = 1; walk <= TenantAuditAvailability.MaximumUnchangedRetries; walk++)
+        {
+            // Record copying models the snapshot retained across renderers; the budget is not renderer-local.
+            current = (current with { }).ApplyRemovalProofMatch(matched: false);
+            current.UnmatchedRemovalProofWalkCount.ShouldBe(walk);
+            current.AuditState.ShouldBe(walk == TenantAuditAvailability.MaximumUnchangedRetries
+                ? TenantCommandAuditState.AuditDelayed : TenantCommandAuditState.AuditPending);
+            current.State.ShouldBe(confirmed.State);
+            current.Intent.ShouldBe(confirmed.Intent);
+            current.MessageId.ShouldBe(confirmed.MessageId);
+            current.CorrelationId.ShouldBe(confirmed.CorrelationId);
+            current.CommittedEventSequence.ShouldBe(confirmed.CommittedEventSequence);
+        }
+        current.ApplyRemovalProofMatch(matched: false).ShouldBe(current);
+        TenantRemoveMemberCommandSnapshot available = current.ApplyRemovalProofMatch(
+            matched: true, hasCurrentLifecycleBackedEvidence: true, hasReadyReceipt: true);
+        available.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+        available.UnmatchedRemovalProofWalkCount.ShouldBe(0);
+        available.ApplyRemovalProofMatch(matched: false).ShouldBe(available);
+        confirmed.ApplyRemovalProofQueryFailure(TenantCommandAuditState.AuditUnavailable)
+            .UnmatchedRemovalProofWalkCount.ShouldBe(0);
+    }
+
+    [Fact]
     public void A_successful_unmatched_proof_read_clears_a_stale_unreadable_state_but_keeps_a_delay()
     {
         TenantRemoveMemberCommandSnapshot confirmed = TenantRemoveMemberCommandSnapshot

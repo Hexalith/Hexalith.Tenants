@@ -406,14 +406,16 @@
                 return [];
             }
 
+            // Completeness proves Present/Current/Current. These facts explicitly show the
+            // authority required to open this destructive preview; degraded inputs stay blocked.
             return
             [
                 (Localizer["Tenants.Configuration.Remove.Preview.Tenant"], preview.Intent.TenantId, "tenants-config-remove-tenant-id"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Namespace"], preview.Intent.NamespacePrefix, "tenants-config-remove-preview-namespace"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Key"], preview.Intent.FullKey, "tenants-config-remove-preview-key"),
-                (Localizer["Tenants.Configuration.Remove.Preview.CurrentState"], Localizer[$"Tenants.Configuration.Remove.Preview.CurrentState.{preview.CurrentState}"], "tenants-config-remove-preview-current-state"),
+                (Localizer["Tenants.Configuration.Remove.Preview.CurrentState"], Localizer["Tenants.Configuration.Remove.Preview.CurrentState.Present"], "tenants-config-remove-preview-current-state"),
                 (Localizer["Tenants.Configuration.Remove.Preview.IntendedEffect"], Localizer["Tenants.Configuration.Remove.Preview.IntendedEffect.Value"], "tenants-config-remove-preview-effect"),
-                (Localizer["Tenants.Configuration.Remove.Preview.Freshness"], Localizer["Tenants.Configuration.Remove.Preview.FreshnessAndLifecycle.Value", Localizer[$"Tenants.Configuration.Remove.Freshness.{LocalizedFreshness(preview.Freshness)}"], Localizer[$"Tenants.Configuration.Remove.Lifecycle.{LocalizedLifecycle(preview.Lifecycle)}"]], "tenants-config-remove-preview-freshness"),
+                (Localizer["Tenants.Configuration.Remove.Preview.Freshness"], Localizer["Tenants.Configuration.Remove.Preview.FreshnessAndLifecycle.Value", Localizer["Tenants.Configuration.Remove.Freshness.Current"], Localizer["Tenants.Configuration.Remove.Lifecycle.Current"]], "tenants-config-remove-preview-freshness"),
                 (Localizer["Tenants.Configuration.Remove.Preview.Authorization"], Localizer["Tenants.Configuration.Remove.Preview.Authorization.Value"], "tenants-config-remove-preview-authorization"),
                 (Localizer["Tenants.Configuration.Remove.Preview.KnownConsequences"], Localizer["Tenants.Configuration.Remove.Preview.ConsequencesAndUnknowns.Value"], "tenants-config-remove-preview-consequences"),
                 (Localizer["Tenants.Configuration.Remove.Preview.AuditExpectation"], Localizer["Tenants.Configuration.Remove.Preview.AuditExpectation.Value"], "tenants-config-remove-preview-audit"),
@@ -1565,12 +1567,6 @@
                 "Tenants.Configuration.Remove.UnableToVerify.ProjectionProof"));
         }
     }
-
-    private static string LocalizedFreshness(ReadModelFreshnessState freshness)
-        => Enum.IsDefined(freshness) ? freshness.ToString() : nameof(ReadModelFreshnessState.Unknown);
-
-    private static string LocalizedLifecycle(ProjectionLifecycleState lifecycle)
-        => Enum.IsDefined(lifecycle) ? lifecycle.ToString() : nameof(ProjectionLifecycleState.Unknown);
 
     private static string SubmissionMessageKey(TenantCommandLifecycleState state)
         => state switch

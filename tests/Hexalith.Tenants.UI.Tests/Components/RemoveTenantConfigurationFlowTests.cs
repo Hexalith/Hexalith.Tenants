@@ -284,10 +284,18 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.FindAll("[data-testid='tenants-config-copy-reference']").ShouldBeEmpty();
     }
 
-    [Fact]
-    public void Complete_remove_preview_renders_exactly_ten_stable_redacted_facts()
+    [Theory]
+    [InlineData("en", "Read model: Current; projection lifecycle: Current.", "The key is present; its value is not displayed.")]
+    [InlineData("fr", "Modèle de lecture : Courant ; cycle de projection : À jour.", "La clé est présente ; sa valeur n'est pas affichée.")]
+    public void Complete_remove_preview_renders_exactly_ten_stable_redacted_facts(
+        string culture, string authorityFact, string presenceFact)
     {
         RegisterServices(new StubTenantCommandGateway());
+        var factory = new ResourceManagerStringLocalizerFactory(
+            Microsoft.Extensions.Options.Options.Create(new LocalizationOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new CultureBoundTenantsLocalizer(
+            factory.Create(typeof(TenantsResources)), CultureInfo.GetCultureInfo(culture)));
         IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
             .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
             .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
@@ -313,6 +321,10 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             cut.FindAll($"[data-testid='{testId}']").ShouldHaveSingleItem();
         }
 
+        cut.Find("[data-testid='tenants-config-remove-preview-freshness']").TextContent
+            .ShouldBe(authorityFact);
+        cut.Find("[data-testid='tenants-config-remove-preview-current-state']").TextContent
+            .ShouldBe(presenceFact);
         cut.Markup.ShouldNotContain("trial", Case.Sensitive);
     }
 
@@ -1774,16 +1786,8 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Remove.Unavailable.TargetMissing"] = "The selected key is absent from current authorized evidence. Refresh and select a visible key; no removal was submitted.",
             ["Tenants.Configuration.Remove.Preview.FreshnessAndLifecycle.Value"] = "Read model: {0}; projection lifecycle: {1}.",
             ["Tenants.Configuration.Remove.Preview.ConsequencesAndUnknowns.Value"] = "Authorized consumers may react after projection catch-up; downstream impact and command-specific audit proof remain unknown.",
-            ["Tenants.Configuration.Remove.Preview.CurrentState.Unknown"] = "Unknown",
             ["Tenants.Configuration.Remove.Preview.CurrentState.Present"] = "The key is present; its value is not displayed.",
-            ["Tenants.Configuration.Remove.Preview.CurrentState.Absent"] = "The key is absent.",
-            ["Tenants.Configuration.Remove.Lifecycle.Unknown"] = "Unknown",
             ["Tenants.Configuration.Remove.Lifecycle.Current"] = "Current",
-            ["Tenants.Configuration.Remove.Lifecycle.Stale"] = "Stale",
-            ["Tenants.Configuration.Remove.Lifecycle.Rebuilding"] = "Rebuilding",
-            ["Tenants.Configuration.Remove.Lifecycle.Degraded"] = "Degraded",
-            ["Tenants.Configuration.Remove.Lifecycle.Unavailable"] = "Unavailable",
-            ["Tenants.Configuration.Remove.Lifecycle.LocalOnly"] = "Local only",
             ["Tenants.Configuration.Remove.Unavailable.Identity"] = "Tenant identity is unavailable, so configuration removal fails closed.",
             ["Tenants.Configuration.Remove.Unavailable.Scope"] = "No authorized namespace prefix evidence is available from the current projection.",
             ["Tenants.Configuration.Remove.Unavailable.Target"] = "The selected configuration key is not visible in the current authorized projection. Refresh tenant detail before trying again.",
@@ -1809,10 +1813,6 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
             ["Tenants.Configuration.Remove.Preview.RecoveryPath"] = "Recovery path",
             ["Tenants.Configuration.Remove.Preview.RecoveryPath.Value"] = "Refresh tenant detail, retry only from current projection proof, or submit a forward correction to set the key again.",
             ["Tenants.Configuration.Remove.Freshness.Current"] = "Current",
-            ["Tenants.Configuration.Remove.Freshness.Aging"] = "Aging",
-            ["Tenants.Configuration.Remove.Freshness.Refreshing"] = "Refreshing",
-            ["Tenants.Configuration.Remove.Freshness.Stale"] = "Stale",
-            ["Tenants.Configuration.Remove.Freshness.Unknown"] = "Unknown",
             ["Tenants.Configuration.Remove.State.Idle"] = "No configuration removal command submitted.",
             ["Tenants.Configuration.Remove.State.Previewed"] = "Configuration removal preview ready.",
             ["Tenants.Configuration.Remove.State.RequestSent"] = "Configuration removal request sent.",

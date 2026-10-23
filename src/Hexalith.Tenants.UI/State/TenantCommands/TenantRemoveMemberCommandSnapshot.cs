@@ -42,6 +42,9 @@ public sealed record TenantRemoveMemberCommandSnapshot(
     /// <summary>Gets the support-safe proof assembled for this exact retained removal attempt.</summary>
     internal TenantAuditReceipt? RemovalProof { get; init; }
 
+    /// <summary>Gets the bounded count of complete audit walks without an exact removal proof.</summary>
+    internal int UnmatchedRemovalProofWalkCount { get; init; }
+
     public static TenantRemoveMemberCommandSnapshot Idle()
         => new(TenantCommandLifecycleState.Idle);
 
@@ -359,7 +362,8 @@ public sealed record TenantRemoveMemberCommandSnapshot(
     /// Promotes confirmed removal to <see cref="TenantCommandAuditState.AuditAvailable"/> only when a
     /// matching WP-2A removal audit row is supplied. Never invents available from empty or mismatched evidence.
     /// Unmatched rematches keep Available (confirmed outcome survives audit flaps) and keep Delayed. An unmatched
-    /// rematch is a complete audit read, so an earlier Unavailable falls back to Pending.
+    /// rematch is a complete audit read, so an earlier Unavailable falls back to Pending until the
+    /// retained unmatched-walk budget is exhausted, after which the audit is Delayed.
     /// </summary>
     public TenantRemoveMemberCommandSnapshot ApplyRemovalProofMatch(
         bool matched,
@@ -372,6 +376,7 @@ public sealed record TenantRemoveMemberCommandSnapshot(
         if (matched && hasCurrentLifecycleBackedEvidence && hasReadyReceipt) {
             return this with {
                 AuditState = TenantCommandAuditState.AuditAvailable,
+                UnmatchedRemovalProofWalkCount = 0,
                 FocusTarget = TenantCommandFocusTarget.Lifecycle,
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
             };
@@ -379,14 +384,18 @@ public sealed record TenantRemoveMemberCommandSnapshot(
 
         // Keep Available / Delayed across unmatched rematches; only Pending is the default wait state. An unmatched
         // rematch is a complete, successful audit read, so an earlier "could not be read" (Unavailable) is stale and
-        // falls back to Pending: the trail is readable and the record is not there yet.
+        // falls back to Pending within the retained walk budget: the trail is readable but has no proof yet.
         if (AuditState is TenantCommandAuditState.AuditAvailable
             or TenantCommandAuditState.AuditDelayed) {
             return this;
         }
 
+        int unmatchedWalks = matched ? UnmatchedRemovalProofWalkCount
+            : Math.Min(UnmatchedRemovalProofWalkCount + 1, TenantAuditAvailability.MaximumUnchangedRetries);
         return this with {
-            AuditState = TenantCommandAuditState.AuditPending,
+            UnmatchedRemovalProofWalkCount = unmatchedWalks,
+            AuditState = unmatchedWalks >= TenantAuditAvailability.MaximumUnchangedRetries
+                ? TenantCommandAuditState.AuditDelayed : TenantCommandAuditState.AuditPending,
             FocusTarget = TenantCommandFocusTarget.Lifecycle,
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Polite,
         };

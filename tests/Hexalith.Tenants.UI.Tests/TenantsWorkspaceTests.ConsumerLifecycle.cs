@@ -1,3 +1,10 @@
+using Microsoft.FluentUI.AspNetCore.Components;
+using Hexalith.FrontComposer.Contracts.Communication;
+using Hexalith.Tenants.Contracts.Queries;
+using Hexalith.Tenants.Contracts.Enums;
+using Hexalith.Tenants.UI.Services;
+using Hexalith.Tenants.UI.Resources;
+using Microsoft.Extensions.Localization;
 using Bunit;
 
 using Hexalith.EventStore.Client.Projections;
@@ -26,6 +33,103 @@ namespace Hexalith.Tenants.UI.Tests;
 
 public sealed partial class TenantsWorkspaceTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Workspace_create_recovery_reloads_authoritative_proof_with_the_current_caller(bool manualRefresh)
+    {
+        Services.AddSingleton<AuthenticationStateProvider>(new MutableAuthenticationStateProvider(AdministratorPrincipal()));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddSingleton<TenantReadRefreshSubscription>();
+        string caller = TenantQueryGateway.AuditCallerScope("operator.alpha");
+        bool visible = false;
+        int listReads = 0;
+        ITenantQueryGateway reads = Substitute.For<ITenantQueryGateway>();
+        reads.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                listReads++;
+                return Task.FromResult(visible
+                    ? TenantCommandProofFixtures.ListProof(new TenantSummary("first-literal-tenant", "First tenant", TenantStatus.Active), "tenant-sequence:2")! with { CallerScope = caller }
+                    : TenantListSnapshot.Empty(true, ReadModelFreshnessState.Unknown) with { CallerScope = caller });
+            });
+        reads.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(TenantDetailSnapshot.NotFound("first-literal-tenant"));
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.CreateTenantAsync(Arg.Any<CreateTenant>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "first-tracking")));
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(new TenantCommandStatusResult(visible ? CommandStatus.Completed : CommandStatus.Received,
+                EventCount: visible ? 1 : null, HasVerifiedCommandIdentity: true)));
+        Services.AddSingleton(reads);
+        Services.AddSingleton(commands);
+        bool holdAuthority = false;
+        TaskCompletionSource authorityEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantLifecycleAuthorizationReflectionState> authority = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        async ValueTask<TenantLifecycleAuthorizationReflectionState> ResolveAsync(CancellationToken token)
+        {
+            if (!holdAuthority) return TenantLifecycleAuthorizationReflectionState.Authorized;
+            authorityEntered.TrySetResult();
+            return await authority.Task.WaitAsync(token);
+        }
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(cancellableResolver: ResolveAsync));
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        IRenderedComponent<CreateTenantFlow> create = cut.FindComponent<CreateTenantFlow>();
+        cut.WaitForAssertion(() =>
+        {
+            create.Instance.IsAuthorized.ShouldBeTrue();
+            create.Instance.CurrentCallerScope.ShouldBe(caller);
+        });
+        create.Find("[data-testid='tenants-create-tenant-id']").Change("first-literal-tenant");
+        create.Find("[data-testid='tenants-create-name']").Change("First tenant");
+        await create.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => subscription.Received(1).SubscribeAsync("tenants", "first-literal-tenant", Arg.Any<CancellationToken>()));
+        string? message = create.Instance.Snapshot.MessageId;
+        int before = listReads;
+        visible = true;
+        if (manualRefresh)
+        {
+            for (int renewal = 0; renewal < 5; renewal++)
+            {
+                // Successful authority renewals must not consume the optional-transport failure budget.
+                visible = renewal == 4;
+                authorityEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                authority = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                holdAuthority = true;
+                Task refresh = create.Find("[data-testid='tenants-create-refresh']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+                await authorityEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                create.Instance.CurrentCallerScope.ShouldBe(caller);
+                holdAuthority = false;
+                authority.SetResult(TenantLifecycleAuthorizationReflectionState.Authorized);
+                await refresh.WaitAsync(TimeSpan.FromSeconds(5));
+                if (!visible)
+                {
+                    int expectedSubscriptions = renewal + 2;
+                    await WaitForWorkspaceOperationAsync(() => subscription.ReceivedCalls()
+                        .Count(call => call.GetMethodInfo().Name == nameof(IProjectionSubscription.SubscribeAsync)) >= expectedSubscriptions);
+                    await subscription.Received(expectedSubscriptions).SubscribeAsync("tenants", "first-literal-tenant", Arg.Any<CancellationToken>());
+                    create.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+                }
+            }
+        }
+        else
+        {
+            notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "first-literal-tenant");
+        }
+        cut.WaitForAssertion(() => create.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed));
+        create.Instance.Snapshot.MessageId.ShouldBe(message);
+        create.Instance.Snapshot.CorrelationId.ShouldBe("first-tracking");
+        create.Instance.CurrentCallerScope.ShouldBe(caller);
+        listReads.ShouldBe(before + (manualRefresh ? 6 : 1));
+        await commands.Received(1).CreateTenantAsync(Arg.Any<CreateTenant>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await commands.Received(manualRefresh ? 6 : 2).GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>());
+    }
+
     [Theory]
     [InlineData(false, false, false)]
     [InlineData(false, false, true)]

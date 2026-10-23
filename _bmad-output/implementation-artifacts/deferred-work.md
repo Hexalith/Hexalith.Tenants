@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-159/DW-200/DW-209/DW-326/DW-448 closure (2026-10-23):** Explicit unavailable configuration states, authoritative create notification recovery, actual shell layout checks, localized ten-fact preview proof and bounded retained removal audit waiting close exactly five records. All 657 IDs remain: 555 done/102 open across 92 maintenance rows. Original fields, unrelated records, dependencies and runtime/release holds remain preserved. See [validation evidence](dw-159-200-209-326-448-validation-evidence.md).
+
 **DW-551/DW-556/DW-575/DW-576/DW-597 closure (2026-10-23):** Configurable validated bootstrap token destinations, explicit one-attempt operator recovery and executable administrator-to-human handoff preserve identity and projected-membership proof. Exact system membership among valid multivalued tenant claims is recognized. Exactly five records close: all 657 IDs remain, 550 done/107 open across 97 maintenance rows. Original fields, unrelated records, dependencies and unresolved revocation/runtime/release holds remain preserved. See [validation evidence](dw-551-556-575-576-597-validation-evidence.md).
 
 **DW-527/DW-544/DW-582/DW-583/DW-589 closure (2026-10-23):** Restore-backed NuGet ranges/frameworks, immutable OCI source proof and shared destination byte checks close exactly five records. All 657 IDs remain: 545 done/112 open across 102 maintenance rows. Historical fields, unrelated records, the dirty archive, dependencies and release holds remain preserved. See [validation evidence](dw-527-544-582-583-589-validation-evidence.md).
@@ -1390,17 +1392,26 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-10-di
 location: src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor:220
 reason: The legacy ledger defers this issue: `TenantConfigurationView.StateResourcePrefix` has no arm for `TenantDetailSurfaceKind.NotFound` or `Unauthorized`, so both fall through to `Tenants.Configuration.State.Ready` ("Configuration evidence is current") and are announced assertively, because `!CanInspect` puts `LivePoliteness` in the escalated set, over a surface that has no rows. Original context is preserved in legacy-detail.
 legacy-detail: - `TenantConfigurationView.StateResourcePrefix` has no arm for `TenantDetailSurfaceKind.NotFound` or `Unauthorized`, so both fall through to `Tenants.Configuration.State.Ready` ("Configuration evidence is current") and are announced **assertively**, because `!CanInspect` puts `LivePoliteness` in the escalated set, over a surface that has no rows. Reason for deferral: pre-existing arms, not introduced by this range, and unreachable through the only current consumer — `TenantDetailSnapshot.NotFound`/`Unauthorized` route through `Empty(...)`, which yields an unavailable safe model, so the Unavailable arm wins before the fall-through is reached. Revisit if: the second consumer the file's own comment anticipates arrives, or any caller passes those surface kinds with an available configuration model. [src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor:220]
-status: open
-disposition: accepted-limitation
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor StateResourcePrefix still omits explicit NotFound/Unauthorized arms; State/TenantDetail/TenantDetailSnapshot.cs Empty supplies an unavailable safe model, so current consumers select Unavailable before Ready. The original latent second-consumer condition remains.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor; src/Hexalith.Tenants.UI/State/TenantDetail/TenantDetailSnapshot.cs
-evidence-kind: accepted-limitation
+pre-ui-maintenance-status: open
+status: done 2026-10-23
+pre-ui-maintenance-disposition: accepted-limitation
+disposition: resolved
+pre-ui-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-ui-maintenance-verification: src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor StateResourcePrefix still omits explicit NotFound/Unauthorized arms; State/TenantDetail/TenantDetailSnapshot.cs Empty supplies an unavailable safe model, so current consumers select Unavailable before Ready. The original latent second-consumer condition remains.
+verification: Explicit NotFound and Unauthorized configuration states select Unavailable even with an available safe model; component regressions preserve alert/assertive semantics and withhold rows and values.
+pre-ui-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor; src/Hexalith.Tenants.UI/State/TenantDetail/TenantDetailSnapshot.cs
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/TenantConfigurationView.razor; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+pre-ui-maintenance-evidence-kind: accepted-limitation
+evidence-kind: executed-component-state-and-integration-regressions
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Require explicit state mapping if a second consumer passes an available model with a denied/not-found surface.
+pre-ui-maintenance-next-action: Require explicit state mapping if a second consumer passes an available model with a denied/not-found surface.
+next-action: None for this record; preserve unrelated runtime, authorization-policy and release holds.
 related: none
+resolution-evidence: _bmad-output/implementation-artifacts/dw-159-200-209-326-448-validation-evidence.md
+
 
 ### DW-160: Replace `CapturingGatewayClient` + `RestQueryClientAdapter` in `TenantQueryGatewayTests` with a substitute
 
@@ -1720,17 +1731,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: Workspace SignalR / read-refresh nudge wiring into CreateTenantFlow (ApplySignalRNudge + authoritative re-query; never notify-alone confirm). Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: Workspace SignalR / read-refresh nudge wiring into CreateTenantFlow (ApplySignalRNudge + authoritative re-query; never notify-alone confirm). evidence: Split from Story 3.1; membership already has the pattern, and create confirmation honesty can ship before host nudge plumbing.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor declares ApplySignalRNudge, but Components/Pages/TenantsWorkspace.razor has no production caller or create read-refresh subscription. Manual status refresh remains the live proof path.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: verified-gap
+pre-ui-maintenance-status: open
+status: done 2026-10-23
+pre-ui-maintenance-disposition: actionable
+disposition: resolved
+pre-ui-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-ui-maintenance-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor declares ApplySignalRNudge, but Components/Pages/TenantsWorkspace.razor has no production caller or create read-refresh subscription. Manual status refresh remains the live proof path.
+verification: Actual optional projection notifications trigger serialized authoritative create status/list/detail recovery. Stable production caller scope, caller epochs, attempt generations, held setup/proof cleanup, successful authority renewals, bounded failed setup and detached manual status completion preserve exact identity without notify-only confirmation or redispatch.
+pre-ui-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.ConsumerLifecycle.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantRetainedCommandFlowTests.cs
+pre-ui-maintenance-evidence-kind: verified-gap
+evidence-kind: executed-component-state-and-integration-regressions
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Wire workspace notification nudges to create authoritative requery without notify-only confirmation.
+pre-ui-maintenance-next-action: Wire workspace notification nudges to create authoritative requery without notify-only confirmation.
+next-action: None for this record; preserve unrelated runtime, authorization-policy and release holds.
 related: DW-256
+resolution-evidence: _bmad-output/implementation-artifacts/dw-159-200-209-326-448-validation-evidence.md
+
 
 ### DW-201: Create-tenant mobile/unsafe-viewport fail-closed and open-existing recovery CTA affordances beyond localized Rejected copy
 origin: migrated from legacy ledger ("Deferred from: bmad-build scope split of Story 3.1 (2026-08-08)"), 2026-08-25
@@ -1822,17 +1842,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md`
 reason: The legacy ledger defers this issue: Extend PageLayoutDeclarationTests runtime shell coverage beyond TenantsWorkspace/UserMembershipLookup to MyTenants, TenantAudit, and GlobalAdministrators full-width measure. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md` summary: Extend PageLayoutDeclarationTests runtime shell coverage beyond TenantsWorkspace/UserMembershipLookup to MyTenants, TenantAudit, and GlobalAdministrators full-width measure. evidence: Those three dense pages are source-scanned for FullWidth but have no executable data-fc-page-layout assertion; a Constrained regression would fail only governance text scan.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/PageLayoutDeclarationTests.cs still renders only workspace and user lookup in FrontComposerShell; MyTenants, TenantAudit and GlobalAdministrators lack runtime data-fc-page-layout coverage there.
+pre-ui-maintenance-status: open
+status: done 2026-10-23
+pre-ui-maintenance-disposition: actionable
+disposition: resolved
+pre-ui-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-ui-maintenance-verification: tests/Hexalith.Tenants.UI.Tests/Components/PageLayoutDeclarationTests.cs still renders only workspace and user lookup in FrontComposerShell; MyTenants, TenantAudit and GlobalAdministrators lack runtime data-fc-page-layout coverage there.
+verification: MyTenantsPage, TenantAuditPage and GlobalAdministratorsPage now render through the actual FrontComposer shell and assert full-width content measure plus their own page markers; existing constrained user lookup remains qualified.
+pre-ui-maintenance-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/PageLayoutDeclarationTests.cs
 verification-files: tests/Hexalith.Tenants.UI.Tests/Components/PageLayoutDeclarationTests.cs
-evidence-kind: verified-gap
+pre-ui-maintenance-evidence-kind: verified-gap
+evidence-kind: executed-component-state-and-integration-regressions
 priority: P3
 owner: unassigned
 dependencies: none
-next-action: Add runtime shell layout assertions for the three remaining dense pages.
+pre-ui-maintenance-next-action: Add runtime shell layout assertions for the three remaining dense pages.
+next-action: None for this record; preserve unrelated runtime, authorization-policy and release holds.
 related: none
+resolution-evidence: _bmad-output/implementation-artifacts/dw-159-200-209-326-448-validation-evidence.md
+
 
 ### DW-210: Add runtime FcPageHeader assertions for MyTenants and UserMembershipLookup page chrome
 
@@ -2847,19 +2876,28 @@ location: src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfiguration
 source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
 severity: low
 reason: TenantRemoveConfigurationPreview.IsComplete requires IsAuthoritative, which requires Freshness == Current and Lifecycle == Current. PreviewItems returns [] unless IsComplete, so the merged "Read model: {0}; projection lifecycle: {1}." fact always reads Current/Current, and only one of the Remove.Freshness.*, Remove.Lifecycle.* and Preview.CurrentState.* values is ever reachable. A degraded-freshness operator sees a block message instead of a degraded-freshness fact.
-status: open
+pre-ui-maintenance-status: open
+status: done 2026-10-23
 decision: 2026-08-28 Keep ten-fact contract — Keep the complete-preview contract, document Current and Current as an explicit proof fact, prune unreachable resources, and pin the intentional constant in tests.
 decision: 2026-08-28 Keep ten-fact contract — Keep the complete-preview contract, document Current and Current as an explicit proof fact, prune unreachable resources, and pin the intentional constant in tests.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfigurationPreview.cs IsComplete requires Current freshness/lifecycle; Configuration/RemoveTenantConfigurationFlow.razor renders the combined fact only for complete previews. Recorded 2026-08-28 decision intentionally keeps this proof fact, but unreachable resource cleanup/pinning remains.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfigurationPreview.cs; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor
-evidence-kind: recommendation
+pre-ui-maintenance-disposition: actionable
+disposition: resolved
+pre-ui-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-ui-maintenance-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfigurationPreview.cs IsComplete requires Current freshness/lifecycle; Configuration/RemoveTenantConfigurationFlow.razor renders the combined fact only for complete previews. Recorded 2026-08-28 decision intentionally keeps this proof fact, but unreachable resource cleanup/pinning remains.
+verification: The approved ten-fact destructive preview explicitly renders its Present/Current/Current proof facts. Twelve unreachable resource variants per culture and their stale localizer doubles are removed; shipped EN/FR preview tests pin all ten facts and exact authority/presence text.
+pre-ui-maintenance-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveConfigurationPreview.cs; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor; src/Hexalith.Tenants.UI/Resources/TenantsResources.resx; src/Hexalith.Tenants.UI/Resources/TenantsResources.fr.resx; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantConfigurationFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.cs
+pre-ui-maintenance-evidence-kind: recommendation
+evidence-kind: executed-component-state-and-integration-regressions
 priority: P3
 owner: unassigned
 dependencies: existing ten-fact acceptance contract
-next-action: Document/pin the intentional Current/Current proof fact and prune unreachable resource variants.
+pre-ui-maintenance-next-action: Document/pin the intentional Current/Current proof fact and prune unreachable resource variants.
+next-action: None for this record; preserve unrelated runtime, authorization-policy and release holds.
 related: none
+resolution-evidence: _bmad-output/implementation-artifacts/dw-159-200-209-326-448-validation-evidence.md
+
 
 ### DW-327: The untracked RemoveTenantConfigurationAsync overload silently changed its failure contract to keyed, SafeMessage-null results.
 
@@ -4147,17 +4185,25 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberF
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Stop an unmatched RemoveMember proof walk from leaving the audit state pending indefinitely.\n  evidence: `ApplyRemovalProofMatch(matched: false)` keeps `AuditPending` (`TenantCreateCommandModels.cs:1155`) when the walk reaches the last page (`!audit.HasMore`, `RemoveTenantMemberFlow.razor:1135`) without any match, weak or strong. Running out of the page budget is already Delayed (`:1157`), and so is a last page with only weak matches. The Pending recovery set has no Escalate, so once the three-retry limit withdraws Refresh, Inspect audit is the only recovery left, and the state stays pending until a host refresh changes it. The walk and its matching predate Story 5.4, and the frozen spec keeps them. RemoveMember has no retention or expiry window, so a fix would move an unmatched attempt to Delayed after a bounded number of unmatched walks, or would first add an attempt deadline to the flow."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: RemoveTenantMemberFlow.razor::RefreshRemovalProofAsync reaches !audit.HasMore and calls ApplyRemovalProofMatch(matched:false) when no weak/strong match exists. TenantCreateCommandModels.cs::TenantRemoveMemberCommandSnapshot.ApplyRemovalProofMatch preserves available/delayed but otherwise returns AuditPending with no attempt deadline. Exhausting pages/weak matches becomes Delayed, while repeated complete unmatched walks can remain pending indefinitely.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
-evidence-kind: verified-defect
+pre-ui-maintenance-status: open
+status: done 2026-10-23
+pre-ui-maintenance-disposition: actionable
+disposition: resolved
+pre-ui-maintenance-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-ui-maintenance-verification: RemoveTenantMemberFlow.razor::RefreshRemovalProofAsync reaches !audit.HasMore and calls ApplyRemovalProofMatch(matched:false) when no weak/strong match exists. TenantCreateCommandModels.cs::TenantRemoveMemberCommandSnapshot.ApplyRemovalProofMatch preserves available/delayed but otherwise returns AuditPending with no attempt deadline. Exhausting pages/weak matches becomes Delayed, while repeated complete unmatched walks can remain pending indefinitely.
+verification: Three complete unmatched audit walks transition confirmed removal from AuditPending to AuditDelayed using a capped retained count. Actual remount, multi-page reads, a failed read at count two, configured escalation and late exact receipt recovery preserve command identity, proof and confirmed access outcome.
+pre-ui-maintenance-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCreateCommandModels.cs
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantRemoveMemberCommandSnapshot.cs; tests/Hexalith.Tenants.UI.Tests/State/TenantRemoveMemberCommandSnapshotTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs
+pre-ui-maintenance-evidence-kind: verified-defect
+evidence-kind: executed-component-state-and-integration-regressions
 priority: P2
 owner: unassigned
 dependencies: Attempt wait/deadline threshold
-next-action: Choose a bounded unmatched-walk/deadline threshold within the existing recovery contract and transition exhausted waiting to Delayed with tests.
+pre-ui-maintenance-next-action: Choose a bounded unmatched-walk/deadline threshold within the existing recovery contract and transition exhausted waiting to Delayed with tests.
+next-action: None for this record; preserve unrelated runtime, authorization-policy and release holds.
 related: DW-447, DW-449
+resolution-evidence: _bmad-output/implementation-artifacts/dw-159-200-209-326-448-validation-evidence.md
 
 
 ### DW-449: Treat a 404 status lag as a wait in the command dimension, not an assertive unable-to-verify.

@@ -155,6 +155,16 @@
     private readonly object _formModel = new();
     private TenantRetainedCommandAttempt? _retainedAttempt;
     private int _attemptGeneration;
+    private readonly TenantMembershipStatusRefreshDrain _statusRefreshDrain = new();
+    private TenantReadRefreshLease? _readRefreshLease;
+    private (int Generation, int CallerVersion, string TenantId, string? Caller)? _readRefreshScope;
+    private CancellationTokenSource? _readRefreshSetup;
+    private bool _readRefreshInFlight;
+    private const int MaximumReadRefreshAttempts = 3;
+    private int _readRefreshAttempts;
+    private (int Generation, int CallerVersion, string TenantId, string? Caller)? _readRefreshAttemptScope;
+    private string? _observedRefreshCaller;
+    private int _refreshCallerVersion;
     private bool _disposed;
     private TenantCreateCommandSnapshot _snapshot = TenantCreateCommandSnapshot.Idle();
     private bool _returnStateConsumed;
@@ -405,6 +415,12 @@
 
     protected override void OnParametersSet()
     {
+        if (!string.Equals(_observedRefreshCaller, CurrentCallerScope, StringComparison.Ordinal))
+        {
+            _observedRefreshCaller = CurrentCallerScope;
+            _refreshCallerVersion++;
+            RetireReadRefresh();
+        }
         ObserveAdmissionParameters();
         RestoreAuditReturnAttempt();
         // The host clears its one-shot create return marker once focus is restored. Re-arm retention
@@ -562,6 +578,9 @@
             _focusLifecyclePending = false;
             await _lifecycleElement.FocusAsync().ConfigureAwait(false);
         }
+
+        // Optional transport setup must never delay audit-return retention or required focus work.
+        await InvokeAsync(EnsureReadRefreshAsync);
     }
 
     // Honours the lifecycle FocusTarget for fail-closed/non-success transitions: when the command
@@ -876,12 +895,36 @@
         }
     }
 
-    private async Task RefreshStatusAsync()
+    /// <summary>Requeries authoritative command and projection proof after a notification.</summary>
+    internal Task HandleAuthoritativeRefreshNudgeAsync()
+        => RefreshCommandStatusAsync(requestProjectionRefresh: false);
+
+    private Task RefreshStatusAsync()
+        => RefreshCommandStatusAsync(requestProjectionRefresh: true);
+
+    private Task RefreshCommandStatusAsync(bool requestProjectionRefresh)
     {
+        SynchronizeRetainedAttempt();
+        return _statusRefreshDrain.RunAsync(requestProjectionRefresh, waitForRunningRefresh: true,
+            () => _attemptGeneration, () => !_disposed && !_snapshot.IsTerminal,
+            RefreshCommandStatusCoreAsync);
+    }
+
+    private async Task RefreshCommandStatusCoreAsync(int refreshGeneration, bool requestProjectionRefresh)
+    {
+        if (_disposed || refreshGeneration != _attemptGeneration)
+        {
+            return;
+        }
         SynchronizeRetainedAttempt();
         TenantCreateCommandSnapshot expected = _snapshot;
         TenantRetainedCommandAttempt? attempt = _retainedAttempt;
         int generation = _attemptGeneration;
+        int callerVersion = _refreshCallerVersion;
+        bool CanApply() => !_disposed && generation == _attemptGeneration
+            && ReferenceEquals(attempt, _retainedAttempt) && callerVersion == _refreshCallerVersion
+            && (requestProjectionRefresh || IsAuthorized
+                && AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized);
         if (_disposed || expected.IsTerminal || expected.MessageId is null || expected.CorrelationId is null)
         {
             return;
@@ -892,14 +935,32 @@
             ? TenantCommandStatusResult.Unknown(Localizer["Tenants.Create.Unavailable.CommandSurface"].Value)
             : await gateway.GetStatusAsync(new TenantCommandTrackingHandle(expected.MessageId, expected.CorrelationId, expected.Intent?.TenantId)
                 { ExpectedDomain = TenantIdentity.Domain }, CancellationToken.None).ConfigureAwait(false);
-        if (!PublishResult(attempt, generation, expected, expected.ApplyStatus(status, Clock.GetUtcNow())))
+        bool published = false;
+        await InvokeAsync(() =>
+        {
+            TenantCreateCommandSnapshot result = expected.ApplyStatus(status, Clock.GetUtcNow());
+            if (CanApply())
+            {
+                published = PublishResult(attempt, generation, expected, result);
+            }
+            else if (requestProjectionRefresh && attempt is not null && !Attempts.IsAttached(attempt, this))
+            {
+                // An already-running explicit status read still completes the exact retained command
+                // after its renderer detaches. Obsolete notification callbacks carry no such ownership.
+                _ = Attempts.TryUpdate(attempt, expected, result);
+            }
+        });
+        if (!published)
         {
             return;
         }
 
         expected = _snapshot;
-        await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
-        if (_disposed || generation != _attemptGeneration || !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected)
+        if (requestProjectionRefresh)
+        {
+            await InvokeAsync(() => OnProjectionRefreshRequested.InvokeAsync()).ConfigureAwait(false);
+        }
+        if (!CanApply() || _disposed || generation != _attemptGeneration || !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected)
             || expected.Intent is null || expected.State is not TenantCommandLifecycleState.ProjectionPending)
         {
             return;
@@ -909,25 +970,143 @@
         {
             TenantListSnapshot? list = ProjectionEvidenceProvider is null ? null
                 : await ProjectionEvidenceProvider(expected.Intent.TenantId).ConfigureAwait(false);
-            if (_disposed || generation != _attemptGeneration || !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected))
+            if (!CanApply() || _disposed || generation != _attemptGeneration || !TenantCommandAttemptTracker.HasSameEvidence(_snapshot, expected))
             {
                 return;
             }
             TenantDetailSnapshot? detail = Services.GetService<ITenantQueryGateway>() is ITenantQueryGateway query
                 ? await query.GetTenantAsync(new(expected.Intent.TenantId), previous: null, CancellationToken.None).ConfigureAwait(false)
                 : null;
-            _ = PublishResult(attempt, generation, expected, expected.ConfirmProjection(list, detail));
+            await InvokeAsync(() =>
+            {
+                if (CanApply())
+                {
+                    _ = PublishResult(attempt, generation, expected, expected.ConfirmProjection(list, detail));
+                }
+            });
         }
         catch (Exception)
         {
-            _ = PublishResult(attempt, generation, expected, expected with
+            await InvokeAsync(() =>
             {
-                State = TenantCommandLifecycleState.UnableToVerify,
-                SafeMessage = null,
-                SafeMessageKey = "Tenants.Create.Confirm.UnableToVerify.MissingProvenance",
-                FocusTarget = TenantCommandFocusTarget.Refresh,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                if (!CanApply())
+                {
+                    return;
+                }
+                _ = PublishResult(attempt, generation, expected, expected with
+                {
+                    State = TenantCommandLifecycleState.UnableToVerify,
+                    SafeMessage = null,
+                    SafeMessageKey = "Tenants.Create.Confirm.UnableToVerify.MissingProvenance",
+                    FocusTarget = TenantCommandFocusTarget.Refresh,
+                    LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
+                });
             });
+        }
+    }
+
+    private bool IsReadRefreshScopeCurrent((int Generation, int CallerVersion, string TenantId, string? Caller) scope)
+        => !_disposed && scope.Generation == _attemptGeneration && scope.CallerVersion == _refreshCallerVersion && !_snapshot.IsTerminal
+            && IsAuthorized && AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
+            && string.Equals(scope.Caller, CurrentCallerScope, StringComparison.Ordinal)
+            && string.Equals(scope.TenantId, _snapshot.Intent?.TenantId, StringComparison.Ordinal);
+
+    private async Task EnsureReadRefreshAsync()
+    {
+        (int Generation, int CallerVersion, string TenantId, string? Caller)? scope =
+            _snapshot.Intent is { } intent && _snapshot.MessageId is not null && _snapshot.CorrelationId is not null
+                ? (_attemptGeneration, _refreshCallerVersion, intent.TenantId, CurrentCallerScope) : null;
+        if (_readRefreshScope is { } previous && (!IsReadRefreshScopeCurrent(previous) || previous != scope))
+        {
+            RetireReadRefresh();
+        }
+        if (_readRefreshAttemptScope != scope)
+        {
+            _readRefreshAttemptScope = scope;
+            _readRefreshAttempts = 0;
+        }
+        if (scope is not { } target || !IsReadRefreshScopeCurrent(target)
+            || _readRefreshAttempts >= MaximumReadRefreshAttempts
+            || _readRefreshLease is not null || _readRefreshInFlight
+            || Services.GetService<TenantReadRefreshSubscription>() is not { } subscription)
+        {
+            return;
+        }
+
+        _readRefreshInFlight = true;
+        using var source = new CancellationTokenSource();
+        _readRefreshSetup = source;
+        TenantReadRefreshLease? lease = null;
+        bool adopted = false;
+        try
+        {
+            lease = await subscription.SubscribeAsync(GetTenantQuery.ProjectionType, target.TenantId,
+                () => _disposed ? Task.CompletedTask : InvokeAsync(async () =>
+                {
+                    if (source.IsCancellationRequested || !IsReadRefreshScopeCurrent(target))
+                    {
+                        return;
+                    }
+                    // A notification changes no outcome. Only current command and projection reads can confirm it.
+                    await HandleAuthoritativeRefreshNudgeAsync();
+                    if (!_disposed)
+                    {
+                        StateHasChanged();
+                    }
+                }), source.Token);
+            if (!source.IsCancellationRequested && IsReadRefreshScopeCurrent(target) && lease.IsSubscribed)
+            {
+                _readRefreshLease = lease;
+                _readRefreshScope = target;
+                _readRefreshAttempts = 0;
+                adopted = true;
+                lease = null;
+            }
+        }
+        catch (Exception)
+        {
+            // Optional notifications never replace manual recovery or command proof.
+        }
+        finally
+        {
+            _readRefreshSetup = null;
+            _readRefreshInFlight = false;
+            if (!adopted && IsReadRefreshScopeCurrent(target))
+            {
+                _readRefreshAttempts++;
+            }
+            if (lease is not null)
+            {
+                await DisposeReadRefreshSafelyAsync(lease);
+            }
+            if (!_disposed && !IsReadRefreshScopeCurrent(target))
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+    }
+
+    private void RetireReadRefresh()
+    {
+        _readRefreshSetup?.Cancel();
+        TenantReadRefreshLease? lease = _readRefreshLease;
+        _readRefreshLease = null;
+        _readRefreshScope = null;
+        if (lease is not null)
+        {
+            _ = DisposeReadRefreshSafelyAsync(lease);
+        }
+    }
+
+    private static async Task DisposeReadRefreshSafelyAsync(TenantReadRefreshLease lease)
+    {
+        try
+        {
+            await lease.DisposeAsync();
+        }
+        catch (Exception)
+        {
+            // Optional transport cleanup cannot change command ownership.
         }
     }
 
@@ -947,6 +1126,7 @@
     public void Dispose()
     {
         _disposed = true;
+        RetireReadRefresh();
         InvalidateAdmission();
         TenantCommandAttemptTracker? attempts = AttemptTracker?.Attempts;
         if (attempts is not null)

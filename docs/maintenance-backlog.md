@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-159/DW-200/DW-209/DW-326/DW-448 closure (2026-10-23):** Explicit unavailable configuration states, authoritative create notification recovery, actual shell layout checks, localized ten-fact preview proof and bounded retained removal audit waiting close exactly five records. All 657 IDs remain: 555 done/102 open across 92 maintenance rows. Original fields, unrelated records, dependencies and runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-159-200-209-326-448-validation-evidence.md).
+
 **DW-551/DW-556/DW-575/DW-576/DW-597 closure (2026-10-23):** Configurable validated bootstrap token destinations, explicit one-attempt operator recovery and executable administrator-to-human handoff preserve identity and projected-membership proof. Exact system membership among valid multivalued tenant claims is recognized. Exactly five records close: all 657 IDs remain, 550 done/107 open across 97 maintenance rows. Original fields, unrelated records, dependencies and unresolved revocation/runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-551-556-575-576-597-validation-evidence.md).
 
 **DW-527/DW-544/DW-582/DW-583/DW-589 closure (2026-10-23):** Restore-backed NuGet ranges/frameworks, immutable OCI source proof and shared destination byte checks close exactly five records. All 657 IDs remain: 545 done/112 open across 102 maintenance rows. Historical fields, unrelated records, the dirty archive, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-527-544-582-583-589-validation-evidence.md).
@@ -208,14 +210,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 545 |
-| actionable | 51 |
+| done | 555 |
+| actionable | 44 |
 | blocked | 15 |
-| awaiting-decision | 23 |
-| accepted-limitation | 6 |
+| awaiting-decision | 21 |
+| accepted-limitation | 5 |
 | uncertain | 17 |
 
-**Remaining: 112 open records across 102 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 102 open records across 92 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -256,7 +258,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-317 | P2 | Defect / actionable | unassigned | browser layout fixture | Repair the remaining form/label scope stamping and verify computed layout at supported widths. |
 | DW-387 | P2 | Defect / actionable | unassigned | Same-id idempotency/recovery contract | Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards. |
 | DW-444 | P2 | Defect / actionable | unassigned | Focus only when the removed panel actually owned focus | Capture/reset/remount focus and restore the actual correction launcher at safe and narrow widths. |
-| DW-448 | P2 | Defect / actionable | unassigned | Attempt wait/deadline threshold | Choose a bounded unmatched-walk/deadline threshold within the existing recovery contract and transition exhausted waiting to Delayed with tests. |
 | DW-511 | P2 | Defect / actionable | Hexalith.EventStore | EventStore ambiguity contract | Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions. |
 | DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
 | DW-522 | P2 | Defect / actionable | Hexalith.EventStore | DW-511 general ambiguity wording | Align the served ambiguity catalog and problem reference with the general scope-aware runtime remediation. |
@@ -272,7 +273,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-122 | P2 | Gap / blocked | Memories | Memories index uniqueness guarantee | Add an owning Memories uniqueness contract test across raw windows. |
 | DW-154 | P2 | Gap / blocked | unassigned | concurrent teardown harness | Use a concurrency-capable renderer/browser harness to pin reset and disposed-notification behavior. |
 | DW-161 | P2 | Gap / blocked | unassigned | healthy live topology and endpoint/auth evidence | Capture all six production-client routes, conditional 304 and headers through a healthy authenticated deployed topology. |
-| DW-200 | P2 | Gap / actionable | unassigned | none | Wire workspace notification nudges to create authoritative requery without notify-only confirmation. |
 | DW-299 | P2 | Gap / blocked | unassigned | authenticated browser configuration fixture | Capture real set/remove form and warning visibility at both sides of the breakpoint. |
 | DW-333, DW-335 | P2 | Gap / blocked | unassigned | authenticated real-browser workspace fixture | Capture authenticated tab switches with computed visibility, activeElement and accessibility-tree evidence. |
 | DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
@@ -299,7 +299,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-212 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Implement the recorded shared parameter diagnostic and its component regression. |
 | DW-213 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Add a rendered-element readiness guard and an explicit pre-render focus test. |
 | DW-571 | P3 | Defect / actionable | unassigned | EventStore hosting helper/runtime token contract | Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial. |
-| DW-209 | P3 | Gap / actionable | unassigned | none | Add runtime shell layout assertions for the three remaining dense pages. |
 | DW-211 | P3 | Gap / actionable | unassigned | authenticated browser navigation fixture | Capture browser activeElement after a missing-row detail return and assert the list heading is focused. |
 
 ## Unverified risks and recommendations
@@ -335,7 +334,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-584 | P2 | Recommendation / awaiting-decision | unassigned | Release-gate policy owner | Decide which separate exact-source workflow outcomes must block publication and document the gate. |
 | DW-600 | P2 | Recommendation / awaiting-decision | unassigned | Complete-evidence duplicate-page policy | Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract. |
 | DW-267 | P3 | Recommendation / actionable | unassigned | DW-245 and DW-300 | Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics. |
-| DW-326 | P3 | Recommendation / actionable | unassigned | existing ten-fact acceptance contract | Document/pin the intentional Current/Current proof fact and prune unreachable resource variants. |
 | DW-328 | P3 | Recommendation / actionable | unassigned | independent review capacity | Run a separately scoped independent follow-up on retained removal expiry and proof behavior. |
 | DW-434 | P3 | Recommendation / actionable | unassigned | Approved Option A fallback remains valid; preserve rejected Option B | For the approved Option C follow-up, browser-check a collapsed in-flight lifecycle/configuration audit round trip and expand its matching item only if the launcher is unreachable. |
 | DW-438 | P3 | Recommendation / awaiting-decision | unassigned | Support-safety policy/opaque-reference contract decision | Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy. |
@@ -349,6 +347,5 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-117 | P3 | Accepted / accepted-limitation | unassigned | none | Revisit containment only if the documented surfacing policy changes. |
 | DW-118 | P3 | Accepted / accepted-limitation | unassigned | none | Revisit if codec callers begin accepting nullable scope or position inputs. |
 | DW-133 | P3 | Accepted / accepted-limitation | unassigned | none | Keep the historical attribution when archiving; use separately scoped tooling work for future changes. |
-| DW-159 | P3 | Accepted / accepted-limitation | unassigned | none | Require explicit state mapping if a second consumer passes an available model with a denied/not-found surface. |
 | DW-365 | P3 | Accepted / accepted-limitation | unassigned | none | Keep this scope note as history; use the separate pushall safeguards entries for maintenance. |
 | DW-367 | P3 | Accepted / accepted-limitation | unassigned | Explicit contract/product change approval | Keep deliberate role selection; revisit the event schema only through a separately approved contract change. |

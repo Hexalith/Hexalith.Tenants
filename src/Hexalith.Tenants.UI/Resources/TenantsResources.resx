@@ -1590,9 +1590,7 @@
   <data name="Tenants.Configuration.Remove.Preview.CurrentState" xml:space="preserve">
     <value>Current known state</value>
   </data>
-  <data name="Tenants.Configuration.Remove.Preview.CurrentState.Unknown" xml:space="preserve"><value>Unknown</value></data>
   <data name="Tenants.Configuration.Remove.Preview.CurrentState.Present" xml:space="preserve"><value>The key is present; its value is not displayed.</value></data>
-  <data name="Tenants.Configuration.Remove.Preview.CurrentState.Absent" xml:space="preserve"><value>The key is absent.</value></data>
   <data name="Tenants.Configuration.Remove.Preview.IntendedEffect" xml:space="preserve">
     <value>Intended effect</value>
   </data>
@@ -1628,25 +1626,7 @@
   <data name="Tenants.Configuration.Remove.Freshness.Current" xml:space="preserve">
     <value>Current</value>
   </data>
-  <data name="Tenants.Configuration.Remove.Freshness.Aging" xml:space="preserve">
-    <value>Aging</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Freshness.Refreshing" xml:space="preserve">
-    <value>Refreshing</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Freshness.Stale" xml:space="preserve">
-    <value>Stale</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Freshness.Unknown" xml:space="preserve">
-    <value>Unknown</value>
-  </data>
-  <data name="Tenants.Configuration.Remove.Lifecycle.Unknown" xml:space="preserve"><value>Unknown</value></data>
   <data name="Tenants.Configuration.Remove.Lifecycle.Current" xml:space="preserve"><value>Current</value></data>
-  <data name="Tenants.Configuration.Remove.Lifecycle.Stale" xml:space="preserve"><value>Stale</value></data>
-  <data name="Tenants.Configuration.Remove.Lifecycle.Rebuilding" xml:space="preserve"><value>Rebuilding</value></data>
-  <data name="Tenants.Configuration.Remove.Lifecycle.Degraded" xml:space="preserve"><value>Degraded</value></data>
-  <data name="Tenants.Configuration.Remove.Lifecycle.Unavailable" xml:space="preserve"><value>Unavailable</value></data>
-  <data name="Tenants.Configuration.Remove.Lifecycle.LocalOnly" xml:space="preserve"><value>Local only</value></data>
   <data name="Tenants.Configuration.Remove.Status.Pending" xml:space="preserve"><value>Command status is not authoritative yet. Keep reconciling before taking another action.</value></data>
   <data name="Tenants.Configuration.Remove.Status.Rejected" xml:space="preserve"><value>The configuration removal command was rejected.</value></data>
   <data name="Tenants.Configuration.Remove.Status.PublishFailed" xml:space="preserve"><value>The removal command was accepted, but publication could not be verified.</value></data>

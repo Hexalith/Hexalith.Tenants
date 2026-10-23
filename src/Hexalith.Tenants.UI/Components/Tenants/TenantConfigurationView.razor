@@ -238,6 +238,7 @@
         => SurfaceKind is TenantDetailSurfaceKind.Loading
             ? "Tenants.Configuration.State.Loading"
             : Model?.IsAvailable != true || SurfaceKind is TenantDetailSurfaceKind.Unavailable
+                    or TenantDetailSurfaceKind.NotFound or TenantDetailSurfaceKind.Unauthorized
                 ? "Tenants.Configuration.State.Unavailable"
                 : IsDegraded
                     ? "Tenants.Configuration.State.Degraded"

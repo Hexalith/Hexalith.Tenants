@@ -4329,6 +4329,53 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task Complete_unmatched_removal_walks_become_delayed_across_remount_and_late_proof_recovers()
+    {
+        StubTenantCommandGateway gateway = CompletedGateway();
+        ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
+        bool exactProof = false;
+        bool queryFails = false;
+        queries.GetTenantAuditAsync(Arg.Any<TenantAuditRequest>(), Arg.Any<TenantAuditSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(call =>
+            {
+                if (queryFails) throw new HttpRequestException("Fixture read unavailable");
+                TenantAuditRequest request = call.Arg<TenantAuditRequest>();
+                return request.Cursor is null
+                    ? CurrentAuditPage([], request, "audit-v2") with { HasMore = true, NextCursor = "terminal-page" }
+                    : CurrentAuditPage(exactProof ? [StrongRemovalRow(request)] : [], request, "audit-v2");
+            });
+        RegisterServices(gateway, queries);
+        ITenantsBffComposition composition = Substitute.For<ITenantsBffComposition>();
+        composition.AuditEscalationRecoveryHref.Returns("/support/audit-incident");
+        Services.AddSingleton(composition);
+        IRenderedComponent<RemoveTenantMemberFlow> first = RenderConfirmedRemoval(gateway);
+        first.WaitForAssertion(() => first.Instance.Snapshot.UnmatchedRemovalProofWalkCount.ShouldBe(1));
+        TenantRemoveMemberCommandSnapshot original = first.Instance.Snapshot;
+        await first.InvokeAsync(first.Instance.Dispose);
+        IRenderedComponent<RemoveTenantMemberFlow> replacement = RenderConfirmedRemoval(gateway, submit: false);
+        replacement.Instance.Snapshot.UnmatchedRemovalProofWalkCount.ShouldBe(1);
+        await replacement.InvokeAsync(() => replacement.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        replacement.Instance.Snapshot.UnmatchedRemovalProofWalkCount.ShouldBe(2);
+        queryFails = true;
+        await replacement.InvokeAsync(() => replacement.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        replacement.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditUnavailable);
+        replacement.Instance.Snapshot.UnmatchedRemovalProofWalkCount.ShouldBe(2);
+        queryFails = false;
+        await replacement.InvokeAsync(() => replacement.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        replacement.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditDelayed);
+        replacement.Find("[data-recovery-verb='escalate']");
+        replacement.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Confirmed);
+        replacement.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        replacement.Instance.Snapshot.CorrelationId.ShouldBe(original.CorrelationId);
+        replacement.Instance.Snapshot.CommittedEventSequence.ShouldBe(original.CommittedEventSequence);
+        exactProof = true;
+        await replacement.InvokeAsync(() => replacement.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        replacement.Instance.Snapshot.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+        replacement.Find("[data-testid='tenants-audit-receipt']");
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+    }
+
+    [Fact]
     public void ExactRemovalProofAcceptsClockSkewWithOnlyOpaqueETagMetadataAndRedactsProvenance()
     {
         StubTenantCommandGateway gateway = CompletedGateway();

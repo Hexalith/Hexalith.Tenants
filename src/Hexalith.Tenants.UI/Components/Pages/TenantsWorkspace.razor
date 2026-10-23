@@ -177,6 +177,7 @@
                                                  ExpandedChanged="@((bool expanded) => _createAccordionExpanded = expanded)"
                                                  data-testid="tenants-create-accordion">
                                 <CascadingValue Value="@CreateAuditReturnUrl" Name="WorkspaceAuditReturnUrl">
+                                <CascadingValue Value="@(AuthenticatedUserId is { } createCaller ? TenantQueryGateway.AuditCallerScope(createCaller) : null)" Name="CurrentTenantCallerScope">
                                 <CreateTenantFlow IsAuthorized="@(CreateAuthorization is TenantLifecycleAuthorizationReflectionState.Authorized)"
                                                   AuthorizationReflection="@CreateAuthorization"
                                                   AuthorizationVersion="@_authorizationVersion"
@@ -190,6 +191,7 @@
                                                   RestoreAuditReturn="@IsCreateAuditReturn"
                                                   OnProjectionRefreshRequested="RefreshAsync"
                                                   ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
+                                </CascadingValue>
                                 </CascadingValue>
                             </FluentAccordionItem>
                         </FluentAccordion>

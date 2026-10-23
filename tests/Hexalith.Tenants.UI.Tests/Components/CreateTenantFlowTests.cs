@@ -1,3 +1,5 @@
+using Hexalith.FrontComposer.Contracts.Communication;
+using Hexalith.Tenants.UI.Services;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.Contracts.Identity;
 using static Hexalith.Tenants.UI.Tests.TenantCommandProofFixtures;
@@ -31,6 +33,244 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class CreateTenantFlowTests : FluentBunitContext
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Projection_notifications_require_both_command_events_and_authoritative_projection(
+        bool commandEvents, bool projectionVisible)
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddSingleton<TenantReadRefreshSubscription>();
+        TenantCommandStatusResult status = new(CommandStatus.Received, HasVerifiedCommandIdentity: true);
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            StatusAsync = _ => Task.FromResult(status),
+        };
+        ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
+        queries.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(projectionVisible
+                ? TenantDetailSnapshot.Ready(new TenantDetail("tenant.alpha", "Alpha", null, TenantStatus.Active,
+                    [], new Dictionary<string, string>(), DateTimeOffset.UtcNow), "etag-v2",
+                    Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current,
+                    Hexalith.EventStore.Contracts.Queries.ProjectionLifecycleState.Current, projectionVersion: "tenant-sequence:2")
+                : TenantDetailSnapshot.NotFound("tenant.alpha")));
+        Services.AddSingleton(queries);
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        int parentRefreshes = 0;
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.BaselineTenantAbsent, true)
+            .Add(p => p.OnProjectionRefreshRequested, () => parentRefreshes++));
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        await cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => subscription.Received(1).SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()));
+        int originalStatusReads = gateway.StatusCallCount;
+        int originalParentRefreshes = parentRefreshes;
+        status = commandEvents ? new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) : status;
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.beta");
+        gateway.StatusCallCount.ShouldBe(originalStatusReads);
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        cut.WaitForAssertion(() =>
+        {
+            gateway.StatusCallCount.ShouldBe(originalStatusReads + 1);
+            cut.Instance.Snapshot.State.ShouldBe(commandEvents && projectionVisible ? TenantCommandLifecycleState.Confirmed
+                : commandEvents ? TenantCommandLifecycleState.ProjectionPending : TenantCommandLifecycleState.Accepted);
+        });
+        gateway.CreateTenantCallCount.ShouldBe(1);
+        parentRefreshes.ShouldBe(originalParentRefreshes);
+        cut.Instance.Snapshot.MessageId.ShouldBe("01ARZ3NDEKTSV4RRFFQ69G5FAV");
+        if (commandEvents && projectionVisible)
+        {
+            cut.WaitForAssertion(() =>
+            {
+                cut.Find("[data-testid='tenants-create-state']").TextContent.ShouldContain("Projection confirmed");
+                subscription.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+            });
+        }
+        await cut.InvokeAsync(cut.Instance.Dispose);
+        await subscription.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>("tenants", "tenant.alpha");
+        gateway.StatusCallCount.ShouldBe(originalStatusReads + 1);
+    }
+
+    [Theory]
+    [InlineData("caller-change", "status", false)]
+    [InlineData("manual-caller-change", "status", false)]
+    [InlineData("dispose", "status", false)]
+    [InlineData("coalesce", "status", false)]
+    [InlineData("caller-change", "list", false)]
+    [InlineData("dispose", "list", false)]
+    [InlineData("caller-change", "detail", false)]
+    [InlineData("dispose", "detail", false)]
+    [InlineData("caller-change", "list", true)]
+    [InlineData("dispose", "list", true)]
+    [InlineData("caller-change", "detail", true)]
+    [InlineData("dispose", "detail", true)]
+    public async Task Held_notification_status_obeys_caller_disposal_and_coalescing_boundaries(
+        string scenario, string proofSurface, bool lateFailure)
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddSingleton<TenantReadRefreshSubscription>();
+        TaskCompletionSource<TenantCommandStatusResult> held = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantListSnapshot?> heldList = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantDetailSnapshot> heldDetail = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource proofStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int reads = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            StatusAsync = _ => ++reads == 1 ? Task.FromResult(new TenantCommandStatusResult(CommandStatus.Received,
+                HasVerifiedCommandIdentity: true)) : proofSurface == "status" ? held.Task
+                    : Task.FromResult(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)),
+        };
+        ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
+        queries.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                if (proofSurface != "detail") return Task.FromResult(TenantDetailSnapshot.NotFound("tenant.alpha"));
+                proofStarted.TrySetResult();
+                return heldDetail.Task;
+            });
+        Services.AddSingleton(queries);
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        void Configure(ComponentParameterCollectionBuilder<CreateTenantFlow> p) => p
+            .Add(x => x.IsAuthorized, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(x => x.BaselineTenantAbsent, true)
+            .Add(x => x.ProjectionEvidenceProvider, _ =>
+            {
+                if (proofSurface != "list") return Task.FromResult<TenantListSnapshot?>(null);
+                proofStarted.TrySetResult();
+                return heldList.Task;
+            });
+        IRenderedComponent<CascadingValue<string>> host = Render<CascadingValue<string>>(p => p
+            .Add(x => x.Name, "CurrentTenantCallerScope").Add(x => x.Value, "caller-a")
+            .AddChildContent<CreateTenantFlow>(Configure));
+        IRenderedComponent<CreateTenantFlow> cut = host.FindComponent<CreateTenantFlow>();
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        await cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => subscription.Received(1).SubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>()));
+        Task nudge = scenario == "manual-caller-change"
+            ? cut.Find("[data-testid='tenants-create-refresh']").ClickAsync(new MouseEventArgs())
+            : cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync());
+        cut.WaitForAssertion(() => gateway.StatusCallCount.ShouldBe(2));
+        if (proofSurface != "status") await proofStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        TenantCreateCommandSnapshot before = cut.Instance.Snapshot;
+        Task? merged = null;
+        if (scenario == "coalesce")
+        {
+            merged = cut.Find("[data-testid='tenants-create-refresh']").ClickAsync(new MouseEventArgs());
+            merged.IsCompleted.ShouldBeFalse();
+            gateway.StatusCallCount.ShouldBe(2);
+        }
+        else if (scenario == "dispose") await cut.InvokeAsync(cut.Instance.Dispose);
+        else host.Render(p => p.Add(x => x.Name, "CurrentTenantCallerScope").Add(x => x.Value, "caller-b")
+            .AddChildContent<CreateTenantFlow>(Configure));
+        if (proofSurface == "status") held.SetResult(new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
+        else if (proofSurface == "list")
+        {
+            if (lateFailure) heldList.SetException(new HttpRequestException("Fixture late failure"));
+            else heldList.SetResult(ListProof(new TenantSummary("tenant.alpha", "Alpha", TenantStatus.Active), "tenant-sequence:2"));
+        }
+        else
+        {
+            if (lateFailure) heldDetail.SetException(new HttpRequestException("Fixture late failure"));
+            else heldDetail.SetResult(Proof(new TenantDetail("tenant.alpha", "Alpha", null, TenantStatus.Active,
+                [], new Dictionary<string, string>(), DateTimeOffset.UtcNow))!);
+        }
+        await nudge.WaitAsync(TimeSpan.FromSeconds(5));
+        if (merged is not null)
+        {
+            await merged.WaitAsync(TimeSpan.FromSeconds(5));
+            gateway.StatusCallCount.ShouldBe(3);
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.ProjectionPending);
+        }
+        else
+        {
+            Services.GetRequiredService<TenantCommandAttemptTracker>().Find<TenantCreateCommandSnapshot>("tenant.alpha")
+                .ShouldBe(before);
+        }
+        gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Held_notification_setup_retires_obsolete_scope_and_allows_current_scope_to_subscribe(bool dispose)
+    {
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        TaskCompletionSource setup = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource entered = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource cleaned = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource replacementSubscribed = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        subscription.UnsubscribeAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ => { cleaned.TrySetResult(); return Task.CompletedTask; });
+        int setupCalls = 0;
+        subscription.SubscribeAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                if (Interlocked.Increment(ref setupCalls) != 1)
+                {
+                    replacementSubscribed.TrySetResult();
+                    return Task.CompletedTask;
+                }
+                entered.TrySetResult();
+                return setup.Task;
+            });
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddSingleton<TenantReadRefreshSubscription>();
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        void Configure(ComponentParameterCollectionBuilder<CreateTenantFlow> p) => p
+            .Add(x => x.IsAuthorized, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(x => x.BaselineTenantAbsent, true);
+        IRenderedComponent<CascadingValue<string>> host = Render<CascadingValue<string>>(p => p
+            .Add(x => x.Name, "CurrentTenantCallerScope").Add(x => x.Value, "caller-a")
+            .AddChildContent<CreateTenantFlow>(Configure));
+        IRenderedComponent<CreateTenantFlow> cut = host.FindComponent<CreateTenantFlow>();
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        Task submit = cut.Find("form").SubmitAsync();
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        if (dispose) await cut.InvokeAsync(cut.Instance.Dispose);
+        else host.Render(p => p.Add(x => x.Name, "CurrentTenantCallerScope").Add(x => x.Value, "caller-b")
+            .AddChildContent<CreateTenantFlow>(Configure));
+        setup.SetResult();
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        await cleaned.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        if (!dispose) await replacementSubscribed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await subscription.Received(1).UnsubscribeAsync("tenants", "tenant.alpha", Arg.Any<CancellationToken>());
+        Volatile.Read(ref setupCalls).ShouldBe(dispose ? 1 : 2);
+        gateway.CreateTenantCallCount.ShouldBe(1);
+        gateway.StatusCallCount.ShouldBe(1);
+        if (!dispose) await cut.InvokeAsync(cut.Instance.Dispose);
+    }
+
     [Theory]
     [InlineData("en", "mounted")]
     [InlineData("fr", "mounted")]

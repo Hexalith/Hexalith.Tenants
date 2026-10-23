@@ -3758,6 +3758,32 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         filtered.Find("[data-testid='tenants-config-read-table']").TextContent.ShouldContain("billing.mode");
     }
 
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.NotFound, true)]
+    [InlineData(TenantDetailSurfaceKind.NotFound, false)]
+    [InlineData(TenantDetailSurfaceKind.Unauthorized, true)]
+    [InlineData(TenantDetailSurfaceKind.Unauthorized, false)]
+    public void Denied_or_missing_configuration_never_claims_current_evidence(
+        TenantDetailSurfaceKind kind, bool availableModel)
+    {
+        RegisterComponentServices();
+        IRenderedComponent<TenantConfigurationView> cut = Render<TenantConfigurationView>(parameters => parameters
+            .Add(view => view.Model, availableModel
+                ? SafeConfiguration(("billing", "billing.mode", "trial"))
+                : TenantConfigurationSafeModel.Unavailable("tenant.alpha"))
+            .Add(view => view.SurfaceKind, kind)
+            .Add(view => view.Freshness, ReadModelFreshnessState.Current)
+            .Add(view => view.Lifecycle, ProjectionLifecycleState.Current));
+
+        IElement state = cut.Find("[data-testid='tenants-config-read-state']");
+        state.GetAttribute("data-state").ShouldBe("Unavailable");
+        state.GetAttribute("role").ShouldBe("alert");
+        state.GetAttribute("aria-live").ShouldBe("assertive");
+        state.TextContent.ShouldNotContain("evidence is current", Case.Insensitive);
+        cut.FindAll("[data-testid='tenants-config-read-group']").ShouldBeEmpty();
+        cut.Markup.ShouldNotContain("trial");
+    }
+
     [Fact]
     public void Configuration_read_view_preserves_literal_namespace_unicode_accessibility_and_responsive_overflow()
     {
@@ -9335,16 +9361,8 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.Unavailable.TargetMissing"] = "The selected key is absent from current authorized evidence. Refresh and select a visible key; no removal was submitted.",
             ["Tenants.Configuration.Remove.Preview.FreshnessAndLifecycle.Value"] = "Read model: {0}; projection lifecycle: {1}.",
             ["Tenants.Configuration.Remove.Preview.ConsequencesAndUnknowns.Value"] = "Authorized consumers may react after projection catch-up; downstream impact and command-specific audit proof remain unknown.",
-            ["Tenants.Configuration.Remove.Preview.CurrentState.Unknown"] = "Unknown",
             ["Tenants.Configuration.Remove.Preview.CurrentState.Present"] = "The key is present; its value is not displayed.",
-            ["Tenants.Configuration.Remove.Preview.CurrentState.Absent"] = "The key is absent.",
-            ["Tenants.Configuration.Remove.Lifecycle.Unknown"] = "Unknown",
             ["Tenants.Configuration.Remove.Lifecycle.Current"] = "Current",
-            ["Tenants.Configuration.Remove.Lifecycle.Stale"] = "Stale",
-            ["Tenants.Configuration.Remove.Lifecycle.Rebuilding"] = "Rebuilding",
-            ["Tenants.Configuration.Remove.Lifecycle.Degraded"] = "Degraded",
-            ["Tenants.Configuration.Remove.Lifecycle.Unavailable"] = "Unavailable",
-            ["Tenants.Configuration.Remove.Lifecycle.LocalOnly"] = "Local only",
             ["Tenants.Configuration.Remove.Preview.Freshness"] = "Freshness evidence",
             ["Tenants.Configuration.Remove.Preview.Authorization"] = "Authorization and scope evidence",
             ["Tenants.Configuration.Remove.Preview.Authorization.Value"] = "The namespace prefix and key are visible in the authorized tenant projection; backend authorization still enforces the command.",
@@ -9354,10 +9372,6 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
             ["Tenants.Configuration.Remove.Preview.RecoveryPath"] = "Recovery path",
             ["Tenants.Configuration.Remove.Preview.RecoveryPath.Value"] = "Refresh tenant detail, retry only from current projection proof, or submit a forward correction to set the key again.",
             ["Tenants.Configuration.Remove.Freshness.Current"] = "Current",
-            ["Tenants.Configuration.Remove.Freshness.Aging"] = "Aging",
-            ["Tenants.Configuration.Remove.Freshness.Refreshing"] = "Refreshing",
-            ["Tenants.Configuration.Remove.Freshness.Stale"] = "Stale",
-            ["Tenants.Configuration.Remove.Freshness.Unknown"] = "Unknown",
             ["Tenants.Configuration.Remove.State.Idle"] = "No configuration removal command submitted.",
             ["Tenants.Configuration.Remove.State.Previewed"] = "Configuration removal preview ready.",
             ["Tenants.Configuration.Remove.State.RequestSent"] = "Configuration removal request sent.",

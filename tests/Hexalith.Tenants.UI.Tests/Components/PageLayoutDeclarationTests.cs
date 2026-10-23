@@ -15,6 +15,7 @@ using Hexalith.Tenants.UI.Components.Pages;
 using Hexalith.Tenants.UI.Resources;
 using Hexalith.Tenants.UI.Services.Gateways;
 using Hexalith.Tenants.UI.State.TenantList;
+using Hexalith.Tenants.UI.State.UserTenants;
 using Hexalith.EventStore.Client.Projections;
 
 using Microsoft.AspNetCore.Components;
@@ -80,6 +81,33 @@ public sealed class PageLayoutDeclarationTests : BunitContext
         cut.WaitForAssertion(() =>
             cut.Find("#fc-main-content").GetAttribute("data-fc-page-layout").ShouldBe("constrained"));
         cut.Find("[data-testid='tenants-user-lookup']");
+    }
+
+    [Fact]
+    public void My_tenants_declares_full_width_layout_inside_frontcomposer_shell()
+        => AssertFullWidthPage<MyTenantsPage>("tenants-my-page-header");
+
+    [Fact]
+    public void Tenant_audit_declares_full_width_layout_inside_frontcomposer_shell()
+        => AssertFullWidthPage<TenantAuditPage>("tenants-audit-surface");
+
+    [Fact]
+    public void Global_administrators_declares_full_width_layout_inside_frontcomposer_shell()
+        => AssertFullWidthPage<GlobalAdministratorsPage>("tenants-global-admins-area");
+
+    private void AssertFullWidthPage<TPage>(string marker) where TPage : IComponent
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.GetMyTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(UserTenantMembershipSnapshot.Unavailable());
+        Services.AddSingleton(gateway);
+        EnsureStoreInitialized();
+        IRenderedComponent<FrontComposerShell> cut = RenderPageInShell<TPage>();
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("#fc-main-content").GetAttribute("data-fc-page-layout").ShouldBe("full-width");
+            cut.Find($"[data-testid='{marker}']");
+        });
     }
 
     private IRenderedComponent<FrontComposerShell> RenderPageInShell<TPage>()
