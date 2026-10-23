@@ -68,12 +68,73 @@ When `Tenants:BootstrapGlobalAdminUserId` is set, the Tenants host submits `Boot
 
 | Mode | Credential | Settings |
 | --- | --- | --- |
-| Authority (production) | The administrator's own access token, obtained with the resource-owner password grant. It is sent only when its `sub` equals `Tenants:BootstrapGlobalAdminUserId`. | `EventStore:Authentication:Authority`, `EventStore:Authentication:ClientId`, `EventStore:Authentication:Username`, `EventStore:Authentication:Password` |
+| Authority (production) | The administrator's own access token, obtained with the resource-owner password grant. It is sent only when its `sub` equals `Tenants:BootstrapGlobalAdminUserId`. | `EventStore:Authentication:Authority`, `EventStore:Authentication:ClientId`, `EventStore:Authentication:Username`, `EventStore:Authentication:Password`, optional `EventStore:Authentication:TokenEndpoint` |
 | Symmetric (`Development` only) | A 120-second token for the configured administrator, signed with the shared development key. | `Authentication:JwtBearer` symmetric contract |
 
-In production, supply the administrator password from a secret store for the bootstrap run only and remove it afterwards. Alternatively, leave `Tenants:BootstrapGlobalAdminUserId` unset and have the designated administrator submit `BootstrapGlobalAdmin` once through the EventStore API with their own token, which must carry the `global_admin` claim. Without a delegated credential, Tenants logs event `2006` and does not send the command.
+`EventStore:Authentication:Authority` remains required for authority mode and must be an absolute HTTP(S) URI with a host and no userinfo, query or fragment. HTTPS is required in every environment except `Development`.
 
-Global-administrator authority is then verified from the `global-administrators` read model, which is a projection. It is eventually consistent: the bootstrapped administrator is verified once `GlobalAdministratorSet` has been projected, and wire administrator hints are ignored until then.
+The optional `EventStore:Authentication:TokenEndpoint` (`EventStore__Authentication__TokenEndpoint`) selects the password-grant endpoint for providers whose endpoint differs from Keycloak's. If absent, bootstrap uses `<authority>/protocol/openid-connect/token`; there is no OIDC endpoint discovery. A configured endpoint must be an absolute, well-formed HTTP(S) URI with a host and no userinfo, query or fragment; HTTPS is required outside `Development`. Blank/invalid/insecure configured overrides fail closed without a request or default-endpoint fallback. An override cannot bypass an invalid authority, missing credentials or subject mismatch, and cannot activate symmetric Development token fallback.
+
+**The configured endpoint is an operator-trusted credential destination.** It may have a different host/path from the authority. Verify that destination before supplying credentials: the provider sends the configured username and password there. The access token must name exactly `Tenants:BootstrapGlobalAdminUserId`; EventStore still validates token authentication, and the aggregate binds bootstrap target to authenticated actor. Response size remains bounded to 64 KiB, body reads share the request timeout/cancellation, and diagnostics contain safe reason/status categories only.
+
+`Tenants:BootstrapGlobalAdminEnabled` defaults to `true`. When enabled with a configured user ID, the hosted service makes **one startup attempt** after listening; it does not retry in process. Set `Tenants__BootstrapGlobalAdminEnabled=false` to suppress another startup submission while recovering uncertain delivery. This preserves the configured user ID and existing state. A later restart with bootstrap enabled makes one new attempt, so do not restart blindly after failure.
+
+In production, supply the administrator password from a secret store for the bootstrap run only and remove it afterwards. If the IdP does not permit password grants, disable hosted bootstrap and have the designated administrator submit the one-time command with their own IdP-issued token, correct system/domain/permission claims and a supported global-administrator claim. The target must equal that authenticated subject. Never fabricate a token or change the administrator target to work around failed credentials.
+
+Global-administrator authority is verified from the `global-administrators` read model after `GlobalAdministratorSet` has been projected. Wire administrator hints alone do not grant domain authority. Use the [quickstart membership and human handoff commands](quickstart.md#get-an-access-token) against `tenants-api`; a successful full-page membership lookup under the configured subject is the authoritative handoff check.
+
+### Explicit bootstrap recovery
+
+1. Stop the handoff after token failure, HTTP failure, unexpected response, ambiguous delivery, command-status failure or projection timeout. Resource health is insufficient. Logs `2005`/`2006` indicate credential acquisition did not yield dispatch; `2001` indicates acceptance only, `2003` an unexpected response, `2002` a safe phase/category, and `2004` the already-bootstrapped response only. None prove the configured subject's membership.
+2. Preserve the configured subject and authenticate it through the configured IdP. Verify exact token `sub`, authority and endpoint contract without displaying tokens or credentials. Define all shared helpers from the quickstart before its initial membership check; a failed check keeps this authenticated shell open. For persistent local Keycloak, changing Aspire parameters does not update an imported user. Repair that same identity rather than deleting state or substituting its username for the fixed subject.
+3. Check qualifying projected membership with that identity. A fresh, non-degraded, version-consistent result containing the configured subject establishes projected membership under the existing contract. If delivery may have occurred, use **Tenants event `2008`**, emitted immediately before dispatch: its `MessageId` and `CorrelationId` are exactly the attempted payload's ULIDs and contain no subject/token/credential data. This event records an attempt, not delivery or success. Retain those same IDs in this shell (if manual recovery already retained IDs, keep those instead):
+
+```bash
+retain_startup_attempt() {
+  [[ -z "${BOOTSTRAP_MESSAGE_ID:-}" && -z "${BOOTSTRAP_CORRELATION_ID:-}" ]] || return 1
+  read -r -p "MessageId from bootstrap event 2008: " BOOTSTRAP_MESSAGE_ID
+  read -r -p "CorrelationId from the same event 2008: " BOOTSTRAP_CORRELATION_ID
+  [[ "$BOOTSTRAP_MESSAGE_ID" =~ ^[0-7][0-9A-HJKMNP-TV-Z]{25}$ &&
+     "$BOOTSTRAP_CORRELATION_ID" =~ ^[0-7][0-9A-HJKMNP-TV-Z]{25}$ ]]
+}
+retain_startup_attempt
+resume_bootstrap
+```
+
+`resume_bootstrap` only queries the retained correlation status and qualifying projected membership; it never dispatches. A `404`, missing IDs, `403`, stale/degraded/missing/mixed-version projection evidence or timeout does not establish non-delivery. If identity/status cannot be established, investigate without submitting a fresh command or restarting with bootstrap enabled. An already-bootstrapped rejection with the configured subject absent requires an existing administrator's investigation.
+
+4. Only after proving that no bootstrap was delivered and the state is unbootstrapped, correct configuration and explicitly perform the following **state-changing recovery** as the same configured identity. `BOOTSTRAP_UNBOOTSTRAPPED_CONFIRMED` is an operator evidence gate: set it only after that proof, never because a membership read failed. Existing retained handles prohibit a new submission even if this flag is set. Initial bootstrap needs the configured identity; subsequent human grants additionally require qualifying administrator membership.
+
+```bash
+recover_bootstrap() {
+  [[ -z "${BOOTSTRAP_MESSAGE_ID:-}" && -z "${BOOTSTRAP_CORRELATION_ID:-}" ]] || return 1
+  verify_configured_identity || return 1
+  [[ "${BOOTSTRAP_UNBOOTSTRAPPED_CONFIRMED:-false}" == true ]] || return 1
+  if has_admin_membership "$ADMIN_TOKEN" "$ADMIN_SUBJECT"; then return 1; fi
+  BOOTSTRAP_PROJECTED=false
+  BOOTSTRAP_MESSAGE_ID=$(new_ulid)
+  BOOTSTRAP_CORRELATION_ID=$(new_ulid)
+  BOOTSTRAP_BODY=$(jq -nc --arg messageId "$BOOTSTRAP_MESSAGE_ID" --arg correlationId "$BOOTSTRAP_CORRELATION_ID" \
+    --arg subject "$ADMIN_SUBJECT" \
+    '{messageId:$messageId,correlationId:$correlationId,tenant:"system",domain:"global-administrators",aggregateId:"global-administrators",commandType:"BootstrapGlobalAdmin",payload:{UserId:$subject}}')
+  BOOTSTRAP_HTTP=$(platform_api "$ADMIN_TOKEN" -sS -o /dev/null -w '%{http_code}' \
+    -H 'Content-Type: application/json' --data-binary @/dev/fd/3 \
+    "$EVENTSTORE_URL/api/v1/commands" 3<<< "$BOOTSTRAP_BODY") || return 1
+  [[ "$BOOTSTRAP_HTTP" == 202 ]] || return 1
+  resume_bootstrap
+}
+# Set true only after the confirmed non-delivery/unbootstrapped checks above.
+BOOTSTRAP_UNBOOTSTRAPPED_CONFIRMED=false
+recover_bootstrap
+```
+
+A nonzero result preserves IDs and stops unresolved. After repair, use the same handles:
+
+```bash
+resume_bootstrap
+```
+
+`PublishFailed` stops unresolved because events were persisted but publication failed; those events forbid blind replacement. Apply the existing EventStore publication-recovery policy and then query this same status/projection again. `Rejected`, `TimedOut`, unknown status and polling expiry also retain the handles. These examples do not redefine publication recovery, automatically clear handles, or authorize a fresh restart after ambiguous delivery. Only qualifying status and membership evidence completes recovery before the administrator grants human access. Record safe status/reason, pass/fail and timestamp only.
 
 ## Global Administrator Revocation Boundary
 
@@ -141,19 +202,7 @@ Expected evidence: `200 OK` for an authorized operator token, `401 Unauthorized`
 
 Redaction rule: do not store the bearer token, full host name, returned tenant data, or full response body in committed artifacts. Store only status code, safe reason code, and test timestamp.
 
-```bash
-curl -i \
-  -H "Authorization: Bearer <redacted-access-token>" \
-  -H "Content-Type: application/json" \
-  -d '{"messageId":"<ulid>","tenant":"system","domain":"global-administrators","aggregateId":"global-administrators","commandType":"BootstrapGlobalAdmin","payload":{"userId":"<redacted-subject>"}}' \
-  https://<tenants-host>/api/v1/commands
-```
-
-`<ulid>` is a placeholder. Replace it with the output of `Ulid.NewUlid().ToString()` (or any other compliant ULID generator) before sending — the EventStore controller rejects the literal placeholder because `messageId` must parse as a ULID, not the surrounding shape.
-
-Expected evidence: `202 Accepted` when command infrastructure is available and the token has command authorization, or a safe `401`/`403` before routing when authentication or authorization is wrong. This proves the command gateway path, not domain business success.
-
-Redaction rule: use non-production subjects and placeholder IDs in stored examples. Do not store bearer tokens, production user identifiers, or command payloads containing real tenant data.
+For bootstrap and administrator handoff, use the authenticated membership reads and status checks in [Explicit bootstrap recovery](#explicit-bootstrap-recovery) and the [Quickstart](quickstart.md#get-an-access-token). Do not submit `BootstrapGlobalAdmin` as a smoke probe. A command path check must use an approved operation and the **EventStore** gateway URL, retain its IDs, and verify status plus the resulting projection; acceptance alone is not business success.
 
 ## Failure Triage
 

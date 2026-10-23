@@ -22,7 +22,8 @@ namespace Hexalith.Tenants.Bootstrap;
 /// </para>
 /// <list type="bullet">
 /// <item><description>Authority mode (<c>EventStore:Authentication:Authority</c> set): the administrator's own access
-/// token, obtained with the configured <c>ClientId</c>, <c>Username</c>, and <c>Password</c>. A token whose
+/// token, obtained with the configured <c>ClientId</c>, <c>Username</c>, and <c>Password</c> at the operator-trusted
+/// <c>EventStore:Authentication:TokenEndpoint</c>, or the Keycloak endpoint under the authority when absent. A token whose
 /// <c>sub</c> is not the configured administrator is discarded.</description></item>
 /// <item><description>Symmetric Development mode (the shared <c>Authentication:JwtBearer</c> contract with a
 /// <c>SigningKey</c>, in the Development environment only): a locally signed token for the configured administrator,
@@ -57,6 +58,11 @@ internal sealed partial class TenantBootstrapCredentialProvider(
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
         ArgumentNullException.ThrowIfNull(httpClient);
         string? authority = configuration["EventStore:Authentication:Authority"];
+        if (string.IsNullOrWhiteSpace(authority) && configuration["EventStore:Authentication:TokenEndpoint"] is not null) {
+            Log.CredentialUnavailable(logger, "authority-unconfigured");
+            return null;
+        }
+
         return string.IsNullOrWhiteSpace(authority)
             ? CreateDevelopmentToken(userId)
             : await AcquireFromAuthorityAsync(authority, userId, httpClient, cancellationToken).ConfigureAwait(false);
@@ -67,21 +73,30 @@ internal sealed partial class TenantBootstrapCredentialProvider(
         string userId,
         HttpClient httpClient,
         CancellationToken cancellationToken) {
-        if (!Uri.TryCreate(authority.Trim(), UriKind.Absolute, out Uri? authorityUri)
-            || !authorityUri.IsWellFormedOriginalString()
-            || string.IsNullOrWhiteSpace(authorityUri.Host)
-            || !string.IsNullOrEmpty(authorityUri.UserInfo)
-            || !string.IsNullOrEmpty(authorityUri.Query)
-            || !string.IsNullOrEmpty(authorityUri.Fragment)
-            || (!string.Equals(authorityUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(authorityUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase))) {
+        if (!TryCredentialDestination(authority, out Uri? authorityUri)) {
             Log.CredentialUnavailable(logger, "authority-invalid");
             return null;
         }
 
         if (!environment.IsDevelopment()
-            && !string.Equals(authorityUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
+            && !string.Equals(authorityUri!.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
             Log.CredentialUnavailable(logger, "authority-https-required");
+            return null;
+        }
+
+        string? configuredEndpoint = configuration["EventStore:Authentication:TokenEndpoint"];
+        Uri? tokenEndpoint;
+        if (configuredEndpoint is null) {
+            tokenEndpoint = new Uri($"{authorityUri!.AbsoluteUri.TrimEnd('/')}/protocol/openid-connect/token");
+        }
+        else if (!TryCredentialDestination(configuredEndpoint, out tokenEndpoint)) {
+            Log.CredentialUnavailable(logger, "token-endpoint-invalid");
+            return null;
+        }
+
+        if (!environment.IsDevelopment()
+            && !string.Equals(tokenEndpoint!.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
+            Log.CredentialUnavailable(logger, "token-endpoint-https-required");
             return null;
         }
 
@@ -100,7 +115,6 @@ internal sealed partial class TenantBootstrapCredentialProvider(
             ["password"] = password,
         });
 
-        var tokenEndpoint = new Uri($"{authorityUri.AbsoluteUri.TrimEnd('/')}/protocol/openid-connect/token");
         using var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint)
         {
             Content = form,
@@ -139,6 +153,16 @@ internal sealed partial class TenantBootstrapCredentialProvider(
             return token;
         }
     }
+
+    private static bool TryCredentialDestination(string value, out Uri? uri)
+        => Uri.TryCreate(value.Trim(), UriKind.Absolute, out uri)
+            && uri.IsWellFormedOriginalString()
+            && !string.IsNullOrWhiteSpace(uri.Host)
+            && string.IsNullOrEmpty(uri.UserInfo)
+            && string.IsNullOrEmpty(uri.Query)
+            && string.IsNullOrEmpty(uri.Fragment)
+            && (string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase));
 
     private string? CreateDevelopmentToken(string userId) {
         JwtBearerAuthenticationOptions contract = configuration.GetSection(JwtContractSection).Get<JwtBearerAuthenticationOptions>()

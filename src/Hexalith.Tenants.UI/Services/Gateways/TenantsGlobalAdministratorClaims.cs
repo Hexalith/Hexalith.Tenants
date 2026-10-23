@@ -127,8 +127,7 @@ internal static class TenantsGlobalAdministratorClaims
             .ToArray();
         if (scopes.Any(static scope =>
                 string.IsNullOrWhiteSpace(scope)
-                || scope.Any(static c => char.IsWhiteSpace(c) || char.IsControl(c)))
-            || scopes.Distinct(StringComparer.Ordinal).Skip(1).Any())
+                || scope.Any(static c => char.IsWhiteSpace(c) || char.IsControl(c))))
         {
             return null;
         }

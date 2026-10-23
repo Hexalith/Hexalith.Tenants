@@ -549,6 +549,195 @@ public class TenantBootstrapHostedServiceTests {
     }
 
     [Theory]
+    [InlineData("Production", "")]
+    [InlineData("Production", "   ")]
+    [InlineData("Production", "connect/token")]
+    [InlineData("Production", "https:///connect/token")]
+    [InlineData("Production", "https://identity.example.test:invalid/token")]
+    [InlineData("Production", "https://identity.example.test:65536/token")]
+    [InlineData("Production", "https://identity.example.test/invalid token")]
+    [InlineData("Production", "https://identity.example.test/%invalid")]
+    [InlineData("Production", "https://identity.example.test/invalid\\token")]
+    [InlineData("Production", "ftp://identity.example.test/token")]
+    [InlineData("Production", "https://diagnostic-username:diagnostic-password@identity.example.test/token")]
+    [InlineData("Production", "https://identity.example.test/token?secret=diagnostic-token")]
+    [InlineData("Production", "https://identity.example.test/token#diagnostic-token")]
+    [InlineData("Production", "http://localhost:18080/token")]
+    [InlineData("Staging", "http://localhost:18080/token")]
+    [InlineData("ReleaseCandidate", "http://localhost:18080/token")]
+    [InlineData("Development", "")]
+    [InlineData("Development", "connect/token")]
+    [InlineData("Development", "http://diagnostic-username:diagnostic-password@localhost/token")]
+    [InlineData("Development", "http://localhost/token?secret=diagnostic-token")]
+    public async Task InvalidTokenEndpointSendsNoRequestsOrFallback(string environmentName, string endpoint)
+    {
+        int requestCount = 0;
+        using var handler = new TestHttpMessageHandler((_, _) =>
+        {
+            Interlocked.Increment(ref requestCount);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Accepted));
+        });
+        using var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        Dictionary<string, string?> settings = AuthoritySettings();
+        settings["EventStore:Authentication:TokenEndpoint"] = endpoint;
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = AuthorityAdministrator }),
+            lifetime,
+            logger,
+            settings,
+            environmentName);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id == 2006));
+
+        Volatile.Read(ref requestCount).ShouldBe(0);
+        logger.Messages.ShouldContain(static message => message.Contains("token-endpoint-", StringComparison.Ordinal));
+        AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword, "diagnostic-token", AuthorityUrl);
+        if (!string.IsNullOrWhiteSpace(endpoint))
+        {
+            AssertSupportSafeDiagnostics(logger, endpoint);
+        }
+    }
+
+    [Theory]
+    [InlineData("Production", null)]
+    [InlineData("Production", "not-an-authority")]
+    [InlineData("Production", "http://identity.example.test/realm")]
+    [InlineData("Development", null)]
+    [InlineData("Development", "")]
+    [InlineData("Development", "   ")]
+    public async Task ValidEndpointCannotBypassAuthorityContract(string environmentName, string? authority)
+    {
+        int requests = 0;
+        using var handler = new TestHttpMessageHandler((_, _) =>
+        {
+            requests++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        });
+        using var client = new HttpClient(handler);
+        Dictionary<string, string?> settings = DevelopmentContract();
+        settings["EventStore:Authentication:Authority"] = authority;
+        settings["EventStore:Authentication:TokenEndpoint"] = "https://tokens.example.test/connect/token";
+        IHostEnvironment environment = Substitute.For<IHostEnvironment>();
+        environment.EnvironmentName.Returns(environmentName);
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        var provider = new TenantBootstrapCredentialProvider(
+            new ConfigurationBuilder().AddInMemoryCollection(settings).Build(), environment, TimeProvider.System, logger);
+
+        (await provider.AcquireAsync(AuthorityAdministrator, client, CancellationToken.None)).ShouldBeNull();
+
+        requests.ShouldBe(0);
+        logger.Entries.ShouldContain(static entry => entry.EventId.Id == 2006);
+    }
+
+    [Theory]
+    [InlineData("Production", "https://tokens.example.test/oauth2/token", true)]
+    [InlineData("Staging", "https://tokens.example.test/oauth2/token", true)]
+    [InlineData("Development", "http://localhost:18080/custom/token", true)]
+    [InlineData("Production", "https://tokens.example.test/oauth2/token", false)]
+    public async Task ConfiguredTokenEndpointPreservesDelegatedSubjectAndCommandTarget(string environmentName, string endpoint, bool subjectMatches)
+    {
+        string token = CreateAuthorityToken(subjectMatches);
+        int requests = 0;
+        using var handler = new TestHttpMessageHandler(async (request, cancellationToken) =>
+        {
+            if (Interlocked.Increment(ref requests) == 1)
+            {
+                request.RequestUri.ShouldBe(new Uri(endpoint));
+                request.Method.ShouldBe(HttpMethod.Post);
+                string form = await request.Content!.ReadAsStringAsync(cancellationToken);
+                form.ShouldContain("grant_type=password");
+                form.ShouldContain($"username={AuthorityUsername}");
+                form.ShouldContain($"password={AuthorityPassword}");
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new { access_token = token })),
+                };
+            }
+
+            request.Headers.Authorization!.Parameter.ShouldBe(token);
+            using JsonDocument body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+            body.RootElement.GetProperty("payload").GetProperty("UserId").GetString().ShouldBe(AuthorityAdministrator);
+            return new HttpResponseMessage(HttpStatusCode.Accepted);
+        });
+        using var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        Dictionary<string, string?> settings = AuthoritySettings();
+        settings["EventStore:Authentication:TokenEndpoint"] = endpoint;
+        TenantBootstrapHostedService service = CreateService(
+            CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = AuthorityAdministrator }),
+            lifetime, logger, settings, environmentName);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id is 2001 or 2006 or 2002));
+
+        Volatile.Read(ref requests).ShouldBe(subjectMatches ? 2 : 1);
+        logger.Entries.ShouldNotContain(static entry => entry.EventId.Id == 2002);
+        AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword, token, endpoint);
+    }
+
+    [Theory]
+    [InlineData("credential-failure", 1, 2005)]
+    [InlineData("command-failure", 2, 2003)]
+    [InlineData("ambiguous-delivery", 2, 2002)]
+    public async Task BootstrapMakesOneAttemptAndRequiresExplicitOperatorRecovery(string scenario, int expectedRequests, int eventId)
+    {
+        int requests = 0;
+        using var handler = new TestHttpMessageHandler((_, _) =>
+        {
+            int requestNumber = Interlocked.Increment(ref requests);
+            if (requestNumber == 1)
+            {
+                return Task.FromResult(new HttpResponseMessage(scenario == "credential-failure" ? HttpStatusCode.ServiceUnavailable : HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new { access_token = CreateAuthorityToken() })),
+                });
+            }
+
+            if (scenario == "ambiguous-delivery")
+            {
+                throw new HttpRequestException("diagnostic-password");
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+        });
+        await using AsyncServiceScope realScope = CreateScopeFactory(handler).CreateAsyncScope();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        IServiceScope observedScope = Substitute.For<IServiceScope, IAsyncDisposable>();
+        observedScope.ServiceProvider.Returns(realScope.ServiceProvider);
+        ((IAsyncDisposable)observedScope).DisposeAsync().Returns(_ =>
+        {
+            completed.TrySetResult();
+            return ValueTask.CompletedTask;
+        });
+        IServiceScopeFactory factory = Substitute.For<IServiceScopeFactory>();
+        factory.CreateScope().Returns(observedScope);
+        using var lifetime = new TestHostApplicationLifetime();
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        TenantBootstrapHostedService service = CreateService(factory,
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = AuthorityAdministrator }),
+            lifetime, logger, AuthoritySettings(), Environments.Production);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await completed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        // Disposal precedes the outer catch diagnostic on ambiguous delivery.
+        await WaitUntilAsync(() => logger.Entries.Any(entry => entry.EventId.Id == eventId));
+        lifetime.StartApplication();
+        await service.StopAsync(CancellationToken.None);
+
+        Volatile.Read(ref requests).ShouldBe(expectedRequests);
+        logger.Entries.ShouldContain(entry => entry.EventId.Id == eventId);
+        logger.Entries.ShouldNotContain(static entry => entry.EventId.Id == 2001);
+        AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword);
+    }
+
+    [Theory]
     [InlineData(HttpStatusCode.Unauthorized)]
     [InlineData(HttpStatusCode.OK)]
     public async Task AuthorityResponseDiagnosticsExcludeCredentialsAndTokens(HttpStatusCode statusCode) {
@@ -965,6 +1154,55 @@ public class TenantBootstrapHostedServiceTests {
         AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword, delegatedToken, AuthorityUrl, "diagnostic-body-secret");
     }
 
+    [Fact]
+    public async Task AmbiguousBootstrapDeliveryLogsExactAttemptIdentifiersBeforeDispatch()
+    {
+        string? messageId = null;
+        string? correlationId = null;
+        string delegatedToken = CreateAuthorityToken();
+        int requests = 0;
+        var logger = new TestLogger<TenantBootstrapHostedService>();
+        using var handler = new TestHttpMessageHandler(async (request, cancellationToken) =>
+        {
+            if (Interlocked.Increment(ref requests) == 1)
+            {
+                logger.Entries.ShouldNotContain(static entry => entry.EventId.Id == 2008);
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(JsonSerializer.Serialize(new { access_token = delegatedToken })),
+                };
+            }
+
+            using JsonDocument body = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
+            messageId = body.RootElement.GetProperty("messageId").GetString();
+            correlationId = body.RootElement.GetProperty("correlationId").GetString();
+            TestLogEntry attempt = logger.Entries.Single(static entry => entry.EventId.Id == 2008);
+            attempt.LogLevel.ShouldBe(LogLevel.Information);
+            attempt.DiagnosticState.ShouldContain($"MessageId={messageId}");
+            attempt.DiagnosticState.ShouldContain($"CorrelationId={correlationId}");
+            throw new HttpRequestException($"Ambiguous delivery {AuthorityAdministrator} {AuthorityPassword} {delegatedToken}");
+        });
+        using var lifetime = new TestHostApplicationLifetime();
+        TenantBootstrapHostedService service = CreateService(CreateScopeFactory(handler),
+            Options.Create(new TenantBootstrapOptions { BootstrapGlobalAdminUserId = AuthorityAdministrator }),
+            lifetime, logger, AuthoritySettings(), Environments.Production);
+
+        await service.StartAsync(CancellationToken.None);
+        lifetime.StartApplication();
+        await WaitUntilAsync(() => logger.Entries.Any(static entry => entry.EventId.Id == 2002));
+
+        Volatile.Read(ref requests).ShouldBe(2);
+        messageId.ShouldNotBeNull().Length.ShouldBe(26);
+        correlationId.ShouldNotBeNull().Length.ShouldBe(26);
+        Should.NotThrow(() => UniqueIdHelper.ExtractTimestamp(messageId));
+        Should.NotThrow(() => UniqueIdHelper.ExtractTimestamp(correlationId));
+        TestLogEntry logged = logger.Entries.Single(static entry => entry.EventId.Id == 2008);
+        logged.Message.ShouldContain(messageId);
+        logged.Message.ShouldContain(correlationId);
+        logger.Entries.ShouldNotContain(static entry => entry.EventId.Id == 2001);
+        AssertSupportSafeDiagnostics(logger, AuthorityAdministrator, AuthorityUsername, AuthorityPassword, delegatedToken, AuthorityUrl);
+    }
+
     private const int TokenResponseLimit = 64 * 1024;
     private const string AuthorityAdministrator = "diagnostic-administrator";
     private const string AuthorityUsername = "diagnostic-username";
@@ -983,7 +1221,10 @@ public class TenantBootstrapHostedServiceTests {
         IHostEnvironment environment = Substitute.For<IHostEnvironment>();
         environment.EnvironmentName.Returns(Environments.Production);
         return new TenantBootstrapCredentialProvider(
-            new ConfigurationBuilder().AddInMemoryCollection(AuthoritySettings()).Build(),
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>(AuthoritySettings(), StringComparer.Ordinal)
+            {
+                ["EventStore:Authentication:TokenEndpoint"] = "https://tokens.example.test/oauth2/token",
+            }).Build(),
             environment,
             TimeProvider.System,
             logger);

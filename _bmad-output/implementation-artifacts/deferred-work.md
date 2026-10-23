@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-551/DW-556/DW-575/DW-576/DW-597 closure (2026-10-23):** Configurable validated bootstrap token destinations, explicit one-attempt operator recovery and executable administrator-to-human handoff preserve identity and projected-membership proof. Exact system membership among valid multivalued tenant claims is recognized. Exactly five records close: all 657 IDs remain, 550 done/107 open across 97 maintenance rows. Original fields, unrelated records, dependencies and unresolved revocation/runtime/release holds remain preserved. See [validation evidence](dw-551-556-575-576-597-validation-evidence.md).
+
 **DW-527/DW-544/DW-582/DW-583/DW-589 closure (2026-10-23):** Restore-backed NuGet ranges/frameworks, immutable OCI source proof and shared destination byte checks close exactly five records. All 657 IDs remain: 545 done/112 open across 102 maintenance rows. Historical fields, unrelated records, the dirty archive, dependencies and release holds remain preserved. See [validation evidence](dw-527-544-582-583-589-validation-evidence.md).
 
 **DW-292/DW-397/DW-417/DW-418/DW-601 closure (2026-10-23):** Checked Git prerequisites, unique elicitation method numbers and executable TEA/resolver regressions harden repository tooling. Exactly five records close: all 657 IDs remain, 540 done/117 open across 107 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-292-397-417-418-601-validation-evidence.md).
@@ -5399,18 +5401,25 @@ location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; bootstrap authority mode hardcodes the Keycloak token endpoint despite its generic authority contract.\n  evidence: `TenantBootstrapCredentialProvider` appends `/protocol/openid-connect/token`; an OIDC authority with a different advertised endpoint cannot bootstrap. The provider documentation does not restrict authority mode to Keycloak. Resolve or explicitly configure and validate the endpoint in separate bootstrap compatibility work."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: TenantBootstrapCredentialProvider.cs:24-27 documents generic authority credential mode but :85 always appends /protocol/openid-connect/token; no discovery or configured token endpoint exists. A non-Keycloak authority cannot satisfy this undocumented endpoint assumption.
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
-evidence-kind: verified-gap
+pre-bootstrap-handoff-status: open
+status: done 2026-10-23
+pre-bootstrap-handoff-disposition: awaiting-decision
+disposition: resolved
+pre-bootstrap-handoff-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-bootstrap-handoff-verification: TenantBootstrapCredentialProvider.cs:24-27 documents generic authority credential mode but :85 always appends /protocol/openid-connect/token; no discovery or configured token endpoint exists. A non-Keycloak authority cannot satisfy this undocumented endpoint assumption.
+verification: Validated optional EventStore:Authentication:TokenEndpoint selects an operator-trusted credential destination; absent uses the Keycloak default, invalid/insecure overrides fail closed without requests or fallback. Authority, delegated-subject, timeout, bounded-response and diagnostic guards remain qualified.
+pre-bootstrap-handoff-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs
+verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapCredentialProvider.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; docs/production-auth-readiness.md
+pre-bootstrap-handoff-evidence-kind: verified-gap
+evidence-kind: executed-regression-and-documentation
 priority: P2
 owner: unassigned
 dependencies: Bootstrap authority compatibility decision
-next-action: Choose a Keycloak-only documented contract or configurable/discovered token endpoint with validation and compatibility tests.
+pre-bootstrap-handoff-next-action: Choose a Keycloak-only documented contract or configurable/discovered token endpoint with validation and compatibility tests.
+next-action: None for this record; preserve separate authorization/revocation and runtime/release holds.
 related: none
-
+resolution-evidence: _bmad-output/implementation-artifacts/dw-551-556-575-576-597-validation-evidence.md
 
 ### DW-552: medium; partial-release recovery consumes temporary NuGet credential lifetime while preparing artifacts.
 
@@ -5471,18 +5480,25 @@ location: src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; bootstrap does not retry transient credential or command failures until the host restarts.\n  evidence: `TenantBootstrapHostedService.StartAsync` schedules `RunBootstrapAsync` once on `ApplicationStarted`; the run returns after a credential failure, unexpected response, or caught exception. Its log says it retries on next restart. Define a bounded in-process retry or explicit operator recovery in the bootstrap owner's work."
-status: open
-disposition: awaiting-decision
-verification-date: 2026-10-12
-verification: TenantBootstrapHostedService.cs:62-63 schedules RunBootstrapAsync once after ApplicationStarted; credential/unexpected-response/exception paths return without in-process retry. Its failure log explicitly says retry on next restart. This is documented one-shot behavior, and no approved bounded retry or operator command policy was found.
-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
-evidence-kind: recommendation
+pre-bootstrap-handoff-status: open
+status: done 2026-10-23
+pre-bootstrap-handoff-disposition: awaiting-decision
+disposition: resolved
+pre-bootstrap-handoff-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-bootstrap-handoff-verification: TenantBootstrapHostedService.cs:62-63 schedules RunBootstrapAsync once after ApplicationStarted; credential/unexpected-response/exception paths return without in-process retry. Its failure log explicitly says retry on next restart. This is documented one-shot behavior, and no approved bounded retry or operator command policy was found.
+verification: Approved one-attempt-per-start policy remains; safe diagnostics and explicit operator recovery require configured-identity authentication, original status and projected membership before further submission or restart. Deterministic credential/command/ambiguous-delivery cases prove the completed startup attempt does not redispatch.
+pre-bootstrap-handoff-verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs
+verification-files: src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs; tests/Hexalith.Tenants.Server.Tests/Bootstrap/TenantBootstrapHostedServiceTests.cs; docs/production-auth-readiness.md
+pre-bootstrap-handoff-evidence-kind: recommendation
+evidence-kind: executed-regression-and-documentation
 priority: P2
 owner: unassigned
 dependencies: Bootstrap recovery product/operator policy
-next-action: Choose bounded in-process retry with identity-preserving delivery semantics or document an explicit operator recovery path.
+pre-bootstrap-handoff-next-action: Choose bounded in-process retry with identity-preserving delivery semantics or document an explicit operator recovery path.
+next-action: None for this record; preserve separate authorization/revocation and runtime/release holds.
 related: none
-
+resolution-evidence: _bmad-output/implementation-artifacts/dw-551-556-575-576-597-validation-evidence.md
 
 ### DW-557: medium; manually dispatched release tests pass when the NuGet login step is disabled.
 
@@ -5771,18 +5787,25 @@ location: docs/quickstart.md
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; the optional quickstart bootstrap check can install the wrong administrator after automatic bootstrap fails. Owners: Tenants bootstrap and quickstart documentation.\n  evidence: `docs/quickstart.md:118,191-208` submits `BootstrapGlobalAdmin` for `admin-user` as an expected-rejection check, while the AppHost uses a generated service subject. The related pass-27 entry above (`deferred-work.md:3880`) explains that the aggregate accepts `command.UserId` without binding it to the caller. If automatic bootstrap fails without stopping the healthy service, the check can succeed for `admin-user`. Bootstrap is one-time (`src/Hexalith.Tenants.Server/Aggregates/GlobalAdministratorsAggregate.cs:14`), and the hosted service treats `GlobalAdminAlreadyBootstrappedRejection` as success (`src/Hexalith.Tenants/Bootstrap/TenantBootstrapHostedService.cs:114-119`). Every restart can then report bootstrap complete while the generated service subject remains unauthorized; with the realm's UUID subjects, nobody can act as `admin-user` until state is wiped. The quickstart should require verification of the configured administrator before permitting the optional check."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: quickstart.md still presents BootstrapGlobalAdmin admin-user as an optional expected-rejection check without first proving the configured service subject owns bootstrap; GlobalAdministratorsAggregate bootstrap trusts its supplied target.
-verification-files: docs/quickstart.md
-evidence-kind: verified-defect
+pre-bootstrap-handoff-status: open
+status: done 2026-10-23
+pre-bootstrap-handoff-disposition: actionable
+disposition: resolved
+pre-bootstrap-handoff-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-bootstrap-handoff-verification: quickstart.md still presents BootstrapGlobalAdmin admin-user as an optional expected-rejection check without first proving the configured service subject owns bootstrap; GlobalAdministratorsAggregate bootstrap trusts its supplied target.
+verification: Removed bootstrap-write probe and wrong-subject example. Quickstart authenticates fixed configured subject and checks every page of authoritative projected administrator membership before handoff; acceptance/already-bootstrapped/resource health alone are insufficient.
+pre-bootstrap-handoff-verification-files: docs/quickstart.md
+verification-files: docs/quickstart.md; tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs
+pre-bootstrap-handoff-evidence-kind: verified-defect
+evidence-kind: executed-regression-and-documentation
 priority: P2
 owner: Tenants bootstrap and quickstart documentation
 dependencies: DW-567 bootstrap identity boundary
-next-action: Require configured administrator verification before optional bootstrap checks, and replace the wrong-subject command example.
+pre-bootstrap-handoff-next-action: Require configured administrator verification before optional bootstrap checks, and replace the wrong-subject command example.
+next-action: None for this record; preserve separate authorization/revocation and runtime/release holds.
 related: DW-567,DW-576
-
+resolution-evidence: _bmad-output/implementation-artifacts/dw-551-556-575-576-597-validation-evidence.md
 
 ### DW-576: medium; the manual quickstart has no concrete path to grant a newly provisioned local user global-administrator authority. Owner: Tenants quickstart documentation.
 
@@ -5791,18 +5814,25 @@ location: docs/quickstart.md
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; the manual quickstart has no concrete path to grant a newly provisioned local user global-administrator authority. Owner: Tenants quickstart documentation.\n  evidence: `docs/quickstart.md:120` instructs readers to obtain an existing administrator's grant but does not explain how to authenticate as that administrator or issue the grant in the default generated-credential topology. A local development runbook should provide the executable grant path."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: quickstart.md says obtain an existing administrator grant but provides no concrete authentication/SetGlobalAdministrator path for the generated-credential default topology.
-verification-files: docs/quickstart.md
-evidence-kind: verified-gap
+pre-bootstrap-handoff-status: open
+status: done 2026-10-23
+pre-bootstrap-handoff-disposition: actionable
+disposition: resolved
+pre-bootstrap-handoff-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-bootstrap-handoff-verification: quickstart.md says obtain an existing administrator grant but provides no concrete authentication/SetGlobalAdministrator path for the generated-credential default topology.
+verification: Quickstart supplies existing Aspire secret parameters from operator input, authenticates the configured administrator, grants a provisioned human with SetGlobalAdministrator and retained IDs, then checks command status and projected membership before human use. Persistent-Keycloak credentials/import limitations and uncertain-delivery recovery are explicit.
+pre-bootstrap-handoff-verification-files: docs/quickstart.md
+verification-files: docs/quickstart.md; docs/production-auth-readiness.md; tests/Hexalith.Tenants.Server.Tests/Documentation/QuickstartDocumentationTests.cs
+pre-bootstrap-handoff-evidence-kind: verified-gap
+evidence-kind: executed-regression-and-documentation
 priority: P2
 owner: Tenants quickstart documentation
 dependencies: Local human-account and administrator handoff contract
-next-action: Document an executable local administrator-to-human grant runbook.
+pre-bootstrap-handoff-next-action: Document an executable local administrator-to-human grant runbook.
+next-action: None for this record; preserve separate authorization/revocation and runtime/release holds.
 related: DW-575
-
+resolution-evidence: _bmad-output/implementation-artifacts/dw-551-556-575-576-597-validation-evidence.md
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 39 (2026-10-10)
 
@@ -6115,17 +6145,24 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Preserve system-scope authorization for the Keycloak administrator's multivalued tenant claim.\n  evidence: The realm maps system, tenant-a, and tenant-b to eventstore:tenant, while TenantsGlobalAdministratorClaims accepts only one distinct literal scope and cannot establish system scope for that principal."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantsGlobalAdministratorClaims.ResolveSystemScopeEvidence rejects more than one distinct eventstore:tenant value; the sample Keycloak administrator has system/tenant-a/tenant-b. The shipped principal cannot corroborate system scope through this resolver.
-evidence-kind: verified-defect
+pre-bootstrap-handoff-status: open
+status: done 2026-10-23
+pre-bootstrap-handoff-disposition: actionable
+disposition: resolved
+pre-bootstrap-handoff-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-bootstrap-handoff-verification: TenantsGlobalAdministratorClaims.ResolveSystemScopeEvidence rejects more than one distinct eventstore:tenant value; the sample Keycloak administrator has system/tenant-a/tenant-b. The shipped principal cannot corroborate system scope through this resolver.
+verification: Exact system membership among individually valid multivalued tenant claims authorizes administrator reflection. Tests qualify shipped realm system/tenant-a/tenant-b shape, duplicate values, absent/wrong-case system, malformed values, cross-identity evidence and subject corroboration through resolver/reflection/policy.
+pre-bootstrap-handoff-evidence-kind: verified-defect
+evidence-kind: executed-regression-and-documentation
 priority: P2
 owner: unassigned
 dependencies: Multitenant claim normalization contract
-next-action: Allow explicit unambiguous system membership within valid multivalued claims and add the shipped-realm principal regression.
+pre-bootstrap-handoff-next-action: Allow explicit unambiguous system membership within valid multivalued claims and add the shipped-realm principal regression.
+next-action: None for this record; preserve separate authorization/revocation and runtime/release holds.
 related: DW-614
-
+verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantsGlobalAdministratorClaims.cs; tests/Hexalith.Tenants.UI.Tests/Services/Configuration/TenantConfigurationReadPolicyTests.cs; docs/production-auth-claim-contract.md
+resolution-evidence: _bmad-output/implementation-artifacts/dw-551-556-575-576-597-validation-evidence.md
 
 ### DW-598: Require a secure authority before posting bootstrap administrator credentials.
 
@@ -6729,3 +6766,9 @@ source_spec: `spec-dw-244-293-294-298-447-command-explanations.md`
 priority: P2
 archived: 2026-10-22
 
+
+## Deferred from: bootstrap handoff independent review (2026-10-23)
+
+- source_spec: `spec-dw-551-556-575-576-597-bootstrap-handoff.md`
+  summary: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
+  evidence: The provider's HttpClient.SendAsync and default handler ownership predate this batch; initial destination validation does not itself establish 307/308 handling. A real-handler redirect fixture must determine whether credentials can be reposted to a different destination, then the owning transport contract must choose and qualify its redirect policy. This follow-up does not change the five numbered closures or authorize a new redirect policy.

@@ -20,7 +20,8 @@ namespace Hexalith.Tenants.Bootstrap;
 /// <remarks>
 /// EventStore Story 5.5: the command is authorized only by the configured administrator's delegated human credential
 /// (see <see cref="TenantBootstrapCredentialProvider"/>), never by this service's Dapr application id. Without that
-/// credential the command is not sent.
+/// credential the command is not sent. One attempt is made per host start; after a failure operators must verify
+/// command status and projected membership before an explicit recovery (see docs/production-auth-readiness.md).
 /// </remarks>
 public partial class TenantBootstrapHostedService(
     IServiceScopeFactory scopeFactory,
@@ -76,14 +77,16 @@ public partial class TenantBootstrapHostedService(
                 var command = new BootstrapGlobalAdmin(userId);
                 JsonElement payloadElement = JsonSerializer.SerializeToElement(command);
 
+                string messageId = UniqueIdHelper.GenerateSortableUniqueStringId();
+                string correlationId = UniqueIdHelper.GenerateSortableUniqueStringId();
                 object commandBody = new {
-                    messageId = UniqueIdHelper.GenerateSortableUniqueStringId(),
+                    messageId,
                     tenant = TenantIdentity.DefaultTenantId,
                     domain = TenantIdentity.GlobalAdministratorsDomain,
                     aggregateId = TenantIdentity.GlobalAdministratorsAggregateId,
                     commandType = nameof(BootstrapGlobalAdmin),
                     payload = payloadElement,
-                    correlationId = UniqueIdHelper.GenerateSortableUniqueStringId(),
+                    correlationId,
                 };
 
                 HttpClient httpClient = httpClientFactory.CreateClient();
@@ -110,6 +113,7 @@ public partial class TenantBootstrapHostedService(
                 httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
                 phase = "command-dispatch";
+                Log.BootstrapAttempt(logger, messageId, correlationId);
                 using HttpResponseMessage httpResponse = await httpClient.SendAsync(httpRequest, cancellationToken).ConfigureAwait(false);
 
                 if (httpResponse.StatusCode == HttpStatusCode.Accepted) {
@@ -159,6 +163,12 @@ public partial class TenantBootstrapHostedService(
 
     private static partial class Log {
         [LoggerMessage(
+            EventId = 2008,
+            Level = LogLevel.Information,
+            Message = "Bootstrap command dispatch attempt: MessageId={MessageId}, CorrelationId={CorrelationId}. Retain these identifiers for status and projected membership recovery")]
+        public static partial void BootstrapAttempt(ILogger logger, string messageId, string correlationId);
+
+        [LoggerMessage(
             EventId = 2007,
             Level = LogLevel.Information,
             Message = "Bootstrap skipped: Tenants:BootstrapGlobalAdminEnabled is false")]
@@ -173,25 +183,25 @@ public partial class TenantBootstrapHostedService(
         [LoggerMessage(
             EventId = 2001,
             Level = LogLevel.Information,
-            Message = "Bootstrap command sent for configured global administrator")]
+            Message = "Bootstrap command accepted for configured global administrator; verify command status and projected membership before handoff")]
         public static partial void BootstrapCommandSent(ILogger logger);
 
         [LoggerMessage(
             EventId = 2003,
             Level = LogLevel.Warning,
-            Message = "Bootstrap unexpected response: StatusCode={StatusCode}")]
+            Message = "Bootstrap unexpected response: StatusCode={StatusCode}. Verify command status and projected membership before explicit operator recovery")]
         public static partial void BootstrapUnexpectedResponse(ILogger logger, int statusCode);
 
         [LoggerMessage(
             EventId = 2002,
             Level = LogLevel.Warning,
-            Message = "Bootstrap failed: Reason={Reason}, Phase={Phase}, ExceptionType={ExceptionType}. The global administrator may not have been created. The service will retry on next restart")]
+            Message = "Bootstrap failed: Reason={Reason}, Phase={Phase}, ExceptionType={ExceptionType}. The global administrator may not have been created. Verify command status and projected membership before explicit operator recovery; a restart makes one new attempt")]
         public static partial void BootstrapFailed(ILogger logger, string reason, string phase, string exceptionType);
 
         [LoggerMessage(
             EventId = 2004,
             Level = LogLevel.Information,
-            Message = "Bootstrap skipped: initial global administrator is already registered")]
+            Message = "Bootstrap skipped: initial global administrator is already registered; verify configured administrator projected membership before handoff")]
         public static partial void BootstrapAlreadyDone(ILogger logger);
     }
 }

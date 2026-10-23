@@ -66,6 +66,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 tests/scripts/test_tea_enforcement.py
 
+      - name: Run bootstrap handoff shell safety checks
+        if: ${{ !cancelled() }}
+        run: python3 tests/scripts/test_bootstrap_handoff.py
+
   release-artifact-guards:
     name: validate-release-artifacts
     runs-on: ubuntu-latest

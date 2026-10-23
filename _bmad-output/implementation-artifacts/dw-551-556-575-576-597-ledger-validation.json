@@ -1,0 +1,17 @@
+{
+  "baseline": "870d677cbac5bb54d8a542a289421da8a9243b53",
+  "closed_ids": [
+    551,
+    556,
+    575,
+    576,
+    597
+  ],
+  "ids_retained": 657,
+  "done": 550,
+  "open": 107,
+  "maintenance_rows": 97,
+  "unrelated_records_unchanged": true,
+  "original_selected_fields_preserved": true,
+  "remaining_index_exact_unique_cover": true
+}

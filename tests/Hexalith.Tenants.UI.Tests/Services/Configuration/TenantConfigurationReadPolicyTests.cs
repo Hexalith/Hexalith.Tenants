@@ -875,9 +875,15 @@ public sealed class TenantConfigurationReadPolicyTests
     }
 
     [Theory]
-    [InlineData("system", "tenant.alpha")]
     [InlineData("system", " ")]
-    public async Task Conflicting_or_malformed_tenant_scope_cannot_unlock_the_administrator_wildcard(
+    [InlineData("system", "")]
+    [InlineData("system", "tenant alpha")]
+    [InlineData("system", "tenant\talpha")]
+    [InlineData("system", "tenant\0alpha")]
+    [InlineData("system", "tenant\u2003alpha")]
+    [InlineData("system", "tenant.alpha\n")]
+    [InlineData("system ", "tenant.alpha")]
+    public async Task Malformed_tenant_scope_cannot_unlock_the_administrator_wildcard(
         string firstScope,
         string secondScope)
     {
@@ -891,6 +897,82 @@ public sealed class TenantConfigurationReadPolicyTests
 
         evidence.State.ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
         evidence.Subject.ShouldBeNull();
+        TenantsGlobalAdministratorClaims.Evaluate(principal)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
+        new TenantConfigurationReadPolicyProvider(Configuration("""
+            { "Tenants": { "ConfigurationReadPolicy": { "PrefixGrants": [], "DisplaySafe": [] } } }
+            """)).Resolve("tenant.alpha", evidence).IsAvailable.ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("system", "tenant.alpha", true)]
+    [InlineData("system", "system", true)]
+    [InlineData("tenant.alpha", "system", true)]
+    [InlineData("tenant.alpha", "tenant.beta", false)]
+    [InlineData("System", "tenant.alpha", false)]
+    public async Task Valid_multivalued_tenants_require_exact_system_membership_for_administrator_policy(
+        string firstScope, string secondScope, bool hasSystem)
+    {
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", "operator.alpha"),
+            new Claim("eventstore:tenant", firstScope),
+            new Claim("eventstore:tenant", secondScope),
+            new Claim("roles", "[\"global-admin\"]"));
+
+        TenantConfigurationPrincipalEvidence evidence = await Resolver(circuitPrincipal: principal).ResolveAsync();
+        TenantConfigurationReadPolicyResolution policy = new TenantConfigurationReadPolicyProvider(Configuration("""
+            { "Tenants": { "ConfigurationReadPolicy": { "PrefixGrants": [], "DisplaySafe": [] } } }
+            """)).Resolve("tenant.alpha", evidence);
+
+        evidence.State.ShouldBe(hasSystem
+            ? TenantConfigurationPrincipalEvidenceState.GlobalAdministrator
+            : TenantConfigurationPrincipalEvidenceState.NonAdministrator);
+        evidence.Subject.ShouldBe("operator.alpha");
+        TenantsGlobalAdministratorClaims.Evaluate(principal).ShouldBe(hasSystem
+            ? TenantLifecycleAuthorizationReflectionState.Authorized
+            : TenantLifecycleAuthorizationReflectionState.MissingPermission);
+        policy.IsAvailable.ShouldBeTrue();
+        policy.IsGlobalAdministrator.ShouldBe(hasSystem);
+        policy.AuthorizedPrefixes.ShouldBe(hasSystem ? ["*"] : []);
+    }
+
+    [Fact]
+    public async Task Shipped_realm_administrator_tenants_resolve_with_subject_corroboration()
+    {
+        const string subject = "11111111-1111-1111-1111-111111111111";
+        ClaimsPrincipal principal = Principal(
+            new Claim("sub", subject),
+            new Claim("eventstore:tenant", "system"),
+            new Claim("eventstore:tenant", "tenant-a"),
+            new Claim("eventstore:tenant", "tenant-b"),
+            new Claim("global_admin", "true"));
+
+        (await Resolver(circuitPrincipal: principal).ResolveAsync()).State
+            .ShouldBe(TenantConfigurationPrincipalEvidenceState.GlobalAdministrator);
+        (await Resolver(circuitPrincipal: principal, userContextSubject: "someone-else").ResolveAsync()).State
+            .ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        (await Resolver(circuitPrincipal: principal, supplyUserContext: false).ResolveAsync()).State
+            .ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Multivalued_tenant_evidence_on_another_identity_is_indeterminate(bool otherIdentityAuthenticated)
+    {
+        ClaimsPrincipal principal = new(
+        [
+            new ClaimsIdentity([
+                new Claim("sub", "operator.alpha"),
+                new Claim("eventstore:tenant", "tenant-a"),
+                new Claim("global_admin", "true")], "cookie"),
+            new ClaimsIdentity([new Claim("eventstore:tenant", "system")], otherIdentityAuthenticated ? "bearer" : null),
+        ]);
+
+        (await Resolver(circuitPrincipal: principal).ResolveAsync()).State
+            .ShouldBe(TenantConfigurationPrincipalEvidenceState.Indeterminate);
+        TenantsGlobalAdministratorClaims.Evaluate(principal)
+            .ShouldBe(TenantLifecycleAuthorizationReflectionState.Indeterminate);
     }
 
     [Fact]
