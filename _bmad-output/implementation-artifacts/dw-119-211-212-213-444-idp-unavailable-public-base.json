@@ -1,0 +1,53 @@
+{
+  "playwrightVersion": "1.63.0",
+  "startedUtc": "2026-10-23T20:09:33.877Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies UI focus with deterministic authorized projection responses; does not qualify backend authorization or real domain data",
+  "records": [
+    "DW-119",
+    "DW-211",
+    "DW-212",
+    "DW-213",
+    "DW-444"
+  ],
+  "cases": [],
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": true
+  },
+  "sourceBaseRevision": "48b0cd98be5ff75402e1206e083e561552146454",
+  "sourceDiffSha256": "fb943aa9bd629fc7f92377303ff5992e80ef5b3e2561fc362778a91db4f45825",
+  "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "validatorSha256": "56a73235d06cb0edf5b3a4a1abb54fa4aa263abf8ec54986a1ee1973352efa89",
+  "localUiAssemblySha256": "371debf653112b9c6880b0560b2b096398a3d4c6971548ed3e442121131ff4f2",
+  "localShellAssemblySha256": "12e5187ef359ca4e00f64e04e0642e8783729595280ff093f4e887a2a8c18056",
+  "browserVersion": "153.0.8010.12",
+  "passed": false,
+  "failure": {
+    "phase": "authenticate-original-aspire-host",
+    "label": "Browser operation failed",
+    "focus": {
+      "element": "body",
+      "shadowDepth": 0,
+      "ancestry": []
+    }
+  },
+  "fixture": {
+    "authorizedReads": 0,
+    "commandAttempts": 0,
+    "listReads": 0,
+    "searchReads": 0,
+    "auditReads": 0,
+    "circuitErrors": 0
+  },
+  "finishedUtc": "2026-10-23T20:10:15.751Z"
+}

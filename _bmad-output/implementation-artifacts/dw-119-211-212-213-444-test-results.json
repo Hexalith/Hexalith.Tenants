@@ -1,0 +1,326 @@
+{
+  "baseline": "48b0cd98be5ff75402e1206e083e561552146454",
+  "frontcomposer_baseline": "9b8cbf28c621cbf45429eab8db1a50cfc4bf1c38",
+  "frontcomposer_target": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+  "initial_broad_shell": {
+    "total": 3768,
+    "failed": 15,
+    "skipped": 1,
+    "raw_log_sha256": "046aeede80bd1ebc2d3aa7f8a24ac74ad01af2b74a7d98a9dac8fad4704ca5a6",
+    "subsequently_corrected": "AnalyzerPolicy_IdentifierInventory_MatchesSeal",
+    "other_initial_failures": [
+      "Hexalith.FrontComposer.Shell.Tests.Governance.ReleaseModelGovernanceTests.ClassifyRelease_HealthyDryRunEvidence_CleanExitGate_ReturnsExit0",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.ReleaseModelGovernanceTests.PrepublishPublisher_VersionAuditMismatch_FailsClosedBeforePush",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.ReleaseModelGovernanceTests.PrepublishPublisher_PostSealArtifactMutation_FailsClosedBeforePush",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.InfrastructureGovernanceTests.CentralPackageVersions_WhenCatalogIsCentralized_AreInheritedFromPinnedBuilds",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.ReleaseEvidenceScript_DetectsPostSealArtifactMutationFromRealFiles",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.HexalithDependencyMode_DefaultsToProjectReferencesForDebugAndPackagesForRelease",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.SemanticReleaseAnalyzer_ConventionalCommitsMatrix_SelectsExpectedReleaseTypes",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.ReleaseEvidenceScript_DetectsReleaseDefinitionDriftFromRealFiles",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.ReleaseWorkflow_PinsTrustedPublisherAndPublicationFreezeContract",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.EventStoreRuntimeIdentitySeparatesCurrentCompatibilityFromHistoricalApproval",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.CiGovernanceTests.ReleaseEvidenceScript_SealAndVerifyManifest_RoundTripsCleanly",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_Story1122HiddenControlNegativeProbes_RemainClean",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_ActivatedReleaseBuild_MatchesForcedRecommendedCandidate",
+      "Hexalith.FrontComposer.Shell.Tests.Governance.AnalyzerPolicyGovernanceTests.AnalyzerPolicy_Story1122RecordedProjects_RemainRecommendedClean"
+    ],
+    "skip": "LiveTwoTenantProductionAdapterTests.ProvisionedTenants_QueryCountAndSubscribe_StayIsolated: live endpoints, identities and bearer tokens unconfigured"
+  },
+  "final_layout": {
+    "passed": 341,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "561fd9514296ce58cde7ceb0df954aceedc841a05b27622dfb50baad5dc5d27e"
+  },
+  "final_identifier_inventory": {
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "6538e03ad8a91f4931964a6c951e01a74d60a4bde09584906062d25220284603"
+  },
+  "focused_workspace": {
+    "passed": 150,
+    "failed": 0,
+    "skipped": 0
+  },
+  "focused_audit": {
+    "passed": 266,
+    "failed": 0,
+    "skipped": 0
+  },
+  "initial_full_ui": {
+    "passed": 7503,
+    "failed": 0,
+    "skipped": 0,
+    "qualification": "Before the final missing-row unit case; that case passed in the final workspace class."
+  },
+  "commitlint_frontcomposer": {
+    "pinned_version": "21.2.2",
+    "candidate": "fix(shell): enforce page header title and rendered focus contracts\n",
+    "output": "\u29d7   --- input ---\nfix(shell): enforce page header title and rendered focus contracts\n\u2714   found 0 problems, 0 warnings\n"
+  },
+  "normal_builds": {
+    "tenants_ui": {
+      "warnings": 0,
+      "errors": 0,
+      "log_sha256": "0b22eb10d3d125dbb64fdecb1ff78f42db3986b622a7e584b1de2fc9be06f39d"
+    },
+    "frontcomposer_shell": {
+      "warnings": 0,
+      "errors": 0,
+      "log_sha256": "68f4002d3cce54f3e0ff7af2e1f418c7a08b2274570489ab37d4179d40d453ae"
+    }
+  },
+  "final_ui_first_attempt": {
+    "total": 7504,
+    "failed": 1,
+    "skipped": 0,
+    "failed_test": "Hexalith.Tenants.UI.Tests.Services.TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback",
+    "failure": "Expected one UnsubscribeAsync call; received none before the cancellation exception was observed.",
+    "log_sha256": "6741ddad49f379ce957c11c4f6e5eaebdfb60bce48b92ff2eb6c54f5a7bcc3ef",
+    "xml_sha256": "d1963b90874bb6b587a16081e338476ce5b6f0cd3a3854b3d1d03530908dafc1"
+  },
+  "subscription_recheck": {
+    "passed": 37,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "480dbd724a4d050a3dd45579635c235a43ba2524ec5892bb964b3e853fea5732"
+  },
+  "frontcomposer_initial_target": "25b620001c1fe9bbb5171e823338d6ee1733d13f",
+  "frontcomposer_rebase_base": "4a4051c2511e5c4b7c0285fbc129c72146c1c275",
+  "integrated_upstream_commits": [
+    "2d92bb1a1061e1fecb7d87c9fb450f39698326f6",
+    "637ecb8ba7cf9e21831ee3f3bb32eb2cceaf9990",
+    "6f6eb8982ca1e97e28586de1d4ffc540467058af",
+    "4a4051c2511e5c4b7c0285fbc129c72146c1c275",
+    "05bba2e9c945e6d11a188928e6a4f2e9059551db",
+    "d73c99c58832a56ed3a34e62724ca664ddbfe669",
+    "803b38116478466b5192d953f211ad37da402294",
+    "3fd62e497ed9e1ae13811af813487fb97e4adc16",
+    "73768df6d2dcd8e15e9c6f023f0a60f9cb3a3609",
+    "ca11e95a454080c04da430ba95e2a00b6d7efabb",
+    "8c61143ef4c6a983bfe1d25865857b9b4cd240c9",
+    "224fb53ace8c938a3b4b8f8812af8c7509438a35",
+    "335a3ce10e9c492861bd5ae63888f80739f14e07",
+    "386ec94fe6de8c027edb7d108dcece0bf5b0f4e4",
+    "110bc0ef5165b2949aba97243511df7d2d9529f6",
+    "31988721c7169c2f5eaaa8bf01cc4050a67440bb",
+    "05dec31004e9851a568bddeec9a6176727eec3e8",
+    "4dae7d5d3b3a7eea225816a90fad63cdf4e6589e",
+    "02af22194d12b5101157560e7bbe4d47e8d6c79e",
+    "51a9bd04bb5bc118e549737a735912a7f01e6349",
+    "bf40b9276f440646e753a0636854595cc7d0affc",
+    "58a901b5d4e5379268938153d8385d23cc61209d",
+    "dfac0818e5a40b19145a01333cc5fc00bcd4b47e",
+    "7a4abaf9481d71c8cb791d385b58f248662f7552",
+    "8d964189276820afc64dfe06ff542379d546ff41"
+  ],
+  "frontcomposer_rebased_target_before_formatting": "376076a3b7f0e98f4e144d62120d5cdfd184e1b7",
+  "pre_review_full_ui": {
+    "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -result-xml /tmp/tenants-navigation-final-ui-recheck.xml",
+    "total": 7504,
+    "passed": 7504,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "325ef42a6928a1737beca2d6adc270030516e763c1900bf47ecf76d1949e3518",
+    "xml_sha256": "5aceeed18272ae9acb1935c0c4e4d752c7576944ad8a9a5013747033bd7c80c1"
+  },
+  "final_full_ui": {
+    "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -result-xml /tmp/tenants-navigation-public-base-full-ui.xml",
+    "total": 7514,
+    "passed": 7514,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "not_run": 0,
+    "seconds": 125.398,
+    "log_sha256": "1b8251d2c5e2285a0dcb6f411606cbc8207ec09e2787480a6abef1cd11114305",
+    "xml_sha256": "a75a081035af8d7fae225b918b0a37e54cba2f492fc8cf108672b153a1d00a9a",
+    "test_assembly_sha256": "94b8c72258e8e68550c56ccc1e46a19169006f075537a0cec35e8ea27f5b1638",
+    "ui_dependency_sha256": "371debf653112b9c6880b0560b2b096398a3d4c6971548ed3e442121131ff4f2"
+  },
+  "final_integrated_focused": {
+    "total": 416,
+    "passed": 416,
+    "failed": 0,
+    "skipped": 0,
+    "workspace": 150,
+    "audit": 266,
+    "xml_sha256": "f7967db7386e3885baa0b8a7fb1b3ba5d9f4dcbd423adf2c07793f0c56041f68",
+    "log_sha256": "27531f30f5e7f3bdee7a2028e955c578634c97ea17b943dd4df0de7862ac9134"
+  },
+  "normal_ci_browser": {
+    "command": "TENANTS_BROWSER_BUILD_CONFIGURATION=Debug bash tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh",
+    "passed": true,
+    "log_sha256": "a5258d8bc5cd12186c8d6a49b00e16438a6e9653da42b662c6c14331b143f8ca",
+    "shipped_module_reports": [
+      "Shipped module: PASS shadow-pager-loading-heading:navigation-heading;enabled-pager-origin:;disabled-pager-heading:navigation-heading;missing-pager-heading:navigation-heading;surviving-paging-control:navigation-outside;tenants-correction-start-panel:late-negative-capture-restored;tenants-correction-start-panel-surviving-control:navigation-outside;tenants-correction-panel:late-negative-capture-restored;tenants-correction-panel-surviving-control:navigation-outside;tenants-correction-start-panel-coexisting-owner-removed:navigation-heading;tenants-correction-start-panel-coexisting-late-owner-removed:navigation-heading;tenants-correction-start-panel-coexisting-survivor-preserved:coexisting-survivor;tenants-correction-panel-coexisting-owner-removed:navigation-heading;tenants-correction-panel-coexisting-late-owner-removed:navigation-heading;tenants-correction-panel-coexisting-survivor-preserved:coexisting-survivor;missing-receipt-launcher-heading:tenant-audit-heading;correction-handoff-keeps-live-focus:tenant-audit-heading;current-correction-launcher:current-correction;current-receipt-launcher:current-receipt;correction-invalidation-prefers-visible-launchers;guarded-launchers-skipped:guarded-receipt;remove-dialog-computed-fixed-visible-bounded-foreground;receipt-header-three-children-narrow-stacked;receipt-header-blocked-copy-own-row;receipt-header-two-children-flush-close;availability-actions-narrow-stacked-full-width;availability-state-line-programmatic-focus:availability-state;narrow-correction-retry-hidden;start-to-exact-cancel:tenants-global-admin-remove-cancel-button;existing-unfocusable-cancel-to-acknowledgement:remove-acknowledgement;missing-cancel-to-acknowledgement:remove-acknowledgement;missing-preview-to-lifecycle:remove-lifecycle;delayed-standalone-audit-launcher:;workspace-row-audit-launcher:;detail-audit-launcher:;member-audit-launcher:;command-audit-launcher:;wrong-tab-route-heading:tenants-list-heading;terminal-missing-origin-heading:tenants-list-heading;missing-standalone-audit-heading:tenants-user-lookup-heading;ordinary-my-tenants-detail-link:tenants-my-detail-tenant.alpha;canonicalized-delayed-lookup-launcher:;changed-lookup-target-launcher:;lookup-canonicalization-target-change-and-marker-removal;return-markers-consumed-once-with-ordinary-state-preserved;route-exit-clears-pending-focus-wait"
+    ]
+  },
+  "commitlint_tenants": {
+    "pinned_version": "21.2.3",
+    "candidate": "fix(ui): resolve five deferred navigation accessibility records\n",
+    "output": "\u29d7   --- input ---\nfix(ui): resolve five deferred navigation accessibility records\n\u2714   found 0 problems, 0 warnings\n"
+  },
+  "review_fixture_attempts": [
+    {
+      "sha256": "8962699643135187641f29d409e701ffaa05116e9bfd3786e06baf5f38871ec0",
+      "classification": "rejected fixture/runtime development attempt",
+      "reported_passed": false,
+      "cases": 7,
+      "fixture": {
+        "authorizedReads": 30,
+        "commandAttempts": 0,
+        "listReads": 16,
+        "searchReads": 0,
+        "auditReads": 0,
+        "circuitErrors": 0
+      },
+      "failure": {
+        "phase": "held-paging-ordinary",
+        "label": "Expected focus: #tenants-list-heading",
+        "focus": {
+          "element": "body",
+          "shadowDepth": 0,
+          "ancestry": []
+        }
+      }
+    },
+    {
+      "sha256": "c499d653a59e19592068ffc7287b1aa60d646f51b2ff224e53875224b946bb14",
+      "classification": "rejected: both labeled search modes used fallback; zero search reads",
+      "reported_passed": true,
+      "cases": 24,
+      "fixture": {
+        "authorizedReads": 110,
+        "commandAttempts": 0,
+        "listReads": 24,
+        "searchReads": 0,
+        "auditReads": 30,
+        "circuitErrors": 0
+      },
+      "failure": null
+    },
+    {
+      "sha256": "24b7775442ee2ae1f8135c1a94277144b58ff58ebe20e5bef246e942fa65f245",
+      "classification": "pre-parent-standards qualification; later refreshed with normal audit-enabled build",
+      "reported_passed": true,
+      "cases": 24,
+      "fixture": {
+        "authorizedReads": 190,
+        "commandAttempts": 0,
+        "listReads": 20,
+        "searchReads": 8,
+        "auditReads": 30,
+        "circuitErrors": 0
+      },
+      "failure": null
+    }
+  ],
+  "pre_review_focused_workspace": {
+    "passed": 146,
+    "failed": 0,
+    "skipped": 0
+  },
+  "pre_review_focused_audit": {
+    "passed": 260,
+    "failed": 0,
+    "skipped": 0
+  },
+  "harness_failure_controls": {
+    "command": "python3 /tmp/dw-navigation-review-harness-faults.py",
+    "passed": true,
+    "output": "spawnerror passed: safe failure and resource shutdown; 20.8 seconds\nsignalexit passed: safe failure and resource shutdown; 22.4 seconds\noutputfailure passed: safe failure and resource shutdown; 31.7 seconds\n",
+    "script_sha256": "f3e2a93d28d272719dbdd6f01c065bad353dad113384486a1c2a1a9d137af412",
+    "script_as_executed": "from pathlib import Path\nimport json,os,subprocess,time\nroot=Path('/home/administrator/projects/hexalith/tenants')\nstate=json.load(open('/tmp/tenants-navigation-browser-current-state.json'));resource=next(r for r in state['resources'] if r['displayName']=='tenants-ui');credentials=json.load(open('/tmp/tenants-navigation-browser-private.json'))\nbase=dict(os.environ,TENANTS_BROWSER_BASE_URL=next(u['url'] for u in resource['urls'] if u['name']=='https'),TENANTS_BROWSER_SOURCE_UI_PID=str(resource['properties']['executable.pid']),TENANTS_BROWSER_USERNAME=credentials['username'],TENANTS_BROWSER_PASSWORD=credentials['password'])\nfor mode in ('spawnerror','signalexit','outputfailure'):\n output=Path('/tmp/dw-navigation-review-'+mode+('.json' if mode!='outputfailure' else '-directory'))\n if mode=='outputfailure':output.mkdir(exist_ok=True)\n pidfile=Path('/tmp/dw-navigation-review-'+mode+'-pid')\n env=dict(base,NAVIGATION_FAULT_MODE=mode,NAVIGATION_PID_FILE=str(pidfile))\n started=time.monotonic()\n result=subprocess.run(['node','--import','/tmp/dw-navigation-review-fault-preload.mjs','tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs',str(output)],cwd=root,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90)\n assert result.returncode!=0,(mode,'must report failure')\n if mode!='outputfailure':\n  packet=json.loads(output.read_text());assert packet['passed'] is False\n  assert packet['failure']['label']==('Separate production UI process could not start' if mode=='spawnerror' else 'Separate production UI process exited during startup'),packet['failure']\n if pidfile.exists():assert not Path('/proc',pidfile.read_text()).exists(),(mode,'UI was not cleaned up')\n print(mode,'passed: safe failure and resource shutdown;',round(time.monotonic()-started,1),'seconds',flush=True)\n",
+    "preload_sha256": "295b01e053da3a604cc4dddd1950b882d05e54cc3e656f4d20553835e3bbb15e",
+    "preload_as_executed": "import childProcess from 'node:child_process';\nimport { syncBuiltinESMExports } from 'node:module';\nimport { writeFileSync } from 'node:fs';\nconst originalSpawn = childProcess.spawn;\nchildProcess.spawn = (command, arguments_, options) => {\n  if (command === 'dotnet' && arguments_?.[0]?.endsWith('/Hexalith.Tenants.UI.dll')) {\n    const child = originalSpawn(process.env.NAVIGATION_FAULT_MODE === 'spawnerror' ? '/nonexistent-navigation-dotnet' : command, arguments_, options);\n    if (child.pid) writeFileSync(process.env.NAVIGATION_PID_FILE, String(child.pid));\n    if (process.env.NAVIGATION_FAULT_MODE === 'signalexit') child.once('spawn', () => child.kill('SIGTERM'));\n    return child;\n  }\n  return originalSpawn(command, arguments_, options);\n};\nsyncBuiltinESMExports();\n",
+    "qualification": "Fault injection only; excluded from accepted focus/source-build proof. Literal helpers are retained for reconstruction; refresh runtime state and workspace paths when replaying elsewhere."
+  },
+  "artifact_cross_checks": {
+    "validator_matches": true,
+    "browser_ui_matches_current": true,
+    "browser_shell_matches_current": true,
+    "tested_ui_matches_browser": true
+  },
+  "idp_unavailable_attempt": {
+    "classification": "Rejected: sign-in failed with zero fixture reads; Aspire reports security Exited and connection refused on its ready endpoint.",
+    "phase": "authenticate-original-aspire-host",
+    "cases": 0,
+    "fixture_reads": 0,
+    "commands": 0,
+    "source": "dw-119-211-212-213-444-idp-unavailable.json"
+  },
+  "frontcomposer_formatting_target_before_final_rebase": "b3a02724278e4027eb88a00da331df6b5dbc3deb",
+  "frontcomposer_final_public_base": "2d92bb1a1061e1fecb7d87c9fb450f39698326f6",
+  "first_integrated_upstream_commits": [
+    "4a4051c2511e5c4b7c0285fbc129c72146c1c275",
+    "05bba2e9c945e6d11a188928e6a4f2e9059551db",
+    "d73c99c58832a56ed3a34e62724ca664ddbfe669",
+    "803b38116478466b5192d953f211ad37da402294",
+    "3fd62e497ed9e1ae13811af813487fb97e4adc16",
+    "73768df6d2dcd8e15e9c6f023f0a60f9cb3a3609",
+    "ca11e95a454080c04da430ba95e2a00b6d7efabb",
+    "8c61143ef4c6a983bfe1d25865857b9b4cd240c9",
+    "224fb53ace8c938a3b4b8f8812af8c7509438a35",
+    "335a3ce10e9c492861bd5ae63888f80739f14e07",
+    "386ec94fe6de8c027edb7d108dcece0bf5b0f4e4",
+    "110bc0ef5165b2949aba97243511df7d2d9529f6",
+    "31988721c7169c2f5eaaa8bf01cc4050a67440bb",
+    "05dec31004e9851a568bddeec9a6176727eec3e8",
+    "4dae7d5d3b3a7eea225816a90fad63cdf4e6589e",
+    "02af22194d12b5101157560e7bbe4d47e8d6c79e",
+    "51a9bd04bb5bc118e549737a735912a7f01e6349",
+    "bf40b9276f440646e753a0636854595cc7d0affc",
+    "58a901b5d4e5379268938153d8385d23cc61209d",
+    "dfac0818e5a40b19145a01333cc5fc00bcd4b47e",
+    "7a4abaf9481d71c8cb791d385b58f248662f7552",
+    "8d964189276820afc64dfe06ff542379d546ff41"
+  ],
+  "reviewed_shared_patch_files_unchanged_after_final_rebase": true,
+  "repeated_idp_unavailability": {
+    "classification": "Rejected current-public-base attempt: security Exited again; zero fixture reads, zero commands, no accepted focus cases.",
+    "source": "dw-119-211-212-213-444-idp-unavailable-public-base.json",
+    "recovery": "Restart owning AppHost with unchanged chosen credentials, then run authentication alone after all other suites finish."
+  },
+  "previous_final_full_ui": {
+    "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -result-xml /tmp/tenants-navigation-reviewed-full-ui.xml",
+    "total": 7514,
+    "passed": 7514,
+    "failed": 0,
+    "skipped": 0,
+    "not_run": 0,
+    "log_sha256": "6445283dfa311d8e257d89701e433ae7ed2b3764d53701846261a6d36fe7230c",
+    "xml_sha256": "fce8c2f4d94201cf64701eebce7581c8fbbfb4ceeab23269f9d5fcce91ad4abf",
+    "test_assembly_sha256": "b8a0569dae9f24c643ef5c24bd81ab4c202f219a0a43e886c67d86ea95a03c1e",
+    "ui_dependency_sha256": "6e7a66ab12342e1b7211172b239dc201d429911a6b8af0be0dcb205d49f0918c"
+  },
+  "frontcomposer_pushed_main": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+  "final_authenticated_browser": {
+    "passed": 24,
+    "fixture_reads": 190,
+    "search_reads": 8,
+    "command_attempts": 0,
+    "circuit_errors": 0,
+    "normal_source_build": {
+      "executable": "dotnet",
+      "arguments": [
+        "build",
+        "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+        "-c",
+        "Debug",
+        "-m:1",
+        "-p:UseNuGetDeps=false"
+      ],
+      "succeeded": true
+    },
+    "frontcomposer_revision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+    "packet_sha256": "c017d8b5acab13e0ea7bb86c06de5f97ac25a5e452d6159aa155dc92cbb4a4a0"
+  },
+  "independent_correction_rechecks": {
+    "blind_hunter": "B1-B10 and final multi-panel R2-B2 resolved; independently reran all six coexistence cases",
+    "edge_cases": "Both cleanup findings resolved; fault helper contents/hashes and cases verified",
+    "verification_gap": "No verification gaps found",
+    "newly_deferred": "Existing asynchronous cancellation-test assertion timing; unnumbered ledger follow-up"
+  }
+}

@@ -30,6 +30,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
+using Microsoft.JSInterop;
 using Microsoft.FluentUI.AspNetCore.Components;
 
 using NSubstitute;
@@ -61,6 +62,142 @@ public sealed partial class TenantsWorkspaceTests : BunitContext
 #if HFC_ROUTE_OPTIONS
         Services.AddScoped<NavigationFailureNotifier>();
 #endif
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task PagingRecoversOwnedFocusDuringAHeldReadWithoutDuplicateRequests(bool ownsFocus)
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        TaskCompletionSource<TenantListSnapshot> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TenantListSnapshot first = TenantListSnapshot.Ready([], "page-two", true, "etag", ReadModelFreshnessState.Current, false);
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(first), pending.Task);
+        RegisterPagingFocusServices(gateway);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> prepare = module.Setup<bool>("movePagingFocusToHeading", "tenants-list-next", "tenants-list-heading");
+        prepare.SetResult(ownsFocus);
+        JSRuntimeInvocationHandler restore = module.SetupVoid("restorePagingFocus", "tenants-list-next", "tenants-list-heading");
+        restore.SetVoidResult();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        IElement next = cut.WaitForElement("[data-testid='tenants-list-next']");
+        FluentButton capturedNext = SoftRefreshButton(cut, "tenants-list-next");
+
+        Task paging = next.ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => prepare.Invocations.Count.ShouldBe(1));
+        cut.WaitForElement("[data-testid='tenants-list-loading']");
+        cut.Find("#tenants-list-heading").GetAttribute("tabindex").ShouldBe("-1");
+        await cut.InvokeAsync(() => capturedNext.OnClick.InvokeAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs()));
+        _ = gateway.Received(2).ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
+        pending.SetResult(TenantListSnapshot.Ready([], null, false, "last", ReadModelFreshnessState.Current, false));
+        await paging;
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-list-next']").HasAttribute("disabled").ShouldBeTrue());
+        cut.WaitForAssertion(() => restore.Invocations.Count.ShouldBe(ownsFocus ? 1 : 0));
+    }
+
+    [Fact]
+    public async Task PagingFocusHandoffCannotRunAfterANewerRefresh()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        TaskCompletionSource<TenantListSnapshot> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TenantListSnapshot ready = TenantListSnapshot.Ready([], "page-two", true, "etag", ReadModelFreshnessState.Current, false);
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ready), pending.Task, Task.FromResult(ready));
+        RegisterPagingFocusServices(gateway);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        module.Setup<bool>("movePagingFocusToHeading", _ => true).SetResult(true);
+        JSRuntimeInvocationHandler restore = module.SetupVoid("restorePagingFocus", _ => true);
+        restore.SetVoidResult();
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        Task paging = cut.WaitForElement("[data-testid='tenants-list-next']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForElement("[data-testid='tenants-list-loading']");
+        await cut.Find("[data-testid='tenants-list-refresh']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        pending.SetResult(ready);
+        await paging;
+
+        restore.Invocations.ShouldBeEmpty();
+        _ = gateway.Received(3).ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task DelayedNextFocusImportCannotRestoreAfterPreviousCompletes()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        TenantListSnapshot ready = TenantListSnapshot.Ready([], "page-two", true, "etag", ReadModelFreshnessState.Current, false);
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ready));
+        RegisterPagingFocusServices(gateway);
+        IJSRuntime runtime = Substitute.For<IJSRuntime>();
+        IJSObjectReference module = Substitute.For<IJSObjectReference>();
+        IJSObjectReference staleModule = Substitute.For<IJSObjectReference>();
+        TaskCompletionSource staleRestoreFinished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        staleModule.DisposeAsync().Returns(_ =>
+        {
+            staleRestoreFinished.TrySetResult();
+            return ValueTask.CompletedTask;
+        });
+        TaskCompletionSource<IJSObjectReference> heldImport = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int imports = 0;
+        runtime.InvokeAsync<IJSObjectReference>("import", Arg.Any<object?[]>()).Returns(call =>
+            new ValueTask<IJSObjectReference>(Equals(call.ArgAt<object?[]>(1)[0], "./js/tenantsFocus.js")
+                && Interlocked.Increment(ref imports) == 2 ? heldImport.Task : Task.FromResult(module)));
+        module.InvokeAsync<bool>("movePagingFocusToHeading", Arg.Any<object?[]>()).Returns(new ValueTask<bool>(true));
+        Services.AddSingleton(runtime);
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        await cut.WaitForElement("[data-testid='tenants-list-next']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => imports.ShouldBe(2));
+        await cut.Find("[data-testid='tenants-list-previous']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => module.ReceivedCalls().Count(call => call.GetArguments().Length > 0 && Equals(call.GetArguments()[0], "restorePagingFocus")).ShouldBe(1));
+        heldImport.SetResult(staleModule);
+        await staleRestoreFinished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        staleModule.ReceivedCalls().Where(call => call.GetArguments().Length > 0
+            && Equals(call.GetArguments()[0], "restorePagingFocus")).ShouldBeEmpty();
+
+        var restores = module.ReceivedCalls().Where(call => call.GetArguments().Length > 0 && Equals(call.GetArguments()[0], "restorePagingFocus")).ToArray();
+        restores.ShouldHaveSingleItem();
+        ((object?[])restores[0].GetArguments()[1]!)[0].ShouldBe("tenants-list-previous");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    public async Task PreviousAndSearchPagingRecoverFocusOnAHeldFirstPage(bool search, bool authoritative)
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        TenantListSnapshot ready = TenantListSnapshot.Ready([], "page-two", true, "etag", ReadModelFreshnessState.Current, false)
+            with { IsAuthoritativeSearch = authoritative };
+        TaskCompletionSource<TenantListSnapshot> held = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ready), Task.FromResult(ready), held.Task);
+        RegisterPagingFocusServices(gateway);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        module.Setup<bool>("movePagingFocusToHeading", _ => true).SetResult(true);
+        JSRuntimeInvocationHandler restore = module.SetupVoid("restorePagingFocus", _ => true);
+        restore.SetVoidResult();
+        if (search) Services.GetRequiredService<NavigationManager>().NavigateTo("/tenants?search=needle");
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+        await cut.WaitForElement("[data-testid='tenants-list-next']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        Task previous = cut.Find("[data-testid='tenants-list-previous']").ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForElement("[data-testid='tenants-list-loading']");
+        module.Invocations["movePagingFocusToHeading"].Last().Arguments[0].ShouldBe("tenants-list-previous");
+        held.SetResult(ready);
+        await previous;
+
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-list-previous']").HasAttribute("disabled").ShouldBeTrue());
+        cut.WaitForAssertion(() => restore.Invocations.Last().Arguments[0].ShouldBe("tenants-list-previous"));
+    }
+
+    private void RegisterPagingFocusServices(ITenantQueryGateway gateway)
+    {
+        Services.AddSingleton(gateway);
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway());
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition());
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        Services.AddFluentUIComponents();
     }
 
     [Fact]
@@ -1084,6 +1221,30 @@ public sealed partial class TenantsWorkspaceTests : BunitContext
         href.ShouldContain("source=user-lookup");
         href.ShouldContain("returnUrl=" + Uri.EscapeDataString("/tenants/workspace-users?userId=user.target-01"));
         href.ShouldContain("returnFocus=tenants-user-row-id-dGVuYW50LmJldGE");
+    }
+
+    [Fact]
+    public void MissingDetailReturnUsesTheListHeadingAndKeepsTheNotice()
+    {
+        ITenantQueryGateway gateway = Substitute.For<ITenantQueryGateway>();
+        gateway.ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantListSnapshot.Empty(true, ReadModelFreshnessState.Current)));
+        gateway.GetMyTenantsAsync(Arg.Any<UserTenantMembershipRequest>(), Arg.Any<UserTenantMembershipSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(UserTenantMembershipSnapshot.Ready([], null, false, "etag", ReadModelFreshnessState.Current)));
+        RegisterPagingFocusServices(gateway);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<string> restore = module.Setup<string>("restoreDetailFocus", _ => true);
+        restore.SetResult("missing");
+        Services.GetRequiredService<NavigationManager>().NavigateTo(
+            "/tenants?scope=mine&selected=tenant.missing&anchor=tenants-my-detail-id-dGVuYW50Lm1pc3Npbmc");
+
+        IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
+
+        cut.WaitForAssertion(() => restore.Invocations.Count.ShouldBe(1));
+        restore.Invocations.Single().Arguments.ShouldBe(
+            ["tenants-my-detail-id-dGVuYW50Lm1pc3Npbmc", "tenants-my-page", "tenants-list-heading"]);
+        cut.Find("#tenants-list-heading").GetAttribute("tabindex").ShouldBe("-1");
+        cut.WaitForElement("[data-testid='tenants-audit-return-notice']").TextContent.ShouldNotBeNullOrWhiteSpace();
     }
 
     [Fact]

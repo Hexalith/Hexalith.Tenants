@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-119/DW-211/DW-212/DW-213/DW-444 closure (2026-10-23):** Owned paging and audit-reset focus survives control replacement; shared header title/render guards fail diagnostically. Authenticated production-UI Chromium checks qualify actual focus against disclosed read-only upstream fixtures. Exactly five records close: all 657 IDs remain, 570 done/87 open across 80 maintenance rows. Historical fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-119-211-212-213-444-validation-evidence.md).
+
 **DW-333/DW-335/DW-336/DW-357/DW-359 closure (2026-10-23):** Authenticated live Chromium checks qualify retained workspace panel visibility/accessibility, native grant-modal keyboard cycles, inert page background, Escape restoration and measured viewport restrictions. A grant-input Razor comment no longer terminates the interactive circuit. Exactly five records close: all 657 IDs remain, 565 done/92 open across 85 maintenance rows. Historical fields and unrelated runtime/release holds remain preserved. See [validation evidence](dw-333-335-336-357-359-validation-evidence.md).
 
 **DW-227/DW-241/DW-242/DW-299/DW-317 closure (2026-10-23):** Actual member controls and stable heading recovery preserve focus across dismissal, row/permission loss and unsafe viewport transitions. Compiled configuration/lifecycle form and label styling, EN/FR warnings and native browser keyboard cycles qualify the existing responsive boundary. Exactly five records close: all 657 IDs remain, 560 done/97 open across 87 maintenance rows. Historical fields, unrelated records, dependencies and broader modal/runtime/release holds remain preserved. See [validation evidence](dw-227-241-242-299-317-validation-evidence.md).
@@ -1027,17 +1029,25 @@ location: TenantsWorkspace.razor:534
 source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md`
 reason: The legacy ledger defers this issue: The pager is unmounted on every load, dropping keyboard focus from the button the operator just pressed. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-9-authoritative-memories-search-with-protected-paging.md` summary: The pager is unmounted on every load, dropping keyboard focus from the button the operator just pressed. evidence: `TenantsWorkspace.razor:534` sets `_snapshot = TenantListSnapshot.Loading()`, making `ShowList`, `HasMore` and `HasPreviousPage` all false, so `ShowPager` (`:416`) removes the whole `<nav>` for the duration of every load. Needs the authenticated browser lane to confirm the focus consequence. status: open — needs BROWSER-SEARCH-1.9.
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor LoadAsync assigns Loading and ShowPager rejects Loading. The removal is verified, but current active-element behavior after Previous/Next has no authenticated browser proof.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: unverified-risk
+pre-navigation-status: open
+pre-navigation-disposition: uncertain
+pre-navigation-verification-date: 2026-10-12
+pre-navigation-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor LoadAsync assigns Loading and ShowPager rejects Loading. The removal is verified, but current active-element behavior after Previous/Next has no authenticated browser proof.
+pre-navigation-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+pre-navigation-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: authenticated browser search fixture
-next-action: Record document.activeElement during paging and determine whether restoration is required.
+pre-navigation-next-action: Record document.activeElement during paging and determine whether restoration is required.
 related: DW-177
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: Production paging captures owned focus before the hard read, preserves the persistent list heading while held, and restores only an enabled origin if focus remains there. Component held-read, duplicate and supersession regressions pass; authenticated production-UI Chromium checks qualify enabled, disabled, missing and surviving-control outcomes against disclosed read fixtures. Scope and broad-gate limits are retained in dw-119-211-212-213-444-validation-evidence.md. Both paging directions, protected-search and fallback modes, and delayed opposite-direction imports are qualified after cursor/history mutation moves behind the owned-focus handoff.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs; _bmad-output/implementation-artifacts/dw-119-211-212-213-444-browser-results.json; tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs
+evidence-kind: verified-closure
+next-action: none; this record is resolved within the qualified navigation accessibility scope.
 
 ### DW-120: The CI package-boundary gate asserts the fixture it generates from its own allowlist
 
@@ -1881,17 +1891,25 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md`
 reason: The legacy ledger defers this issue: Assert TenantsWorkspace post-detail FocusHeadingAsync actually moves focus to tenants-list-heading. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md` summary: Assert TenantsWorkspace post-detail FocusHeadingAsync actually moves focus to tenants-list-heading. evidence: Existing tests only assert tabindex=-1 after return query; removing FocusHeadingAsync would not fail the suite.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor has post-detail heading/focus handling, but a tabindex/source assertion does not establish document.activeElement at tenants-list-heading; no targeted authenticated post-detail heading trace was established.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: verified-gap
+pre-navigation-status: open
+pre-navigation-disposition: actionable
+pre-navigation-verification-date: 2026-10-12
+pre-navigation-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor has post-detail heading/focus handling, but a tabindex/source assertion does not establish document.activeElement at tenants-list-heading; no targeted authenticated post-detail heading trace was established.
+pre-navigation-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+pre-navigation-evidence-kind: verified-gap
 priority: P3
 owner: unassigned
 dependencies: authenticated browser navigation fixture
-next-action: Capture browser activeElement after a missing-row detail return and assert the list heading is focused.
+pre-navigation-next-action: Capture browser activeElement after a missing-row detail return and assert the list heading is focused.
 related: none
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: The missing-row detail-return regression pins the real restoreDetailFocus arguments and retained notice. Authenticated production-UI Chromium records document.activeElement at tenants-list-heading after the validated missing-row return; tabindex alone is not accepted as proof. Scope and broad-gate limits are retained in dw-119-211-212-213-444-validation-evidence.md.
+verification-files: tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.cs; tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs; _bmad-output/implementation-artifacts/dw-119-211-212-213-444-browser-results.json
+evidence-kind: verified-closure
+next-action: none; this record is resolved within the qualified navigation accessibility scope.
 
 ### DW-212: Harden FcPageHeader when PageTitle and Heading are both blank/whitespace so document title cannot resolve empty
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1899,19 +1917,27 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md`
 reason: The legacy ledger defers this issue: Harden FcPageHeader when PageTitle and Heading are both blank/whitespace so document title cannot resolve empty. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md` summary: Harden FcPageHeader when PageTitle and Heading are both blank/whitespace so document title cannot resolve empty. evidence: FrontComposer-owned contract; Tenants callers currently supply localized titles, but the primitive still admits an empty DocumentTitle path.
-status: open
+pre-navigation-status: open
 decision: 2026-09-02 Reject blank titles — Throw a diagnostic parameter-contract exception when both title inputs are blank and add shared component tests.
 decision: 2026-09-02 Reject blank titles — Throw a diagnostic parameter-contract exception when both title inputs are blank and add shared component tests.
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs ResolvedPageTitle still falls back to blank Heading when both inputs are blank. The recorded 2026-09-02 reject-blank-title decision remains unimplemented.
-verification-files: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs
-evidence-kind: verified-defect
+pre-navigation-disposition: actionable
+pre-navigation-verification-date: 2026-10-12
+pre-navigation-verification: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs ResolvedPageTitle still falls back to blank Heading when both inputs are blank. The recorded 2026-09-02 reject-blank-title decision remains unimplemented.
+pre-navigation-verification-files: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs
+pre-navigation-evidence-kind: verified-defect
 priority: P3
 owner: FrontComposer
 dependencies: FrontComposer owning change
-next-action: Implement the recorded shared parameter diagnostic and its component regression.
+pre-navigation-next-action: Implement the recorded shared parameter diagnostic and its component regression.
 related: none
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: FrontComposer FcPageHeader rejects both blank title inputs with a diagnostic naming PageTitle and Heading, while explicit titles with suppressed headings and heading-derived titles remain supported. Focused header and complete layout cases pass in Debug source mode. Scope and broad-gate limits are retained in dw-119-211-212-213-444-validation-evidence.md.
+verification-files: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs; references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcPageHeaderTests.cs; references/Hexalith.FrontComposer/docs/reference/components/page-patterns.md; _bmad-output/implementation-artifacts/dw-119-211-212-213-444-browser-results.json
+evidence-kind: verified-closure
+next-action: none; this record is resolved within the qualified navigation accessibility scope.
 
 ### DW-213: Make FocusHeadingAsync fail closed when the heading element is not yet rendered instead of focusing a default ElementReference
 origin: migrated from legacy ledger ("Deferred from: code review of spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md (2026-08-09)"), 2026-08-25
@@ -1919,17 +1945,25 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md`
 reason: The legacy ledger defers this issue: Make FocusHeadingAsync fail closed when the heading element is not yet rendered instead of focusing a default ElementReference. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-frontcomposer-fluent-layout-page-layout-conformance-sweep.md` summary: Make FocusHeadingAsync fail closed when the heading element is not yet rendered instead of focusing a default ElementReference. evidence: FrontComposer-owned timing contract; Tenants workspace path relies on OnAfterRenderAsync ordering.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs FocusHeadingAsync checks heading text/tabindex but not whether _headingElement was rendered before calling FocusAsync.
-verification-files: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs
-evidence-kind: verified-defect
+pre-navigation-status: open
+pre-navigation-disposition: actionable
+pre-navigation-verification-date: 2026-10-12
+pre-navigation-verification: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs FocusHeadingAsync checks heading text/tabindex but not whether _headingElement was rendered before calling FocusAsync.
+pre-navigation-verification-files: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs
+pre-navigation-evidence-kind: verified-defect
 priority: P3
 owner: FrontComposer
 dependencies: FrontComposer owning change
-next-action: Add a rendered-element readiness guard and an explicit pre-render focus test.
+pre-navigation-next-action: Add a rendered-element readiness guard and an explicit pre-render focus test.
 related: none
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: FrontComposer FcPageHeader refuses heading focus until a rendered element reference exists and clears the reference when heading suppression removes it. Pre-render no-interop and removed/restored current-element regressions pass; production browser heading focus remains functional. Scope and broad-gate limits are retained in dw-119-211-212-213-444-validation-evidence.md.
+verification-files: references/Hexalith.FrontComposer/src/Hexalith.FrontComposer.Shell/Components/Layout/FcPageHeader.razor.cs; references/Hexalith.FrontComposer/tests/Hexalith.FrontComposer.Shell.Tests/Components/Layout/FcPageHeaderTests.cs; _bmad-output/implementation-artifacts/dw-119-211-212-213-444-browser-results.json
+evidence-kind: verified-closure
+next-action: none; this record is resolved within the qualified navigation accessibility scope.
 
 ### DW-214: Align RemoveTenantMemberFlowTests StubTenantsLocalizer keys/values with shipped TenantsResources (EN/FR) so LocalizerDoubleParityTests passes
 
@@ -4152,18 +4186,26 @@ location: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-3-view-a-support-safe-audit-evidence-receipt.md`\n  summary: Return focus when `ClearPaging()` or a viewport downgrade removes an active correction panel.\n  evidence: On a `ListRefreshed` or `InvalidCursor` result, `LoadAsync` runs `CaptureCorrectionAuthority` (which keeps a still-Ready source) and then `ClearPaging()`. `ClearPaging()` nulls `_activeCorrectionIntent` and `_activeCorrectionFocusReference` without setting `_pendingCorrectionFocusReference`, so focus falls to `<body>` (`TenantAuditPage.razor:914-918`, `:1379-1388`). `RenderViewportChangeAsync` has the same gap, already recorded in the 2026-09-28 viewport entry. Both predate baseline `33d6dcca`. Each needs the pending-focus assignment that `CaptureCorrectionAuthority` now uses, gated on focus actually being lost."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Viewport removal now schedules origin-specific focus (DW-443 resolved), but TenantAuditPage.razor::ClearPaging:1597-1609 still clears _activeCorrectionIntent/_previewCorrectionIntent and calls InvalidateCorrectionFocus without scheduling a launcher/heading return. On a current-ready ListRefreshed/InvalidCursor recovery CaptureCorrectionAuthority can keep the source immediately before ClearPaging removes the panel, leaving the paging-removal focus gap.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
-evidence-kind: verified-defect
+pre-navigation-status: open
+pre-navigation-disposition: actionable
+pre-navigation-verification-date: 2026-10-12
+pre-navigation-verification: Viewport removal now schedules origin-specific focus (DW-443 resolved), but TenantAuditPage.razor::ClearPaging:1597-1609 still clears _activeCorrectionIntent/_previewCorrectionIntent and calls InvalidateCorrectionFocus without scheduling a launcher/heading return. On a current-ready ListRefreshed/InvalidCursor recovery CaptureCorrectionAuthority can keep the source immediately before ClearPaging removes the panel, leaving the paging-removal focus gap.
+pre-navigation-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor
+pre-navigation-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: Focus only when the removed panel actually owned focus
-next-action: Schedule origin-aware focus before ClearPaging removes a still-active unsubmitted correction, while preserving focus on any surviving control; cover ListRefreshed recovery.
+pre-navigation-next-action: Schedule origin-aware focus before ClearPaging removes a still-active unsubmitted correction, while preserving focus on any surviving control; cover ListRefreshed recovery.
 related: DW-443, DW-445, DW-422
 
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: Audit cursor recovery captures focused unsubmitted correction ownership before ClearPaging, preserves origin and load/open/focus generations, and schedules restoration after clearing. Component reset/negative/stale-probe cases and authenticated production-UI notification/reset Chromium cases prove exact grid-origin recovery, absent-launcher heading fallback and surviving-control preservation without command dispatch. Scope and broad-gate limits are retained in dw-119-211-212-213-444-validation-evidence.md. Browser capture follows the specific owning panel through actual removal, late ownership and blur-before-disconnect, including coexistence with another matching correction panel that remains mounted.
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor; src/Hexalith.Tenants.UI/wwwroot/js/tenantsFocus.js; tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs; _bmad-output/implementation-artifacts/dw-119-211-212-213-444-browser-results.json; tests/Hexalith.Tenants.UI.Tests/Browser/tenants-focus-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-navigation-focus.mjs
+evidence-kind: verified-closure
+next-action: none; this record is resolved within the qualified navigation accessibility scope.
 
 ### DW-445: Return correction focus to the control that launched the panel, not the first matching reference in document order.
 
@@ -6852,3 +6894,9 @@ archived: 2026-10-22
 - source_spec: `spec-dw-551-556-575-576-597-bootstrap-handoff.md`
   summary: Unverified medium, pre-existing: establish the bootstrap credential HTTP handler's redirect policy for password-grant requests.
   evidence: The provider's HttpClient.SendAsync and default handler ownership predate this batch; initial destination validation does not itself establish 307/308 handling. A real-handler redirect fixture must determine whether credentials can be reposted to a different destination, then the owning transport contract must choose and qualify its redirect policy. This follow-up does not change the five numbered closures or authorize a new redirect policy.
+
+## Deferred from: navigation accessibility verification (2026-10-23)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-119-211-212-213-444-navigation-accessibility.md`
+  summary: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
+  evidence: `TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback` immediately asserts `UnsubscribeAsync` after the caller's cancellation exception, while unchanged `TenantReadRefreshSubscription.cs` starts `CleanupFailedSetupAsync` without awaiting it before rethrowing. One full 7,504-case run observed no unsubscribe yet; the isolated 37-case class and subsequent full 7,504-case run passed. Use a deterministic unsubscribe-completion signal while preserving exactly-one-unsubscribe and no-retained-callback assertions; this records test timing rather than a proven production cleanup failure.

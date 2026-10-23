@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-119/DW-211/DW-212/DW-213/DW-444 closure (2026-10-23):** Owned paging and audit-reset focus survives control replacement; shared header title/render guards fail diagnostically. Authenticated production-UI Chromium checks qualify actual focus against disclosed read-only upstream fixtures. Exactly five records close: all 657 IDs remain, 570 done/87 open across 80 maintenance rows. Historical fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-119-211-212-213-444-validation-evidence.md).
+
 **DW-333/DW-335/DW-336/DW-357/DW-359 closure (2026-10-23):** Authenticated live Chromium checks qualify retained workspace panel visibility/accessibility, native grant-modal keyboard cycles, inert page background, Escape restoration and measured viewport restrictions. A grant-input Razor comment no longer terminates the interactive circuit. Exactly five records close: all 657 IDs remain, 565 done/92 open across 85 maintenance rows. Historical fields and unrelated runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-333-335-336-357-359-validation-evidence.md).
 
 **DW-227/DW-241/DW-242/DW-299/DW-317 closure (2026-10-23):** Actual member controls and stable heading recovery preserve focus across dismissal, row/permission loss and unsafe viewport transitions. Compiled configuration/lifecycle form and label styling, EN/FR warnings and native browser keyboard cycles qualify the existing responsive boundary. Exactly five records close: all 657 IDs remain, 560 done/97 open across 87 maintenance rows. Historical fields, unrelated records, dependencies and broader modal/runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-227-241-242-299-317-validation-evidence.md).
@@ -214,14 +216,16 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 560 |
-| actionable | 41 |
-| blocked | 14 |
+| done | 570 |
+| actionable | 37 |
+| blocked | 11 |
 | awaiting-decision | 21 |
 | accepted-limitation | 5 |
-| uncertain | 16 |
+| uncertain | 13 |
 
-**Remaining: 102 open records across 92 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 87 open records across 80 index rows.**
+
+**Unnumbered review follow-up:** navigation verification exposed a cancellation-test cleanup timing gap, retained in the deferred ledger. The numbered DW totals and rows exclude this new follow-up until ledger migration. Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -258,7 +262,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-268 | P2 | Defect / actionable | unassigned | browser style evidence | Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width. |
 | DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
 | DW-387 | P2 | Defect / actionable | unassigned | Same-id idempotency/recovery contract | Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards. |
-| DW-444 | P2 | Defect / actionable | unassigned | Focus only when the removed panel actually owned focus | Capture/reset/remount focus and restore the actual correction launcher at safe and narrow widths. |
 | DW-511 | P2 | Defect / actionable | Hexalith.EventStore | EventStore ambiguity contract | Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions. |
 | DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
 | DW-522 | P2 | Defect / actionable | Hexalith.EventStore | DW-511 general ambiguity wording | Align the served ambiguity catalog and problem reference with the general scope-aware runtime remediation. |
@@ -294,17 +297,13 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 | DW-604 | P2 | Gap / actionable | unassigned | Platform projection rebuild/versioning contract | Specify a safe tenant projection schema rebuild/version path and its rollout verification. |
 | DW-609 | P2 | Gap / actionable | unassigned | Permission-change invalidation/reauthorization contract | Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts. |
-| DW-212 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Implement the recorded shared parameter diagnostic and its component regression. |
-| DW-213 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Add a rendered-element readiness guard and an explicit pre-render focus test. |
 | DW-571 | P3 | Defect / actionable | unassigned | EventStore hosting helper/runtime token contract | Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial. |
-| DW-211 | P3 | Gap / actionable | unassigned | authenticated browser navigation fixture | Capture browser activeElement after a missing-row detail return and assert the list heading is focused. |
 
 ## Unverified risks and recommendations
 
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
 | DW-116 | P2 | Unverified / blocked | unassigned | BROWSER-SEARCH-1.9 and AT-NVDA-1.9 | Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime. |
-| DW-119 | P2 | Unverified / uncertain | unassigned | authenticated browser search fixture | Record document.activeElement during paging and determine whether restoration is required. |
 | DW-127 | P2 | Unverified / awaiting-decision | Story 1.9 | product/security requirement | Set the privacy/completeness acceptance requirement for partially hidden search windows. |
 | DW-372, DW-382 | P2 | Unverified / uncertain | unassigned | none | Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout. |
 | DW-390 | P2 | Unverified / uncertain | unassigned | none | Capture side-by-side supported-browser/font rendering of accepted whitespace identities and compare visible distinction with accessible names. |

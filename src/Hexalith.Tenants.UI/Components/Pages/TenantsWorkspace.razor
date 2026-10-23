@@ -401,6 +401,8 @@
     private string _tenantScope = TenantWorkspaceState.AllScope;
     private FcAggregateListPage<TenantListRow> _listPage = default!;
     private bool _focusHeadingPending;
+    private string? _pendingPagingFocus;
+    private long _pagingFocusVersion;
     private string? _pendingAuditFocus;
     private string? _handledAuditFocus;
     private string? _pendingDetailFocus;
@@ -1095,6 +1097,28 @@
             _renderedStatusFilterLabel = null;
         }
 
+        if (_pendingPagingFocus is { } pagingFocus)
+        {
+            long pagingFocusVersion = _pagingFocusVersion;
+            _pendingPagingFocus = null;
+            if (!_disposed && pagingFocusVersion == Volatile.Read(ref _loadVersion)
+                && IsRetainedTenantListView && _snapshot.Kind is not TenantListSurfaceKind.Loading)
+            {
+                try
+                {
+                    await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+                    if (!_disposed && pagingFocusVersion == Volatile.Read(ref _loadVersion))
+                    {
+                        await module.InvokeVoidAsync("restorePagingFocus", pagingFocus, "tenants-list-heading");
+                    }
+                }
+                catch (Exception exception) when (exception is JSException or OperationCanceledException or ObjectDisposedException)
+                {
+                    // The persistent heading remains the recovery target if interop is unavailable.
+                }
+            }
+        }
+
         if (_pendingDetailFocus is { } detailFocus)
         {
             _pendingDetailFocus = null;
@@ -1647,6 +1671,43 @@
     private bool ActivePagingModeAuthoritative
         => SearchPaging.ActiveModeAuthoritative ?? PagingSnapshot.IsAuthoritativeSearch;
 
+    private async Task LoadPageAsync(string originTestId, Func<bool> prepareRequest)
+    {
+        // Retire earlier focus continuations before yielding, and recover focus before cursor
+        // mutations can disable the originating Previous control during an intermediate render.
+        long entryVersion = Interlocked.Increment(ref _loadVersion);
+        bool ownsFocus = false;
+        try
+        {
+            await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+            if (!_disposed && entryVersion == Volatile.Read(ref _loadVersion))
+            {
+                ownsFocus = await module.InvokeAsync<bool>("movePagingFocusToHeading", originTestId, "tenants-list-heading");
+            }
+        }
+        catch (Exception exception) when (exception is JSException or OperationCanceledException or ObjectDisposedException)
+        {
+            // An unavailable focus helper must not block the authorized read.
+        }
+
+        if (_disposed || entryVersion != Volatile.Read(ref _loadVersion) || !prepareRequest())
+        {
+            return;
+        }
+
+        await LoadAsync(reuseETag: false);
+        if (!ownsFocus || _disposed || entryVersion + 1 != Volatile.Read(ref _loadVersion))
+        {
+            return;
+        }
+
+        // Paint the terminal controls before looking for the original pager. The browser keeps
+        // any focus the operator moved away from the temporary heading during the read.
+        _pendingPagingFocus = originTestId;
+        _pagingFocusVersion = entryVersion + 1;
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task NextPageAsync()
     {
         if (_pagingInFlight || _snapshot.Kind is TenantListSurfaceKind.Loading)
@@ -1662,9 +1723,9 @@
             {
                 // Refused when there is no next cursor, so Next can never record a back-step it cannot
                 // honour and then enable a Previous that lands on the same page.
-                if (SearchPaging.MoveNext(ActivePagingModeAuthoritative, paging.NextCursor))
+                if (paging.NextCursor is not null)
                 {
-                    await LoadAsync(reuseETag: false);
+                    await LoadPageAsync("tenants-list-next", () => SearchPaging.MoveNext(ActivePagingModeAuthoritative, paging.NextCursor));
                 }
 
                 return;
@@ -1675,10 +1736,13 @@
                 return;
             }
 
-            _cursorHistory.Push(_currentCursor);
-            ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = paging.NextCursor });
-            NavigateToCanonicalWorkspace();
-            await LoadAsync(reuseETag: false);
+            await LoadPageAsync("tenants-list-next", () =>
+            {
+                _cursorHistory.Push(_currentCursor);
+                ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = paging.NextCursor });
+                NavigateToCanonicalWorkspace();
+                return true;
+            });
         }
         finally
         {
@@ -1698,9 +1762,9 @@
         {
             if (HasActiveSearch)
             {
-                if (SearchPaging.TryMovePrevious(ActivePagingModeAuthoritative))
+                if (HasPreviousListPage)
                 {
-                    await LoadAsync(reuseETag: false);
+                    await LoadPageAsync("tenants-list-previous", () => SearchPaging.TryMovePrevious(ActivePagingModeAuthoritative));
                 }
 
                 return;
@@ -1708,9 +1772,12 @@
 
             if (_cursorHistory.Count > 0)
             {
-                ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
-                NavigateToCanonicalWorkspace();
-                await LoadAsync(reuseETag: false);
+                await LoadPageAsync("tenants-list-previous", () =>
+                {
+                    ApplyWorkspaceState(CurrentWorkspaceState() with { Cursor = _cursorHistory.Pop() });
+                    NavigateToCanonicalWorkspace();
+                    return true;
+                });
             }
         }
         finally
