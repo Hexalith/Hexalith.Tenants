@@ -650,6 +650,113 @@ public sealed class ChangeTenantMemberRoleFlowTests : FluentBunitContext
         closeRequested.ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task CausalProjectionCallbackNudgeDoesNotStartAnotherStatusWalk()
+    {
+        TaskCompletionSource callbackStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseCallback = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int projectionCallbacks = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<ChangeTenantMemberRoleFlow>? cut = null;
+        cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnProjectionRefreshRequested, async () =>
+            {
+                Interlocked.Increment(ref projectionCallbacks);
+                callbackStarted.SetResult();
+                await releaseCallback.Task.ConfigureAwait(false);
+                // Re-enter after suspension in the callback's causal execution context.
+                await cut!.Instance.HandleAuthoritativeRefreshNudgeAsync().ConfigureAwait(false);
+            }));
+
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        Task submission = cut.Find("form").SubmitAsync();
+        try
+        {
+            await callbackStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            gateway.StatusCallCount.ShouldBe(1);
+        }
+        finally
+        {
+            releaseCallback.TrySetResult();
+        }
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+
+        gateway.StatusCallCount.ShouldBe(1);
+        Volatile.Read(ref projectionCallbacks).ShouldBe(1);
+        gateway.ChangeRoleCallCount.ShouldBe(1);
+        cut.Instance.Snapshot.MessageId.ShouldBe("message-1");
+        cut.Instance.Snapshot.CorrelationId.ShouldBe("correlation-1");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+    }
+
+    [Fact]
+    public async Task IndependentNudgeDuringHeldProjectionCallbackSchedulesCatchUpLookup()
+    {
+        TaskCompletionSource callbackStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseCallback = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int projectionCallbacks = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<ChangeTenantMemberRoleFlow>? cut = null;
+        cut = Render<ChangeTenantMemberRoleFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.Member, new TenantMember("reader-user", TenantRole.TenantReader))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnProjectionRefreshRequested, async () =>
+            {
+                Interlocked.Increment(ref projectionCallbacks);
+                callbackStarted.SetResult();
+                await releaseCallback.Task.ConfigureAwait(false);
+            }));
+
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-change-role-new-role", nameof(TenantRole.TenantContributor));
+        Task submission = cut.Find("form").SubmitAsync();
+        try
+        {
+            await callbackStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            gateway.StatusCallCount.ShouldBe(1);
+
+            // This caller did not inherit the held callback's execution context. Its nudge must
+            // return promptly, remain queued, and wait for the current walk before looking up status.
+            await cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync())
+                .WaitAsync(TimeSpan.FromSeconds(5));
+            gateway.StatusCallCount.ShouldBe(1);
+            submission.IsCompleted.ShouldBeFalse();
+        }
+        finally
+        {
+            releaseCallback.TrySetResult();
+        }
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+
+        gateway.StatusCallCount.ShouldBe(2);
+        Volatile.Read(ref projectionCallbacks).ShouldBe(1);
+        gateway.ChangeRoleCallCount.ShouldBe(1);
+        cut.Instance.Snapshot.MessageId.ShouldBe("message-1");
+        cut.Instance.Snapshot.CorrelationId.ShouldBe("correlation-1");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+    }
+
     /// <summary>
     /// The change-role flow gained the same nudge coalescing and projection-refresh re-entrancy guard as the
     /// add flow, but nothing exercised it here: the only test that reached this nudge asserted merely "more

@@ -788,6 +788,317 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         gate.IsLocked(TenantCommandAggregateLock.ForTenant(intent.TenantScope)).ShouldBeTrue();
     }
 
+    /// <summary>Late status keeps the old identity and cannot publish into a replacement intent or attempt.</summary>
+    /// <param name="outcome">The held status outcome.</param>
+    [Theory]
+    [InlineData("Pending")]
+    [InlineData("Retryable")]
+    [InlineData("Rejected")]
+    [InlineData("Completed")]
+    public async Task HeldStatusCannotDisplayOrUpdateAReplacement(string outcome)
+    {
+        Services.AddLocalization();
+        DateTimeOffset now = new(2026, 10, 3, 10, 0, 0, TimeSpan.Zero);
+        using TenantCorrectionAttemptTracker tracker = new(() => now);
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TaskCompletionSource<TenantCommandStatusResult> status = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway commands = new() { StatusTask = status.Task, StatusReadStarted = () => started.TrySetResult() };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        TenantCorrectionAttempt original = BeginAcceptedCorrection(tracker, gate, intent);
+        int originalCaptures = 0;
+        int replacementCaptures = 0;
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent)
+            .Add(p => p.CurrentCaptureProvider, () =>
+            {
+                originalCaptures++;
+                return Task.FromResult(intent.CurrentProjection! with {
+                    CurrentRole = TenantRole.TenantReader, ProjectionVersion = "tenant-sequence:2" });
+            }));
+        Task refreshing = cut.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+        tracker.IsExpired(intent.TenantScope).ShouldBeTrue();
+        TenantCorrectionStartIntent replacementIntent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant", eventReference: "replacement-reference"), TenantRole.TenantContributor));
+        TenantCorrectionAttempt replacement = BeginAcceptedCorrection(tracker, gate, replacementIntent);
+        cut.Render(parameters => parameters
+            .Add(p => p.Intent, replacementIntent)
+            .Add(p => p.CurrentCaptureProvider, () =>
+            {
+                replacementCaptures++;
+                return Task.FromResult(replacementIntent.CurrentProjection!);
+            }));
+        TenantCorrectionPreviewSnapshot displayedReplacement = cut.Instance.Snapshot!;
+        TaskCompletionSource<TenantCommandStatusResult> successorStatus = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        commands.StatusTask = successorStatus.Task;
+        Task successorRefresh = cut.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => commands.StatusHandles.Count.ShouldBe(2));
+
+        status.SetResult(outcome switch {
+            "Pending" => TenantCommandStatusResult.Pending("old pending result"),
+            "Retryable" => TenantCommandStatusResult.RetryableFailure("old retryable result"),
+            "Rejected" => new(CommandStatus.Rejected, HasVerifiedCommandIdentity: true),
+            _ => new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 },
+        });
+        await refreshing.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Instance.Snapshot.ShouldBe(displayedReplacement);
+        tracker.Find(intent.TenantScope)!.Snapshot.ShouldBe(displayedReplacement);
+        displayedReplacement.MessageId.ShouldBe(replacement.MessageId);
+        displayedReplacement.MessageId.ShouldNotBe(original.MessageId);
+        displayedReplacement.OriginalAuditReference.ShouldBe("replacement-reference");
+        displayedReplacement.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
+        commands.StatusHandles.Count.ShouldBe(2);
+        commands.StatusHandles[0].MessageId.ShouldBe(original.MessageId);
+        commands.StatusHandles[1].MessageId.ShouldBe(replacement.MessageId);
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+        commands.StatusHandles[0].CorrelationId.ShouldBe(original.Snapshot.CorrelationId);
+        originalCaptures.ShouldBe(outcome == "Completed" ? 1 : 0);
+        replacementCaptures.ShouldBe(0);
+        commands.AddUserRequests.ShouldBeEmpty();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(intent.TenantScope)).ShouldBeTrue();
+        successorStatus.SetResult(TenantCommandStatusResult.Pending("successor pending"));
+        await successorRefresh.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Instance.Snapshot!.MessageId.ShouldBe(replacement.MessageId);
+    }
+
+    /// <summary>A late nonterminal result consumes the tracker's expiry normalization without reviving admission.</summary>
+    [Fact]
+    public async Task HeldStatusAfterExpiryUsesTheExactRetainedExpiredSnapshot()
+    {
+        Services.AddLocalization();
+        DateTimeOffset now = new(2026, 10, 3, 10, 0, 0, TimeSpan.Zero);
+        using TenantCorrectionAttemptTracker tracker = new(() => now);
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TaskCompletionSource<TenantCommandStatusResult> status = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway commands = new() { StatusTask = status.Task, StatusReadStarted = () => started.TrySetResult() };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        TenantCorrectionAttempt original = BeginAcceptedCorrection(tracker, gate, intent);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters.Add(p => p.Intent, intent));
+        Task refreshing = cut.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        now += TenantLifecycleCommandSnapshot.MaximumRetainedAttemptDuration;
+        tracker.IsExpired(intent.TenantScope).ShouldBeTrue();
+
+        status.SetResult(TenantCommandStatusResult.Pending("old pending result"));
+        await refreshing.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Instance.Snapshot.ShouldBe(tracker.Find(intent.TenantScope)!.Snapshot);
+        cut.Instance.Snapshot!.MessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+        cut.Instance.Snapshot.SafeMessageKey.ShouldBe("Tenants.Correction.Unavailable.AttemptExpired");
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(intent.TenantScope)).ShouldBeFalse();
+        commands.AddUserRequests.ShouldBeEmpty();
+    }
+
+    /// <summary>Disposed panels retain late status for a same-caller remount without publishing into the old mount.</summary>
+    [Fact]
+    public async Task HeldStatusAfterRemountRetainsTheOriginalOutcomeWithoutUpdatingTheDisposedPanel()
+    {
+        Services.AddLocalization();
+        using TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TaskCompletionSource<TenantCommandStatusResult> status = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway commands = new() { StatusTask = status.Task, StatusReadStarted = () => started.TrySetResult() };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        TenantCorrectionAttempt original = BeginAcceptedCorrection(tracker, gate, intent);
+        IRenderedComponent<CorrectionStartPanel> first = Render<CorrectionStartPanel>(parameters => parameters.Add(p => p.Intent, intent));
+        CorrectionStartPanel originalPanel = first.Instance;
+        TenantCorrectionPreviewSnapshot before = originalPanel.Snapshot!;
+        Task refreshing = first.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await first.InvokeAsync(originalPanel.Dispose);
+        first.Dispose();
+        IRenderedComponent<CorrectionStartPanel> resumed = Render<CorrectionStartPanel>(parameters => parameters.Add(p => p.Intent, intent));
+
+        status.SetResult(new(CommandStatus.Rejected, HasVerifiedCommandIdentity: true));
+        await refreshing.WaitAsync(TimeSpan.FromSeconds(5));
+        resumed.WaitForAssertion(() => resumed.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Rejected));
+
+        originalPanel.Snapshot.ShouldBe(before);
+        resumed.Instance.Snapshot.ShouldBe(tracker.Find(intent.TenantScope)!.Snapshot);
+        resumed.Instance.Snapshot!.MessageId.ShouldBe(original.MessageId);
+        resumed.Instance.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.Rejected);
+        resumed.Find("[data-testid='tenants-correction-confirm']").HasAttribute("disabled").ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(intent.TenantScope)).ShouldBeFalse();
+        commands.StatusHandles.ShouldHaveSingleItem();
+        commands.AddUserRequests.ShouldBeEmpty();
+    }
+
+    /// <summary>An intervening terminal result wins when the tracker rejects a conflicting late status.</summary>
+    [Fact]
+    public async Task RejectedStatusWriteDisplaysOnlyTheRetainedTerminalOutcome()
+    {
+        Services.AddLocalization();
+        using TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TaskCompletionSource<TenantCommandStatusResult> status = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway commands = new() { StatusTask = status.Task, StatusReadStarted = () => started.TrySetResult() };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        TenantCorrectionAttempt original = BeginAcceptedCorrection(tracker, gate, intent);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters.Add(p => p.Intent, intent));
+        Task refreshing = cut.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        tracker.TryUpdate(original.TenantId, original.MessageId, original.Snapshot with {
+            LifecycleState = TenantCommandLifecycleState.Failed,
+            SafeMessageKey = "Tenants.Correction.Failure.Failed" }).ShouldBeTrue();
+        TenantCorrectionPreviewSnapshot terminal = tracker.Find(intent.TenantScope)!.Snapshot;
+
+        status.SetResult(new(CommandStatus.Completed, EventCount: 0, HasVerifiedCommandIdentity: true));
+        await refreshing.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Instance.Snapshot.ShouldBe(terminal);
+        cut.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Failed);
+        tracker.Find(intent.TenantScope)!.Snapshot.ShouldBe(terminal);
+        commands.AddUserRequests.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task LateDeliveryReconciliationCannotAcquireTheReplacementStatusGuard()
+    {
+        Services.AddLocalization();
+        using TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TaskCompletionSource<TenantCommandSubmissionResult> delivery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantCommandStatusResult> originalStatus = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantCommandStatusResult> successorStatus = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource statusStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway commands = new() {
+            AddUserResultTask = delivery.Task, StatusTask = originalStatus.Task,
+            StatusReadStarted = () => statusStarted.TrySetResult(),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters
+            .Add(p => p.Intent, intent)
+            .Add(p => p.CurrentCaptureProvider, () => Task.FromResult(intent.CurrentProjection!)));
+        Task submitting = cut.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => commands.AddUserRequests.ShouldHaveSingleItem());
+        string originalId = tracker.Find(intent.TenantScope)!.MessageId;
+        TenantCorrectionStartIntent replacement = intent with {
+            OriginalAuditReference = "replacement-reference", TenantScope = "tenant.beta", TargetUserId = "replacement-user",
+            CurrentProjection = intent.CurrentProjection! with { TenantId = "tenant.beta", TargetUserId = "replacement-user" },
+            RequiredPreviewInputs = new Dictionary<string, string>(intent.RequiredPreviewInputs, StringComparer.Ordinal)
+            { ["tenantId"] = "tenant.beta", ["userId"] = "replacement-user" },
+        };
+        TenantCorrectionAttempt replacementAttempt = BeginAcceptedCorrection(tracker, gate, replacement);
+        cut.Render(parameters => parameters.Add(p => p.Intent, replacement));
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+
+        delivery.SetResult(TenantCommandSubmissionResult.Accepted(originalId, "old-delivery-correlation"));
+        await statusStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeFalse();
+        commands.StatusTask = successorStatus.Task;
+        Task refreshing = cut.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        cut.WaitForAssertion(() => commands.StatusHandles.Count.ShouldBe(2));
+        originalStatus.SetResult(TenantCommandStatusResult.Pending("original pending"));
+        await submitting.WaitAsync(TimeSpan.FromSeconds(5));
+        cut.Find("[data-testid='tenants-correction-refresh']").HasAttribute("disabled").ShouldBeTrue();
+        successorStatus.SetResult(TenantCommandStatusResult.Pending("successor pending"));
+        await refreshing.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cut.Instance.Snapshot!.MessageId.ShouldBe(replacementAttempt.MessageId);
+        commands.StatusHandles[0].MessageId.ShouldBe(originalId);
+        commands.StatusHandles[1].MessageId.ShouldBe(replacementAttempt.MessageId);
+        commands.AddUserRequests.ShouldHaveSingleItem();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(intent.TenantScope)).ShouldBeTrue();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(replacement.TenantScope)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SameCallerResolutionRestoresAStillMountedCorrectionWithoutParentParameters()
+    {
+        Services.AddLocalization();
+        var authentication = new Hexalith.Tenants.UI.Tests.State.TenantCorrectionAuthenticationStateProvider();
+        using TenantCorrectionAttemptTracker tracker = new(authentication, static () => DateTimeOffset.UtcNow);
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        TenantCorrectionAttempt attempt = BeginAcceptedCorrection(tracker, gate, intent);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters.Add(p => p.Intent, intent));
+        TaskCompletionSource<Microsoft.AspNetCore.Components.Authorization.AuthenticationState> identity = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        authentication.Change(identity.Task);
+        cut.WaitForAssertion(() => cut.Instance.Snapshot.ShouldBeNull());
+        identity.SetResult(Hexalith.Tenants.UI.Tests.State.TenantCorrectionAuthenticationStateProvider.State("operator.alpha"));
+
+        cut.WaitForAssertion(() => cut.Instance.Snapshot!.MessageId.ShouldBe(attempt.MessageId));
+        cut.Instance.Snapshot!.IntendedRole.ShouldBe(TenantRole.TenantReader);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant(intent.TenantScope)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task HeldStatusGatewayFallbackQueriesTheOriginalTenantAndTargetAfterReplacement()
+    {
+        Services.AddLocalization();
+        using TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TaskCompletionSource<TenantCommandStatusResult> status = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        StubTenantCommandGateway commands = new() { StatusTask = status.Task, StatusReadStarted = () => started.TrySetResult() };
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        StubTenantQueryGateway queries = new(Detail(), Audit("event-safe-reference", "UserRemovedFromTenant"));
+        Services.AddSingleton<ITenantQueryGateway>(queries);
+        TenantCorrectionStartIntent intent = TenantCorrectionStartIntent.Evaluate(Context(
+            Row("UserRemovedFromTenant"), TenantRole.TenantReader));
+        TenantCorrectionAttempt original = BeginAcceptedCorrection(tracker, gate, intent);
+        IRenderedComponent<CorrectionStartPanel> cut = Render<CorrectionStartPanel>(parameters => parameters.Add(p => p.Intent, intent));
+        Task refreshing = cut.Find("[data-testid='tenants-correction-refresh']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        TenantCorrectionStartIntent replacement = intent with {
+            OriginalAuditReference = "replacement-reference", TenantScope = "tenant.beta", TargetUserId = "replacement-user",
+            CurrentProjection = intent.CurrentProjection! with { TenantId = "tenant.beta", TargetUserId = "replacement-user" },
+            RequiredPreviewInputs = new Dictionary<string, string>(intent.RequiredPreviewInputs, StringComparer.Ordinal)
+            { ["tenantId"] = "tenant.beta", ["userId"] = "replacement-user" },
+        };
+        cut.Render(parameters => parameters.Add(p => p.Intent, replacement));
+        TenantCorrectionPreviewSnapshot displayedReplacement = cut.Instance.Snapshot!;
+
+        status.SetResult(new(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
+        await refreshing.WaitAsync(TimeSpan.FromSeconds(5));
+
+        queries.CorrectionCaptureTargets.ShouldHaveSingleItem().ShouldBe((intent.TenantScope, intent.TargetUserId));
+        cut.Instance.Snapshot.ShouldBe(displayedReplacement);
+        tracker.Find(intent.TenantScope)!.MessageId.ShouldBe(original.MessageId);
+        commands.AddUserRequests.ShouldBeEmpty();
+    }
+
     [Fact]
     public void Panel_renders_blocked_global_admin_reason_without_preview_handoff()
     {
@@ -2123,7 +2434,9 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         delivery.SetResult(TenantCommandSubmissionResult.Accepted(messageId, "tracking-safe"));
         await submit.WaitAsync(TimeSpan.FromSeconds(5));
-        resumed.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        // Retained publication now notifies a mounted successor immediately, before manual Refresh.
+        resumed.WaitForAssertion(() => resumed.Instance.Snapshot!.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted));
+        resumed.Instance.Snapshot.ShouldBe(tracker.Find("tenant.alpha")!.Snapshot);
         tracker.Find("tenant.alpha")!.Snapshot.LifecycleState.ShouldBe(TenantCommandLifecycleState.Accepted);
         commands.StatusHandles.Count.ShouldBe(1);
 
@@ -2440,6 +2753,17 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
         commands.AddUserRequests.ShouldBeEmpty();
     }
 
+    private static TenantCorrectionAttempt BeginAcceptedCorrection(
+        TenantCorrectionAttemptTracker tracker, TenantAggregateCommandAdmissionGate gate,
+        TenantCorrectionStartIntent intent)
+    {
+        tracker.TryBegin(TenantCorrectionPreviewSnapshot.FromIntent(intent), gate,
+            out TenantCorrectionAttempt? attempt).ShouldBeTrue();
+        tracker.EndDelivery(attempt!.TenantId, attempt.MessageId,
+            attempt.Snapshot.Accepted(TenantCommandSubmissionResult.Accepted(attempt.MessageId, "tracking-safe")));
+        return tracker.Find(intent.TenantScope)!;
+    }
+
     private void AssertReasonFocus(IRenderedComponent<CorrectionStartPanel> cut, int previousFocusCount)
     {
         var reason = (Microsoft.AspNetCore.Components.ElementReference)typeof(CorrectionStartPanel)
@@ -2672,11 +2996,14 @@ public sealed class CorrectionStartPanelTests : FluentBunitContext
 
         public int CorrectionCaptureCount { get; private set; }
 
+        public List<(string TenantId, string TargetUserId)> CorrectionCaptureTargets { get; } = [];
+
         public Func<int, Task<TenantCorrectionProjection>>? CorrectionCaptureProvider { get; init; }
 
         public Task<TenantCorrectionProjection> GetTenantCorrectionProjectionAsync(
             string tenantId, string targetUserId, CancellationToken cancellationToken = default)
         {
+            CorrectionCaptureTargets.Add((tenantId, targetUserId));
             CorrectionCaptureCount++;
             if (CorrectionCaptureProvider is not null) return CorrectionCaptureProvider(CorrectionCaptureCount);
             TenantRole? role = CorrectionCaptureCount == 1

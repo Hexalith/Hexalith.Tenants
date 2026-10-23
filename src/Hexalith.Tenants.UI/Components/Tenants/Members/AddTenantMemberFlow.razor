@@ -172,6 +172,8 @@
     private bool _focusRolePending;
     private bool _focusLifecyclePending;
     private readonly TenantMembershipStatusRefreshDrain _statusRefreshDrain = new();
+    // Suppress only nudges caused by this parent callback. Independent nudges must still queue
+    // catch-up work while the callback awaits; a component-wide flag would discard them.
     private readonly AsyncLocal<bool> _isProjectionRefreshCallback = new();
 
     [Parameter]

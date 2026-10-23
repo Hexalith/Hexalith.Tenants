@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-180/DW-266/DW-473/DW-503/DW-574 closure (2026-10-23):** Generation retirement, causal callback isolation and captured correction ownership protect current state across cancellation, dismissal, remount and caller changes. Retention notifications and renderer-atomic guards preserve recovery without exposing another caller's intent or releasing unresolved admission. Exactly five records close: all 657 IDs remain, 535 done/122 open across 112 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-180-266-473-503-574-validation-evidence.md).
+
 **DW-301/DW-302/DW-321/DW-322/DW-323 closure (2026-10-22):** Shared lifecycle proof, lease and focus handling preserves caller/cancellation and exact ownership; typed evidence governs versions, routine tracker reads allocate no dictionary snapshots, and thirty inconclusive polls bound status waiting without discarding final event-backed proof. Exactly five records close: all 657 IDs remain, 530 done/127 open across 117 maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-301-302-321-322-323-validation-evidence.md).
 
 **DW-248/DW-255/DW-269/DW-276/DW-313 closure (2026-10-22):** Membership status recovery shares an iterative generation-aware drain; create status waiting uses the injected clock without expiring unresolved ownership. Current audit-availability values are explicit; held-lease refusal and shared complete create retention are qualified. Exactly five records close: all 657 IDs remain, 525 done/132 open across 122 maintenance rows. Historical findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-248-255-269-276-313-validation-evidence.md).
@@ -1540,16 +1542,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-1-11-au
 location: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679
 reason: The legacy ledger defers this issue: `LoadAsync` version bump after `BeginLoad` leaves a stale-apply window — deferred, pre-existing workspace load pattern. Original context is preserved in legacy-detail.
 legacy-detail: - `LoadAsync` version bump after `BeginLoad` leaves a stale-apply window — deferred, pre-existing workspace load pattern. Distinct from soft `RefreshAsync` blanking above (same approximate line region, different method). [src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor:679]
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor LoadAsync still calls BeginLoad before incrementing _loadVersion; the ordering is confirmed, but no held cancellation/dispatcher reproduction establishes a stale snapshot application in that interval.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
-evidence-kind: unverified-risk
+pre-async-ownership-status: open
+status: done 2026-10-23
+pre-async-ownership-disposition: uncertain
+disposition: done
+pre-async-ownership-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-async-ownership-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor LoadAsync still calls BeginLoad before incrementing _loadVersion; the ordering is confirmed, but no held cancellation/dispatcher reproduction establishes a stale snapshot application in that interval.
+verification: Replacement load generation retires before synchronous cancellation callbacks; the controlled old-load completion cannot replace confirmed evidence. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
+pre-async-ownership-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantsWorkspace.razor; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.AsyncOwnership.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
+pre-async-ownership-evidence-kind: unverified-risk
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
-dependencies: none
-next-action: Create a deterministic cancellation callback interleaving and assert the older load cannot apply.
+pre-async-ownership-dependencies: none
+dependencies: none for this selected closure; independent release and authority holds remain tracked separately
+pre-async-ownership-next-action: Create a deterministic cancellation callback interleaving and assert the older load cannot apply.
+next-action: none; selected record closed with maintained behavioral evidence
 related: none
 
 ### DW-181: TenantDetailPage BeginLoad deferred-CTS disposal lacks a workspace-equivalent runtime test — deferred, coverage gap only
@@ -2417,16 +2427,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: AddTenantMemberFlow.razor:160; ChangeTenantMemberRoleFlow.razor:178
 reason: The legacy ledger defers this issue: `AsyncLocal<bool>` is the wrong primitive for dispatcher-bound re-entrancy state. Original context is preserved in legacy-detail.
 legacy-detail: - summary: `AsyncLocal<bool>` is the wrong primitive for dispatcher-bound re-entrancy state. evidence: `AddTenantMemberFlow.razor:160`, `ChangeTenantMemberRoleFlow.razor:178`. Blazor components already run serialized on the renderer dispatcher, so a plain field is correct and avoids an ExecutionContext copy-on-write per set; the AsyncLocal also fails to flow into callbacks invoked from a context it was not captured on.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still use AsyncLocal<bool> _isProjectionRefreshCallback. A simpler dispatcher-state primitive is recommended, but no distinct production failure is demonstrated.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
-evidence-kind: recommendation
+pre-async-ownership-status: open
+status: done 2026-10-23
+pre-async-ownership-disposition: actionable
+disposition: done
+pre-async-ownership-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-async-ownership-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still use AsyncLocal<bool> _isProjectionRefreshCallback. A simpler dispatcher-state primitive is recommended, but no distinct production failure is demonstrated.
+verification: Causal parent callback reentry is suppressed while independent overlapping nudges retain catch-up work. AsyncLocal is the verified intentional policy; component-wide boolean negative controls fail for both flows. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
+pre-async-ownership-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/AddTenantMemberFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/ChangeTenantMemberRoleFlowTests.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
+pre-async-ownership-evidence-kind: recommendation
+evidence-kind: verified-closure
 priority: P3
 owner: unassigned
-dependencies: none
-next-action: Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive.
+pre-async-ownership-dependencies: none
+dependencies: none for this selected closure; independent release and authority holds remain tracked separately
+pre-async-ownership-next-action: Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive.
+next-action: none; selected record closed with maintained behavioral evidence
 related: DW-267
 
 ### DW-267: Coalescer, submit guard, lease plumbing and `SafeMessageText` are copy-pasted across flow components
@@ -4812,16 +4830,24 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
 source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery-5.md`\n  summary: Unverified (would be medium): Create's projection reconcile may write UnableToVerify onto the panel that Continue read-only reset.\n  evidence: The message-id guard covers only the status apply. If Continue read-only lands during the reconcile's `ProjectionEvidenceProvider` await, the next `_snapshot.Intent.TenantId` throws, and the catch arm writes an Assertive `UnableToVerify` from the Idle snapshot (`CreateTenantFlow.razor:590-609`). In the only host, `TenantsWorkspace.razor:188-189`, `OnProjectionRefreshRequested` re-renders the flow to AuditPending (no Continue read-only verb) before the reconcile reads, so the path looks unreachable there. To settle it, write a host-level test, or a bUnit test without the callback, that clicks Continue read-only during a held `ProjectionEvidenceProvider` and asserts the panel stays Idle."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:591-613 reads _snapshot.Intent after ProjectionEvidenceProvider awaits and catches errors by writing UnableToVerify. The production OnProjectionRefreshRequested callback changes the mounted host state first; no controlled test demonstrates that Continue read-only can remain reachable during that await in the actual host.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
-evidence-kind: unverified-risk
+pre-async-ownership-status: open
+status: done 2026-10-23
+pre-async-ownership-disposition: uncertain
+disposition: done
+pre-async-ownership-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-async-ownership-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor:591-613 reads _snapshot.Intent after ProjectionEvidenceProvider awaits and catches errors by writing UnableToVerify. The production OnProjectionRefreshRequested callback changes the mounted host state first; no controlled test demonstrates that Continue read-only can remain reachable during that await in the actual host.
+verification: Existing captured intent/generation checks drop late list/detail success and failure after callback-free dismissal. The real workspace host withholds dismissal throughout held proof and retains exact unresolved ownership. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
+pre-async-ownership-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; tests/Hexalith.Tenants.UI.Tests/Components/CreateTenantFlowTests.cs; tests/Hexalith.Tenants.UI.Tests/TenantsWorkspaceTests.AsyncOwnership.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
+pre-async-ownership-evidence-kind: unverified-risk
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
-dependencies: Held projection-provider continuation and host callback scheduling evidence
-next-action: Hold ProjectionEvidenceProvider across Continue read-only in a host-level test and a callback-free component test; determine reachability and assert no stale reconciliation overwrites Idle.
+pre-async-ownership-dependencies: Held projection-provider continuation and host callback scheduling evidence
+dependencies: none for this selected closure; independent release and authority holds remain tracked separately
+pre-async-ownership-next-action: Hold ProjectionEvidenceProvider across Continue read-only in a host-level test and a callback-free component test; determine reachability and assert no stale reconciliation overwrites Idle.
+next-action: none; selected record closed with maintained behavioral evidence
 related: none
 
 
@@ -5143,16 +5169,24 @@ location: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Verify whether correction delivery/status continuations outside the renderer can corrupt visible state during remount or expiry (medium, unverified).\n  evidence: Final BH4 observes ConfigureAwait(false) continuations assigning component fields. The actual page unmounts on cleared intent and the tracker rejects mismatched or terminal regression, so user-visible corruption was not established. A controlled late status response overlapped with parameter change, expiry notification, and remount must demonstrate or refute a concrete outcome before any state-management patch."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: CorrectionStartPanel.razor delivery/status continuations still use ConfigureAwait(false) followed by SetRetainedSnapshot; that helper writes the component snapshot directly at :1063-1071. Tracker identity/terminal checks and actual remounts may contain visible effects. No controlled late status+expiry+parameter-change/remount outcome establishes corruption.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
-evidence-kind: unverified-risk
+pre-async-ownership-status: open
+status: done 2026-10-23
+pre-async-ownership-disposition: uncertain
+disposition: done
+pre-async-ownership-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-async-ownership-verification: CorrectionStartPanel.razor delivery/status continuations still use ConfigureAwait(false) followed by SetRetainedSnapshot; that helper writes the component snapshot directly at :1063-1071. Tracker identity/terminal checks and actual remounts may contain visible effects. No controlled late status+expiry+parameter-change/remount outcome establishes corruption.
+verification: Exact status/delivery snapshots and projection targets remain captured across replacement, expiry and remount. Renderer publication consumes retained truth, remounts receive notifications and obsolete operations cannot acquire or clear successor busy guards. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
+pre-async-ownership-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor
+verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Audit/CorrectionStartPanel.razor; src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs; tests/Hexalith.Tenants.UI.Tests/Components/CorrectionStartPanelTests.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
+pre-async-ownership-evidence-kind: unverified-risk
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
-dependencies: Controlled renderer/continuation scheduling evidence
-next-action: Hold a status response across expiry, parameter replacement and remount, then establish or refute a concrete visible state regression before changing threading.
+pre-async-ownership-dependencies: Controlled renderer/continuation scheduling evidence
+dependencies: none for this selected closure; independent release and authority holds remain tracked separately
+pre-async-ownership-next-action: Hold a status response across expiry, parameter replacement and remount, then establish or refute a concrete visible state regression before changing threading.
+next-action: none; selected record closed with maintained behavioral evidence
 related: none
 
 
@@ -6119,16 +6153,24 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium if rendered facts are exposed; a principal change within one Blazor circuit retains the previous principal's correction attempt. Owner: Story 5.6 tracker in Tenants UI.\n  evidence: `src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs:9` keys attempts by tenant, and `src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor:1513` looks up the retained attempt by `TenantId`. The tracker is circuit-scoped (`src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs:102`). A SignalR reconnect after the cookie changes can replace the principal in that live circuit: `ComponentHub.ConnectCircuit` calls `SetCircuitUser`, which calls `SetAuthenticationState`. New gateway reads use the new principal because `FrontComposerGatewayAuthorizationHandler` resolves `sub` per request. Neither `TenantAuditPage` nor `CorrectionStartPanel` subscribes to `AuthenticationStateChanged`, unlike `TenantDetailPage.razor:713,940`, `GlobalAdministratorCorrectionPanel.razor:548`, and `TenantCreateAuditReturnState.cs:24`. A bUnit authentication-state transition and rendered-content assertion, on the same page and after in-circuit navigation back to the tenant, must establish whether attempt-specific facts such as an uncommitted intent are visible to the new audit-authorized principal."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: TenantAuditPage now subscribes to authentication changes and clears displayed state, superseding part of the finding. TenantCorrectionAttemptTracker still keys only tenant and ResumeCorrection restores retained intent once any caller has an authorized audit snapshot. Missing: same-circuit new-principal rendered/navigation test proving attempt facts are withheld.
-evidence-kind: unverified-risk
+pre-async-ownership-status: open
+status: done 2026-10-23
+pre-async-ownership-disposition: uncertain
+disposition: done
+pre-async-ownership-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-async-ownership-verification: TenantAuditPage now subscribes to authentication changes and clears displayed state, superseding part of the finding. TenantCorrectionAttemptTracker still keys only tenant and ResumeCorrection restores retained intent once any caller has an authorized audit snapshot. Missing: same-circuit new-principal rendered/navigation test proving attempt facts are withheld.
+verification: Production DI binds retained intent visibility to literal authenticated subjects; pending/faulted identity and replacement/sign-out hide prior facts. Controlled held delivery/status and authorized remounts retain exact unresolved leases and permit original-owner terminal recovery. Independent review/recheck and the final Debug source build, focused cases and complete UI suite pass; exact commands, initial failures and limits are preserved in dw-180-266-473-503-574-validation-evidence.md.
+pre-async-ownership-evidence-kind: unverified-risk
+evidence-kind: verified-closure
 priority: P2
 owner: Story 5.6 tracker in Tenants UI
-dependencies: Caller-bound retained tenant attempts
-next-action: Add a principal-transition/remount rendered regression; bind or reauthorize retained attempt provenance if previous-user intent is exposed.
+pre-async-ownership-dependencies: Caller-bound retained tenant attempts
+dependencies: none for this selected closure; independent release and authority holds remain tracked separately
+pre-async-ownership-next-action: Add a principal-transition/remount rendered regression; bind or reauthorize retained attempt provenance if previous-user intent is exposed.
+next-action: none; selected record closed with maintained behavioral evidence
 related: DW-580,DW-609
+verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantCorrectionAttemptTracker.cs; src/Hexalith.Tenants.UI/Extensions/TenantsUiServiceCollectionExtensions.cs; src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor; tests/Hexalith.Tenants.UI.Tests/State/TenantCorrectionAttemptCallerTests.cs; tests/Hexalith.Tenants.UI.Tests/Components/TenantAuditPageTests.cs; _bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md
 
 
 ### DW-575: medium; the optional quickstart bootstrap check can install the wrong administrator after automatic bootstrap fails. Owners: Tenants bootstrap and quickstart documentation.

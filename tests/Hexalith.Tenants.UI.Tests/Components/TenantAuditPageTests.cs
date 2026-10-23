@@ -4252,6 +4252,217 @@ public sealed class TenantAuditPageTests : BunitContext
         cut.FindAll("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']").ShouldHaveSingleItem();
     }
 
+    [Theory]
+    [InlineData("operator.beta", false)]
+    [InlineData("Operator.alpha", false)]
+    [InlineData(null, false)]
+    [InlineData("operator.alpha", true)]
+    public void CallerTransitionWithAuthorizedAuditReadKeepsRetainedIntentPrivateThroughRemount(
+        string? replacementSubject, bool sameCaller)
+    {
+        TenantAuditRow source = Row("event-correction", AuditEventCategory.Access,
+            "userId: target-user", eventType: "UserRoleChanged");
+        // Every read succeeds so a new audit-authorized caller cannot recover the earlier caller's choice.
+        RegisterServices(ReadySnapshot([source]), ReadySnapshot([source]), ReadySnapshot([source]));
+        StubAuthenticationStateProvider authentication = new();
+        authentication.ChangePrincipal(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim("sub", "operator.alpha")], "test")))));
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        using TenantCorrectionAttemptTracker tracker = new(authentication, static () => DateTimeOffset.UtcNow);
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        commands.ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "tracking-private")));
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandStatusResult.Pending("Pending correction.")));
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantAuditPage> original = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(original, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        original.Find("[data-testid='tenants-correction-start']").Click();
+        original.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        original.Find("[data-testid='tenants-correction-confirm']").Click();
+        original.WaitForAssertion(() => tracker.Find("tenant.alpha")!.Snapshot.HasCommandTracking.ShouldBeTrue());
+        string messageId = tracker.Find("tenant.alpha")!.MessageId;
+        int statusReads = commands.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(ITenantCommandGateway.GetStatusAsync));
+
+        ClaimsPrincipal replacement = replacementSubject is null ? new() : new(
+            new ClaimsIdentity([new Claim("sub", replacementSubject)], "test"));
+        authentication.ChangePrincipal(Task.FromResult(new AuthenticationState(replacement)));
+
+        original.WaitForElement("[data-testid='tenants-audit-grid']");
+        original.WaitForAssertion(() => original.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty());
+        original.FindAll("[data-testid='tenants-correction-resume']").Count.ShouldBe(sameCaller ? 1 : 0);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        if (!sameCaller) tracker.Find("tenant.alpha").ShouldBeNull();
+        original.Dispose();
+
+        IRenderedComponent<TenantAuditPage> remounted = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        remounted.WaitForElement("[data-testid='tenants-audit-grid']");
+        if (sameCaller)
+        {
+            remounted.WaitForAssertion(() => remounted.FindComponent<CorrectionStartPanel>()
+                .Instance.Snapshot!.MessageId.ShouldBe(messageId));
+            remounted.FindComponent<CorrectionStartPanel>().Instance.Snapshot!.IntendedRole.ShouldBe(TenantRole.TenantReader);
+        }
+        else
+        {
+            remounted.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+            remounted.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+            remounted.Markup.ShouldNotContain(messageId);
+            remounted.Markup.ShouldNotContain("tracking-private");
+            tracker.Find("tenant.alpha").ShouldBeNull();
+        }
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        _ = commands.Received(1).ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(),
+            Arg.Is<string>(id => id == messageId), Arg.Any<CancellationToken>());
+        commands.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(ITenantCommandGateway.GetStatusAsync))
+            .ShouldBe(statusReads);
+    }
+
+    [Theory]
+    [InlineData("delivery", "operator.beta")]
+    [InlineData("delivery", null)]
+    [InlineData("status", "operator.beta")]
+    [InlineData("status", null)]
+    public async Task LateCorrectionCompletionAfterCallerReplacementStaysHiddenAcrossAuthorizedRemount(
+        string heldStage, string? replacementSubject)
+    {
+        TenantAuditRow source = Row("event-correction", AuditEventCategory.Access,
+            "userId: target-user", eventType: "UserRoleChanged");
+        RegisterServices(ReadySnapshot([source]), ReadySnapshot([source]), ReadySnapshot([source]), ReadySnapshot([source]));
+        StubAuthenticationStateProvider authentication = new();
+        AuthenticationState owner = new(new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim("sub", "operator.alpha")], "test")));
+        authentication.ChangePrincipal(Task.FromResult(owner));
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        using TenantCorrectionAttemptTracker tracker = new(authentication, static () => DateTimeOffset.UtcNow);
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        TaskCompletionSource deliveryStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantCommandSubmissionResult> delivery = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource statusStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource<TenantCommandStatusResult> status = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        commands.ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => { deliveryStarted.TrySetResult(); return delivery.Task; });
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(_ => { statusStarted.TrySetResult(); return status.Task; });
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantAuditPage> original = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(original, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        original.Find("[data-testid='tenants-correction-start']").Click();
+        original.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        Task submit = original.Find("[data-testid='tenants-correction-confirm']")
+            .ClickAsync(new Microsoft.AspNetCore.Components.Web.MouseEventArgs());
+        await deliveryStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        string messageId = tracker.Find("tenant.alpha")!.MessageId;
+        if (heldStage == "status")
+        {
+            delivery.SetResult(TenantCommandSubmissionResult.Accepted(messageId, "tracking-private"));
+            await statusStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        ClaimsPrincipal replacement = replacementSubject is null ? new() : new(
+            new ClaimsIdentity([new Claim("sub", replacementSubject)], "test"));
+        authentication.ChangePrincipal(Task.FromResult(new AuthenticationState(replacement)));
+        original.WaitForElement("[data-testid='tenants-audit-grid']");
+        original.WaitForAssertion(() => original.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty());
+        original.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+        tracker.Find("tenant.alpha").ShouldBeNull();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        original.Dispose();
+        IRenderedComponent<TenantAuditPage> remounted = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        remounted.WaitForElement("[data-testid='tenants-audit-grid']");
+        remounted.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        remounted.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+
+        // Only the exact command's verified terminal outcome releases ownership after redaction/remount.
+        if (heldStage == "delivery")
+            delivery.SetResult(TenantCommandSubmissionResult.Rejected("Private rejection", "InsufficientPermissions"));
+        else
+            status.SetResult(new(CommandStatus.Rejected, HasVerifiedCommandIdentity: true));
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeFalse();
+        tracker.Find("tenant.alpha").ShouldBeNull();
+        remounted.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        remounted.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+        remounted.Markup.ShouldNotContain(messageId);
+        remounted.Markup.ShouldNotContain("tracking-private");
+        remounted.Markup.ShouldNotContain("Private rejection");
+        authentication.ChangePrincipal(Task.FromResult(owner));
+        remounted.WaitForAssertion(() => tracker.Find("tenant.alpha")!.Snapshot.LifecycleState
+            .ShouldBe(TenantCommandLifecycleState.Rejected));
+        tracker.Find("tenant.alpha")!.MessageId.ShouldBe(messageId);
+        _ = commands.Received(1).ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(),
+            Arg.Is<string>(id => id == messageId), Arg.Any<CancellationToken>());
+        commands.ReceivedCalls().Count(call => call.GetMethodInfo().Name == nameof(ITenantCommandGateway.GetStatusAsync))
+            .ShouldBe(heldStage == "status" ? 1 : 0);
+    }
+
+    [Fact]
+    public void SameCallerResolutionAfterAuthorizedRemountRestoresResumeWithoutAnotherPageAction()
+    {
+        TenantAuditRow source = Row("event-correction", AuditEventCategory.Access,
+            "userId: target-user", eventType: "UserRoleChanged");
+        RegisterServices(ReadySnapshot([source]), ReadySnapshot([source]));
+        StubAuthenticationStateProvider authentication = new();
+        AuthenticationState sameCaller = new(new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim("sub", "operator.alpha")], "test")));
+        authentication.ChangePrincipal(Task.FromResult(sameCaller));
+        Services.AddSingleton<AuthenticationStateProvider>(authentication);
+        using TenantCorrectionAttemptTracker tracker = new(authentication, static () => DateTimeOffset.UtcNow);
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        commands.SupportsCommandStatusLookup.Returns(true);
+        commands.ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>())
+            .Returns(call => Task.FromResult(TenantCommandSubmissionResult.Accepted(call.ArgAt<string>(1), "tracking-private")));
+        commands.GetStatusAsync(Arg.Any<TenantCommandTrackingHandle>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantCommandStatusResult.Pending("Pending correction.")));
+        Services.AddSingleton(commands);
+        IRenderedComponent<TenantAuditPage> original = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(original, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        original.Find("[data-testid='tenants-correction-start']").Click();
+        original.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        original.Find("[data-testid='tenants-correction-confirm']").Click();
+        original.WaitForAssertion(() => tracker.Find("tenant.alpha")!.Snapshot.HasCommandTracking.ShouldBeTrue());
+        string messageId = tracker.Find("tenant.alpha")!.MessageId;
+
+        TaskCompletionSource<AuthenticationState> pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        authentication.ChangePrincipal(pending.Task);
+        tracker.Find("tenant.alpha").ShouldBeNull();
+        original.Dispose();
+        IRenderedComponent<TenantAuditPage> remounted = Render<TenantAuditPage>(parameters =>
+            parameters.Add(p => p.TenantId, "tenant.alpha"));
+        remounted.WaitForElement("[data-testid='tenants-audit-grid']");
+        remounted.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+        remounted.FindAll("[data-testid='tenants-correction-resume']").ShouldBeEmpty();
+
+        // The new mount has completed its successful read before the tracker's caller can resolve.
+        pending.SetResult(sameCaller);
+
+        remounted.WaitForElement("[data-testid='tenants-correction-resume']").Click();
+        remounted.WaitForAssertion(() => remounted.FindComponent<CorrectionStartPanel>()
+            .Instance.Snapshot!.MessageId.ShouldBe(messageId), TimeSpan.FromSeconds(5));
+        remounted.FindComponent<CorrectionStartPanel>().Instance.Snapshot!.IntendedRole.ShouldBe(TenantRole.TenantReader);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        _ = commands.Received(1).ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(),
+            Arg.Is<string>(id => id == messageId), Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task Pending_correction_can_resume_after_cancel_row_loss_and_narrow_viewport()
     {

@@ -14,6 +14,9 @@ internal sealed record TenantCorrectionAttempt(
     public override string ToString()
         => $"{nameof(TenantCorrectionAttempt)} {{ LifecycleState = {Snapshot.LifecycleState}, IsExpired = {IsExpired} }}";
 
+    /// <summary>Gets the literal authenticated subject allowed to view this attempt.</summary>
+    internal string? CallerSubject { get; init; }
+
     /// <summary>Gets whether bounded admission expired. Status lookup remains available only when the attempt has a correlation ID.</summary>
     internal bool IsExpired { get; init; }
 

@@ -342,6 +342,113 @@ public sealed class AddTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
+    public async Task CausalProjectionCallbackNudgeDoesNotStartAnotherStatusWalk()
+    {
+        TaskCompletionSource callbackStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseCallback = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int projectionCallbacks = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<AddTenantMemberFlow>? cut = null;
+        cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnProjectionRefreshRequested, async () =>
+            {
+                Interlocked.Increment(ref projectionCallbacks);
+                callbackStarted.SetResult();
+                await releaseCallback.Task.ConfigureAwait(false);
+                // Re-enter after suspension in the callback's causal execution context.
+                await cut!.Instance.HandleAuthoritativeRefreshNudgeAsync().ConfigureAwait(false);
+            }));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        Task submission = cut.Find("form").SubmitAsync();
+        try
+        {
+            await callbackStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            gateway.StatusCallCount.ShouldBe(1);
+        }
+        finally
+        {
+            releaseCallback.TrySetResult();
+        }
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+
+        gateway.StatusCallCount.ShouldBe(1);
+        Volatile.Read(ref projectionCallbacks).ShouldBe(1);
+        gateway.AddMemberCallCount.ShouldBe(1);
+        cut.Instance.Snapshot.MessageId.ShouldBe("message-1");
+        cut.Instance.Snapshot.CorrelationId.ShouldBe("correlation-1");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+    }
+
+    [Fact]
+    public async Task IndependentNudgeDuringHeldProjectionCallbackSchedulesCatchUpLookup()
+    {
+        TaskCompletionSource callbackStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        TaskCompletionSource releaseCallback = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        int projectionCallbacks = 0;
+        StubTenantCommandGateway gateway = new()
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("message-1", "correlation-1"),
+            Status = new TenantCommandStatusResult(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<AddTenantMemberFlow>? cut = null;
+        cut = Render<AddTenantMemberFlow>(parameters => parameters
+            .Add(p => p.IsAuthorized, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.Detail, Detail("tenant.alpha"))
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.OnProjectionRefreshRequested, async () =>
+            {
+                Interlocked.Increment(ref projectionCallbacks);
+                callbackStarted.SetResult();
+                await releaseCallback.Task.ConfigureAwait(false);
+            }));
+
+        cut.Find("[data-testid='tenants-add-member-user-id']").Change("literal-user");
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-add-member-role", nameof(TenantRole.TenantReader));
+        Task submission = cut.Find("form").SubmitAsync();
+        try
+        {
+            await callbackStarted.Task.WaitAsync(TimeSpan.FromSeconds(5));
+            gateway.StatusCallCount.ShouldBe(1);
+
+            // This caller did not inherit the held callback's execution context. Its nudge must
+            // return promptly, remain queued, and wait for the current walk before looking up status.
+            await cut.InvokeAsync(() => cut.Instance.HandleAuthoritativeRefreshNudgeAsync())
+                .WaitAsync(TimeSpan.FromSeconds(5));
+            gateway.StatusCallCount.ShouldBe(1);
+            submission.IsCompleted.ShouldBeFalse();
+        }
+        finally
+        {
+            releaseCallback.TrySetResult();
+        }
+        await submission.WaitAsync(TimeSpan.FromSeconds(5));
+
+        gateway.StatusCallCount.ShouldBe(2);
+        Volatile.Read(ref projectionCallbacks).ShouldBe(1);
+        gateway.AddMemberCallCount.ShouldBe(1);
+        cut.Instance.Snapshot.MessageId.ShouldBe("message-1");
+        cut.Instance.Snapshot.CorrelationId.ShouldBe("correlation-1");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+    }
+
+    [Fact]
     public async Task Independent_nudge_overlapping_status_refresh_is_coalesced_into_a_later_lookup()
     {
         TaskCompletionSource overlappingStatusStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);

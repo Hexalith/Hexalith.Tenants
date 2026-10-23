@@ -219,7 +219,7 @@
     private TenantCorrectionPreviewSnapshot? _snapshot;
     private string _roleValue = string.Empty;
     private bool _isSubmitting;
-    private int _statusReadInFlight;
+    private object? _statusReadOwner;
     private bool _hasSubmitted;
     private string? _intentReference;
     private ElementReference _lifecycleElement;
@@ -344,7 +344,7 @@
             or TenantCommandLifecycleState.Confirmed;
 
     private bool CanRefresh
-        => !_isSubmitting && Volatile.Read(ref _statusReadInFlight) == 0 && !string.IsNullOrWhiteSpace(_snapshot?.MessageId)
+        => !_isSubmitting && Volatile.Read(ref _statusReadOwner) is null && !string.IsNullOrWhiteSpace(_snapshot?.MessageId)
         && (!string.IsNullOrWhiteSpace(_snapshot.CorrelationId) || !_attemptTracker.IsExpired(_snapshot.TenantId))
         && (_snapshot.LifecycleState is TenantCommandLifecycleState.Accepted
             or TenantCommandLifecycleState.RequestSent
@@ -473,10 +473,31 @@
         if (_disposed) return;
         _ = InvokeAsync(() => {
             if (_disposed) return;
-            if (_snapshot is not null && _attemptTracker.Find(_snapshot.TenantId) is { } attempt
-                && string.Equals(attempt.MessageId, _snapshot.MessageId, StringComparison.Ordinal))
+            if (_snapshot?.MessageId is not null)
             {
-                SetSnapshot(attempt.Snapshot);
+                TenantCorrectionAttempt? attempt = _attemptTracker.Find(_snapshot.TenantId);
+                if (attempt is null)
+                {
+                    // A caller transition hides retained facts immediately while delivery ownership stays held.
+                    Interlocked.Increment(ref _confirmGeneration);
+                    Interlocked.Exchange(ref _statusReadOwner, null);
+                    _isSubmitting = false;
+                    _snapshot = null;
+                    _intentReference = null;
+                }
+                else if (string.Equals(attempt.MessageId, _snapshot.MessageId, StringComparison.Ordinal))
+                {
+                    SetSnapshot(attempt.Snapshot);
+                }
+            }
+            else if (_snapshot is null && Intent is not null
+                && _attemptTracker.Find(Intent.TenantScope) is { } visible && visible.Matches(Intent))
+            {
+                // Same-caller resolution can restore this still-mounted panel without parent input.
+                _snapshot = visible.Snapshot;
+                _intentReference = Intent.OriginalAuditReference;
+                _roleValue = visible.Snapshot.IntendedRole.ToString();
+                _hasSubmitted = true;
             }
             StateHasChanged();
         });
@@ -489,6 +510,8 @@
         {
             Volatile.Write(ref _disposed, true);
             Interlocked.Increment(ref _confirmGeneration);
+            Interlocked.Exchange(ref _statusReadOwner, null);
+            _isSubmitting = false;
         }
         _admissionGate.StateChanged -= OnAdmissionChanged;
         _attemptTracker.StateChanged -= OnAttemptChanged;
@@ -500,8 +523,11 @@
         if (Intent is null)
         {
             Interlocked.Increment(ref _confirmGeneration);
+            Interlocked.Exchange(ref _statusReadOwner, null);
+            _isSubmitting = false;
             _snapshot = null;
             _intentReference = null;
+            _hasSubmitted = false;
             return;
         }
 
@@ -511,6 +537,13 @@
                 || string.Equals(retained.MessageId, RetainedAttemptMessageId, StringComparison.Ordinal)
                 || string.Equals(retained.MessageId, _snapshot?.MessageId, StringComparison.Ordinal)))
         {
+            if (!string.Equals(_intentReference, Intent.OriginalAuditReference, StringComparison.Ordinal)
+                || !string.Equals(_snapshot?.MessageId, retained.MessageId, StringComparison.Ordinal))
+            {
+                Interlocked.Increment(ref _confirmGeneration);
+                Interlocked.Exchange(ref _statusReadOwner, null);
+                _isSubmitting = false;
+            }
             _snapshot = retained.Snapshot;
             _intentReference = Intent.OriginalAuditReference;
             _roleValue = retained.Snapshot.IntendedRole.ToString();
@@ -544,8 +577,11 @@
         }
 
         Interlocked.Increment(ref _confirmGeneration);
+        Interlocked.Exchange(ref _statusReadOwner, null);
+        _isSubmitting = false;
         _intentReference = Intent.OriginalAuditReference;
         _roleValue = Intent.IntendedRole?.ToString() ?? string.Empty;
+        _hasSubmitted = false;
         SetSnapshotFromIntent();
     }
 
@@ -778,7 +814,17 @@
         }
         finally
         {
-            await InvokeAsync(() => { _isSubmitting = false; StateHasChanged(); }).ConfigureAwait(false);
+            if (!_disposed)
+            {
+                await InvokeAsync(() =>
+                {
+                    if (!_disposed && confirmGeneration == Volatile.Read(ref _confirmGeneration))
+                    {
+                        _isSubmitting = false;
+                        StateHasChanged();
+                    }
+                }).ConfigureAwait(false);
+            }
         }
     }
 
@@ -869,6 +915,9 @@
 
     private async Task DispatchAttemptAsync(TenantCorrectionAttempt attempt)
     {
+        long deliveryGeneration = Volatile.Read(ref _confirmGeneration);
+        Func<Task<TenantCorrectionProjection>>? captureProvider = CurrentCaptureProvider;
+        ITenantQueryGateway? queryGateway = captureProvider is null ? QueryGateway : null;
         ITenantCommandGateway? gateway = CommandGateway;
         if (gateway is null)
         {
@@ -879,7 +928,7 @@
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
             _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId, unavailable);
-            RenderRetainedDeliveryOutcome(attempt);
+            await PublishRetainedSnapshotAsync(attempt, deliveryGeneration, focusTerminalState: true).ConfigureAwait(false);
             return;
         }
 
@@ -944,51 +993,97 @@
                         ?? result.SafeMessageKey ?? FailureMessageKey(result.State),
                 };
         _attemptTracker.EndDelivery(attempt.TenantId, attempt.MessageId, next);
-        RenderRetainedDeliveryOutcome(attempt);
-        if (_snapshot?.LifecycleState is TenantCommandLifecycleState.Accepted)
+        await PublishRetainedSnapshotAsync(attempt, deliveryGeneration, focusTerminalState: true).ConfigureAwait(false);
+        if (_attemptTracker.Find(attempt.TenantId) is { } retained
+            && string.Equals(retained.MessageId, attempt.MessageId, StringComparison.Ordinal)
+            && retained.Snapshot.LifecycleState is TenantCommandLifecycleState.Accepted)
         {
-            await RefreshStatusAsync(afterDispatch: true).ConfigureAwait(false);
+            await RefreshStatusAsync(afterDispatch: true, deliveredAttempt: retained,
+                operationGeneration: deliveryGeneration,
+                retainedCapture: () => ReadCaptureAsync(attempt.Snapshot, captureProvider, queryGateway)).ConfigureAwait(false);
         }
     }
 
-    private async Task RefreshStatusAsync(bool afterDispatch = false)
+    private async Task RefreshStatusAsync(bool afterDispatch = false, TenantCorrectionAttempt? deliveredAttempt = null,
+        long? operationGeneration = null, Func<Task<TenantCorrectionProjection?>>? retainedCapture = null)
     {
         if (!afterDispatch && !CanRefresh) return;
-        if (_snapshot?.MessageId is not { } messageId
-            || _attemptTracker.Find(_snapshot.TenantId) is not { } attempt
+        TenantCorrectionPreviewSnapshot? requestedSnapshot = deliveredAttempt?.Snapshot ?? _snapshot;
+        if (requestedSnapshot?.MessageId is not { } messageId
+            || _attemptTracker.Find(requestedSnapshot.TenantId) is not { } attempt
             || !string.Equals(attempt.MessageId, messageId, StringComparison.Ordinal))
         {
             return;
         }
 
-        // Another panel may have advanced this attempt while this panel was remounted.
-        SetSnapshot(attempt.Snapshot);
+        // Keep every continuation bound to the exact attempt, capture source and mounted intent
+        // that began this operation. A late result may advance retention without changing a new panel.
+        TenantCorrectionPreviewSnapshot statusSnapshot = attempt.Snapshot;
+        long statusGeneration = operationGeneration ?? Volatile.Read(ref _confirmGeneration);
+        Func<Task<TenantCorrectionProjection>>? captureProvider = CurrentCaptureProvider;
+        ITenantQueryGateway? queryGateway = captureProvider is null ? QueryGateway : null;
+        Func<Task<TenantCorrectionProjection?>> readCapture = retainedCapture
+            ?? (() => ReadCaptureAsync(statusSnapshot, captureProvider, queryGateway));
+        await PublishRetainedSnapshotAsync(attempt, statusGeneration).ConfigureAwait(false);
 
-        if (string.IsNullOrWhiteSpace(_snapshot.CorrelationId))
+        if (string.IsNullOrWhiteSpace(statusSnapshot.CorrelationId))
         {
             if (_isSubmitting || !_attemptTracker.TryStartRetry(attempt.TenantId, messageId)) return;
             _isSubmitting = true;
             try { await DispatchAttemptAsync(attempt).ConfigureAwait(false); }
-            finally { _isSubmitting = false; }
+            finally
+            {
+                if (!_disposed)
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (!_disposed && statusGeneration == Volatile.Read(ref _confirmGeneration))
+                        {
+                            _isSubmitting = false;
+                            StateHasChanged();
+                        }
+                    }).ConfigureAwait(false);
+                }
+            }
             return;
         }
 
         ITenantCommandGateway? gateway = CommandGateway;
         if (gateway is null)
         {
-            SetRetainedSnapshot(attempt, _snapshot.ApplyStatus(TenantCommandStatusResult.Unknown(
-                Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"])));
+            await SetRetainedSnapshotAsync(attempt, statusSnapshot.ApplyStatus(TenantCommandStatusResult.Unknown(
+                Localizer["Tenants.Correction.Unavailable.CommandSupportUnavailable"])), statusGeneration).ConfigureAwait(false);
             return;
         }
 
-        if (Interlocked.CompareExchange(ref _statusReadInFlight, 1, 0) != 0) return;
+        object? statusReadOwner = null;
+        bool duplicateRead = false;
+        if (!_disposed)
+        {
+            try
+            {
+                await InvokeAsync(() =>
+                {
+                    // An old delivery may start reconciliation after its mount was replaced. It
+                    // can retain its own result, but cannot acquire the replacement's busy guard.
+                    if (_disposed || statusGeneration != Volatile.Read(ref _confirmGeneration)
+                        || !string.Equals(_snapshot?.MessageId, attempt.MessageId, StringComparison.Ordinal)) return;
+                    object candidateOwner = new();
+                    duplicateRead = Interlocked.CompareExchange(ref _statusReadOwner, candidateOwner, null) is not null;
+                    if (!duplicateRead) statusReadOwner = candidateOwner;
+                }).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException) when (_disposed) { }
+            catch (InvalidOperationException) when (_disposed) { }
+        }
+        if (duplicateRead) return;
         try
         {
         TenantCommandStatusResult status;
         try
         {
             status = await gateway.GetStatusAsync(
-                new(messageId, _snapshot.CorrelationId, _snapshot.TenantId)
+                new(messageId, statusSnapshot.CorrelationId, statusSnapshot.TenantId)
                 {
                     ExpectedDomain = TenantIdentity.Domain,
                 }, CancellationToken.None)
@@ -1001,21 +1096,21 @@
         }
         if (status.IsPending || status.IsRetryableFailure)
         {
-            SetRetainedSnapshot(attempt, _snapshot with { SafeMessage = null,
+            await SetRetainedSnapshotAsync(attempt, statusSnapshot with { SafeMessage = null,
                 SafeMessageKey = status.IsPending ? "Tenants.Correction.Status.Pending" : "Tenants.Correction.Status.Retryable",
-                FocusTarget = TenantCommandFocusTarget.Refresh });
+                FocusTarget = TenantCommandFocusTarget.Refresh }, statusGeneration).ConfigureAwait(false);
             return;
         }
         if (!status.HasVerifiedCommandIdentity)
         {
-            SetRetainedSnapshot(attempt, _snapshot with { LifecycleState = TenantCommandLifecycleState.UnableToVerify,
+            await SetRetainedSnapshotAsync(attempt, statusSnapshot with { LifecycleState = TenantCommandLifecycleState.UnableToVerify,
                 SafeMessageKey = "Tenants.Correction.State.UnableToVerify",
                 FocusTarget = TenantCommandFocusTarget.Refresh,
-                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive }, focusTerminalState: true);
+                LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive }, statusGeneration, focusTerminalState: true).ConfigureAwait(false);
             return;
         }
 
-        TenantCorrectionPreviewSnapshot next = _snapshot.ApplyStatus(status);
+        TenantCorrectionPreviewSnapshot next = statusSnapshot.ApplyStatus(status);
         if (FailureMessageKey(next.LifecycleState) is { } failureKey)
         {
             next = next with { SafeMessage = null, SafeMessageKey = RejectionMessageKey(status.RejectionCode)
@@ -1026,7 +1121,7 @@
         {
             try
             {
-                TenantCorrectionProjection? capture = await RefreshCaptureAsync().ConfigureAwait(false);
+                TenantCorrectionProjection? capture = await readCapture().ConfigureAwait(false);
                 next = next.ConfirmProjection(capture);
             }
             catch (Exception)
@@ -1042,9 +1137,12 @@
             }
         }
         next = next.WithCorrectiveProof(null);
-        SetRetainedSnapshot(attempt, next, focusTerminalState: true);
+        await SetRetainedSnapshotAsync(attempt, next, statusGeneration, focusTerminalState: true).ConfigureAwait(false);
         }
-        finally { Volatile.Write(ref _statusReadInFlight, 0); }
+        finally
+        {
+            if (statusReadOwner is not null) Interlocked.CompareExchange(ref _statusReadOwner, null, statusReadOwner);
+        }
     }
 
     private static string? FailureMessageKey(TenantCommandLifecycleState state)
@@ -1060,41 +1158,69 @@
         => code is "UserAlreadyInTenant" or "UserNotInTenant" or "RoleEscalation" or "InsufficientPermissions" or "TenantDisabled" or "TenantNotFound"
             ? $"Tenants.Correction.Rejection.{code}" : null;
 
-    private void RenderRetainedDeliveryOutcome(TenantCorrectionAttempt attempt)
-    {
-        // EndDelivery publishes the outcome before another panel can retry. Consume that
-        // exact retained value; writing the candidate again would hide an incorrect handoff.
-        TenantCorrectionAttempt? retained = _attemptTracker.Find(attempt.TenantId);
-        if (string.Equals(retained?.MessageId, attempt.MessageId, StringComparison.Ordinal))
-        {
-            SetSnapshot(retained!.Snapshot, focusTerminalState: true);
-        }
-    }
-
-    private void SetRetainedSnapshot(TenantCorrectionAttempt attempt,
-        TenantCorrectionPreviewSnapshot candidate, bool focusTerminalState = false)
+    private Task SetRetainedSnapshotAsync(TenantCorrectionAttempt attempt,
+        TenantCorrectionPreviewSnapshot candidate, long statusGeneration, bool focusTerminalState = false)
     {
         _attemptTracker.TryUpdate(attempt.TenantId, attempt.MessageId, candidate);
-        TenantCorrectionAttempt? retained = _attemptTracker.Find(attempt.TenantId);
-        SetSnapshot(string.Equals(retained?.MessageId, attempt.MessageId, StringComparison.Ordinal)
-            ? retained!.Snapshot : candidate, focusTerminalState);
+        return PublishRetainedSnapshotAsync(attempt, statusGeneration, focusTerminalState);
     }
 
-    private async Task<TenantCorrectionProjection?> RefreshCaptureAsync()
+    private async Task PublishRetainedSnapshotAsync(TenantCorrectionAttempt attempt, long statusGeneration,
+        bool focusTerminalState = false)
     {
-        if (_snapshot is null) return null;
-        if (CurrentCaptureProvider is not null)
+        if (_disposed) return;
+        try
         {
-            return await CurrentCaptureProvider().ConfigureAwait(false);
+            await InvokeAsync(() =>
+            {
+                // Parameter replacement and visible publication share one renderer operation: a
+                // continuation cannot pass its generation check and then overwrite a newer mount.
+                if (_disposed || statusGeneration != Volatile.Read(ref _confirmGeneration)
+                    || !string.Equals(_snapshot?.MessageId, attempt.MessageId, StringComparison.Ordinal)
+                    || !string.Equals(_snapshot?.OriginalAuditReference, attempt.Snapshot.OriginalAuditReference, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                TenantCorrectionAttempt? retained = _attemptTracker.Find(attempt.TenantId);
+                if (string.Equals(retained?.MessageId, attempt.MessageId, StringComparison.Ordinal))
+                {
+                    // EndDelivery already publishes atomically. Rejected writes expose only retained truth.
+                    SetSnapshot(retained!.Snapshot, focusTerminalState);
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
         }
-        return QueryGateway is null ? null : await QueryGateway.GetTenantCorrectionProjectionAsync(
-            _snapshot.TenantId, _snapshot.TargetUserId, CancellationToken.None).ConfigureAwait(false);
+        catch (ObjectDisposedException) when (_disposed) { }
+        catch (InvalidOperationException) when (_disposed) { }
+    }
+
+    private Task<TenantCorrectionProjection?> RefreshCaptureAsync()
+        => _snapshot is null ? Task.FromResult<TenantCorrectionProjection?>(null)
+            : ReadCaptureAsync(_snapshot, CurrentCaptureProvider, QueryGateway);
+
+    private static async Task<TenantCorrectionProjection?> ReadCaptureAsync(
+        TenantCorrectionPreviewSnapshot snapshot,
+        Func<Task<TenantCorrectionProjection>>? captureProvider,
+        ITenantQueryGateway? queryGateway)
+    {
+        if (captureProvider is not null)
+        {
+            return await captureProvider().ConfigureAwait(false);
+        }
+        return queryGateway is null ? null : await queryGateway.GetTenantCorrectionProjectionAsync(
+            snapshot.TenantId, snapshot.TargetUserId, CancellationToken.None).ConfigureAwait(false);
     }
 
     private async Task CloseAsync()
     {
         // Invalidate a Confirm that is awaiting its direct read before the parent unmounts us.
-        lock (_confirmSync) Interlocked.Increment(ref _confirmGeneration);
+        lock (_confirmSync)
+        {
+            Interlocked.Increment(ref _confirmGeneration);
+            Interlocked.Exchange(ref _statusReadOwner, null);
+            _isSubmitting = false;
+        }
         await InvokeAsync(() => OnClose.InvokeAsync()).ConfigureAwait(false);
     }
 

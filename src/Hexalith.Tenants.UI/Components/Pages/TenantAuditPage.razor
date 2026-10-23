@@ -356,6 +356,7 @@
     private bool _authenticationTransitionPending;
     private long _authenticationTransitionVersion;
     private AuthenticationStateProvider? _authenticationStateProvider;
+    private TenantCorrectionAttemptTracker? _correctionAttemptTracker;
     private long _loadGeneration;
     private long _routeGeneration;
     private CancellationTokenSource? _loadCancellation;
@@ -661,6 +662,12 @@
 
     protected override void OnInitialized()
     {
+        _correctionAttemptTracker = Services.GetService<TenantCorrectionAttemptTracker>();
+        if (_correctionAttemptTracker is not null)
+        {
+            _correctionAttemptTracker.StateChanged += OnRetainedCorrectionChanged;
+        }
+
         _authenticationStateProvider = Services.GetService<AuthenticationStateProvider>();
         if (_authenticationStateProvider is not null)
         {
@@ -672,6 +679,26 @@
         {
             _viewportObservation.StateChanged += OnViewportObservationChanged;
         }
+    }
+
+    private void OnRetainedCorrectionChanged(object? sender, EventArgs args)
+    {
+        if (_disposed) return;
+        Task callback = InvokeAsync(() =>
+        {
+            if (_disposed) return;
+            if ((_correctionPreview?.HasSubmitted is true || _resumedCorrectionMessageId is not null)
+                && RetainedCorrectionAttempt is null)
+            {
+                // Caller invalidation can arrive before the page's authentication callback. Do not let
+                // a render recreate the previous caller's intent from the parent's stale parameter.
+                _previewCorrectionIntent = null;
+                _resumedCorrectionMessageId = null;
+                _competingCorrectionNotice = false;
+            }
+            StateHasChanged();
+        });
+        _ = ObserveAuthenticationStateChangeAsync(callback);
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
@@ -2065,7 +2092,7 @@
         && _correctionPreview?.HasSubmitted is true;
 
     private TenantCorrectionAttempt? RetainedCorrectionAttempt
-        => Services.GetService<TenantCorrectionAttemptTracker>()?.Find(TenantId);
+        => _correctionAttemptTracker?.Find(TenantId);
 
     private bool HasDisplayedRetainedCorrection
         => _previewCorrectionIntent is not null
@@ -2617,6 +2644,11 @@
     public async ValueTask DisposeAsync()
     {
         _disposed = true;
+        if (_correctionAttemptTracker is not null)
+        {
+            _correctionAttemptTracker.StateChanged -= OnRetainedCorrectionChanged;
+            _correctionAttemptTracker = null;
+        }
         Interlocked.Increment(ref _authenticationTransitionVersion);
         if (_authenticationStateProvider is not null)
         {

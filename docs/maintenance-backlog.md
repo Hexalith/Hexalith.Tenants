@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-180/DW-266/DW-473/DW-503/DW-574 closure (2026-10-23):** Generation retirement, causal callback isolation and captured correction ownership protect current state across cancellation, dismissal, remount and caller changes. Retention notifications and renderer-atomic guards preserve recovery without exposing another caller's intent or releasing unresolved admission. Exactly five records close: all 657 IDs remain, 535 done/122 open across 112 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md).
+
 **DW-301/DW-302/DW-321/DW-322/DW-323 closure (2026-10-22):** Shared lifecycle proof, lease and focus handling preserves caller/cancellation and exact ownership; typed evidence governs versions, routine tracker reads allocate no dictionary snapshots, and thirty inconclusive polls bound status waiting without discarding final event-backed proof. Exactly five records close: all 657 IDs remain, 530 done/127 open across 117 maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md).
 
 **DW-248/DW-255/DW-269/DW-276/DW-313 closure (2026-10-22):** Membership status recovery shares an iterative generation-aware drain; create status waiting uses the injected clock without expiring unresolved ownership. Current audit-availability values are explicit; held-lease refusal and shared complete create retention are qualified. Exactly five records close: all 657 IDs remain, 525 done/132 open across 122 maintenance rows. Historical findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-248-255-269-276-313-validation-evidence.md).
@@ -200,14 +202,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 530 |
-| actionable | 61 |
+| done | 535 |
+| actionable | 60 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 6 |
-| uncertain | 22 |
+| uncertain | 18 |
 
-**Remaining: 127 open records across 117 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 122 open records across 112 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -314,7 +316,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-116 | P2 | Unverified / blocked | unassigned | BROWSER-SEARCH-1.9 and AT-NVDA-1.9 | Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime. |
 | DW-119 | P2 | Unverified / uncertain | unassigned | authenticated browser search fixture | Record document.activeElement during paging and determine whether restoration is required. |
 | DW-127 | P2 | Unverified / awaiting-decision | Story 1.9 | product/security requirement | Set the privacy/completeness acceptance requirement for partially hidden search windows. |
-| DW-180 | P2 | Unverified / uncertain | unassigned | none | Create a deterministic cancellation callback interleaving and assert the older load cannot apply. |
 | DW-242 | P2 | Unverified / uncertain | unassigned | authenticated browser fixture | Measure form visibility and initial/Tab focus at 767px and 768px before closing the remaining risk. |
 | DW-372, DW-382 | P2 | Unverified / uncertain | unassigned | none | Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout. |
 | DW-390 | P2 | Unverified / uncertain | unassigned | none | Capture side-by-side supported-browser/font rendering of accepted whitespace identities and compare visible distinction with accessible names. |
@@ -322,12 +323,9 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-446 | P2 | Unverified / uncertain | unassigned | none | Run NVDA with a supported browser through the first events-stored availability transition and record whether its first message is announced. |
 | DW-459 | P2 | Unverified / uncertain | unassigned | NVDA or VoiceOver authenticated browser session | Capture an assistive-technology browser trace of the first mounted state before deciding whether an always-mounted empty live container is required. |
 | DW-466 | P2 | Unverified / uncertain | unassigned | Historical full-suite raw logs; controlled load reproduction | Identify the metadata test from raw historical logs and reproduce both waits under controlled load before changing timeout or synchronization. |
-| DW-473 | P2 | Unverified / uncertain | unassigned | Held projection-provider continuation and host callback scheduling evidence | Hold ProjectionEvidenceProvider across Continue read-only in a host-level test and a callback-free component test; determine reachability and assert no stale reconciliation overwrites Idle. |
 | DW-489 | P2 | Unverified / uncertain | unassigned | Authenticated live Aspire/browser environment | Run the authenticated composed audit/correction surface at measured narrow widths and record whether required fields and focus remain usable. |
-| DW-503 | P2 | Unverified / uncertain | unassigned | Controlled renderer/continuation scheduling evidence | Hold a status response across expiry, parameter replacement and remount, then establish or refute a concrete visible state regression before changing threading. |
 | DW-514 | P2 | Unverified / uncertain | Hexalith.EventStore | Non-HTTP command-entry-point reachability evidence | Inventory non-HTTP CommandEnvelope producers and reproduce a supported whitespace-causation resume before deciding normalization/rejection behavior. |
 | DW-568 | P2 | Unverified / uncertain | unassigned | Live store ETag behavior and index-version contract | Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work. |
-| DW-574 | P2 | Unverified / uncertain | Story 5.6 tracker in Tenants UI | Caller-bound retained tenant attempts | Add a principal-transition/remount rendered regression; bind or reauthorize retained attempt provenance if previous-user intent is exposed. |
 | DW-589 | P2 | Unverified / uncertain | unassigned | Live Zot OCI-index negotiation fixture | Probe an existing OCI index safely or emulate registry negotiation and document accepted media types. |
 | DW-623 | P2 | Unverified / uncertain | unassigned | Timestamp/provenance contract; clock synchronization evidence | Establish the clock boundary or select a safe proof lookup policy grounded in exact correlation/sequence. |
 | DW-627 | P2 | Unverified / uncertain | unassigned | Platform distributed delivery/serialization guarantee | Trace all supported delivery/rebuild routes across replicas and document a guarantee or reproduce stale overwrite. |
@@ -345,7 +343,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-570 | P2 | Recommendation / actionable | release workflow owner | Approved release-provenance policy | Add the owning workflow closure gate or document an approved equivalent closure procedure. |
 | DW-584 | P2 | Recommendation / awaiting-decision | unassigned | Release-gate policy owner | Decide which separate exact-source workflow outcomes must block publication and document the gate. |
 | DW-600 | P2 | Recommendation / awaiting-decision | unassigned | Complete-evidence duplicate-page policy | Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract. |
-| DW-266 | P3 | Recommendation / actionable | unassigned | none | Evaluate dispatcher/reentrancy semantics with callback tests before replacing the primitive. |
 | DW-267 | P3 | Recommendation / actionable | unassigned | DW-245 and DW-300 | Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics. |
 | DW-326 | P3 | Recommendation / actionable | unassigned | existing ten-fact acceptance contract | Document/pin the intentional Current/Current proof fact and prune unreachable resource variants. |
 | DW-328 | P3 | Recommendation / actionable | unassigned | independent review capacity | Run a separately scoped independent follow-up on retained removal expiry and proof behavior. |

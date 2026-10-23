@@ -1294,8 +1294,10 @@
             return;
         }
 
-        using PendingLoadOperation operation = BeginLoad();
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
+        // Cancellation may synchronously complete the previous read on this dispatcher.
+        // Retire its generation before invoking any of its cancellation callbacks.
+        using PendingLoadOperation operation = BeginLoad();
         CancellationToken cancellationToken = operation.CancellationToken;
         TenantListSnapshot previous = _lastConfirmedSnapshot ?? _snapshot;
         string? authenticatedUserId = AuthenticatedUserId;

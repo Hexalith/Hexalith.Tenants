@@ -16,6 +16,7 @@ using Hexalith.Tenants.UI.State.TenantAudit;
 using Hexalith.Tenants.UI.State.TenantList;
 using Hexalith.Tenants.UI.State.TenantDetail;
 
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -107,7 +108,8 @@ public static class TenantsUiServiceCollectionExtensions
         services.TryAddScoped<TenantLifecycleAttemptTracker>();
         services.TryAddScoped<TenantSetConfigurationAttemptTracker>();
         services.TryAddScoped<TenantRemoveConfigurationAttemptTracker>();
-        services.TryAddScoped<TenantCorrectionAttemptTracker>();
+        services.TryAddScoped(provider => new TenantCorrectionAttemptTracker(
+            provider.GetService<AuthenticationStateProvider>(), static () => DateTimeOffset.UtcNow));
         services.TryAddScoped<GlobalAdministratorCorrectionProofRegistry>();
         services.TryAddScoped<TenantHighImpactViewportObservation>();
 
