@@ -3719,6 +3719,43 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
             TenantHighImpactTargetState.NotApplicable,
             "tenant-sequence:41");
 
+    /// <summary>Exports the real localized lifecycle preview for compiled-CSS browser qualification.</summary>
+    /// <param name="culture">The resource culture under test.</param>
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public void CommandFormExportsLocalizedBrowserMarkup(string culture)
+    {
+        var gateway = new StubTenantCommandGateway();
+        RegisterServices(gateway);
+        var factory = new ResourceManagerStringLocalizerFactory(
+            Microsoft.Extensions.Options.Options.Create(new LocalizationOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new CultureBoundTenantsLocalizer(
+            factory.Create(typeof(TenantsResources)), System.Globalization.CultureInfo.GetCultureInfo(culture)));
+        IRenderedComponent<TenantLifecycleActionAvailability> cut = Render<TenantLifecycleActionAvailability>(parameters => parameters
+            .Add(p => p.Lifecycle, ProjectionLifecycleState.Current)
+            .Add(p => p.TenantId, "tenant.alpha").Add(p => p.Detail, Detail("tenant.alpha", TenantStatus.Active))
+            .Add(p => p.ProjectionVersion, "tenant-sequence:41").Add(p => p.CurrentStatus, TenantStatus.Active)
+            .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(p => p.Freshness, ReadModelFreshnessState.Current)
+            .Add(p => p.IsCommandSurfaceConnected, true).Add(p => p.IsCommandSurfaceAvailable, true)
+            .Add(p => p.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(p => p.GovernanceReadiness, TenantLifecycleGovernanceReadiness.Ready)
+            .Add(p => p.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(p => p.ProjectionEvidenceProvider, (request, _) => Task.FromResult<TenantDetailSnapshot?>(
+                Proof(request.TenantId, TenantStatus.Active, "tenant-sequence:41"))));
+        cut.Find("[data-testid='tenants-lifecycle-disable']").Click();
+        cut.Find("form");
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']");
+        gateway.DisableSubmissions.ShouldBe(0);
+        string? directory = Environment.GetEnvironmentVariable("TENANTS_COMMAND_FORM_FIXTURE_DIRECTORY");
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, $"command-form-lifecycle-{culture}.html"), cut.Markup);
+        }
+    }
+
     private void RegisterServices(
         ITenantCommandGateway? gateway = null,
         TenantLifecycleAttemptTracker? attemptTracker = null)

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-227/DW-241/DW-242/DW-299/DW-317 closure (2026-10-23):** Actual member controls and stable heading recovery preserve focus across dismissal, row/permission loss and unsafe viewport transitions. Compiled configuration/lifecycle form and label styling, EN/FR warnings and native browser keyboard cycles qualify the existing responsive boundary. Exactly five records close: all 657 IDs remain, 560 done/97 open across 87 maintenance rows. Historical fields, unrelated records, dependencies and broader modal/runtime/release holds remain preserved. See [validation evidence](dw-227-241-242-299-317-validation-evidence.md).
+
 **DW-159/DW-200/DW-209/DW-326/DW-448 closure (2026-10-23):** Explicit unavailable configuration states, authoritative create notification recovery, actual shell layout checks, localized ten-fact preview proof and bounded retained removal audit waiting close exactly five records. All 657 IDs remain: 555 done/102 open across 92 maintenance rows. Original fields, unrelated records, dependencies and runtime/release holds remain preserved. See [validation evidence](dw-159-200-209-326-448-validation-evidence.md).
 
 **DW-551/DW-556/DW-575/DW-576/DW-597 closure (2026-10-23):** Configurable validated bootstrap token destinations, explicit one-attempt operator recovery and executable administrator-to-human handoff preserve identity and projected-membership proof. Exact system membership among valid multivalued tenant claims is recognized. Exactly five records close: all 657 IDs remain, 550 done/107 open across 97 maintenance rows. Original fields, unrelated records, dependencies and unresolved revocation/runtime/release holds remain preserved. See [validation evidence](dw-551-556-575-576-597-validation-evidence.md).
@@ -2056,16 +2058,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Focus the actual remove-member controls rather than tabindex wrappers during dialog trapping and restoration. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Focus the actual remove-member controls rather than tabindex wrappers during dialog trapping and restoration. evidence: The existing focus sentinels and close restoration target noninteractive span wrappers, which can move keyboard focus away from the intended confirm, cancel, or launch button.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor now focuses FluentTextInput.Element for initial confirmation, but Cancel still uses a tabindex=-1 span; Members/MemberAccessReview.razor still restores focus to span wrappers.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+pre-responsive-command-forms-status: open
+status: done 2026-10-23
+pre-responsive-command-forms-disposition: actionable
+disposition: resolved
+pre-responsive-command-forms-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-responsive-command-forms-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor now focuses FluentTextInput.Element for initial confirmation, but Cancel still uses a tabindex=-1 span; Members/MemberAccessReview.razor still restores focus to span wrappers.
+verification: Cancel and row launch references target actual Fluent buttons. Both C# sentinel callbacks, missing/denied/detached launchers and real-browser focus/keyboard controls qualify the existing scoped focus contract.
+pre-responsive-command-forms-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+verification-files: _bmad-output/implementation-artifacts/dw-227-241-242-299-317-validation-evidence.md; tests/Hexalith.Tenants.UI.Tests/Browser/command-form-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs
 evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: shared modal/focus contract
-next-action: Focus the native/Fluent interactive Cancel and launcher controls and assert browser keyboard behavior.
+pre-responsive-command-forms-next-action: Focus the native/Fluent interactive Cancel and launcher controls and assert browser keyboard behavior.
+next-action: None for DW-227; closed with focused, maintained full UI and real-browser qualification. Broader DW-194 and unrelated runtime/release gates remain open.
 related: DW-194, DW-241
 
 ### DW-228: Refresh remove-member audit guidance now that the flow queries and renders audit receipts
@@ -2184,16 +2192,22 @@ location: MemberAccessReview.OnAfterRenderAsync
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Restore focus safely when a successful removal deletes the launcher row. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Restore focus safely when a successful removal deletes the launcher row. evidence: `MemberAccessReview.OnAfterRenderAsync` focuses a retained row wrapper without verifying that the target still exists or providing a fallback, so a stale `ElementReference` can fault instead of returning focus after the row disappears.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor OnAfterRenderAsync still directly focuses retained row ElementReferences without checking existence or providing a fallback when removal deletes the row.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+pre-responsive-command-forms-status: open
+status: done 2026-10-23
+pre-responsive-command-forms-disposition: actionable
+disposition: resolved
+pre-responsive-command-forms-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-responsive-command-forms-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor OnAfterRenderAsync still directly focuses retained row ElementReferences without checking existence or providing a fallback when removal deletes the row.
+verification: Dismissal uses current authoritative rows and action availability. Deleted/denied launchers and detached browser requests recover to the stable focusable member heading; both member command types are covered.
+pre-responsive-command-forms-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+verification-files: _bmad-output/implementation-artifacts/dw-227-241-242-299-317-validation-evidence.md; tests/Hexalith.Tenants.UI.Tests/Browser/command-form-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs
 evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: DW-194 focus contract
-next-action: Restore to an existing launcher or stable member heading, containing stale-reference failures.
+pre-responsive-command-forms-next-action: Restore to an existing launcher or stable member heading, containing stale-reference failures.
+next-action: None for DW-241; closed with focused, maintained full UI and real-browser qualification. Broader DW-194 and unrelated runtime/release gates remain open.
 related: DW-227
 
 ### DW-242: Make remove-member focus trapping visibility-aware and verify it at the responsive breakpoint
@@ -2202,16 +2216,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Make remove-member focus trapping visibility-aware and verify it at the responsive breakpoint. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Make remove-member focus trapping visibility-aware and verify it at the responsive breakpoint. evidence: The narrow-layout CSS hides the confirmation form, but initial focus and the end sentinel can still target controls inside that hidden form; current tests only inspect CSS/source structure and do not exercise computed visibility or an actual keyboard focus cycle.
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor now wraps the end sentinel to always-visible Cancel, partially addressing hidden-confirm focus. Initial confirmation still uses the form control; no computed-visibility Tab-cycle proof exists at the narrow breakpoint.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+pre-responsive-command-forms-status: open
+status: done 2026-10-23
+pre-responsive-command-forms-disposition: uncertain
+disposition: resolved
+pre-responsive-command-forms-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-responsive-command-forms-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor now wraps the end sentinel to always-visible Cancel, partially addressing hidden-confirm focus. Initial confirmation still uses the form control; no computed-visibility Tab-cycle proof exists at the narrow breakpoint.
+verification: Measured unsafe transitions recover focus, hidden confirmation is avoided and owned attempts target lifecycle when Cancel is disabled. Actual EN/FR rendered removal controls pass native Tab/Shift-Tab cycles and Enter activation at 767/768px; ambiguous retry correction preserves original identity.
+pre-responsive-command-forms-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+verification-files: _bmad-output/implementation-artifacts/dw-227-241-242-299-317-validation-evidence.md; tests/Hexalith.Tenants.UI.Tests/Browser/command-form-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs
 evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: authenticated browser fixture
-next-action: Measure form visibility and initial/Tab focus at 767px and 768px before closing the remaining risk.
+pre-responsive-command-forms-next-action: Measure form visibility and initial/Tab focus at 767px and 768px before closing the remaining risk.
+next-action: None for DW-242; closed with focused, maintained full UI and real-browser qualification. Broader DW-194 and unrelated runtime/release gates remain open.
 related: DW-195, DW-227, DW-317
 
 ### DW-243: Replace legacy Fluent/FAST CSS custom properties in the remove-member dialog
@@ -2669,16 +2689,22 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md`
 reason: The legacy ledger defers this issue: Add browser-level computed-visibility coverage for the narrow configuration set and remove forms. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-4-disable-or-enable-tenant-with-complete-preview.md` summary: Add browser-level computed-visibility coverage for the narrow configuration set and remove forms. evidence: Existing tests inspect stylesheet text only; they do not prove that the forms are hidden and the safety warning is visible at 767px, then available again at 768px. This is real configuration-flow work owned by Stories 3.5 and 3.6, not the Story 3.4 lifecycle flow.
-status: open
-disposition: blocked
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css and RemoveTenantConfigurationFlow.razor.css use ::deep for narrow hide rules, but component stylesheet-text tests do not establish computed visibility at 767/768px.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css
+pre-responsive-command-forms-status: open
+status: done 2026-10-23
+pre-responsive-command-forms-disposition: blocked
+disposition: resolved
+pre-responsive-command-forms-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-responsive-command-forms-verification: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css and RemoveTenantConfigurationFlow.razor.css use ::deep for narrow hide rules, but component stylesheet-text tests do not establish computed visibility at 767/768px.
+verification: Actual localized production-rendered set/remove markup, compiled isolated CSS and restored Fluent assets qualify form/warning/exit visibility at 390, 767, 768, 1024 and 1366px in Chromium. Missing-scope controls reject; live-topology and broader modal holds remain separate.
+pre-responsive-command-forms-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css
+verification-files: _bmad-output/implementation-artifacts/dw-227-241-242-299-317-validation-evidence.md; tests/Hexalith.Tenants.UI.Tests/Browser/command-form-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs
 evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: authenticated browser configuration fixture
-next-action: Capture real set/remove form and warning visibility at both sides of the breakpoint.
+pre-responsive-command-forms-next-action: Capture real set/remove form and warning visibility at both sides of the breakpoint.
+next-action: None for DW-299; closed with focused, maintained full UI and real-browser qualification. Broader DW-194 and unrelated runtime/release gates remain open.
 related: DW-317
 
 ### DW-300: Nine other command flows (create, add/remove/change member, metadata, set/remove configuration, global-admin grant/remove) still construct a 2-arg `TenantCommandTrackingHandle` with no aggregate id, so they keep accepting a status response for a different command and keep treating propagation lag as terminal. Story 3.4's Boundaries fence this under "Ask First: broadening shared command infrastructure beyond the focused lifecycle seam"
@@ -2799,16 +2825,22 @@ archived: 2026-10-16
 origin: migrated from legacy ledger ("Deferred from: code review of spec-3-4-disable-or-enable-tenant-with-complete-preview (2026-08-26)"), 2026-08-26
 location: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css:33,41; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css:33,41; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor.css:48-54
 reason: The selectors target a class placed on an `<EditForm>` component, which does not receive the CSS-isolation scope attribute, so these layout rules have never applied. Repair scope stamping across all three flows and visually verify every width because the change affects form layout.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css and RemoveTenantConfigurationFlow.razor.css now fix the narrow hide selector with ::deep, but ordinary __form layout/label selectors and Lifecycle/TenantLifecycleCommandFlow.razor.css still target EditForm child output without scope.
-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor.css
+pre-responsive-command-forms-status: open
+status: done 2026-10-23
+pre-responsive-command-forms-disposition: actionable
+disposition: resolved
+pre-responsive-command-forms-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-responsive-command-forms-verification: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css and RemoveTenantConfigurationFlow.razor.css now fix the narrow hide selector with ::deep, but ordinary __form layout/label selectors and Lifecycle/TenantLifecycleCommandFlow.razor.css still target EditForm child output without scope.
+verification: Ancestor-anchored deep selectors apply form and label layout to generated EditForm/Fluent markup. Matching specificity preserves configuration narrow hide rules. Browser checks qualify all set/lifecycle labels and three form layouts at five widths with missing-scope controls.
+pre-responsive-command-forms-verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css; src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor.css
+verification-files: _bmad-output/implementation-artifacts/dw-227-241-242-299-317-validation-evidence.md; tests/Hexalith.Tenants.UI.Tests/Browser/command-form-browser-validation.html; tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs
 evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: browser layout fixture
-next-action: Repair the remaining form/label scope stamping and verify computed layout at supported widths.
+pre-responsive-command-forms-next-action: Repair the remaining form/label scope stamping and verify computed layout at supported widths.
+next-action: None for DW-317; closed with focused, maintained full UI and real-browser qualification. Broader DW-194 and unrelated runtime/release gates remain open.
 related: DW-268, DW-299
 
 ### DW-318: Replace the legacy Fluent v4 token in `SetTenantConfigurationFlow`

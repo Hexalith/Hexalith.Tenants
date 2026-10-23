@@ -115,6 +115,21 @@ while (!status) {
     }
 
     try {
+        // Fixture pages request actual browser key input; synthetic KeyboardEvents do not move focus.
+        const keyboard = await evaluate("window.__validationKeyboardRequest || null");
+        if (keyboard) {
+            if (!Number.isInteger(keyboard.id) || !['Tab', 'Enter', 'Escape'].includes(keyboard.key)) {
+                throw new Error('Invalid validation keyboard request');
+            }
+            const keyCode = { Tab: 9, Enter: 13, Escape: 27 }[keyboard.key];
+            const input = { key: keyboard.key, code: keyboard.key, windowsVirtualKeyCode: keyCode,
+                nativeVirtualKeyCode: keyCode, modifiers: keyboard.shift ? 8 : 0 };
+            await cdp('Input.dispatchKeyEvent', { type: keyboard.key === 'Enter' ? 'keyDown' : 'rawKeyDown',
+                ...input, ...(keyboard.key === 'Enter' ? { text: '\r', unmodifiedText: '\r' } : {}) });
+            await cdp('Input.dispatchKeyEvent', { type: 'keyUp', ...input });
+            await evaluate(`delete window.__validationKeyboardRequest;
+                window.dispatchEvent(new CustomEvent('validation-keyboard-result', { detail: ${keyboard.id} }));`);
+        }
         status = await evaluate("document.documentElement?.dataset.validationStatus || document.body?.dataset.validationStatus || ''");
     } catch {
         status = '';

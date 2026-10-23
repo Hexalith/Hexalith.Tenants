@@ -307,6 +307,26 @@ for culture in en fr; do
 done
 cp -- "$script_dir/tenant-live-admission-browser-validation.html" "$validation_tmp/tenant-live-admission-browser-validation.html"
 cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/Members/RemoveTenantMemberFlow.razor.rz.scp.css" "$validation_tmp/tenant-remove-member.css"
+# Qualify the existing responsive forms with production-rendered localized markup.
+if ! TENANTS_COMMAND_FORM_FIXTURE_DIRECTORY="$validation_tmp" "$start_test_executable" \
+    -method '*CommandFormExportsLocalizedBrowserMarkup' -method '*MemberDismissalFocusUsesCurrentInteractiveLauncherOrHeading' \
+    >"$validation_tmp/command-form-fixture-tests.log" 2>&1; then
+    cat "$validation_tmp/command-form-fixture-tests.log" >&2
+    exit 1
+fi
+for culture in en fr; do
+    for kind in set remove lifecycle; do
+        [[ -s "$validation_tmp/command-form-${kind}-${culture}.html" ]] || exit 1
+    done
+done
+for state in unchanged removed denied; do
+    [[ -s "$validation_tmp/member-focus-${state}.html" ]] || exit 1
+done
+for item in 'Configuration/SetTenantConfigurationFlow:set' 'Configuration/RemoveTenantConfigurationFlow:remove' 'Lifecycle/TenantLifecycleCommandFlow:lifecycle'; do
+    cp -- "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/scopedcss/Components/Tenants/${item%:*}.razor.rz.scp.css" "$validation_tmp/command-form-${item#*:}.css"
+done
+cp -- "$script_dir/command-form-browser-validation.html" "$validation_tmp/command-form-browser-validation.html"
+
 # Resolve the asset actually selected by this UI build, in source or package mode.
 python3 - "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/staticwebassets.build.json" "$validation_tmp/fc-layout-breakpoints.js" "$validation_tmp/viewport-asset-provenance.json" "$build_configuration" <<'PY'
 from pathlib import Path
@@ -724,6 +744,33 @@ if ! grep -q 'data-validation-status="failed"' "$live_mutation_output" \
     exit 1
 fi
 printf '%s\n' "Rendered live removal EN/FR: measured 1024/767/768 viewport transitions, Unknown/Safe/resized refusal markup, retained lifecycle/audit, cancel focus and observer disposal passed; stuck measurement control rejected."
+
+for culture in en fr; do
+    form_output="$validation_tmp/command-forms-${culture}.html"
+    dump_dom "responsive command forms ${culture}" "$form_output" \
+        --window-size=1366,1000 --user-data-dir="$validation_tmp/profile-command-forms-${culture}" \
+        "http://127.0.0.1:${validation_port}/command-form-browser-validation.html?culture=${culture}"
+    if ! grep -q 'data-validation-status="passed"' "$form_output"; then
+        grep -o '<output id="validation-report">[^<]*' "$form_output" >&2 || true
+        exit 1
+    fi
+done
+for mutation in unscoped no-sentinel; do
+    form_output="$validation_tmp/command-forms-${mutation}.html"
+    dump_dom "responsive command forms ${mutation} control" "$form_output" \
+        --window-size=1366,1000 --user-data-dir="$validation_tmp/profile-command-forms-${mutation}" \
+        "http://127.0.0.1:${validation_port}/command-form-browser-validation.html?culture=en&mutation=${mutation}"
+    if ! grep -q 'data-validation-status="failed"' "$form_output"; then
+        echo "Responsive form ${mutation} control did not reject." >&2
+        exit 1
+    fi
+    if [[ "$mutation" == unscoped ]]; then
+        validation_report_contains "$form_output" 'set form layout at 390' || exit 1
+    else
+        validation_report_contains "$form_output" 'End sentinel focus at 767' || exit 1
+    fi
+done
+printf '%s\n' "Rendered command forms EN/FR: compiled form/label layout at 390/767/768/1024/1366, configuration warning visibility, actual member Cancel/sentinel targets, native Shift-Tab/Enter and launcher/heading focus passed; missing scope/sentinel controls rejected."
 
 run_chromium "browser version" "$validation_tmp/browser-version.txt" --version
 browser_version="$(head -n 1 "$validation_tmp/browser-version.txt")"

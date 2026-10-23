@@ -30,7 +30,7 @@
 
 /* fc-css-exception: vertical form layout on an EditForm element with a width constraint; EditForm is
    not a div or span so a FluentStack wrapper cannot replace it. */
-.tenants-config-set__form {
+.tenants-config-set ::deep .tenants-config-set__form {
     display: grid;
     gap: .75rem;
     max-inline-size: 60rem;
@@ -38,7 +38,7 @@
 
 /* fc-css-exception: vertical stack for the Fluent-generated <label>; cannot restructure the markup
    emitted by FluentTextInput and FluentTextArea. */
-.tenants-config-set__form label {
+.tenants-config-set ::deep .tenants-config-set__form label {
     display: grid;
     gap: .35rem;
 }
@@ -125,7 +125,7 @@
        attribute, so ::deep is required for the hide rule to match the splatted form. Dismissal
        and refresh controls are deliberately rendered outside this form so hiding it never removes
        the only exit. */
-    ::deep .tenants-config-set__form {
+    .tenants-config-set ::deep .tenants-config-set__form {
         display: none;
     }
 

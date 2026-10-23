@@ -1,0 +1,21 @@
+{
+  "baseline": "fc0a6959844f6afde5a5141fe46c36f5a0cbc0ad",
+  "records": 657,
+  "changed_ids": [
+    227,
+    241,
+    242,
+    299,
+    317
+  ],
+  "unchanged_records": 652,
+  "all_original_fields_preserved": true,
+  "statuses": {
+    "done": 560,
+    "open": 97
+  },
+  "remaining_maintenance_rows": 87,
+  "maintenance_exactly_covers_open_ids": true,
+  "baseline_ledger_sha256": "c7eb3199e216ef8a1644584c301e82ad308e6e1abcd9488ae0d9f8ff8c7996e9",
+  "ledger_sha256": "edebb9e674c449af8585931f018601d952a13cbdf2f6792d66053df48b2f0b40"
+}

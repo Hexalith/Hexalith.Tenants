@@ -177,7 +177,7 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
             return Task.FromResult(true);
         }));
         CompleteForm(cut, "mode", "obsolete");
-        Task submit = cut.InvokeAsync(() => cut.Find("form").Submit());
+        Task submit = cut.Find("form").SubmitAsync();
         await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
         cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Rebuilding));
         cut.Render(parameters => parameters.Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
@@ -1006,6 +1006,34 @@ public sealed class SetTenantConfigurationFlowTests : FluentBunitContext
         styles.ShouldContain("@media (forced-colors: active)");
         styles.ShouldContain("var(--colorBrandStroke1");
         styles.ShouldNotContain("--accent-fill-rest");
+    }
+
+    /// <summary>Exports the real localized editor for compiled-CSS browser qualification.</summary>
+    /// <param name="culture">The resource culture under test.</param>
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public void CommandFormExportsLocalizedBrowserMarkup(string culture)
+    {
+        StubTenantCommandGateway gateway = RegisterServices();
+        var factory = new ResourceManagerStringLocalizerFactory(
+            Microsoft.Extensions.Options.Options.Create(new LocalizationOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new CultureBoundTenantsLocalizer(
+            factory.Create(typeof(TenantsResources)), System.Globalization.CultureInfo.GetCultureInfo(culture)));
+        IRenderedComponent<SetTenantConfigurationFlow> cut = RenderFlow(gateway, Context(["billing"]),
+            intent => Preview(intent, TenantSetConfigurationCurrentState.Absent));
+        CompleteForm(cut, "mode", "trial");
+        cut.Find("form");
+        cut.Find("[data-testid='tenants-config-set-narrow-unavailable']").TextContent.ShouldNotContain("Tenants.");
+        cut.Find("[data-testid='tenants-config-set-value']").GetAttribute("value").ShouldBe("trial");
+        gateway.SetConfigurationCallCount.ShouldBe(0);
+        string? directory = Environment.GetEnvironmentVariable("TENANTS_COMMAND_FORM_FIXTURE_DIRECTORY");
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, $"command-form-set-{culture}.html"), cut.Markup);
+        }
     }
 
     private StubTenantCommandGateway RegisterServices()

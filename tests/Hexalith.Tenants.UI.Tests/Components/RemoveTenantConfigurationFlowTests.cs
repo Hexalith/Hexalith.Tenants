@@ -1531,6 +1531,35 @@ public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-config-remove-submit']").Closest(".tenants-config-remove__form").ShouldNotBeNull();
     }
 
+    /// <summary>Exports the real localized removal for compiled-CSS browser qualification.</summary>
+    /// <param name="culture">The resource culture under test.</param>
+    [Theory]
+    [InlineData("en")]
+    [InlineData("fr")]
+    public void CommandFormExportsLocalizedBrowserMarkup(string culture)
+    {
+        var gateway = new StubTenantCommandGateway();
+        RegisterServices(gateway);
+        var factory = new ResourceManagerStringLocalizerFactory(
+            Microsoft.Extensions.Options.Options.Create(new LocalizationOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new CultureBoundTenantsLocalizer(
+            factory.Create(typeof(TenantsResources)), System.Globalization.CultureInfo.GetCultureInfo(culture)));
+        IRenderedComponent<RemoveTenantConfigurationFlow> cut = Render<RemoveTenantConfigurationFlow>(parameters => parameters
+            .Add(p => p.Context, Context("tenant.alpha", new Dictionary<string, string> { ["billing.mode"] = "trial" }))
+            .Add(p => p.TargetKey, "billing.mode").Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
+            .Add(p => p.Freshness, ReadModelFreshnessState.Current).Add(p => p.Lifecycle, ProjectionLifecycleState.Current));
+        cut.Find("form");
+        cut.Find("[data-testid='tenants-config-remove-narrow-unavailable']").TextContent.ShouldNotContain("Tenants.");
+        gateway.RemoveConfigurationCallCount.ShouldBe(0);
+        string? directory = Environment.GetEnvironmentVariable("TENANTS_COMMAND_FORM_FIXTURE_DIRECTORY");
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllText(Path.Combine(directory, $"command-form-remove-{culture}.html"), cut.Markup);
+        }
+    }
+
     private void RegisterServices(ITenantCommandGateway? gateway = null)
     {
         if (gateway is not null)
