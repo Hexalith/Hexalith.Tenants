@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-569/DW-571/DW-572/DW-577/DW-592 closure (2026-10-23):** Real Keycloak workload credentials and project scope now have positive/negative protected-route evidence; EventStore shares its own generated app-channel token with its sidecar. A blocking Release/package HTTP lane qualifies generated ETags and production status proof through the UI gateway while preserving the advisory topology tier. Exactly five records close: all 657 IDs remain, 575 done/82 open across 76 maintenance rows. Original fields and unrelated runtime/release decisions remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md).
+
 **DW-119/DW-211/DW-212/DW-213/DW-444 closure (2026-10-23):** Owned paging and audit-reset focus survives control replacement; shared header title/render guards fail diagnostically. Authenticated production-UI Chromium checks qualify actual focus against disclosed read-only upstream fixtures. Exactly five records close: all 657 IDs remain, 570 done/87 open across 80 maintenance rows. Historical fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-119-211-212-213-444-validation-evidence.md).
 
 **DW-333/DW-335/DW-336/DW-357/DW-359 closure (2026-10-23):** Authenticated live Chromium checks qualify retained workspace panel visibility/accessibility, native grant-modal keyboard cycles, inert page background, Escape restoration and measured viewport restrictions. A grant-input Razor comment no longer terminates the interactive circuit. Exactly five records close: all 657 IDs remain, 565 done/92 open across 85 maintenance rows. Historical fields and unrelated runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-333-335-336-357-359-validation-evidence.md).
@@ -289,15 +291,11 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-529 | P2 | Gap / actionable | unassigned | Performance evidence provenance contract | Capture exact root/submodule source provenance or fail preflight on a dirty tree before claiming a revision-bound performance result. |
 | DW-540 | P2 | Gap / awaiting-decision | Hexalith.Builds | Maintainer CI gating decision | Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow. |
 | DW-554 | P2 | Gap / awaiting-decision | unassigned | Published package dependency-layer decision | Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures. |
-| DW-569, DW-592 | P2 | Gap / actionable | identity/integration owner; other records unassigned | Keycloak-enabled integration topology; Keycloak-enabled workload token fixture | Obtain a workload client_credentials token and assert an authorized domain-service call without retaining tokens. |
-| DW-572 | P2 | Gap / actionable | unassigned | Separate blocking in-process route lane | Place generated-route ETag agreement coverage in a blocking test lane without changing the accepted advisory topology tier. |
-| DW-577 | P2 | Gap / actionable | Tenants CI test tiering | Blocking status-proof contract lane; DW-594 for live proof | Add a blocking UI-gateway status-proof lane without relying on topology-tier success. |
 | DW-579 | P2 | Gap / blocked | unassigned | Builds-maintainer historical provenance repair | Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence. |
 | DW-593 | P2 | Gap / awaiting-decision | release recovery (recover-partial-release.yml) | Release-owner exact execution provenance decision | Define and enforce the approved publication/recovery Builds revision relationship. |
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 | DW-604 | P2 | Gap / actionable | unassigned | Platform projection rebuild/versioning contract | Specify a safe tenant projection schema rebuild/version path and its rollout verification. |
 | DW-609 | P2 | Gap / actionable | unassigned | Permission-change invalidation/reauthorization contract | Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts. |
-| DW-571 | P3 | Defect / actionable | unassigned | EventStore hosting helper/runtime token contract | Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial. |
 
 ## Unverified risks and recommendations
 

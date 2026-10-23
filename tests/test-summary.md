@@ -1,5 +1,9 @@
 # Test Automation Summary
 
+## Runtime authentication and blocking HTTP contracts — 2026-10-23
+
+DW-569/DW-571/DW-572/DW-577/DW-592: generated HTTP/REST 44/44, production command-status to UI proof 18/18, and empty-projection authentication/persisted-state 11/11 pass in both Debug/source and Release/package modes. The full affected runtime class passes 117/117. Real Keycloak workload grant/project authorization and EventStore channel positive/negative controls pass with TLS verification; evidence contains safe statuses/booleans only. The dedicated CI job blocks on the 73 HTTP-contract cases with minimum-test and zero-skip guards. AppHost model coverage checks token sharing and per-app isolation in both auth modes. See [validation evidence](../_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md).
+
 ## Generated Tests
 
 ### API Tests

@@ -5804,16 +5804,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; Keycloak workload client authentication lacks a runtime token and authorized domain-call test.\n  evidence: The AppHost model test verifies shared secret parameter wiring, and the realm declares `clientAuthenticatorType: client-secret`, but no Keycloak-enabled test obtains a `client_credentials` token with that secret and completes an authorized domain-service call. The existing Aspire fixture runs with `EnableKeycloak=false`. Add a live Keycloak test in the identity/integration owner before relying on this mode's end-to-end operation."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: AppHostSecurityResourceGraphTests evaluates shared client-secret wiring and EventPublicationConfigurationTests parses realm scopes; AspireTopologyFixture still passes EnableKeycloak=false. No client_credentials plus protected domain-call test was found.
-evidence-kind: verified-gap
+pre-runtime-contracts-status: open
+pre-runtime-contracts-disposition: actionable
+pre-runtime-contracts-verification-date: 2026-10-12
+pre-runtime-contracts-verification: AppHostSecurityResourceGraphTests evaluates shared client-secret wiring and EventPublicationConfigurationTests parses realm scopes; AspireTopologyFixture still passes EnableKeycloak=false. No client_credentials plus protected domain-call test was found.
+pre-runtime-contracts-evidence-kind: verified-gap
 priority: P2
 owner: identity/integration owner
 dependencies: Keycloak-enabled integration topology
-next-action: Obtain a workload client_credentials token and assert an authorized domain-service call without retaining tokens.
+pre-runtime-contracts-next-action: Obtain a workload client_credentials token and assert an authorized domain-service call without retaining tokens.
 related: DW-592
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: Real local Keycloak client_credentials grant succeeds over verified HTTPS; the issued eventstore workload assertion has tenants audience and domain-service:project operation and authorizes the production /project route. Invalid client secret and missing/wrong workload/channel controls are rejected. No credentials are retained in evidence.
+verification-files: .github/workflows/ci.yml; src/Hexalith.Tenants.AppHost/Program.cs; tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs; tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs; scripts/validate-runtime-auth-contracts.py
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-569-571-572-577-592-runtime-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md`
+next-action: none; selected runtime and blocking-contract gap verified.
 
 
 ### DW-570: medium; the standalone release workflow omits the reusable Builds workflow's governed-provenance evaluation.
@@ -5847,16 +5857,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: low; the Tenants AppHost gives the EventStore server no Dapr app-channel token, so in Development its internal channel admits callers without `dapr-api-token`.\n  evidence: `src/Hexalith.Tenants.AppHost/Program.cs:89` and `:168` wire `WithGeneratedEventStoreAppChannelToken()` for `tenants` and `sample` only; `eventstore` (added through `AddHexalithEventStore` at `:65`) gets none. The EventStore server validates the same `APP_API_TOKEN` through `DaprAppChannelTokenValidator` and `DaprAppChannelTokenHealthCheck` (`references/Hexalith.EventStore/src/Hexalith.EventStore/Authentication/DaprAppChannelTokenValidator.cs:27-39`), and EventStore's own AppHost wires `eventStore.WithGeneratedEventStoreAppChannelToken()` in run mode (`references/Hexalith.EventStore/src/Hexalith.EventStore.AppHost/Program.cs:421-427`). Pass 32's reason for skipping it (\"not shown to use this domain-service validator\") missed that validator. Pre-existing (pass 29 BH6). To close: wire the token after `AddHexalithEventStore`, assert the eventstore app/sidecar share it, and re-run the live topology lane."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: AppHost Program.cs wires WithGeneratedEventStoreAppChannelToken only on tenants/sample. AppHostSecurityResourceGraphTests.AssertAppChannelTokensAsync likewise checks only those two; eventstore receives no app-channel token.
-evidence-kind: verified-defect
+pre-runtime-contracts-status: open
+pre-runtime-contracts-disposition: actionable
+pre-runtime-contracts-verification-date: 2026-10-12
+pre-runtime-contracts-verification: AppHost Program.cs wires WithGeneratedEventStoreAppChannelToken only on tenants/sample. AppHostSecurityResourceGraphTests.AssertAppChannelTokensAsync likewise checks only those two; eventstore receives no app-channel token.
+pre-runtime-contracts-evidence-kind: verified-defect
 priority: P3
 owner: unassigned
 dependencies: EventStore hosting helper/runtime token contract
-next-action: Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial.
+pre-runtime-contracts-next-action: Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial.
 related: DW-569
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: The existing platform helper now wires a generated EventStore app-channel token after sidecar creation. AppHost graph tests prove per-app sharing and cross-app isolation in both authentication modes. Live protected notification validation changes from baseline no-token HTTP 400 to HTTP 401; correct token reaches HTTP 400 validation without side effects, while wrong/other-app tokens return HTTP 401. An actual own-sidecar invocation reaches HTTP 400 validation without a manually supplied app token.
+verification-files: .github/workflows/ci.yml; src/Hexalith.Tenants.AppHost/Program.cs; tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs; tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs; scripts/validate-runtime-auth-contracts.py
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-569-571-572-577-592-runtime-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md`
+next-action: none; selected runtime and blocking-contract gap verified.
 
 
 ### DW-572: medium; no blocking CI lane checks the ETag header of the generated `tenants-api` route.
@@ -5866,16 +5886,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; no blocking CI lane checks the ETag header of the generated `tenants-api` route.\n  evidence: The mandatory live ETag agreement (`tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:220-221`, `:257-259`) and the in-process generated-controller ETag cases (`tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs:115`, `:321`) all live in IntegrationTests. CI runs that project only as the `continue-on-error` aspire tier (`.github/workflows/ci.yml:35`; `references/Hexalith.Builds/.github/workflows/domain-ci.yml:109-113`, `:669`). The blocking `TenantQueryResultTests` cover how metadata is built, not the HTTP header, so a generated API that dropped or rewrote the ETag (Story 4.2's freshness validator) leaves the release gate green. Pass 31 decision 2 kept the aspire tier advisory. To close: move the in-process generated-controller ETag cases into a blocking test project, as was done for the AppHost model checks."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: ci.yml keeps generated-controller and live HTTP ETag tests in IntegrationTests, solely the advisory Aspire project; blocking projects lack a generated-route HTTP ETag assertion. Existing decision to keep Aspire advisory is preserved.
-evidence-kind: verified-gap
+pre-runtime-contracts-status: open
+pre-runtime-contracts-disposition: actionable
+pre-runtime-contracts-verification-date: 2026-10-12
+pre-runtime-contracts-verification: ci.yml keeps generated-controller and live HTTP ETag tests in IntegrationTests, solely the advisory Aspire project; blocking projects lack a generated-route HTTP ETag assertion. Existing decision to keep Aspire advisory is preserved.
+pre-runtime-contracts-evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Separate blocking in-process route lane
-next-action: Place generated-route ETag agreement coverage in a blocking test lane without changing the accepted advisory topology tier.
+pre-runtime-contracts-next-action: Place generated-route ETag agreement coverage in a blocking test lane without changing the accepted advisory topology tier.
 related: DW-577,DW-594
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: A separate blocking topology-free CI job runs the complete 44-case generated HTTP/REST contract class in Release/package mode with a minimum-test count and fail-skips enabled. Real HTTP ETag/freshness/conditional-response and production REST-consumer assertions pass independently of the advisory Aspire tier.
+verification-files: .github/workflows/ci.yml; src/Hexalith.Tenants.AppHost/Program.cs; tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs; tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs; scripts/validate-runtime-auth-contracts.py
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-569-571-572-577-592-runtime-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md`
+next-action: none; selected runtime and blocking-contract gap verified.
 
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 34 (2026-10-10)
@@ -5967,16 +5997,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; the live command-status proof assertions added in pass 38 run only in the advisory, already-red aspire tier. Owner: Tenants CI test tiering.\n  evidence: `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:158-164` and `:357-375` assert the live create and add status proof, and the pass-39 patches 1 and 2 add the UI-gateway and projection-sequence checks there. CI runs IntegrationTests only as `aspire-test-project` (`.github/workflows/ci.yml:35`), which is `continue-on-error` by default (`references/Hexalith.Builds/.github/workflows/domain-ci.yml:109-113`, `:669`). At `c3577147` (run 38039239192, aspire job 114176854705) that job failed 9 of 178 tests while the run succeeded, and `Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority` failed at `:122` on the `tenants-api` `/alive` SSL timeout, before its new assertions. Related: the `aspire-continue-on-error` entry (`:3726`) and the pass-33 ETag entry (`:3912`); pass-31 decision 2 kept the tier advisory. To close: a blocking lane that checks live or contract-level command-status proof through the UI gateway."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: ci.yml still runs live UI-gateway command-status/projection-sequence assertions only in advisory IntegrationTests. Current CI run 38269521776 passes overall with the Aspire job failing; the accepted advisory-tier decision is unchanged.
-evidence-kind: verified-gap
+pre-runtime-contracts-status: open
+pre-runtime-contracts-disposition: actionable
+pre-runtime-contracts-verification-date: 2026-10-12
+pre-runtime-contracts-verification: ci.yml still runs live UI-gateway command-status/projection-sequence assertions only in advisory IntegrationTests. Current CI run 38269521776 passes overall with the Aspire job failing; the accepted advisory-tier decision is unchanged.
+pre-runtime-contracts-evidence-kind: verified-gap
 priority: P2
 owner: Tenants CI test tiering
 dependencies: Blocking status-proof contract lane; DW-594 for live proof
-next-action: Add a blocking UI-gateway status-proof lane without relying on topology-tier success.
+pre-runtime-contracts-next-action: Add a blocking UI-gateway status-proof lane without relying on topology-tier success.
 related: DW-572,DW-594
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: The blocking HTTP-contract job runs 18 production CommandStatusController to TenantCommandGateway proof cases with minimum count and fail-skips. Both tenant and global-administrator proofs preserve identity, scope, counts and committed sequence; 16 invalid identity/scope/count/sequence controls withhold committed-sequence proof. The complete affected runtime class passes 117 cases in Debug/source mode.
+verification-files: .github/workflows/ci.yml; src/Hexalith.Tenants.AppHost/Program.cs; tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs; tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs; scripts/validate-runtime-auth-contracts.py
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-569-571-572-577-592-runtime-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md`
+next-action: none; selected runtime and blocking-contract gap verified.
 
 
 ### DW-578: low; `_bmad-output/project-context.md` omits `AppHost.Tests` from blocking CI Tier 2. Owner: agent-context maintenance.
@@ -6170,17 +6210,27 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Verify the imported Keycloak project scope through an issued workload token and protected endpoint.\n  evidence: The realm test parses JSON, and the Aspire fixture disables Keycloak, leaving the effective `domain-service:project` token claim unverified."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: EventPublicationConfigurationTests.LocalKeycloakRealm_DeclaresScopedEventStoreWorkloadClientAndDefaultHumanScopes parses the imported JSON only; AspireTopologyFixture disables Keycloak and no issued-token/protected-project test exists.
-evidence-kind: verified-gap
+pre-runtime-contracts-status: open
+pre-runtime-contracts-disposition: actionable
+pre-runtime-contracts-verification-date: 2026-10-12
+pre-runtime-contracts-verification: EventPublicationConfigurationTests.LocalKeycloakRealm_DeclaresScopedEventStoreWorkloadClientAndDefaultHumanScopes parses the imported JSON only; AspireTopologyFixture disables Keycloak and no issued-token/protected-project test exists.
+pre-runtime-contracts-evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Keycloak-enabled workload token fixture
-next-action: Issue the configured workload token and prove its domain-service:project scope through the protected endpoint.
+pre-runtime-contracts-next-action: Issue the configured workload token and prove its domain-service:project scope through the protected endpoint.
 related: DW-569
 duplicate-of: DW-569
+
+status: done 2026-10-23
+disposition: done
+verification-date: 2026-10-23
+verification: The real Keycloak token has exactly the domain-service:project operation and tenants audience. The protected empty tenant projection succeeds with HTTP 200; issued tokens with wrong audience, missing operation or query-only operation are rejected. The maintained validator and eleven in-process persisted-end-state controls qualify this duplicate of DW-569 without business writes.
+verification-files: .github/workflows/ci.yml; src/Hexalith.Tenants.AppHost/Program.cs; tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs; tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs; scripts/validate-runtime-auth-contracts.py
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-569-571-572-577-592-runtime-contracts.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md`
+next-action: none; selected runtime and blocking-contract gap verified.
 
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 40 (2026-10-10)

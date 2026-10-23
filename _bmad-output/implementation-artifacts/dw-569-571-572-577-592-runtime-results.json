@@ -1,0 +1,303 @@
+{
+  "baselineChannel": {
+    "baselineEventStoreChannelWithoutTokenStatus": 400,
+    "configuredAppChannelToken": false,
+    "payload": "empty notification rejected before side effects"
+  },
+  "initialRuntime": {
+    "app_channel_tokens_isolated": true,
+    "client_credentials_grant": true,
+    "credentials_configured": true,
+    "empty_tenant_projection_only": true,
+    "eventstore_channel_admitted": true,
+    "eventstore_channel_admitted_http_status": 400,
+    "eventstore_missing_channel_rejected": true,
+    "eventstore_missing_channel_rejected_http_status": 401,
+    "eventstore_other_app_channel_rejected": true,
+    "eventstore_other_app_channel_rejected_http_status": 401,
+    "eventstore_wrong_channel_rejected": true,
+    "eventstore_wrong_channel_rejected_http_status": 401,
+    "invalid_client_secret_http_status": 401,
+    "invalid_client_secret_rejected": true,
+    "issued_project_operation": true,
+    "issued_tenants_audience": true,
+    "issued_workload_caller": true,
+    "passed": true,
+    "project_authorized": true,
+    "project_authorized_http_status": 200,
+    "project_bearer_cannot_replace_assertion": true,
+    "project_bearer_cannot_replace_assertion_http_status": 401,
+    "project_missing_assertion_rejected": true,
+    "project_missing_assertion_rejected_http_status": 401,
+    "project_missing_channel_rejected": true,
+    "project_missing_channel_rejected_http_status": 401,
+    "project_missing_operation_rejected": true,
+    "project_missing_operation_rejected_http_status": 401,
+    "project_missing_operation_rejected_token_issued": true,
+    "project_other_app_channel_rejected": true,
+    "project_other_app_channel_rejected_http_status": 401,
+    "project_wrong_audience_rejected": true,
+    "project_wrong_audience_rejected_http_status": 401,
+    "project_wrong_audience_rejected_token_issued": true,
+    "project_wrong_channel_rejected": true,
+    "project_wrong_channel_rejected_http_status": 401,
+    "project_wrong_operation_rejected": true,
+    "project_wrong_operation_rejected_http_status": 403,
+    "project_wrong_operation_rejected_token_issued": true,
+    "shared_keycloak_issuer": true,
+    "tls_verified": true,
+    "validator": "tenants-runtime-auth-contracts/v1",
+    "workload_token_http_status": 200
+  },
+  "rejectedAttempts": [
+    {
+      "context": "After individual EventStore/Tenants project restarts, own-sidecar invocation returned ERR_DIRECT_INVOKE/500 while direct checks passed. This rejected result prompted a full AppHost restart; no authorization or endpoint policy was changed. Only the later fresh-graph pass is accepted.",
+      "observations": {
+        "app_channel_tokens_isolated": true,
+        "client_credentials_grant": true,
+        "credentials_configured": true,
+        "eventstore_channel_admitted": true,
+        "eventstore_channel_admitted_http_status": 400,
+        "eventstore_missing_channel_rejected": true,
+        "eventstore_missing_channel_rejected_http_status": 401,
+        "eventstore_other_app_channel_rejected": true,
+        "eventstore_other_app_channel_rejected_http_status": 401,
+        "eventstore_sidecar_channel_delivered": false,
+        "eventstore_sidecar_channel_delivered_http_status": 500,
+        "eventstore_wrong_channel_rejected": true,
+        "eventstore_wrong_channel_rejected_http_status": 401,
+        "failed_check": "eventstore_sidecar_channel_delivered",
+        "invalid_client_secret_http_status": 401,
+        "invalid_client_secret_rejected": true,
+        "issued_project_operation": true,
+        "issued_tenants_audience": true,
+        "issued_workload_caller": true,
+        "passed": false,
+        "project_authorized": true,
+        "project_authorized_http_status": 200,
+        "project_bearer_cannot_replace_assertion": true,
+        "project_bearer_cannot_replace_assertion_http_status": 401,
+        "project_missing_assertion_rejected": true,
+        "project_missing_assertion_rejected_http_status": 401,
+        "project_missing_channel_rejected": true,
+        "project_missing_channel_rejected_http_status": 401,
+        "project_missing_operation_rejected": true,
+        "project_missing_operation_rejected_audience": true,
+        "project_missing_operation_rejected_caller": true,
+        "project_missing_operation_rejected_http_status": 401,
+        "project_missing_operation_rejected_operations": true,
+        "project_missing_operation_rejected_token_issued": true,
+        "project_other_app_channel_rejected": true,
+        "project_other_app_channel_rejected_http_status": 401,
+        "project_wrong_audience_rejected": true,
+        "project_wrong_audience_rejected_audience": true,
+        "project_wrong_audience_rejected_caller": true,
+        "project_wrong_audience_rejected_http_status": 401,
+        "project_wrong_audience_rejected_operations": true,
+        "project_wrong_audience_rejected_token_issued": true,
+        "project_wrong_channel_rejected": true,
+        "project_wrong_channel_rejected_http_status": 401,
+        "project_wrong_operation_rejected": true,
+        "project_wrong_operation_rejected_audience": true,
+        "project_wrong_operation_rejected_caller": true,
+        "project_wrong_operation_rejected_http_status": 403,
+        "project_wrong_operation_rejected_operations": true,
+        "project_wrong_operation_rejected_token_issued": true,
+        "shared_keycloak_issuer": true,
+        "validator": "tenants-runtime-auth-contracts/v1",
+        "workload_token_http_status": 200
+      }
+    }
+  ],
+  "runtime": {
+    "app_channel_tokens_isolated": true,
+    "client_credentials_grant": true,
+    "credentials_configured": true,
+    "empty_tenant_projection_only": true,
+    "eventstore_channel_admitted": true,
+    "eventstore_channel_admitted_http_status": 400,
+    "eventstore_missing_channel_rejected": true,
+    "eventstore_missing_channel_rejected_http_status": 401,
+    "eventstore_other_app_channel_rejected": true,
+    "eventstore_other_app_channel_rejected_http_status": 401,
+    "eventstore_sidecar_channel_delivered": true,
+    "eventstore_sidecar_channel_delivered_http_status": 400,
+    "eventstore_wrong_channel_rejected": true,
+    "eventstore_wrong_channel_rejected_http_status": 401,
+    "invalid_client_secret_http_status": 401,
+    "invalid_client_secret_rejected": true,
+    "issued_project_operation": true,
+    "issued_tenants_audience": true,
+    "issued_workload_caller": true,
+    "passed": true,
+    "project_authorized": true,
+    "project_authorized_http_status": 200,
+    "project_bearer_cannot_replace_assertion": true,
+    "project_bearer_cannot_replace_assertion_http_status": 401,
+    "project_missing_assertion_rejected": true,
+    "project_missing_assertion_rejected_http_status": 401,
+    "project_missing_channel_rejected": true,
+    "project_missing_channel_rejected_http_status": 401,
+    "project_missing_operation_rejected": true,
+    "project_missing_operation_rejected_audience": true,
+    "project_missing_operation_rejected_caller": true,
+    "project_missing_operation_rejected_http_status": 401,
+    "project_missing_operation_rejected_operations": true,
+    "project_missing_operation_rejected_token_issued": true,
+    "project_other_app_channel_rejected": true,
+    "project_other_app_channel_rejected_http_status": 401,
+    "project_wrong_audience_rejected": true,
+    "project_wrong_audience_rejected_audience": true,
+    "project_wrong_audience_rejected_caller": true,
+    "project_wrong_audience_rejected_http_status": 401,
+    "project_wrong_audience_rejected_operations": true,
+    "project_wrong_audience_rejected_token_issued": true,
+    "project_wrong_channel_rejected": true,
+    "project_wrong_channel_rejected_http_status": 401,
+    "project_wrong_operation_rejected": true,
+    "project_wrong_operation_rejected_audience": true,
+    "project_wrong_operation_rejected_caller": true,
+    "project_wrong_operation_rejected_http_status": 403,
+    "project_wrong_operation_rejected_operations": true,
+    "project_wrong_operation_rejected_token_issued": true,
+    "shared_keycloak_issuer": true,
+    "tls_verified": true,
+    "validator": "tenants-runtime-auth-contracts/v1",
+    "workload_token_http_status": 200
+  },
+  "runtimeProvenance": {
+    "capturedAtUtc": "2026-10-23T21:13:06.340119+00:00",
+    "loadedAssemblies": {
+      "eventstore": {
+        "healthy": true,
+        "mappedFilesMatchCurrentInodes": true,
+        "processIdentityBound": true,
+        "sha256": {
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll": "74ee03c55d8f1360a4fece6c4e1cfd1757ba27efbe282687b9e52c4b90c9b9d9",
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.EventStore.Admin.Abstractions.dll": "19041552c413cbd3e9c18485e9b12339ea74aba44afd43815417bda1c7f5a893",
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.EventStore.Client.dll": "06f0f130ea622860fb635648d6ec409251b843a8185e20487e23e46f75bcefda",
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll": "832ef23bf59d112c3b50965dea797f60ea26d66c03d0ba934921c7462365a425",
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.EventStore.DomainService.dll": "c5b11bdc9f197115d705233638215890c37e170fc12746dd52774013f045100f",
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.EventStore.Gateway.dll": "a6005f7eef6405de95a13075e3831b3faf7980df09b81c44346ab819db6421bc",
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.EventStore.Server.dll": "cf54c811d85fe8560a8eb8cd9fdd14dbd93310ece6b7857a501b2e4932b972e7",
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.EventStore.ServiceDefaults.dll": "486df84395d9fb59a93aeb8f68af0a3c07ef6f7527f0d8d7fbefa8b4370b01c6",
+          "references/Hexalith.EventStore/src/Hexalith.EventStore/bin/Debug/net10.0/Hexalith.EventStore.dll": "c861289d04cd479051a013c54acaf7694f0b64aafe1112c75dca32f2a40b971f"
+        }
+      },
+      "tenants": {
+        "healthy": true,
+        "mappedFilesMatchCurrentInodes": true,
+        "processIdentityBound": true,
+        "sha256": {
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.Commons.UniqueIds.dll": "74ee03c55d8f1360a4fece6c4e1cfd1757ba27efbe282687b9e52c4b90c9b9d9",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.EventStore.Admin.Abstractions.dll": "19041552c413cbd3e9c18485e9b12339ea74aba44afd43815417bda1c7f5a893",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.EventStore.Client.dll": "06f0f130ea622860fb635648d6ec409251b843a8185e20487e23e46f75bcefda",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.EventStore.Contracts.dll": "832ef23bf59d112c3b50965dea797f60ea26d66c03d0ba934921c7462365a425",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.EventStore.DomainService.dll": "c5b11bdc9f197115d705233638215890c37e170fc12746dd52774013f045100f",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.EventStore.Gateway.dll": "a6005f7eef6405de95a13075e3831b3faf7980df09b81c44346ab819db6421bc",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.EventStore.Server.dll": "cf54c811d85fe8560a8eb8cd9fdd14dbd93310ece6b7857a501b2e4932b972e7",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.EventStore.ServiceDefaults.dll": "486df84395d9fb59a93aeb8f68af0a3c07ef6f7527f0d8d7fbefa8b4370b01c6",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.Tenants.Contracts.dll": "2b55bb7e05184dc6ecff3a94389bf15647659d039281d6c7a0691149e53df6ac",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.Tenants.Server.dll": "e62d06e08cac8156bfcf65cf7bf14595f6e5b96b48a2c475329db1d36c785804",
+          "src/Hexalith.Tenants/bin/Debug/net10.0/Hexalith.Tenants.dll": "7b7c12e881558f64faca9eba5c67a00da5991ab075003b73511fe8d033f5f862"
+        }
+      }
+    },
+    "rootBaselineCommit": "a95d1039db3fb1004a93cee871e0358dd41c7b9d",
+    "rootCandidateStatus": [
+      " M .github/workflows/ci.yml",
+      " M _bmad-output/implementation-artifacts/deferred-work.md",
+      " M docs/maintenance-backlog.md",
+      " M src/Hexalith.Tenants.AppHost/Program.cs",
+      " M tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs",
+      " M tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs",
+      " M tests/test-summary.md",
+      "?? _bmad-output/implementation-artifacts/dw-569-571-572-577-592-runtime-results.json",
+      "?? _bmad-output/implementation-artifacts/dw-569-571-572-577-592-source-checks.json",
+      "?? _bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md",
+      "?? _bmad-output/implementation-artifacts/spec-dw-569-571-572-577-592-runtime-contracts.md",
+      "?? scripts/validate-runtime-auth-contracts.py"
+    ],
+    "rootDeclaredDependencies": {
+      "references/Hexalith.AI.Tools": {
+        "checkout": "3f194e17174994d308ec84af9ee2b5aa68674d0d",
+        "clean": true,
+        "gitlink": "3f194e17174994d308ec84af9ee2b5aa68674d0d"
+      },
+      "references/Hexalith.Builds": {
+        "checkout": "5e54e892e69c31f346d69cb79f19f04bce8b79cc",
+        "clean": true,
+        "gitlink": "5e54e892e69c31f346d69cb79f19f04bce8b79cc"
+      },
+      "references/Hexalith.Commons": {
+        "checkout": "1663028fb6d9f46a0bf17919edeb21bb99be1587",
+        "clean": true,
+        "gitlink": "1663028fb6d9f46a0bf17919edeb21bb99be1587"
+      },
+      "references/Hexalith.EventStore": {
+        "checkout": "f4df781cb7247c6a5f7549106b90d3748151edba",
+        "clean": true,
+        "gitlink": "f4df781cb7247c6a5f7549106b90d3748151edba"
+      },
+      "references/Hexalith.FrontComposer": {
+        "checkout": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+        "clean": true,
+        "gitlink": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631"
+      },
+      "references/Hexalith.McpCli": {
+        "checkout": "6b01b3dc57a241ebe5b3096be635469ff00d8221",
+        "clean": true,
+        "gitlink": "6b01b3dc57a241ebe5b3096be635469ff00d8221"
+      },
+      "references/Hexalith.Memories": {
+        "checkout": "63327920814a293e0168986be212deb10b81dc00",
+        "clean": true,
+        "gitlink": "63327920814a293e0168986be212deb10b81dc00"
+      },
+      "references/Hexalith.Platform": {
+        "checkout": "4ebe6798fe8bd6c22258f20c90d6861b7137c927",
+        "clean": true,
+        "gitlink": "4ebe6798fe8bd6c22258f20c90d6861b7137c927"
+      },
+      "references/Hexalith.PolymorphicSerializations": {
+        "checkout": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0",
+        "clean": true,
+        "gitlink": "221ac4592ba908ae7661ba1fa9e2d1fcc23baee0"
+      }
+    },
+    "runtimeBuildMode": "Debug/source"
+  },
+  "validatorFailureControls": [
+    {
+      "control": "reject unsafe state permissions",
+      "exitCode": 1,
+      "safeResult": {
+        "failed_check": "state_file_owner_only",
+        "passed": false,
+        "validator": "tenants-runtime-auth-contracts/v1"
+      }
+    },
+    {
+      "control": "reject symbolic state path",
+      "exitCode": 1,
+      "safeResult": {
+        "error": "local configuration or transport failure",
+        "exception_type": "OSError",
+        "passed": false,
+        "validator": "tenants-runtime-auth-contracts/v1"
+      }
+    },
+    {
+      "control": "reject nonlocal endpoint before network",
+      "exitCode": 1,
+      "safeResult": {
+        "app_channel_tokens_isolated": true,
+        "credentials_configured": true,
+        "failed_check": "verified_local_https_endpoint",
+        "passed": false,
+        "shared_keycloak_issuer": true,
+        "validator": "tenants-runtime-auth-contracts/v1"
+      }
+    }
+  ]
+}

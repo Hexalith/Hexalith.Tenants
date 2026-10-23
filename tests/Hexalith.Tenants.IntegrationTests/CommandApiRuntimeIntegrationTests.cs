@@ -14,12 +14,14 @@ using Hexalith.EventStore.Authentication;
 using Hexalith.EventStore.Contracts.Commands;
 using Hexalith.EventStore.Contracts.Problems;
 using Hexalith.EventStore.Contracts.Results;
+using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.EventStore.Models;
 using Hexalith.EventStore.Server.Actors;
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Server.Commands;
 using Hexalith.EventStore.ServiceDefaults.Authentication;
 using Hexalith.EventStore.Testing.Fakes;
+using Hexalith.FrontComposer.Shell.Services.Lifecycle;
 using Hexalith.Tenants.Configuration;
 using Hexalith.Tenants.Contracts.Commands;
 using Hexalith.Tenants.Contracts.Enums;
@@ -28,6 +30,8 @@ using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.IntegrationTests.Fixtures;
 using Hexalith.Tenants.Server.Aggregates;
 using Hexalith.Tenants.Server.Projections;
+using Hexalith.Tenants.UI.Services.Gateways;
+using Hexalith.Tenants.UI.State.TenantCommands;
 
 using CommandApiResponse = Hexalith.EventStore.Contracts.Commands.SubmitCommandResponse;
 using SubmitPipelineCommand = Hexalith.EventStore.Server.Pipeline.Commands.SubmitCommand;
@@ -56,6 +60,231 @@ public class CommandApiRuntimeIntegrationTests {
     private const string GlobalAdminExtensionKey = "actor:globalAdmin";
     private const string DomainRejectionProblemTypeBase = "https://hexalith.io/problems/domain-rejections";
     private static readonly JsonSerializerOptions ProblemDetailsJsonOptions = new(JsonSerializerDefaults.Web);
+
+    /// <summary>Checks workload and channel admission while preserving the persisted read-model contents.</summary>
+    /// <param name="scenario">The credential boundary to exercise.</param>
+    /// <param name="authorized">Whether the projection request should be admitted.</param>
+    [Theory]
+    [InlineData("valid", true)]
+    [InlineData("missing-channel", false)]
+    [InlineData("wrong-channel", false)]
+    [InlineData("missing-assertion", false)]
+    [InlineData("bearer-only", false)]
+    [InlineData("wrong-audience", false)]
+    [InlineData("wrong-operation", false)]
+    [InlineData("forged-signature", false)]
+    [InlineData("expired-token", false)]
+    [InlineData("wrong-issuer", false)]
+    [InlineData("wrong-caller", false)]
+    public async Task ProjectContractRequiresWorkloadScopeAndChannelWithoutPersistingEmptyProjection(string scenario, bool authorized)
+    {
+        await using var factory = new CommandApiWebApplicationFactory(presentWorkloadAssertion: false);
+        using HttpClient client = factory.CreateClient();
+        int initialStoredKeys = factory.ReadModelStore.Count;
+        const string administratorKey = "projection:global-administrators:singleton";
+        ReadModelEntry<GlobalAdministratorReadModel> sentinelBefore = await factory.ReadModelStore
+            .GetAsync<GlobalAdministratorReadModel>("statestore", administratorKey);
+        sentinelBefore.Value.ShouldNotBeNull();
+        var request = new ProjectionRequest("system", "tenants", UniqueIdHelper.GenerateSortableUniqueStringId(), []);
+        if (scenario != "missing-channel")
+        {
+            client.DefaultRequestHeaders.Add(DaprAppChannelToken.HeaderName,
+                scenario == "wrong-channel" ? "wrong-app-channel" : WorkloadChannelToken);
+        }
+        string assertion = CreateWorkloadAssertion(
+            audience: scenario == "wrong-audience" ? "sample" : WorkloadAudience,
+            operations: scenario == "wrong-operation" ? [EventStoreWorkloadOperations.DomainServiceQuery] : null,
+            issuer: scenario == "wrong-issuer" ? "untrusted-runtime-contract-issuer" : JwtIssuer,
+            caller: scenario == "wrong-caller" ? "sample" : "eventstore",
+            signingKey: scenario == "forged-signature" ? "forged-runtime-contract-signing-key-at-least-32-bytes" : JwtSigningKey,
+            issuedAt: scenario == "expired-token" ? DateTime.UtcNow.AddMinutes(-20) : null);
+        if (scenario == "bearer-only")
+        {
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", assertion);
+        }
+        else if (scenario != "missing-assertion")
+        {
+            client.DefaultRequestHeaders.Add(EventStoreWorkloadAuthenticationDefaults.AssertionHeaderName, assertion);
+        }
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/project", request);
+        if (authorized)
+        {
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            ProjectionResponse projection = (await response.Content.ReadFromJsonAsync<ProjectionResponse>()).ShouldNotBeNull();
+            projection.ProjectionType.ShouldBe("tenants");
+        }
+        else
+        {
+            response.StatusCode.ShouldBeOneOf(HttpStatusCode.Unauthorized, HttpStatusCode.Forbidden);
+        }
+        factory.ReadModelStore.Count.ShouldBe(initialStoredKeys, "empty tenant projections and rejected requests must not store business state");
+        ReadModelEntry<GlobalAdministratorReadModel> sentinelAfter = await factory.ReadModelStore
+            .GetAsync<GlobalAdministratorReadModel>("statestore", administratorKey);
+        JsonSerializer.Serialize(sentinelAfter.Value).ShouldBe(JsonSerializer.Serialize(sentinelBefore.Value));
+        sentinelAfter.ETag.ShouldBe(sentinelBefore.ETag);
+        (await factory.ReadModelStore.GetAsync<TenantReadModel>("statestore", "projection:tenants:" + request.AggregateId))
+            .Value.ShouldBeNull();
+        (await factory.ReadModelStore.GetAsync<TenantIndexReadModel>("statestore", "projection:tenant-index:singleton"))
+            .Value.ShouldBeNull();
+        (await factory.ReadModelStore.GetAsync<TenantAuditReadModel>("statestore", TenantAuditStreams.GetTenantKey(request.AggregateId)))
+            .Value.ShouldBeNull();
+    }
+
+    /// <summary>Checks that the production status response supplies the exact proof consumed by the UI gateway.</summary>
+    /// <param name="domain">The aggregate domain owning the command.</param>
+    /// <param name="aggregateId">The aggregate whose committed sequence is being proved.</param>
+    [Theory]
+    [InlineData("tenants", "tenant.contract")]
+    [InlineData("global-administrators", "global-administrators")]
+    public async Task CommandStatusContractPreservesProofFromRealProducerToUiGateway(string domain, string aggregateId)
+    {
+        string messageId = UniqueIdHelper.GenerateSortableUniqueStringId();
+        string correlationId = UniqueIdHelper.GenerateSortableUniqueStringId();
+        var record = new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow,
+            aggregateId, 2, null, null, null, messageId, correlationId)
+        {
+            Domain = domain,
+            CommittedEventSequence = 17,
+        };
+        ICommandStatusStore store = Substitute.For<ICommandStatusStore>();
+        _ = store.ReadStatusAsync("system", messageId, Arg.Any<CancellationToken>()).Returns(record);
+        await using var factory = new CommandApiWebApplicationFactory(statusStore: store, useLegacyStatusAdapter: false);
+        using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader"));
+
+        using HttpResponseMessage response = await client.GetAsync($"/api/v1/commands/status/{messageId}");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        CommandStatusResponse wire = (await response.Content.ReadFromJsonAsync<CommandStatusResponse>()).ShouldNotBeNull();
+        wire.MessageId.ShouldBe(messageId);
+        wire.CorrelationId.ShouldBe(correlationId);
+        wire.TenantId.ShouldBe("system");
+        wire.Domain.ShouldBe(domain);
+        wire.AggregateId.ShouldBe(aggregateId);
+        wire.EventCount.ShouldBe(2);
+        wire.CommittedEventSequence.ShouldBe(17);
+        wire.Status.ShouldBe(nameof(CommandStatus.Completed));
+        wire.StatusCode.ShouldBe((int)CommandStatus.Completed);
+
+        var gateway = new TenantCommandGateway(Substitute.For<Hexalith.EventStore.Client.Gateway.IEventStoreGatewayClient>(), new UlidFactory(), client);
+        var handle = new TenantCommandTrackingHandle(messageId, correlationId, aggregateId)
+        {
+            ExpectedDomain = domain,
+        };
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(handle);
+        result.Status.ShouldBe(CommandStatus.Completed);
+        result.HasVerifiedCommandIdentity.ShouldBeTrue();
+        result.EventCount.ShouldBe(wire.EventCount);
+        result.CommittedEventSequence.ShouldBe(wire.CommittedEventSequence);
+    }
+
+    /// <summary>Checks that incomplete or mismatched status fields withhold committed-sequence proof.</summary>
+    /// <param name="invalidProof">The persisted proof field to omit or contradict.</param>
+    [Theory]
+    [InlineData("missing-message")]
+    [InlineData("wrong-message")]
+    [InlineData("missing-correlation")]
+    [InlineData("wrong-correlation")]
+    [InlineData("missing-domain")]
+    [InlineData("wrong-domain")]
+    [InlineData("missing-aggregate")]
+    [InlineData("wrong-aggregate")]
+    [InlineData("missing-count")]
+    [InlineData("zero-count")]
+    [InlineData("negative-count")]
+    [InlineData("missing-sequence")]
+    [InlineData("zero-sequence")]
+    [InlineData("negative-sequence")]
+    [InlineData("count-exceeds-sequence")]
+    [InlineData("wrong-tenant")]
+    public async Task CommandStatusContractInvalidProducerProofWithholdsCommittedSequence(string invalidProof)
+    {
+        string messageId = UniqueIdHelper.GenerateSortableUniqueStringId();
+        string correlationId = UniqueIdHelper.GenerateSortableUniqueStringId();
+        var valid = new CommandStatusRecord(CommandStatus.Completed, DateTimeOffset.UtcNow,
+            "tenant.contract", 2, null, null, null, messageId, correlationId)
+        {
+            Domain = "tenants",
+            CommittedEventSequence = 17,
+        };
+        CommandStatusRecord record = invalidProof switch
+        {
+            "missing-message" => valid with
+            {
+                MessageId = null,
+            },
+            "wrong-message" => valid with
+            {
+                MessageId = UniqueIdHelper.GenerateSortableUniqueStringId(),
+            },
+            "missing-correlation" => valid with
+            {
+                CorrelationId = null,
+            },
+            "wrong-correlation" => valid with
+            {
+                CorrelationId = UniqueIdHelper.GenerateSortableUniqueStringId(),
+            },
+            "missing-domain" => valid with
+            {
+                Domain = null,
+            },
+            "wrong-domain" => valid with
+            {
+                Domain = "global-administrators",
+            },
+            "missing-aggregate" => valid with
+            {
+                AggregateId = null,
+            },
+            "wrong-aggregate" => valid with
+            {
+                AggregateId = "another-tenant",
+            },
+            "missing-count" => valid with
+            {
+                EventCount = null,
+            },
+            "zero-count" => valid with
+            {
+                EventCount = 0,
+            },
+            "negative-count" => valid with
+            {
+                EventCount = -1,
+            },
+            "missing-sequence" => valid with
+            {
+                CommittedEventSequence = null,
+            },
+            "zero-sequence" => valid with
+            {
+                CommittedEventSequence = 0,
+            },
+            "negative-sequence" => valid with
+            {
+                CommittedEventSequence = -1,
+            },
+            "count-exceeds-sequence" => valid with
+            {
+                EventCount = 18,
+            },
+            "wrong-tenant" => valid,
+            _ => throw new ArgumentOutOfRangeException(nameof(invalidProof)),
+        };
+        string authorizedTenant = invalidProof == "wrong-tenant" ? "other-system" : "system";
+        ICommandStatusStore store = Substitute.For<ICommandStatusStore>();
+        _ = store.ReadStatusAsync(authorizedTenant, messageId, Arg.Any<CancellationToken>()).Returns(record);
+        await using var factory = new CommandApiWebApplicationFactory(statusStore: store, useLegacyStatusAdapter: false);
+        using HttpClient client = CreateClientWithBearer(factory, CreateJwt("status-reader",
+            claims: [new Claim("eventstore:tenant", authorizedTenant)]));
+        using HttpResponseMessage response = await client.GetAsync($"/api/v1/commands/status/{messageId}");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var gateway = new TenantCommandGateway(Substitute.For<Hexalith.EventStore.Client.Gateway.IEventStoreGatewayClient>(), new UlidFactory(), client);
+        TenantCommandStatusResult result = await gateway.GetStatusAsync(
+            new TenantCommandTrackingHandle(messageId, correlationId, "tenant.contract"));
+        result.CommittedEventSequence.ShouldBeNull("invalid producer fields must withhold committed-sequence proof");
+    }
 
     public static IEnumerable<object[]> TenantRejectionProblemDetailsExpectations() {
         yield return [typeof(TenantNotFoundRejection), HttpStatusCode.NotFound, "tenant-not-found-rejection"];
@@ -2488,17 +2717,27 @@ public class CommandApiRuntimeIntegrationTests {
     private const string WorkloadChannelToken = "tenants-command-api-channel";
     private static readonly string[] VerifiedGlobalAdministrators = ["test-user", "external-global-admin"];
 
-    private static string CreateWorkloadAssertion() {
-        DateTime now = DateTime.UtcNow;
-        var descriptor = new SecurityTokenDescriptor {
-            Issuer = JwtIssuer,
-            Audience = WorkloadAudience,
+    private static string CreateWorkloadAssertion(
+        string audience = WorkloadAudience,
+        string[]? operations = null,
+        string issuer = JwtIssuer,
+        string caller = "eventstore",
+        string signingKey = JwtSigningKey,
+        DateTime? issuedAt = null)
+    {
+        DateTime now = issuedAt ?? DateTime.UtcNow;
+        var descriptor = new SecurityTokenDescriptor
+        {
+            Issuer = issuer,
+            Audience = audience,
             IssuedAt = now,
             NotBefore = now,
             Expires = now.AddMinutes(4),
-            Claims = new Dictionary<string, object>(StringComparer.Ordinal) {
-                [EventStoreWorkloadAuthenticationDefaults.CallerClaimType] = "eventstore",
-                [EventStoreWorkloadAuthenticationDefaults.OperationClaimType] = new[] {
+            Claims = new Dictionary<string, object>(StringComparer.Ordinal)
+            {
+                [EventStoreWorkloadAuthenticationDefaults.CallerClaimType] = caller,
+                [EventStoreWorkloadAuthenticationDefaults.OperationClaimType] = operations ?? new[]
+                {
                     EventStoreWorkloadOperations.DomainServiceProcess,
                     EventStoreWorkloadOperations.DomainServiceReplayState,
                     EventStoreWorkloadOperations.DomainServiceQuery,
@@ -2507,7 +2746,7 @@ public class CommandApiRuntimeIntegrationTests {
                 },
             },
             SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(JwtSigningKey)),
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
                 SecurityAlgorithms.HmacSha256),
         };
         return new Microsoft.IdentityModel.JsonWebTokens.JsonWebTokenHandler().CreateToken(descriptor);
@@ -2525,7 +2764,11 @@ public class CommandApiRuntimeIntegrationTests {
         ICommandStatusStore? statusStore = null,
         ICommandArchiveStore? archiveStore = null,
         bool useTestAuthentication = false,
-        bool presentWorkloadAssertion = true) : WebApplicationFactory<TenantBootstrapOptions> {
+        bool presentWorkloadAssertion = true,
+        bool useLegacyStatusAdapter = true) : WebApplicationFactory<TenantBootstrapOptions> {
+        /// <summary>Gets the isolated store so read-only projection contracts can verify its persisted end state.</summary>
+        public InMemoryReadModelStore ReadModelStore { get; } = new();
+
         /// <summary>
         /// EventStore Story 5.5: the domain-service routes accept only EventStore's app-channel token plus a
         /// short-lived workload assertion. The test client presents both, as the EventStore outbound handler does.
@@ -2546,7 +2789,7 @@ public class CommandApiRuntimeIntegrationTests {
             .UseSetting(DaprAppChannelToken.ConfigurationKey, WorkloadChannelToken)
             .ConfigureServices(services => {
             // The wire administrator flag is honored only for current members of the global-administrators read model.
-            var store = new InMemoryReadModelStore();
+            InMemoryReadModelStore store = ReadModelStore;
             store.SeedRaw(
                 "statestore",
                 "projection:global-administrators:singleton",
@@ -2569,7 +2812,7 @@ public class CommandApiRuntimeIntegrationTests {
             if (statusStore is not null) {
                 _ = services.RemoveAll<ICommandStatusStore>();
                 _ = services.AddSingleton<ICommandStatusStore>(
-                    new MessageIdentifyingCommandStatusStore(statusStore));
+                    useLegacyStatusAdapter ? new MessageIdentifyingCommandStatusStore(statusStore) : statusStore);
             }
 
             if (archiveStore is not null) {
