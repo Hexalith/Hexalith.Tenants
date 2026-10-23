@@ -54,6 +54,18 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 tests/scripts/test_pushall_default_branch.py
 
+      - name: Run the BMAD customization resolver regression lane
+        if: ${{ !cancelled() }}
+        run: python3 tests/scripts/test_resolve_customization.py
+
+      - name: Run the elicitation catalog regression lane
+        if: ${{ !cancelled() }}
+        run: python3 tests/scripts/test_elicitation_numbers.py
+
+      - name: Run the TEA enforcement regression lane
+        if: ${{ !cancelled() }}
+        run: python3 tests/scripts/test_tea_enforcement.py
+
   remove-focus-browser-guard:
     name: validate-remove-focus-in-chromium
     runs-on: ubuntu-latest

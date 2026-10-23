@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-292/DW-397/DW-417/DW-418/DW-601 closure (2026-10-23):** Checked Git prerequisites, unique elicitation method numbers and executable TEA/resolver regressions harden repository tooling. Exactly five records close: all 657 IDs remain, 540 done/117 open across 107 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-292-397-417-418-601-validation-evidence.md).
+
 **DW-180/DW-266/DW-473/DW-503/DW-574 closure (2026-10-23):** Generation retirement, causal callback isolation and captured correction ownership protect current state across cancellation, dismissal, remount and caller changes. Retention notifications and renderer-atomic guards preserve recovery without exposing another caller's intent or releasing unresolved admission. Exactly five records close: all 657 IDs remain, 535 done/122 open across 112 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-180-266-473-503-574-validation-evidence.md).
 
 **DW-301/DW-302/DW-321/DW-322/DW-323 closure (2026-10-22):** Shared lifecycle proof, lease and focus handling preserves caller/cancellation and exact ownership; typed evidence governs versions, routine tracker reads allocate no dictionary snapshots, and thirty inconclusive polls bound status waiting without discarding final event-backed proof. Exactly five records close: all 657 IDs remain, 530 done/127 open across 117 maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-301-302-321-322-323-validation-evidence.md).
@@ -2690,15 +2692,21 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Add executable in-repository verification for the TEA enforcement hook assets included in the reviewed range. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Add executable in-repository verification for the TEA enforcement hook assets included in the reviewed range. evidence: The mirrored `tea-enforce.cjs` assets advertise focused-test and registry-completeness enforcement, but no repository test imports the scanner or executes its pre/post/stop modes, so a disabled rule or an always-successful entry point would remain green.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .claude/skills/bmad-testarch-framework/resources/hooks/tea-enforce.cjs and .agents/skills/bmad-testarch-framework/resources/hooks/tea-enforce.cjs remain; repository tests do not import/execute their pre/post/stop scanner contract.
-evidence-kind: verified-gap
+pre-tooling-status: open
+status: done 2026-10-23
+pre-tooling-disposition: actionable
+disposition: done
+pre-tooling-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-tooling-verification: .claude/skills/bmad-testarch-framework/resources/hooks/tea-enforce.cjs and .agents/skills/bmad-testarch-framework/resources/hooks/tea-enforce.cjs remain; repository tests do not import/execute their pre/post/stop scanner contract.
+verification: Both mirrored TEA hooks pass executable scanner/registry/pre/post/stop/fail-open regressions in temporary roots; the suites are enrolled in the blocking Story Guards job. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
+pre-tooling-evidence-kind: verified-gap
+evidence-kind: verified-closure
 priority: P3
 owner: unassigned
 dependencies: TEA hook test harness
-next-action: Add focused scanner mode/registry/failure regressions in owning tooling tests.
+pre-tooling-next-action: Add focused scanner mode/registry/failure regressions in owning tooling tests.
+next-action: none; selected record closed with executable tooling evidence
 related: none
 
 ### DW-293: Blank `CommandSurfaceUnavailableReason` maps to `UnavailableReason.AggregateLocked`'s copy, which asserts a specific ("another command is already in progress") cause that may not be true
@@ -3865,15 +3873,21 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Add real explicit-project-root tests for the BMAD customization resolver.\n  evidence: Wrapper tests only inspect mocked argv; execute the resolver from a conflicting working directory and cover explicit-root precedence, fallback precedence, and warnings in the Python guard lane."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad/scripts/resolve_customization.py implements --project-root, candidate_project_roots precedence, and warn_on_masked_override. The tracked Python tests under tests/scripts only contain the gitlink regression lane; no direct resolver test executes conflicting cwd/explicit-root precedence and warnings.
-evidence-kind: verified-gap
+pre-tooling-status: open
+status: done 2026-10-23
+pre-tooling-disposition: actionable
+disposition: done
+pre-tooling-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-tooling-verification: _bmad/scripts/resolve_customization.py implements --project-root, candidate_project_roots precedence, and warn_on_masked_override. The tracked Python tests under tests/scripts only contain the gitlink regression lane; no direct resolver test executes conflicting cwd/explicit-root precedence and warnings.
+verification: Real resolver subprocesses prove explicit-root, cwd/script/skill fallback ordering, nested Git precedence, three-layer merge and masked-override diagnostics using isolated temporary installations. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
+pre-tooling-evidence-kind: verified-gap
+evidence-kind: verified-closure
 priority: P3
 owner: unassigned
 dependencies: Python 3.11+ and temporary fixture roots
-next-action: Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics.
+pre-tooling-next-action: Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics.
+next-action: none; selected record closed with executable tooling evidence
 related: none
 
 
@@ -4115,16 +4129,22 @@ location: .agents/skills/pushall/SKILL.md
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Stop the pushall per-repository procedure when its initial fetch fails.\n  evidence: `.agents/skills/pushall/SKILL.md` step 1 runs `fetch --all --prune` but does not branch on failure; later merge and pruning steps can use stale remote-tracking refs."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .agents/skills/pushall/SKILL.md per-repo step 1 runs fetch --all --prune with no failure branch; later merge/prune steps assume refreshed remote-tracking refs. The initial fetch prerequisite is still not enforced in the procedure.
+pre-tooling-status: open
+status: done 2026-10-23
+pre-tooling-disposition: actionable
+disposition: done
+pre-tooling-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-tooling-verification: .agents/skills/pushall/SKILL.md per-repo step 1 runs fetch --all --prune with no failure branch; later merge/prune steps assume refreshed remote-tracking refs. The initial fetch prerequisite is still not enforced in the procedure.
+verification: All three tracked pushall manifests explicitly stop the per-repository session after initial fetch failure, with failure recorded and every later numbered step skipped; execution tests prove no later Git operations or state changes. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
 verification-files: .agents/skills/pushall/SKILL.md
-evidence-kind: verified-defect
+pre-tooling-evidence-kind: verified-defect
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
 dependencies: Future authorized pushall skill change
-next-action: Add an explicit per-repository fetch-failure stop/skip path before merge, push, or pruning, and synchronize tracked skill copies.
+pre-tooling-next-action: Add an explicit per-repository fetch-failure stop/skip path before merge, push, or pruning, and synchronize tracked skill copies.
+next-action: none; selected record closed with executable tooling evidence
 related: DW-418, DW-428, DW-429
 
 
@@ -4135,16 +4155,22 @@ location: .agents/skills/pushall/SKILL.md
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md`\n  summary: Handle pushall checkout failure before continuing merge and final-branch steps.\n  evidence: `.agents/skills/pushall/SKILL.md` step 4 checks out the chosen default without a failure path, while steps 5–11 assume the checkout succeeded."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .agents/skills/pushall/SKILL.md step 4 checks out the chosen default branch without checking its result; steps 5-11 proceed and the final-branch guarantee can fail.
+pre-tooling-status: open
+status: done 2026-10-23
+pre-tooling-disposition: actionable
+disposition: done
+pre-tooling-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-tooling-verification: .agents/skills/pushall/SKILL.md step 4 checks out the chosen default branch without checking its result; steps 5-11 proceed and the final-branch guarantee can fail.
+verification: Existing switch error exits now have explicit diagnostics and an exact attached-HEAD postcondition. Execution tests cover real/simulated switch refusals, missing defaults, detached/wrong success and failed final inspection before merge or push. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
 verification-files: .agents/skills/pushall/SKILL.md
-evidence-kind: verified-defect
+pre-tooling-evidence-kind: verified-defect
+evidence-kind: verified-closure
 priority: P2
 owner: unassigned
 dependencies: Future authorized pushall skill change
-next-action: Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome.
+pre-tooling-next-action: Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome.
+next-action: none; selected record closed with executable tooling evidence
 related: DW-417, DW-428, DW-429
 
 
@@ -6598,15 +6624,21 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Preserve unique method numbers when elicitation catalog overrides replace shipped methods.\n  evidence: merge_extra accepts a replacement num that can collide with an existing method, while numeric lookup keeps the first collision and makes the other method unreachable by number."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: .agents/skills/bmad-advanced-elicitation/scripts/pick_methods.py merge_extra accepts replacement num unchanged; numeric lookup uses setdefault, so duplicate numbers leave later methods unreachable. Existing tests cover inherited numbering, not explicit collisions.
-evidence-kind: verified-defect
+pre-tooling-status: open
+status: done 2026-10-23
+pre-tooling-disposition: actionable
+disposition: done
+pre-tooling-verification-date: 2026-10-12
+verification-date: 2026-10-23
+pre-tooling-verification: .agents/skills/bmad-advanced-elicitation/scripts/pick_methods.py merge_extra accepts replacement num unchanged; numeric lookup uses setdefault, so duplicate numbers leave later methods unreachable. Existing tests cover inherited numbering, not explicit collisions.
+verification: Both elicitation catalog scripts reject duplicate merged method numbers while preserving inherited numbers, unique explicit numbers, automatic allocation and numeric lookup. CLI collisions exit 2 without partial output. See dw-292-397-417-418-601-validation-evidence.md for commands, independent review and limits.
+pre-tooling-evidence-kind: verified-defect
+evidence-kind: verified-closure
 priority: P3
 owner: unassigned
 dependencies: Local elicitation catalog ownership
-next-action: Reject or allocate unique explicit replacement method numbers and add collision coverage.
+pre-tooling-next-action: Reject or allocate unique explicit replacement method numbers and add collision coverage.
+next-action: none; selected record closed with executable tooling evidence
 related: none
 
 

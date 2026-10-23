@@ -34,9 +34,11 @@ authoritative. If it is unavailable, stop `/pushall` and report the missing inst
 - If a repo has no remote, push fails, or the local default branch has diverged from
   `origin/<default-branch>` (fast-forward not possible), record it as skipped/failed and continue
   with the rest — never stop the whole run for one repo.
-- End each processed repo back on its default branch. If the worktree attachment gate or default
-  branch resolution refuses a repo, preserve its HEAD, index and worktree instead and report it as
-  skipped (the fetch in step 1 may already have updated remote-tracking refs).
+- End each processed repo back on its default branch. If the worktree attachment gate, initial fetch, default
+  branch resolution or branch switch refuses a repo, report it as skipped and preserve its current
+  HEAD, index and worktree. Report the actual final branch; do not claim the default was reached.
+  Fetch may already have updated some remote-tracking refs, and step 3 may already have committed
+  local work before a switch refusal. Do not undo those completed operations.
 - Give a one-line progress update per repo as you go, and a final consolidated report (per repo:
   local and remote branches merged, local and remote branches deleted, anything skipped/failed,
   push status).
@@ -101,7 +103,11 @@ changes attached to the original HEAD and ask the owner to attach the intended b
 rerunning `/pushall`. A clean detached submodule checkout may proceed normally; a dirty repo
 must have a verified attached branch before step 3 creates a commit.
 
-1. `git -C <dir> fetch --all --prune`
+1. Run the checked initial fetch in the per-repo Bash session:
+   `git -C <dir> fetch --all --prune || { printf '%s\n' 'SKIP: initial fetch failed; no subsequent sync operations permitted.' >&2; exit 1; }`
+   If it fails, record the failure and skip steps 2–11 for this repo, continuing with other repos.
+   Do not resolve defaults, stage, commit, switch, merge, push or prune using partially refreshed
+   refs. A later retry requires a fresh successful initial fetch.
 2. Resolve origin's live default with the Bash block below, replacing `<dir>` with the shell-quoted
    repo directory. Keep `pushall_default_branch` as `<default-branch>` for every subsequent step.
    Do not infer it from local `main`/`master` or cached `origin/HEAD`. If the block fails, skip steps
@@ -173,16 +179,34 @@ else
     fi
 fi
 if git -C <dir> show-ref --verify --quiet "refs/heads/$pushall_default_branch"; then
-    git -C <dir> switch --no-guess "$pushall_default_branch" || exit 1
+    git -C <dir> switch --no-guess "$pushall_default_branch" || {
+        printf '%s\n' 'SKIP: cannot switch to the local default branch.' >&2
+        exit 1
+    }
 else
     pushall_local_ref_status=$?
     if [[ "$pushall_local_ref_status" != 1 ]]; then
         printf '%s\n' 'SKIP: cannot inspect the local default branch.' >&2
         exit 1
     fi
-    git -C <dir> switch --no-track --create "$pushall_default_branch" "$pushall_tracking_ref" || exit 1
+    git -C <dir> switch --no-track --create "$pushall_default_branch" "$pushall_tracking_ref" || {
+        printf '%s\n' 'SKIP: cannot create and switch to the local default branch.' >&2
+        exit 1
+    }
+fi
+pushall_actual_head=$(git -C <dir> symbolic-ref --quiet HEAD) || {
+    printf '%s\n' 'SKIP: cannot verify HEAD after switching to the default branch.' >&2
+    exit 1
+}
+if [[ "$pushall_actual_head" != "refs/heads/$pushall_default_branch" ]]; then
+    printf '%s\n' 'SKIP: HEAD does not match the selected default branch; no merge, push or pruning permitted.' >&2
+    exit 1
 fi
 ```
+
+On any step 4 failure, skip steps 5–11 for this repo and continue with the others. Record the
+failed operation and actual final branch; preserve any step 3 commit and do not attempt a forced
+switch, reset, merge, push or pruning as recovery.
 
 5. Try `git -C <dir> merge --ff-only "$pushall_tracking_ref"` to catch up with the remote first.
    If this fails because local and remote diverged, record it and skip the rest of this repo.

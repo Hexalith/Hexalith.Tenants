@@ -28,7 +28,7 @@ def documented_blocks(skill):
 
 def documented_command(skill, step):
     body = skill.read_text(encoding="utf-8").split("## Per-repo procedure", 1)[1]
-    return re.search(rf"(?m)^{step}\. (?:Try )?`([^`]+)`", body)[1]
+    return re.search(rf"(?ms)^{step}\. .*?`([^`]+)`", body)[1]
 
 
 class PushallDefaultBranchTests(unittest.TestCase):
@@ -58,7 +58,7 @@ class PushallDefaultBranchTests(unittest.TestCase):
         gitdir = Path(self.git(self.repo, "rev-parse", "--absolute-git-dir").stdout.decode().strip())
         return self.fixture.snapshot(), (gitdir / "config").read_bytes()
 
-    def run_block(self, skill, overrides=None, switch=False, steps=()):
+    def run_block(self, skill, overrides=None, switch=False, steps=(), initial_fetch=False):
         shim = Path(tempfile.mkdtemp(prefix="default trace ", dir=self.fixture.root))
         trace = shim / "commands.jsonl"
         script = shim / "git"
@@ -68,28 +68,31 @@ class PushallDefaultBranchTests(unittest.TestCase):
                           "    stream.write(json.dumps(args) + '\\n')\n"
                           "command = args[args.index('-C') + 2]\n"
                           f"overrides = {overrides or {}!r}\n"
-                          "if command in overrides:\n"
-                          "    status, output = overrides[command]\n"
+                          "key = 'head-check' if command == 'symbolic-ref' and args[-1] == 'HEAD' else command\n"
+                          "if key in overrides:\n"
+                          "    status, output = overrides[key]\n"
                           "    sys.stdout.write(output)\n"
                           "    sys.exit(status)\n"
                           f"os.execv({self.fixture.real_git!r}, ['git', *args])\n")
         script.chmod(0o755)
         env = dict(self.fixture.env, PATH=str(shim) + os.pathsep + self.fixture.env["PATH"])
         resolve, checkout = documented_blocks(skill)
-        command = resolve
+        command = (documented_command(skill, 1) + "\n" if initial_fetch else "") + resolve
         if switch:
             command += "\n" + checkout
         for step in steps:
             command += "\n" + documented_command(skill, step)
         command += '\nprintf "%s\\n" "$pushall_default_branch"'
         command = command.replace("<dir>", shlex.quote(str(self.repo)))
-        result = subprocess.run(["bash", "-e", "-c", command], env=env,
+        result = subprocess.run(["bash", "-c", command], env=env,
                                 capture_output=True, check=False)
         calls = [json.loads(line) for line in trace.read_text().splitlines()] if trace.exists() else []
         for args in calls:
             self.assertEqual(args[args.index("-C") + 1], str(self.repo))
             operation = args[args.index("-C") + 2:]
             allowed = ("remote", "ls-remote", "check-ref-format", "for-each-ref", "cat-file")
+            if initial_fetch:
+                allowed += ("fetch",)
             if switch:
                 allowed += ("symbolic-ref", "show-ref", "switch")
             if steps:
@@ -100,7 +103,7 @@ class PushallDefaultBranchTests(unittest.TestCase):
             if operation[0] == "symbolic-ref":
                 self.assertEqual(operation[:2], ["symbolic-ref", "--quiet"])
                 self.assertEqual(len(operation), 3, "Symbolic ref inspection must not write a target")
-                self.assertTrue(operation[2].startswith("refs/heads/"))
+                self.assertTrue(operation[2] == "HEAD" or operation[2].startswith("refs/heads/"))
         return result, calls
 
     def assert_resolves(self, expected):
@@ -345,6 +348,82 @@ class PushallDefaultBranchTests(unittest.TestCase):
             self.assertIn(b"cannot inspect local default branch attachment", result.stderr)
             self.assertFalse(any("switch" in args for args in calls))
             self.assertEqual(self.fixture.snapshot(), before)
+
+    def test_failed_initial_fetch_stops_before_any_later_operation(self):
+        self.fixture.dirty("combined")
+        before = self.snapshot()
+        for skill in SKILLS:
+            result, calls = self.run_block(skill, overrides={"fetch": (128, "")},
+                                           initial_fetch=True, switch=True, steps=(5, 8))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"initial fetch failed", result.stderr)
+            self.assertEqual([args[args.index("-C") + 2] for args in calls], ["fetch"])
+            self.assertEqual(self.snapshot(), before)
+
+    def test_successful_initial_fetch_allows_resolution_and_switch(self):
+        for skill in SKILLS:
+            result, calls = self.run_block(skill, initial_fetch=True, switch=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(calls[0][-3:], ["fetch", "--all", "--prune"])
+            self.assertEqual(self.git(self.repo, "symbolic-ref", "HEAD").stdout,
+                             b"refs/heads/main\n")
+
+    def test_failed_switch_stops_before_merge_and_push(self):
+        for missing in (False, True):
+            if missing:
+                self.default("master", local=False)
+            before = self.snapshot()
+            for skill in SKILLS:
+                result, calls = self.run_block(skill, overrides={"switch": (128, "")},
+                                               switch=True, steps=(5, 8))
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(b"switch to the local default branch", result.stderr)
+                self.assertFalse(any("merge" in args or "push" in args for args in calls))
+                self.assertEqual(self.snapshot(), before)
+
+    def test_real_switch_refusal_preserves_dirty_work(self):
+        self.git(self.repo, "checkout", "-b", "fix/dirty")
+        (self.repo / "tracked.txt").write_bytes(b"branch change\n")
+        self.git(self.repo, "add", "tracked.txt")
+        self.git(self.repo, "commit", "-m", MESSAGE)
+        self.fixture.dirty("combined")
+        before = self.snapshot()
+        for skill in SKILLS:
+            result, calls = self.run_block(skill, switch=True, steps=(5, 8))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"cannot switch", result.stderr)
+            self.assertFalse(any("merge" in args or "push" in args for args in calls))
+            self.assertEqual(self.snapshot(), before)
+
+    def test_successful_switch_without_correct_head_is_refused(self):
+        before = self.snapshot()
+        for skill in SKILLS:
+            result, calls = self.run_block(skill, overrides={"switch": (0, "")},
+                                           switch=True, steps=(5, 8))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"cannot verify HEAD", result.stderr)
+            self.assertFalse(any("merge" in args or "push" in args for args in calls))
+            self.assertEqual(self.snapshot(), before)
+        self.git(self.repo, "checkout", "-b", "fix/other")
+        before = self.snapshot()
+        for skill in SKILLS:
+            result, calls = self.run_block(skill, overrides={"switch": (0, "")},
+                                           switch=True, steps=(5, 8))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"does not match", result.stderr)
+            self.assertFalse(any("merge" in args or "push" in args for args in calls))
+            self.assertEqual(self.snapshot(), before)
+
+    def test_post_switch_inspection_error_stops_before_merge_and_push(self):
+        self.git(self.repo, "checkout", "main")
+        before = self.snapshot()
+        for skill in SKILLS:
+            result, calls = self.run_block(skill, overrides={"head-check": (128, "refs/heads/main\n")},
+                                           switch=True, steps=(5, 8))
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"cannot verify HEAD", result.stderr)
+            self.assertFalse(any("merge" in args or "push" in args for args in calls))
+            self.assertEqual(self.snapshot(), before)
 
     def test_selected_master_receives_commit_while_nondefault_main_can_be_pruned(self):
         self.default("master", local=False)

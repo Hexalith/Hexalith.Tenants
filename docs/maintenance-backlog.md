@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-292/DW-397/DW-417/DW-418/DW-601 closure (2026-10-23):** Checked Git prerequisites, unique elicitation method numbers and executable TEA/resolver regressions harden repository tooling. Exactly five records close: all 657 IDs remain, 540 done/117 open across 107 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-292-397-417-418-601-validation-evidence.md).
+
 **DW-180/DW-266/DW-473/DW-503/DW-574 closure (2026-10-23):** Generation retirement, causal callback isolation and captured correction ownership protect current state across cancellation, dismissal, remount and caller changes. Retention notifications and renderer-atomic guards preserve recovery without exposing another caller's intent or releasing unresolved admission. Exactly five records close: all 657 IDs remain, 535 done/122 open across 112 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md).
 
 **DW-301/DW-302/DW-321/DW-322/DW-323 closure (2026-10-22):** Shared lifecycle proof, lease and focus handling preserves caller/cancellation and exact ownership; typed evidence governs versions, routine tracker reads allocate no dictionary snapshots, and thirty inconclusive polls bound status waiting without discarding final event-backed proof. Exactly five records close: all 657 IDs remain, 530 done/127 open across 117 maintenance rows. Historical fields, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-301-302-321-322-323-validation-evidence.md).
@@ -202,8 +204,8 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 535 |
-| actionable | 60 |
+| done | 540 |
+| actionable | 55 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 6 |
@@ -249,8 +251,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
 | DW-317 | P2 | Defect / actionable | unassigned | browser layout fixture | Repair the remaining form/label scope stamping and verify computed layout at supported widths. |
 | DW-387 | P2 | Defect / actionable | unassigned | Same-id idempotency/recovery contract | Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards. |
-| DW-417 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Add an explicit per-repository fetch-failure stop/skip path before merge, push, or pruning, and synchronize tracked skill copies. |
-| DW-418 | P2 | Defect / actionable | unassigned | Future authorized pushall skill change | Require successful checkout and verify the current branch before continuing merge/push/prune steps; retain per-repo failure outcome. |
 | DW-444 | P2 | Defect / actionable | unassigned | Focus only when the removed panel actually owned focus | Capture/reset/remount focus and restore the actual correction launcher at safe and narrow widths. |
 | DW-448 | P2 | Defect / actionable | unassigned | Attempt wait/deadline threshold | Choose a bounded unmatched-walk/deadline threshold within the existing recovery contract and transition exhausted waiting to Delayed with tests. |
 | DW-511 | P2 | Defect / actionable | Hexalith.EventStore | EventStore ambiguity contract | Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions. |
@@ -303,11 +303,8 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-212 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Implement the recorded shared parameter diagnostic and its component regression. |
 | DW-213 | P3 | Defect / actionable | FrontComposer | FrontComposer owning change | Add a rendered-element readiness guard and an explicit pre-render focus test. |
 | DW-571 | P3 | Defect / actionable | unassigned | EventStore hosting helper/runtime token contract | Wire and evaluate the EventStore app/sidecar token pair, then verify missing-token denial. |
-| DW-601 | P3 | Defect / actionable | unassigned | Local elicitation catalog ownership | Reject or allocate unique explicit replacement method numbers and add collision coverage. |
 | DW-209 | P3 | Gap / actionable | unassigned | none | Add runtime shell layout assertions for the three remaining dense pages. |
 | DW-211 | P3 | Gap / actionable | unassigned | authenticated browser navigation fixture | Capture browser activeElement after a missing-row detail return and assert the list heading is focused. |
-| DW-292 | P3 | Gap / actionable | unassigned | TEA hook test harness | Add focused scanner mode/registry/failure regressions in owning tooling tests. |
-| DW-397 | P3 | Gap / actionable | unassigned | Python 3.11+ and temporary fixture roots | Add isolated temporary-project resolver tests for explicit root, cwd/script/skill fallback ordering, and masked-override diagnostics. |
 
 ## Unverified risks and recommendations
 

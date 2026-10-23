@@ -1,0 +1,24 @@
+{
+  "baseline": "349379e305d4eda41d36821376073308ef8a8ea3",
+  "selected": [
+    292,
+    397,
+    417,
+    418,
+    601
+  ],
+  "records": 657,
+  "done": 540,
+  "open": 117,
+  "maintenance_rows": 107,
+  "unrelated_records_preserved": 652,
+  "original_selected_fields_preserved": true,
+  "dispositions": {
+    "accepted-limitation": 6,
+    "actionable": 55,
+    "awaiting-decision": 23,
+    "blocked": 15,
+    "done": 540,
+    "uncertain": 18
+  }
+}

@@ -27,7 +27,8 @@ path to a JSON file; each item is {code, category, method_name, description,
 output_pattern}. An extra whose method_name matches a catalog row
 (case-insensitive) REPLACES it and keeps that row's num — retune a shipped
 method; others append and get the next free nums, so new methods and whole new
-categories are first-class and number-addressable everywhere.
+categories are first-class and number-addressable everywhere. Explicit numbers are
+accepted when unique; a collision rejects the overlay instead of hiding a method.
 
 Default output is lean tab-separated text for an LLM to read; --json for structured.
 """
@@ -72,9 +73,10 @@ def load_extra(spec: str) -> list[dict]:
 def merge_extra(rows: list[dict], extras: list[dict]) -> list[dict]:
     """Extras replace a catalog row with the same method_name (case-insensitive),
     otherwise append — so overrides can retune shipped methods or grow the catalog.
-    A replacement inherits the shipped row's num; appended extras get the next
-    free nums, so every merged method stays addressable by number."""
-    merged = list(rows)
+    A replacement inherits the shipped row's num unless it supplies a unique
+    explicit num; appended extras without numbers get the next free nums.
+    Duplicate explicit numbers reject the overlay rather than hiding a method."""
+    merged = [dict(row) for row in rows]
     index = {r["method_name"].lower(): i for i, r in enumerate(merged)}
     for e in extras:
         key = e["method_name"].lower()
@@ -85,6 +87,12 @@ def merge_extra(rows: list[dict], extras: list[dict]) -> list[dict]:
         else:
             index[key] = len(merged)
             merged.append(dict(e))
+    used_numbers = set()
+    for r in merged:
+        if r["num"]:
+            if r["num"] in used_numbers:
+                raise ValueError(f"duplicate method number: {r['num']}")
+            used_numbers.add(r["num"])
     next_num = max((int(r["num"]) for r in merged if r["num"].isdigit()), default=0) + 1
     for r in merged:
         if not r["num"]:
