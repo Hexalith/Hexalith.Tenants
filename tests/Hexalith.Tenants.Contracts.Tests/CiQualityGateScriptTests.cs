@@ -518,6 +518,17 @@ public class CiQualityGateScriptTests {
             "- Hexalith.Tenants.Contracts dependencies: Hexalith.Commons.UniqueIds, Hexalith.EventStore.Contracts, Hexalith.McpCli.Abstractions");
     }
 
+    /// <summary>
+    /// Qualifies restore-backed version ranges and framework groups through the package validator.
+    /// </summary>
+    [Fact]
+    public async Task PackageValidatorQualifiesDependencyRangesAndFrameworkBoundaries()
+    {
+        CommandResult result = await RunAsync(FindRepoRoot(), "python3", "tests/scripts/test_nuget_dependency_ranges.py");
+        result.ExitCode.ShouldBe(0, result.Output + result.Error);
+        result.Error.ShouldContain("OK");
+    }
+
     private static string CoverageClass(string filename, string[] lines)
         => $"""
                     <class name="{Path.GetFileNameWithoutExtension(filename)}" filename="{filename}" line-rate="1" branch-rate="1">

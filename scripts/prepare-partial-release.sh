@@ -29,7 +29,12 @@ while IFS= read -r package_id || [ -n "$package_id" ]; do
   expected_hash="$(awk -v id="$package_id" '$2 == id { print $1 }' "$state_directory/existing-package-sha256")"
   [ -n "$expected_hash" ] || { echo "[partial-release-recovery] Existing package $package_id has no reviewed hash." >&2; exit 1; }
   actual_hash="$(sha256sum "$package_file" | awk '{ print $1 }')"
-  [ "$actual_hash" = "$expected_hash" ] || { echo "[partial-release-recovery] Existing package $package_id does not match the reviewed source." >&2; exit 1; }
+  observed_package="$state_directory/${package_id}.${version}.nupkg"
+  [ -f "$observed_package" ] || recovery_fail "Existing package $package_id has no retained destination archive."
+  observed_hash="$(sha256sum "$observed_package" | awk '{ print $1 }')"
+  [ "$observed_hash" = "$expected_hash" ] || recovery_fail "Existing package $package_id destination archive changed after recovery validation."
+  python3 "$(dirname "${BASH_SOURCE[0]}")/release-package-content.py" compare "$package_file" "$observed_package" --reviewed-sha256 "$actual_hash" ||
+    recovery_fail "Existing package $package_id does not match the reviewed source."
 done < "$state_directory/existing-packages"
 
 recovery_require_manifest

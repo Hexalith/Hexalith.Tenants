@@ -18,7 +18,7 @@ SOURCE_SHA = "a" * 40
 
 # Installed only in each temporary test directory. No live destination is reachable.
 CLIENT = r'''
-import json, os, pathlib, sys
+import base64, json, os, pathlib, sys
 kind = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 root = pathlib.Path(os.environ["RECOVERY_FIXTURE"])
@@ -29,27 +29,42 @@ with (root / "calls.jsonl").open("a") as log:
     log.write(json.dumps([kind, *args]) + "\n")
 def save(): state_path.write_text(json.dumps(state))
 def content(package_id): return "reviewed fixture package " + package_id + "\n"
+def binary_content(package_id):
+    if package_id in state.get("nuget_content", {}): return state["nuget_content"][package_id].encode()
+    encoded = state.get("package_content_base64", {}).get(package_id)
+    return base64.b64decode(encoded) if encoded else content(package_id).encode()
 def fail(): sys.exit("Unexpected fixture request: " + kind + " " + repr(args))
 if kind == "curl":
     url = next((a for a in args if a.startswith("https://")), "")
     if "v3-flatcontainer/" in url:
         package_id = next((p["id"] for p in manifest["packages"] if "/" + p["id"].lower() + "/" in url), None)
         if package_id is None: fail()
+        statuses = state.get("nuget_statuses", {}).get(package_id, [])
+        status = statuses.pop(0) if statuses else (200 if package_id in state["packages"] else 404)
+        if statuses or package_id in state.get("nuget_statuses", {}): save()
         if "--output" in args and args[args.index("--output") + 1] != "/dev/null":
-            pathlib.Path(args[args.index("--output") + 1]).write_text(content(package_id))
-        else: print(200 if package_id in state["packages"] else 404)
+            output = pathlib.Path(args[args.index("--output") + 1])
+            output.write_bytes(binary_content(package_id) if status == 200 else b"not ready")
+            if state.get("mutate_package_on_nuget"):
+                pathlib.Path("nupkgs/" + package_id + ".1.2.3.nupkg").write_bytes(binary_content(package_id))
+            if state.get("mutate_manifest_on_nuget"):
+                path = pathlib.Path(os.environ["HEXALITH_RELEASE_PACKAGE_MANIFEST"])
+                path.write_text(path.read_text() + "\n")
+            if "--write-out" in args: print(status)
+            elif status != 200: sys.exit(22)
+        else: print(status)
     elif "/v2/tenants/manifests/" in url: print(200 if state["container"] else 404)
     else: fail()
 elif kind == "gh":
     if args[0] == "api":
         endpoint = args[2] if args[1] in ("--include", "--method") else args[1]
         if args[1] == "--method": endpoint = args[3]
-        if endpoint.endswith("git/ref/heads/main"): print(os.environ["GITHUB_SHA"])
+        if endpoint.endswith("git/ref/heads/main"): print(state.get("live_main_sha", os.environ["GITHUB_SHA"]))
         elif "/actions/workflows/" in endpoint: print(1)
         elif "/git/ref/tags/" in endpoint:
             if "--include" in args: print("HTTP/2.0 200 OK" if state["tag"] else "HTTP/2.0 404 Not Found")
-            elif "--jq" in args: print("commit" if args[-1] == ".object.type" else os.environ["GITHUB_SHA"])
-            else: print(json.dumps({"object": {"type": "commit", "sha": os.environ["GITHUB_SHA"]}}))
+            elif "--jq" in args: print("commit" if args[-1] == ".object.type" else state.get("tag_sha", os.environ["GITHUB_SHA"]))
+            else: print(json.dumps({"object": {"type": "commit", "sha": state.get("tag_sha", os.environ["GITHUB_SHA"])}}))
         elif "/releases/tags/" in endpoint:
             if "--include" in args: print("HTTP/2.0 200 OK" if state["release"] else "HTTP/2.0 404 Not Found")
             else:
@@ -66,7 +81,8 @@ elif kind == "gh":
                 pathlib.Path("nupkgs/" + manifest["packages"][-1]["id"] + ".1.2.3.nupkg").write_text("changed after first proof")
             if state.get("mutate_state_on_download"):
                 (root / "state/container-state").write_text("present\n")
-            sys.stdout.write(asset["content"])
+            if "base64" in asset: sys.stdout.buffer.write(base64.b64decode(asset["base64"]))
+            else: sys.stdout.write(asset["content"])
         else: fail()
     elif args[:2] in (["release", "upload"], ["release", "create"]):
         if "--clobber" in args: fail()
@@ -93,11 +109,20 @@ elif kind == "dotnet":
         if package is None: fail()
         version = next(a.split("=", 1)[1] for a in args if a.startswith("-p:Version="))
         directory = pathlib.Path(args[args.index("--output") + 1])
-        (directory / (package["id"] + "." + version + ".nupkg")).write_text(content(package["id"]))
+        encoded = state.get("prepared_package_base64", {}).get(package["id"])
+        raw = base64.b64decode(encoded) if encoded else content(package["id"]).encode()
+        (directory / (package["id"] + "." + version + ".nupkg")).write_bytes(raw)
+    elif args[:3] == ["nuget", "verify", "--all"]:
+        if len(args) != 4 or not pathlib.Path(args[3]).is_file(): fail()
+        print("native signature verifier fixture")
+        sys.exit(state.get("signature_verifier_exit", 0))
     elif args[:2] == ["nuget", "push"]:
         if args[-1] != "fixture-key": fail()
         state["packages"].append(pathlib.Path(args[2]).name.removesuffix(".1.2.3.nupkg")); save()
-    elif args[0] == "publish": state["container"] = True; save()
+    elif args[0] == "publish":
+        for prefix in ("-p:ContainerProvenanceSourceSha=", "-p:ContainerProvenanceReleaseVersion=", "-p:ContainerProvenanceCreated="):
+            if not any(a.startswith(prefix) and a != prefix for a in args): fail()
+        state["container"] = True; save()
     else: fail()
 elif kind == "docker":
     if args != ["login", "fixture.invalid", "--username", "fixture-user", "--password-stdin"]: fail()
@@ -115,6 +140,8 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         (self.root / "tools").mkdir()
         (self.root / "tools/release-packages.json").write_text((ROOT / "tools/release-packages.json").read_text())
         (self.root / "scripts").symlink_to(ROOT / "scripts", target_is_directory=True)
+        (self.root / "references").mkdir()
+        (self.root / "references/Hexalith.Builds").symlink_to(ROOT / "references/Hexalith.Builds", target_is_directory=True)
         self.manifest = json.loads((ROOT / "tools/release-packages.json").read_text())
         self.manifest["packages"].reverse()
         for index, package in enumerate(self.manifest["packages"]):
@@ -142,6 +169,10 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
             "HEXALITH_ZOT_API_KEY": "fixture-key", "GITHUB_OUTPUT": str(self.root / "outputs"),
         }
         self.environment.pop("NUGET_API_KEY", None)
+        self.environment["HEXALITH_RELEASE_NUGET_WAIT_SECONDS"] = "0"
+        self.environment["HEXALITH_RELEASE_NUGET_WAIT_INTERVAL"] = "0"
+        (self.root / "sitecustomize.py").write_text("from release_registry_fixture import install\ninstall()\n")
+        self.environment["PYTHONPATH"] = str(self.root) + os.pathsep + str(ROOT / "tests/scripts")
 
     def save(self):
         self.destination_path.write_text(json.dumps(self.destinations))
@@ -311,7 +342,9 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         (state / "previous").write_text("preserved")
         result = self.run_script("validate-partial-release-recovery.sh", accepted=False)
         self.assertIn("requires evidence of an existing partial release", result.stderr)
-        self.assertEqual(list(state.iterdir()), [state / "previous"])
+        self.assertEqual((state / "previous").read_text(), "preserved")
+        self.assertFalse((state / "source-sha").exists())
+        self.assertEqual(len(list((state / "failures").iterdir())), 1)
         self.assertFalse((self.root / "outputs").exists())
 
     def test_package_without_tag_is_existing_evidence(self):
@@ -352,7 +385,8 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
                              for call in self.calls()[previous_reads:] if call[0] == "curl"]
         self.assertEqual(verification_urls,
                          [f"https://api.nuget.org/v3-flatcontainer/{p.lower()}/1.2.3/{p.lower()}.1.2.3.nupkg"
-                          for p in self.ids] + ["https://fixture.invalid/v2/tenants/manifests/1.2.3"])
+                          for p in self.ids])
+        self.assertTrue(any(call[0] == "oci" for call in self.calls()[previous_reads:]))
 
     def test_changed_inventory_refuses_before_build_or_publication(self):
         self.prepare()
@@ -487,6 +521,115 @@ class PartialReleaseRecoveryTests(unittest.TestCase):
         self.save()
         result = self.run_script("verify-partial-release.sh", accepted=False)
         self.assertIn("does not match the reviewed package", result.stderr)
+
+    def test_invalid_existing_oci_content_is_rejected_without_publication(self):
+        for mutation in ("label", "platform", "digest", "size", "unresolved", "negotiation"):
+            with self.subTest(mutation=mutation):
+                self.destinations.update(container=True, oci_mutation=mutation)
+                self.save()
+                self.run_script("validate-partial-release-recovery.sh", accepted=False)
+                self.assert_no_publication()
+
+    def test_oci_network_read_cannot_hide_source_or_preparation_changes(self):
+        for mutation in ("mutate_main_on_oci", "mutate_state_on_oci", "mutate_manifest_on_oci"):
+            with self.subTest(mutation=mutation):
+                self.destinations = {"packages": [], "container": True, "tag": True, "release": None}
+                self.save()
+                self.prepare()
+                self.destinations[mutation] = True
+                self.save()
+                self.environment["NUGET_API_KEY"] = "fixture-key"
+                (self.root / "calls.jsonl").write_text("")
+                result = self.run_script("publish-partial-release.sh", accepted=False)
+                self.assertIn("changed", result.stderr)
+                self.assert_no_publication()
+
+    def test_signed_existing_nuget_package_can_prepare_matching_unsigned_payload(self):
+        import base64
+        import io
+        import zipfile
+        unsigned, signed = io.BytesIO(), io.BytesIO()
+        with zipfile.ZipFile(unsigned, "w") as archive:
+            archive.writestr("payload.dll", b"reviewed payload")
+        with zipfile.ZipFile(signed, "w") as archive:
+            archive.writestr("payload.dll", b"reviewed payload")
+            archive.writestr(".signature.p7s", b"repository signing fixture")
+        package_id = self.ids[0]
+        self.destinations.update(packages=[package_id],
+            package_content_base64={package_id: base64.b64encode(signed.getvalue()).decode()},
+            prepared_package_base64={package_id: base64.b64encode(unsigned.getvalue()).decode()})
+        self.save()
+        self.prepare()
+        observed = self.root / "state" / (package_id + ".1.2.3.nupkg")
+        self.assertEqual(observed.read_bytes(), signed.getvalue())
+        self.assertIn("existing-package-sha256", (self.root / "state/prepared-state-sha256").read_text())
+        observed.write_bytes(b"changed observed archive")
+        result = self.run_script("prepare-partial-release.sh", accepted=False)
+        self.assertIn("destination archive changed", result.stderr)
+
+    def test_rejected_oci_observations_are_retained_without_replacing_accepted_state(self):
+        self.destinations.update(packages=[self.ids[0]], container=True)
+        self.save()
+        self.run_script("validate-partial-release-recovery.sh")
+        state = self.root / "state"
+        accepted = {path: path.read_bytes() for path in state.rglob("*") if path.is_file()}
+        self.destinations["oci_mutation"] = "label"
+        self.save()
+        self.run_script("validate-partial-release-recovery.sh", accepted=False)
+        for path, raw in accepted.items(): self.assertEqual(path.read_bytes(), raw)
+        failures = list((state / "failures").iterdir())
+        self.assertEqual(len(failures), 1)
+        self.assertTrue((failures[0] / (self.ids[0] + ".1.2.3.nupkg")).is_file())
+        self.assertIn("provenance-label-mismatch", (failures[0] / "oci-validation.stderr.log").read_text())
+        self.assertIn("rejected", (failures[0] / "validation-result").read_text())
+
+    def test_changed_existing_oci_digest_refuses_before_publication(self):
+        self.destinations["container"] = True
+        self.save()
+        self.prepare()
+        self.destinations["oci_generation"] = 1
+        self.save()
+        self.environment["NUGET_API_KEY"] = "fixture-key"
+        result = self.run_script("publish-partial-release.sh", accepted=False)
+        self.assertIn("digest changed", result.stderr)
+        self.assert_no_publication()
+
+    def test_new_oci_destination_refuses_before_any_publication(self):
+        self.prepare()
+        self.destinations["container"] = True
+        self.save()
+        self.environment["NUGET_API_KEY"] = "fixture-key"
+        self.run_script("publish-partial-release.sh", accepted=False)
+        self.assert_no_publication()
+
+    def test_changed_oci_receipt_refuses_before_clients(self):
+        self.destinations["container"] = True
+        self.save()
+        self.prepare()
+        receipt = self.root / "state/oci-validated/oci-validation.json"
+        receipt.write_text(receipt.read_text() + "\n")
+        (self.root / "calls.jsonl").write_text("")
+        self.environment["NUGET_API_KEY"] = "fixture-key"
+        self.run_script("publish-partial-release.sh", accepted=False)
+        self.assertEqual(self.calls(), [])
+
+    def test_final_verification_rejects_changed_nuget_bytes(self):
+        self.prepare()
+        self.publish()
+        self.destinations = json.loads(self.destination_path.read_text())
+        self.destinations["nuget_content"] = {self.ids[-1]: "wrong bytes"}
+        self.save()
+        result = self.run_script("verify-partial-release.sh", accepted=False)
+        self.assertIn("does not match the reviewed package", result.stderr)
+
+    def test_evidence_paths_cannot_escape_workspace(self):
+        with tempfile.TemporaryDirectory() as outside:
+            for value in (outside, str(self.root / "escape/state")):
+                if value != outside: (self.root / "escape").symlink_to(outside, target_is_directory=True)
+                self.environment["HEXALITH_RECOVERY_STATE_DIRECTORY"] = value
+                self.run_script("validate-partial-release-recovery.sh", accepted=False)
+                self.assert_no_publication()
+                self.assertEqual(list(Path(outside).iterdir()), [])
 
     def test_release_metadata_is_rechecked_before_publication(self):
         self.environment["NUGET_API_KEY"] = "fixture-key"

@@ -75,16 +75,33 @@ public class PartialReleaseVerificationTests
             await File.WriteAllTextAsync(releasePath, release.ToJsonString());
             const string fixture = """
                 set -euo pipefail
+                command python3 "$FIXTURE_REGISTRY" "$PWD" "${FIXTURE_VERSION:-1.2.3}"
                 gh() {
                   case "$*" in
-                    "api repos/fixture/recovery/git/ref/tags/v${FIXTURE_VERSION} --jq .object.sha") echo "$GITHUB_SHA" ;;
+                    "api repos/fixture/recovery/git/ref/tags/v${FIXTURE_VERSION}") printf '{"object":{"sha":"%s","type":"commit"}}\n' "$GITHUB_SHA" ;;
                     "api repos/fixture/recovery/git/ref/tags/v${FIXTURE_VERSION} --jq .object.type") echo commit ;;
                     "api repos/fixture/recovery/releases/tags/v${FIXTURE_VERSION}") cat "$FIXTURE_RELEASE" ;;
                     'api repos/fixture/recovery/releases/assets/'*) printf 'reviewed fixture bytes\n' ;;
                     *) echo 'Unexpected GitHub call.'  >&2; return 97 ;;
                   esac
                 }
-                curl() { echo 200; }
+                curl() {
+                  while [ "$#" -gt 0 ]; do
+                    if [ "$1" = --output ]; then printf 'reviewed fixture bytes\n' > "$2"; echo 200; return; fi
+                    shift
+                  done
+                  return 97
+                }
+                version="$FIXTURE_VERSION"; repository="$GITHUB_REPOSITORY"; source_sha="$GITHUB_SHA"
+                manifest="$FIXTURE_MANIFEST"; state_directory="$HEXALITH_RECOVERY_STATE_DIRECTORY"
+                source "$FIXTURE_COMMON"
+                printf '%s\n' "$GITHUB_SHA" > "$state_directory/source-sha"
+                printf '%s\n' "$FIXTURE_VERSION" > "$state_directory/version"
+                printf 'present\n' > "$state_directory/container-state"
+                : > "$state_directory/missing-packages"
+                : > "$state_directory/existing-packages"
+                recovery_package_hashes > "$state_directory/prepared-packages-sha256"
+                recovery_preparation_state > "$state_directory/prepared-state-sha256"
                 source "$FIXTURE_VERIFIER" "$FIXTURE_VERSION"
                 """;
             using Process process = new()
@@ -104,8 +121,16 @@ public class PartialReleaseVerificationTests
             environment["HEXALITH_RECOVERY_STATE_DIRECTORY"] = stateDirectory;
             environment["FIXTURE_VERIFIER"] = Path.Combine(repoRoot, "scripts/verify-partial-release.sh");
             environment["FIXTURE_RELEASE"] = releasePath;
+            environment["FIXTURE_MANIFEST"] = Path.Combine(temporaryRoot, "tools/release-packages.json");
+            environment["FIXTURE_COMMON"] = Path.Combine(repoRoot, "scripts/partial-release-recovery-common.sh");
+            environment["HEXALITH_ZOT_REGISTRY"] = "fixture.invalid";
+            environment["HEXALITH_RELEASE_PACKAGE_MANIFEST"] = Path.Combine(temporaryRoot, "tools/release-packages.json");
             environment["FIXTURE_VERSION"] = version;
             environment["GITHUB_SHA"] = sourceSha;
+            environment["RECOVERY_FIXTURE"] = temporaryRoot;
+            environment["FIXTURE_REGISTRY"] = Path.Combine(repoRoot, "tests/scripts/release_registry_fixture.py");
+            environment["HEXALITH_RELEASE_OCI_VALIDATOR"] = Path.Combine(repoRoot, "references/Hexalith.Builds/Github/publish-containers/oci_registry_validator.py");
+            environment["PYTHONPATH"] = temporaryRoot + Path.PathSeparator + Path.Combine(repoRoot, "tests/scripts");
             environment["GITHUB_REPOSITORY"] = "fixture/recovery";
             environment["HEXALITH_ZOT_USERNAME"] = "fixture-user";
             environment["HEXALITH_ZOT_API_KEY"] = "fixture-key";
@@ -129,12 +154,12 @@ public class PartialReleaseVerificationTests
             process.ExitCode.ShouldBe(accepted ? 0 : 1, output + error);
             if (accepted)
             {
-                output.ShouldContain($"Verified release v{version} for source {sourceSha}.");
+                output.ShouldContain($"Verified release v{version} destination content for source {sourceSha}.");
             }
             else
             {
                 output.ShouldNotContain("Verified release");
-                error.ShouldContain("Release prerelease classification does not match the reviewed version.");
+                error.ShouldContain("Release metadata does not match the reviewed version.");
             }
         }
         finally

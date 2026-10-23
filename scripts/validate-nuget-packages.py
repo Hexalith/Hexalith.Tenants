@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import zipfile
 from dataclasses import dataclass
@@ -54,7 +55,68 @@ class PackageMetadata:
     version: str
     readme: str
     has_license: bool
-    dependencies: frozenset[str]
+    dependencies: dict[str, dict[str, tuple[str, str]]]
+
+
+def normalize_version(value: str) -> str:
+    """Canonicalize NuGet numeric core aliases and case-insensitive prereleases."""
+    core, separator, prerelease = value.partition("-")
+    parts = [int(part) for part in core.split(".")]
+    parts += [0] * (3 - len(parts))
+    if len(parts) == 4 and parts[-1] == 0:
+        parts.pop()
+    return ".".join(map(str, parts)) + ("-" + prerelease.casefold() if separator else "")
+
+
+def normalize_range(value: object) -> str:
+    """Normalize supported NuGet ranges without turning exact pins into minimums."""
+    if not isinstance(value, str):
+        raise ValueError("Dependency version range must be a string")
+    version = r"(?:0|[1-9][0-9]*)(?:\.(?:0|[1-9][0-9]*)){1,3}(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    text = value.strip()
+    if re.fullmatch(version, text):
+        return f"[{normalize_version(text)},)"
+    minimum = re.fullmatch(rf">=\s*({version})", text)
+    if minimum:
+        return f"[{normalize_version(minimum[1])},)"
+    exact = re.fullmatch(rf"\[\s*({version})\s*\]", text)
+    if exact:
+        return f"[{normalize_version(exact[1])}]"
+    interval = re.fullmatch(rf"([\[(])\s*({version})?\s*,\s*({version})?\s*([\])])", text)
+    if interval:
+        opening, lower, upper, closing = interval.groups()
+        if (not lower and opening != "(") or (not upper and closing != ")") or not (lower or upper):
+            raise ValueError(f"Malformed dependency version range '{value}'")
+        lower = normalize_version(lower) if lower else ""
+        upper = normalize_version(upper) if upper else ""
+        if lower and upper:
+            if lower == upper and opening == "[" and closing == "]":
+                return f"[{lower}]"
+            def version_order(version_text: str) -> tuple:
+                numeric, separator, prerelease = version_text.partition("-")
+                parts = [int(part) for part in numeric.split(".")]
+                labels = tuple((0, int(label)) if label.isdecimal() else (1, label)
+                               for label in prerelease.split(".")) if separator else ()
+                return tuple((parts + [0, 0, 0, 0])[:4]), not separator, labels
+            if version_order(lower) > version_order(upper) or (version_order(lower) == version_order(upper) and (opening != "[" or closing != "]")):
+                raise ValueError(f"Malformed dependency version range '{value}'")
+        return f"{opening}{lower},{upper}{closing}"
+    raise ValueError(f"Unsupported or malformed dependency version range '{value}'")
+
+
+def normalize_framework(value: object) -> str:
+    """Accept equivalent long/short .NET, CoreApp and Standard framework forms."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("Dependency group must identify a target framework")
+    text = value.strip().casefold()
+    match = re.fullmatch(r"\.net(coreapp|standard)(?:,version=)?v?(\d+\.\d+)", text)
+    if match:
+        family, version = match.groups()
+        prefix = "netstandard" if family == "standard" else "net" if int(version.split(".")[0]) >= 5 else "netcoreapp"
+        text = prefix + version
+    if not re.fullmatch(r"net(?:standard|coreapp)?\d+\.\d+(?:-[a-z0-9.]+)?", text):
+        raise ValueError(f"Unsupported or malformed target framework '{value}'")
+    return text
 
 
 def reject_duplicate_json_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -87,7 +149,7 @@ def require_object(value: object, path: str, assets_path: Path) -> dict[str, obj
     return value
 
 
-def load_restore_dependencies(package_id: str, project_path: Path, project_root: Path) -> frozenset[str]:
+def load_restore_dependencies(package_id: str, project_path: Path, project_root: Path) -> dict:
     """Derive a package boundary from one project's NuGet restore evidence."""
     assets_path = project_path.parent / "obj" / "project.assets.json"
     resolved_assets_path = assets_path.resolve()
@@ -141,11 +203,13 @@ def load_restore_dependencies(package_id: str, project_path: Path, project_root:
     if (
         not isinstance(original_frameworks, list)
         or any(not isinstance(framework, str) or not framework for framework in original_frameworks)
+        or len(original_frameworks) != len(framework_names)
         or set(original_frameworks) != framework_names
     ):
         raise ValueError(f"Restore assets '{resolved_assets_path}' have inconsistent original target frameworks")
 
     canonical_ids: dict[str, str] = {}
+    boundaries: dict[str, dict[str, tuple[str, str]]] = {}
 
     def add_dependency(dependency_id: str) -> None:
         normalized = dependency_id.casefold()
@@ -158,6 +222,11 @@ def load_restore_dependencies(package_id: str, project_path: Path, project_root:
         canonical_ids[normalized] = dependency_id
 
     for framework in sorted(framework_names):
+        normalized_framework = normalize_framework(framework)
+        if normalized_framework in boundaries:
+            raise ValueError("Restore assets contain duplicate normalized target frameworks")
+        boundary: dict[str, tuple[str, str]] = {}
+        boundaries[normalized_framework] = boundary
         direct_dependencies = dependency_groups[framework]
         if not isinstance(direct_dependencies, list):
             raise ValueError(
@@ -184,6 +253,7 @@ def load_restore_dependencies(package_id: str, project_path: Path, project_root:
                 )
             direct_ids.add(normalized)
             add_dependency(dependency_id)
+            boundary[normalized] = (dependency_id, normalize_range(parts[1]))
 
         transitive_dependencies = central_groups[framework]
         if not isinstance(transitive_dependencies, dict):
@@ -206,11 +276,14 @@ def load_restore_dependencies(package_id: str, project_path: Path, project_root:
                 )
             transitive_ids.add(normalized)
             add_dependency(dependency_id)
+            if normalized in boundary:
+                raise ValueError(f"Duplicate direct/central dependency '{dependency_id}' for {framework}")
+            boundary[normalized] = (dependency_id, normalize_range(details.get("version")))
 
-    return frozenset(canonical_ids.values())
+    return boundaries
 
 
-def load_dependency_boundaries(manifest_path: Path) -> dict[str, frozenset[str]]:
+def load_dependency_boundaries(manifest_path: Path) -> dict[str, dict]:
     """Load the release inventory and its restore-backed dependency boundaries."""
     resolved_manifest = manifest_path.resolve()
     if not resolved_manifest.is_file():
@@ -305,11 +378,26 @@ def get_metadata(package_path: Path) -> PackageMetadata:
         if readme not in package.namelist():
             raise ValueError(f"{package_path.name}: readme file '{readme}' is not in the package")
 
-        dependencies = frozenset(
-            dependency.attrib["id"].strip()
-            for dependency in find_elements(".//n:metadata/n:dependencies//n:dependency")
-            if dependency.attrib.get("id", "").strip()
-        )
+        dependencies: dict[str, dict[str, tuple[str, str]]] = {}
+        containers = find_elements(".//n:metadata/n:dependencies")
+        if len(containers) > 1:
+            raise ValueError("Duplicate nuspec dependencies containers")
+        if containers:
+            for group in containers[0]:
+                if group.tag.rsplit("}", 1)[-1] != "group":
+                    raise ValueError("Nuspec dependencies require explicit target-framework groups")
+                framework = normalize_framework(group.attrib.get("targetFramework"))
+                if framework in dependencies:
+                    raise ValueError(f"Duplicate nuspec dependency group '{framework}'")
+                dependencies[framework] = {}
+                for dependency in group:
+                    dependency_id = dependency.attrib.get("id", "").strip()
+                    if dependency.tag.rsplit("}", 1)[-1] != "dependency" or not dependency_id:
+                        raise ValueError("Malformed nuspec dependency")
+                    normalized = dependency_id.casefold()
+                    if normalized in dependencies[framework]:
+                        raise ValueError(f"Duplicate nuspec dependency '{dependency_id}'")
+                    dependencies[framework][normalized] = (dependency_id, normalize_range(dependency.attrib.get("version")))
 
         return PackageMetadata(package_id, version, readme, bool(license_value or license_file), dependencies)
 
@@ -317,12 +405,13 @@ def get_metadata(package_path: Path) -> PackageMetadata:
 def validate_dependency_boundaries(
     package_path: Path,
     metadata: PackageMetadata,
-    expected_dependencies: frozenset[str],
+    expected_dependencies: dict,
 ) -> None:
     """Validate package dependency metadata against restore evidence and forbidden boundaries."""
     forbidden_dependencies = sorted(
         dependency
-        for dependency in metadata.dependencies
+        for group in metadata.dependencies.values()
+        for dependency, _ in group.values()
         if dependency.casefold() not in ALLOWED_DEPENDENCY_IDS_NORMALIZED
         and (
             dependency.casefold() in FORBIDDEN_DEPENDENCY_IDS_NORMALIZED
@@ -335,14 +424,19 @@ def validate_dependency_boundaries(
             f"{forbidden_dependencies}"
         )
 
-    expected_by_normalized_id = {
-        dependency.casefold(): dependency
-        for dependency in expected_dependencies
-    }
-    actual_by_normalized_id = {
-        dependency.casefold(): dependency
-        for dependency in metadata.dependencies
-    }
+    # A package with no dependencies may omit the dependencies element altogether.
+    if not metadata.dependencies and all(not group for group in expected_dependencies.values()):
+        return
+    if metadata.dependencies.keys() != expected_dependencies.keys():
+        raise ValueError(f"{package_path.name}: dependency target-framework groups mismatch")
+    for framework, expected in expected_dependencies.items():
+        validate_dependency_group(package_path, framework, metadata.dependencies[framework], expected)
+
+
+def validate_dependency_group(package_path: Path, framework: str, actual: dict, expected: dict) -> None:
+    """Compare one framework's IDs and ranges, including technical exceptions."""
+    expected_by_normalized_id = {key: value[0] for key, value in expected.items()}
+    actual_by_normalized_id = {key: value[0] for key, value in actual.items()}
     if actual_by_normalized_id.keys() != expected_by_normalized_id.keys():
         missing = sorted(
             expected_by_normalized_id[dependency_id]
@@ -355,11 +449,15 @@ def validate_dependency_boundaries(
         raise ValueError(
             f"{package_path.name}: dependency boundary mismatch. Missing: {missing}; unexpected: {unexpected}"
         )
+    for key, (dependency_id, expected_range) in expected.items():
+        if actual[key][1] != expected_range:
+            raise ValueError(f"{package_path.name}: dependency version range mismatch for {dependency_id} in {framework}: "
+                             f"expected {expected_range}, found {actual[key][1]}")
 
 
 def normalize_dependency_boundaries(
-    dependency_boundaries: dict[str, frozenset[str]],
-) -> dict[str, tuple[str, frozenset[str]]]:
+    dependency_boundaries: dict[str, dict],
+) -> dict[str, tuple[str, dict]]:
     """Index manifest boundaries case-insensitively while retaining canonical spellings."""
     return {
         package_id.casefold(): (package_id, dependencies)
@@ -416,7 +514,8 @@ def main() -> int:
     version = next(iter(versions))
     print(f"Validated {len(packages)} NuGet packages at version {version}:")
     for package_id, expected_dependencies in sorted(dependency_boundaries.values()):
-        print(f"- {package_id} dependencies: {', '.join(sorted(expected_dependencies))}")
+        ids = {dependency_id for group in expected_dependencies.values() for dependency_id, _ in group.values()}
+        print(f"- {package_id} dependencies: {', '.join(sorted(ids))}")
 
     return 0
 

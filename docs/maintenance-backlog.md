@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-527/DW-544/DW-582/DW-583/DW-589 closure (2026-10-23):** Restore-backed NuGet ranges/frameworks, immutable OCI source proof and shared destination byte checks close exactly five records. All 657 IDs remain: 545 done/112 open across 102 maintenance rows. Historical fields, unrelated records, the dirty archive, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-527-544-582-583-589-validation-evidence.md).
+
 **DW-292/DW-397/DW-417/DW-418/DW-601 closure (2026-10-23):** Checked Git prerequisites, unique elicitation method numbers and executable TEA/resolver regressions harden repository tooling. Exactly five records close: all 657 IDs remain, 540 done/117 open across 107 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-292-397-417-418-601-validation-evidence.md).
 
 **DW-180/DW-266/DW-473/DW-503/DW-574 closure (2026-10-23):** Generation retirement, causal callback isolation and captured correction ownership protect current state across cancellation, dismissal, remount and caller changes. Retention notifications and renderer-atomic guards preserve recovery without exposing another caller's intent or releasing unresolved admission. Exactly five records close: all 657 IDs remain, 535 done/122 open across 112 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-180-266-473-503-574-validation-evidence.md).
@@ -204,14 +206,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 540 |
-| actionable | 55 |
+| done | 545 |
+| actionable | 51 |
 | blocked | 15 |
 | awaiting-decision | 23 |
 | accepted-limitation | 6 |
-| uncertain | 18 |
+| uncertain | 17 |
 
-**Remaining: 122 open records across 112 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
+**Remaining: 112 open records across 102 index rows.** Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
 **DW-331 closure (2026-10-16):** The pure removal evaluator now rejects contradictory complete-population scope using the existing IncompletePopulation outcome. Nine new cases prove grant independence and refusal precedence. Independent review/recheck, final Debug focused33/full UI5988 pass with zero failures/skips. [Exact commands, initial intermittent correction-test failure, passing rechecks and limits](../_bmad-output/implementation-artifacts/dw-331-validation-evidence.md). Only DW-331 and its row close: 340 done/303 open across 643 IDs, 271 rows; 136 reconciled done/215 actionable. Historical findings/pre-closure evidence/actions, all prior closures/decisions, archive/sprint, dependencies and release holds remain preserved. Release remains not ready.
 
@@ -283,10 +285,8 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-461, DW-467, DW-478 | P2 | Gap / awaiting-decision | unassigned | Historical artifact validation policy | Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role. |
 | DW-508 | P2 | Gap / actionable | Hexalith.EventStore | EventStore API metadata owner | Declare and verify the status endpoint’s 409 ProblemDetails response in generated OpenAPI. |
 | DW-519 | P2 | Gap / actionable | Hexalith.EventStore | EventStore actor test fixtures | Invoke real AggregateActor.GetEventsAsync at count/payload boundaries and assert LegacyArrayLimit, including an arrayBudget.Add removal control. |
-| DW-527 | P2 | Gap / actionable | unassigned | Release consumer-boundary schema | Preserve and compare dependency version ranges and target-framework groups with negative isolated nuspec fixtures. |
 | DW-529 | P2 | Gap / actionable | unassigned | Performance evidence provenance contract | Capture exact root/submodule source provenance or fail preflight on a dirty tree before claiming a revision-bound performance result. |
 | DW-540 | P2 | Gap / awaiting-decision | Hexalith.Builds | Maintainer CI gating decision | Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow. |
-| DW-544 | P2 | Gap / actionable | unassigned | DW-527 version-aware dependency validation | Validate exception dependency versions against owning restore/catalog evidence and add wrong-version fixtures. |
 | DW-551 | P2 | Gap / awaiting-decision | unassigned | Bootstrap authority compatibility decision | Choose a Keycloak-only documented contract or configurable/discovered token endpoint with validation and compatibility tests. |
 | DW-554 | P2 | Gap / awaiting-decision | unassigned | Published package dependency-layer decision | Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures. |
 | DW-569, DW-592 | P2 | Gap / actionable | identity/integration owner; other records unassigned | Keycloak-enabled integration topology; Keycloak-enabled workload token fixture | Obtain a workload client_credentials token and assert an authorized domain-service call without retaining tokens. |
@@ -294,8 +294,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-576 | P2 | Gap / actionable | Tenants quickstart documentation | Local human-account and administrator handoff contract | Document an executable local administrator-to-human grant runbook. |
 | DW-577 | P2 | Gap / actionable | Tenants CI test tiering | Blocking status-proof contract lane; DW-594 for live proof | Add a blocking UI-gateway status-proof lane without relying on topology-tier success. |
 | DW-579 | P2 | Gap / blocked | unassigned | Builds-maintainer historical provenance repair | Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence. |
-| DW-582 | P2 | Gap / actionable | unassigned | Reviewed container digest/provenance | Compare existing OCI content/provenance with reviewed immutable source before accepting recovery. |
-| DW-583 | P2 | Gap / actionable | unassigned | Immutable release-artifact manifest | Verify every expected destination and artifact content after normal publication. |
 | DW-593 | P2 | Gap / awaiting-decision | release recovery (recover-partial-release.yml) | Release-owner exact execution provenance decision | Define and enforce the approved publication/recovery Builds revision relationship. |
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
 | DW-604 | P2 | Gap / actionable | unassigned | Platform projection rebuild/versioning contract | Specify a safe tenant projection schema rebuild/version path and its rollout verification. |
@@ -323,7 +321,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-489 | P2 | Unverified / uncertain | unassigned | Authenticated live Aspire/browser environment | Run the authenticated composed audit/correction surface at measured narrow widths and record whether required fields and focus remain usable. |
 | DW-514 | P2 | Unverified / uncertain | Hexalith.EventStore | Non-HTTP command-entry-point reachability evidence | Inventory non-HTTP CommandEnvelope producers and reproduce a supported whitespace-causation resume before deciding normalization/rejection behavior. |
 | DW-568 | P2 | Unverified / uncertain | unassigned | Live store ETag behavior and index-version contract | Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work. |
-| DW-589 | P2 | Unverified / uncertain | unassigned | Live Zot OCI-index negotiation fixture | Probe an existing OCI index safely or emulate registry negotiation and document accepted media types. |
 | DW-623 | P2 | Unverified / uncertain | unassigned | Timestamp/provenance contract; clock synchronization evidence | Establish the clock boundary or select a safe proof lookup policy grounded in exact correlation/sequence. |
 | DW-627 | P2 | Unverified / uncertain | unassigned | Platform distributed delivery/serialization guarantee | Trace all supported delivery/rebuild routes across replicas and document a guarantee or reproduce stale overwrite. |
 | DW-642 | P2 | Unverified / uncertain | unassigned | Platform completed-status invariant/recovery proof | Trace verified terminal/recovery producers and add a reachable malformed-status regression only after establishing the contract. |

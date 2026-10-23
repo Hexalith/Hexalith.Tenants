@@ -101,3 +101,12 @@ jobs:
           HEXALITH_ZOT_USERNAME: ${{ secrets.HEXALITH_ZOT_USERNAME }}
           HEXALITH_ZOT_API_KEY: ${{ secrets.HEXALITH_ZOT_API_KEY }}
         run: bash scripts/verify-partial-release.sh "$RECOVERY_VERSION"
+      - name: Upload recovery destination evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: recovery-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .hexalith/recovery/**
+          if-no-files-found: warn
+          include-hidden-files: true
+          retention-days: 30

@@ -14,7 +14,13 @@ registry="${HEXALITH_ZOT_REGISTRY:-registry.hexalith.com}"
 container_repository="${HEXALITH_RECOVERY_CONTAINER_REPOSITORY:-tenants}"
 source "$(dirname "${BASH_SOURCE[0]}")/partial-release-recovery-common.sh"
 
-fail() { echo "[partial-release-recovery] $1" >&2; exit 1; }
+fail() {
+  echo "[partial-release-recovery] $1" >&2
+  if [ -n "${recovery_temporary_directory:-}" ]; then
+    printf '%s\n' "$1" >> "$recovery_temporary_directory/failure.log"
+  fi
+  exit 1
+}
 
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]] || fail "Version must be plain SemVer."
 [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]] || fail "Source SHA must be an exact lowercase commit SHA."
@@ -24,6 +30,7 @@ fail() { echo "[partial-release-recovery] $1" >&2; exit 1; }
 [[ "$environment_name" = production ]] || fail "Recovery requires the production environment."
 [ -f "$manifest" ] || fail "The authoritative package manifest is missing."
 recovery_validate_manifest
+state_directory="$(recovery_confine_directory "$state_directory")"
 manifest_hash="$(sha256sum "$manifest" | awk '{ print $1 }')"
 
 live_sha="$(gh api "repos/${repository}/git/ref/heads/main" --jq '.object.sha')"
@@ -74,8 +81,20 @@ esac
 mapfile -t package_ids < <(jq -r '.packages[] | .id' "$manifest")
 [ "${#package_ids[@]}" -eq 5 ] || fail "The package manifest must contain exactly five packages."
 validated_state_directory="$state_directory"
-recovery_temporary_directory="$(mktemp -d)"
-trap 'rm -rf -- "$recovery_temporary_directory"' EXIT
+recovery_workspace_directory="$(recovery_confine_directory .hexalith)"
+mkdir -p "$recovery_workspace_directory"
+recovery_temporary_directory="$(mktemp -d "$recovery_workspace_directory/recovery-validation.XXXXXXXX")"
+recovery_validation_cleanup() {
+  local result="$?" failure_directory
+  if [ "$result" -ne 0 ]; then
+    failure_directory="$(recovery_confine_directory "$validated_state_directory/failures/$(basename "$recovery_temporary_directory")")"
+    mkdir -p "$failure_directory"
+    printf 'rejected exit=%s\n' "$result" > "$recovery_temporary_directory/validation-result"
+    cp -R "$recovery_temporary_directory/." "$failure_directory/"
+  fi
+  rm -rf -- "$recovery_temporary_directory"
+}
+trap recovery_validation_cleanup EXIT
 state_directory="$recovery_temporary_directory"
 : > "$state_directory/missing-packages"
 : > "$state_directory/existing-packages"
@@ -99,7 +118,7 @@ for package_id in "${package_ids[@]}"; do
 done
 container_status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' \
   --user "${HEXALITH_ZOT_USERNAME:?}:${HEXALITH_ZOT_API_KEY:?}" \
-  -H 'Accept: application/vnd.oci.image.manifest.v1+json' \
+  -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json, application/vnd.docker.distribution.manifest.list.v2+json' \
   "https://${registry}/v2/${container_repository}/manifests/${version}" || true)"
 printf '%s\n' "$source_sha" > "$state_directory/source-sha"
 printf '%s\n' "$version" > "$state_directory/version"
@@ -109,12 +128,20 @@ printf '%s\n' "$([ "$container_status" = 200 ] && echo present || echo absent)" 
 if [ "$container_status" != 404 ] && [ "$container_status" != 200 ]; then
   fail "The container destination state could not be proved."
 fi
+if [ "$container_status" = 200 ]; then
+  if ! recovery_verify_container "$state_directory/oci-validated" \
+    > "$state_directory/oci-validation.stdout.log" 2> "$state_directory/oci-validation.stderr.log"; then
+    cat "$state_directory/oci-validation.stderr.log" >&2
+    fail 'OCI validation rejected the observed recovery destination.'
+  fi
+  cat "$state_directory/oci-validation.stdout.log"
+fi
 if [ "$existing" -eq 0 ] && [ "$container_status" = 404 ] && [ "$tag_status" = 404 ] && [ "$release_status" = 404 ]; then
   fail "Recovery requires evidence of an existing partial release."
 fi
 printf '%s\n' "$manifest_hash" > "$state_directory/package-manifest-sha256"
 mkdir -p "$validated_state_directory"
-cp "$state_directory/"* "$validated_state_directory/"
+cp -R "$state_directory/"* "$validated_state_directory/"
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
   printf 'needs-nuget=%s\n' "$([ -s "$state_directory/missing-packages" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 fi

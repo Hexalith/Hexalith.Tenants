@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-527/DW-544/DW-582/DW-583/DW-589 closure (2026-10-23):** Restore-backed NuGet ranges/frameworks, immutable OCI source proof and shared destination byte checks close exactly five records. All 657 IDs remain: 545 done/112 open across 102 maintenance rows. Historical fields, unrelated records, the dirty archive, dependencies and release holds remain preserved. See [validation evidence](dw-527-544-582-583-589-validation-evidence.md).
+
 **DW-292/DW-397/DW-417/DW-418/DW-601 closure (2026-10-23):** Checked Git prerequisites, unique elicitation method numbers and executable TEA/resolver regressions harden repository tooling. Exactly five records close: all 657 IDs remain, 540 done/117 open across 107 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-292-397-417-418-601-validation-evidence.md).
 
 **DW-180/DW-266/DW-473/DW-503/DW-574 closure (2026-10-23):** Generation retirement, causal callback isolation and captured correction ownership protect current state across cancellation, dismissal, remount and caller changes. Retention notifications and renderer-atomic guards preserve recovery without exposing another caller's intent or releasing unresolved admission. Exactly five records close: all 657 IDs remain, 535 done/122 open across 112 maintenance rows. Original findings, unrelated records, dependencies and release holds remain preserved. See [validation evidence](dw-180-266-473-503-574-validation-evidence.md).
@@ -5555,7 +5557,8 @@ location: scripts/validate-nuget-packages.py
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; NuGet boundary validation cannot detect mismatched dependency versions or framework groups.\n  evidence: BH5: scripts/validate-nuget-packages.py reduces restore and nuspec dependencies to ID sets. An isolated nuspec containing EventStore [3.115.0] in net9.0 passes with the expected package ID. Preserve framework/version evidence and add negative fixtures in the owning release-validator work; the implementation predates this upgrade."
-status: open
+pre-release-verification-status: open
+status: done 2026-10-23
 disposition: actionable
 verification-date: 2026-10-12
 verification: scripts/validate-nuget-packages.py PackageMetadata.dependencies and load_restore_dependencies return frozenset IDs; nuspec comparison similarly flattens dependency IDs and drops versions/framework grouping. Restore structure is validated, but wrong nuspec version/framework can still share the accepted ID boundary.
@@ -5566,6 +5569,8 @@ owner: unassigned
 dependencies: Release consumer-boundary schema
 next-action: Preserve and compare dependency version ranges and target-framework groups with negative isolated nuspec fixtures.
 related: DW-544,DW-554
+release-verification-resolution: Restore-backed framework groups and normalized dependency ranges are compared with nuspec metadata; wrong, missing, duplicate and swapped ranges/groups are rejected by executable isolated fixtures.
+release-verification-resolution-evidence: dw-527-544-582-583-589-validation-evidence.md
 
 
 ### DW-528: medium; bootstrap token responses are buffered before the intended 64 KiB bound is enforced.
@@ -5739,7 +5744,8 @@ location: scripts/validate-nuget-packages.py
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; NuGet validation allowlists two ServiceDefaults package ids at any version.\n  evidence: `scripts/validate-nuget-packages.py` names `Hexalith.EventStore.ServiceDefaults` and `Hexalith.Commons.ServiceDefaults` before the `.ServiceDefaults` fragment check. A wrong version of those ids is a dependency-governance gap, not a correction-flow change."
-status: open
+pre-release-verification-status: open
+status: done 2026-10-23
 disposition: actionable
 verification-date: 2026-10-12
 verification: scripts/validate-nuget-packages.py:35-38 allows the two exact technical ServiceDefaults package IDs by name; PackageMetadata.dependencies stores IDs only. No version constraint attaches to those exceptions, so version mismatches remain undetectable by this validator.
@@ -5750,6 +5756,8 @@ owner: unassigned
 dependencies: DW-527 version-aware dependency validation
 next-action: Validate exception dependency versions against owning restore/catalog evidence and add wrong-version fixtures.
 related: DW-527,DW-554
+release-verification-resolution: Both exact technical ServiceDefaults ID exceptions retain the ordinary per-framework restore-backed range checks; allowed matching versions pass and wrong versions refuse.
+release-verification-resolution-evidence: dw-527-544-582-583-589-validation-evidence.md
 
 
 ### DW-545: medium; duplicate global-administrator ids are dropped and the page is still marked complete.
@@ -6317,7 +6325,8 @@ location: scripts/validate-partial-release-recovery.sh; scripts/verify-partial-r
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Verify existing recovery container content against the reviewed source.\n  evidence: `validate-partial-release-recovery.sh` records `present` from HTTP 200 without digest or provenance comparison."
-status: open
+pre-release-verification-status: open
+status: done 2026-10-23
 disposition: actionable
 verification-date: 2026-10-12
 verification: validate-partial-release-recovery.sh classifies container HTTP 200 as present; verify-partial-release.sh repeats presence only. No reviewed-source digest/provenance comparison exists.
@@ -6328,6 +6337,8 @@ owner: unassigned
 dependencies: Reviewed container digest/provenance
 next-action: Compare existing OCI content/provenance with reviewed immutable source before accepting recovery.
 related: DW-583,DW-589
+release-verification-resolution: Recovery validates immutable OCI graph content and exact source provenance through the root Builds helper, binds the accepted receipt to preparation, rechecks before writes and verifies completed destination content.
+release-verification-resolution-evidence: dw-527-544-582-583-589-validation-evidence.md
 
 
 ### DW-583: Verify release artifacts and destinations after publication.
@@ -6337,7 +6348,8 @@ location: .github/workflows/release.yml
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Verify release artifacts and destinations after publication.\n  evidence: The `verify-publication` job checks the release tag but does not independently inspect NuGet packages, the container, or release assets."
-status: open
+pre-release-verification-status: open
+status: done 2026-10-23
 disposition: actionable
 verification-date: 2026-10-12
 verification: release.yml verify-publication validates a published tag resolving to dispatched source only; it does not inspect NuGet content, OCI content or GitHub package assets. Recovery verifier is separate and mostly checks presence.
@@ -6348,6 +6360,8 @@ owner: unassigned
 dependencies: Immutable release-artifact manifest
 next-action: Verify every expected destination and artifact content after normal publication.
 related: DW-582,DW-620
+release-verification-resolution: Normal release derives the prepared version and verifies all five NuGet and GitHub package bytes plus source tag and publisher OCI digest after Semantic Release; recovery shares the read-only destination checks.
+release-verification-resolution-evidence: dw-527-544-582-583-589-validation-evidence.md
 
 
 ### DW-584: Decide whether separate story and source-reference workflows must gate releases.
@@ -6409,7 +6423,8 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Check OCI index handling in the recovery container manifest probe.\n  evidence: Unverified medium-severity compatibility issue; the probe advertises only an image manifest media type, and a live Zot probe with an OCI index would settle whether it returns 200 or 406."
-status: open
+pre-release-verification-status: open
+status: done 2026-10-23
 disposition: uncertain
 verification-date: 2026-10-12
 verification: Recovery validator/verifier still advertise only application/vnd.oci.image.manifest.v1+json. Missing evidence: deployed Zot negotiation behavior for a multiarchitecture OCI index under this Accept header.
@@ -6419,6 +6434,8 @@ owner: unassigned
 dependencies: Live Zot OCI-index negotiation fixture
 next-action: Probe an existing OCI index safely or emulate registry negotiation and document accepted media types.
 related: DW-582
+release-verification-resolution: Recovery probes advertise the full shared OCI-index/manifest negotiation set and run the real index validator; isolated negotiation failures and wrong platform/digest/label evidence refuse admission.
+release-verification-resolution-evidence: dw-527-544-582-583-589-validation-evidence.md
 
 
 ### DW-590: Recheck the live main SHA immediately before partial release publication.

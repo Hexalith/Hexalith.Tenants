@@ -373,6 +373,11 @@ public class PartialReleasePublicationTests
                 await File.WriteAllTextAsync(Path.Combine(stateDirectory, file.Key), file.Value);
             }
 
+            foreach (string id in existingIds)
+            {
+                await File.WriteAllTextAsync(Path.Combine(stateDirectory, $"{id}.{version}.nupkg"), packageContents[id]);
+            }
+
             Directory.CreateDirectory(Path.Combine(temporaryRoot, "nupkgs"));
             foreach (string id in ids)
             {
@@ -384,6 +389,7 @@ public class PartialReleasePublicationTests
             await File.WriteAllTextAsync(unexpectedLog, string.Empty);
             const string fixture = """
                 set -euo pipefail
+                command python3 "$FIXTURE_REGISTRY" "$PWD" "${FIXTURE_VERSION:-1.2.3}"
                 unexpected() { printf '%s\n' "$*" >> "$FIXTURE_UNEXPECTED"; return 97; }
                 prepare() {
                   printf '%s\n' "$1" >> "$FIXTURE_CALLS"
@@ -438,8 +444,11 @@ public class PartialReleasePublicationTests
                     *) unexpected "dotnet $*" ;;
                   esac
                 }
+                date() { printf '2026-10-23T00:00:00Z\n'; }
+                curl() { [ "$(cat "$HEXALITH_RECOVERY_STATE_DIRECTORY/container-state")" = present ] && echo 200 || echo 404; }
                 python3() {
                   case "$*" in
+                    *oci_registry_validator.py*|*release-package-content.py*) command python3 "$@" ;;
                     "${FIXTURE_PACKER} --manifest ${FIXTURE_MANIFEST} --validate-only") command python3 "$@" ;;
                     "scripts/pack-release-packages.py ./nupkgs ${FIXTURE_VERSION} --manifest ${FIXTURE_MANIFEST}") prepare pack ;;
                     "scripts/validate-nuget-packages.py ./nupkgs --manifest ${FIXTURE_MANIFEST}") prepare packages ;;
@@ -507,7 +516,12 @@ public class PartialReleasePublicationTests
             environment["FIXTURE_CONTAINER_COMMAND"] = "publish src/Hexalith.Tenants/Hexalith.Tenants.csproj --configuration Release /t:PublishContainer "
                 + "-p:RuntimeIdentifiers=linux-musl-x64;linux-musl-arm64 -p:ContainerRuntimeIdentifiers=linux-musl-x64;linux-musl-arm64 "
                 + "-p:ContainerImageFormat=OCI -p:UseHexalithProjectReferences=false -p:ContainerRegistry=fixture.invalid "
-                + $"-p:ContainerRepository=tenants -p:ContainerImageTag={version} -p:Version={version}";
+                + $"-p:ContainerRepository=tenants -p:ContainerImageTag={version} -p:Version={version} "
+                + $"-p:ContainerProvenanceSourceSha={sourceSha} -p:ContainerProvenanceReleaseVersion={version} -p:ContainerProvenanceCreated=2026-10-23T00:00:00Z";
+            environment["RECOVERY_FIXTURE"] = temporaryRoot;
+            environment["FIXTURE_REGISTRY"] = Path.Combine(repoRoot, "tests/scripts/release_registry_fixture.py");
+            environment["HEXALITH_RELEASE_OCI_VALIDATOR"] = Path.Combine(repoRoot, "references/Hexalith.Builds/Github/publish-containers/oci_registry_validator.py");
+            environment["PYTHONPATH"] = temporaryRoot + Path.PathSeparator + Path.Combine(repoRoot, "tests/scripts");
             environment["GITHUB_REPOSITORY"] = "fixture/recovery";
             environment["GITHUB_SHA"] = sourceSha;
             environment["HEXALITH_RECOVERY_STATE_DIRECTORY"] = stateDirectory;
@@ -578,6 +592,8 @@ public class PartialReleasePublicationTests
 
             if (response == "stable")
             {
+                expected.Add("main");
+                expected.AddRange(ids.Select(id => $"hash nupkgs/{id}.{version}.nupkg"));
                 expected.AddRange(missingIds.Select(id => $"package-publish nupkgs/{id}.{version}.nupkg"));
                 if (inventory is "container" or "mixed" or "mixed-existing" or "all-missing")
                 {
@@ -616,7 +632,7 @@ public class PartialReleasePublicationTests
             string[] preparedFiles = response is "stable" or "changed" or "empty" or "malformed" or "unavailable"
                 ? ["prepared-packages-sha256", "prepared-state-sha256"] : [];
             Directory.GetFiles(stateDirectory).Select(Path.GetFileName).Order(StringComparer.Ordinal)
-                .ShouldBe(originalState.Keys.Concat(preparedFiles).Order(StringComparer.Ordinal));
+                .ShouldBe(originalState.Keys.Concat(preparedFiles).Concat(existingIds.Select(id => $"{id}.{version}.nupkg")).Order(StringComparer.Ordinal));
         }
         finally
         {

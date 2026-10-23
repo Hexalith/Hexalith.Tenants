@@ -279,6 +279,69 @@ public class PartialReleaseRecoveryWorkflowTests
         externalActions.ShouldBeGreaterThan(0);
     }
 
+    /// <summary>
+    /// Normal publication validates reviewed bytes and immutable OCI evidence without writes.
+    /// </summary>
+    [Fact]
+    public async Task NormalPublicationPassesOfflineArtifactControls()
+    {
+        var result = await RunAsync("python3", [Path.Combine(FindRepoRoot(), "tests/scripts/test_release_artifact_verification.py")]);
+        result.ExitCode.ShouldBe(0, result.Diagnostics);
+        result.Diagnostics.ShouldContain("OK");
+    }
+
+    /// <summary>
+    /// Verification must run immediately after publication and before unconditional evidence upload.
+    /// </summary>
+    [Fact]
+    public void NormalPublicationVerifiesDestinationsBeforeRetainingEvidence()
+    {
+        YamlMappingNode[] steps = GetSteps("release.yml", "release");
+        int publish = Array.FindIndex(steps, step => Value(step, "name") == "Semantic Release");
+        int verify = Array.FindIndex(steps, step => Value(step, "name") == "Verify published destination content");
+        int upload = Array.FindIndex(steps, step => Value(step, "name") == "Upload complete release evidence");
+        verify.ShouldBe(publish + 1);
+        upload.ShouldBe(verify + 1);
+        AssertDestinationVerificationBindings(steps[verify]);
+        Value(steps[upload], "if").ShouldBe("${{ always() }}");
+        MappingValue(steps[upload], "with", "path").ShouldBe(".hexalith/release-evidence/**");
+    }
+
+    /// <summary>
+    /// Required destination verification cannot be bypassed or rebound by workflow edits.
+    /// </summary>
+    /// <param name="field">The binding to mutate.</param>
+    [Theory]
+    [InlineData("run")]
+    [InlineData("if")]
+    [InlineData("continue-on-error")]
+    [InlineData("shell")]
+    [InlineData("GH_TOKEN")]
+    [InlineData("HEXALITH_ZOT_USERNAME")]
+    [InlineData("HEXALITH_ZOT_API_KEY")]
+    [InlineData("HEXALITH_RELEASE_OCI_VALIDATOR")]
+    public void ChangedDestinationVerificationBindingIsRejected(string field)
+    {
+        YamlMappingNode verify = GetSteps("release.yml", "release").Single(step => Value(step, "name") == "Verify published destination content");
+        AssertDestinationVerificationBindings(verify);
+        YamlMappingNode target = field is "run" or "if" or "continue-on-error" or "shell"
+            ? verify : (YamlMappingNode)verify.Children[new YamlScalarNode("env")];
+        target.Children[new YamlScalarNode(field)] = new YamlScalarNode("changed");
+        _ = Should.Throw<ShouldAssertException>(() => AssertDestinationVerificationBindings(verify));
+    }
+
+    private static void AssertDestinationVerificationBindings(YamlMappingNode verification)
+    {
+        Value(verification, "run").ShouldBe("bash scripts/verify-release-artifacts.sh");
+        Value(verification, "shell").ShouldBe("bash");
+        Value(verification, "if").ShouldBeEmpty();
+        (Value(verification, "continue-on-error") is "" or "false").ShouldBeTrue();
+        MappingValue(verification, "env", "GH_TOKEN").ShouldBe("${{ github.token }}");
+        MappingValue(verification, "env", "HEXALITH_ZOT_USERNAME").ShouldBe("${{ secrets.HEXALITH_ZOT_USERNAME }}");
+        MappingValue(verification, "env", "HEXALITH_ZOT_API_KEY").ShouldBe("${{ secrets.HEXALITH_ZOT_API_KEY }}");
+        MappingValue(verification, "env", "HEXALITH_RELEASE_OCI_VALIDATOR").ShouldBe(".hexalith/release/oci_registry_validator.py");
+    }
+
     private static void AssertPreparationBindings(YamlMappingNode preparation)
     {
         Value(preparation, "run").ShouldBe("bash scripts/prepare-partial-release.sh \"$RECOVERY_VERSION\"");

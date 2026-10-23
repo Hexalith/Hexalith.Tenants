@@ -66,6 +66,24 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 tests/scripts/test_tea_enforcement.py
 
+  release-artifact-guards:
+    name: validate-release-artifacts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          submodules: false
+          persist-credentials: false
+      - name: Initialize shared OCI validator
+        run: git -c submodule.recurse=false submodule update --init references/Hexalith.Builds
+      - name: Qualify release destination and package boundaries
+        run: >
+          python3 -m unittest discover -s tests/scripts
+          -p 'test_*release*.py'
+      - name: Qualify restore dependency ranges and frameworks
+        run: python3 tests/scripts/test_nuget_dependency_ranges.py
+
   remove-focus-browser-guard:
     name: validate-remove-focus-in-chromium
     runs-on: ubuntu-latest

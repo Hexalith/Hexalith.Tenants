@@ -33,6 +33,11 @@ live_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object
 [ "$live_sha" = "$source_sha" ] || { echo '[partial-release-recovery] Live main changed before publication.' >&2; exit 1; }
 recovery_require_manifest
 recovery_require_prepared
+recovery_recheck_container
+live_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+[ "$live_sha" = "$source_sha" ] || recovery_fail 'Live main changed during OCI verification.'
+recovery_require_manifest
+recovery_require_prepared
 
 while IFS= read -r package_id; do
   [ -n "$package_id" ] || continue
@@ -49,7 +54,10 @@ if [ "$(cat "$state_directory/container-state")" = absent ]; then
     -p:RuntimeIdentifiers='linux-musl-x64;linux-musl-arm64' \
     -p:ContainerRuntimeIdentifiers='linux-musl-x64;linux-musl-arm64' \
     -p:ContainerImageFormat=OCI -p:UseHexalithProjectReferences=false \
-    -p:ContainerRegistry="$registry" -p:ContainerRepository="$container_repository" -p:ContainerImageTag="$version" -p:Version="$version"
+    -p:ContainerRegistry="$registry" -p:ContainerRepository="$container_repository" -p:ContainerImageTag="$version" -p:Version="$version" \
+    -p:ContainerProvenanceSourceSha="$source_sha" -p:ContainerProvenanceReleaseVersion="$version" \
+    -p:ContainerProvenanceCreated="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  recovery_verify_container "$state_directory/oci-published"
 fi
 
 if [ "$release_status" = 404 ]; then

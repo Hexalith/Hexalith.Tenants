@@ -113,6 +113,7 @@ public class PartialReleaseRecoveryTests
             // Functions shadow every external API client; unexpected requests fail locally.
             const string fixture = """
                 set -euo pipefail
+                command python3 "$FIXTURE_REGISTRY" "$PWD" "${FIXTURE_VERSION:-1.2.3}" no-receipt
                 gh() {
                   printf '%s\n' "$*" >> "$FIXTURE_CALL_LOG"
                   case "$*" in
@@ -205,6 +206,10 @@ public class PartialReleaseRecoveryTests
                 }),
             });
             environment["FIXTURE_VALIDATOR"] = Path.Combine(repoRoot, "scripts/validate-partial-release-recovery.sh");
+            environment["RECOVERY_FIXTURE"] = temporaryRoot;
+            environment["FIXTURE_REGISTRY"] = Path.Combine(repoRoot, "tests/scripts/release_registry_fixture.py");
+            environment["HEXALITH_RELEASE_OCI_VALIDATOR"] = Path.Combine(repoRoot, "references/Hexalith.Builds/Github/publish-containers/oci_registry_validator.py");
+            environment["PYTHONPATH"] = temporaryRoot + Path.PathSeparator + Path.Combine(repoRoot, "tests/scripts");
             environment["GITHUB_REPOSITORY"] = "fixture/recovery";
             environment["HEXALITH_RELEASE_SOURCE_BRANCH"] = "main";
             environment["HEXALITH_RELEASE_SOURCE_CI_WORKFLOW"] = "ci.yml";
