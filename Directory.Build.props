@@ -60,7 +60,10 @@
              source-debug sessions. The non-packable Tenants UI and its tests are the narrow
              exception: they prefer a complete, available FrontComposer source graph because
              their current components can lead the published package baseline. Set
-             HexalithFrontComposerFromSource=false explicitly to validate package mode. -->
+             HexalithFrontComposerFromSource=false explicitly to validate package mode.
+             UI builds also prefer available Memories clients when FrontComposer source is selected.
+             Set HexalithMemoriesFromSource=false explicitly to validate Memories packages;
+             UseNuGetDeps alone retains the existing non-packable UI source exception. -->
         <UseHexalithProjectReferences Condition="'$(UseHexalithProjectReferences)' == '' and '$(UseNuGetDeps)' == 'true'">false</UseHexalithProjectReferences>
         <UseHexalithProjectReferences Condition="'$(UseHexalithProjectReferences)' == '' and '$(UseNuGetDeps)' == 'false'">true</UseHexalithProjectReferences>
         <UseHexalithProjectReferences Condition="'$(UseHexalithProjectReferences)' == '' and '$(Configuration)' == ''">false</UseHexalithProjectReferences>
@@ -75,6 +78,9 @@
         <HexalithFrontComposerFromSource Condition="'$(HexalithFrontComposerFromSource)' == '' and '$(HexalithFrontComposerSourceConsumer)' == 'true' and '$(HexalithFrontComposerSourceAvailable)' == 'true'">true</HexalithFrontComposerFromSource>
         <HexalithFrontComposerFromSource Condition="'$(HexalithFrontComposerFromSource)' == ''">false</HexalithFrontComposerFromSource>
         <HexalithMemoriesFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj')">true</HexalithMemoriesFromSource>
+        <!-- NuGet restore does not carry the parent edge's AdditionalProperties into every walk.
+             Follow the same UI source choice across configurations before collecting restore inputs. -->
+        <HexalithMemoriesFromSource Condition="'$(HexalithMemoriesFromSource)' == '' and '$(HexalithFrontComposerSourceConsumer)' == 'true' and '$(HexalithFrontComposerFromSource)' == 'true' and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Contracts\Hexalith.Memories.Contracts.csproj') and Exists('$(HexalithMemoriesRoot)\src\Hexalith.Memories.Client.Rest\Hexalith.Memories.Client.Rest.csproj')">true</HexalithMemoriesFromSource>
         <HexalithMcpCliFromSource Condition="'$(UseHexalithProjectReferences)' == 'true' and Exists('$(HexalithMcpCliRoot)\src\Hexalith.McpCli.Abstractions\Hexalith.McpCli.Abstractions.csproj')">true</HexalithMcpCliFromSource>
     </PropertyGroup>
 
