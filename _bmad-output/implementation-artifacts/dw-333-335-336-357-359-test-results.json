@@ -1,0 +1,52 @@
+{
+  "focused": {
+    "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -class '*GlobalAdministratorsPageTests' -class '*TenantsWorkspaceTests' -result-xml /tmp/tenants-five-focused.xml",
+    "assemblies": [
+      {
+        "environment": "64-bit (x64) .NET 10.0.13 [collection-per-class, non-parallel]",
+        "id": "52e779db-71b5-4bc6-94a1-6f8c1ffcec1f",
+        "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "run-date": "2026-10-23",
+        "run-time": "17:14:41",
+        "start-rtf": "2026-10-23T17:14:41.9579687+00:00",
+        "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+        "target-framework": ".NETCoreApp,Version=v10.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-10-23T17:15:10.9984168+00:00",
+        "not-run": "0",
+        "passed": "442",
+        "skipped": "0",
+        "time": "29.042",
+        "time-rtf": "00:00:29.0420000",
+        "total": "442"
+      }
+    ],
+    "rawXmlSha256": "6e697423f1b2cf27d84203a45c0c90cba5fb558ff621a2624f3508c98b6fa98e"
+  },
+  "full-ui": {
+    "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -result-xml /tmp/tenants-five-ui-full.xml",
+    "assemblies": [
+      {
+        "environment": "64-bit (x64) .NET 10.0.13 [collection-per-class, non-parallel]",
+        "id": "b19e5d06-cca7-4ccf-8850-f5d970b40ee7",
+        "name": "/home/administrator/projects/hexalith/tenants/tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+        "run-date": "2026-10-23",
+        "run-time": "17:16:38",
+        "start-rtf": "2026-10-23T17:16:38.3711169+00:00",
+        "test-framework": "xUnit.net v3 4.0.2+0c7aa4991f",
+        "target-framework": ".NETCoreApp,Version=v10.0",
+        "errors": "0",
+        "failed": "0",
+        "finish-rtf": "2026-10-23T17:18:35.0510316+00:00",
+        "not-run": "0",
+        "passed": "7496",
+        "skipped": "0",
+        "time": "116.685",
+        "time-rtf": "00:01:56.6850000",
+        "total": "7496"
+      }
+    ],
+    "rawXmlSha256": "40048a07275ca2887676655a3644f123275ca6194e3c4ee699ce5636280ceae3"
+  }
+}

@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-333/DW-335/DW-336/DW-357/DW-359 closure (2026-10-23):** Authenticated live Chromium checks qualify retained workspace panel visibility/accessibility, native grant-modal keyboard cycles, inert page background, Escape restoration and measured viewport restrictions. A grant-input Razor comment no longer terminates the interactive circuit. Exactly five records close: all 657 IDs remain, 565 done/92 open across 85 maintenance rows. Historical fields and unrelated runtime/release holds remain preserved. See [validation evidence](dw-333-335-336-357-359-validation-evidence.md).
+
 **DW-227/DW-241/DW-242/DW-299/DW-317 closure (2026-10-23):** Actual member controls and stable heading recovery preserve focus across dismissal, row/permission loss and unsafe viewport transitions. Compiled configuration/lifecycle form and label styling, EN/FR warnings and native browser keyboard cycles qualify the existing responsive boundary. Exactly five records close: all 657 IDs remain, 560 done/97 open across 87 maintenance rows. Historical fields, unrelated records, dependencies and broader modal/runtime/release holds remain preserved. See [validation evidence](dw-227-241-242-299-317-validation-evidence.md).
 
 **DW-159/DW-200/DW-209/DW-326/DW-448 closure (2026-10-23):** Explicit unavailable configuration states, authoritative create notification recovery, actual shell layout checks, localized ten-fact preview proof and bounded retained removal audit waiting close exactly five records. All 657 IDs remain: 555 done/102 open across 92 maintenance rows. Original fields, unrelated records, dependencies and runtime/release holds remain preserved. See [validation evidence](dw-159-200-209-326-448-validation-evidence.md).
@@ -3012,16 +3014,16 @@ location: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:4
 source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 severity: medium
 reason: The workspace-tab change arrived in a separate concurrent commit and is outside Story 4.2. Existing component assertions cover attributes, but an authenticated browser active-element and visibility trace would settle the remaining interaction risk.
-status: open
-disposition: blocked
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs retained-tab assertions establish role/attributes, not computed inactive-panel visibility, focusability or accessibility-tree exclusion under the shipped Fluent runtime. Original commit attribution is preserved separately.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs
-evidence-kind: verified-gap
+status: done 2026-10-23
+disposition: resolved
+verification-date: 2026-10-23
+verification: Authenticated live workspace switches keep both real panel contents mounted, hide the inactive panel with computed layout, exclude its subtree from Chromium accessibility, and skip it through 30 native Tab and 30 Shift+Tab steps in each retained direction. See dw-333-335-336-357-359-validation-evidence.md and the nine-case passing browser result.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs; _bmad-output/implementation-artifacts/dw-333-335-336-357-359-browser-results.json
+evidence-kind: authenticated-browser-verification
 priority: P2
 owner: unassigned
 dependencies: authenticated real-browser workspace fixture
-next-action: Capture authenticated tab switches with computed visibility, activeElement and accessibility-tree evidence.
+next-action: Complete; rerun the hosted validator when workspace tabs or administrator preview focus changes.
 related: DW-333, DW-335, DW-357
 
 ### DW-334: The concurrently introduced Memories secret-store topology lacks a deployed Aspire model and health verification.
@@ -3048,16 +3050,16 @@ location: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs:4
 source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 severity: medium
 reason: Commit 8da765ad -- the same commit that carries the Story 4.2 grant work -- replaced the `hidden`/`aria-hidden` assertions on `#tenants-retained-panel`/`#users-retained-panel` with `role="tabpanel"` checks that hold for the active and inactive panel alike. Fluent UI v5 owns the panel flip client-side, so bUnit cannot observe it and no assertion anywhere distinguishes the two states. An authenticated browser trace showing the inactive panel is neither visible, focusable, nor exposed to assistive technology would settle it.
-status: open
-disposition: blocked
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs retained-tab assertions establish role/attributes, not computed inactive-panel visibility, focusability or accessibility-tree exclusion under the shipped Fluent runtime. Original commit attribution is preserved separately.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/TenantListSurfaceTests.cs
-evidence-kind: verified-gap
+status: done 2026-10-23
+disposition: resolved
+verification-date: 2026-10-23
+verification: The same authenticated retained-panel scenarios now preserve executable current visibility, accessibility and keyboard assertions rather than relying on the removed historical assertions. See dw-333-335-336-357-359-validation-evidence.md and the nine-case passing browser result.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs; _bmad-output/implementation-artifacts/dw-333-335-336-357-359-browser-results.json
+evidence-kind: authenticated-browser-verification
 priority: P2
 owner: unassigned
 dependencies: authenticated real-browser workspace fixture
-next-action: Capture authenticated tab switches with computed visibility, activeElement and accessibility-tree evidence.
+next-action: Complete; rerun the hosted validator when workspace tabs or administrator preview focus changes.
 related: DW-333, DW-335, DW-357
 duplicate-of: DW-333
 
@@ -3067,16 +3069,16 @@ location: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTes
 source_spec: `spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 severity: medium
 reason: The component tests assert which ElementReference the page asked the runtime to focus and drive the viewport by calling Observe on the observation singleton. Neither reaches document.activeElement, a real Tab cycle, `inert` semantics, or a real JS measurement, and there is no browser-driven lane in this repository. An authenticated browser trace over the grant preview -- open, Tab cycle, Escape, restore -- and a real viewport measurement would settle it.
-status: open
-disposition: blocked
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs asserts interop focus ids and simulated viewport observations; browser harnesses exist now, but no authenticated rendered Blazor grant-preview Tab/Escape/inert and measurement packet closes this entry.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs
-evidence-kind: verified-gap
+status: done 2026-10-23
+disposition: resolved
+verification-date: 2026-10-23
+verification: The actual authenticated Blazor grant preview contains native Tab/Shift+Tab focus, rejects background focus via inert, cancels through its Fluent control with Escape, restores its launcher at measured widths 768/1024/1366, and disables confirmation after a measured downgrade to 767px. See dw-333-335-336-357-359-validation-evidence.md and the nine-case passing browser result.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs; _bmad-output/implementation-artifacts/dw-333-335-336-357-359-browser-results.json
+evidence-kind: authenticated-browser-verification
 priority: P2
 owner: unassigned
 dependencies: authenticated browser grant fixture
-next-action: Run the real grant-preview keyboard/focus/viewport sequence and preserve its trace.
+next-action: Complete; rerun the hosted validator when workspace tabs or administrator preview focus changes.
 related: DW-345, DW-357, DW-359
 
 ### DW-337: Identical transport conditions are classified two different ways depending on which tracked command was dispatched.
@@ -3233,16 +3235,16 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- Focus containment remains interop-ID proof (`FocusedElementIds` / captured `ElementReference` ids), not `document.activeElement`, a real Tab/Shift+Tab cycle, or browser `inert`. Already DW-336; an authenticated browser trace of grant-preview open, Tab, Shift+Tab, Escape, and launcher restoration would settle it."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor renders the grant modal/inert background and focus sentinels; component tests inspect interop targets. Browser fixtures in tests/Hexalith.Tenants.UI.Tests/Browser exercise shipped JS and constructed Fluent controls, but no retained authenticated grant-page trace proves a real Tab/Shift+Tab cycle, Escape, inert exclusion, and launcher restoration.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: unverified-risk
+status: done 2026-10-23
+disposition: resolved
+verification-date: 2026-10-23
+verification: Real Chromium input now exercises the production grant preview and Blazor callbacks, including both native Tab directions, Escape, document focus and inert background. This replaces the earlier interop-only proof. See dw-333-335-336-357-359-validation-evidence.md and the nine-case passing browser result.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs; _bmad-output/implementation-artifacts/dw-333-335-336-357-359-browser-results.json
+evidence-kind: authenticated-browser-verification
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Capture an authenticated grant-page browser trace covering open, Tab, Shift+Tab, Escape, activeElement, and inert background.
+next-action: Complete; rerun the hosted validator when workspace tabs or administrator preview focus changes.
 related: DW-336, DW-391
 duplicate-of: DW-336
 
@@ -3276,16 +3278,16 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- Focus containment remains interop-ID proof, including Escape from Fluent/FAST shadow DOM. Already DW-336; an authenticated browser trace of open, Tab, Shift+Tab, Escape, and launcher restoration would settle it."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor renders the grant modal/inert background and focus sentinels; component tests inspect interop targets. Browser fixtures in tests/Hexalith.Tenants.UI.Tests/Browser exercise shipped JS and constructed Fluent controls, but no retained authenticated grant-page trace proves a real Tab/Shift+Tab cycle, Escape, inert exclusion, and launcher restoration.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor
-evidence-kind: unverified-risk
+status: done 2026-10-23
+disposition: resolved
+verification-date: 2026-10-23
+verification: The shipped Fluent V5 grant modal now has authenticated native keyboard/Escape and launcher-restoration evidence, with deepest focused control recorded. Historical FAST shadow-focus assumptions are assessed against the actual current runtime; no synthetic shadow tree is claimed. See dw-333-335-336-357-359-validation-evidence.md and the nine-case passing browser result.
+verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-workspace-focus.mjs; _bmad-output/implementation-artifacts/dw-333-335-336-357-359-browser-results.json
+evidence-kind: authenticated-browser-verification
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Capture an authenticated grant-page browser trace covering open, Tab, Shift+Tab, Escape, activeElement, and inert background.
+next-action: Complete; rerun the hosted validator when workspace tabs or administrator preview focus changes.
 related: DW-336, DW-391
 duplicate-of: DW-336
 

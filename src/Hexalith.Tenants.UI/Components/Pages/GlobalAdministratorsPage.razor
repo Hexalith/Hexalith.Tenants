@@ -244,16 +244,16 @@
                   data-testid="tenants-global-admin-grant-form"
                   OnSubmit="SubmitGrantAsync">
             <div class="global-admins__grant-field global-admins__mutation-initiation">
+                @* No MaxLength: the attribute renders the DOM `maxlength`, which truncates
+                   typed and pasted input in the browser. A pasted over-long id was silently
+                   shortened and dispatched as a platform-authority grant against a DIFFERENT
+                   identity, and it made the length half of the submit guard unreachable from
+                   the real UI. The bound is advertised by the help text and enforced at submit,
+                   where an over-long id gets an explicit localized rejection instead. *@
                 <FluentTextInput Id="tenants-global-admin-grant-user-id"
                                  @ref="_grantUserIdElement"
                                  name="global-administrator-user-id"
                                  Label="@Localizer["Tenants.GlobalAdministrators.Grant.UserId.Label"]"
-                                 @* No MaxLength: the attribute renders the DOM `maxlength`, which truncates
-                                    typed and pasted input in the browser. A pasted over-long id was silently
-                                    shortened and dispatched as a platform-authority grant against a DIFFERENT
-                                    identity, and it made the length half of the submit guard unreachable from
-                                    the real UI. The bound is advertised by the help text and enforced at submit,
-                                    where an over-long id gets an explicit localized rejection instead. *@
                                  Value="@_grantUserId"
                                  ValueChanged="OnGrantUserIdInput"
                                  Disabled="@(_grantSnapshot.State is TenantCommandLifecycleState.Previewed || IsGrantInFlight || Volatile.Read(ref _grantPreviewInFlight) != 0)"

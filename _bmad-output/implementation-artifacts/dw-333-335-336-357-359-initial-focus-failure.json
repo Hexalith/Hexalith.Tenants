@@ -1,0 +1,75 @@
+{
+  "sourceBaseRevision": "c1c3ca672d481aaa52eff6e20b37ec9a77b24f12",
+  "sourceDiffSha256": "8bfad45ed0328b6055bc342115d92fb4aaa1b3bbb374048c216fb71d82efeabe",
+  "validatorSha256": "1b7b150bb7e5daf06f76493066e23f68049fc05ddf63ffcb27090d052700e5ef",
+  "uiAssemblySha256": "5800f5d80e549f538fe3212c6f79f9e236df7ab468c146753ad371dedc6e7947",
+  "startedUtc": "2026-10-23T17:22:40.531Z",
+  "records": [
+    "DW-333",
+    "DW-335",
+    "DW-336",
+    "DW-357",
+    "DW-359"
+  ],
+  "cases": [
+    {
+      "scenario": "retained-tab",
+      "active": "workspace-users",
+      "inactive": "tenants",
+      "visuallyHidden": true,
+      "accessibilityExcluded": true,
+      "nativeTabSteps": 30,
+      "nativeShiftTabSteps": 30
+    },
+    {
+      "scenario": "retained-tab",
+      "active": "tenants",
+      "inactive": "workspace-users",
+      "visuallyHidden": true,
+      "accessibilityExcluded": true,
+      "nativeTabSteps": 30,
+      "nativeShiftTabSteps": 30
+    },
+    {
+      "scenario": "retained-tab",
+      "active": "workspace-users",
+      "inactive": "tenants",
+      "visuallyHidden": true,
+      "accessibilityExcluded": true,
+      "nativeTabSteps": 30,
+      "nativeShiftTabSteps": 30
+    },
+    {
+      "scenario": "retained-tab",
+      "active": "tenants",
+      "inactive": "workspace-users",
+      "visuallyHidden": true,
+      "accessibilityExcluded": true,
+      "nativeTabSteps": 30,
+      "nativeShiftTabSteps": 30
+    },
+    {
+      "scenario": "grant-modal",
+      "width": 1366,
+      "nativeTabSteps": 18,
+      "nativeShiftTabSteps": 18,
+      "disabledConfirmCycle": true,
+      "enabledConfirmCycle": true,
+      "inertBackground": true,
+      "escapeFromFluent": true,
+      "escapeFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "shadowRootPresent": true,
+        "shadowFocusableDescendants": 0
+      },
+      "launcherRestored": true
+    }
+  ],
+  "browserVersion": "154.0.8037.57",
+  "status": "failed",
+  "failedPhase": "grant-dialog-768",
+  "failureLabel": "Expected focus target was not reached: [data-testid=\"tenants-global-admin-grant-submit\"]",
+  "circuitErrorCount": 0,
+  "finishedUtc": "2026-10-23T17:22:50.843Z"
+}
