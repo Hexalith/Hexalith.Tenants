@@ -716,14 +716,16 @@ public sealed class TenantQueryGatewayTests
         CallerBoundSnapshotFacts(snapshot).Scope.ShouldBe(TenantQueryGateway.AuditCallerScope("caller-one"));
     }
 
-    [Fact]
-    public async Task Global_correction_proof_uses_protected_raw_audit_provenance_while_public_rows_are_redacted()
+    [Theory]
+    [InlineData(-120)]
+    [InlineData(120)]
+    public async Task Global_correction_proof_uses_protected_raw_audit_provenance_while_public_rows_are_redacted(int bffOffsetMinutes)
     {
         ITenantsRestQueryClient client = Substitute.For<ITenantsRestQueryClient>();
         DateTimeOffset original = DateTimeOffset.Parse("2026-06-01T10:00:00Z", CultureInfo.InvariantCulture);
-        DateTimeOffset submitted = original.AddMinutes(1);
+        DateTimeOffset submitted = original.AddMinutes(1 + bffOffsetMinutes);
         TenantAuditEntry entry = AuditEntry("corrective-event", AuditEventCategory.Access,
-            timestamp: submitted.AddMinutes(1), eventType: "GlobalAdministratorSet", tenantId: "system",
+            timestamp: original.AddMinutes(2), eventType: "GlobalAdministratorSet", tenantId: "system",
             narrative: new Dictionary<string, string> { ["userId"] = "admin-user" }) with
         {
             CommandCorrelationId = "exact-command",
@@ -749,7 +751,7 @@ public sealed class TenantQueryGatewayTests
         publicAudit.Rows.ShouldHaveSingleItem().CommandCorrelationId.ShouldBeNull();
         publicAudit.Rows[0].AggregateSequence.ShouldBeNull();
         _ = client.Received().GetTenantAuditAsync(
-            Arg.Is<GetTenantAuditQuery>(query => query.From == submitted && query.Stream == "global-administrators"), null, Arg.Any<CancellationToken>());
+            Arg.Is<GetTenantAuditQuery>(query => query.From == original && query.Stream == "global-administrators"), null, Arg.Any<CancellationToken>());
     }
 
     [Theory]

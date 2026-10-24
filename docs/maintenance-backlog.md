@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-225/DW-372/DW-382/DW-623/DW-642 closure (2026-10-24):** Exact causal audit proof tolerates independent BFF clock skew; only verified terminal correction proof failure releases fixed-aggregate admission. Existing member-removal behavior and the duplicate cold hosted source-build risks are requalified. Exactly five records close: all 657 IDs remain, 585 done/72 open across 67 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md).
+
 **DW-524/DW-525/DW-529/DW-604/DW-627 closure (2026-10-24):** Persisted owner watermarks and guarded singleton selection prevent stale replay regression; authenticated legacy intake refuses unsupported evolution before store access. Clean-source performance provenance and a coordinated tenant schema runbook complete the evidence/operations gaps. Server1475/1475, replay24/24 and route30/30 pass in Debug/source; focused replay24/24 and route30/30 also pass in Release/package. Exactly five records close: all 657 IDs remain, 580 done/77 open across 71 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md).
 
 **DW-569/DW-571/DW-572/DW-577/DW-592 closure (2026-10-23):** Real Keycloak workload credentials and project scope now have positive/negative protected-route evidence; EventStore shares its own generated app-channel token with its sidecar. A blocking Release/package HTTP lane qualifies generated ETags and production status proof through the UI gateway while preserving the advisory topology tier. Exactly five records close: all 657 IDs remain, 575 done/82 open across 76 maintenance rows. Original fields and unrelated runtime/release decisions remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md).
@@ -220,14 +222,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 580 |
-| actionable | 28 |
+| done | 585 |
+| actionable | 27 |
 | blocked | 11 |
 | awaiting-decision | 21 |
 | accepted-limitation | 5 |
-| uncertain | 12 |
+| uncertain | 8 |
 
-**Remaining: 77 open records across 71 index rows.**
+**Remaining: 72 open records across 67 index rows.**
 
 **Unnumbered review follow-up:** navigation verification exposed a cancellation-test cleanup timing gap, retained in the deferred ledger. The numbered DW totals and rows exclude this new follow-up until ledger migration. Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
@@ -262,7 +264,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
 | DW-121 | P2 | Defect / actionable | Hexalith.Builds | Hexalith.Builds owning workflow change | Align the input description/contract and callers with the recorded main-only policy. |
 | DW-128 | P2 | Defect / actionable | unassigned | coordinate DW-127 privacy contract | Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches. |
-| DW-225 | P2 | Defect / actionable | unassigned | DW-222 | Replace wall-clock qualification with exact command causation/sequence in coordination with DW-222. |
 | DW-268 | P2 | Defect / actionable | unassigned | browser style evidence | Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width. |
 | DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
 | DW-387 | P2 | Defect / actionable | unassigned | Same-id idempotency/recovery contract | Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards. |
@@ -301,7 +302,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | --- | --- | --- | --- | --- | --- |
 | DW-116 | P2 | Unverified / blocked | unassigned | BROWSER-SEARCH-1.9 and AT-NVDA-1.9 | Capture authenticated search live-region and NVDA evidence with the shipped Fluent runtime. |
 | DW-127 | P2 | Unverified / awaiting-decision | Story 1.9 | product/security requirement | Set the privacy/completeness acceptance requirement for partially hidden search windows. |
-| DW-372, DW-382 | P2 | Unverified / uncertain | unassigned | none | Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout. |
 | DW-390 | P2 | Unverified / uncertain | unassigned | none | Capture side-by-side supported-browser/font rendering of accepted whitespace identities and compare visible distinction with accessible names. |
 | DW-391 | P2 | Unverified / uncertain | unassigned | none | Capture authenticated grant and removal page keyboard/viewport/long-identity evidence at desktop, mobile, and short heights. |
 | DW-446 | P2 | Unverified / uncertain | unassigned | none | Run NVDA with a supported browser through the first events-stored availability transition and record whether its first message is announced. |
@@ -310,8 +310,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-489 | P2 | Unverified / uncertain | unassigned | Authenticated live Aspire/browser environment | Run the authenticated composed audit/correction surface at measured narrow widths and record whether required fields and focus remain usable. |
 | DW-514 | P2 | Unverified / uncertain | Hexalith.EventStore | Non-HTTP command-entry-point reachability evidence | Inventory non-HTTP CommandEnvelope producers and reproduce a supported whitespace-causation resume before deciding normalization/rejection behavior. |
 | DW-568 | P2 | Unverified / uncertain | unassigned | Live store ETag behavior and index-version contract | Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work. |
-| DW-623 | P2 | Unverified / uncertain | unassigned | Timestamp/provenance contract; clock synchronization evidence | Establish the clock boundary or select a safe proof lookup policy grounded in exact correlation/sequence. |
-| DW-642 | P2 | Unverified / uncertain | unassigned | Platform completed-status invariant/recovery proof | Trace verified terminal/recovery producers and add a reachable malformed-status regression only after establishing the contract. |
 | DW-137 | P2 | Recommendation / actionable | future Tenants API route-contract work | Tenants API route-contract design | Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior. |
 | DW-144 | P2 | Recommendation / actionable | unassigned | topology/security contract and DW-137 | Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks. |
 | DW-194 | P2 | Recommendation / actionable | unassigned | FrontComposer modal primitive and browser fixture | Adopt the recorded shared modal contract and obtain browser Tab/Escape/inert evidence. |

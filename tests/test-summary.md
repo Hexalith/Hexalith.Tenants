@@ -1,5 +1,9 @@
 # Test Automation Summary
 
+## Causal correction proof and validation — 2026-10-24
+
+DW-225/DW-372/DW-382/DW-623/DW-642: Debug/source build has zero warnings/errors; focused **1566/1566** and maintained MTP full UI **7549/7549** pass with zero failures/skips. Exact proof tolerates BFF clock skew, complete walks span larger histories under a deadline, and terminal correction recovery preserves intermediate/current ownership. Nine review findings are resolved. Hosted cold-source evidence settles the two timing duplicates. Earlier failures, an unchanged test timing race, formatting limits and broader CI/runtime/release holds remain explicit in [validation evidence](../_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md). Exactly five records close; 585 done/72 open remain across 67 maintenance rows.
+
 ## Projection integrity review fixes — 2026-10-24
 
 Focused Debug/source checks pass: replay31/31, protected ProjectContract35/35,

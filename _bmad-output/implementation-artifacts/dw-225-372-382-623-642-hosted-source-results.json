@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    "DW-372",
+    "DW-382"
+  ],
+  "batchRecords": [
+    "DW-225",
+    "DW-372",
+    "DW-382",
+    "DW-623",
+    "DW-642"
+  ],
+  "evidenceScope": "Historical hosted source-reference runtime timing only; does not qualify the subsequent batch changes, the full CI workflow, Aspire topology, production clock ordering, or release readiness.",
+  "repository": "Hexalith/Hexalith.Tenants",
+  "sourceRevision": "c157c394b8fca5f392b5f8a6a5ff1f51f4ac77a0",
+  "workflow": {
+    "path": ".github/workflows/source-reference.yml",
+    "sha256": "c36be1d89f3b2dd7903bd3e780bf010f51beb6fd679cb0dc93221c12c336aa24",
+    "job": "projection-provenance",
+    "configuredTimeoutMinutes": 15,
+    "runsOn": "ubuntu-latest"
+  },
+  "run": {
+    "id": 40055061868,
+    "attempt": 1,
+    "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40055061868",
+    "headRevision": "c157c394b8fca5f392b5f8a6a5ff1f51f4ac77a0"
+  },
+  "job": {
+    "id": 120756122949,
+    "url": "https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40055061868/job/120756122949",
+    "conclusion": "success",
+    "startedUtc": "2026-10-24T02:39:14Z",
+    "completedUtc": "2026-10-24T02:43:40Z",
+    "durationSeconds": 266,
+    "steps": [
+      {
+        "name": "Set up job",
+        "number": 1,
+        "started_at": "2026-10-24T02:39:15Z",
+        "completed_at": "2026-10-24T02:39:16Z",
+        "conclusion": "success"
+      },
+      {
+        "name": "Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "number": 2,
+        "started_at": "2026-10-24T02:39:16Z",
+        "completed_at": "2026-10-24T02:39:20Z",
+        "conclusion": "success"
+      },
+      {
+        "name": "Initialize root-declared submodules",
+        "number": 3,
+        "started_at": "2026-10-24T02:39:20Z",
+        "completed_at": "2026-10-24T02:41:10Z",
+        "conclusion": "success"
+      },
+      {
+        "name": "Initialize .NET",
+        "number": 4,
+        "started_at": "2026-10-24T02:41:10Z",
+        "completed_at": "2026-10-24T02:41:19Z",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build the source-reference integration graph",
+        "number": 5,
+        "started_at": "2026-10-24T02:41:19Z",
+        "completed_at": "2026-10-24T02:43:34Z",
+        "conclusion": "success"
+      },
+      {
+        "name": "Verify real-handler projection provenance",
+        "number": 6,
+        "started_at": "2026-10-24T02:43:34Z",
+        "completed_at": "2026-10-24T02:43:37Z",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Initialize .NET",
+        "number": 11,
+        "started_at": "2026-10-24T02:43:37Z",
+        "completed_at": "2026-10-24T02:43:37Z",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "number": 12,
+        "started_at": "2026-10-24T02:43:37Z",
+        "completed_at": "2026-10-24T02:43:38Z",
+        "conclusion": "success"
+      },
+      {
+        "name": "Complete job",
+        "number": 13,
+        "started_at": "2026-10-24T02:43:38Z",
+        "completed_at": "2026-10-24T02:43:38Z",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "coldRunnerEvidence": {
+    "kind": "Fresh GitHub-hosted job without a workflow package-cache restore",
+    "operatingSystem": "Ubuntu 24.04.5 LTS",
+    "runnerImage": "ubuntu-24.04",
+    "runnerImageVersion": "20261012.334.1",
+    "setupDotnetCache": false,
+    "workflowCacheSteps": 0,
+    "support": [
+      "Job log records Hosted Compute Agent provisioner and GitHub-hosted runner image.",
+      "setup-dotnet input records cache: false.",
+      "Exact source workflow and job step list contain no actions/cache or package-cache restore step.",
+      "Build log records restore of the integration project and its source-reference dependencies before compilation."
+    ],
+    "qualification": "Cold relative to this workflow cache policy on a fresh hosted job. Package-directory emptiness and runner-image package preloads were not separately instrumented; this is one observed run, not a universal runtime guarantee."
+  },
+  "build": {
+    "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false --no-incremental",
+    "conclusion": "success",
+    "reportedElapsedSeconds": 133.87,
+    "warnings": 0,
+    "errors": 0
+  },
+  "tests": {
+    "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --minimum-expected-tests 4 --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway --fail-skips on",
+    "conclusion": "success",
+    "total": 4,
+    "succeeded": 4,
+    "failed": 0,
+    "skipped": 0,
+    "reportedDurationSeconds": 2.558,
+    "minimumExpectedTests": 4,
+    "failSkips": true
+  },
+  "jobLog": {
+    "retrievalCommand": "gh run view 40055061868 --job 120756122949 --log",
+    "sha256": "a13a1ef648866839456a8ddc3afe8407c4107e428f3eabb7ad050d795e1cf12c",
+    "trackedRawLog": false,
+    "sanitizedExcerpt": {
+      "path": "dw-225-372-382-623-642-hosted-log-excerpt.txt",
+      "sha256": "654253deeec875fb089967902c01c26bdb47235d415cd0b4c1b575b47129f6d2",
+      "selection": "Public runner/cache lines and exact build/test commands and result summaries only; original timestamps retained. Raw-log hash remains separate."
+    }
+  },
+  "acceptance": "The observed entire job (266 seconds), including root submodule initialization, uncached source restore/build and all four required tests, fits the configured 900-second timeout. No cache or timeout change is justified by this run."
+}

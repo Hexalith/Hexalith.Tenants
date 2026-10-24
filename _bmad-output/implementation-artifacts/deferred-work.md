@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-225/DW-372/DW-382/DW-623/DW-642 closure (2026-10-24):** Exact causal audit proof tolerates independent BFF clock skew; only verified terminal correction proof failure releases fixed-aggregate admission. Existing member-removal behavior and the duplicate cold hosted source-build risks are requalified. Exactly five records close: all 657 IDs remain, 585 done/72 open across 67 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](dw-225-372-382-623-642-validation-evidence.md).
+
 **DW-524/DW-525/DW-529/DW-604/DW-627 closure (2026-10-24):** Persisted owner watermarks and guarded singleton selection prevent stale replay regression; authenticated legacy intake refuses unsupported evolution before store access. Clean-source performance provenance and a coordinated tenant schema runbook complete the evidence/operations gaps. Server1475/1475, replay24/24 and route30/30 pass in Debug/source; focused replay24/24 and route30/30 also pass in Release/package. Exactly five records close: all 657 IDs remain, 580 done/77 open across 71 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](dw-524-525-529-604-627-validation-evidence.md).
 
 **DW-119/DW-211/DW-212/DW-213/DW-444 closure (2026-10-23):** Owned paging and audit-reset focus survives control replacement; shared header title/render guards fail diagnostically. Authenticated production-UI Chromium checks qualify actual focus against disclosed read-only upstream fixtures. Exactly five records close: all 657 IDs remain, 570 done/87 open across 80 maintenance rows. Historical fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-119-211-212-213-444-validation-evidence.md).
@@ -2070,18 +2072,27 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md`
 reason: The legacy ledger defers this issue: Replace client/server wall-clock matching for removal proof with a causally stable boundary. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-1-reverify-projection-confirmed-membership-command-foundation.md` summary: Replace client/server wall-clock matching for removal proof with a causally stable boundary. evidence: AttemptStartedAtUtc is captured on the UI clock and compared directly with server event timestamps, so ordinary clock skew can hide a legitimate event or admit an equal-time event despite strict-advancement wording.
-status: open
+pre-proof-validation-status: open
 decision: 2026-08-26 Use causation identity — Bind proof to command and event causation identity in coordination with DW-222.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs HasQualifyingAuditProvenance still compares audit timestamps >= AttemptStartedAtUtc from the UI clock; RemoveTenantMemberFlow.razor uses that window. Recorded causation-identity decision is pending.
-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
-evidence-kind: verified-defect
+pre-proof-validation-disposition: actionable
+pre-proof-validation-verification-date: 2026-10-12
+pre-proof-validation-verification: src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs HasQualifyingAuditProvenance still compares audit timestamps >= AttemptStartedAtUtc from the UI clock; RemoveTenantMemberFlow.razor uses that window. Recorded causation-identity decision is pending.
+pre-proof-validation-verification-files: src/Hexalith.Tenants.UI/State/TenantCommands/TenantMembershipCommandProvenance.cs; src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
+pre-proof-validation-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: DW-222
-next-action: Replace wall-clock qualification with exact command causation/sequence in coordination with DW-222.
+pre-proof-validation-next-action: Replace wall-clock qualification with exact command causation/sequence in coordination with DW-222.
 related: DW-222
+
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Existing member-removal proof now independently requalified in both clock directions: the audit request has no BFF-time filter; only exact correlation/committed sequence qualifies the redacted receipt. The timestamp helper remains used solely by metadata-update flows and is not removed or generalized.
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-225-372-382-623-642-proof-and-validation.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md`
+next-action: none; selected record resolved within the stated evidence scope.
 
 ### DW-226: Downgrade retained global-administrator evidence when a tenant-detail supplementary refresh fails
 
@@ -3456,18 +3467,26 @@ origin: migrated from unnumbered ledger ("Deferred from: code review of spec-4-2
 location: .github/workflows/source-reference.yml
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- Source-reference job may time out on a cold restore. Unverified medium: the new workflow has no NuGet cache, `timeout-minutes: 15`, and builds the full Debug source graph with `-m:1 -nr:false --no-incremental`. Settle by timing a cold CI run of that build plus the four-case execution; if it finishes under 15 minutes the timeout is adequate. [`.github/workflows/source-reference.yml:20`]"
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: .github/workflows/source-reference.yml:20 still sets timeout-minutes: 15, has no NuGet-cache step, and builds the full Debug source-reference graph with -m:1 -nr:false --no-incremental. No retained timed cold CI run establishes that restore/build plus the four provenance cases fits that budget.
-verification-files: .github/workflows/source-reference.yml
-evidence-kind: unverified-risk
+pre-proof-validation-status: open
+pre-proof-validation-disposition: uncertain
+pre-proof-validation-verification-date: 2026-10-12
+pre-proof-validation-verification: .github/workflows/source-reference.yml:20 still sets timeout-minutes: 15, has no NuGet-cache step, and builds the full Debug source-reference graph with -m:1 -nr:false --no-incremental. No retained timed cold CI run establishes that restore/build plus the four provenance cases fits that budget.
+pre-proof-validation-verification-files: .github/workflows/source-reference.yml
+pre-proof-validation-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout.
+pre-proof-validation-next-action: Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout.
 related: DW-372, DW-382
 
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Immutable hosted source run 40055061868 at c157c394b8fca5f392b5f8a6a5ff1f51f4ac77a0 restores/builds the source graph and executes all four required provenance cases without skips. Fresh hosted job with no workflow package cache completes in 266 seconds under the 900-second budget. One observed run, not a universal timing guarantee; full CI/release acceptance is separate.
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-225-372-382-623-642-proof-and-validation.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md`
+next-action: none; selected record resolved within the stated evidence scope.
 
 ## Deferred from: code review of spec-4-3-remove-global-administrator-with-last-administrator-hard-stop.md (2026-09-22)
 
@@ -3546,19 +3565,27 @@ location: .github/workflows/source-reference.yml
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation-2.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation-2.md`\n  summary: Source-reference job may time out on a cold restore.\n  evidence: maybe-false; settle by timing a cold CI run of `dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false --no-incremental` plus the four-case execution. If it finishes under 15 minutes, the timeout is adequate; if not, add the domain-ci NuGet cache and/or raise the timeout."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: .github/workflows/source-reference.yml:20 still sets timeout-minutes: 15, has no NuGet-cache step, and builds the full Debug source-reference graph with -m:1 -nr:false --no-incremental. No retained timed cold CI run establishes that restore/build plus the four provenance cases fits that budget.
-verification-files: .github/workflows/source-reference.yml
-evidence-kind: unverified-risk
+pre-proof-validation-status: open
+pre-proof-validation-disposition: uncertain
+pre-proof-validation-verification-date: 2026-10-12
+pre-proof-validation-verification: .github/workflows/source-reference.yml:20 still sets timeout-minutes: 15, has no NuGet-cache step, and builds the full Debug source-reference graph with -m:1 -nr:false --no-incremental. No retained timed cold CI run establishes that restore/build plus the four provenance cases fits that budget.
+pre-proof-validation-verification-files: .github/workflows/source-reference.yml
+pre-proof-validation-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout.
+pre-proof-validation-next-action: Retain wall-clock timing for a genuinely cold CI build and four-case execution before changing cache or timeout.
 related: DW-372
 duplicate-of: DW-372
 
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Duplicate cold-source timing risk requalified by the same immutable hosted run as DW-372: 266-second complete job, 133.87-second source build, four passing provenance tests and zero skips. Current timeout/cache configuration remains unchanged; package-cache coldness is qualified precisely in the retained JSON.
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-225-372-382-623-642-proof-and-validation.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md`
+next-action: none; selected record resolved within the stated evidence scope.
 
 ## Deferred from: code review of spec-4-2-grant-global-administrator-with-projection-confirmation.md (2026-09-22)
 
@@ -6653,17 +6680,25 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: Verify whether BFF submit-time and EventStore event-time clock skew can hide an exact global-administrator correction audit proof.\n  evidence: The BFF records SubmittedAtUtc while EventStore stamps the event independently; measured production skew or a shared timestamp ordering guarantee is needed to establish whether the current post-submit boundary can exclude a valid exact-correlation event."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: GlobalAdministratorAuditProofLookup.FindAsync queries From=submittedAtUtc and requires row.Timestamp>=submittedAtUtc; BFF submit time and EventStore event time use independent clocks. Missing evidence: supported clock-order guarantee or measured deployment skew bounds.
-evidence-kind: unverified-risk
+pre-proof-validation-status: open
+pre-proof-validation-disposition: uncertain
+pre-proof-validation-verification-date: 2026-10-12
+pre-proof-validation-verification: GlobalAdministratorAuditProofLookup.FindAsync queries From=submittedAtUtc and requires row.Timestamp>=submittedAtUtc; BFF submit time and EventStore event time use independent clocks. Missing evidence: supported clock-order guarantee or measured deployment skew bounds.
+pre-proof-validation-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: Timestamp/provenance contract; clock synchronization evidence
-next-action: Establish the clock boundary or select a safe proof lookup policy grounded in exact correlation/sequence.
+pre-proof-validation-next-action: Establish the clock boundary or select a safe proof lookup policy grounded in exact correlation/sequence.
 related: DW-565
 
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Global administrator proof lookup and snapshot linking no longer compare EventStore event timestamps to the independent BFF submission clock. Exact command correlation/sequence, original producer-event ordering, current ordered projection coverage, uniqueness and complete stable cursor walk remain required. Both positive and negative BFF clock offsets are covered.
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-225-372-382-623-642-proof-and-validation.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md`
+next-action: none; selected record resolved within the stated evidence scope.
 
 ## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md (2026-10-11)
 
@@ -6868,17 +6903,25 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: unverified medium; the Global Administrators page holds the fixed-aggregate lease for a `Completed` correction with no valid committed sequence, while the correction panel now releases the same status.\n  evidence: Pre-existing on the page: `IsPermanentCorrectionBaselineFailure` and `CanConfirmCorrectionProjection` in `src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor` (`:5256`, `:5292`) both require `CommittedEventSequence is > 0`, so an adopted correction whose status is `Completed` with events but no sequence stays `ProjectionPending` with the lock held. The panel's key-only `IsPermanentCommandProofFailure` (`src/Hexalith.Tenants.UI/Components/Tenants/Audit/GlobalAdministratorCorrectionPanel.razor:893`), added in `9345d9d0`, releases that state. `TenantCommandGateway.cs:710-718` returns a null sequence with verified identity only when the status record breaks its own invariants. What would settle it: whether EventStore can return `Completed` with events but no valid `CommittedEventSequence` for the global-administrators aggregate."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: GlobalAdministratorsPage.IsPermanentCorrectionBaselineFailure/CanConfirmCorrectionProjection still require committed sequence>0; panel now releases malformed completed proof. EventStore status writing conditionally emits sequence only with verified range proof. Missing evidence: whether Completed+events+null sequence is reachable in supported global command/recovery states rather than corrupted status.
-evidence-kind: unverified-risk
+pre-proof-validation-status: open
+pre-proof-validation-disposition: uncertain
+pre-proof-validation-verification-date: 2026-10-12
+pre-proof-validation-verification: GlobalAdministratorsPage.IsPermanentCorrectionBaselineFailure/CanConfirmCorrectionProjection still require committed sequence>0; panel now releases malformed completed proof. EventStore status writing conditionally emits sequence only with verified range proof. Missing evidence: whether Completed+events+null sequence is reachable in supported global command/recovery states rather than corrupted status.
+pre-proof-validation-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: Platform completed-status invariant/recovery proof
-next-action: Trace verified terminal/recovery producers and add a reachable malformed-status regression only after establishing the contract.
+pre-proof-validation-next-action: Trace verified terminal/recovery producers and add a reachable malformed-status regression only after establishing the contract.
 related: none
 
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Verified event-producing Completed status without usable committed-sequence proof now renders the correction-specific UnableToVerify state and releases only that fixed-aggregate lease on grant/removal and completion paths. Intermediate EventsStored/EventsPublished retain admission. Platform legacy and terminal-advisory compatibility permit absent proof; normal current verified producers still emit it.
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-225-372-382-623-642-proof-and-validation.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md`
+next-action: none; selected record resolved within the stated evidence scope.
 
 ## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, range `9345d9d0..6a81aee1` (2026-10-12)
 

@@ -4374,8 +4374,10 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         gateway.RemoveMemberCallCount.ShouldBe(1);
     }
 
-    [Fact]
-    public void ExactRemovalProofAcceptsClockSkewWithOnlyOpaqueETagMetadataAndRedactsProvenance()
+    [Theory]
+    [InlineData(-120)]
+    [InlineData(120)]
+    public void ExactRemovalProofAcceptsClockSkewWithOnlyOpaqueETagMetadataAndRedactsProvenance(int eventOffsetMinutes)
     {
         StubTenantCommandGateway gateway = CompletedGateway();
         ITenantQueryGateway queryGateway = Substitute.For<ITenantQueryGateway>();
@@ -4384,7 +4386,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             {
                 TenantAuditRequest request = call.Arg<TenantAuditRequest>();
                 request.From.ShouldBeNull();
-                TenantAuditRow row = StrongRemovalRow(request) with { Timestamp = DateTimeOffset.UtcNow.AddHours(-2) };
+                TenantAuditRow row = StrongRemovalRow(request) with { Timestamp = DateTimeOffset.UtcNow.AddMinutes(eventOffsetMinutes) };
                 return CurrentAuditPage([row], request, "opaque-validator") with { ProjectionVersion = null };
             });
         RegisterServices(gateway, queryGateway);

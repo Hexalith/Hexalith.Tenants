@@ -1,0 +1,22 @@
+Projection provenance	Set up job	2026-10-24T02:39:15.7341044Z Hosted Compute Agent
+Projection provenance	Set up job	2026-10-24T02:39:15.7341663Z Version: 20261021.618
+Projection provenance	Set up job	2026-10-24T02:39:15.7347344Z ##[group]Operating System
+Projection provenance	Set up job	2026-10-24T02:39:15.7347962Z Ubuntu
+Projection provenance	Set up job	2026-10-24T02:39:15.7350573Z Image: ubuntu-24.04
+Projection provenance	Set up job	2026-10-24T02:39:15.7351104Z Version: 20261012.334.1
+Projection provenance	Set up job	2026-10-24T02:39:15.7352062Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261012.334/images/ubuntu/Ubuntu2404-Readme.md
+Projection provenance	Initialize .NET	2026-10-24T02:41:10.4826985Z   cache: false
+Projection provenance	Build the source-reference integration graph	2026-10-24T02:41:19.6673232Z ##[group]Run dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false --no-incremental
+Projection provenance	Build the source-reference integration graph	2026-10-24T02:41:19.6674696Z dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false --no-incremental
+Projection provenance	Build the source-reference integration graph	2026-10-24T02:43:33.9670187Z Build succeeded.
+Projection provenance	Build the source-reference integration graph	2026-10-24T02:43:33.9670750Z     0 Warning(s)
+Projection provenance	Build the source-reference integration graph	2026-10-24T02:43:33.9671263Z     0 Error(s)
+Projection provenance	Build the source-reference integration graph	2026-10-24T02:43:33.9673192Z Time Elapsed 00:02:13.87
+Projection provenance	Verify real-handler projection provenance	2026-10-24T02:43:34.0116787Z ##[group]Run dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --minimum-expected-tests 4 --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway --fail-skips on
+Projection provenance	Verify real-handler projection provenance	2026-10-24T02:43:34.0123349Z dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --minimum-expected-tests 4 --filter-method Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests.GlobalAdministratorsRealHandlerMetadataSurvivesRouterRestClientAndUiGateway --fail-skips on
+Projection provenance	Verify real-handler projection provenance	2026-10-24T02:43:37.3774364Z Test run summary: Passed!
+Projection provenance	Verify real-handler projection provenance	2026-10-24T02:43:37.3804088Z   total: 4
+Projection provenance	Verify real-handler projection provenance	2026-10-24T02:43:37.3833779Z   failed: 0
+Projection provenance	Verify real-handler projection provenance	2026-10-24T02:43:37.3843517Z   succeeded: 4
+Projection provenance	Verify real-handler projection provenance	2026-10-24T02:43:37.3863586Z   skipped: 0
+Projection provenance	Verify real-handler projection provenance	2026-10-24T02:43:37.3893369Z   duration: 2s 558ms
