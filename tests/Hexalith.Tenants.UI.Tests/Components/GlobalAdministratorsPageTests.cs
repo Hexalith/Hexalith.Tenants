@@ -6893,13 +6893,30 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
     }
 
     [Theory]
-    [InlineData(GlobalAdministratorActionKind.Grant, 1)]
-    [InlineData(GlobalAdministratorActionKind.Grant, 2)]
-    [InlineData(GlobalAdministratorActionKind.Remove, 1)]
-    [InlineData(GlobalAdministratorActionKind.Remove, 2)]
+    [InlineData(GlobalAdministratorActionKind.Grant, null, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Grant, null, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Grant, 0L, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Grant, 0L, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Grant, -1L, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Grant, -1L, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Grant, 1L, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Grant, 1L, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Grant, 2L, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Grant, 2L, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Remove, null, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Remove, null, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Remove, 0L, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Remove, 0L, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Remove, -1L, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Remove, -1L, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Remove, 1L, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Remove, 1L, CommandStatus.EventsPublished)]
+    [InlineData(GlobalAdministratorActionKind.Remove, 2L, CommandStatus.EventsStored)]
+    [InlineData(GlobalAdministratorActionKind.Remove, 2L, CommandStatus.EventsPublished)]
     public async Task Correction_origin_waits_for_committed_sequence_before_sibling_confirms(
         GlobalAdministratorActionKind action,
-        long committedSequence)
+        long? committedSequence,
+        CommandStatus progress)
     {
         GlobalAdministratorsSnapshot before = action is GlobalAdministratorActionKind.Grant
             ? ComponentReady("tenant-sequence:1", "other-admin")
@@ -6914,8 +6931,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         Services.AddSingleton<ITenantQueryGateway>(new StubTenantQueryGateway(after) { RepeatLastResponse = true });
         var commands = new StubTenantCommandGateway(statuses:
         [
-            new TenantCommandStatusResult(CommandStatus.EventsStored, EventCount: 1,
-                HasVerifiedCommandIdentity: true),
+            new TenantCommandStatusResult(progress, HasVerifiedCommandIdentity: true),
             new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1,
                 HasVerifiedCommandIdentity: true) { CommittedEventSequence = committedSequence },
         ]);
@@ -6951,7 +6967,7 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
         await page.Find($"[data-testid='tenants-global-admin-{prefix}-refresh']")
             .ClickAsync(new MouseEventArgs());
 
-        if (committedSequence == 1)
+        if (committedSequence is null or <= 1)
         {
             page.WaitForAssertion(() =>
             {
@@ -6984,6 +7000,134 @@ public sealed partial class GlobalAdministratorsPageTests : FluentBunitContext
             registry.PendingCompletions().ShouldHaveSingleItem().CommittedEventSequence.ShouldBe(2);
         }
         gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData(GlobalAdministratorActionKind.Grant)]
+    [InlineData(GlobalAdministratorActionKind.Remove)]
+    public async Task Established_sequence_survives_a_later_compatible_completion_without_sequence(GlobalAdministratorActionKind action)
+    {
+        var (gate, queries, commands, registry) = RegisterRetainedCorrection(action, projectionCurrent: false,
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 },
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
+        IRenderedComponent<GlobalAdministratorsPage> page = Render<GlobalAdministratorsPage>();
+        string prefix = action is GlobalAdministratorActionKind.Grant ? "grant" : "remove";
+        page.WaitForAssertion(() => commands.StatusHandles.Count.ShouldBe(1));
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+        page.Find($"[data-testid='tenants-global-admin-{prefix}-state']").TextContent.ShouldContain("pending", Case.Insensitive);
+        registry.PendingCompletions().ShouldBeEmpty();
+        queries.QueueResponse(Task.FromResult(action is GlobalAdministratorActionKind.Grant
+            ? ComponentReady("tenant-sequence:2", "target-admin", "other-admin")
+            : ComponentReady("tenant-sequence:2", "other-admin")));
+
+        await page.Find($"[data-testid='tenants-global-admin-{prefix}-refresh']").ClickAsync(new MouseEventArgs());
+
+        page.WaitForAssertion(() => page.Find($"[data-testid='tenants-global-admin-{prefix}-state']").TextContent.ShouldContain("Confirmed"));
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        registry.PendingCompletions().ShouldHaveSingleItem().CommittedEventSequence.ShouldBe(2);
+    }
+
+    [Theory]
+    [InlineData(GlobalAdministratorActionKind.Grant)]
+    [InlineData(GlobalAdministratorActionKind.Remove)]
+    public async Task Late_malformed_status_cannot_release_the_replacement_pages_owned_attempt(GlobalAdministratorActionKind action)
+    {
+        var (gate, _, commands, registry) = RegisterRetainedCorrection(action, projectionCurrent: true,
+            new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true),
+            new TenantCommandStatusResult(CommandStatus.EventsPublished, HasVerifiedCommandIdentity: true),
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true),
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true) { CommittedEventSequence = 2 });
+        IRenderedComponent<GlobalAdministratorsPage> page = Render<GlobalAdministratorsPage>();
+        string prefix = action is GlobalAdministratorActionKind.Grant ? "grant" : "remove";
+        page.WaitForAssertion(() => commands.StatusHandles.Count.ShouldBe(1));
+        var delayedStatus = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        commands.StatusGate = delayedStatus;
+        Task obsoleteRefresh = page.Find($"[data-testid='tenants-global-admin-{prefix}-refresh']").ClickAsync(new MouseEventArgs());
+        await commands.StatusEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await page.InvokeAsync(async () => await page.Instance.DisposeAsync());
+        IRenderedComponent<GlobalAdministratorsPage> replacement = Render<GlobalAdministratorsPage>();
+        replacement.WaitForAssertion(() => commands.StatusHandles.Count.ShouldBe(3));
+
+        delayedStatus.SetResult();
+        await obsoleteRefresh.WaitAsync(TimeSpan.FromSeconds(5));
+
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeTrue();
+        replacement.Find($"[data-testid='tenants-global-admin-{prefix}-state']").TextContent.ShouldContain("pending", Case.Insensitive);
+        registry.PendingCompletions().ShouldBeEmpty();
+        await replacement.Find($"[data-testid='tenants-global-admin-{prefix}-refresh']").ClickAsync(new MouseEventArgs());
+        replacement.WaitForAssertion(() => replacement.Find($"[data-testid='tenants-global-admin-{prefix}-state']").TextContent.ShouldContain("Confirmed"));
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        registry.PendingCompletions().ShouldHaveSingleItem().CommittedEventSequence.ShouldBe(2);
+    }
+
+    [Theory]
+    [InlineData(GlobalAdministratorActionKind.Grant)]
+    [InlineData(GlobalAdministratorActionKind.Remove)]
+    public async Task Superseded_terminal_status_releases_its_owned_unverifiable_correction_without_retaining_it(GlobalAdministratorActionKind action)
+    {
+        var (gate, _, commands, registry) = RegisterRetainedCorrection(action, projectionCurrent: true,
+            new TenantCommandStatusResult(CommandStatus.EventsStored, HasVerifiedCommandIdentity: true),
+            new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true));
+        IRenderedComponent<GlobalAdministratorsPage> page = Render<GlobalAdministratorsPage>();
+        page.WaitForAssertion(() => commands.StatusHandles.Count.ShouldBe(1));
+        var delayedStatus = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        commands.StatusGate = delayedStatus;
+        bool grant = action is GlobalAdministratorActionKind.Grant;
+        string prefix = grant ? "grant" : "remove";
+        Task obsoleteRefresh = page.Find($"[data-testid='tenants-global-admin-{prefix}-refresh']").ClickAsync(new MouseEventArgs());
+        await commands.StatusEntered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        FieldInfo generation = typeof(GlobalAdministratorsPage).GetField(grant ? "_grantMutationGeneration" : "_removeMutationGeneration",
+            BindingFlags.Instance | BindingFlags.NonPublic).ShouldNotBeNull();
+        generation.SetValue(page.Instance, (long)generation.GetValue(page.Instance)! + 1);
+
+        delayedStatus.SetResult();
+        await obsoleteRefresh.WaitAsync(TimeSpan.FromSeconds(5));
+
+        gate.IsLocked(TenantCommandAggregateLock.ForGlobalAdministrators()).ShouldBeFalse();
+        registry.PendingCompletions().ShouldBeEmpty();
+        page.WaitForAssertion(() =>
+        {
+            page.Find($"[data-testid='tenants-global-admin-{prefix}-state']").TextContent.ShouldContain("could not be verified");
+            ((bool)typeof(GlobalAdministratorsPage).GetProperty(grant ? "IsGrantInFlight" : "IsRemoveInFlight",
+                BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(page.Instance)!).ShouldBeFalse();
+        });
+        await page.InvokeAsync(() => InvokePageMethod(page.Instance, "OnGrantUserIdInput", "new-admin"));
+        page.WaitForAssertion(() => page.Find("[data-testid='tenants-global-admin-grant-submit']").HasAttribute("disabled").ShouldBeFalse());
+    }
+
+    private (TenantAggregateCommandAdmissionGate Gate, StubTenantQueryGateway Queries, StubTenantCommandGateway Commands,
+        GlobalAdministratorCorrectionProofRegistry Registry) RegisterRetainedCorrection(
+        GlobalAdministratorActionKind action, bool projectionCurrent, params TenantCommandStatusResult[] statuses)
+    {
+        GlobalAdministratorsSnapshot before = action is GlobalAdministratorActionKind.Grant
+            ? ComponentReady("tenant-sequence:1", "other-admin")
+            : ComponentReady("tenant-sequence:1", "target-admin", "other-admin");
+        GlobalAdministratorsSnapshot current = !projectionCurrent ? before : action is GlobalAdministratorActionKind.Grant
+            ? ComponentReady("tenant-sequence:2", "target-admin", "other-admin")
+            : ComponentReady("tenant-sequence:2", "other-admin");
+        var queries = new StubTenantQueryGateway(current) { RepeatLastResponse = true };
+        var commands = new StubTenantCommandGateway(statuses: statuses);
+        var registry = new GlobalAdministratorCorrectionProofRegistry();
+        Services.AddSingleton(registry);
+        Services.AddSingleton<ITenantsBffComposition>(new StubTenantsBffComposition(TenantLifecycleAuthorizationReflectionState.Authorized));
+        Services.AddSingleton<ITenantQueryGateway>(queries);
+        Services.AddSingleton<ITenantCommandGateway>(commands);
+        Services.AddSingleton<IStringLocalizer<TenantsResources>>(new StubTenantsLocalizer());
+        TenantAggregateCommandAdmissionGate gate = Services.GetRequiredService<TenantAggregateCommandAdmissionGate>();
+        var owner = new object();
+        gate.TryAcquireLease(TenantCommandAggregateLock.ForGlobalAdministrators(), owner, out TenantAggregateCommandLease? lease).ShouldBeTrue();
+        lease!.TryMarkDispatched(owner).ShouldBeTrue();
+        DateTimeOffset sourceTime = new(2026, 6, 1, 10, 0, 0, TimeSpan.Zero);
+        lease.TryRetainReconciliation(owner, new GlobalAdministratorReconciliationState(
+            action, "target-admin", "message-safe", "correlation-safe", TenantCommandLifecycleState.Accepted,
+            GrantPreview: action is GlobalAdministratorActionKind.Grant ? GlobalAdministratorGrantPreview.Create("target-admin", before, isAuthorized: true) : null,
+            RemovePreview: action is GlobalAdministratorActionKind.Remove ? GlobalAdministratorRemovePreview.Create("target-admin", "operator-admin", before, isAuthorized: true) : null)
+        {
+            SourceAuditReference = "event-original",
+            SourceAuditTimestampUtc = sourceTime,
+            SubmittedAtUtc = sourceTime.AddMinutes(1),
+        }).ShouldBeTrue();
+        return (gate, queries, commands, registry);
     }
 
     [Theory]

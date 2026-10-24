@@ -1,0 +1,20 @@
+{
+  "_bmad-output/implementation-artifacts/spec-dw-227-241-242-299-317-responsive-command-forms.md": "2fa31315be240e2045ef83507b47b9958bb7b84ab5ef2b98460377925366720a",
+  "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.css": "c96a73d476f899b7ae9faff223e5bc22964959b9a0163bf3257720ed561aa3c1",
+  "src/Hexalith.Tenants.UI/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.css": "f73b58df494fba3608c90666bfde988306c242e6bbe10125a87d7213234ab38f",
+  "src/Hexalith.Tenants.UI/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor.css": "51d3ceb3317509c3f4e4e3cede03073eacd17c71fe8721490c0a39e7e579905d",
+  "src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor": "b34de3d48e452ec285d213a3cb8a7f0758b08a728e127ba96528ea5cbb52797e",
+  "src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor": "43deaafa665f61835564376306c097de133b51f9585265d039cbb4d090843b4f",
+  "tests/Hexalith.Tenants.UI.Tests/Browser/command-form-browser-validation.html": "1623756c22dc95f353b5949001ce9dce9cc31cf5fecdd2d67a90327b3aba8a8d",
+  "tests/Hexalith.Tenants.UI.Tests/Browser/dump-validation-dom.mjs": "5be8ebed21f0998a04d6108aa33b8e474f4297b31da18207f4e8743e49206c01",
+  "tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh": "65179d128797cc3d121bb398c0992f5e59917e2d1d645572546299c39cf7c96e",
+  "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantConfigurationFlowTests.cs": "d927cfaa439533bbc6b1dbbf01497522b317fb8d44dfab6151981605242aa29b",
+  "tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs": "788f744d6a34cf197a0b7489117ab8855698be2203cb7aa9bfb898adb6e970e3",
+  "tests/Hexalith.Tenants.UI.Tests/Components/SetTenantConfigurationFlowTests.cs": "f1b8127d40f449035e2082a8169ad498ffbb2375d8296aca983bbc043bb79b75",
+  "tests/Hexalith.Tenants.UI.Tests/Components/TenantDetailSurfaceTests.MemberFocus.cs": "b466ff6529d8a4ed57f4adff80dca4e32846b1c79903a7f37319fd776e56d703",
+  "tests/Hexalith.Tenants.UI.Tests/Components/TenantLifecycleActionAvailabilityTests.cs": "8ca34b26251a3b5173a368e9151a5c92ff3ed52fd735de24d48d9fe8a45ef127",
+  "src/Hexalith.Tenants.UI/bin/Debug/net10.0/Hexalith.Tenants.UI.dll": "a8957a9080ff2512325a697e1ec6d012283966c66a829dee60fcff2ba25d3862",
+  "src/Hexalith.Tenants.UI/obj/Debug/net10.0/scopedcss/Components/Tenants/Configuration/SetTenantConfigurationFlow.razor.rz.scp.css": "876a65978a751038548f941a1f537b8e5ca5fb0641faa4076df3e967148da304",
+  "src/Hexalith.Tenants.UI/obj/Debug/net10.0/scopedcss/Components/Tenants/Configuration/RemoveTenantConfigurationFlow.razor.rz.scp.css": "a6c675c6bbd6fe789e713882ddeb01cae7dd5f78e285a4290f7e68013fe7e2e1",
+  "src/Hexalith.Tenants.UI/obj/Debug/net10.0/scopedcss/Components/Tenants/Lifecycle/TenantLifecycleCommandFlow.razor.rz.scp.css": "3301295f486a6ebe0a937e3d1769d3b8964410d7c191f625992d6670a720fa88"
+}

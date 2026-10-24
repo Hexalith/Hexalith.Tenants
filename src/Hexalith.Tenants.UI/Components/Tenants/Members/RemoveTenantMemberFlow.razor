@@ -123,15 +123,13 @@
         }
 
         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="0.5rem" Wrap="true" Class="tenants-remove-member-flow__actions">
-            <span class="tenants-remove-member-flow__button-focus" tabindex="-1" @ref="_submitElement">
-                <FluentButton Type="ButtonType.Submit"
-                              Appearance="ButtonAppearance.Primary"
-                              Class="tenants-remove-member-flow__confirm"
-                              data-testid="tenants-remove-member-confirm"
-                              Disabled="@IsSubmitDisabled">
-                    @Localizer["Tenants.RemoveMember.Confirm"]
-                </FluentButton>
-            </span>
+            <FluentButton Type="ButtonType.Submit"
+                          Appearance="ButtonAppearance.Primary"
+                          Class="tenants-remove-member-flow__confirm"
+                          data-testid="tenants-remove-member-confirm"
+                          Disabled="@IsSubmitDisabled">
+                @Localizer["Tenants.RemoveMember.Confirm"]
+            </FluentButton>
         </FluentStack>
     </EditForm>
 
@@ -152,14 +150,12 @@
                 @Localizer["Tenants.RemoveMember.Action.ContinueReadOnly"]
             </FluentButton>
         }
-        <span class="tenants-remove-member-flow__button-focus" tabindex="-1" @ref="_cancelElement">
-            <FluentButton Appearance="ButtonAppearance.Outline"
-                          data-testid="tenants-remove-member-cancel"
-                          Disabled="@IsOwnedCommandInFlight"
-                          OnClick="CloseAsync">
-                @Localizer["Tenants.RemoveMember.Cancel"]
-            </FluentButton>
-        </span>
+        <FluentButton @ref="_cancelElement" Appearance="ButtonAppearance.Outline"
+                      data-testid="tenants-remove-member-cancel"
+                      Disabled="@IsOwnedCommandInFlight"
+                      OnClick="CloseAsync">
+            @Localizer["Tenants.RemoveMember.Cancel"]
+        </FluentButton>
     </FluentStack>
 
     <section class="tenants-remove-member-flow__lifecycle"
@@ -253,8 +249,7 @@
     private (string TenantId, string UserId)? _previewIdentity;
     private bool _dismissed;
     private FluentTextInput _confirmationElement = default!;
-    private ElementReference _submitElement;
-    private ElementReference _cancelElement;
+    private FluentButton _cancelElement = default!;
     private ElementReference _lifecycleElement;
     private bool _focusConfirmationPending;
     private bool _focusCancelPending;
@@ -289,6 +284,11 @@
                 if (!_disposed)
                 {
                     InitializeIdlePreview();
+                    if (!HasSafeMeasuredViewport && !_dismissed)
+                    {
+                        // The breakpoint can hide a form that currently owns keyboard focus.
+                        _focusCancelPending = true;
+                    }
                     StateHasChanged();
                 }
             }).ConfigureAwait(false);
@@ -933,13 +933,21 @@
         if (_focusConfirmationPending)
         {
             _focusConfirmationPending = false;
-            await FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
+            // The confirmation is inside the form hidden on Phone/unknown viewports.
+            if (HasSafeMeasuredViewport)
+            {
+                await FocusSafelyAsync(_confirmationElement.Element).ConfigureAwait(false);
+            }
+            else
+            {
+                await FocusCancelOrLifecycleAsync().ConfigureAwait(false);
+            }
         }
 
         if (_focusCancelPending)
         {
             _focusCancelPending = false;
-            await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
+            await FocusCancelOrLifecycleAsync().ConfigureAwait(false);
         }
 
         if (_focusLifecyclePending)
@@ -948,6 +956,9 @@
             await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(false);
         }
     }
+
+    private Task FocusCancelOrLifecycleAsync()
+        => FocusSafelyAsync(IsOwnedCommandInFlight ? _lifecycleElement : _cancelElement.Element);
 
     private static async Task FocusSafelyAsync(ElementReference element)
     {
@@ -959,6 +970,12 @@
         {
         }
         catch (JSException)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+        catch (OperationCanceledException)
         {
         }
     }
@@ -1932,11 +1949,11 @@
         // display:none -- focusing it there is a silent no-op that lets focus escape an aria-modal
         // dialog. Width is not observable server-side, so the trap always lands on the control that is
         // guaranteed to exist.
-        await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
+        await FocusCancelOrLifecycleAsync().ConfigureAwait(false);
     }
 
     private async Task FocusCancelAsync(FocusEventArgs args)
-        => await FocusSafelyAsync(_cancelElement).ConfigureAwait(false);
+        => await FocusCancelOrLifecycleAsync().ConfigureAwait(false);
 
     public void Dispose()
     {

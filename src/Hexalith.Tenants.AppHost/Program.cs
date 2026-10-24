@@ -74,6 +74,10 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
     daprSchedulerHostAddress: daprSchedulerHostAddress,
     pubSubComponentPath: pubSubComponentPath);
 
+// The helper has now attached EventStore's sidecar. Protect its internal callbacks with a
+// per-application secret shared only by EventStore and that sidecar in either authentication mode.
+_ = eventStore.WithGeneratedEventStoreAppChannelToken();
+
 // Add the Tenants domain service runtime via the Tenants platform Aspire helper. Gateway-side tenants /
 // global-administrators routing remains explicit AppHost composition above; the helper adds the server project
 // and a DAPR sidecar that shares the EventStore state store + pub/sub.

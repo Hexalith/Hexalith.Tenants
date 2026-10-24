@@ -8,6 +8,10 @@ public sealed class TenantIndexReadModel : IReadModelFreshness {
     public Dictionary<string, TenantIndexEntry> Tenants { get; set; } = [];
 
     public Dictionary<string, Dictionary<string, TenantRole>> UserTenants { get; set; } = [];
+    /// <summary>Gets or sets aggregate-local watermarks committed with the corresponding index state.</summary>
+    /// <remarks>A populated legacy index without complete coverage requires a coordinated rebuild.</remarks>
+    public Dictionary<string, long> AggregateSequences { get; set; } = new(StringComparer.Ordinal);
+
     public DateTimeOffset? ProjectedAt { get; set; }
     public string? ProjectionVersion { get; set; }
 

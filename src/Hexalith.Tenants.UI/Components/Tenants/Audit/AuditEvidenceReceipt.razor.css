@@ -95,12 +95,12 @@
     padding-inline-start: 0.5rem;
 }
 
-.audit-evidence-receipt__action {
+.audit-evidence-receipt ::deep .audit-evidence-receipt__action {
     min-height: 2.5rem;
 }
 
-.audit-evidence-receipt__action:focus-visible,
-.audit-evidence-receipt :focus-visible {
+.audit-evidence-receipt ::deep .audit-evidence-receipt__action:focus-visible,
+.audit-evidence-receipt ::deep :focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
@@ -126,9 +126,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .audit-evidence-receipt *,
-    .audit-evidence-receipt *::before,
-    .audit-evidence-receipt *::after {
+    .audit-evidence-receipt ::deep *,
+    .audit-evidence-receipt ::deep *::before,
+    .audit-evidence-receipt ::deep *::after {
         transition-duration: 0.01ms;
     }
 }

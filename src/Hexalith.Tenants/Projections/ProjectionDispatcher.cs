@@ -75,6 +75,16 @@ public sealed partial class ProjectionDispatcher(
         }
 
         try {
+            // The shared SDK legacy admission helper is internal. Keep this domain intake
+            // aligned with its public DTO contract until an SDK admission API is exposed.
+            if (HasUnsupportedEvolution(request))
+            {
+                outcome = "unsupported-capability";
+                return Results.Problem(
+                    statusCode: StatusCodes.Status400BadRequest,
+                    title: "Unsupported projection evolution capability");
+            }
+
             switch (request.Domain) {
                 case TenantsDomain:
                     ProjectionResponse tenantsResponse = await new TenantProjectionHandler(
@@ -148,6 +158,16 @@ public sealed partial class ProjectionDispatcher(
                 stopwatch.Elapsed.TotalMilliseconds);
         }
     }
+
+    private static bool HasUnsupportedEvolution(ProjectionRequest request)
+        => request.VerifiedEffectiveEvents is not null || request.EventEvolutionProof is not null
+            || request.Events.Any(static item => item is not null
+                && (item.MetadataVersion is not (null or 1)
+                    || item.StoredEventContractType is not null || item.StoredPayloadVersion is < 1 or > 1024
+                    || item.StoredSerializationFormat is not null || item.StoredEventTypeName is not null
+                    || item.StoredDigest is not null || item.RegistryFingerprint is not null || item.IsAdapted is not null
+                    || item.EffectiveEventContractType is not null || item.EffectivePayloadVersion is not null
+                    || item.EffectiveSerializationFormat is not null || item.EffectivePayload is not null));
 
     private static string BuildEventTypeSummary(IReadOnlyCollection<ProjectionEventDto> events) {
         HashSet<string> distinct = new(StringComparer.Ordinal);

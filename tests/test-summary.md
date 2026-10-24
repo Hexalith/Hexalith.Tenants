@@ -1,5 +1,28 @@
 # Test Automation Summary
 
+## Causal correction proof and validation — 2026-10-24
+
+DW-225/DW-372/DW-382/DW-623/DW-642: Debug/source build has zero warnings/errors; focused **1566/1566** and maintained MTP full UI **7549/7549** pass with zero failures/skips. Exact proof tolerates BFF clock skew, complete walks span larger histories under a deadline, and terminal correction recovery preserves intermediate/current ownership. Nine review findings are resolved. Hosted cold-source evidence settles the two timing duplicates. Earlier failures, an unchanged test timing race, formatting limits and broader CI/runtime/release holds remain explicit in [validation evidence](../_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md). Exactly five records close; 585 done/72 open remain across 67 maintenance rows.
+
+## Projection integrity review fixes — 2026-10-24
+
+Focused Debug/source checks pass: replay31/31, protected ProjectContract35/35,
+global handler12/12, tenant handler34/34 and provenance19/19. Existing audit
+persistence passes117/117 unique MTP cases and119/119 direct xUnit cases with
+unchanged assertions/data; the two duplicate MemberData identities and initial
+minimum119 exit9 are documented. Both source builds have zero warnings/errors.
+Blocking CI now runs replay31/audit117/project35 with zero-skip guards; Story Guards
+runs provenance explicitly. Earlier full/package results below describe the initial
+candidate; broader final verification and publication remain parent-owned. See
+[exact fixes, commands and initial failures](../_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md).
+
+**DW-524/DW-525/DW-529/DW-604/DW-627 closure (2026-10-24):** Persisted owner watermarks and guarded singleton selection prevent stale replay regression; authenticated legacy intake refuses unsupported evolution before store access. Clean-source performance provenance and a coordinated tenant schema runbook complete the evidence/operations gaps. Server1475/1475, replay24/24 and route30/30 pass in Debug/source; focused replay24/24 and route30/30 also pass in Release/package. Exactly five records close: all 657 IDs remain, 580 done/77 open across 71 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md).
+
+
+## Runtime authentication and blocking HTTP contracts — 2026-10-23
+
+DW-569/DW-571/DW-572/DW-577/DW-592: generated HTTP/REST 44/44, production command-status to UI proof 18/18, and empty-projection authentication/persisted-state 11/11 pass in both Debug/source and Release/package modes. The full affected runtime class passes 117/117. Real Keycloak workload grant/project authorization and EventStore channel positive/negative controls pass with TLS verification; evidence contains safe statuses/booleans only. The dedicated CI job blocks on the 73 HTTP-contract cases with minimum-test and zero-skip guards. AppHost model coverage checks token sharing and per-app isolation in both auth modes. See [validation evidence](../_bmad-output/implementation-artifacts/dw-569-571-572-577-592-validation-evidence.md).
+
 ## Generated Tests
 
 ### API Tests

@@ -45,8 +45,8 @@
 
 /* fc-css-exception: shared vertical layout across an EditForm, its Fluent-generated <label>, the
    actions row, and a semantic <section>; none of these grouped elements can be a FluentStack. */
-.tenant-lifecycle-flow__form,
-.tenant-lifecycle-flow__form label,
+.tenant-lifecycle-flow ::deep .tenant-lifecycle-flow__form,
+.tenant-lifecycle-flow ::deep .tenant-lifecycle-flow__form label,
 .tenant-lifecycle-flow__actions,
 .tenant-lifecycle-flow__lifecycle {
     display: grid;

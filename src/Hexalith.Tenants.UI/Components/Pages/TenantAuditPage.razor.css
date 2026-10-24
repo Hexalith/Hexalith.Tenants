@@ -1,6 +1,6 @@
 /* fc-css-exception: vertical gap on the FluentAccordion support panel and the semantic
    <section> grid-shell landmark; keeping the landmark precludes a FluentStack wrapper. */
-.tenant-audit__support,
+.tenant-audit-style-scope ::deep .tenant-audit__support,
 .tenant-audit__grid-shell {
     display: grid;
     gap: 0.75rem;

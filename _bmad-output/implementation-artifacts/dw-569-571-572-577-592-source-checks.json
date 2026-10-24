@@ -1,0 +1,285 @@
+{
+  "ciExecutionClaimed": false,
+  "commitMessageValidation": {
+    "command": "node_modules/.bin/commitlint --edit /tmp/tenants-runtime-contracts-commit-message.txt --verbose",
+    "exitCode": 0,
+    "message": "fix(auth): resolve five deferred runtime contract records\n\nResolve DW-569, DW-571, DW-572, DW-577 and DW-592 with scoped workload\nand channel verification plus blocking HTTP contract checks.\n",
+    "pinnedVersion": "21.2.3",
+    "problems": 0,
+    "warnings": 0
+  },
+  "finalVerification": {
+    "binarySha256": {
+      "src/Hexalith.Tenants.AppHost/bin/Debug/net10.0/Hexalith.Tenants.AppHost.dll": "ba08a95475285f6f8625ea082fed3a7ca217ecdb8de8f56e627a1a9b074ed840",
+      "tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll": "a645a96c5a0813b582e7f99a484f26380e52e0f15228bc7d4e6fd6f466c2750c",
+      "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll": "0f5915bbd71126abecf771868dc0f454b410dcbaaa3c6debf72f939896906e07"
+    },
+    "checks": [
+      {
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Debug",
+          "-p:UseHexalithProjectReferences=true",
+          "-m:1",
+          "-nr:false"
+        ],
+        "exitCode": 0,
+        "log": "/tmp/tenants-final-debug-build.log",
+        "name": "debug-build",
+        "summary": [
+          "Build succeeded.",
+          "    0 Warning(s)",
+          "    0 Error(s)"
+        ]
+      },
+      {
+        "command": [
+          "dotnet",
+          "test",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Debug",
+          "--no-build",
+          "-p:UseHexalithProjectReferences=true",
+          "--filter-class",
+          "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests",
+          "--minimum-expected-tests",
+          "117",
+          "--fail-skips",
+          "on"
+        ],
+        "exitCode": 0,
+        "log": "/tmp/tenants-final-debug-runtime117.log",
+        "name": "debug-runtime117",
+        "summary": [
+          "Test run summary: Passed!",
+          "  total: 117",
+          "  failed: 0",
+          "  succeeded: 117",
+          "  skipped: 0"
+        ]
+      },
+      {
+        "command": [
+          "dotnet",
+          "build",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Release",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithFrontComposerFromSource=false",
+          "-warnaserror",
+          "-m:1",
+          "-nr:false"
+        ],
+        "exitCode": 0,
+        "log": "/tmp/tenants-final-package-build.log",
+        "name": "package-build",
+        "summary": [
+          "Build succeeded.",
+          "    0 Warning(s)",
+          "    0 Error(s)"
+        ]
+      },
+      {
+        "command": [
+          "dotnet",
+          "test",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Release",
+          "--no-build",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithFrontComposerFromSource=false",
+          "--filter-class",
+          "Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests",
+          "--minimum-expected-tests",
+          "44",
+          "--fail-skips",
+          "on"
+        ],
+        "exitCode": 0,
+        "log": "/tmp/tenants-final-package-http44.log",
+        "name": "package-http44",
+        "summary": [
+          "Test run summary: Passed!",
+          "  total: 44",
+          "  failed: 0",
+          "  succeeded: 44",
+          "  skipped: 0"
+        ]
+      },
+      {
+        "command": [
+          "dotnet",
+          "test",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Release",
+          "--no-build",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithFrontComposerFromSource=false",
+          "--filter-method",
+          "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.CommandStatusContract*",
+          "--minimum-expected-tests",
+          "18",
+          "--fail-skips",
+          "on"
+        ],
+        "exitCode": 0,
+        "log": "/tmp/tenants-final-package-status18.log",
+        "name": "package-status18",
+        "summary": [
+          "Test run summary: Passed!",
+          "  total: 18",
+          "  failed: 0",
+          "  succeeded: 18",
+          "  skipped: 0"
+        ]
+      },
+      {
+        "command": [
+          "dotnet",
+          "test",
+          "tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj",
+          "--configuration",
+          "Release",
+          "--no-build",
+          "-p:UseHexalithProjectReferences=false",
+          "-p:UseNuGetDeps=true",
+          "-p:HexalithFrontComposerFromSource=false",
+          "--filter-method",
+          "Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.ProjectContract*",
+          "--minimum-expected-tests",
+          "11",
+          "--fail-skips",
+          "on"
+        ],
+        "exitCode": 0,
+        "log": "/tmp/tenants-final-package-project11.log",
+        "name": "package-project11",
+        "summary": [
+          "Test run summary: Passed!",
+          "  total: 11",
+          "  failed: 0",
+          "  succeeded: 11",
+          "  skipped: 0"
+        ]
+      }
+    ],
+    "sourceSha256": {
+      ".github/workflows/ci.yml": "bf62f90d73a6c7a0ec77cd9f13e56d0fe463892ca2a38311843e350f6fe58855",
+      "scripts/validate-runtime-auth-contracts.py": "75faea538d4a0cec46180957d12513226e071dc04148aa717839441b9f42dc1f",
+      "src/Hexalith.Tenants.AppHost/Program.cs": "0305fad57d3c4e4629362819628ce322d7a5a40ec0cec2d36d37c18370368dcb",
+      "tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs": "407c1e86c29e734ae5f2e044f0e59fb4a58bb74eb96f121a0ed4f216a296451f",
+      "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs": "2493584f074dcbc4e11b49337bc1767c1b899c6763f7eed1d126cbe01facc509"
+    },
+    "unchangedAppHostModelGate": "The original package-mode 9/9 gate remains applicable: both owning AppHost source/test fingerprints are unchanged by review corrections."
+  },
+  "initialVerification": {
+    "binarySha256": {
+      "src/Hexalith.Tenants.AppHost/bin/Debug/net10.0/Hexalith.Tenants.AppHost.dll": "ba08a95475285f6f8625ea082fed3a7ca217ecdb8de8f56e627a1a9b074ed840",
+      "tests/Hexalith.Tenants.IntegrationTests/bin/Debug/net10.0/Hexalith.Tenants.IntegrationTests.dll": "57b717a49cb41ed81597cb223cce63759edf3ecb8c692102eec2adf2e96f0cfe",
+      "tests/Hexalith.Tenants.IntegrationTests/bin/Release/net10.0/Hexalith.Tenants.IntegrationTests.dll": "b6bd5e04101983b082348324d5ec53da373fbfeac0e2bd21a70c02ee38262d16"
+    },
+    "checks": [
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/tenants-runtime-contract-build.log",
+        "result": "passed; 0 warnings, 0 errors"
+      },
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --filter-class Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests --minimum-expected-tests 61 --fail-skips on",
+        "log": "/tmp/tenants-command-runtime-regression-tests.log",
+        "result": "113 passed; 0 failed; 0 skipped"
+      },
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests --minimum-expected-tests 44 --fail-skips on",
+        "log": "/tmp/tenants-generated-http-contract-tests.log",
+        "result": "44 passed; 0 failed; 0 skipped"
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false",
+        "log": "/tmp/tenants-apphost-contract-build.log",
+        "result": "passed; 0 warnings, 0 errors"
+      },
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --filter-class Hexalith.Tenants.AppHost.Tests.AppHostSecurityResourceGraphTests --minimum-expected-tests 8 --fail-skips on",
+        "log": "/tmp/tenants-apphost-security-contract-tests.log",
+        "result": "8 passed; 0 failed; 0 skipped"
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false -warnaserror -m:1 -nr:false",
+        "log": "/tmp/tenants-runtime-contract-release-build.log",
+        "result": "passed; 0 warnings, 0 errors"
+      },
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests --minimum-expected-tests 44 --fail-skips on",
+        "log": "/tmp/tenants-generated-http-contract-release-tests.log",
+        "result": "44 passed; 0 failed; 0 skipped"
+      },
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false --filter-method 'Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.CommandStatusContract*' --minimum-expected-tests 18 --fail-skips on",
+        "log": "/tmp/tenants-status-contract-release-tests.log",
+        "result": "18 passed; 0 failed; 0 skipped"
+      },
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false --filter-method 'Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.ProjectContract*' --minimum-expected-tests 7 --fail-skips on",
+        "log": "/tmp/tenants-project-contract-release-tests.log",
+        "result": "7 passed; 0 failed; 0 skipped"
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj --configuration Release -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false -warnaserror -m:1 -nr:false",
+        "log": "/tmp/tenants-apphost-release-build.log",
+        "result": "passed; 0 warnings, 0 errors"
+      },
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj --configuration Release --no-build -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false --minimum-expected-tests 9 --fail-skips on",
+        "log": "/tmp/tenants-apphost-release-tests.log",
+        "result": "9 passed; 0 failed; 0 skipped"
+      },
+      {
+        "command": "/home/administrator/.local/bin/actionlint .github/workflows/ci.yml",
+        "result": "passed; no diagnostics"
+      },
+      {
+        "command": "python3 -m py_compile scripts/validate-runtime-auth-contracts.py",
+        "result": "passed"
+      },
+      {
+        "command": "git diff --check",
+        "result": "passed; existing Git CRLF normalization notice only"
+      }
+    ],
+    "ci_execution_claimed": false,
+    "resolved_validation_observations": [
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --minimum-expected-tests 8 --fail-skips on",
+        "log": "/tmp/tenants-apphost-regression-tests.log",
+        "result": "8 passed; 1 failed; 0 skipped. Existing MemoriesSecretStoreResourceGraphTests requires package-mode assembly and intentionally rejects Debug/source mode. All 9 subsequently pass unchanged in Release/package mode."
+      },
+      {
+        "command": "dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug --no-build -p:UseHexalithProjectReferences=true --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests --minimum-expected-tests 50 --fail-skips on",
+        "result": "44 passed assertions; exit9 minimum-count guard rejected estimated floor50. Actual discovered class count44 is configured and passing."
+      },
+      {
+        "command": "dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj --configuration Debug -p:UseHexalithProjectReferences=true -m:1 -nr:false --no-restore",
+        "result": "initial NETSDK1004 missing assets file; normal restore/build resolved it."
+      }
+    ],
+    "runtime_evidence_owned_by_parent": "/tmp/tenants-deferred-five-runtime-auth.json",
+    "sourceSha256": {
+      ".github/workflows/ci.yml": "db1a13676370dba61edd80d0cd9fb87ec8e8a63f84688865f1cf9edccce1fd4b",
+      "scripts/validate-runtime-auth-contracts.py": "1a31db690205bbdb9693023346bad60a0c42ea417a0d8013bae3c4982b15dbcb",
+      "src/Hexalith.Tenants.AppHost/Program.cs": "0305fad57d3c4e4629362819628ce322d7a5a40ec0cec2d36d37c18370368dcb",
+      "tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs": "407c1e86c29e734ae5f2e044f0e59fb4a58bb74eb96f121a0ed4f216a296451f",
+      "tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs": "e09c9c96b0d2376ab87f9fc9ef99ef86a2be6b854b4b35e8fd6e646c572e4472"
+    }
+  }
+}

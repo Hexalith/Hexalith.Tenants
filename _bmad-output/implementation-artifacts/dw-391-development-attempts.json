@@ -1,0 +1,131 @@
+{
+  "archive": "dw-391-development-attempts.zip",
+  "archiveSha256": "db65ec1fc03e144102879f1e7a6183e836b4c8cddeba73a49136daeb752b9822",
+  "attempts": [
+    {
+      "name": "dw391-attempt1.json",
+      "sha256": "c9235600f12f4eea8f3db8f3e96b7d756721b6e7ea1abd7b131faed9e06de9c2",
+      "passed": false,
+      "caseCount": 0,
+      "failure": {
+        "phase": "authenticate",
+        "label": "Fluent administrator grid must receive its scroll-container minimum width",
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-global-admins-page-header",
+            "tenants-global-admins-area"
+          ]
+        }
+      },
+      "acceptedForClosure": false,
+      "reusedBuild": false
+    },
+    {
+      "name": "dw391-attempt2.json",
+      "sha256": "1d19a44bbc1fd9c2fd3dadd142a0a3143b56b04cfa2dd29ebc2873af77661fd4",
+      "passed": false,
+      "caseCount": 0,
+      "failure": {
+        "phase": "initial-host-styles",
+        "label": "Fluent administrator grid must receive its scroll-container minimum width",
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-global-admins-page-header",
+            "tenants-global-admins-area"
+          ]
+        }
+      },
+      "acceptedForClosure": false,
+      "reusedBuild": false
+    },
+    {
+      "name": "dw391-attempt3.json",
+      "sha256": "85f07529e2875374b8e6283c9328a41bcdd55e7d08278c66abac9f3b5c605474",
+      "passed": false,
+      "caseCount": 0,
+      "failure": {
+        "phase": "grant-1366x1000",
+        "label": "Measured safe viewport must allow preview",
+        "focus": {
+          "element": "input",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-global-admin-grant-user-id",
+            "tenants-global-admin-grant-form",
+            "tenants-global-admin-grant",
+            "tenants-global-admins-area"
+          ]
+        }
+      },
+      "acceptedForClosure": false,
+      "reusedBuild": false
+    },
+    {
+      "name": "dw391-attempt4.json",
+      "sha256": "54935215d91b29e0646468123fe04c5921cd7fd9aee8d7da2bf52e5f09ae0002",
+      "passed": false,
+      "caseCount": 0,
+      "failure": {
+        "phase": "grant-1366x1000",
+        "label": "Measured safe viewport must allow preview",
+        "focus": {
+          "element": "button",
+          "shadowDepth": 1,
+          "ancestry": [
+            "tenants-global-admins-area"
+          ]
+        }
+      },
+      "acceptedForClosure": false,
+      "reusedBuild": false
+    },
+    {
+      "name": "dw391-attempt5.json",
+      "sha256": "ed6f745dca1871ce7cfef679fed53abe25a98adebc3202a22d6664c73dd802dd",
+      "passed": false,
+      "caseCount": 0,
+      "failure": {
+        "phase": "initial-host-styles",
+        "label": "Removing each native owner scope must break the fixed style and restoring scope must recover it",
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            "tenants-global-admins-page-header",
+            "tenants-global-admins-area"
+          ]
+        }
+      },
+      "acceptedForClosure": false,
+      "reusedBuild": false
+    },
+    {
+      "name": "dw391-attempt6.json",
+      "sha256": "1152251ccf8a827552e7a576f5bb05cc07377282ab62f717a213c58e6a296606",
+      "passed": false,
+      "caseCount": 0,
+      "failure": {
+        "phase": "build-current-ui",
+        "label": "Current Debug source build failed",
+        "focus": null
+      },
+      "acceptedForClosure": false,
+      "reusedBuild": false
+    },
+    {
+      "name": "dw391-attempt7.json",
+      "sha256": "0e44c5313513d4b688eaddec31b353972e6b62b578ab9a452dae69e69033321f",
+      "passed": true,
+      "caseCount": 8,
+      "failure": null,
+      "acceptedForClosure": false,
+      "reusedBuild": true
+    }
+  ],
+  "initialBuildFailureLimit": "Attempt6 records a build failure without retained command stdout/stderr; simultaneous UI builds were observed, but the MSBuild failure cause was not established.",
+  "fixtureCorrections": "Early probes corrected wrong harness assumptions about Fluent copied Class nodes/blockified display, an unsupported >256-character synthetic administrator identity, and a redundant min-width negative control. Supported final identities are exactly256 UTF-16 code units."
+}

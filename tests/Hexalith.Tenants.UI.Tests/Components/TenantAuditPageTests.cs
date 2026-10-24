@@ -50,6 +50,180 @@ public sealed class TenantAuditPageTests : BunitContext
 {
     private bool _rendererInfoConfigured;
 
+    [Theory]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, true, "grid", false)]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, false, "grid", false)]
+    [InlineData(TenantAuditSurfaceKind.InvalidCursor, true, "grid", false)]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, true, "receipt", false)]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, true, "grid", true)]
+    [InlineData(TenantAuditSurfaceKind.ListRefreshed, true, "receipt", true)]
+    public async Task CursorResetRecoversOnlyAFocusedUnsubmittedCorrection(TenantAuditSurfaceKind kind, bool ownsFocus, string origin, bool preview)
+    {
+        TenantAuditRow row = Row("event-reset", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged");
+        TenantAuditSnapshot reset = kind is TenantAuditSurfaceKind.ListRefreshed
+            ? TenantAuditSnapshot.ListRefreshed([row], null, false, "reset", ReadModelFreshnessState.Current, new TenantAuditRequest("tenant.alpha"))
+            : TenantAuditSnapshot.InvalidCursor(new TenantAuditRequest("tenant.alpha"));
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([row]), reset);
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> probe = module.Setup<bool>("isFocusInsideAuditCorrection", _ => true);
+        probe.SetResult(ownsFocus);
+        module.Setup<bool>("consumeCorrectionFocusCapture", _ => true).SetResult(ownsFocus);
+        JSRuntimeInvocationHandler<bool> launcher = module.Setup<bool>("focusCorrectionLauncher", "event-reset", origin);
+        launcher.SetResult(false);
+        JSRuntimeInvocationHandler<bool> fallback = module.Setup<bool>("focusElementById",
+            origin == "receipt" ? "tenants-audit-receipt-heading" : "tenant-audit-heading");
+        fallback.SetResult(true);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        await subscription.Received(1).SubscribeAsync(GetTenantAuditQuery.ProjectionType, "tenant.alpha", Arg.Any<CancellationToken>());
+        if (origin == "receipt") cut.Find("[data-testid='tenants-audit-receipt-open']").Click();
+        if (origin == "receipt")
+        {
+            FluentSelectInterop.ChangeFluentSelect(cut.FindComponent<AuditEvidenceReceipt>(), "tenants-correction-role", TenantRole.TenantReader.ToString());
+            cut.Find("[data-testid='tenants-audit-receipt'] [data-testid='tenants-correction-start']").Click();
+        }
+        else
+        {
+            FluentSelectInterop.ChangeFluentSelect(cut.FindComponent<AuditDataGrid>(), "tenants-correction-role", TenantRole.TenantReader.ToString());
+            cut.Find("[data-testid='tenants-audit-grid'] [data-testid='tenants-correction-start']").Click();
+        }
+        cut.Find("[data-testid='tenants-correction-start-panel']");
+        if (preview) cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        int fallbackBeforeReset = fallback.Invocations.Count;
+
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(GetTenantAuditQuery.ProjectionType, "tenant.alpha");
+
+        cut.WaitForAssertion(() =>
+        {
+            gateway.Requests.Count.ShouldBe(2);
+            cut.FindAll("[data-testid='tenants-audit-notification-refreshing']").ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-correction-start-panel']").ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-correction-panel']").ShouldBeEmpty();
+            probe.Invocations.Count.ShouldBe(1);
+            launcher.Invocations.Count.ShouldBe(ownsFocus ? 1 : 0);
+            fallback.Invocations.Count.ShouldBe(fallbackBeforeReset + (ownsFocus ? 1 : 0));
+        });
+    }
+
+    [Fact]
+    public async Task DelayedCursorResetProbeCannotRestoreAClosedCorrection()
+    {
+        TenantAuditRow row = Row("event-reset", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged");
+        StubTenantQueryGateway gateway = RegisterServices(ReadySnapshot([row]),
+            TenantAuditSnapshot.ListRefreshed([row], null, false, "reset", ReadModelFreshnessState.Current, new TenantAuditRequest("tenant.alpha")));
+        IProjectionSubscription subscription = Substitute.For<IProjectionSubscription>();
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(subscription);
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> probe = module.Setup<bool>("isFocusInsideAuditCorrection", _ => true);
+        JSRuntimeInvocationHandler<bool> launcher = module.Setup<bool>("focusCorrectionLauncher", _ => true);
+        launcher.SetResult(true);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        await subscription.Received(1).SubscribeAsync(GetTenantAuditQuery.ProjectionType, "tenant.alpha", Arg.Any<CancellationToken>());
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(GetTenantAuditQuery.ProjectionType, "tenant.alpha");
+        cut.WaitForAssertion(() => probe.Invocations.Count.ShouldBe(1));
+        cut.Find("[data-testid='tenants-correction-start-cancel']").Click();
+        cut.WaitForAssertion(() => launcher.Invocations.Count.ShouldBe(1));
+        probe.SetResult(true);
+
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-audit-notification-refreshing']").ShouldBeEmpty());
+        launcher.Invocations.Count.ShouldBe(1);
+        gateway.Requests.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task DelayedNegativeResetProbeUsesOwnershipObservedAtRemoval()
+    {
+        TenantAuditRow row = Row("event-reset", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged");
+        RegisterServices(ReadySnapshot([row]), TenantAuditSnapshot.ListRefreshed([row], null, false, "reset",
+            ReadModelFreshnessState.Current, new TenantAuditRequest("tenant.alpha")));
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(Substitute.For<IProjectionSubscription>());
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        JSRuntimeInvocationHandler<bool> probe = module.Setup<bool>("isFocusInsideAuditCorrection", _ => true);
+        module.Setup<bool>("consumeCorrectionFocusCapture", _ => true).SetResult(true);
+        JSRuntimeInvocationHandler<bool> launcher = module.Setup<bool>("focusCorrectionLauncher", "event-reset", "grid");
+        launcher.SetResult(true);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        notifier.ProjectionChangedForTenant += Raise.Event<Action<string, string>>(GetTenantAuditQuery.ProjectionType, "tenant.alpha");
+        cut.WaitForAssertion(() => probe.Invocations.Count.ShouldBe(1));
+        // The initial negative reply is delayed while browser ownership changes to the panel.
+        // The removal-time capture, rather than this obsolete reply, owns the final decision.
+        probe.SetResult(false);
+
+        cut.WaitForAssertion(() => launcher.Invocations.Count.ShouldBe(1));
+        module.Invocations["consumeCorrectionFocusCapture"].Single().Arguments[0]
+            .ShouldBe(probe.Invocations.Single().Arguments[0]);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task CursorResetDoesNotCaptureOrDiscardARetainedSubmittedAttempt(bool accepted)
+    {
+        TenantAuditRow row = Row("event-reset", AuditEventCategory.Access, "userId: target-user", eventType: "UserRoleChanged");
+        TenantAuditSnapshot ready = ReadySnapshot([row]);
+        TenantAuditSnapshot reset = TenantAuditSnapshot.ListRefreshed([row], null, false, "reset",
+            ReadModelFreshnessState.Current, new TenantAuditRequest("tenant.alpha"));
+        RegisterServices(accepted ? [ready, ready, reset] : [ready, reset]);
+        IProjectionChangeNotifierWithTenant notifier = Substitute.For<IProjectionChangeNotifierWithTenant>();
+        Services.AddSingleton(Substitute.For<IProjectionSubscription>());
+        Services.AddSingleton(notifier);
+        Services.AddScoped<TenantReadRefreshSubscription>();
+        TenantCorrectionAttemptTracker tracker = new();
+        TenantAggregateCommandAdmissionGate gate = new();
+        Services.AddSingleton(tracker);
+        Services.AddSingleton(gate);
+        ITenantCommandGateway commands = Substitute.For<ITenantCommandGateway>();
+        Services.AddSingleton(commands);
+        BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
+        module.Setup<bool>("isFocusInsideAuditCorrection", _ => true).SetResult(true);
+        IRenderedComponent<TenantAuditPage> cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+        FluentSelectInterop.ChangeFluentSelect(cut, "tenants-correction-role", TenantRole.TenantReader.ToString());
+        cut.Find("[data-testid='tenants-correction-start']").Click();
+        cut.Find("[data-testid='tenants-correction-start-handoff']").Click();
+        tracker.TryBegin(cut.FindComponent<CorrectionStartPanel>().Instance.Snapshot!, gate, out TenantCorrectionAttempt? retained).ShouldBeTrue();
+        if (accepted) tracker.TryUpdate("tenant.alpha", retained!.MessageId,
+            retained.Snapshot.Accepted(TenantCommandSubmissionResult.Accepted(retained.MessageId, "tracking-safe"))).ShouldBeTrue();
+        if (accepted)
+        {
+            cut.Dispose();
+            cut = Render<TenantAuditPage>(parameters => parameters.Add(p => p.TenantId, "tenant.alpha"));
+            if (cut.FindAll("[data-testid='tenants-correction-resume']").Count > 0)
+            {
+                cut.Find("[data-testid='tenants-correction-resume']").Click();
+            }
+            cut.WaitForElement("[data-testid='tenants-correction-panel']");
+            cut.FindComponent<CorrectionStartPanel>().Instance.HasSubmitted.ShouldBeTrue();
+        }
+        else
+        {
+            cut.Render();
+        }
+        await cut.InvokeAsync(() => (Task)typeof(TenantAuditPage).GetMethod(
+            "RefreshFromNotificationAsync", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(cut.Instance, ["tenant.alpha"])!);
+
+        cut.WaitForElement("[data-testid='tenants-audit-list-refreshed']");
+        module.Invocations["isFocusInsideAuditCorrection"].ShouldBeEmpty();
+        module.Invocations["consumeCorrectionFocusCapture"].ShouldBeEmpty();
+        tracker.Find("tenant.alpha")!.MessageId.ShouldBe(retained!.MessageId);
+        gate.IsLocked(TenantCommandAggregateLock.ForTenant("tenant.alpha")).ShouldBeTrue();
+        _ = commands.DidNotReceive().ChangeUserRoleAsync(Arg.Any<ChangeUserRole>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task Notification_refreshing_affordance_retains_rows_until_the_authoritative_read_completes()
     {

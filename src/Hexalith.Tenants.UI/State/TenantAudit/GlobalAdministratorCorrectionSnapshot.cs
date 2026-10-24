@@ -739,8 +739,7 @@ public sealed record GlobalAdministratorCorrectionSnapshot(
             || !string.Equals(row.Target, TargetUserId, StringComparison.Ordinal)
             || !string.Equals(row.EventType, CorrectiveEventType, StringComparison.Ordinal)
             || row.Timestamp <= originalTimestamp
-            || SubmittedAtUtc is not { } submittedAt
-            || row.Timestamp < submittedAt) {
+            || SubmittedAtUtc is null) {
             return this with { AuditState = TenantCommandAuditState.MissingSupport, ProofLink = null };
         }
 

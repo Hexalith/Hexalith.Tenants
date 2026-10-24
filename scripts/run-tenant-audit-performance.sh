@@ -2,6 +2,8 @@
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# Validate before creating logs/results or invoking preparation, build, seed or measurement tools.
+source_provenance=$(python3 "$repo_root/scripts/tenant-audit-source-provenance.py" "$repo_root")
 apphost_project="$repo_root/src/Hexalith.Tenants.AppHost/Hexalith.Tenants.AppHost.csproj"
 apphost_dll="$repo_root/src/Hexalith.Tenants.AppHost/bin/Release/net10.0/Hexalith.Tenants.AppHost.dll"
 performance_dir="$repo_root/tests/performance/tenant-audit"
@@ -111,7 +113,8 @@ fi
 
 jq -n \
     --arg command 'scripts/run-tenant-audit-performance.sh' \
-    --arg gitRevision "$(git rev-parse HEAD)" \
+    --arg gitRevision "$(jq -r '.rootRevision' <<< "$source_provenance")" \
+    --argjson sourceProvenance "$source_provenance" \
     --arg os "$(uname -srm)" \
     --arg cpuModel "$(lscpu | sed -n 's/^Model name:[[:space:]]*//p' | head -1)" \
     --argjson cpuCount "$cpu_count" \
@@ -133,7 +136,7 @@ jq -n \
     --arg node "$(node --version)" \
     --arg playwright "$(node -p "require('$performance_dir/node_modules/@playwright/test/package.json').version" 2>/dev/null || echo not-installed)" \
     --argjson referenceRunner "$reference_runner" \
-    '{command:$command,gitRevision:$gitRevision,os:$os,cpuModel:$cpuModel,cpuCount:$cpuCount,hostCpuCount:$hostCpuCount,memoryKiB:$memoryKiB,availableMemoryKiB:$availableMemoryKiB,loadAverage:$loadAverage,hardwareMatch:$hardwareMatch,dedicatedRunnerDeclared:$dedicatedRunnerDeclared,idlePreflight:$idlePreflight,preflightCpuBusyPercent:$preflightCpuBusyPercent,preflightLoadOneMinute:$preflightLoadOneMinute,preflightLimits:{cpuBusyPercentBelow:10},measurementMode:$measurementMode,auditMode:$auditMode,uiPageSize:$uiPageSize,dotnet:$dotnet,dapr:$dapr,aspire:$aspire,node:$node,playwright:$playwright,referenceRunner:$referenceRunner,viewports:["1365x768","390x844"],network:"loopback; no artificial throttling"}' \
+    '{command:$command,gitRevision:$gitRevision,sourceProvenance:$sourceProvenance,os:$os,cpuModel:$cpuModel,cpuCount:$cpuCount,hostCpuCount:$hostCpuCount,memoryKiB:$memoryKiB,availableMemoryKiB:$availableMemoryKiB,loadAverage:$loadAverage,hardwareMatch:$hardwareMatch,dedicatedRunnerDeclared:$dedicatedRunnerDeclared,idlePreflight:$idlePreflight,preflightCpuBusyPercent:$preflightCpuBusyPercent,preflightLoadOneMinute:$preflightLoadOneMinute,preflightLimits:{cpuBusyPercentBelow:10},measurementMode:$measurementMode,auditMode:$auditMode,uiPageSize:$uiPageSize,dotnet:$dotnet,dapr:$dapr,aspire:$aspire,node:$node,playwright:$playwright,referenceRunner:$referenceRunner,viewports:["1365x768","390x844"],network:"loopback; no artificial throttling"}' \
     > "$result_dir/environment.json"
 
 if [[ "$reference_runner" != true && "$smoke" != 1 ]]; then

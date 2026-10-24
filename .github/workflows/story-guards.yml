@@ -70,6 +70,10 @@ jobs:
         if: ${{ !cancelled() }}
         run: python3 tests/scripts/test_bootstrap_handoff.py
 
+      - name: Run performance source provenance regression lane
+        if: ${{ !cancelled() }}
+        run: python3 tests/scripts/test_tenant_audit_source_provenance.py
+
   release-artifact-guards:
     name: validate-release-artifacts
     runs-on: ubuntu-latest

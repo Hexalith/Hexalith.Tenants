@@ -1,0 +1,29 @@
+{
+  "sourceBaseRevision": "c1c3ca672d481aaa52eff6e20b37ec9a77b24f12",
+  "sourceDiffSha256": "8bfad45ed0328b6055bc342115d92fb4aaa1b3bbb374048c216fb71d82efeabe",
+  "validatorSha256": "075794372731800041b684b4086ef671d52715071f7bf344df6f3e435cdb7e06",
+  "localUiAssemblySha256": "5800f5d80e549f538fe3212c6f79f9e236df7ab468c146753ad371dedc6e7947",
+  "playwrightVersion": "1.64.0-alpha-1790635538000",
+  "startedUtc": "2026-10-23T17:27:38.627Z",
+  "records": [
+    "DW-333",
+    "DW-335",
+    "DW-336",
+    "DW-357",
+    "DW-359"
+  ],
+  "cases": [],
+  "browserVersion": "154.0.8037.57",
+  "status": "failed",
+  "failedPhase": "authenticate",
+  "failureLabel": "Browser operation did not complete",
+  "observedFocus": {
+    "control": "other",
+    "element": "body",
+    "shadowDepth": 0,
+    "width": 1366
+  },
+  "circuitErrorCount": 0,
+  "keyboardTrace": [],
+  "finishedUtc": "2026-10-23T17:27:58.954Z"
+}

@@ -1,0 +1,28 @@
+{
+  "baseline": "48b0cd98be5ff75402e1206e083e561552146454",
+  "closed_records": [
+    119,
+    211,
+    212,
+    213,
+    444
+  ],
+  "total_records": 657,
+  "done": 570,
+  "open": 87,
+  "maintenance_rows": 80,
+  "dispositions": {
+    "accepted-limitation": 5,
+    "actionable": 37,
+    "awaiting-decision": 21,
+    "blocked": 11,
+    "done": 570,
+    "uncertain": 13
+  },
+  "unrelated_records_unchanged": true,
+  "original_fields_preserved": true,
+  "open_index_exact_coverage": true,
+  "archive_unchanged": true,
+  "ledger_sha256": "1c28a6aac31649b3da96a57e8156575d0ca888eae883870d943f716a9c5c4521",
+  "index_sha256": "c20c72f60a1a6fac719dffe6422c45fde3beddc2540e50a82f1d71126ae33a56"
+}

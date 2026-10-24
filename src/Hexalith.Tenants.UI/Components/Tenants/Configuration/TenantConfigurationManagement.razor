@@ -178,9 +178,17 @@
     // become child-owned activity: a refused adoption has no accepted activity callback to release later.
     private bool _retainedRemoveCommandInFlight;
     private TenantRemoveConfigurationAttemptTracker? _removeAttemptTracker;
+    private TenantSetConfigurationAttemptTracker? _setAttemptTracker;
+    private TimeProvider _retentionTimeProvider = TimeProvider.System;
+    private CancellationTokenSource? _setRetentionWakeup;
+    private (string TenantId, string MessageId, DateTimeOffset Deadline)? _setRetentionWakeupIdentity;
     private bool _disposed;
 
-    private bool ChildCommandInFlight => _setCommandInFlight || _removeCommandInFlight || _retainedRemoveCommandInFlight;
+    // A remounted child must render before it can re-adopt its tracker-owned admission lease.
+    // This preserves only the matching retained surface; it does not authorize a new dispatch.
+    private bool ChildCommandInFlight => _setCommandInFlight || _removeCommandInFlight || _retainedRemoveCommandInFlight
+        || _setAttemptTracker?.Find(EffectiveContext.TenantId) is { RetainsAttempt: true, Intent: { } setIntent }
+            && string.Equals(setIntent.TenantId, EffectiveContext.TenantId, StringComparison.Ordinal);
 
     [Parameter]
     public TenantConfigurationManagementContext? Context { get; set; }
@@ -351,6 +359,8 @@
     /// <inheritdoc />
     protected override void OnInitialized()
     {
+        _retentionTimeProvider = Services.GetService<TimeProvider>() ?? TimeProvider.System;
+        _setAttemptTracker = Services.GetService<TenantSetConfigurationAttemptTracker>();
         _removeAttemptTracker = Services.GetService<TenantRemoveConfigurationAttemptTracker>();
         if (_removeAttemptTracker is not null)
         {
@@ -400,6 +410,7 @@
 
     protected override void OnParametersSet()
     {
+        ScheduleSetRetentionWakeup(_setAttemptTracker?.Find(EffectiveContext.TenantId));
         // A tenant switch invalidates every open interaction, including one whose command is still settling:
         // the snapshot it would confirm against belongs to a different aggregate.
         if (!string.Equals(_removeTenantId, EffectiveContext.TenantId, StringComparison.Ordinal))
@@ -459,6 +470,78 @@
         {
             _focusRemoveLaunchKey = null;
             _focusHeadingPending = true;
+        }
+    }
+
+    private void ScheduleSetRetentionWakeup(TenantSetConfigurationCommandSnapshot? retained)
+    {
+        if (retained is not { RetainsAttempt: true, Intent: { } intent, MessageId: { } messageId, AttemptStartedAtUtc: { } started }
+            || !string.Equals(intent.TenantId, EffectiveContext.TenantId, StringComparison.Ordinal))
+        {
+            CancelSetRetentionWakeup();
+            return;
+        }
+
+        var identity = (TenantId: intent.TenantId, MessageId: messageId, Deadline: started + TenantSetConfigurationCommandSnapshot.MaximumRetainedAttemptDuration);
+        if (_setRetentionWakeupIdentity == identity)
+        {
+            return;
+        }
+
+        CancelSetRetentionWakeup();
+        _setRetentionWakeupIdentity = identity;
+        var source = new CancellationTokenSource();
+        _setRetentionWakeup = source;
+        _ = ObserveSetRetentionDeadlineAsync(identity.TenantId, identity.Deadline, source.Token);
+    }
+
+    private async Task ObserveSetRetentionDeadlineAsync(string tenantId, DateTimeOffset deadline, CancellationToken cancellationToken)
+    {
+        try
+        {
+            TimeSpan remaining = deadline - _retentionTimeProvider.GetUtcNow();
+            if (remaining > TimeSpan.Zero)
+            {
+                await Task.Delay(remaining, _retentionTimeProvider, cancellationToken).ConfigureAwait(false);
+            }
+
+            await InvokeAsync(() =>
+            {
+                if (!_disposed && !cancellationToken.IsCancellationRequested
+                    && string.Equals(tenantId, EffectiveContext.TenantId, StringComparison.Ordinal))
+                {
+                    TenantSetConfigurationCommandSnapshot? retained = _setAttemptTracker?.Find(tenantId);
+                    if (retained is null && !ChildCommandInFlight && IsManagementUnavailable)
+                    {
+                        _focusRemoveLaunchKey = null;
+                        _focusHeadingPending = true;
+                    }
+
+                    // A newer retained identity may have replaced the original without a parameter
+                    // render. Preserve its mount and arm its own absolute deadline before rendering.
+                    ScheduleSetRetentionWakeup(retained);
+                    // A refused child adoption owns no activity callback. Wake the parent so expired
+                    // retention cannot keep the management branch mounted indefinitely.
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
+
+    private void CancelSetRetentionWakeup()
+    {
+        _setRetentionWakeupIdentity = null;
+        CancellationTokenSource? source = Interlocked.Exchange(ref _setRetentionWakeup, null);
+        if (source is not null)
+        {
+            source.Cancel();
+            source.Dispose();
         }
     }
 
@@ -631,6 +714,7 @@
     public void Dispose()
     {
         _disposed = true;
+        CancelSetRetentionWakeup();
         if (_removeAttemptTracker is not null)
         {
             _removeAttemptTracker.OwnershipExpired -= OnRemoveOwnershipExpired;

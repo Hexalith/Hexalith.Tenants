@@ -33,10 +33,11 @@ public class GlobalAdministratorProjectionHandlerTests {
             .ProjectAsync(request);
 
         response.ProjectionType.ShouldBe("global-administrators");
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.Administrators.Contains("admin-user") && m.Administrators.Count == 1),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -65,10 +66,11 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Entries[1].AggregateSequence == 2),
             string.Empty,
             Arg.Any<CancellationToken>());
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.ProjectionVersion == "tenant-sequence:2"),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -82,7 +84,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
         _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m =>
@@ -91,6 +93,7 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Administrators.Contains("admin-1")
                 && m.Administrators.Contains("admin-2")
                 && m.Administrators.Contains("admin-3")),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -104,7 +107,7 @@ public class GlobalAdministratorProjectionHandlerTests {
 
         _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m =>
@@ -112,6 +115,7 @@ public class GlobalAdministratorProjectionHandlerTests {
                 && m.Administrators.Count == 1
                 && m.Administrators.Contains("admin-2")
                 && !m.Administrators.Contains("admin-1")),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -122,10 +126,11 @@ public class GlobalAdministratorProjectionHandlerTests {
 
         _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.Administrators.Count == 0),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -137,10 +142,11 @@ public class GlobalAdministratorProjectionHandlerTests {
 
         _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.Administrators.Count == 0),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -152,10 +158,11 @@ public class GlobalAdministratorProjectionHandlerTests {
 
         _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await store.DidNotReceive().SaveAsync(
+        await store.DidNotReceive().TrySaveAsync(
             Arg.Any<string>(),
             ForbiddenTenantKey,
             Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -167,15 +174,17 @@ public class GlobalAdministratorProjectionHandlerTests {
 
         _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
 
-        await store.DidNotReceive().SaveAsync(
+        await store.DidNotReceive().TrySaveAsync(
             Arg.Any<string>(),
             "projection:tenant-index:singleton",
             Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
     [Fact]
-    public async Task ProjectAsync_NullEventEntries_AreSkippedAsync() {
+    public async Task ProjectAsync_NullEventEntries_RefuseUnsafePopulatedInitializationAsync()
+    {
         IReadModelStore store = CreateStore();
         ProjectionEventDto[] events = [
             CreateEventDto(new GlobalAdministratorSet("system", "admin-1")),
@@ -184,17 +193,13 @@ public class GlobalAdministratorProjectionHandlerTests {
         ];
         ProjectionRequest request = new("system", "global-administrators", "global-administrators", events);
 
-        _ = await new GlobalAdministratorProjectionHandler(store).ProjectAsync(request);
+        await Should.ThrowAsync<InvalidOperationException>(() =>
+            new GlobalAdministratorProjectionHandler(store).ProjectAsync(request));
 
-        await store.Received(1).SaveAsync(
-            StateStoreName,
-            SingletonKey,
-            Arg.Is<GlobalAdministratorReadModel>(m =>
-                m != null
-                && m.Administrators.Count == 2
-                && m.Administrators.Contains("admin-1")
-                && m.Administrators.Contains("admin-2")),
-            Arg.Any<CancellationToken>());
+        await store.DidNotReceive().TrySaveAsync(StateStoreName, SingletonKey,
+            Arg.Any<GlobalAdministratorReadModel>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await store.DidNotReceive().TrySaveAsync(StateStoreName, TenantAuditStreams.GlobalAdministratorsKey,
+            Arg.Any<TenantAuditReadModel>(), Arg.Any<string>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -206,10 +211,11 @@ public class GlobalAdministratorProjectionHandlerTests {
         _ = await new GlobalAdministratorProjectionHandler(store, new FixedTimeProvider(ProjectionTime))
             .ProjectAsync(request);
 
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.ProjectedAt == ProjectionTime),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
         await store.Received(1).TrySaveAsync(
             StateStoreName,
@@ -231,10 +237,11 @@ public class GlobalAdministratorProjectionHandlerTests {
             () => new GlobalAdministratorProjectionHandler(store).ProjectAsync(request, cancellation.Token));
 
         exception.CancellationToken.ShouldBe(cancellation.Token);
-        await store.DidNotReceive().SaveAsync(
+        await store.DidNotReceive().TrySaveAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -248,10 +255,11 @@ public class GlobalAdministratorProjectionHandlerTests {
         _ = await new GlobalAdministratorProjectionHandler(store)
             .ProjectAsync(request, cancellation.Token);
 
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             StateStoreName,
             SingletonKey,
             Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(),
             cancellation.Token);
     }
 
@@ -261,6 +269,10 @@ public class GlobalAdministratorProjectionHandlerTests {
         store.GetAsync<TenantAuditReadModel>(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(new ReadModelEntry<TenantAuditReadModel>(null, null));
         store.TrySaveAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<TenantAuditReadModel>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
+        store.GetAsync<GlobalAdministratorReadModel>(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<GlobalAdministratorReadModel>(null, null));
+        store.TrySaveAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<GlobalAdministratorReadModel>(),
             Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
         return store;
     }

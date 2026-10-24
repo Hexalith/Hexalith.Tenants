@@ -108,23 +108,33 @@ public sealed class AppHostSecurityResourceGraphTests
 
     private static async Task AssertAppChannelTokensAsync(IDistributedApplicationTestingBuilder builder)
     {
+        ProjectResource eventStore = builder.Resources.OfType<ProjectResource>()
+            .Single(static resource => resource.Name == "eventstore");
         ProjectResource tenants = builder.Resources.OfType<ProjectResource>()
             .Single(static resource => resource.Name == "tenants");
         ProjectResource sample = builder.Resources.OfType<ProjectResource>()
             .Single(static resource => resource.Name == "sample");
 
+        ParameterResource eventStoreToken = await GetAppChannelTokenAsync(eventStore, builder.ExecutionContext);
         ParameterResource tenantsToken = await GetAppChannelTokenAsync(tenants, builder.ExecutionContext);
         ParameterResource sampleToken = await GetAppChannelTokenAsync(sample, builder.ExecutionContext);
+        eventStoreToken.ShouldNotBeSameAs(tenantsToken);
+        eventStoreToken.ShouldNotBeSameAs(sampleToken);
         tenantsToken.ShouldNotBeSameAs(sampleToken);
+        eventStoreToken.Secret.ShouldBeTrue();
         tenantsToken.Secret.ShouldBeTrue();
         sampleToken.Secret.ShouldBeTrue();
 
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        string? eventStoreValue = await eventStoreToken.GetValueAsync(timeout.Token);
         string? tenantsValue = await tenantsToken.GetValueAsync(timeout.Token);
         string? sampleValue = await sampleToken.GetValueAsync(timeout.Token);
+        eventStoreValue.ShouldNotBeNullOrWhiteSpace();
         tenantsValue.ShouldNotBeNullOrWhiteSpace();
         sampleValue.ShouldNotBeNullOrWhiteSpace();
         string.Equals(tenantsValue, sampleValue, StringComparison.Ordinal).ShouldBeFalse();
+        string.Equals(eventStoreValue, tenantsValue, StringComparison.Ordinal).ShouldBeFalse();
+        string.Equals(eventStoreValue, sampleValue, StringComparison.Ordinal).ShouldBeFalse();
     }
 
     private static async Task<ParameterResource> GetAppChannelTokenAsync(

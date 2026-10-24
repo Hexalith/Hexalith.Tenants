@@ -499,7 +499,7 @@ public sealed class AuditStreamPersistenceTests
     {
         var store = new InMemoryReadModelStore();
         store.SeedRaw(StoreName, GlobalAdministratorProjectionHandler.GlobalAdministratorsProjectionKey,
-            new GlobalAdministratorReadModel { Administrators = ["admin"] });
+            new GlobalAdministratorReadModel { Administrators = ["admin"], ProjectionVersion = "tenant-sequence:1" });
         return store;
     }
 

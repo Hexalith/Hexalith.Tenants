@@ -85,7 +85,7 @@
         const fluentUi = await import("./fluent-ui.js");
         fluentUi.beforeStart(document, "web");
         await customElements.whenDefined("fluent-button");
-        const { focusCorrectionLauncher, focusElementById, isFocusInsideAuditReceipt, isFocusInsideAuditReceiptCorrection, focusAuditLauncher, restoreAuditFocus, restoreDetailFocus, consumeReturnMarkers } = await import(modulePath);
+        const { movePagingFocusToHeading, restorePagingFocus, isFocusInsideAuditCorrection, consumeCorrectionFocusCapture, focusCorrectionLauncher, focusElementById, isFocusInsideAuditReceipt, isFocusInsideAuditReceiptCorrection, focusAuditLauncher, restoreAuditFocus, restoreDetailFocus, consumeReturnMarkers } = await import(modulePath);
         const report = document.getElementById("validation-report");
         const acknowledgement = document.getElementById("remove-acknowledgement");
         const lifecycle = document.getElementById("remove-lifecycle");
@@ -115,6 +115,95 @@
         startSentinel.addEventListener("focus", routeStartSentinel);
 
         try {
+            const navigationFixture = document.createElement("section");
+            navigationFixture.innerHTML = '<h1 id="navigation-heading" tabindex="-1">Navigation</h1><fluent-button data-testid="navigation-pager">Next</fluent-button><button id="navigation-outside">Outside</button>';
+            document.body.append(navigationFixture);
+            const navigationHeading = navigationFixture.querySelector("h1");
+            const pager = navigationFixture.querySelector("fluent-button");
+            const outside = navigationFixture.querySelector("button");
+            // A controlled shadow descendant on a real registered Fluent host covers
+            // composed focus ownership even when the current Fluent version uses light DOM.
+            const shadow = pager.shadowRoot || pager.attachShadow({ mode: "open" });
+            const innerPager = document.createElement("button");
+            innerPager.textContent = "Inner pager";
+            shadow.append(innerPager);
+            innerPager.focus();
+            if (document.activeElement !== pager || shadow.activeElement !== innerPager
+                || !movePagingFocusToHeading("navigation-pager", "navigation-heading")) throw new Error("Fluent shadow pager ownership was lost");
+            assertActiveElement(navigationHeading, "shadow-pager-loading-heading");
+            restorePagingFocus("navigation-pager", "navigation-heading");
+            assertActiveElement(pager, "enabled-pager-origin");
+            navigationHeading.focus();
+            pager.setAttribute("disabled", "");
+            restorePagingFocus("navigation-pager", "navigation-heading");
+            assertActiveElement(navigationHeading, "disabled-pager-heading");
+            pager.remove();
+            restorePagingFocus("navigation-pager", "navigation-heading");
+            assertActiveElement(navigationHeading, "missing-pager-heading");
+            outside.focus();
+            if (movePagingFocusToHeading("navigation-pager", "navigation-heading")) throw new Error("outside focus was captured as pager focus");
+            restorePagingFocus("navigation-pager", "navigation-heading");
+            assertActiveElement(outside, "surviving-paging-control");
+            for (const panelKind of ["tenants-correction-start-panel", "tenants-correction-panel"]) {
+                const panel = document.createElement("section");
+                panel.dataset.testid = panelKind;
+                panel.append(pager);
+                pager.removeAttribute("disabled");
+                document.body.append(panel);
+                outside.focus();
+                if (isFocusInsideAuditCorrection(`late-${panelKind}`)) throw new Error("outside correction focus was misclassified");
+                innerPager.focus();
+                if (!isFocusInsideAuditCorrection()) throw new Error("Fluent shadow correction focus was not detected");
+                panel.remove();
+                await Promise.resolve();
+                if (!consumeCorrectionFocusCapture(`late-${panelKind}`)) throw new Error("late panel ownership was lost at removal");
+                observations.push(`${panelKind}:late-negative-capture-restored`);
+                document.body.append(panel);
+                innerPager.focus();
+                if (!isFocusInsideAuditCorrection(`outside-${panelKind}`)) throw new Error("correction ownership was not captured");
+                outside.focus();
+                panel.remove();
+                await Promise.resolve();
+                if (consumeCorrectionFocusCapture(`outside-${panelKind}`)) throw new Error("surviving outside focus was captured at removal");
+                assertActiveElement(outside, `${panelKind}-surviving-control`);
+            }
+            for (const removedKind of ["tenants-correction-start-panel", "tenants-correction-panel"]) {
+                const removedPanel = document.createElement("section");
+                const survivingPanel = document.createElement("section");
+                removedPanel.dataset.testid = removedKind;
+                survivingPanel.dataset.testid = removedKind === "tenants-correction-start-panel"
+                    ? "tenants-correction-panel" : "tenants-correction-start-panel";
+                removedPanel.innerHTML = '<button id="coexisting-owner">Removed owner</button>';
+                survivingPanel.innerHTML = '<button id="coexisting-survivor">Surviving owner</button>';
+                const removedControl = removedPanel.querySelector("button");
+                const survivingControl = survivingPanel.querySelector("button");
+                document.body.append(removedPanel, survivingPanel);
+                removedControl.focus();
+                if (!isFocusInsideAuditCorrection(`coexisting-owned-${removedKind}`)) throw new Error("coexisting focused owner was not captured");
+                removedPanel.remove();
+                await Promise.resolve();
+                if (!consumeCorrectionFocusCapture(`coexisting-owned-${removedKind}`)) throw new Error("surviving panel suppressed removed owner focus");
+                focusElementById("navigation-heading");
+                assertActiveElement(navigationHeading, `${removedKind}-coexisting-owner-removed`);
+                document.body.append(removedPanel);
+                outside.focus();
+                if (isFocusInsideAuditCorrection(`coexisting-late-${removedKind}`)) throw new Error("initially outside coexisting focus was misclassified");
+                removedControl.focus();
+                removedPanel.remove();
+                await Promise.resolve();
+                if (!consumeCorrectionFocusCapture(`coexisting-late-${removedKind}`)) throw new Error("late coexisting ownership was lost at removal");
+                focusElementById("navigation-heading");
+                assertActiveElement(navigationHeading, `${removedKind}-coexisting-late-owner-removed`);
+                document.body.append(removedPanel);
+                survivingControl.focus();
+                if (!isFocusInsideAuditCorrection(`coexisting-survivor-${removedKind}`)) throw new Error("surviving owner was not captured");
+                removedPanel.remove();
+                await Promise.resolve();
+                if (consumeCorrectionFocusCapture(`coexisting-survivor-${removedKind}`)) throw new Error("unrelated removal captured surviving panel focus");
+                assertActiveElement(survivingControl, `${removedKind}-coexisting-survivor-preserved`);
+                survivingPanel.remove();
+            }
+            navigationFixture.remove();
             const auditReceipt = document.createElement("section");
             auditReceipt.dataset.testid = "tenants-audit-receipt";
             auditReceipt.innerHTML = '<h3 id="tenants-audit-receipt-heading" tabindex="-1">Audit receipt</h3><button id="receipt-copy">Copy</button><div class="audit-evidence-receipt__correction"><button id="receipt-correction">Correct</button></div>';

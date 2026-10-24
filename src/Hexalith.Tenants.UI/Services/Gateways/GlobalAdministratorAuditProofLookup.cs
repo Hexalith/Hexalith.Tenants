@@ -9,6 +9,8 @@ namespace Hexalith.Tenants.UI.Services.Gateways;
 /// <summary>Checks command provenance inside the BFF before returning a redacted receipt row.</summary>
 internal static class GlobalAdministratorAuditProofLookup
 {
+    /// <summary>Finds exact corrective evidence in a complete cursor walk with a finite deadline.</summary>
+    /// <remarks>Submission time remains gateway attempt metadata; it never qualifies causal proof.</remarks>
     internal static async Task<(GlobalAdministratorAuditProof? Proof, bool Complete)> FindAsync(
         Func<TenantAuditRequest, CancellationToken, Task<TenantAuditSnapshot>> read,
         string correlationId,
@@ -17,12 +19,12 @@ internal static class GlobalAdministratorAuditProofLookup
         string correctiveEventType,
         DateTimeOffset originalTimestamp,
         DateTimeOffset submittedAtUtc,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeProvider? timeProvider = null)
     {
         if (string.IsNullOrWhiteSpace(correlationId) || committedEventSequence <= 0
             || string.IsNullOrWhiteSpace(targetUserId)
-            || correctiveEventType is not ("GlobalAdministratorSet" or "GlobalAdministratorRemoved")
-            || submittedAtUtc <= originalTimestamp)
+            || correctiveEventType is not ("GlobalAdministratorSet" or "GlobalAdministratorRemoved"))
         {
             return (null, false);
         }
@@ -31,68 +33,77 @@ internal static class GlobalAdministratorAuditProofLookup
         string? cursor = null;
         string? version = null;
         TenantAuditRow? matching = null;
-        for (int page = 0; page < 50; page++)
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(10), timeProvider ?? TimeProvider.System);
+        using var lookup = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+        try
         {
-            TenantAuditRequest request = new("system", From: submittedAtUtc, Cursor: cursor, Stream: "global-administrators");
-            TenantAuditSnapshot audit = await read(request, cancellationToken).ConfigureAwait(false);
-            if (audit.Kind is not TenantAuditSurfaceKind.Ready and not TenantAuditSurfaceKind.Empty
-                and not TenantAuditSurfaceKind.FilteredEmpty
-                || audit.Freshness is not ReadModelFreshnessState.Current
-                || audit.Lifecycle is not ProjectionLifecycleState.Current
-                || !audit.MatchesScope(request)
-                || audit.Rows.Count > request.PageSize
-                || !TenantLifecycleProjectionVersion.IsOrdered(audit.ProjectionVersion)
-                || audit.HasMore == string.IsNullOrWhiteSpace(audit.NextCursor)
-                || version is not null && !string.Equals(version, audit.ProjectionVersion, StringComparison.Ordinal))
+            while (true)
             {
-                return (null, false);
-            }
-
-            version ??= audit.ProjectionVersion;
-            foreach (TenantAuditRow row in audit.Rows)
-            {
-                if (string.Equals(row.CommandCorrelationId, correlationId, StringComparison.Ordinal)
-                    && row.AggregateSequence == committedEventSequence
-                    && row.Category is AuditEventCategory.Access
-                    && string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
-                    && string.Equals(row.TenantId, "system", StringComparison.Ordinal)
-                    && string.Equals(row.Scope, "system", StringComparison.Ordinal)
-                    && string.Equals(row.Target, targetUserId, StringComparison.Ordinal)
-                    && row.Timestamp > originalTimestamp
-                    && row.Timestamp >= submittedAtUtc
-                    && TenantAuditReceipt.FromRow(row, audit.Kind).State is TenantAuditReceiptState.Ready)
-                {
-                    if (matching is not null)
-                    {
-                        return (null, false);
-                    }
-
-                    matching = row;
-                }
-            }
-
-            if (!audit.HasMore)
-            {
-                if (!TenantLifecycleProjectionVersion.HasReached(committedEventSequence, version))
+                lookup.Token.ThrowIfCancellationRequested();
+                // Both audit timestamps come from the event producer. The independent BFF clock
+                // cannot qualify causal evidence; exact command correlation and sequence do that.
+                TenantAuditRequest request = new("system", From: originalTimestamp, Cursor: cursor, Stream: "global-administrators");
+                TenantAuditSnapshot audit = await read(request, lookup.Token).WaitAsync(lookup.Token).ConfigureAwait(false);
+                if (audit.Kind is not TenantAuditSurfaceKind.Ready and not TenantAuditSurfaceKind.Empty
+                    and not TenantAuditSurfaceKind.FilteredEmpty
+                    || audit.Freshness is not ReadModelFreshnessState.Current
+                    || audit.Lifecycle is not ProjectionLifecycleState.Current
+                    || !audit.MatchesScope(request)
+                    || audit.Rows.Count > request.PageSize
+                    || !TenantLifecycleProjectionVersion.IsOrdered(audit.ProjectionVersion)
+                    || audit.HasMore == string.IsNullOrWhiteSpace(audit.NextCursor)
+                    || version is not null && !string.Equals(version, audit.ProjectionVersion, StringComparison.Ordinal))
                 {
                     return (null, false);
                 }
 
-                return (matching is null ? null : new GlobalAdministratorAuditProof(matching with
+                version ??= audit.ProjectionVersion;
+                foreach (TenantAuditRow row in audit.Rows)
                 {
-                    CommandCorrelationId = null,
-                    AggregateSequence = null,
-                }), true);
-            }
+                    if (string.Equals(row.CommandCorrelationId, correlationId, StringComparison.Ordinal)
+                        && row.AggregateSequence == committedEventSequence
+                        && row.Category is AuditEventCategory.Access
+                        && string.Equals(row.EventType, correctiveEventType, StringComparison.Ordinal)
+                        && string.Equals(row.TenantId, "system", StringComparison.Ordinal)
+                        && string.Equals(row.Scope, "system", StringComparison.Ordinal)
+                        && string.Equals(row.Target, targetUserId, StringComparison.Ordinal)
+                        && row.Timestamp > originalTimestamp
+                        && TenantAuditReceipt.FromRow(row, audit.Kind).State is TenantAuditReceiptState.Ready)
+                    {
+                        if (matching is not null)
+                        {
+                            return (null, false);
+                        }
 
-            if (string.IsNullOrWhiteSpace(audit.NextCursor) || !visited.Add(audit.NextCursor))
-            {
-                return (null, false);
-            }
+                        matching = row;
+                    }
+                }
 
-            cursor = audit.NextCursor;
+                if (!audit.HasMore)
+                {
+                    if (!TenantLifecycleProjectionVersion.HasReached(committedEventSequence, version))
+                    {
+                        return (null, false);
+                    }
+
+                    return (matching is null ? null : new GlobalAdministratorAuditProof(matching with
+                    {
+                        CommandCorrelationId = null,
+                        AggregateSequence = null,
+                    }), true);
+                }
+
+                if (string.IsNullOrWhiteSpace(audit.NextCursor) || !visited.Add(audit.NextCursor))
+                {
+                    return (null, false);
+                }
+
+                cursor = audit.NextCursor;
+            }
         }
-
-        return (null, false);
+        catch (OperationCanceledException) when (deadline.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            return (null, false);
+        }
     }
 }

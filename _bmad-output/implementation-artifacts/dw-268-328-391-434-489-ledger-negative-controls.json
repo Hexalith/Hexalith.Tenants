@@ -1,0 +1,27 @@
+[
+  {
+    "case": "status_suffix",
+    "rejected": true,
+    "diagnostic": "DW-268 exact current status missing"
+  },
+  {
+    "case": "duplicate_status",
+    "rejected": true,
+    "diagnostic": "DW-268 exact current status missing"
+  },
+  {
+    "case": "missing_date",
+    "rejected": true,
+    "diagnostic": "DW-268 current verification date missing"
+  },
+  {
+    "case": "missing_verification",
+    "rejected": true,
+    "diagnostic": "DW-268 current verification missing or ambiguous"
+  },
+  {
+    "case": "missing_evidence",
+    "rejected": true,
+    "diagnostic": "DW-268 current verification-files missing or ambiguous"
+  }
+]

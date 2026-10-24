@@ -15,6 +15,8 @@
 @inject IServiceProvider Services
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    @* Native owner for isolated selectors crossing Fluent component roots; layout remains Fluent-owned. *@
+    <div class="tenant-audit-style-scope">
     <FluentStack Orientation="Orientation.Vertical"
                  VerticalGap="16px"
                  Class="tenant-audit"
@@ -292,6 +294,7 @@
                               OnClose="CloseReceiptAsync" />
     }
     </FluentStack>
+    </div>
 </FcPageLayout>
 
 @code {
@@ -373,6 +376,8 @@
     private string? _activeCorrectionFocusReference;
     private string? _pendingCorrectionFocusReference;
     private long _correctionFocusGeneration;
+    private readonly string _correctionFocusOwner = Guid.NewGuid().ToString("N");
+    private string? _pendingCorrectionFocusCapture;
     private TenantHighImpactViewportObservation? _viewportObservation;
 
     [Parameter]
@@ -988,6 +993,8 @@
     {
         string? pendingCorrectionFocusReference = _pendingCorrectionFocusReference;
         string? pendingCorrectionOrigin = _pendingCorrectionOrigin;
+        string? pendingCorrectionCapture = _pendingCorrectionFocusCapture;
+        _pendingCorrectionFocusCapture = null;
         long correctionFocusGeneration = _correctionFocusGeneration;
         _pendingCorrectionFocusReference = null;
         _pendingCorrectionOrigin = null;
@@ -1041,6 +1048,14 @@
             if (_disposed || correctionFocusGeneration != _correctionFocusGeneration)
             {
                 return;
+            }
+            if (pendingCorrectionCapture is not null)
+            {
+                bool ownedAtRemoval = await module.InvokeAsync<bool>("consumeCorrectionFocusCapture", pendingCorrectionCapture).ConfigureAwait(false);
+                if (!ownedAtRemoval || _disposed || correctionFocusGeneration != _correctionFocusGeneration)
+                {
+                    return;
+                }
             }
             bool focused = await module
                 .InvokeAsync<bool>("focusCorrectionLauncher", pendingCorrectionFocusReference, pendingCorrectionOrigin)
@@ -1152,6 +1167,48 @@
             return null;
         }
 
+        string? resetCorrectionReference = null;
+        string? resetCorrectionOrigin = null;
+        long resetFocusGeneration = 0;
+        long resetOpenGeneration = 0;
+        bool resetCorrectionCaptureRegistered = false;
+        string resetCaptureKey = $"{_correctionFocusOwner}:{generation}";
+        if (result.Kind is TenantAuditSurfaceKind.ListRefreshed or TenantAuditSurfaceKind.InvalidCursor)
+        {
+            await InvokeAsync(() =>
+            {
+                if (CanApply(tenantId, generation) && RendererInfo.IsInteractive
+                    && !HasSubmittedCorrection && !HasDisplayedRetainedCorrection
+                    && (_activeCorrectionIntent ?? _previewCorrectionIntent) is { } active)
+                {
+                    resetCorrectionReference = _activeCorrectionFocusReference ?? active.OriginalAuditReference;
+                    resetCorrectionOrigin = _activeCorrectionOrigin;
+                    resetFocusGeneration = _correctionFocusGeneration;
+                    resetOpenGeneration = _correctionOpenGeneration;
+                }
+            }).ConfigureAwait(false);
+            if (resetCorrectionReference is not null)
+            {
+                try
+                {
+                    IJSObjectReference module = _focusModule
+                        ??= await JS.InvokeAsync<IJSObjectReference>("import", FocusModulePath).ConfigureAwait(false);
+                    if (CanApply(tenantId, generation) && resetFocusGeneration == _correctionFocusGeneration
+                        && resetOpenGeneration == _correctionOpenGeneration)
+                    {
+                        // The browser keeps observing focus until the actual panel removal. The
+                        // initial result alone can become stale while its interop response is in flight.
+                        _ = await module.InvokeAsync<bool>("isFocusInsideAuditCorrection", resetCaptureKey).ConfigureAwait(false);
+                        resetCorrectionCaptureRegistered = true;
+                    }
+                }
+                catch (Exception exception) when (exception is JSException or OperationCanceledException or ObjectDisposedException)
+                {
+                    // A focus probe must not prevent authoritative cursor recovery.
+                }
+            }
+        }
+
         bool receiptStateChanges = false;
         bool removesReceiptCorrection = false;
         await InvokeAsync(() =>
@@ -1177,10 +1234,18 @@
         {
             if (CanApply(tenantId, generation))
             {
+                bool restoreResetCorrection = resetCorrectionCaptureRegistered
+                    && resetFocusGeneration == _correctionFocusGeneration
+                    && resetOpenGeneration == _correctionOpenGeneration
+                    && !HasSubmittedCorrection && !HasDisplayedRetainedCorrection;
                 CaptureCorrectionAuthority(result);
                 if (result.Kind is TenantAuditSurfaceKind.ListRefreshed or TenantAuditSurfaceKind.InvalidCursor)
                 {
                     ClearPaging();
+                    if (restoreResetCorrection)
+                    {
+                        ScheduleCorrectionFocus(resetCorrectionReference, resetCorrectionOrigin, resetCaptureKey);
+                    }
                 }
 
                 _snapshot = result;
@@ -2334,15 +2399,17 @@
         _correctionFocusGeneration++;
         _pendingCorrectionFocusReference = null;
         _pendingCorrectionOrigin = null;
+        _pendingCorrectionFocusCapture = null;
         _receiptFocusGeneration++;
         _pendingReceiptFocus = null;
     }
 
-    private void ScheduleCorrectionFocus(string? reference, string? origin)
+    private void ScheduleCorrectionFocus(string? reference, string? origin, string? captureKey = null)
     {
         InvalidateCorrectionFocus();
         _pendingCorrectionFocusReference = reference;
         _pendingCorrectionOrigin = origin;
+        _pendingCorrectionFocusCapture = captureKey;
     }
 
     private void ScheduleReceiptFocus(string? reference, bool fromCorrectionPreview = false)

@@ -1,0 +1,46 @@
+{
+  "playwrightVersion": "1.64.0-alpha-1790635538000",
+  "startedUtc": "2026-10-24T03:56:29.006Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies authenticated production grant/removal DOM and browser behavior using deterministic read responses; does not qualify backend authorization, stored domain data or command delivery",
+  "records": [
+    "DW-268",
+    "DW-391"
+  ],
+  "cases": [],
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": false,
+    "skippedForDevelopment": true,
+    "reusedBuild": true
+  },
+  "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+  "sourceDiffSha256": "3e5b43260cd6606109a0c5b63e1f15bd6ab1f5111848bd1ca4e97ba85c901780",
+  "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+  "validatorSha256": "e7cdd43174889447e29ebc8f7bffb413d1cadbe6bda83481f3acdf91fca5f02a",
+  "localUiAssemblySha256": "5bf3158cf62c32db3bfc4b95d2e70cdbbdc2355b68df95d84134cf861e503178",
+  "localShellAssemblySha256": "12e5187ef359ca4e00f64e04e0642e8783729595280ff093f4e887a2a8c18056",
+  "browserVersion": "154.0.8037.57",
+  "passed": false,
+  "failure": {
+    "phase": "fixture-start",
+    "label": "Separate production UI process could not start",
+    "focus": null
+  },
+  "fixture": {
+    "authorizedReads": 0,
+    "administratorReads": 0,
+    "commandAttempts": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": false,
+  "finishedUtc": "2026-10-24T03:56:29.335Z"
+}

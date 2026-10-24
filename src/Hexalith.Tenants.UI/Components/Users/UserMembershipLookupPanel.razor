@@ -3,6 +3,8 @@
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
 
+@* Native owner for isolated selectors crossing Fluent component roots; layout remains Fluent-owned. *@
+<div class="user-lookup-page-style-scope">
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="24px" Class="user-lookup-page" data-testid="tenants-user-lookup"
              data-audit-focus-terminal="@(AuditReadResolved && _snapshot?.Kind is not UserTenantMembershipSurfaceKind.Loading)">
     <FluentAccordion Class="user-lookup-page__sections"
@@ -185,6 +187,7 @@
         }
     </FluentAccordion>
 </FluentStack>
+</div>
 
 @code {
     private const int PageSize = 20;

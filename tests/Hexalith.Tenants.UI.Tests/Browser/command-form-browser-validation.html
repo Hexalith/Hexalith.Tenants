@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Responsive command form qualification</title>
+    <link rel="stylesheet" href="./fluent-ui.css">
+    <link rel="stylesheet" href="./command-form-set.css">
+    <link rel="stylesheet" href="./command-form-remove.css">
+    <link rel="stylesheet" href="./command-form-lifecycle.css">
+    <link rel="stylesheet" href="./tenant-remove-member.css">
+</head>
+<body>
+    <output id="validation-report">RUNNING</output>
+    <section id="surface"></section>
+    <script type="module">
+        const params = new URLSearchParams(location.search);
+        const culture = params.get('culture') || 'en';
+        const report = document.getElementById('validation-report');
+        const fail = message => { throw new Error(message); };
+        const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+        let keyboardSequence = 0;
+        const keyboard = (key, shift = false) => new Promise(resolve => {
+            const id = ++keyboardSequence;
+            const acknowledge = event => {
+                if (event.detail === id) {
+                    removeEventListener('validation-keyboard-result', acknowledge);
+                    resolve();
+                }
+            };
+            addEventListener('validation-keyboard-result', acknowledge);
+            window.__validationKeyboardRequest = { id, key, shift };
+        });
+        try {
+            const fluent = await import('./fluent-ui.js');
+            fluent.beforeStart(document, 'web');
+            await customElements.whenDefined('fluent-button');
+            if (params.has('frame')) {
+                document.documentElement.dataset.fixtureReady = 'true';
+            } else {
+                const frame = document.createElement('iframe');
+                frame.height = '900';
+                frame.title = 'Actual rendered command forms';
+                frame.src = `./command-form-browser-validation.html?frame=true&culture=${culture}`;
+                document.body.append(frame);
+                for (let retry = 0; frame.contentDocument?.documentElement?.dataset.fixtureReady !== 'true'; retry++) {
+                    if (retry > 100) fail('Fluent frame did not become ready');
+                    await delay(20);
+                }
+                const doc = frame.contentDocument;
+                const win = frame.contentWindow;
+                const surface = doc.getElementById('surface');
+                const style = element => win.getComputedStyle(element);
+                const visible = element => element && element.getClientRects().length > 0;
+                const resize = async width => {
+                    frame.width = String(width);
+                    frame.getBoundingClientRect();
+                    await new Promise(resolve => win.requestAnimationFrame(resolve));
+                    if (win.innerWidth !== width) fail(`Viewport ${width} was not applied`);
+                };
+                const load = async filename => {
+                    const response = await fetch(`./${filename}.html`);
+                    if (!response.ok) fail(`Missing rendered fixture ${filename}`);
+                    surface.innerHTML = await response.text();
+                    if (params.get('mutation') === 'unscoped') {
+                        for (const element of surface.querySelectorAll('*')) {
+                            for (const name of element.getAttributeNames().filter(name => name.startsWith('b-'))) element.removeAttribute(name);
+                        }
+                    }
+                };
+                let layouts = 0;
+                for (const kind of ['set', 'remove', 'lifecycle']) {
+                    await load(`command-form-${kind}-${culture}`);
+                    if (surface.textContent.includes('Tenants.')) fail('Unresolved localized resource key');
+                    const form = surface.querySelector('form');
+                    if (!form || !form.querySelector('label')) fail(`Actual ${kind} form/label missing`);
+                    const prefix = kind === 'lifecycle' ? 'tenant-lifecycle-flow' : `tenants-config-${kind}`;
+                    for (const width of [390, 767, 768, 1024, 1366]) {
+                        await resize(width);
+                        const narrow = kind !== 'lifecycle' && width < 768;
+                        if (style(form).display !== (narrow ? 'none' : 'grid')) fail(`${kind} form layout at ${width}`);
+                        if (style(form).rowGap !== '12px') fail(`${kind} form gap at ${width}`);
+                        if (kind !== 'remove') {
+                            const labels = Array.from(form.querySelectorAll('label'));
+                            if (kind === 'set' && labels.length < 3) fail('Missing select/input/textarea label coverage');
+                            for (const label of labels) {
+                                if (style(label).display !== 'grid') fail(`${kind} label layout at ${width}: ${label.id}`);
+                                if (Math.abs(parseFloat(style(label).rowGap) - (kind === 'set' ? 5.6 : 12)) > 0.05) fail(`${kind} label gap at ${width}: ${label.id}`);
+                            }
+                        }
+                        if (kind !== 'lifecycle') {
+                            const warning = surface.querySelector(`.${prefix}__narrow`);
+                            if (visible(warning) !== narrow || !warning.textContent.trim()) fail(`${kind} warning visibility at ${width}`);
+                            const cancel = surface.querySelector(`[data-testid='tenants-config-${kind}-cancel']`);
+                            if (!visible(cancel)) fail(`${kind} exit hidden at ${width}`);
+                            if (style(form).maxInlineSize !== '960px') fail(`${kind} form width bound at ${width}`);
+                        }
+                        layouts++;
+                    }
+                }
+                // C# component regressions verify the sentinel handlers target this actual Fluent button.
+                // This fixture qualifies the browser's focus/keyboard behavior and responsive visibility.
+                await load(`tenant-live-removal-safe-${culture}`);
+                const cancel = surface.querySelector('[data-testid="tenants-remove-member-cancel"]');
+                if (cancel?.localName !== 'fluent-button' || cancel.parentElement.localName === 'span') fail('Cancel remains a noninteractive wrapper target');
+                const start = surface.querySelector('[data-testid="tenants-remove-member-focus-start"]');
+                const end = surface.querySelector('[data-testid="tenants-remove-member-focus-end"]');
+                const focusCancel = () => cancel.focus();
+                if (params.get('mutation') !== 'no-sentinel') {
+                    start.addEventListener('focus', focusCancel);
+                    end.addEventListener('focus', focusCancel);
+                }
+                let clicks = 0;
+                cancel.addEventListener('click', () => clicks++);
+                for (const width of [767, 768]) {
+                    await resize(width);
+                    cancel.focus();
+                    if (doc.activeElement !== cancel || !visible(cancel)) fail(`Cancel focus at ${width}`);
+                    end.focus();
+                    if (doc.activeElement !== cancel) fail(`End sentinel focus at ${width}`);
+                    start.focus();
+                    if (doc.activeElement !== cancel) fail(`Start sentinel focus at ${width}`);
+                    for (const shift of [false, true]) {
+                        cancel.focus();
+                        let cycled = false;
+                        for (let step = 0; step < 16; step++) {
+                            await keyboard('Tab', shift);
+                            if (!surface.contains(doc.activeElement) || !visible(doc.activeElement)) fail(`Tab escaped visible controls at ${width}, reverse=${shift}`);
+                            if (doc.activeElement === cancel) { cycled = true; break; }
+                        }
+                        if (!cycled) fail(`Tab did not cycle at ${width}, reverse=${shift}`);
+                    }
+                    cancel.focus();
+                    await keyboard('Enter');
+                    if (clicks !== (width === 767 ? 1 : 2)) fail(`Cancel Enter activation at ${width}`);
+                }
+                for (const state of ['unchanged', 'removed', 'denied']) {
+                    await load(`member-focus-${state}`);
+                    const target = state === 'unchanged'
+                        ? Array.from(surface.querySelectorAll('[data-testid="tenants-remove-member-open"]')).at(-1)
+                        : surface.querySelector('#tenants-member-heading');
+                    if (!target || (state === 'unchanged' && target.localName !== 'fluent-button')) fail(`Actual launcher/heading missing: ${state}`);
+                    target.focus();
+                    if (doc.activeElement !== target) fail(`Actual launcher/heading focus failed: ${state}`);
+                }
+                document.documentElement.dataset.validationStatus = 'passed';
+                report.textContent = `localized forms/removal ${culture}; ${layouts} form layouts; 390/767/768/1024/1366; warnings; labels; actual Cancel/sentinels; native Tab/Shift-Tab cycles and Enter; English member launcher/heading targets`;
+            }
+        } catch (error) {
+            document.documentElement.dataset.validationStatus = 'failed';
+            report.textContent = `FAIL ${error.message}`;
+        }
+    </script>
+</body>
+</html>

@@ -81,7 +81,10 @@ public sealed partial class GlobalAdministratorsPageTests
         var commands = new StubTenantCommandGateway();
         Services.AddSingleton<ITenantCommandGateway>(commands);
         IRenderedComponent<GlobalAdministratorsPage> cut = Render<GlobalAdministratorsPage>();
-        cut.Find("[data-testid='tenants-global-admin-grant-user-id']").Change("target-admin");
+        IElement input = cut.Find("[data-testid='tenants-global-admin-grant-user-id']");
+        input.Attributes.ShouldNotContain(attribute => attribute.Name.Contains("@*", StringComparison.Ordinal));
+        input.HasAttribute("maxlength").ShouldBeFalse();
+        input.Change("target-admin");
         OpenGrantPreview(cut);
         IElement dialog = cut.Find("[data-testid='tenants-global-admin-grant-preview']");
         dialog.Closest("[inert], [hidden], [aria-hidden='true']").ShouldBeNull();

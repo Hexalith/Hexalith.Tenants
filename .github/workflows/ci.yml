@@ -16,6 +16,64 @@ permissions:
   contents: read
 
 jobs:
+  http-contracts:
+    name: Blocking HTTP contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      - name: Initialize root-declared submodules
+        run: git -c submodule.recurse=false submodule update --init
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Build HTTP contracts against published packages
+        run: >
+          dotnet build tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
+          -warnaserror -m:1 -nr:false
+      - name: Verify generated HTTP ETags and production REST consumers
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
+          --filter-class Hexalith.Tenants.IntegrationTests.TenantsApiGeneratedControllerTests
+          --minimum-expected-tests 44 --fail-skips on
+      - name: Verify real command status producer and UI proof
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
+          --filter-method 'Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.CommandStatusContract*'
+          --minimum-expected-tests 18 --fail-skips on
+      - name: Verify protected read-only project contract
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
+          --filter-method 'Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.ProjectContract*'
+          --minimum-expected-tests 35 --fail-skips on
+
+      - name: Verify persisted projection replay integrity
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
+          --filter-class Hexalith.Tenants.IntegrationTests.ProjectionReplayIntegrityTests
+          --minimum-expected-tests 31 --fail-skips on
+      - name: Verify audit stream persistence and canonical proof
+        # MTP discovers 117 unique rows; direct xUnit includes two duplicate rows (119).
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
+          --filter-class Hexalith.Tenants.IntegrationTests.AuditStreamPersistenceTests
+          --minimum-expected-tests 117 --fail-skips on
+
   ci:
     uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main
     with:

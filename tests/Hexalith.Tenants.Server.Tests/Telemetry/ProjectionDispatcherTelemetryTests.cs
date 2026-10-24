@@ -112,6 +112,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     public async Task DispatchAsync_GlobalAdministratorsDomain_ShouldEmitCompletedOutcomeAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SetupSuccessfulGuardedSave<TenantAuditReadModel>(store, TenantAuditStreams.GlobalAdministratorsKey);
+        SetupSuccessfulGuardedSave<GlobalAdministratorReadModel>(store, GlobalAdministratorProjectionHandler.GlobalAdministratorsProjectionKey);
         ProjectionRequest request = CreateGlobalAdminRequest();
 
         IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
@@ -171,6 +172,11 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     public async Task DispatchAsync_UnknownEventType_ShouldCollapseSpanEventTypeSummaryAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SetupSuccessfulTenantProjection(store);
+        var establishedIndex = new TenantIndexReadModel();
+        establishedIndex.Apply(new TenantCreated("tenant-1", "Established", null, DateTimeOffset.UnixEpoch));
+        establishedIndex.AggregateSequences["tenant-1"] = 1;
+        store.GetAsync<TenantIndexReadModel>("statestore", "projection:tenant-index:singleton", Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<TenantIndexReadModel>(establishedIndex, "index-etag"));
         ProjectionRequest request = new(
             "system",
             "tenants",
@@ -196,6 +202,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     [Fact]
     public async Task DispatchAsync_TenantProjectionRetryExhausted_ShouldEmitRetryExhaustedOutcomeAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupSuccessfulGuardedSave<TenantIndexReadModel>(store, "projection:tenant-index:singleton");
         store.GetAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1", Arg.Any<CancellationToken>())
             .Returns(new ReadModelEntry<TenantReadModel>(null, "tenant-etag"));
         store.TrySaveAsync("statestore", "projection:tenants:tenant-1", Arg.Any<TenantReadModel>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -223,6 +230,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     {
         IReadModelStore store = Substitute.For<IReadModelStore>();
         SetupSuccessfulGuardedSave<TenantAuditReadModel>(store, TenantAuditStreams.GlobalAdministratorsKey);
+        SetupSuccessfulGuardedSave<GlobalAdministratorReadModel>(store, GlobalAdministratorProjectionHandler.GlobalAdministratorsProjectionKey);
         int writes = 0;
         store.TrySaveAsync("statestore", TenantAuditStreams.GlobalAdministratorsKey, Arg.Any<TenantAuditReadModel>(),
             Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(_ => recover && ++writes > 1);
@@ -271,6 +279,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     [Fact]
     public async Task DispatchAsync_TenantProjectionInfrastructureFailure_ShouldEmitFailureOutcomeAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupSuccessfulGuardedSave<TenantIndexReadModel>(store, "projection:tenant-index:singleton");
         store.GetAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1", Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("State store unavailable"));
 
@@ -321,6 +330,7 @@ public class ProjectionDispatcherTelemetryTests : IDisposable {
     [Fact]
     public async Task DispatchAsync_InfrastructureFailure_ShouldLogFailureClassificationWithoutPayloadDataAsync() {
         IReadModelStore store = Substitute.For<IReadModelStore>();
+        SetupSuccessfulGuardedSave<TenantIndexReadModel>(store, "projection:tenant-index:singleton");
         store.GetAsync<TenantReadModel>("statestore", "projection:tenants:tenant-1", Arg.Any<CancellationToken>())
             .ThrowsAsync(new HttpRequestException("State store unavailable"));
         var loggerFactory = new TestLoggerFactory();

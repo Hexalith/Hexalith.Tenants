@@ -1,6 +1,6 @@
 /* fc-css-exception: vertical region gap on the FluentAccordion sections and semantic
    status/results landmarks; keeping the landmarks precludes a FluentStack wrapper. */
-.user-lookup-page__sections,
+.user-lookup-page-style-scope ::deep .user-lookup-page__sections,
 .user-lookup-page__status,
 .user-lookup-page__results {
     gap: 0.5rem;
@@ -31,7 +31,7 @@
     outline-offset: 3px;
 }
 
-.user-lookup-page__sort {
+.user-lookup-page-style-scope ::deep .user-lookup-page__sort {
     max-width: 18rem;
 }
 

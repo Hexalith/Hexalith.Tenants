@@ -7,6 +7,7 @@
 @using Hexalith.Tenants.UI.State.TenantList
 @using Hexalith.Tenants.UI.State.TenantUsers
 @using Microsoft.Extensions.DependencyInjection
+@using Microsoft.JSInterop
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 @implements IAsyncDisposable
@@ -16,7 +17,7 @@
          data-testid="tenants-member-section">
     <header class="tenant-members__header">
         <div>
-            <h2 id="tenants-member-heading">@Localizer["Tenants.Members.Title"]</h2>
+            <h2 id="tenants-member-heading" tabindex="-1" @ref="_headingElement">@Localizer["Tenants.Members.Title"]</h2>
             <p>@Localizer["Tenants.Members.Description"]</p>
             <p class="tenant-members__scope">@Localizer["Tenants.Members.ScopeNotice"]</p>
         </div>
@@ -185,29 +186,25 @@
                         {
                             @if (slot.Action is MemberAction.ChangeRole && slot.Reasons.Count == 0)
                             {
-                                <span class="tenant-members__action-focus" tabindex="-1" @ref="_changeRoleLaunchElements[context.Member.UserId]">
-                                    <FluentButton Appearance="ButtonAppearance.Outline"
-                                                  Class="tenant-members__action-button"
-                                                  data-testid="tenants-change-role-open"
-                                                  aria-controls="tenants-change-role-flow-region"
-                                                  aria-describedby="@context.ReasonElementId"
-                                                  OnClick="() => OpenChangeRole(context.Member)">
-                                        @ActionLabel(slot.Action)
-                                    </FluentButton>
-                                </span>
+                                <FluentButton @ref="_changeRoleLaunchElements[context.Member.UserId]" Appearance="ButtonAppearance.Outline"
+                                              Class="tenant-members__action-button"
+                                              data-testid="tenants-change-role-open"
+                                              aria-controls="tenants-change-role-flow-region"
+                                              aria-describedby="@context.ReasonElementId"
+                                              OnClick="() => OpenChangeRole(context.Member)">
+                                    @ActionLabel(slot.Action)
+                                </FluentButton>
                             }
                             else if (slot.Action is MemberAction.RemoveMember && slot.Reasons.Count == 0)
                             {
-                                <span class="tenant-members__action-focus" tabindex="-1" @ref="_removeMemberLaunchElements[context.Member.UserId]">
-                                    <FluentButton Appearance="ButtonAppearance.Outline"
-                                                  Class="tenant-members__action-button tenant-members__action-button--destructive"
-                                                  data-testid="tenants-remove-member-open"
-                                                  aria-controls="tenants-remove-member-flow-region"
-                                                  aria-describedby="@context.ReasonElementId"
-                                                  OnClick="() => OpenRemoveMember(context.Member)">
-                                        @ActionLabel(slot.Action)
-                                    </FluentButton>
-                                </span>
+                                <FluentButton @ref="_removeMemberLaunchElements[context.Member.UserId]" Appearance="ButtonAppearance.Outline"
+                                              Class="tenant-members__action-button tenant-members__action-button--destructive"
+                                              data-testid="tenants-remove-member-open"
+                                              aria-controls="tenants-remove-member-flow-region"
+                                              aria-describedby="@context.ReasonElementId"
+                                              OnClick="() => OpenRemoveMember(context.Member)">
+                                    @ActionLabel(slot.Action)
+                                </FluentButton>
                             }
                             else
                             {
@@ -362,9 +359,10 @@
 
     // One launch button is rendered per actionable member row, so a single shared reference would
     // be overwritten by the last row in the loop and return focus to the wrong member on close.
-    // Key the captured focus-wrapper references by the literal user id so focus returns to the launching control.
-    private readonly Dictionary<string, ElementReference> _changeRoleLaunchElements = new(StringComparer.Ordinal);
-    private readonly Dictionary<string, ElementReference> _removeMemberLaunchElements = new(StringComparer.Ordinal);
+    // Key the captured Fluent button references by the literal user id so focus returns to the launching control.
+    private readonly Dictionary<string, FluentButton> _changeRoleLaunchElements = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, FluentButton> _removeMemberLaunchElements = new(StringComparer.Ordinal);
+    private ElementReference _headingElement;
     private string? _focusChangeRoleLaunchUserId;
     private string? _focusRemoveMemberLaunchUserId;
 
@@ -949,18 +947,56 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_focusChangeRoleLaunchUserId is not null
-            && _changeRoleLaunchElements.TryGetValue(_focusChangeRoleLaunchUserId, out ElementReference launchElement))
+        string? changeRoleUserId = _focusChangeRoleLaunchUserId;
+        string? removeMemberUserId = _focusRemoveMemberLaunchUserId;
+        _focusChangeRoleLaunchUserId = null;
+        _focusRemoveMemberLaunchUserId = null;
+        if (changeRoleUserId is not null)
         {
-            _focusChangeRoleLaunchUserId = null;
-            await launchElement.FocusAsync().ConfigureAwait(false);
+            await RestoreLauncherFocusAsync(changeRoleUserId, MemberAction.ChangeRole, _changeRoleLaunchElements);
+        }
+        if (removeMemberUserId is not null)
+        {
+            await RestoreLauncherFocusAsync(removeMemberUserId, MemberAction.RemoveMember, _removeMemberLaunchElements);
+        }
+    }
+
+    private async Task RestoreLauncherFocusAsync(
+        string userId, MemberAction action, Dictionary<string, FluentButton> launchElements)
+    {
+        if (_disposed)
+        {
+            return;
         }
 
-        if (_focusRemoveMemberLaunchUserId is not null
-            && _removeMemberLaunchElements.TryGetValue(_focusRemoveMemberLaunchUserId, out ElementReference removeLaunchElement))
+        TenantMember? member = Rows.FirstOrDefault(row => row.Member.UserId == userId)?.Member;
+        if (member is not null
+            && BuildActionSlots(member.Role).Any(slot => slot.Action == action && slot.Reasons.Count == 0)
+            && launchElements.TryGetValue(userId, out FluentButton? launcher))
         {
-            _focusRemoveMemberLaunchUserId = null;
-            await removeLaunchElement.FocusAsync().ConfigureAwait(false);
+            try
+            {
+                await launcher.Element.FocusAsync();
+                return;
+            }
+            catch (Exception exception) when (exception is JSException or InvalidOperationException
+                or ObjectDisposedException or OperationCanceledException)
+            {
+                // A refresh can remove the launching row while the browser receives the focus request.
+            }
+        }
+
+        if (!_disposed)
+        {
+            try
+            {
+                await _headingElement.FocusAsync();
+            }
+            catch (Exception exception) when (exception is JSException or InvalidOperationException
+                or ObjectDisposedException or OperationCanceledException)
+            {
+                // Circuit teardown must not fault the completed dismissal.
+            }
         }
     }
 

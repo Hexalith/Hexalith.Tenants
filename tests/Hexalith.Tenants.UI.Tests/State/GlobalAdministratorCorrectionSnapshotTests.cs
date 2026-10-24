@@ -537,6 +537,34 @@ public sealed class GlobalAdministratorCorrectionSnapshotTests
         linked.ProofLink.ShouldNotBeNull().CorrectiveAuditReference.ShouldBe("event-corrective");
     }
 
+    [Theory]
+    [InlineData(-120, false)]
+    [InlineData(120, false)]
+    [InlineData(-120, true)]
+    [InlineData(120, true)]
+    public void Verified_corrective_proof_links_independently_of_the_Bff_clock(int bffOffsetMinutes, bool revoke)
+    {
+        TenantAuditRow row = CorrectiveRow("event-corrective", revoke ? "GlobalAdministratorRemoved" : "GlobalAdministratorSet");
+        GlobalAdministratorCorrectionSnapshot preview = revoke
+            ? GlobalAdministratorCorrectionSnapshot.FromIntent(RevokeIntent(), ProjectionReady("admin-user", "other-admin"))
+                .WithRemovePreview(RemovePreview())
+            : GlobalAdministratorCorrectionSnapshot.FromIntent(RestoreIntent(), ProjectionReady("other-admin"));
+        GlobalAdministratorCorrectionSnapshot confirmed = preview
+            .RequestSent("message-safe", row.Timestamp.AddMinutes(bffOffsetMinutes))
+            .Accepted(TenantCommandSubmissionResult.Accepted("message-safe", "tracking-safe"))
+            .ApplyStatus(new TenantCommandStatusResult(CommandStatus.Completed, EventCount: 1, HasVerifiedCommandIdentity: true)
+            {
+                CommittedEventSequence = 2,
+            })
+            .ConfirmProjection(revoke
+                ? ProjectionReadyAtVersion("tenant-sequence:2", "other-admin")
+                : ProjectionReadyAtVersion("tenant-sequence:2", "admin-user", "other-admin"));
+
+        GlobalAdministratorCorrectionSnapshot linked = confirmed.WithCorrectiveProof(new GlobalAdministratorAuditProof(row));
+        linked.AuditState.ShouldBe(TenantCommandAuditState.AuditAvailable);
+        linked.ProofLink.ShouldNotBeNull().CorrectiveAuditReference.ShouldBe("event-corrective");
+    }
+
     [Fact]
     public void Corrective_proof_is_ignored_before_confirmation()
     {

@@ -1,0 +1,126 @@
+{
+  "upstreamCommit": "9c343c2d36d6d291ffea60928b6377013d8fcc84",
+  "preRebaseLocalCommit": "7b91a7bde1a17481f7d754f100b3932d0e172a4e",
+  "rebasedLocalCommitBeforeDocumentation": "a0dfa817058139757d9754b92f8e8381b5228afd",
+  "localCommitAvailability": "The two local revisions are provenance observations, not claims they were published or remain remotely available.",
+  "upstreamChange": "Directory.Build.props adds a default UI Memories source choice; the existing explicit source mode already chooses those projects.",
+  "sourceTrees": {
+    "src/Hexalith.Tenants.UI": {
+      "before": "f78bb5d68dc6e0f26beed0a44dfe83d73b381dd3",
+      "after": "f78bb5d68dc6e0f26beed0a44dfe83d73b381dd3",
+      "identical": true
+    },
+    "tests/Hexalith.Tenants.UI.Tests": {
+      "before": "b504e733fbcbac1a710675367c6f745f8f3583dc",
+      "after": "b504e733fbcbac1a710675367c6f745f8f3583dc",
+      "identical": true
+    }
+  },
+  "evaluatedProperties": {
+    "UseHexalithProjectReferences": "true",
+    "HexalithMemoriesFromSource": "true",
+    "HexalithFrontComposerFromSource": "true",
+    "Version": "5.10.0"
+  },
+  "build": {
+    "command": [
+      "dotnet",
+      "build",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "--no-restore",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0,
+    "durationSeconds": 13.95
+  },
+  "newFocused": {
+    "command": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "--no-build",
+      "--no-restore",
+      "--filter-method",
+      "*OwnAdmissionParentRender*",
+      "--filter-method",
+      "*RemovalSubmitDistinguishesOwnAdmissionRender*",
+      "--filter-method",
+      "*TenantDetailSurfaceTests.BusyManagement*",
+      "--filter-method",
+      "*TenantDetailSurfaceTests.RefusedSetAdoption*",
+      "--filter-method",
+      "*TenantDetailSurfaceTests.SetRetention*",
+      "--minimum-expected-tests",
+      "43",
+      "--no-ansi",
+      "--no-progress",
+      "--results-directory",
+      "/tmp/tenants-dw-publication-focused",
+      "--report-xunit-trx",
+      "--report-xunit-trx-filename",
+      "focused.trx"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 2.9875545501708984,
+    "logSha256": "641047c19e94c9a13b5f20b3f0ffb077dac155713adfb6dff9be6c9ed122d000",
+    "counters": {
+      "total": "43",
+      "executed": "43",
+      "passed": "43",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    }
+  },
+  "initialPush": {
+    "command": [
+      "git",
+      "push",
+      "origin",
+      "main"
+    ],
+    "exitCode": 1,
+    "diagnostic": "remote unpack failed: index-pack failed; remote main advanced concurrently"
+  },
+  "rebuiltUiAssemblySha256": "62379e7aa641d06a90882d364091afda41e7507ec8a73bf9af5f8e157d85c6bf",
+  "originalBrowserUiAssemblySha256": "38200246a53ccd858971725313d988826c498e9f8ee7c371c690a1e03a5e46c0",
+  "binaryQualification": "Source/test Git trees and effective project reference choices are identical. Rebuild embeds the new local SourceRevisionId; immutable full UI/browser packets remain bound to their original revision and binary. The new build and 43-case integration run qualify the upstream merge without claiming new browser execution.",
+  "archive": "dw-268-328-391-434-489-main-integration-logs.zip",
+  "archiveSha256": "de91e6ea3df566c3d128658798408afec26bc93dce2effb56389dea08b72d5e1",
+  "archiveEntries": [
+    {
+      "name": "tenants-dw-publication-integration-build.log",
+      "sha256": "5949fe6c3a01a9a92ed6ec05f29fd39adc86153bb111601283080f50bde20284"
+    },
+    {
+      "name": "tenants-dw-publication-focused.log",
+      "sha256": "641047c19e94c9a13b5f20b3f0ffb077dac155713adfb6dff9be6c9ed122d000"
+    },
+    {
+      "name": "tenants-dw-publication-focused-execution.json",
+      "sha256": "d84b5573a17d65bf1c21c7297be4f30334446edbf6be53fce084eabfcc0f4898"
+    },
+    {
+      "name": "focused.trx",
+      "sha256": "4052fc2d7cfd02dcb153a1460ee7363adb48bc56008bedc23c77bbf795fb9199"
+    }
+  ]
+}

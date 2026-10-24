@@ -3,6 +3,8 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject IServiceProvider Services
 
+@* Native owner keeps isolated selectors attached across the available and unavailable Fluent roots. *@
+<span class="tenants-audit-entrypoint-style-scope">
 @if (CanOpen)
 {
     <FluentAnchorButton Class="tenants-audit-entrypoint"
@@ -33,6 +35,8 @@ else
         </FluentButton>
     }
 }
+
+</span>
 
 @code {
     private readonly string _reasonId = $"tenants-audit-reason-{Guid.NewGuid():N}";

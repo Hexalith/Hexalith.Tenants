@@ -1,0 +1,44 @@
+{
+  "missingChild": {
+    "command": "TENANTS_BROWSER_SKIP_BUILD=1 NODE_OPTIONS='--import /tmp/dw391-harness-fault-preload.mjs' DW391_FAULT_MODE=missing-child DW391_PID_FILE=/tmp/dw391-missing-child-pids.txt python3 /tmp/tenants-dw-run-browser.py tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs /tmp/dw391-missing-child.json",
+    "expectedExitCode": 1,
+    "actualExitCode": 1,
+    "resultPath": "/tmp/dw391-missing-child.json"
+  },
+  "resultStorageFailure": {
+    "command": "TENANTS_BROWSER_SKIP_BUILD=1 NODE_OPTIONS='--import /tmp/dw391-harness-fault-preload.mjs' DW391_FAULT_MODE=result-path DW391_PID_FILE=/tmp/dw391-result-path-recheck-pids.txt python3 /tmp/tenants-dw-run-browser.py tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs /tmp",
+    "expectedExitCode": 1,
+    "actualExitCode": 1,
+    "safeFailureLabel": "Authenticated administrator dialog evidence could not be stored",
+    "casesBeforeStorageFailure": 8,
+    "fixtureChildren": [
+      {
+        "pid": "2324127",
+        "existsAfterExit": false
+      }
+    ]
+  },
+  "preloadSha256": "12f05341ddf22be52c98e88aa27cbda3e521cabf24373651f8a85cf4d6732d10",
+  "initialResultStorageFailure": {
+    "actualExitCode": 1,
+    "casesBeforeStorageFailure": 8,
+    "diagnostic": "Initial output-directory control raised EISDIR with a Node stack after the finally cleanup; corrected to a fixed safe failure label before the accepted recheck.",
+    "fixtureChildPid": "2313283",
+    "fixtureChildExistsAfterExit": false
+  },
+  "coverageLimit": "Three injected modes (missing child executable, evidence path being a directory, and observed post-build source-diff change); the evidence-path case ran before and after safe diagnostic correction. No separate child-signal termination injection is claimed.",
+  "preloadSource": "dw-391-harness-fault-preload.mjs",
+  "validatorSha256AtControls": "113c9f7ca8f40288885d49e9359578f046df9ee441384278f801c6a9513b2f46",
+  "sourceGuardFailure": {
+    "command": "TENANTS_BROWSER_SKIP_BUILD=1 NODE_OPTIONS='--import /home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/dw-391-source-guard-preload.mjs' python3 /tmp/tenants-dw-run-browser.py tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-administrator-dialogs.mjs _bmad-output/implementation-artifacts/dw-391-source-guard-negative.json",
+    "actualExitCode": 1,
+    "expectedExitCode": 1,
+    "preloadSource": "dw-391-source-guard-preload.mjs",
+    "preloadSha256": "dc52541771a4ee6173ccf8a148fd22038c0fb32d5e12ec91dd04d025fb7c5d65",
+    "resultPath": "dw-391-source-guard-negative.json",
+    "sourceStableDuringBuild": false,
+    "authorizedReads": 0,
+    "commandAttempts": 0,
+    "injectionScope": "Changes the second observed Git UI-source diff only; no real source file is changed and no browser/UI child starts."
+  }
+}

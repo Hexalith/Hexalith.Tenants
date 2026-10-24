@@ -70,6 +70,9 @@ public sealed class GlobalAdministratorProjectionHandler {
         IReadOnlyCollection<ProjectionEventDto?> events = request.Events ?? [];
         TenantAuditReadModel auditState = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
         TenantAuditStreams.ValidateIncoming(auditState, SystemTenantId, TenantAuditStreams.GlobalAdministrators);
+        ReadModelEntry<GlobalAdministratorReadModel> initialAuthority = await _store.GetAsync<GlobalAdministratorReadModel>(
+            StateStoreName, GlobalAdministratorsProjectionKey, cancellationToken).ConfigureAwait(false);
+        ValidateAuthorityVersion(initialAuthority.Value);
         DateTimeOffset projectedAt = _timeProvider.GetUtcNow();
         auditState.ProjectedAt = projectedAt;
         cancellationToken.ThrowIfCancellationRequested();
@@ -93,7 +96,10 @@ public sealed class GlobalAdministratorProjectionHandler {
             }
         }
 
-        auditState.ProjectionVersion = IsCompleteGlobalReplay(events, auditState) ? state.ProjectionVersion : null;
+        bool completeReplay = IsCompleteGlobalReplay(events, auditState);
+        state.ProjectionVersion = completeReplay ? state.ProjectionVersion : null;
+        auditState.ProjectionVersion = state.ProjectionVersion;
+        ValidateAuthorityInitialization(initialAuthority.Value, state, completeReplay);
         cancellationToken.ThrowIfCancellationRequested();
         _ = await ReadModelWritePolicy.MergeAsync(
             _store,
@@ -107,16 +113,60 @@ public sealed class GlobalAdministratorProjectionHandler {
             cancellationToken: cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
-        await _store.SaveAsync(
+        GlobalAdministratorReadModel incomingState = state;
+        state = await ReadModelWritePolicy.UpdateAsync<GlobalAdministratorReadModel>(
+            _store,
             StateStoreName,
             GlobalAdministratorsProjectionKey,
-            state,
-            cancellationToken).ConfigureAwait(false);
+            persisted =>
+            {
+                ValidateAuthorityVersion(persisted);
+                ValidateAuthorityInitialization(persisted, incomingState, completeReplay);
+                // Compare inside the retried transform: a competing full replay may have
+                // committed newer authority since the previous read. Equal versions are
+                // already authoritative; unversioned requests cannot replace ordered state.
+                if (persisted is not null
+                    && TenantAuditStreams.TryGetSequence(persisted.ProjectionVersion, out long persistedSequence)
+                    && (!TenantAuditStreams.TryGetSequence(incomingState.ProjectionVersion, out long incomingSequence)
+                        || incomingSequence <= persistedSequence))
+                {
+                    return persisted;
+                }
+
+                if (persisted?.ProjectedAt > incomingState.ProjectedAt)
+                {
+                    incomingState.ProjectedAt = persisted.ProjectedAt;
+                }
+
+                return incomingState;
+            },
+            new ReadModelWriteContext("global-administrator authority", nameof(GlobalAdministratorReadModel)).WithEventDiagnostics(events),
+            _logger,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
         return new ProjectionResponse(
             "global-administrators",
             JsonSerializer.SerializeToElement(state));
+    }
+
+    private static void ValidateAuthorityInitialization(GlobalAdministratorReadModel? persisted,
+        GlobalAdministratorReadModel incoming, bool completeReplay)
+    {
+        if (!completeReplay && incoming.Administrators.Count > 0
+            && !TenantAuditStreams.TryGetSequence(persisted?.ProjectionVersion, out _))
+        {
+            throw new InvalidOperationException("Populated global-administrator authority requires a complete canonical replay before initialization.");
+        }
+    }
+
+    private static void ValidateAuthorityVersion(GlobalAdministratorReadModel? state)
+    {
+        if (state?.Administrators?.Count > 0
+            && !TenantAuditStreams.TryGetSequence(state.ProjectionVersion, out _))
+        {
+            throw new InvalidOperationException("Populated global-administrator authority has no ordered version; a coordinated projection rebuild is required.");
+        }
     }
 
     internal static bool IsValidGlobalAdministratorIdentity(ProjectionRequest request)

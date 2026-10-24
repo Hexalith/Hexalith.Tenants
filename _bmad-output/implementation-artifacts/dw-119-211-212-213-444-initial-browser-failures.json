@@ -1,0 +1,902 @@
+[
+  {
+    "sourceBaseRevision": "48b0cd98be5ff75402e1206e083e561552146454",
+    "sourceDiffSha256": "ff276cdc52a10ed831749c40a826756520c3323bc8a66f309cd9215752f98e1b",
+    "frontComposerBaseRevision": "9b8cbf28c621cbf45429eab8db1a50cfc4bf1c38",
+    "frontComposerDiffSha256": "b3c0d79d0957e15d688ac64de003ffe45a08b0f7bbf5a413ad65e823ef2094d0",
+    "validatorSha256": "b2a5bba46f10cdb71b0d84c87d04fb51d3d60fcfe0250bb9a8934a2e7554acd2",
+    "localUiAssemblySha256": "db9e7a20f7fac636a612ebf92f9997c7f4420e2cd6dae967dae45d64629a8033",
+    "localShellAssemblySha256": "b5a58d07e5e8ec68a83a995dc33c2da8a306008457cd2fe24ece0b5a9b5f1587",
+    "playwrightVersion": "1.63.0",
+    "startedUtc": "2026-10-23T18:33:27.740Z",
+    "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+    "fixtureScope": "Qualifies UI focus with deterministic authorized projection responses; does not qualify backend authorization or real domain data",
+    "records": [
+      "DW-119",
+      "DW-211",
+      "DW-212",
+      "DW-213",
+      "DW-444"
+    ],
+    "cases": [],
+    "browserVersion": "153.0.8010.12",
+    "passed": false,
+    "failure": {
+      "phase": "held-paging-disabled-endpoint",
+      "label": "Browser operation failed",
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-list-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-list-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-workspace"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f74d18d3",
+            "testId": null
+          },
+          {
+            "id": "f74d18d3-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    "fixture": {
+      "authorizedReads": 0,
+      "commandAttempts": 0,
+      "listReads": 0,
+      "auditReads": 0,
+      "circuitErrors": 0
+    },
+    "finishedUtc": "2026-10-23T18:33:51.601Z"
+  },
+  {
+    "sourceBaseRevision": "48b0cd98be5ff75402e1206e083e561552146454",
+    "sourceDiffSha256": "ff276cdc52a10ed831749c40a826756520c3323bc8a66f309cd9215752f98e1b",
+    "frontComposerBaseRevision": "9b8cbf28c621cbf45429eab8db1a50cfc4bf1c38",
+    "frontComposerDiffSha256": "b3c0d79d0957e15d688ac64de003ffe45a08b0f7bbf5a413ad65e823ef2094d0",
+    "validatorSha256": "7062938daac2c04287ef2bfc5e11c7e89e3160c5b823531974ec27a25d76bc72",
+    "localUiAssemblySha256": "db9e7a20f7fac636a612ebf92f9997c7f4420e2cd6dae967dae45d64629a8033",
+    "localShellAssemblySha256": "b5a58d07e5e8ec68a83a995dc33c2da8a306008457cd2fe24ece0b5a9b5f1587",
+    "playwrightVersion": "1.63.0",
+    "startedUtc": "2026-10-23T18:35:16.526Z",
+    "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+    "fixtureScope": "Qualifies UI focus with deterministic authorized projection responses; does not qualify backend authorization or real domain data",
+    "records": [
+      "DW-119",
+      "DW-211",
+      "DW-212",
+      "DW-213",
+      "DW-444"
+    ],
+    "cases": [
+      {
+        "name": "Focused pager recovers to the list heading while the read is held",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f3f30aee",
+              "testId": null
+            },
+            {
+              "id": "f3f30aee-container",
+              "testId": null
+            }
+          ]
+        },
+        "heldReads": 1
+      },
+      {
+        "name": "Disabled paging origin leaves actual focus on the list heading",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f3f30aee",
+              "testId": null
+            },
+            {
+              "id": "f3f30aee-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "An available paging origin regains actual focus after rendering",
+        "passed": true,
+        "focus": {
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": null,
+              "testId": "tenants-list-next"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel-content"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel"
+            },
+            {
+              "id": "tenants-panel",
+              "testId": null
+            },
+            {
+              "id": "f1740115",
+              "testId": "tenants-workspace-tabs"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f2162617",
+              "testId": null
+            },
+            {
+              "id": "f2162617-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "Paging completion preserves a surviving control that took focus",
+        "passed": true,
+        "focus": {
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": null,
+              "testId": "tenants-list-refresh"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel-content"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel"
+            },
+            {
+              "id": "tenants-panel",
+              "testId": null
+            },
+            {
+              "id": "f20d63ba",
+              "testId": "tenants-workspace-tabs"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f48f5594",
+              "testId": null
+            },
+            {
+              "id": "f48f5594-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "Missing-row detail return focuses the actual list heading and retains the notice",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f2cf1df6",
+              "testId": null
+            },
+            {
+              "id": "f2cf1df6-container",
+              "testId": null
+            }
+          ]
+        }
+      }
+    ],
+    "browserVersion": "153.0.8010.12",
+    "passed": false,
+    "failure": {
+      "phase": "audit-reset-origin",
+      "label": "Production SignalR subscription must join",
+      "focus": {
+        "element": "body",
+        "shadowDepth": 0,
+        "ancestry": []
+      }
+    },
+    "fixture": {
+      "authorizedReads": 26,
+      "commandAttempts": 0,
+      "listReads": 9,
+      "auditReads": 3,
+      "circuitErrors": 0
+    },
+    "finishedUtc": "2026-10-23T18:35:44.186Z"
+  },
+  {
+    "sourceBaseRevision": "48b0cd98be5ff75402e1206e083e561552146454",
+    "sourceDiffSha256": "ff276cdc52a10ed831749c40a826756520c3323bc8a66f309cd9215752f98e1b",
+    "frontComposerBaseRevision": "9b8cbf28c621cbf45429eab8db1a50cfc4bf1c38",
+    "frontComposerDiffSha256": "b3c0d79d0957e15d688ac64de003ffe45a08b0f7bbf5a413ad65e823ef2094d0",
+    "validatorSha256": "7d06d4b74317caadf26ac83504c570165caf6e65f4f817e479d5f4bd3f423856",
+    "localUiAssemblySha256": "db9e7a20f7fac636a612ebf92f9997c7f4420e2cd6dae967dae45d64629a8033",
+    "localShellAssemblySha256": "b5a58d07e5e8ec68a83a995dc33c2da8a306008457cd2fe24ece0b5a9b5f1587",
+    "playwrightVersion": "1.63.0",
+    "startedUtc": "2026-10-23T18:36:35.452Z",
+    "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+    "fixtureScope": "Qualifies UI focus with deterministic authorized projection responses; does not qualify backend authorization or real domain data",
+    "records": [
+      "DW-119",
+      "DW-211",
+      "DW-212",
+      "DW-213",
+      "DW-444"
+    ],
+    "cases": [
+      {
+        "name": "Focused pager recovers to the list heading while the read is held",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f52057cb",
+              "testId": null
+            },
+            {
+              "id": "f52057cb-container",
+              "testId": null
+            }
+          ]
+        },
+        "heldReads": 1
+      },
+      {
+        "name": "Disabled paging origin leaves actual focus on the list heading",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f52057cb",
+              "testId": null
+            },
+            {
+              "id": "f52057cb-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "An available paging origin regains actual focus after rendering",
+        "passed": true,
+        "focus": {
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": null,
+              "testId": "tenants-list-next"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel-content"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel"
+            },
+            {
+              "id": "tenants-panel",
+              "testId": null
+            },
+            {
+              "id": "f2783444",
+              "testId": "tenants-workspace-tabs"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f6e37cae",
+              "testId": null
+            },
+            {
+              "id": "f6e37cae-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "Paging completion preserves a surviving control that took focus",
+        "passed": true,
+        "focus": {
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": null,
+              "testId": "tenants-list-refresh"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel-content"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel"
+            },
+            {
+              "id": "tenants-panel",
+              "testId": null
+            },
+            {
+              "id": "f26ce317",
+              "testId": "tenants-workspace-tabs"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f6b15394",
+              "testId": null
+            },
+            {
+              "id": "f6b15394-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "Missing-row detail return focuses the actual list heading and retains the notice",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f58299df",
+              "testId": null
+            },
+            {
+              "id": "f58299df-container",
+              "testId": null
+            }
+          ]
+        }
+      }
+    ],
+    "browserVersion": "153.0.8010.12",
+    "passed": false,
+    "failure": {
+      "phase": "audit-reset-origin",
+      "label": "Expected focus: [data-testid=\"tenants-audit-grid\"] [data-testid=\"tenants-correction-start\"]",
+      "focus": {
+        "element": "span",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-correction-unavailable-reason"
+          },
+          {
+            "id": "f76fb327",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-grid"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-surface"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f7456e67",
+            "testId": null
+          },
+          {
+            "id": "f7456e67-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    "fixture": {
+      "authorizedReads": 30,
+      "commandAttempts": 0,
+      "listReads": 9,
+      "auditReads": 5,
+      "circuitErrors": 0
+    },
+    "finishedUtc": "2026-10-23T18:37:02.108Z"
+  },
+  {
+    "sourceBaseRevision": "48b0cd98be5ff75402e1206e083e561552146454",
+    "sourceDiffSha256": "ff276cdc52a10ed831749c40a826756520c3323bc8a66f309cd9215752f98e1b",
+    "frontComposerBaseRevision": "9b8cbf28c621cbf45429eab8db1a50cfc4bf1c38",
+    "frontComposerDiffSha256": "b3c0d79d0957e15d688ac64de003ffe45a08b0f7bbf5a413ad65e823ef2094d0",
+    "validatorSha256": "63957bac28e5ded1deb13ebafa9e56c5ee72b6925065e2932a4fbff70090a742",
+    "localUiAssemblySha256": "db9e7a20f7fac636a612ebf92f9997c7f4420e2cd6dae967dae45d64629a8033",
+    "localShellAssemblySha256": "b5a58d07e5e8ec68a83a995dc33c2da8a306008457cd2fe24ece0b5a9b5f1587",
+    "playwrightVersion": "1.63.0",
+    "startedUtc": "2026-10-23T18:38:07.781Z",
+    "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+    "fixtureScope": "Qualifies UI focus with deterministic authorized projection responses; does not qualify backend authorization or real domain data",
+    "records": [
+      "DW-119",
+      "DW-211",
+      "DW-212",
+      "DW-213",
+      "DW-444"
+    ],
+    "cases": [
+      {
+        "name": "Focused pager recovers to the list heading while the read is held",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f589f34c",
+              "testId": null
+            },
+            {
+              "id": "f589f34c-container",
+              "testId": null
+            }
+          ]
+        },
+        "heldReads": 1
+      },
+      {
+        "name": "Disabled paging origin leaves actual focus on the list heading",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f589f34c",
+              "testId": null
+            },
+            {
+              "id": "f589f34c-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "A missing paging origin leaves actual focus on the list heading",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f32b254a",
+              "testId": null
+            },
+            {
+              "id": "f32b254a-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "An available paging origin regains actual focus after rendering",
+        "passed": true,
+        "focus": {
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": null,
+              "testId": "tenants-list-next"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel-content"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel"
+            },
+            {
+              "id": "tenants-panel",
+              "testId": null
+            },
+            {
+              "id": "f7653432",
+              "testId": "tenants-workspace-tabs"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f616c32d",
+              "testId": null
+            },
+            {
+              "id": "f616c32d-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "Paging completion preserves a surviving control that took focus",
+        "passed": true,
+        "focus": {
+          "element": "fluent-button",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": null,
+              "testId": "tenants-list-refresh"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel-content"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace-tenants-panel"
+            },
+            {
+              "id": "tenants-panel",
+              "testId": null
+            },
+            {
+              "id": "f388b89a",
+              "testId": "tenants-workspace-tabs"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f7b90c09",
+              "testId": null
+            },
+            {
+              "id": "f7b90c09-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "Missing-row detail return focuses the actual list heading and retains the notice",
+        "passed": true,
+        "focus": {
+          "element": "h1",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": "tenants-list-heading",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-list-page-header"
+            },
+            {
+              "id": null,
+              "testId": "tenants-workspace"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f11d761d",
+              "testId": null
+            },
+            {
+              "id": "f11d761d-container",
+              "testId": null
+            }
+          ]
+        }
+      },
+      {
+        "name": "Audit reset focus: origin",
+        "passed": true,
+        "focus": {
+          "element": "span",
+          "shadowDepth": 0,
+          "ancestry": [
+            {
+              "id": null,
+              "testId": "tenants-correction-unavailable-reason"
+            },
+            {
+              "id": "f2b7fa0d",
+              "testId": null
+            },
+            {
+              "id": null,
+              "testId": "tenants-audit-grid"
+            },
+            {
+              "id": null,
+              "testId": "tenants-audit-surface"
+            },
+            {
+              "id": "fc-main-content",
+              "testId": null
+            },
+            {
+              "id": "f5364eaa",
+              "testId": null
+            },
+            {
+              "id": "f5364eaa-container",
+              "testId": null
+            }
+          ]
+        },
+        "resetReadCount": 2
+      }
+    ],
+    "browserVersion": "153.0.8010.12",
+    "passed": false,
+    "failure": {
+      "phase": "audit-reset-missing-launcher",
+      "label": "Browser operation failed",
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenant-audit-heading",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-page-header"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-surface"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f5660d71",
+            "testId": null
+          },
+          {
+            "id": "f5660d71-container",
+            "testId": null
+          }
+        ]
+      }
+    },
+    "fixture": {
+      "authorizedReads": 44,
+      "commandAttempts": 0,
+      "listReads": 12,
+      "auditReads": 10,
+      "circuitErrors": 0
+    },
+    "finishedUtc": "2026-10-23T18:38:41.060Z"
+  }
+]

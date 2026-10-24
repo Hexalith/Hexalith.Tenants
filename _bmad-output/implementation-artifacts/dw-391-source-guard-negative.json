@@ -1,0 +1,60 @@
+{
+  "playwrightVersion": "1.64.0-alpha-1790635538000",
+  "startedUtc": "2026-10-24T04:09:35.584Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies authenticated production grant/removal DOM and browser behavior using deterministic read responses; does not qualify backend authorization, stored domain data or command delivery",
+  "records": [
+    "DW-268",
+    "DW-391"
+  ],
+  "cases": [],
+  "sourceBeforeBuild": {
+    "validatorSha256": "963e423334d0b4add21e49dc059141747d97ed370a772da71ff24027de4ac5e9",
+    "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+    "sourceDiffSha256": "56172313a5ae1407f852ac9b81617908d45e8d1e05f2ee84617fe4f75eaa6c12",
+    "buildInputsDiffSha256": "56172313a5ae1407f852ac9b81617908d45e8d1e05f2ee84617fe4f75eaa6c12",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": false,
+    "skippedForDevelopment": true,
+    "reusedBuild": true
+  },
+  "sourceAfterBuild": {
+    "validatorSha256": "963e423334d0b4add21e49dc059141747d97ed370a772da71ff24027de4ac5e9",
+    "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+    "sourceDiffSha256": "9f10b5a4d08f126e9c13328b8a781eb594b1bda0c7c25ce33b12f7a52c5c1d96",
+    "buildInputsDiffSha256": "56172313a5ae1407f852ac9b81617908d45e8d1e05f2ee84617fe4f75eaa6c12",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceStableDuringBuild": false,
+  "passed": false,
+  "failure": {
+    "phase": "build-current-ui",
+    "label": "Source or build inputs changed during the build; browser evidence is refused",
+    "focus": null
+  },
+  "fixture": {
+    "authorizedReads": 0,
+    "administratorReads": 0,
+    "commandAttempts": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": false,
+  "finishedUtc": "2026-10-24T04:09:35.835Z"
+}

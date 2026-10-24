@@ -1,3 +1,85 @@
+function deepestActiveElement() {
+  let active = document.activeElement;
+  while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+  return active;
+}
+
+function ownsActiveElement(target) {
+  for (let node = deepestActiveElement(); node; node = node.parentElement || node.getRootNode()?.host) {
+    if (node === target) return true;
+  }
+  return false;
+}
+
+export function movePagingFocusToHeading(originTestId, headingId) {
+  const origin = document.querySelector(`[data-testid="${originTestId}"]`);
+  const heading = document.getElementById(headingId);
+  if (!origin || !heading || !ownsActiveElement(origin)) return false;
+  heading.focus({ preventScroll: false });
+  return ownsActiveElement(heading);
+}
+
+export function restorePagingFocus(originTestId, headingId) {
+  const heading = document.getElementById(headingId);
+  if (!heading || !ownsActiveElement(heading)) return;
+  const origin = document.querySelector(`[data-testid="${originTestId}"]`);
+  if (origin && !origin.matches(':disabled, [disabled], [aria-disabled="true"]')
+      && !origin.closest('[hidden], [aria-hidden="true"], [inert]') && origin.getClientRects().length) {
+    origin.focus({ preventScroll: false });
+  }
+}
+
+let correctionFocusCapture;
+
+export function isFocusInsideAuditCorrection(captureKey = null) {
+  const selector = '[data-testid="tenants-correction-start-panel"], [data-testid="tenants-correction-panel"]';
+  const panels = Array.from(document.querySelectorAll(selector));
+  const owner = panels.find(ownsActiveElement);
+  const owned = Boolean(owner);
+  if (captureKey) {
+    correctionFocusCapture?.stop();
+    const capture = { key: captureKey, owner, owned, removed: false };
+    const update = () => {
+      if (capture.owner && !capture.owner.isConnected) {
+        capture.removed = true;
+        capture.stop();
+        return;
+      }
+      capture.owner = panels.find(ownsActiveElement);
+      capture.owned = Boolean(capture.owner);
+    };
+    // Chromium can blur before disconnecting the node. Inspect after that synchronous
+    // DOM operation, preserving the particular owner's removal even if another panel survives.
+    const blur = () => queueMicrotask(update);
+    const observer = new MutationObserver(() => {
+      if ((capture.owner && !capture.owner.isConnected) || panels.every(panel => !panel.isConnected)) {
+        capture.removed = true;
+        capture.stop();
+      }
+    });
+    capture.stop = () => {
+      observer.disconnect();
+      document.removeEventListener('focusin', update, true);
+      document.removeEventListener('focusout', blur, true);
+      window.removeEventListener('pagehide', capture.stop);
+    };
+    observer.observe(document, { childList: true, subtree: true });
+    document.addEventListener('focusin', update, true);
+    document.addEventListener('focusout', blur, true);
+    window.addEventListener('pagehide', capture.stop, { once: true });
+    correctionFocusCapture = capture;
+  }
+  return owned;
+}
+
+export function consumeCorrectionFocusCapture(captureKey) {
+  const capture = correctionFocusCapture;
+  if (!capture || capture.key !== captureKey) return false;
+  capture.stop();
+  correctionFocusCapture = null;
+  return capture.removed && capture.owned;
+}
+
 export function focusCorrectionLauncher(auditReference, origin = null) {
   if (!auditReference) {
     return false;

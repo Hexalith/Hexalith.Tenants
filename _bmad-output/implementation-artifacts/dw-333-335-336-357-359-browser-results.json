@@ -1,0 +1,1015 @@
+{
+  "sourceBaseRevision": "c1c3ca672d481aaa52eff6e20b37ec9a77b24f12",
+  "sourceDiffSha256": "8bfad45ed0328b6055bc342115d92fb4aaa1b3bbb374048c216fb71d82efeabe",
+  "validatorSha256": "f951b888c7900f285c9536a8c097749ef20cc1454de4ae729a5c62df1b7253bd",
+  "localUiAssemblySha256": "5800f5d80e549f538fe3212c6f79f9e236df7ab468c146753ad371dedc6e7947",
+  "playwrightVersion": "1.64.0-alpha-1790635538000",
+  "startedUtc": "2026-10-23T17:34:01.475Z",
+  "records": [
+    "DW-333",
+    "DW-335",
+    "DW-336",
+    "DW-357",
+    "DW-359"
+  ],
+  "cases": [
+    {
+      "scenario": "retained-tab",
+      "active": "workspace-users",
+      "inactive": "tenants",
+      "visuallyHidden": true,
+      "accessibilityExcluded": true,
+      "nativeTabSteps": 30,
+      "nativeShiftTabSteps": 30
+    },
+    {
+      "scenario": "retained-tab",
+      "active": "tenants",
+      "inactive": "workspace-users",
+      "visuallyHidden": true,
+      "accessibilityExcluded": true,
+      "nativeTabSteps": 30,
+      "nativeShiftTabSteps": 30
+    },
+    {
+      "scenario": "retained-tab",
+      "active": "workspace-users",
+      "inactive": "tenants",
+      "visuallyHidden": true,
+      "accessibilityExcluded": true,
+      "nativeTabSteps": 30,
+      "nativeShiftTabSteps": 30
+    },
+    {
+      "scenario": "retained-tab",
+      "active": "tenants",
+      "inactive": "workspace-users",
+      "visuallyHidden": true,
+      "accessibilityExcluded": true,
+      "nativeTabSteps": 30,
+      "nativeShiftTabSteps": 30
+    },
+    {
+      "scenario": "grant-modal",
+      "width": 1366,
+      "nativeTabSteps": 18,
+      "nativeShiftTabSteps": 18,
+      "disabledConfirmCycle": true,
+      "enabledConfirmCycle": true,
+      "inertBackground": true,
+      "escapeFromFluent": true,
+      "escapeFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "shadowRootPresent": true,
+        "shadowFocusableDescendants": 0
+      },
+      "launcherRestored": true,
+      "restoredFocus": {
+        "control": "launcher",
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "width": 1366,
+        "launcherDisabled": false,
+        "backgroundInert": false
+      },
+      "restorationDurationMs": 30
+    },
+    {
+      "scenario": "grant-modal",
+      "width": 768,
+      "nativeTabSteps": 18,
+      "nativeShiftTabSteps": 18,
+      "disabledConfirmCycle": true,
+      "enabledConfirmCycle": true,
+      "inertBackground": true,
+      "escapeFromFluent": true,
+      "escapeFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "shadowRootPresent": true,
+        "shadowFocusableDescendants": 0
+      },
+      "launcherRestored": true,
+      "restoredFocus": {
+        "control": "launcher",
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "width": 768,
+        "launcherDisabled": false,
+        "backgroundInert": false
+      },
+      "restorationDurationMs": 33
+    },
+    {
+      "scenario": "grant-modal",
+      "width": 1024,
+      "nativeTabSteps": 18,
+      "nativeShiftTabSteps": 18,
+      "disabledConfirmCycle": true,
+      "enabledConfirmCycle": true,
+      "inertBackground": true,
+      "escapeFromFluent": true,
+      "escapeFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "shadowRootPresent": true,
+        "shadowFocusableDescendants": 0
+      },
+      "launcherRestored": true,
+      "restoredFocus": {
+        "control": "launcher",
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "width": 1024,
+        "launcherDisabled": false,
+        "backgroundInert": false
+      },
+      "restorationDurationMs": 29
+    },
+    {
+      "scenario": "viewport-downgrade",
+      "width": 767,
+      "confirmationDisabled": true,
+      "cancelAvailable": true,
+      "initiationDisabled": true
+    },
+    {
+      "scenario": "phone-layout",
+      "width": 390,
+      "initiationHidden": true,
+      "lifecycleIdle": true
+    }
+  ],
+  "browserVersion": "154.0.8037.57",
+  "backgroundFocusPositiveControl": true,
+  "status": "passed",
+  "circuitErrorCount": 0,
+  "keyboardTrace": [
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 1,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 2,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 3,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 1,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 2,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 3,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 0,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 1,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 2,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 3,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 6,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 7,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 8,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 9,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 10,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Tab",
+      "step": 11,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 1,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 2,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 3,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 4,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 6,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 7,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 8,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 9,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 10,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1366",
+      "key": "Shift+Tab",
+      "step": 11,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 1,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 2,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 3,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 1,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 2,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 3,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 0,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 1,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 2,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 3,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 6,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 7,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 8,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 9,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 10,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Tab",
+      "step": 11,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 1,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 2,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 3,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 4,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 6,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 7,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 8,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 9,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 10,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-768",
+      "key": "Shift+Tab",
+      "step": 11,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 1,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 2,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 3,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 1,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 2,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 3,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 0,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 1,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 2,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 3,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 4,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 6,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 7,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 8,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 9,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 10,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Tab",
+      "step": 11,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 0,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 1,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 2,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 3,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 4,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 5,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 6,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 7,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 8,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 9,
+      "control": "cancel",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 10,
+      "control": "confirm",
+      "element": "fluent-button",
+      "shadowDepth": 0
+    },
+    {
+      "phase": "grant-dialog-1024",
+      "key": "Shift+Tab",
+      "step": 11,
+      "control": "acknowledge",
+      "element": "fluent-checkbox",
+      "shadowDepth": 0
+    }
+  ],
+  "finishedUtc": "2026-10-23T17:34:09.762Z"
+}

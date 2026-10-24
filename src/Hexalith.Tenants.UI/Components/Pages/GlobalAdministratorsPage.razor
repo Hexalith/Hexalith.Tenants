@@ -16,6 +16,8 @@
 @implements IAsyncDisposable
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    @* Native owner for isolated selectors crossing Fluent component roots; layout remains Fluent-owned. *@
+    <div class="global-admins-style-scope">
     @if (!IsAuthorized)
     {
         @* The restricted surface keeps the page area and the live region the authorized surface
@@ -244,16 +246,16 @@
                   data-testid="tenants-global-admin-grant-form"
                   OnSubmit="SubmitGrantAsync">
             <div class="global-admins__grant-field global-admins__mutation-initiation">
+                @* No MaxLength: the attribute renders the DOM `maxlength`, which truncates
+                   typed and pasted input in the browser. A pasted over-long id was silently
+                   shortened and dispatched as a platform-authority grant against a DIFFERENT
+                   identity, and it made the length half of the submit guard unreachable from
+                   the real UI. The bound is advertised by the help text and enforced at submit,
+                   where an over-long id gets an explicit localized rejection instead. *@
                 <FluentTextInput Id="tenants-global-admin-grant-user-id"
                                  @ref="_grantUserIdElement"
                                  name="global-administrator-user-id"
                                  Label="@Localizer["Tenants.GlobalAdministrators.Grant.UserId.Label"]"
-                                 @* No MaxLength: the attribute renders the DOM `maxlength`, which truncates
-                                    typed and pasted input in the browser. A pasted over-long id was silently
-                                    shortened and dispatched as a platform-authority grant against a DIFFERENT
-                                    identity, and it made the length half of the submit guard unreachable from
-                                    the real UI. The bound is advertised by the help text and enforced at submit,
-                                    where an over-long id gets an explicit localized rejection instead. *@
                                  Value="@_grantUserId"
                                  ValueChanged="OnGrantUserIdInput"
                                  Disabled="@(_grantSnapshot.State is TenantCommandLifecycleState.Previewed || IsGrantInFlight || Volatile.Read(ref _grantPreviewInFlight) != 0)"
@@ -688,6 +690,7 @@
         </section>
     }
     }
+    </div>
 </FcPageLayout>
 
 @code {
@@ -3918,6 +3921,10 @@
         }
 
         GlobalAdministratorGrantCommandSnapshot statusSnapshot = statusBasis.ApplyStatus(status);
+        if (IsPermanentCorrectionBaselineFailure(statusLease, status))
+        {
+            statusSnapshot = statusSnapshot.UnableToVerify("Tenants.Correction.Unavailable.CommandProofUnavailable");
+        }
         bool statusApplied = false;
         bool resumeAdopted = false;
         await InvokeAsync(() =>
@@ -4177,7 +4184,7 @@
             _ = _grantAdmissionLease?.TryAdvanceReconciliation(_fixedAggregateOwner, reconciliation);
         }
         RememberCorrectionCompletion(_grantAdmissionLease, snapshot.State, snapshot.HasCommandEventEvidence, confirmedProjection);
-        if (_grantAdmissionLease?.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State) == true)
+        if (_grantAdmissionLease?.TryReleaseTerminal(_fixedAggregateOwner, CorrectionLeaseOutcome(snapshot.State, snapshot.SafeMessageKey)) == true)
         {
             _grantAdmissionLease = null;
         }
@@ -4208,6 +4215,27 @@
             return false;
         }
 
+        TenantCommandLifecycleState leaseOutcome = CorrectionLeaseOutcome(snapshot.State, snapshot.SafeMessageKey);
+        if (leaseOutcome != snapshot.State)
+        {
+            if (!string.Equals(_grantSnapshot.MessageId, snapshot.MessageId, StringComparison.Ordinal)
+                || !string.Equals(_grantSnapshot.CorrelationId, snapshot.CorrelationId, StringComparison.Ordinal)
+                || !string.Equals(_grantSnapshot.Intent?.UserId, snapshot.Intent?.UserId, StringComparison.Ordinal)
+                || !Equals(_grantSnapshot.PreviewEvidence, snapshot.PreviewEvidence))
+            {
+                return false;
+            }
+
+            if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, leaseOutcome))
+            {
+                _grantAdmissionLease = null;
+                SetGrantSnapshot(snapshot);
+                StateHasChanged();
+            }
+
+            return false;
+        }
+
         if (CreateReconciliation(snapshot) is { } reconciliation
             && submissionLease.TryRetainReconciliation(_fixedAggregateOwner, reconciliation))
         {
@@ -4218,7 +4246,7 @@
         else
         {
             RememberCorrectionCompletion(submissionLease, snapshot.State, snapshot.HasCommandEventEvidence, confirmedProjection);
-            if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
+            if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, CorrectionLeaseOutcome(snapshot.State, snapshot.SafeMessageKey)))
             {
                 _grantAdmissionLease = null;
             }
@@ -4845,6 +4873,10 @@
         }
 
         GlobalAdministratorRemoveCommandSnapshot statusSnapshot = statusBasis.ApplyStatus(status);
+        if (IsPermanentCorrectionBaselineFailure(statusLease, status))
+        {
+            statusSnapshot = statusSnapshot.UnableToVerify("Tenants.Correction.Unavailable.CommandProofUnavailable");
+        }
         bool statusApplied = false;
         bool resumeAdopted = false;
         _ = await InvokeRendererSafelyAsync(() =>
@@ -5027,7 +5059,7 @@
             _ = _removeAdmissionLease?.TryAdvanceReconciliation(_fixedAggregateOwner, reconciliation);
         }
         RememberCorrectionCompletion(_removeAdmissionLease, snapshot.State, snapshot.HasCommandEventEvidence, confirmedProjection);
-        if (_removeAdmissionLease?.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State) == true)
+        if (_removeAdmissionLease?.TryReleaseTerminal(_fixedAggregateOwner, CorrectionLeaseOutcome(snapshot.State, snapshot.SafeMessageKey)) == true)
         {
             _removeAdmissionLease = null;
         }
@@ -5054,6 +5086,27 @@
             return false;
         }
 
+        TenantCommandLifecycleState leaseOutcome = CorrectionLeaseOutcome(snapshot.State, snapshot.SafeMessageKey);
+        if (leaseOutcome != snapshot.State)
+        {
+            if (!string.Equals(_removeSnapshot.MessageId, snapshot.MessageId, StringComparison.Ordinal)
+                || !string.Equals(_removeSnapshot.CorrelationId, snapshot.CorrelationId, StringComparison.Ordinal)
+                || !string.Equals(_removeSnapshot.Intent?.UserId, snapshot.Intent?.UserId, StringComparison.Ordinal)
+                || !Equals(_removeSnapshot.PreviewEvidence, snapshot.PreviewEvidence))
+            {
+                return false;
+            }
+
+            if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, leaseOutcome))
+            {
+                _removeAdmissionLease = null;
+                SetRemoveSnapshot(snapshot);
+                StateHasChanged();
+            }
+
+            return false;
+        }
+
         if (CreateReconciliation(snapshot) is { } reconciliation
             && submissionLease.TryRetainReconciliation(_fixedAggregateOwner, reconciliation))
         {
@@ -5069,7 +5122,7 @@
         else
         {
             RememberCorrectionCompletion(submissionLease, snapshot.State, snapshot.HasCommandEventEvidence, confirmedProjection);
-            if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, snapshot.State))
+            if (submissionLease.TryReleaseTerminal(_fixedAggregateOwner, CorrectionLeaseOutcome(snapshot.State, snapshot.SafeMessageKey)))
             {
                 _removeAdmissionLease = null;
             }
@@ -5339,13 +5392,39 @@
             RejectionCode: reconciliation.RejectionCode);
     }
 
-    private bool IsPermanentCorrectionBaselineFailure(TenantAggregateCommandLease? lease)
+    private static TenantCommandLifecycleState CorrectionLeaseOutcome(TenantCommandLifecycleState state, string? safeMessageKey)
+        => state is TenantCommandLifecycleState.UnableToVerify
+            && safeMessageKey is "Tenants.Correction.Unavailable.CommandProofUnavailable"
+                ? TenantCommandLifecycleState.Failed
+                : state;
+
+    private bool IsPermanentCorrectionBaselineFailure(
+        TenantAggregateCommandLease? lease,
+        TenantCommandStatusResult? status = null)
     {
         if (lease is null
             || !lease.TryReadReconciliation(_fixedAggregateOwner, out GlobalAdministratorReconciliationState? reconciliation)
             || reconciliation is null
-            || string.IsNullOrWhiteSpace(reconciliation.SourceAuditReference)
-            || reconciliation.CommittedEventSequence is not > 0)
+            || string.IsNullOrWhiteSpace(reconciliation.SourceAuditReference))
+        {
+            return false;
+        }
+
+        // Only verified terminal event evidence can permanently refuse proof. Intermediate
+        // event progress still owns admission while waiting for its completed sequence.
+        if (status is not null
+            && (status.Status is not Hexalith.EventStore.Contracts.Commands.CommandStatus.Completed
+                || !status.HasVerifiedCommandIdentity
+                || status.EventCount is not > 0))
+        {
+            return false;
+        }
+
+        // A compatible advisory may omit sequence proof already established for this same attempt.
+        long? sequence = status?.CommittedEventSequence is > 0
+            ? status.CommittedEventSequence
+            : reconciliation.CommittedEventSequence;
+        if (status is null && sequence is not > 0)
         {
             return false;
         }
@@ -5353,10 +5432,7 @@
         string? baseline = reconciliation.ActionKind is GlobalAdministratorActionKind.Grant
             ? reconciliation.GrantPreview?.ProjectionVersion
             : reconciliation.RemovePreview?.ProjectionVersion;
-        return !TenantLifecycleProjectionVersion.HasReached(
-            reconciliation.CommittedEventSequence,
-            baseline,
-            requireBeyond: true);
+        return !TenantLifecycleProjectionVersion.HasReached(sequence, baseline, requireBeyond: true);
     }
 
     private bool CanConfirmCorrectionProjection(

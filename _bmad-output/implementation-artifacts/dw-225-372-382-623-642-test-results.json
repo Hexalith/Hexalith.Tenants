@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "records": [
+    "DW-225",
+    "DW-372",
+    "DW-382",
+    "DW-623",
+    "DW-642"
+  ],
+  "sourceBaseRevision": "c157c394b8fca5f392b5f8a6a5ff1f51f4ac77a0",
+  "sourceAndTestDiffSha256": "370521aa777f3e51134e0a49e27c0276095d5bbe93baeff9e4d92cf1817f481a",
+  "configuration": "Debug/source (-p:UseNuGetDeps=false)",
+  "build": {
+    "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1 -v:q",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0,
+    "logSha256": "fed40b8537d0b86cc4c71d24f94bea19c0facfbfa8df162ef38154b7e5021188"
+  },
+  "focused": {
+    "command": "dotnet tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll -class '*GlobalAdministratorAuditProofLookupTests' -class '*GlobalAdministratorCorrectionSnapshotTests' -class '*GlobalAdministratorsPageTests' -class '*RemoveTenantMemberFlowTests' -class '*GlobalAdministratorCorrectionPanelTests' -class '*TenantQueryGatewayTests' -result-xml /tmp/tenants-proof-final-focused.xml",
+    "exitCode": 0,
+    "summary": {
+      "total": "1566",
+      "passed": "1566",
+      "failed": "0",
+      "errors": "0",
+      "skipped": "0",
+      "not-run": "0",
+      "time": "29.834"
+    },
+    "xmlSha256": "c104e7285dbb33c16161555858e8ba50e43d034c0a2b2323e0b1b00b05600a46",
+    "logSha256": "4e9403278026698c6e8b7b2bb8e71bf90bba01b06e8dd666d2512f9f720e2c67"
+  },
+  "fullUi": {
+    "command": "dotnet test tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build -p:UseNuGetDeps=false --minimum-expected-tests 7500 --fail-skips on",
+    "exitCode": 0,
+    "summary": {
+      "total": 7549,
+      "failed": 0,
+      "succeeded": 7549,
+      "skipped": 0,
+      "duration": "1m 55s 896ms"
+    },
+    "logSha256": "195578e2f6c0a8193f599fe9dfb4bcef4765e1c177bac4e390354bd36d8413fc"
+  },
+  "assemblySha256": {
+    "src/Hexalith.Tenants.UI/bin/Debug/net10.0/Hexalith.Tenants.UI.dll": "2a05f8f34db35d063a6575b3082aab6837d73c4bd414b9d25814d7657cf32aa3",
+    "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll": "5dac2d7d4ca033010db336a8f60113e05dffb184d07c9c3a70f852e5de471009"
+  },
+  "preReviewNegativeControls": {
+    "scope": "Development controls before review expansion; not a claim that final tests were built against the original helper signature. Final behavior is qualified by the full final suite.",
+    "results": [
+      {
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "-method",
+          "*Exact_causal_proof_survives_a_Bff_clock*",
+          "-method",
+          "*Verified_corrective_proof_links_independently*",
+          "-method",
+          "*Corrective_search_begins_at_original_producer_timestamp",
+          "-method",
+          "*Correction_origin_waits_for_committed_sequence_before_sibling_confirms",
+          "-result-xml",
+          "/tmp/tenants-proof-original-controls.xml"
+        ],
+        "exitCode": 1,
+        "logSha256": "4f44fde40a5aae67e3a06c85656526ebf7683122cc3dadd19473d4cf7db30b7a",
+        "summary": {
+          "total": "15",
+          "passed": "5",
+          "failed": "10",
+          "skipped": "0",
+          "errors": "0",
+          "not-run": "0",
+          "time": "6.854"
+        },
+        "xmlSha256": "d290fc4bb486799235434d4a34cc9441d6accb08216633a58f01e1f105c5f1af",
+        "expectation": "Ten actual original-code failures: two lookup clock offsets, one snapshot ahead-clock offset, original-timestamp query bound and six unusable-sequence grant/removal cases; the first driver overcounted expected failures as eleven and restored source before exiting."
+      },
+      {
+        "restoredBuild": {
+          "command": [
+            "dotnet",
+            "build",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+            "-c",
+            "Debug",
+            "-p:UseNuGetDeps=false",
+            "-m:1",
+            "-v:q"
+          ],
+          "exitCode": 0,
+          "logSha256": "31f0b4e4f936feda5b6fd567a14731962f830b6e991e72c9ab2c6735f5b59024"
+        }
+      },
+      {
+        "command": [
+          "dotnet",
+          "tests/Hexalith.Tenants.UI.Tests/bin/Debug/net10.0/Hexalith.Tenants.UI.Tests.dll",
+          "-method",
+          "*ExactRemovalProofAcceptsClockSkewWithOnlyOpaqueETagMetadataAndRedactsProvenance",
+          "-result-xml",
+          "/tmp/tenants-proof-removal-control.xml"
+        ],
+        "exitCode": 1,
+        "logSha256": "a40bdb28a28b5815f927c1807373e5633c4b6621f0e67818b78b62b81f44147c",
+        "summary": {
+          "total": "2",
+          "passed": "0",
+          "failed": "2",
+          "skipped": "0",
+          "errors": "0",
+          "not-run": "0",
+          "time": "2.881"
+        },
+        "xmlSha256": "e93260876f41df5b94375f619dde2888823d0d4b85743c046c5dbfa3fefcf6ef"
+      },
+      {
+        "finalRestoredBuild": {
+          "command": [
+            "dotnet",
+            "build",
+            "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+            "-c",
+            "Debug",
+            "-p:UseNuGetDeps=false",
+            "-m:1",
+            "-v:q"
+          ],
+          "exitCode": 0,
+          "logSha256": "e78ad0f26cb941943e4712cafcb1e3962518688ac34d56504987016c4e57585f"
+        }
+      }
+    ]
+  },
+  "retainedNonAcceptance": [
+    {
+      "scope": "First full candidate; stale gateway test expected submission-time filtering",
+      "summary": {
+        "total": 7525,
+        "failed": 1,
+        "succeeded": 7524,
+        "skipped": 0,
+        "duration": "2m 04s 326ms"
+      },
+      "failedTest": "TenantQueryGatewayTests.Global_correction_proof_uses_protected_raw_audit_provenance_while_public_rows_are_redacted",
+      "logSha256": "13d9aee2398759ce205d645f6208e25e6304bc367aee0c5ca989aeec34b8c5c5"
+    },
+    {
+      "scope": "Reviewed candidate before final presentation fix; unchanged membership test cancellation/disposal timing race",
+      "summary": {
+        "total": 7549,
+        "failed": 1,
+        "succeeded": 7548,
+        "skipped": 0,
+        "duration": "2m 09s 106ms"
+      },
+      "failedTest": "TenantDetailSurfaceTests.EarlyMembershipNudgeDiscardsObsoleteAuthorization(kind: change, transition: route)",
+      "failure": "NullReferenceException in CancellationTokenSource.WaitHandle during WaitForEarlyMembershipTokenDisposalAsync",
+      "logSha256": "4488149cdbf49728adf056bfe5ce99c84cdf8c081b9a7d138bb9479fbb994f92"
+    },
+    {
+      "scope": "Initial overbroad intermediate-event handling; corrected before acceptance",
+      "summary": {
+        "total": "818",
+        "passed": "808",
+        "failed": "10",
+        "errors": "0",
+        "skipped": "0",
+        "not-run": "0",
+        "time": "30.768"
+      },
+      "xmlSha256": "663860ec16b6216b5e258fa93d1391141c327a5cbc97b8ba808214e84b3ee4af"
+    }
+  ],
+  "formatting": {
+    "command": "dotnet format whitespace tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj --no-restore --verify-no-changes --include tests/Hexalith.Tenants.UI.Tests/Components/GlobalAdministratorsPageTests.cs tests/Hexalith.Tenants.UI.Tests/Components/RemoveTenantMemberFlowTests.cs tests/Hexalith.Tenants.UI.Tests/Services/Gateways/GlobalAdministratorAuditProofLookupTests.cs tests/Hexalith.Tenants.UI.Tests/State/GlobalAdministratorCorrectionSnapshotTests.cs tests/Hexalith.Tenants.UI.Tests/Services/Gateways/TenantQueryGatewayTests.cs --verbosity quiet",
+    "exitCode": 2,
+    "existingWhitespaceDiagnostics": 100,
+    "diagnosticsOnChangedLines": 0,
+    "logSha256": "9cd422fec29cd62efde19fda0352f4e7c1ed149d126a71495bd9db2bfc14d4cb",
+    "qualification": "Baseline whitespace diagnostics remain on unchanged lines; modified C# files use CRLF. No unrelated formatting sweep."
+  },
+  "commitlint": {
+    "command": "node_modules/.bin/commitlint --edit /tmp/tenants-proof-commit-message.txt --verbose",
+    "pinnedVersion": "21.2.3",
+    "installedVersion": "21.2.3",
+    "exitCode": 0,
+    "candidate": "fix(ui): resolve five deferred proof and validation records\n",
+    "output": "\u29d7   --- input ---\nfix(ui): resolve five deferred proof and validation records\n\u2714   found 0 problems, 0 warnings\n"
+  },
+  "review": {
+    "initialFindings": 8,
+    "recheckFindings": 1,
+    "patched": 9,
+    "deferred": 0,
+    "finalRecheck": "No remaining concrete defect found."
+  },
+  "ledger": {
+    "total": 657,
+    "changedRecords": 5,
+    "done": 585,
+    "open": 72,
+    "maintenanceRows": 67,
+    "exactCoverage": true
+  },
+  "gitlinkGuard": {
+    "command": "python3 scripts/validate-story-gitlinks.py _bmad-output/implementation-artifacts/spec-dw-225-372-382-623-642-proof-and-validation.md",
+    "exitCode": 0,
+    "output": "Story:    spec-dw-225-372-382-623-642-proof-and-validation.md\nBaseline: c157c39\nCompared: HEAD (c157c39) + working tree\n\nNo references/ pointer changes in range.\n\nRESULT: PASS\n"
+  },
+  "limitations": [
+    "One earlier full-run cancellation/disposal timing failure in an unchanged membership test is retained; final full suite passes.",
+    "Full CI/package-consumer, Aspire runtime and release acceptance are separate; no application state, dependency or deployment changes."
+  ]
+}

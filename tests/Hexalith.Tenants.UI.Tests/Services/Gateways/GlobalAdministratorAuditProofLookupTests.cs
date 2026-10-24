@@ -20,7 +20,7 @@ public sealed class GlobalAdministratorAuditProofLookupTests
     [InlineData("tracking-safe", 3L, 5, false)]
     [InlineData("tracking-safe", 2L, 0, false)]
     [InlineData("tracking-safe", 2L, 1, true)]
-    public async Task Requires_exact_provenance_and_post_submit_time_before_returning_redacted_row(
+    public async Task Requires_exact_provenance_and_producer_event_order_before_returning_redacted_row(
         string correlationId,
         long sequence,
         int minutesAfterOriginal,
@@ -40,6 +40,97 @@ public sealed class GlobalAdministratorAuditProofLookupTests
             proof.Row.CommandCorrelationId.ShouldBeNull();
             proof.Row.AggregateSequence.ShouldBeNull();
         }
+    }
+
+    [Theory]
+    [InlineData(-120, false)]
+    [InlineData(120, false)]
+    [InlineData(-120, true)]
+    [InlineData(120, true)]
+    public async Task Exact_causal_proof_survives_a_Bff_clock_ahead_of_or_behind_the_event_producer(int bffOffsetMinutes, bool revoke)
+    {
+        DateTimeOffset eventTime = Original.AddSeconds(30);
+        DateTimeOffset bffTime = eventTime.AddMinutes(bffOffsetMinutes);
+        (GlobalAdministratorAuditProof? proof, bool complete) = await GlobalAdministratorAuditProofLookup.FindAsync(
+            (request, _) =>
+            {
+                request.From.ShouldBe(Original);
+                return Task.FromResult(Snapshot(request, [Row("tracking-safe", 2, eventTime, revoke)]));
+            },
+            "tracking-safe", 2, "admin-user", revoke ? "GlobalAdministratorRemoved" : "GlobalAdministratorSet", Original, bffTime,
+            CancellationToken.None);
+
+        complete.ShouldBeTrue();
+        proof.ShouldNotBeNull().Row.Timestamp.ShouldBe(eventTime);
+        proof.Row.CommandCorrelationId.ShouldBeNull();
+        proof.Row.AggregateSequence.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Old_receipt_proof_can_complete_more_than_fifty_pages()
+    {
+        int pages = 0;
+        (GlobalAdministratorAuditProof? proof, bool complete) = await GlobalAdministratorAuditProofLookup.FindAsync(
+            (request, _) =>
+            {
+                pages++;
+                request.PageSize.ShouldBe(50);
+                TenantAuditRow[] rows = Enumerable.Range(0, 50).Select(index =>
+                    Row($"other-command-{pages}-{index}", (pages - 1) * 50 + index + 2,
+                        Submitted.AddMinutes(2).AddTicks((pages - 1) * 50 + index)) with
+                    {
+                        EventReference = $"event-{pages}-{index}",
+                    }).ToArray();
+                if (pages == 1)
+                {
+                    rows[0] = Row("tracking-safe", 2, Submitted.AddMinutes(1));
+                }
+
+                TenantAuditSnapshot page = Snapshot(request, rows);
+                return Task.FromResult(page with
+                {
+                    ProjectionVersion = "tenant-sequence:3001",
+                    HasMore = pages < 60,
+                    NextCursor = pages < 60 ? $"cursor-{pages}" : null,
+                });
+            },
+            "tracking-safe", 2, "admin-user", "GlobalAdministratorSet", Original, Submitted, CancellationToken.None);
+
+        pages.ShouldBe(60);
+        complete.ShouldBeTrue();
+        proof.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Lookup_deadline_bounds_a_stalled_read_even_when_the_reader_ignores_cancellation()
+    {
+        var clock = new ManualTimeProvider();
+        var stalled = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        CancellationToken readToken = default;
+        Task<(GlobalAdministratorAuditProof? Proof, bool Complete)> lookup = GlobalAdministratorAuditProofLookup.FindAsync(
+            (_, token) => { readToken = token; return stalled.Task; },
+            "tracking-safe", 2, "admin-user", "GlobalAdministratorSet", Original, Submitted, CancellationToken.None, clock);
+
+        clock.Advance(TimeSpan.FromSeconds(10));
+        (GlobalAdministratorAuditProof? proof, bool complete) = await lookup.WaitAsync(TimeSpan.FromSeconds(5));
+        proof.ShouldBeNull();
+        complete.ShouldBeFalse();
+        readToken.IsCancellationRequested.ShouldBeTrue();
+        clock.PendingTimerCount.ShouldBe(0);
+        stalled.SetResult(Snapshot(new TenantAuditRequest("system"), []));
+    }
+
+    [Fact]
+    public async Task Caller_cancellation_remains_observable_instead_of_becoming_incomplete_proof()
+    {
+        using var source = new CancellationTokenSource();
+        var stalled = new TaskCompletionSource<TenantAuditSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task<(GlobalAdministratorAuditProof? Proof, bool Complete)> lookup = GlobalAdministratorAuditProofLookup.FindAsync(
+            (_, _) => stalled.Task,
+            "tracking-safe", 2, "admin-user", "GlobalAdministratorSet", Original, Submitted, source.Token);
+        source.Cancel();
+        await Should.ThrowAsync<OperationCanceledException>(async () => await lookup);
+        stalled.SetResult(Snapshot(new TenantAuditRequest("system"), []));
     }
 
     [Fact]
@@ -108,7 +199,7 @@ public sealed class GlobalAdministratorAuditProofLookupTests
     }
 
     [Fact]
-    public async Task Corrective_search_begins_at_submission_boundary()
+    public async Task Corrective_search_begins_at_original_producer_timestamp()
     {
         DateTimeOffset? requestedFrom = null;
         _ = await GlobalAdministratorAuditProofLookup.FindAsync(
@@ -120,7 +211,7 @@ public sealed class GlobalAdministratorAuditProofLookupTests
             "tracking-safe", 2, "admin-user", "GlobalAdministratorSet", Original, Submitted,
             CancellationToken.None);
 
-        requestedFrom.ShouldBe(Submitted);
+        requestedFrom.ShouldBe(Original);
     }
 
     [Fact]
@@ -234,9 +325,9 @@ public sealed class GlobalAdministratorAuditProofLookupTests
             ProjectionVersion = "tenant-sequence:2",
         };
 
-    private static TenantAuditRow Row(string correlationId, long sequence, DateTimeOffset timestamp)
-        => new("event-corrective", "GlobalAdministratorSet", AuditEventCategory.Access,
-            "actor-user", timestamp, "system", "admin-user", "system", "GlobalAdministratorSet",
+    private static TenantAuditRow Row(string correlationId, long sequence, DateTimeOffset timestamp, bool revoke = false)
+        => new("event-corrective", revoke ? "GlobalAdministratorRemoved" : "GlobalAdministratorSet", AuditEventCategory.Access,
+            "actor-user", timestamp, "system", "admin-user", "system", revoke ? "GlobalAdministratorRemoved" : "GlobalAdministratorSet",
             "userId: admin-user", ReadModelFreshnessState.Current, ProjectionLifecycleState.Current,
             QueryResponseProvenance.ProjectionBacked, new TenantAuditNarrative(UserId: "admin-user"))
         {
