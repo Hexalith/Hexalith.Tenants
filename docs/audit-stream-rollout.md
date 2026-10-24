@@ -34,7 +34,7 @@ The current EventStore query failure taxonomy maps this domain refusal to saniti
 1. Inventory every replica, projection subscriber and operator replay route. Stop old projection writers and pause replay while deploying B6 readers and writers together. Drain in-flight old writes before allowing B6 projections. Mixed old/new writers can still damage `audit:system`; the compatibility reader cannot make that deployment safe.
 2. Retain a verified backup of the durable histories and existing read-model records, including raw `audit:system` contents and metadata. Record each source identity and high-water mark. Keep legacy evidence immutable throughout the transition. Do not rename tenants or reserve `system`.
 3. Inspect legacy ownership against the exact event-type allowlists in source. If evidence is ambiguous or conflicting, keep affected audit/correction reads unavailable. An operator must establish ownership from the authoritative histories under a separately approved reconciliation plan. No automatic inference or migration is provided here.
-4. Establish serialization for each supported replay path, including replicas and operator-triggered requests. DW-627 remains open: this change does not prove distributed serialization of the singleton authority model. Prevent overlapping or stale singleton rebuilds operationally before any replay.
+4. Inventory each supported replay path, including replicas and operator-triggered requests. The singleton authority now uses the shared optimistic-concurrency reload/selection policy: a persisted newer or equal ordered version wins over an older, equal or unversioned replay, including a competing commit. Populated unversioned or invalid-version legacy authority is refused before audit/authority writes pending a coordinated rebuild; a merely contiguous prefix cannot establish its freshness. Deploy guarded writers together and retain writer fencing for schema changes and old-writer retirement. This guard does not establish production provider guarantees or revocation freshness.
 5. Confirm complete authoritative histories for both `system:tenants:system` and the global singleton, independently. A singleton replay alone cannot rebuild tenant evidence lost under the old shared key. Include stable event identifiers, actors and aggregate-local sequences; never substitute wall time or cross-aggregate ordering.
 
 ## Replay and verification
@@ -46,3 +46,11 @@ Verify persisted end-state after each owner replay: its dedicated audit record m
 For global correction, additionally require a complete authorized `/api/global-administrators` read and explicit global audit read with ordered `tenant-sequence:<number>` provenance covering the relevant committed sequence. Missing metadata, ambiguous ownership or incomplete evidence keeps correction unavailable. A successful command or projection response alone is insufficient.
 
 Keep old backups and legacy records until a separately approved retention/reconciliation decision. Rolling back to old writers reintroduces the collision, so pause writers/replay before rollback. Candidate audit performance, production provider/authority guarantees, distributed replay serialization and broader release qualification remain separate gates.
+
+## Historical tenant schema changes
+
+Use the [coordinated tenant projection schema rebuild procedure](tenant-projection-schema-rebuild.md)
+when historical projection logic or index watermarks change. It inventories tenant
+details, ordinary and dedicated audits, immutable legacy evidence and the shared index;
+requires complete authoritative histories, writer fencing, isolated validation, coordinated
+selection and rollback; and provides no automatic production migration.

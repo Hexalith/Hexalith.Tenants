@@ -52,19 +52,19 @@ public sealed class TenantReadAuthorityQueryHandler([FromKeyedServices("native-t
                 || !NativeSourceProofCodec.IsValid(proof, identity, source.Head, 1)
                 || source.Head <= 0 || source.ObservedAt > clock.GetUtcNow()
                 || !TenantOwnerAuthorityQueryHandler.TryFold(source, query.TenantId, out var state))
-                return QueryResult.Failure(QueryAdapterFailureReason.QueryExecutionFailure);
+                return QueryResult.Failure(QueryAdapterFailureReason.ActorException);
             bool allowed = state!.Status == TenantStatus.Active && state.HasMembershipHistory
                 && state.Users.TryGetValue(query.UserId, out TenantRole role)
                 && role is TenantRole.TenantReader or TenantRole.TenantContributor or TenantRole.TenantOwner;
             var final = await metadata.ReadAsync(identity, cancellationToken).ConfigureAwait(false);
             if (final is null || final.Proof != proof || final.ObservedAt > clock.GetUtcNow())
-                return QueryResult.Failure(QueryAdapterFailureReason.QueryExecutionFailure);
+                return QueryResult.Failure(QueryAdapterFailureReason.ActorException);
             cancellationToken.ThrowIfCancellationRequested();
             return QueryResult.FromPayload(JsonSerializer.SerializeToElement(new TenantReadAuthorityResult(
                 query.TenantId, query.UserId, allowed, proof, final.ObservedAt), JsonSerializerOptions.Web), QueryType);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
-        catch { return QueryResult.Failure(QueryAdapterFailureReason.QueryExecutionFailure); }
+        catch { return QueryResult.Failure(QueryAdapterFailureReason.ActorException); }
     }
 
     private static bool Canonical(string? value) => !string.IsNullOrWhiteSpace(value) && value == value.Trim();

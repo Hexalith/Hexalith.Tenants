@@ -61,9 +61,9 @@ internal sealed class ProjectionWriteConformanceFixture
         StateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
     }
 
-    public void EnqueueSuccessfulIndexSave()
+    public void EnqueueSuccessfulIndexSave(bool existingOwner = false)
     {
-        StateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexProjectionKey, null, null);
+        StateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexProjectionKey, existingOwner ? SeedInitializedOwnerIndex() : null, null);
         StateStore.EnqueueTrySave(TenantIndexProjectionKey, true);
     }
 
@@ -98,6 +98,14 @@ internal sealed class ProjectionWriteConformanceFixture
         var model = new TenantReadModel();
         model.Apply(new TenantCreated(tenantId, name, null, System.DateTimeOffset.UnixEpoch));
         return model;
+    }
+
+    /// <summary>Seeds an independently established index owner for suffix-only audit tests.</summary>
+    public static TenantIndexReadModel SeedInitializedOwnerIndex()
+    {
+        TenantIndexReadModel index = SeedIndexWith((TenantId, "Existing Tenant"));
+        index.AggregateSequences[TenantId] = 1;
+        return index;
     }
 
     public static TenantIndexReadModel SeedIndexWith(params (string TenantId, string Name)[] tenants)
@@ -176,6 +184,10 @@ internal sealed class ScriptedTenantProjectionStateStore : IReadModelStore
             _reads[key] = queue;
         }
 
+        if (key == "projection:tenant-index:singleton" && queue.Count == 0)
+        {
+            queue.Enqueue(new ReadModelEntry<TValue>(value, etag));
+        }
         queue.Enqueue(new ReadModelEntry<TValue>(value, etag));
     }
 

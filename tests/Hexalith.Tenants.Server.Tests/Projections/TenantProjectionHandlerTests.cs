@@ -141,7 +141,7 @@ public class TenantProjectionHandlerTests {
         stateStore.EnqueueRead(TenantProjectionKey, existing, "tenant-etag-1");
         stateStore.EnqueueTrySave(TenantProjectionKey, true);
         EnqueueSuccessfulAuditSave(stateStore);
-        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), null);
         stateStore.EnqueueTrySave(TenantIndexKey, true);
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         ProjectionRequest request = new(
@@ -219,7 +219,7 @@ public class TenantProjectionHandlerTests {
         stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
         stateStore.EnqueueTrySave(TenantProjectionKey, true);
         EnqueueSuccessfulAuditSave(stateStore);
-        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), null);
         stateStore.EnqueueTrySave(TenantIndexKey, true);
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         ProjectionRequest request = new(
@@ -313,7 +313,7 @@ public class TenantProjectionHandlerTests {
             "tenant-etag-1");
         stateStore.EnqueueTrySave(TenantProjectionKey, true);
         EnqueueSuccessfulAuditSave(stateStore);
-        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(11), null);
         stateStore.EnqueueTrySave(TenantIndexKey, true);
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         ProjectionRequest request = new(
@@ -352,7 +352,7 @@ public class TenantProjectionHandlerTests {
             "tenant-etag-1");
         stateStore.EnqueueTrySave(TenantProjectionKey, true);
         EnqueueSuccessfulAuditSave(stateStore);
-        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), null);
         stateStore.EnqueueTrySave(TenantIndexKey, true);
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         ProjectionRequest request = new(
@@ -513,6 +513,7 @@ public class TenantProjectionHandlerTests {
     [Fact]
     public async Task ProjectAsync_RetryExhaustionThrowsAfterMaxAttemptsAsync() {
         var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), "preflight-etag");
         stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, "tenant-etag-1");
         stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, "tenant-etag-2");
         stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, "tenant-etag-3");
@@ -594,7 +595,7 @@ public class TenantProjectionHandlerTests {
             "audit-etag-2");
         stateStore.EnqueueTrySave(TenantAuditProjectionKey, false);
         stateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
-        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), null);
         stateStore.EnqueueTrySave(TenantIndexKey, true);
         ProjectionRequest request = CreateAccessChangeRequest();
 
@@ -619,6 +620,7 @@ public class TenantProjectionHandlerTests {
     [Fact]
     public async Task ProjectAsync_AuditRetryExhaustionThrowsWithoutSuccessfulProjectionAsync() {
         var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), "preflight-etag");
         stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
         stateStore.EnqueueTrySave(TenantProjectionKey, true);
         stateStore.EnqueueRead<TenantAuditReadModel>(TenantAuditProjectionKey, null, "audit-etag-1");
@@ -637,7 +639,7 @@ public class TenantProjectionHandlerTests {
         stateStore.TrySaveAttempts.Count(a => a.Key == TenantAuditProjectionKey).ShouldBe(3);
         stateStore.TrySaveAttempts
             .ShouldAllBe(a => a.Key == TenantProjectionKey || a.Key == TenantAuditProjectionKey);
-        stateStore.ReadCalls.ShouldNotContain(c => c.Key == TenantIndexKey);
+        stateStore.ReadCalls.Count(c => c.Key == TenantIndexKey).ShouldBe(1);
     }
 
     [Fact]
@@ -651,7 +653,7 @@ public class TenantProjectionHandlerTests {
             "audit-etag-2");
         stateStore.EnqueueTrySave(TenantAuditProjectionKey, false);
         stateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
-        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), null);
         stateStore.EnqueueTrySave(TenantIndexKey, true);
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         ProjectionRequest request = new(
@@ -715,7 +717,7 @@ public class TenantProjectionHandlerTests {
             new Dictionary<string, string>(StringComparer.Ordinal) { ["source"] = "persisted" });
         stateStore.EnqueueRead(TenantAuditProjectionKey, CreateAuditModel(persisted), "audit-etag-1");
         stateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
-        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), null);
         stateStore.EnqueueTrySave(TenantIndexKey, true);
         ProjectionRequest request = new(
             "tenant-1",
@@ -745,9 +747,9 @@ public class TenantProjectionHandlerTests {
         firstStateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
         firstStateStore.EnqueueTrySave(TenantProjectionKey, true);
         EnqueueSuccessfulAuditSave(firstStateStore);
-        firstStateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, "index-etag-1");
-        firstStateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, "index-etag-2");
-        firstStateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, "index-etag-3");
+        firstStateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), "index-etag-1");
+        firstStateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), "index-etag-2");
+        firstStateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), "index-etag-3");
         firstStateStore.EnqueueTrySave(TenantIndexKey, false);
         firstStateStore.EnqueueTrySave(TenantIndexKey, false);
         firstStateStore.EnqueueTrySave(TenantIndexKey, false);
@@ -760,7 +762,7 @@ public class TenantProjectionHandlerTests {
         replayStateStore.EnqueueTrySave(TenantProjectionKey, true);
         replayStateStore.EnqueueRead(TenantAuditProjectionKey, persistedAudit, "audit-etag-replay");
         replayStateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
-        replayStateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, null, null);
+        replayStateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), null);
         replayStateStore.EnqueueTrySave(TenantIndexKey, true);
 
         _ = await CreateHandler(replayStateStore).ProjectAsync(request);
@@ -804,6 +806,7 @@ public class TenantProjectionHandlerTests {
     [Fact]
     public async Task ProjectAsync_CancellationAfterTenantSaveStopsBeforeLaterProjectionWritesAsync() {
         var stateStore = new ScriptedTenantProjectionStateStore();
+        stateStore.EnqueueRead<TenantIndexReadModel>(TenantIndexKey, CreateInitializedIndex(1), "preflight-etag");
         stateStore.EnqueueRead<TenantReadModel>(TenantProjectionKey, null, null);
         stateStore.EnqueueTrySave(TenantProjectionKey, true);
         using var cancellation = new CancellationTokenSource();
@@ -814,7 +817,7 @@ public class TenantProjectionHandlerTests {
                 CreateTenantCreatedRequest("tenant-1", "Acme", "evt-1"),
                 cancellation.Token));
 
-        stateStore.ReadCalls.Single().Key.ShouldBe(TenantProjectionKey);
+        stateStore.ReadCalls.Select(call => call.Key).ShouldBe([TenantIndexKey, TenantProjectionKey]);
         stateStore.TrySaveAttempts.Single().Key.ShouldBe(TenantProjectionKey);
         stateStore.TrySaveAttempts.ShouldNotContain(a => a.Key == TenantAuditProjectionKey);
         stateStore.TrySaveAttempts.ShouldNotContain(a => a.Key == TenantIndexKey);
@@ -826,6 +829,15 @@ public class TenantProjectionHandlerTests {
     private static void EnqueueSuccessfulAuditSave(ScriptedTenantProjectionStateStore stateStore) {
         stateStore.EnqueueRead<TenantAuditReadModel>(TenantAuditProjectionKey, null, null);
         stateStore.EnqueueTrySave(TenantAuditProjectionKey, true);
+    }
+
+    // Suffix-only detail/audit tests explicitly start from an independently projected index.
+    // The legacy-index refusal and complete-history initialization are covered with the real store.
+    private static TenantIndexReadModel CreateInitializedIndex(long sequence)
+    {
+        TenantIndexReadModel model = CreateIndex("tenant-1", "Persisted Name");
+        model.AggregateSequences["tenant-1"] = sequence;
+        return model;
     }
 
     private static TenantIndexReadModel CreateIndex(string tenantId, string name) {
@@ -911,6 +923,10 @@ public class TenantProjectionHandlerTests {
                 _reads[key] = queue;
             }
 
+            if (key == "projection:tenant-index:singleton" && queue.Count == 0)
+            {
+                queue.Enqueue(new ReadModelEntry<TValue>(value, etag));
+            }
             queue.Enqueue(new ReadModelEntry<TValue>(value, etag));
         }
 

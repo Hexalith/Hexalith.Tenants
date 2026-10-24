@@ -61,6 +61,171 @@ public class CommandApiRuntimeIntegrationTests {
     private const string DomainRejectionProblemTypeBase = "https://hexalith.io/problems/domain-rejections";
     private static readonly JsonSerializerOptions ProblemDetailsJsonOptions = new(JsonSerializerDefaults.Web);
 
+    /// <summary>Rejects every legacy-incompatible evolution family through the authenticated production route.</summary>
+    [Theory]
+    [InlineData("effective-events")]
+    [InlineData("evolution-proof")]
+    [InlineData("metadata-zero")]
+    [InlineData("metadata-version")]
+    [InlineData("stored-contract")]
+    [InlineData("stored-version-zero")]
+    [InlineData("stored-version-high")]
+    [InlineData("stored-format")]
+    [InlineData("stored-type")]
+    [InlineData("stored-digest")]
+    [InlineData("registry")]
+    [InlineData("adapted")]
+    [InlineData("effective-contract")]
+    [InlineData("effective-version")]
+    [InlineData("effective-format")]
+    [InlineData("effective-payload")]
+    public async Task ProjectContractRejectsEvolutionHintsBeforeAnyStoreAccess(string family)
+    {
+        IReadModelStore store = Substitute.For<IReadModelStore>();
+        await using var factory = new CommandApiWebApplicationFactory(projectionStore: store);
+        using HttpClient client = factory.CreateClient();
+        // Ignore host startup traffic: admission must make no business-store calls during intake.
+        store.ClearReceivedCalls();
+        foreach (string domain in new[] { "tenants", "global-administrators" })
+        {
+            object payload = domain == "tenants"
+                ? new TenantCreated("tenant-intake", "Intake", null, DateTimeOffset.UnixEpoch)
+                : new GlobalAdministratorSet("system", "admin-intake");
+            var item = new ProjectionEventDto(payload.GetType().FullName!, JsonSerializer.SerializeToUtf8Bytes(payload),
+                "json", 1, DateTimeOffset.UnixEpoch, "intake", "intake-event", "actor");
+            item = family switch
+            {
+                "metadata-zero" => item with { MetadataVersion = 0 },
+                "metadata-version" => item with { MetadataVersion = 2 },
+                "stored-contract" => item with { StoredEventContractType = "tenant-created" },
+                "stored-version-zero" => item with { StoredPayloadVersion = 0 },
+                "stored-version-high" => item with { StoredPayloadVersion = 1025 },
+                "stored-format" => item with { StoredSerializationFormat = "json" },
+                "stored-type" => item with { StoredEventTypeName = item.EventTypeName },
+                "stored-digest" => item with { StoredDigest = [] },
+                "registry" => item with { RegistryFingerprint = "registry" },
+                "adapted" => item with { IsAdapted = false },
+                "effective-contract" => item with { EffectiveEventContractType = "tenant-created" },
+                "effective-version" => item with { EffectivePayloadVersion = 1 },
+                "effective-format" => item with { EffectiveSerializationFormat = "json" },
+                "effective-payload" => item with { EffectivePayload = [] },
+                _ => item,
+            };
+            var request = new ProjectionRequest("system", domain,
+                domain == "tenants" ? "tenant-intake" : "global-administrators", [item]);
+            request = family switch
+            {
+                "effective-events" => request with { VerifiedEffectiveEvents = [] },
+                "evolution-proof" => request with { EventEvolutionProof = [] },
+                _ => request,
+            };
+
+            using HttpResponseMessage response = await client.PostAsJsonAsync("/project", request);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+            store.ReceivedCalls().ShouldBeEmpty();
+            factory.ReadModelStore.Count.ShouldBe(1);
+        }
+    }
+
+    /// <summary>Preserves ordinary legacy metadata and persists all tenant projection keys.</summary>
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(1, 1)]
+    [InlineData(1, 1024)]
+    public async Task ProjectContractAcceptsLegacyMetadataAndPersistsState(int? metadataVersion, int? payloadVersion)
+    {
+        await using var factory = new CommandApiWebApplicationFactory();
+        using HttpClient client = factory.CreateClient();
+        const string tenantId = "tenant-legacy-intake";
+        var payload = new TenantCreated(tenantId, "Legacy", null, DateTimeOffset.UnixEpoch);
+        var item = new ProjectionEventDto(typeof(TenantCreated).FullName!, JsonSerializer.SerializeToUtf8Bytes(payload),
+            "json", 1, DateTimeOffset.UnixEpoch, "legacy", "legacy-event", "actor")
+            { MetadataVersion = metadataVersion, StoredPayloadVersion = payloadVersion };
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/project", new ProjectionRequest("system", "tenants", tenantId, [item]));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await factory.ReadModelStore.GetAsync<TenantReadModel>("statestore", "projection:tenants:" + tenantId))
+            .Value.ShouldNotBeNull().Name.ShouldBe("Legacy");
+        TenantIndexReadModel index = (await factory.ReadModelStore.GetAsync<TenantIndexReadModel>("statestore", "projection:tenant-index:singleton"))
+            .Value.ShouldNotBeNull();
+        index.Tenants[tenantId].Name.ShouldBe("Legacy");
+        index.AggregateSequences[tenantId].ShouldBe(1);
+        (await factory.ReadModelStore.GetAsync<TenantAuditReadModel>("statestore", TenantAuditStreams.GetTenantKey(tenantId)))
+            .Value.ShouldNotBeNull().Entries.Single().EventId.ShouldBe("legacy-event");
+    }
+
+    /// <summary>Persists canonical global authority and audit through the protected legacy intake.</summary>
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData(1, 1)]
+    [InlineData(1, 1024)]
+    public async Task ProjectContractAcceptsGlobalLegacyMetadataAndReturnsPersistedAuthority(int? metadataVersion, int? payloadVersion)
+    {
+        var store = new InMemoryReadModelStore();
+        await using var factory = new CommandApiWebApplicationFactory(projectionStore: store);
+        using HttpClient client = factory.CreateClient();
+        ProjectionEventDto[] events = [.. new[] { "admin-first", "admin-second" }.Select((userId, index) =>
+            new ProjectionEventDto(typeof(GlobalAdministratorSet).FullName!,
+                JsonSerializer.SerializeToUtf8Bytes(new GlobalAdministratorSet("system", userId)),
+                "json", index + 1, DateTimeOffset.UnixEpoch, "global-legacy", "global-legacy-" + index, "actor")
+            { MetadataVersion = metadataVersion, StoredPayloadVersion = payloadVersion })];
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/project",
+            new ProjectionRequest("system", "global-administrators", "global-administrators", events));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ProjectionResponse wire = (await response.Content.ReadFromJsonAsync<ProjectionResponse>()).ShouldNotBeNull();
+        GlobalAdministratorReadModel authority = (await store.GetAsync<GlobalAdministratorReadModel>("statestore",
+            "projection:global-administrators:singleton")).Value.ShouldNotBeNull();
+        authority.Administrators.ShouldBe(["admin-first", "admin-second"], ignoreOrder: true);
+        authority.ProjectionVersion.ShouldBe("tenant-sequence:2");
+        GlobalAdministratorReadModel returned = wire.State.Deserialize<GlobalAdministratorReadModel>().ShouldNotBeNull();
+        returned.Administrators.ShouldBe(authority.Administrators, ignoreOrder: true);
+        returned.ProjectionVersion.ShouldBe(authority.ProjectionVersion);
+        TenantAuditReadModel audit = (await store.GetAsync<TenantAuditReadModel>("statestore",
+            TenantAuditStreams.GlobalAdministratorsKey)).Value.ShouldNotBeNull();
+        audit.Entries.Count.ShouldBe(2);
+        audit.Entries.Select(row => row.EventId).ShouldBe(["global-legacy-0", "global-legacy-1"], ignoreOrder: true);
+        audit.ProjectionVersion.ShouldBe("tenant-sequence:2");
+        (await store.GetAsync<TenantAuditReadModel>("statestore", TenantAuditStreams.SystemTenantKey)).Value.ShouldBeNull();
+        (await store.GetAsync<TenantIndexReadModel>("statestore", "projection:tenant-index:singleton")).Value.ShouldBeNull();
+        store.Count.ShouldBe(2);
+    }
+
+    /// <summary>Refuses unknown legacy authority without changing any persisted authority or audit evidence.</summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("legacy")]
+    public async Task ProjectContractRefusesPopulatedUnknownVersionGlobalAuthority(string? version)
+    {
+        var store = new InMemoryReadModelStore();
+        const string authorityKey = "projection:global-administrators:singleton";
+        store.SeedRaw("statestore", authorityKey,
+            new GlobalAdministratorReadModel { Administrators = ["current"], ProjectionVersion = version });
+        store.SeedRaw("statestore", TenantAuditStreams.GlobalAdministratorsKey, new TenantAuditReadModel());
+        ReadModelEntry<GlobalAdministratorReadModel> before = await store.GetAsync<GlobalAdministratorReadModel>("statestore", authorityKey);
+        ReadModelEntry<TenantAuditReadModel> auditBefore = await store.GetAsync<TenantAuditReadModel>("statestore", TenantAuditStreams.GlobalAdministratorsKey);
+        await using var factory = new CommandApiWebApplicationFactory(projectionStore: store);
+        using HttpClient client = factory.CreateClient();
+        var item = new ProjectionEventDto(typeof(GlobalAdministratorSet).FullName!,
+            JsonSerializer.SerializeToUtf8Bytes(new GlobalAdministratorSet("system", "older")),
+            "json", 1, DateTimeOffset.UnixEpoch, "unknown-authority", "unknown-authority-event", "actor");
+
+        using HttpResponseMessage response = await client.PostAsJsonAsync("/project",
+            new ProjectionRequest("system", "global-administrators", "global-administrators", [item]));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
+        ReadModelEntry<GlobalAdministratorReadModel> after = await store.GetAsync<GlobalAdministratorReadModel>("statestore", authorityKey);
+        after.ETag.ShouldBe(before.ETag);
+        JsonSerializer.Serialize(after.Value).ShouldBe(JsonSerializer.Serialize(before.Value));
+        ReadModelEntry<TenantAuditReadModel> auditAfter = await store.GetAsync<TenantAuditReadModel>("statestore", TenantAuditStreams.GlobalAdministratorsKey);
+        auditAfter.ETag.ShouldBe(auditBefore.ETag);
+        JsonSerializer.Serialize(auditAfter.Value).ShouldBe(JsonSerializer.Serialize(auditBefore.Value));
+        store.Count.ShouldBe(2);
+    }
+
     /// <summary>Checks workload and channel admission while preserving the persisted read-model contents.</summary>
     /// <param name="scenario">The credential boundary to exercise.</param>
     /// <param name="authorized">Whether the projection request should be admitted.</param>
@@ -2765,7 +2930,8 @@ public class CommandApiRuntimeIntegrationTests {
         ICommandArchiveStore? archiveStore = null,
         bool useTestAuthentication = false,
         bool presentWorkloadAssertion = true,
-        bool useLegacyStatusAdapter = true) : WebApplicationFactory<TenantBootstrapOptions> {
+        bool useLegacyStatusAdapter = true,
+        IReadModelStore? projectionStore = null) : WebApplicationFactory<TenantBootstrapOptions> {
         /// <summary>Gets the isolated store so read-only projection contracts can verify its persisted end state.</summary>
         public InMemoryReadModelStore ReadModelStore { get; } = new();
 
@@ -2797,7 +2963,7 @@ public class CommandApiRuntimeIntegrationTests {
                     Administrators = new HashSet<string>(VerifiedGlobalAdministrators, StringComparer.Ordinal),
                 });
             _ = services.RemoveAll<IReadModelStore>();
-            _ = services.AddSingleton<IReadModelStore>(store);
+            _ = services.AddSingleton<IReadModelStore>(projectionStore ?? store);
 
             if (useTestAuthentication) {
                 _ = services.AddAuthentication(TestAuthHandler.SchemeName)

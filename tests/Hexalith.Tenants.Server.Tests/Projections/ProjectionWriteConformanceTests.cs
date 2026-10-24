@@ -185,7 +185,7 @@ public class ProjectionWriteConformanceTests
         saved.Tenants[IncomingTenantId].Name.ShouldBe("Charlie");
 
         // Attempt-count invariants (AC7).
-        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(2);
+        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(3);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(2);
         SaveAttempt save1 = fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, 0);
         SaveAttempt save2 = fixture.GetSaveAttempt(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, 1);
@@ -266,7 +266,7 @@ public class ProjectionWriteConformanceTests
 
         // AC7 attempt-count invariants.
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey)
-            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
+            .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts + 1);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey)
             .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
 
@@ -374,6 +374,8 @@ public class ProjectionWriteConformanceTests
         // P14 / D3 / Task line 47: tenant-detail retry-exhaustion analog to the index test.
         // After tenant-detail exhausts, no audit or index writes must occur.
         var fixture = new ProjectionWriteConformanceFixture();
+        fixture.StateStore.EnqueueRead<TenantIndexReadModel>(ProjectionWriteConformanceFixture.TenantIndexProjectionKey,
+            ProjectionWriteConformanceFixture.SeedInitializedOwnerIndex(), "preflight-etag");
         DateTimeOffset timestamp = new(2026, 5, 14, 10, 0, 0, TimeSpan.Zero);
         const string SensitiveTenantName = "Private Merger Tenant";
         const string SensitiveUserId = "payload-user-secret-123";
@@ -423,7 +425,7 @@ public class ProjectionWriteConformanceTests
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantProjectionKey)
             .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey).ShouldBe(0);
-        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
+        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(1);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey).ShouldBe(0);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
 
@@ -475,6 +477,8 @@ public class ProjectionWriteConformanceTests
     public async Task Audit_RetryExhaustion_FailsObservably_WithSupportSafeBoundedDiagnosticsAsync()
     {
         var fixture = new ProjectionWriteConformanceFixture();
+        fixture.StateStore.EnqueueRead<TenantIndexReadModel>(ProjectionWriteConformanceFixture.TenantIndexProjectionKey,
+            ProjectionWriteConformanceFixture.SeedInitializedOwnerIndex(), "preflight-etag");
         fixture.EnqueueSuccessfulTenantDetailSave();
         for (int attempt = 0; attempt < ReadModelWritePolicy.DefaultMaxAttempts; attempt++)
         {
@@ -547,7 +551,7 @@ public class ProjectionWriteConformanceTests
             .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantAuditProjectionKey)
             .ShouldBe(ReadModelWritePolicy.DefaultMaxAttempts);
-        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
+        fixture.GetReadAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(1);
         fixture.GetSaveAttemptCount(ProjectionWriteConformanceFixture.TenantIndexProjectionKey).ShouldBe(0);
 
         IReadOnlyList<CapturedLog> conflicts = fixture.GetLogEntries(ConflictEventIdInt);
@@ -639,7 +643,7 @@ public class ProjectionWriteConformanceTests
             "audit-etag-2");
         fixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, false);
         fixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, true);
-        fixture.EnqueueSuccessfulIndexSave();
+        fixture.EnqueueSuccessfulIndexSave(existingOwner: true);
 
         // Incoming "evt-added" is a UserAddedToTenant by actor-incoming with completely
         // different EventType/ActorId/Timestamp/payload from the persisted record.
@@ -713,7 +717,7 @@ public class ProjectionWriteConformanceTests
         {
             firstFixture.StateStore.EnqueueRead<TenantIndexReadModel>(
                 ProjectionWriteConformanceFixture.TenantIndexProjectionKey,
-                null,
+                ProjectionWriteConformanceFixture.SeedInitializedOwnerIndex(),
                 $"index-etag-{attempt + 1}");
             firstFixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantIndexProjectionKey, false);
         }
@@ -730,7 +734,7 @@ public class ProjectionWriteConformanceTests
             persistedAudit,
             "audit-etag-replay");
         replayFixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, true);
-        replayFixture.EnqueueSuccessfulIndexSave();
+        replayFixture.EnqueueSuccessfulIndexSave(existingOwner: true);
 
         _ = await replayFixture.RunProjectionHandlerAsync(request);
 
@@ -890,7 +894,7 @@ public class ProjectionWriteConformanceTests
 
         fixture.EnqueueSuccessfulTenantDetailSave();
         fixture.EnqueueSuccessfulAuditSave();
-        fixture.EnqueueSuccessfulIndexSave();
+        fixture.EnqueueSuccessfulIndexSave(existingOwner: true);
 
         ProjectionRequest mixedRequest = ProjectionWriteConformanceFixture.CreateRequest(malformed, valid);
         _ = await fixture.RunProjectionHandlerAsync(mixedRequest);
@@ -940,7 +944,7 @@ public class ProjectionWriteConformanceTests
         fixture.StateStore.EnqueueRead(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, postReload, "audit-etag-2");
         fixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, false);
         fixture.StateStore.EnqueueTrySave(ProjectionWriteConformanceFixture.TenantAuditProjectionKey, true);
-        fixture.EnqueueSuccessfulIndexSave();
+        fixture.EnqueueSuccessfulIndexSave(existingOwner: true);
 
         ProjectionRequest request = ProjectionWriteConformanceFixture.CreateRequest(
             ProjectionWriteConformanceFixture.CreateEvent(

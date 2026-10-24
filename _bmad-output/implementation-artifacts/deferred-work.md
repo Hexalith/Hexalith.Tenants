@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-524/DW-525/DW-529/DW-604/DW-627 closure (2026-10-24):** Persisted owner watermarks and guarded singleton selection prevent stale replay regression; authenticated legacy intake refuses unsupported evolution before store access. Clean-source performance provenance and a coordinated tenant schema runbook complete the evidence/operations gaps. Server1475/1475, replay24/24 and route30/30 pass in Debug/source; focused replay24/24 and route30/30 also pass in Release/package. Exactly five records close: all 657 IDs remain, 580 done/77 open across 71 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](dw-524-525-529-604-627-validation-evidence.md).
+
 **DW-119/DW-211/DW-212/DW-213/DW-444 closure (2026-10-23):** Owned paging and audit-reset focus survives control replacement; shared header title/render guards fail diagnostically. Authenticated production-UI Chromium checks qualify actual focus against disclosed read-only upstream fixtures. Exactly five records close: all 657 IDs remain, 570 done/87 open across 80 maintenance rows. Historical fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-119-211-212-213-444-validation-evidence.md).
 
 **DW-333/DW-335/DW-336/DW-357/DW-359 closure (2026-10-23):** Authenticated live Chromium checks qualify retained workspace panel visibility/accessibility, native grant-modal keyboard cycles, inert page background, Escape restoration and measured viewport restrictions. A grant-input Razor comment no longer terminates the interactive circuit. Exactly five records close: all 657 IDs remain, 565 done/92 open across 85 maintenance rows. Historical fields and unrelated runtime/release holds remain preserved. See [validation evidence](dw-333-335-336-357-359-validation-evidence.md).
@@ -5209,17 +5211,27 @@ location: src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs; src/Hexal
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; tenant index replay can overwrite newer index values while detail skips older sequences.\n  evidence: BH1: TenantProjectionHandler.cs:156 has no per-aggregate sequence watermark; TenantIndexReadModel.Apply(TenantUpdated) overwrites Name. The older-replay test checks only detail against an empty index. This predates the EventStore upgrade; add persisted-index replay coverage when addressing the index watermark."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:154-168 applies every replayed event to the singleton index without an aggregate watermark; TenantIndexReadModel.cs:24-29 overwrites Name. The detail path checks persisted sequence at :102-132, but the older-replay test does not seed and assert a newer persisted index.
-verification-files: src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs; src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs
-evidence-kind: verified-defect
+pre-projection-integrity-status: open
+pre-projection-integrity-disposition: actionable
+pre-projection-integrity-verification-date: 2026-10-12
+pre-projection-integrity-verification: src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs:154-168 applies every replayed event to the singleton index without an aggregate watermark; TenantIndexReadModel.cs:24-29 overwrites Name. The detail path checks persisted sequence at :102-132, but the older-replay test does not seed and assert a newer persisted index.
+pre-projection-integrity-verification-files: src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs; src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs
+pre-projection-integrity-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: Shared singleton-index sequence contract
-next-action: Add per-aggregate index replay ordering and persisted-index end-state regression covering older TenantUpdated and membership/lifecycle events.
+pre-projection-integrity-next-action: Add per-aggregate index replay ordering and persisted-index end-state regression covering older TenantUpdated and membership/lifecycle events.
 related: none
+
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Persisted ordinal per-aggregate index watermarks prevent older/equal name, lifecycle and membership regression; shared UpdateAsync reloads competing tenant/newer owner state while admitting all new same-sequence siblings. Complete-history initialization, pre-creation rejection histories, unsafe suffix/gap refusal before writes and affected legacy-slice refusal are qualified by persisted-state tests.
+verification-files: src/Hexalith.Tenants/Projections/TenantProjectionHandler.cs; src/Hexalith.Tenants.Server/Projections/TenantIndexReadModel.cs; tests/Hexalith.Tenants.IntegrationTests/ProjectionReplayIntegrityTests.cs
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-524-525-529-604-627-projection-integrity.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md`
+next-action: none; selected projection integrity/evidence record verified.
 
 
 ### DW-525: medium; the custom Tenants /project route bypasses legacy projection evolution admission.
@@ -5229,17 +5241,27 @@ location: src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; the custom Tenants /project route bypasses legacy projection evolution admission.\n  evidence: BH2: Program.cs:173 calls the Tenants ProjectionDispatcher, which lacks admission checks before persistence. Published EventStore 3.115.0 already includes RequireLegacy in source revision 283b07a52c9c70e1c940164a7011ee8c3ad98b2d, so this is pre-existing. Restore equivalent rejection of unverified hints/versioned event metadata with route-level coverage."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants/Program.cs:166-173 uses the domain ProjectionDispatcher for /project; src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs:50-107 invokes handlers without RequireLegacy/evolution admission. It validates global identity and authentication separately but lacks the platform’s unverified-hint/versioned-event rejection before persistence.
-verification-files: src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs
-evidence-kind: verified-defect
+pre-projection-integrity-status: open
+pre-projection-integrity-disposition: actionable
+pre-projection-integrity-verification-date: 2026-10-12
+pre-projection-integrity-verification: src/Hexalith.Tenants/Program.cs:166-173 uses the domain ProjectionDispatcher for /project; src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs:50-107 invokes handlers without RequireLegacy/evolution admission. It validates global identity and authentication separately but lacks the platform’s unverified-hint/versioned-event rejection before persistence.
+pre-projection-integrity-verification-files: src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs
+pre-projection-integrity-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: EventStore legacy projection admission contract
-next-action: Add equivalent fail-closed projection evolution admission at this custom route and route-level no-persistence rejection coverage.
+pre-projection-integrity-next-action: Add equivalent fail-closed projection evolution admission at this custom route and route-level no-persistence rejection coverage.
 related: none
+
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Authenticated production /project refuses both request evolution hints and every unsupported event metadata family before any store access in both domains; null/legacy metadata and valid legacy payload-version controls persist expected detail/audit/index contents. Debug/source and Release/package route lanes each pass 30/30.
+verification-files: src/Hexalith.Tenants/Projections/ProjectionDispatcher.cs; tests/Hexalith.Tenants.IntegrationTests/CommandApiRuntimeIntegrationTests.cs
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-524-525-529-604-627-projection-integrity.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md`
+next-action: none; selected projection integrity/evidence record verified.
 
 
 ### DW-526: medium; recorded gitlink provenance rejects a valid new submodule addition.
@@ -5288,17 +5310,27 @@ location: scripts/run-tenant-audit-performance.sh
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-refresh-dependencies.md`\n  summary: medium; performance evidence records root HEAD while measuring an unrestricted working tree.\n  evidence: BH8: scripts/run-tenant-audit-performance.sh:114 records gitRevision, then builds local files without a clean-tree guard or source/submodule snapshot. Distinct measured candidates can share the same revision. Capture exact source provenance or require cleanliness; this is pre-existing and does not invalidate the separately evidenced clean historical run."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: scripts/run-tenant-audit-performance.sh:114 records git rev-parse HEAD while :157-160 builds the working tree; no clean-tree guard, diff digest or submodule/source snapshot is collected. Uncommitted measured candidates can retain the same recorded revision.
-verification-files: scripts/run-tenant-audit-performance.sh
-evidence-kind: verified-gap
+pre-projection-integrity-status: open
+pre-projection-integrity-disposition: actionable
+pre-projection-integrity-verification-date: 2026-10-12
+pre-projection-integrity-verification: scripts/run-tenant-audit-performance.sh:114 records git rev-parse HEAD while :157-160 builds the working tree; no clean-tree guard, diff digest or submodule/source snapshot is collected. Uncommitted measured candidates can retain the same recorded revision.
+pre-projection-integrity-verification-files: scripts/run-tenant-audit-performance.sh
+pre-projection-integrity-evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Performance evidence provenance contract
-next-action: Capture exact root/submodule source provenance or fail preflight on a dirty tree before claiming a revision-bound performance result.
+pre-projection-integrity-next-action: Capture exact root/submodule source provenance or fail preflight on a dirty tree before claiming a revision-bound performance result.
 related: none
+
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Executable preflight rejects dirty root/dependency and mismatched or missing root-declared checkouts before results, preparation, builds, seeding or measurement. Clean sources record canonical root and all dependency revisions bound to root gitlinks. Ten hermetic Git tests pass, with existing preparation-mode 4/4 and bash syntax checks. No dirty-tree performance measurement is claimed.
+verification-files: scripts/run-tenant-audit-performance.sh; scripts/tenant-audit-source-provenance.py; tests/scripts/test_tenant_audit_source_provenance.py
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-524-525-529-604-627-projection-integrity.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md`
+next-action: none; selected projection integrity/evidence record verified.
 
 
 ### DW-530: low; command models violate the required one-C#-type-per-file authoring rule.
@@ -6413,17 +6445,27 @@ location: docs/event-contract-reference.md
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Define a projection schema rebuild path for historical tenant events.\n  evidence: TenantProjectionHandler skips replayed events at or below the persisted aggregate sequence, so new historical projection logic cannot update an existing read model without resetting or versioning it."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantProjectionHandler skips events at/below persisted aggregate sequence. event-contract-reference.md now explains global singleton replay only; no tenant projection schema-reset/versioned rebuild path was found for new historical tenant logic.
-verification-files: docs/event-contract-reference.md
-evidence-kind: verified-gap
+pre-projection-integrity-status: open
+pre-projection-integrity-disposition: actionable
+pre-projection-integrity-verification-date: 2026-10-12
+pre-projection-integrity-verification: TenantProjectionHandler skips events at/below persisted aggregate sequence. event-contract-reference.md now explains global singleton replay only; no tenant projection schema-reset/versioned rebuild path was found for new historical tenant logic.
+pre-projection-integrity-verification-files: docs/event-contract-reference.md
+pre-projection-integrity-evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Platform projection rebuild/versioning contract
-next-action: Specify a safe tenant projection schema rebuild/version path and its rollout verification.
+pre-projection-integrity-next-action: Specify a safe tenant projection schema rebuild/version path and its rollout verification.
 related: DW-636
+
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Event contract reference and audit rollout link the coordinated tenant schema rebuild procedure: exact detail/audit/shared-index/global/legacy keys, complete frozen authoritative histories including pre-creation rejections, all-writer fencing, platform-supported isolated selection, durable validation, catch-up, cutover and rollback. Fixed-key legacy intake supplies no automatic migration; production execution requires separate authorization and was not performed.
+verification-files: docs/event-contract-reference.md; docs/audit-stream-rollout.md; docs/tenant-projection-schema-rebuild.md
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-524-525-529-604-627-projection-integrity.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md`
+next-action: none; selected projection integrity/evidence record verified.
 
 
 ### DW-605: Split tenant command model types into files named for each C# type.
@@ -6671,16 +6713,26 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-7-correct-global-administrator-authority-from-audit-evidence.md`\n  summary: Establish whether concurrent global-administrator projection rebuilds can overwrite newer state.\n  evidence: The existing full-rebuild handler uses `SaveAsync` without a version guard. If EventStore allows concurrent projection requests for this aggregate, an older request finishing last can replace newer state; an upstream serialization guarantee would settle reachability."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: GlobalAdministratorProjectionHandler uses unguarded SaveAsync. EventStore ProjectionUpdateOrchestrator has per-aggregate static keyed locks, proving in-process serialization only. Missing evidence: cross-replica/rebuild delivery serialization for the global singleton and domain /project requests.
-evidence-kind: unverified-risk
+pre-projection-integrity-status: open
+pre-projection-integrity-disposition: uncertain
+pre-projection-integrity-verification-date: 2026-10-12
+pre-projection-integrity-verification: GlobalAdministratorProjectionHandler uses unguarded SaveAsync. EventStore ProjectionUpdateOrchestrator has per-aggregate static keyed locks, proving in-process serialization only. Missing evidence: cross-replica/rebuild delivery serialization for the global singleton and domain /project requests.
+pre-projection-integrity-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: Platform distributed delivery/serialization guarantee
-next-action: Trace all supported delivery/rebuild routes across replicas and document a guarantee or reproduce stale overwrite.
+pre-projection-integrity-next-action: Trace all supported delivery/rebuild routes across replicas and document a guarantee or reproduce stale overwrite.
 related: DW-624
+
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Global singleton uses shared optimistic-concurrency reload/selection rather than unguarded SaveAsync. Persisted newer/equal ordered authority survives older/equal/empty/unversioned requests and a controlled competing commit; returned state agrees with persisted choice. Populated unknown/invalid-version legacy authority is refused before audit/authority writes pending coordinated rebuild; missing/empty initialization remains distinct. Audit-stream isolation and canonical merge proof are preserved. Persisted replay lanes each pass 24/24 in Debug/source and Release/package.
+verification-files: src/Hexalith.Tenants/Projections/GlobalAdministratorProjectionHandler.cs; tests/Hexalith.Tenants.Server.Tests/Projections/GlobalAdministratorProjectionHandlerTests.cs; tests/Hexalith.Tenants.IntegrationTests/ProjectionReplayIntegrityTests.cs
+evidence-kind: verified-resolution
+resolution-spec: `_bmad-output/implementation-artifacts/spec-dw-524-525-529-604-627-projection-integrity.md`
+resolution-evidence: `_bmad-output/implementation-artifacts/dw-524-525-529-604-627-validation-evidence.md`
+next-action: none; selected projection integrity/evidence record verified.
 
 
 ## Deferred from: code review of spec-5-7-correct-global-administrator-authority-from-audit-evidence.md, review-fix range `362a957d..4f0abcae` (2026-10-11)

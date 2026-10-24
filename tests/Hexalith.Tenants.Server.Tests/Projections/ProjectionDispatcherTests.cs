@@ -72,10 +72,11 @@ public class ProjectionDispatcherTests {
             string.Empty,
             Arg.Any<CancellationToken>());
         // ...and the global-admin singleton must NOT be touched (the tenant path never uses SaveAsync).
-        await store.DidNotReceive().SaveAsync(
+        await store.DidNotReceive().TrySaveAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
         _ = result.ShouldBeOfType<Ok<ProjectionResponse>>();
     }
@@ -87,6 +88,10 @@ public class ProjectionDispatcherTests {
             .Returns(new ReadModelEntry<TenantAuditReadModel>(null, null));
         store.TrySaveAsync("statestore", TenantAuditStreams.GlobalAdministratorsKey, Arg.Any<TenantAuditReadModel>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
             .Returns(true);
+        store.GetAsync<GlobalAdministratorReadModel>("statestore", "projection:global-administrators:singleton", Arg.Any<CancellationToken>())
+            .Returns(new ReadModelEntry<GlobalAdministratorReadModel>(null, null));
+        store.TrySaveAsync("statestore", "projection:global-administrators:singleton", Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(true);
         ProjectionRequest request = new(
             "system",
             "global-administrators",
@@ -95,10 +100,11 @@ public class ProjectionDispatcherTests {
 
         IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
-        await store.Received(1).SaveAsync(
+        await store.Received(1).TrySaveAsync(
             "statestore",
             "projection:global-administrators:singleton",
             Arg.Is<GlobalAdministratorReadModel>(m => m != null && m.Administrators.Contains("admin-user")),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
         // No tenant-side keys should have been touched.
         await store.DidNotReceive().TrySaveAsync(
@@ -132,10 +138,11 @@ public class ProjectionDispatcherTests {
 
         IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
-        await store.DidNotReceive().SaveAsync(
+        await store.DidNotReceive().TrySaveAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
         ProblemHttpResult problem = result.ShouldBeOfType<ProblemHttpResult>();
         problem.StatusCode.ShouldBe(StatusCodes.Status400BadRequest);
@@ -153,10 +160,11 @@ public class ProjectionDispatcherTests {
         _ = await Should.ThrowAsync<ArgumentException>(
             () => new GlobalAdministratorProjectionHandler(store).ProjectAsync(request));
 
-        await store.DidNotReceive().SaveAsync(
+        await store.DidNotReceive().TrySaveAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
     }
 
@@ -172,10 +180,11 @@ public class ProjectionDispatcherTests {
         IResult result = await new ProjectionDispatcher(store, _telemetry).DispatchAsync(request);
 
         // No state writes for unsupported domains.
-        await store.DidNotReceive().SaveAsync(
+        await store.DidNotReceive().TrySaveAsync(
             Arg.Any<string>(),
             Arg.Any<string>(),
             Arg.Any<GlobalAdministratorReadModel>(),
+            Arg.Any<string>(),
             Arg.Any<CancellationToken>());
         await store.DidNotReceive().TrySaveAsync(
             Arg.Any<string>(),

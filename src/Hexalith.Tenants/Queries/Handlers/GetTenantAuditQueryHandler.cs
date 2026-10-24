@@ -67,7 +67,7 @@ public sealed class GetTenantAuditQueryHandler(
                 ReadModelStore, StateStoreName, query.Stream, cancellationToken).ConfigureAwait(false);
             if (!available)
             {
-                return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.ResponseMismatch);
+                return new QueryResult(false, default, ErrorMessage: QueryAdapterFailureReason.ActorResponseMismatch);
             }
         }
         else

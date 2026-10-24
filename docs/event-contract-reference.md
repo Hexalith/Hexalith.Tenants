@@ -48,6 +48,17 @@ The Client package's built-in local projection is runtime state for the consumin
 
 Commands are submitted through the EventStore command gateway. See the [Quickstart Guide](quickstart.md) for command submission details.
 
+## Historical tenant projection schema changes
+
+For a change that reinterprets historical tenant events, follow the [coordinated
+projection schema rebuild procedure](tenant-projection-schema-rebuild.md). Ordinary
+replay preserves persisted aggregate watermarks and cannot update historical logic
+below them. Rebuild tenant details, their owner-isolated audit models and the shared
+index together from authoritative histories in isolation, fence every writer, validate
+persisted state and cut over with a verified rollback plan. A populated legacy index
+without an owner watermark requires this procedure; detail freshness cannot authorize
+its initialization. Production execution requires separate operator authorization.
+
 ## Identity Scheme
 
 All tenant domain events use the following identity components:

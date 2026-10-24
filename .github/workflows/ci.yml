@@ -56,7 +56,23 @@ jobs:
           --configuration Release --no-build
           -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
           --filter-method 'Hexalith.Tenants.IntegrationTests.CommandApiRuntimeIntegrationTests.ProjectContract*'
-          --minimum-expected-tests 11 --fail-skips on
+          --minimum-expected-tests 35 --fail-skips on
+
+      - name: Verify persisted projection replay integrity
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
+          --filter-class Hexalith.Tenants.IntegrationTests.ProjectionReplayIntegrityTests
+          --minimum-expected-tests 31 --fail-skips on
+      - name: Verify audit stream persistence and canonical proof
+        # MTP discovers 117 unique rows; direct xUnit includes two duplicate rows (119).
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          -p:UseHexalithProjectReferences=false -p:UseNuGetDeps=true -p:HexalithFrontComposerFromSource=false
+          --filter-class Hexalith.Tenants.IntegrationTests.AuditStreamPersistenceTests
+          --minimum-expected-tests 117 --fail-skips on
 
   ci:
     uses: Hexalith/Hexalith.Builds/.github/workflows/domain-ci.yml@main
