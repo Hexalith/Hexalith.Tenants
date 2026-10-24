@@ -147,7 +147,7 @@ public sealed class AuditStreamPersistenceTests
                 continue;
             }
             response.Success.ShouldBeFalse();
-            response.ErrorMessage.ShouldBe(QueryAdapterFailureReason.ActorResponseMismatch);
+            response.ErrorMessage.ShouldBe(QueryAdapterFailureReason.ResponseMismatch);
             response.PayloadBytes.ShouldBeNull();
             response.Metadata.ShouldBeNull();
         }
@@ -167,8 +167,8 @@ public sealed class AuditStreamPersistenceTests
         TenantAuditEntry global = Snapshot(store, TenantAuditStreams.GlobalAdministratorsKey).Entries.Single();
         store.SeedRaw(StoreName, TenantAuditStreams.LegacySystemKey, Model([tenant, global, tenant, global]));
 
-        (await Read(store)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ActorResponseMismatch);
-        (await Read(store, category: AuditEventCategory.Access)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ActorResponseMismatch);
+        (await Read(store)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ResponseMismatch);
+        (await Read(store, category: AuditEventCategory.Access)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ResponseMismatch);
         Page(await Read(store, TenantAuditStreams.Tenant)).Items.Single().EventId.ShouldBe("same");
         Page(await Read(store, TenantAuditStreams.GlobalAdministrators)).Items.Single().EventId.ShouldBe("same");
         Snapshot(store, TenantAuditStreams.SystemTenantKey).Entries.Single().EventId.ShouldBe("same");
@@ -198,7 +198,7 @@ public sealed class AuditStreamPersistenceTests
 
         legacy.Entries = [canonical with { AggregateSequence = 999 }];
         store.SeedRaw(StoreName, TenantAuditStreams.LegacySystemKey, legacy);
-        (await Read(store, TenantAuditStreams.GlobalAdministrators)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ActorResponseMismatch);
+        (await Read(store, TenantAuditStreams.GlobalAdministrators)).ErrorMessage.ShouldBe(QueryAdapterFailureReason.ResponseMismatch);
     }
 
     [Fact]
