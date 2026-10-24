@@ -1,10 +1,16 @@
-.tenants-audit-entrypoint {
+.tenants-audit-entrypoint-style-scope {
+    /* The native owner carries CSS isolation only. Preserve the original Fluent control's
+       participation in its parent's layout and use that parent's width for percentage sizing. */
+    display: contents;
+}
+
+.tenants-audit-entrypoint-style-scope ::deep .tenants-audit-entrypoint {
     max-inline-size: 100%;
     min-inline-size: 8rem;
     white-space: normal;
 }
 
-.tenants-audit-entrypoint:focus-visible {
+.tenants-audit-entrypoint-style-scope ::deep .tenants-audit-entrypoint:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 2px;
 }
@@ -16,17 +22,17 @@
 }
 
 @media (max-width: 640px) {
-    .tenants-audit-entrypoint {
+    .tenants-audit-entrypoint-style-scope ::deep .tenants-audit-entrypoint {
         inline-size: 100%;
     }
 }
 
 @media (forced-colors: active) {
-    .tenants-audit-entrypoint {
+    .tenants-audit-entrypoint-style-scope ::deep .tenants-audit-entrypoint {
         forced-color-adjust: auto;
     }
 
-    .tenants-audit-entrypoint:focus-visible {
+    .tenants-audit-entrypoint-style-scope ::deep .tenants-audit-entrypoint:focus-visible {
         outline-color: Highlight;
     }
 }

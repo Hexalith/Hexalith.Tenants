@@ -1,0 +1,378 @@
+{
+  "baseline": "3808cd73f6560d035c417109d27d0a2b3365992b",
+  "mode": "Debug with project references; real local OIDC and production UI; controlled loopback upstream",
+  "finalFullUi": {
+    "command": [
+      "dotnet",
+      "test",
+      "--project",
+      "tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj",
+      "-c",
+      "Debug",
+      "--no-build",
+      "--no-restore",
+      "-p:UseNuGetDeps=false",
+      "--",
+      "--report-xunit-trx",
+      "--results-directory",
+      "/tmp/tenants-dw-final-full-ui"
+    ],
+    "exitCode": 0,
+    "durationSeconds": 134.29476857185364,
+    "logSha256": "8a07599ca333518e7d8af3429854e4861eedf53b275a3bf1d1fdfbfd595c490b",
+    "counters": {
+      "total": "7592",
+      "executed": "7592",
+      "passed": "7592",
+      "failed": "0",
+      "error": "0",
+      "timeout": "0",
+      "aborted": "0",
+      "inconclusive": "0",
+      "passedButRunAborted": "0",
+      "notRunnable": "0",
+      "notExecuted": "0",
+      "disconnected": "0",
+      "warning": "0",
+      "completed": "0",
+      "inProgress": "0",
+      "pending": "0"
+    },
+    "trxSha256": "5dee47745e3138c07d2373ec1540480a62c6f1af4ff39b98256e7b68b58cd24c"
+  },
+  "newFocused": {
+    "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+    "configuration": "Debug with source project references",
+    "sourceBuild": {
+      "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false",
+      "exitCode": 0,
+      "warnings": 0,
+      "errors": 0,
+      "elapsed": "00:00:14.26",
+      "log": {
+        "archive": "dw-434-final-validation-logs.zip",
+        "entry": "dw-434-final-test-build.log"
+      }
+    },
+    "newFocusedTests": {
+      "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore --filter-method '*OwnAdmissionParentRender*' --filter-method '*RemovalSubmitDistinguishesOwnAdmissionRender*' --filter-method '*TenantDetailSurfaceTests.BusyManagement*' --filter-method '*TenantDetailSurfaceTests.RefusedSetAdoption*' --filter-method '*TenantDetailSurfaceTests.SetRetention*' --minimum-expected-tests 43 --no-ansi --no-progress --results-directory /tmp/dw-434-final-new-focused --report-xunit-trx --report-xunit-trx-filename focused.trx",
+      "exitCode": 0,
+      "passed": 43,
+      "failed": 0,
+      "skipped": 0,
+      "elapsed": "1s 688ms",
+      "log": {
+        "archive": "dw-434-final-validation-logs.zip",
+        "entry": "dw-434-final-new-focused.log"
+      },
+      "trx": {
+        "archive": "dw-434-final-validation-logs.zip",
+        "entry": "dw-434-final-new-focused.trx"
+      }
+    },
+    "browser": {
+      "command": "python3 /tmp/tenants-dw-run-browser.py tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-detail-audit-return.mjs /tmp/dw-434-browser-final-2.json",
+      "wrapperScope": "Temporary private environment wrapper only; credentials and source-host environment values are not retained in repository artifacts. The tracked validator reads its documented TENANTS_BROWSER_* environment contract.",
+      "sourceBuildCommand": "dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Debug -m:1 -p:UseNuGetDeps=false",
+      "sourceBuildElapsed": "00:00:18.48",
+      "sourceBuildWarnings": 0,
+      "sourceBuildErrors": 0,
+      "exitCode": 0,
+      "passedCases": 7,
+      "acceptedForClosure": true,
+      "packet": "dw-434-browser-acceptance.json"
+    },
+    "artifacts": [
+      {
+        "sha256": "9b044ead3d6b7f035e7d072cfdcb9cc761460a440df28e774a48e2838761313f",
+        "archive": "dw-434-final-validation-logs.zip",
+        "entry": "dw-434-final-test-build.log"
+      },
+      {
+        "sha256": "382846e3e88bca2c32d6da6778cc0e309619b4f5940df02149d733ea91547c27",
+        "archive": "dw-434-final-validation-logs.zip",
+        "entry": "dw-434-final-new-focused.log"
+      },
+      {
+        "sha256": "84d71bf7494b2e9615cd18a68cac20caed8afbf94d5619cd4166ad01c9204dc5",
+        "archive": "dw-434-final-validation-logs.zip",
+        "entry": "dw-434-final-new-focused.trx"
+      }
+    ],
+    "priorFailures": "Parent batch evidence preserves initial nullable compilation errors, default-failure stub expectation and zero-selection filter failure separately. Browser rejected JSON packets are in dw-434-browser-rejected-attempts.zip with dw-434-browser-evidence-manifest.json; private UI/authentication logs are excluded.",
+    "finalValidationArchiveSha256": "fa11fd96047d00ad024bad3e8395fdbcbbf2d3965313a79161f9e506bddfbfe3"
+  },
+  "browserCases": 33,
+  "browserPackets": {
+    "dw-268-489-authenticated-browser-evidence.json": {
+      "sha256": "af16cc0d8fc9cb9442d75a52750d12e47d57d82e99357a3deee7cb3514a99361",
+      "caseCount": 17,
+      "acceptedForClosure": true,
+      "uiAssemblySha256": "38200246a53ccd858971725313d988826c498e9f8ee7c371c690a1e03a5e46c0",
+      "validatorSha256": "a7daa7bd8b97ef397af77084a36df3bcfd0e7a11219e64decaa3eeb9b64f9a0d",
+      "fixture": {
+        "authorizedReads": 129,
+        "commandAttempts": 0,
+        "listReads": 12,
+        "searchReads": 0,
+        "auditReads": 28,
+        "circuitErrors": 0
+      }
+    },
+    "dw-391-authenticated-browser-evidence.json": {
+      "sha256": "413426cfa41e6bd3ced398127329f9cbceb9d3a9c4c291ccb2b1be04a749d723",
+      "caseCount": 9,
+      "acceptedForClosure": true,
+      "uiAssemblySha256": "38200246a53ccd858971725313d988826c498e9f8ee7c371c690a1e03a5e46c0",
+      "validatorSha256": "259d8f5ed69ee6d76df00e1b26a2f6f6f70e8306f52430998f547e9b7993812c",
+      "fixture": {
+        "authorizedReads": 11,
+        "administratorReads": 11,
+        "commandAttempts": 0,
+        "circuitErrors": 0
+      }
+    },
+    "dw-434-browser-acceptance.json": {
+      "sha256": "c935064a0275fab539227a12a4f62d4d30671a646ae84adcb5e89833f3ddbfd5",
+      "caseCount": 7,
+      "acceptedForClosure": true,
+      "uiAssemblySha256": "38200246a53ccd858971725313d988826c498e9f8ee7c371c690a1e03a5e46c0",
+      "validatorSha256": "9abaabebb30e43db23b479ae0f6b623d0e34c5cee5bf74019c35bc4c77397c91",
+      "fixture": {
+        "authorizedReads": 144,
+        "isolatedCommandAttempts": [
+          "SetTenantConfiguration",
+          "SetTenantConfiguration",
+          "RemoveTenantConfiguration",
+          "RemoveTenantConfiguration",
+          "DisableTenant",
+          "DisableTenant",
+          "DisableTenant"
+        ],
+        "fakeAcceptedResponses": 5,
+        "logicalCommandAttempts": 6,
+        "statusReads": 8,
+        "auditReads": 35,
+        "unexpectedWrites": 0,
+        "domainWrites": 0,
+        "commandForwarding": false,
+        "circuitErrors": 0
+      }
+    }
+  },
+  "uiAssemblySha256": "38200246a53ccd858971725313d988826c498e9f8ee7c371c690a1e03a5e46c0",
+  "testedUiCopyMatchesBrowser": true,
+  "sourceDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+  "archive": "dw-268-328-391-434-489-raw-validation.zip",
+  "archiveSha256": "cfe3d40b347aa25feecf78606e0fcef04fa4dfce17ba6b1fd8e08365f97f44f0",
+  "archiveEntries": [
+    {
+      "name": "dw-434-all-new-focused.log",
+      "bytes": 1677,
+      "sha256": "fd22f00a5e301abb933c4ba22020d6688badb590acdcc9e91e833a127faa6448"
+    },
+    {
+      "name": "dw-434-final-new-focused.log",
+      "bytes": 505,
+      "sha256": "382846e3e88bca2c32d6da6778cc0e309619b4f5940df02149d733ea91547c27"
+    },
+    {
+      "name": "dw-434-final-test-build.log",
+      "bytes": 5138,
+      "sha256": "9b044ead3d6b7f035e7d072cfdcb9cc761460a440df28e774a48e2838761313f"
+    },
+    {
+      "name": "dw-434-focused-methods.log",
+      "bytes": 503,
+      "sha256": "20b1923a2eae63e94407ea545610f3f6bfaac3ecac3a2018594f3f46c29f9681"
+    },
+    {
+      "name": "dw-434-focused-trackers.log",
+      "bytes": 504,
+      "sha256": "824103b2f7dd3f831e9e9e2e22bd744ace7c924d0d8d21b126166f0fd884ea19"
+    },
+    {
+      "name": "dw-434-focused.log",
+      "bytes": 683,
+      "sha256": "c446fda7f3f754d25d55998b29fe4f3dc0d1c6fac95710204b3434c1ed011942"
+    },
+    {
+      "name": "dw-434-lifecycle-combined-build.log",
+      "bytes": 7295,
+      "sha256": "c04ebd36d7350a80960418c543c2e7aba01188a004eebd74278502fcea18b493"
+    },
+    {
+      "name": "dw-434-removal-combined-build.log",
+      "bytes": 5138,
+      "sha256": "088bf2d70b51e510e187c2f1b9b40550630bbc1ecc51334d4aff4baa9ccdd939"
+    },
+    {
+      "name": "dw-434-reviewed-focused.log",
+      "bytes": 504,
+      "sha256": "2d339db6b72b8caa168d4bde4834cb2e8244256c31654c25d2f4b8ef54909736"
+    },
+    {
+      "name": "dw-434-reviewed-test-build.log",
+      "bytes": 5138,
+      "sha256": "2de4bac18af230e27a75b25214d903938ff8833ab93afd2d7b30c213a1916766"
+    },
+    {
+      "name": "dw-434-test-build.log",
+      "bytes": 5138,
+      "sha256": "a4d0381fa550ca833b0b317a687ca36f27106fed597c43dca9c795047cb97eb1"
+    },
+    {
+      "name": "tenants-dw-audit-layout-attempt1.json",
+      "bytes": 2292,
+      "sha256": "5077b9958743c9f9eccfb9aad81502a51e46bf611fb06c64f82cf683f4147d5c"
+    },
+    {
+      "name": "tenants-dw-audit-layout-attempt2.json",
+      "bytes": 2311,
+      "sha256": "279dc5f6f0bd11a4dfedb56e5e939d3c2b035a31a06f239a3a56e4c2eb2b1d5c"
+    },
+    {
+      "name": "tenants-dw-audit-layout-attempt3.json",
+      "bytes": 74979,
+      "sha256": "dd128500bac7791fddb5fbee12507db2f789a4697f2028d1527af337f74842f6"
+    },
+    {
+      "name": "tenants-dw-audit-layout-attempt4.json",
+      "bytes": 77101,
+      "sha256": "58e5b158b8402071a40f87293bedfdf61819274a9e410ac415e01bdc17701689"
+    },
+    {
+      "name": "tenants-dw-audit-layout-attempt5.json",
+      "bytes": 77704,
+      "sha256": "7d8ab2a190597dd24ffcedc3e6c23d79650d05c400dbec478e975332bdb283c1"
+    },
+    {
+      "name": "tenants-dw-audit-layout-attempt6.json",
+      "bytes": 77130,
+      "sha256": "4f510c2515a4939f5eb94dd26f9499ea3709f1b26987905401b4bb685bbd8a3a"
+    },
+    {
+      "name": "tenants-dw-audit-layout-attempt7.json",
+      "bytes": 77877,
+      "sha256": "dd86a13a39d37c0755348747ba2bfe0f67811167e02a7f927b77c539cc987adf"
+    },
+    {
+      "name": "tenants-dw-audit-layout-review-debug.json",
+      "bytes": 79716,
+      "sha256": "6e03b05f8857fa8c902dcfc87b2c42268596ce18675be929a31f4268a5ab5d35"
+    },
+    {
+      "name": "tenants-dw-audit-layout-review-debug2.json",
+      "bytes": 78262,
+      "sha256": "53c91e9bb09c3eaf00194c981c2b2e1bd60f512922cbd6f806ed2d20f565124f"
+    },
+    {
+      "name": "tenants-dw-audit-layout-review-debug3.json",
+      "bytes": 81549,
+      "sha256": "50ea44ac18070836c0c29093f0ba223405345b5c02d1f5c32ca52a7ab87413c5"
+    },
+    {
+      "name": "tenants-dw-commitlint.log",
+      "bytes": 116,
+      "sha256": "c4c4dd84eb2c72c82d14203885171710f6b31c7548fee0050b9be54b1bdcc560"
+    },
+    {
+      "name": "tenants-dw-documented-tests-build.log",
+      "bytes": 5138,
+      "sha256": "7d8468595632ddda0c9ba090aa25eea263671014a29ca82eaedfaeec04f9ff69"
+    },
+    {
+      "name": "tenants-dw-final-focused-ui.log",
+      "bytes": 443,
+      "sha256": "87561ae92b27de893f6456f97b568d6bb93f7873529adb45cbcf7b412030a6c0"
+    },
+    {
+      "name": "tenants-dw-final-focused-ui.xml",
+      "bytes": 957586,
+      "sha256": "c121731eed6363ed48cc851c81638a26c577e31a91e07187d58ed0bc6ab73c26"
+    },
+    {
+      "name": "final-full/administrator_DESKTOP-VIOG240_2026-10-24_04_28_31.129883.trx",
+      "bytes": 11912934,
+      "sha256": "5dee47745e3138c07d2373ec1540480a62c6f1af4ff39b98256e7b68b58cd24c"
+    },
+    {
+      "name": "tenants-dw-final-full-ui-execution.json",
+      "bytes": 468,
+      "sha256": "5da622520b91344df6cea42afa409fc01e0e9839cb6c30199bb0258b575c0631"
+    },
+    {
+      "name": "tenants-dw-final-full-ui.log",
+      "bytes": 566,
+      "sha256": "8a07599ca333518e7d8af3429854e4861eedf53b275a3bf1d1fdfbfd595c490b"
+    },
+    {
+      "name": "tenants-dw-final-new-csharp-format.log",
+      "bytes": 123,
+      "sha256": "239c224f01960886368326d9ef5ebdcce071dcd0996d157bef6a963fc1eaa49c"
+    },
+    {
+      "name": "tenants-dw-focused-ui.log",
+      "bytes": 554,
+      "sha256": "0210373bbd25160ffcd5f00daa0adad103509058b312c1eb337066e82eb873ff"
+    },
+    {
+      "name": "tenants-dw-focused-ui.xml",
+      "bytes": 907186,
+      "sha256": "abe2266531bd0e0e54ac8618252dea5e68ccfe533d9d37cda6b6cbceaa312375"
+    },
+    {
+      "name": "initial-full/administrator_DESKTOP-VIOG240_2026-10-24_03_50_21.018748.trx",
+      "bytes": 11849174,
+      "sha256": "67316e15ff46b66b4035d1aa58520874d6ee03a0d2c04f01b2996629b22fff74"
+    },
+    {
+      "name": "tenants-dw-full-ui.log",
+      "bytes": 59936,
+      "sha256": "e15dc0543ca4fb1f929981721aa6f4ffdc4b558fddcf291a6e9fc9581c81b478"
+    },
+    {
+      "name": "tenants-dw-initial-failures-recheck.log",
+      "bytes": 439,
+      "sha256": "9482eedf3e5de40b2631d82b724b209802fd6ef67e7015fc7d6491a3dd62bd5f"
+    },
+    {
+      "name": "tenants-dw-initial-failures-recheck.xml",
+      "bytes": 2874,
+      "sha256": "7cc5c2dc4478c421a52ca2fab8b31c23ef9ad931722f15ccd3e9e30c06b4523e"
+    },
+    {
+      "name": "tenants-dw-new-csharp-format.log",
+      "bytes": 123,
+      "sha256": "239c224f01960886368326d9ef5ebdcce071dcd0996d157bef6a963fc1eaa49c"
+    },
+    {
+      "name": "tenants-dw-run-browser.py",
+      "bytes": 778,
+      "sha256": "55eb94c620afcd4b34371f968192a3fcce07fd25c62aec5b251bccb5ae47991a"
+    },
+    {
+      "name": "tenants-dw-ui-build.log",
+      "bytes": 5138,
+      "sha256": "6fd6672d748ec0372502ea100268807a8b3c1c397a0905b87a25ee9f4eae32ad"
+    },
+    {
+      "name": "tenants-dw-ui-final-build.log",
+      "bytes": 5138,
+      "sha256": "2deddf62b9ae673d0ee1275a1aab7c17d9b4f4c59cd7d671d9c2810f291974e8"
+    }
+  ],
+  "commitlint": {
+    "command": [
+      "node",
+      "node_modules/@commitlint/cli/cli.js",
+      "--edit",
+      "/tmp/tenants-dw-268-328-391-434-489-commit-message.txt",
+      "--verbose"
+    ],
+    "exitCode": 0,
+    "cliVersion": "21.2.3",
+    "messageSha256": "aaea7bb99fe5ba66ed7a279a1be8d27abccacb6ad9a2566136c3634b73d7911b",
+    "outputSha256": "c4c4dd84eb2c72c82d14203885171710f6b31c7548fee0050b9be54b1bdcc560"
+  }
+}

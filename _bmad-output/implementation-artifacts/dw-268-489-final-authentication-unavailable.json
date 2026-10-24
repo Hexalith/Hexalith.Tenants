@@ -1,0 +1,60 @@
+{
+  "playwrightVersion": "1.64.0-alpha-1790635538000",
+  "startedUtc": "2026-10-24T04:20:17.599Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies composed layout and focus with deterministic authorized projection responses; does not qualify backend authorization or real domain data",
+  "records": [
+    "DW-268",
+    "DW-489"
+  ],
+  "cases": [],
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": true,
+    "sourceBefore": {
+      "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+      "sourceDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+      "buildInputsDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+      "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+      "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+  "sourceDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+  "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "validatorSha256": "a7daa7bd8b97ef397af77084a36df3bcfd0e7a11219e64decaa3eeb9b64f9a0d",
+  "localUiAssemblySha256": "38200246a53ccd858971725313d988826c498e9f8ee7c371c690a1e03a5e46c0",
+  "localShellAssemblySha256": "12e5187ef359ca4e00f64e04e0642e8783729595280ff093f4e887a2a8c18056",
+  "browserVersion": "154.0.8037.57",
+  "passed": false,
+  "failure": {
+    "phase": "authenticate-original-aspire-host",
+    "label": "Browser operation failed",
+    "focus": {
+      "element": "body",
+      "shadowDepth": 0,
+      "ancestry": []
+    }
+  },
+  "fixture": {
+    "authorizedReads": 0,
+    "commandAttempts": 0,
+    "listReads": 0,
+    "searchReads": 0,
+    "auditReads": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": false,
+  "finishedUtc": "2026-10-24T04:20:46.959Z"
+}

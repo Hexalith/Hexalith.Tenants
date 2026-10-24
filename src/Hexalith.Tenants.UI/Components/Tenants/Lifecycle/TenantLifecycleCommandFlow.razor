@@ -1172,7 +1172,7 @@
             return;
         }
 
-        if (!IsSubmitContextCurrent(submitContext))
+        if (!IsSubmitContextCurrent(submitContext, afterOwnAdmission: true))
         {
             _isSubmitting = false;
             _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
@@ -1823,13 +1823,41 @@
         await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
     }
 
-    private bool IsSubmitContextCurrent(LifecycleSubmitContext context)
+    private bool IsSubmitContextCurrent(LifecycleSubmitContext context, bool afterOwnAdmission = false)
         => !_disposed
-        && context.Generation == _submitContextGeneration
-        && Equals(context.Parameters, _submitParameterFingerprint)
         && Equals(context.Preview, _preview)
         && Equals(context.Intent, Intent)
-        && string.Equals(context.ConfirmationText, _confirmationText, StringComparison.Ordinal);
+        && string.Equals(context.ConfirmationText, _confirmationText, StringComparison.Ordinal)
+        && (context.Generation == _submitContextGeneration
+                && Equals(context.Parameters, _submitParameterFingerprint)
+            || afterOwnAdmission && IsOnlyOwnAdmissionChange(context));
+
+    private bool IsOnlyOwnAdmissionChange(LifecycleSubmitContext context)
+    {
+        // Acquiring this flow's aggregate lease can render the parent before its callback returns.
+        // Accept only that single available-to-busy bookkeeping transition. Every other parameter
+        // change, including an authority/version change subsequently reverted, retains its generation
+        // increment and invalidates the original confirmation.
+        if (CommandActivityLease is null || !_hasRaisedCommandActivity
+            || _submitContextGeneration != context.Generation + 1
+            || !context.Parameters.IsCommandSurfaceAvailable
+            || context.Parameters.Availability.Evidence is not
+                { Admission: TenantHighImpactAdmissionEvidence.Available } evidence
+            || !Equals(context.Parameters.Availability, TenantLifecycleAvailability.FromEvidence(evidence)))
+        {
+            return false;
+        }
+
+        SubmitParameterFingerprint expected = context.Parameters with
+        {
+            Availability = TenantLifecycleAvailability.FromEvidence(evidence with
+            {
+                Admission = TenantHighImpactAdmissionEvidence.Busy,
+            }),
+            IsCommandSurfaceAvailable = false,
+        };
+        return Equals(expected, _submitParameterFingerprint);
+    }
 
     private async Task<T> AwaitWithinDeadlineAsync<T>(
         Func<CancellationToken, Task<T>> operation,

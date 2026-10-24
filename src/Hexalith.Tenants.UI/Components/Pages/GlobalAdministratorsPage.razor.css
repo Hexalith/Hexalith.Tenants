@@ -1,4 +1,4 @@
-.global-admins {
+.global-admins-style-scope ::deep .global-admins {
     min-width: 0;
 }
 
@@ -25,7 +25,7 @@
    form; keeping the landmarks/form precludes replacing them with a FluentStack wrapper. */
 .global-admins__scope,
 .global-admins__grant,
-.global-admins__grant-form,
+.global-admins__grant ::deep .global-admins__grant-form,
 .global-admins__grant-preview,
 .global-admins__grant-lifecycle,
 .global-admins__remove,
@@ -150,7 +150,7 @@
 
 /* fc-css-exception: status glyph badge centering for a single character on a <span>; no Fluent badge
    primitive adopted, to preserve the exact high-contrast border treatment. */
-.global-admins__state-icon {
+.global-admins-style-scope ::deep .global-admins__state-icon {
     border: 2px solid currentColor;
     display: inline-grid;
     font-weight: 700;
@@ -175,7 +175,7 @@
 
 /* fc-css-exception: vertical stack for the Fluent-generated <label>; cannot restructure the markup
    emitted by FluentTextInput. */
-.global-admins__grant label {
+.global-admins__grant ::deep label {
     display: grid;
     gap: 0.25rem;
     max-width: 36rem;
@@ -244,8 +244,8 @@
 
 /* fc-css-exception: lifecycle state glyph badge centering on a <span>; no Fluent badge primitive
    adopted, to preserve the exact high-contrast border treatment. */
-.global-admins__grant-state-symbol,
-.global-admins__remove-state-symbol {
+.global-admins-style-scope ::deep .global-admins__grant-state-symbol,
+.global-admins-style-scope ::deep .global-admins__remove-state-symbol {
     border: 2px solid currentColor;
     display: inline-grid;
     font-weight: 700;
@@ -260,12 +260,14 @@
     overflow-x: auto;
 }
 
-.global-admins__data-grid {
+/* fc-css-exception: constrain the actual grid host inside its horizontal scroll region; Fluent
+   repeats its Class on header cells, which must keep the grid's own column sizing. */
+.global-admins__table-scroll ::deep table.global-admins__data-grid[role="grid"] {
     min-width: 52rem;
     width: 100%;
 }
 
-.global-admins__identity-value {
+.global-admins__table-scroll ::deep .global-admins__identity-value {
     display: block;
     max-width: 24rem;
     overflow-wrap: anywhere;
@@ -282,11 +284,10 @@
 @media (max-width: 42rem) {
     /* fc-css-exception: mobile is deliberately read-only for platform-authority mutations; the
        localized notice remains visible beside the usable review, paging, copy, and recovery UI.
-       The second selector covers the per-row Remove launcher: it is a FluentButton (so it carries no
+       The descendant selector covers the per-row Remove launcher: it is a FluentButton (so it carries no
        scope attribute) and it renders inside the List accordion item, which is not a mutation section --
        the descendant rule alone could never match it, leaving remove reachable on narrow viewports. */
-    .global-admins__mutation-section .global-admins__mutation-initiation,
-    ::deep .global-admins__mutation-initiation {
+    .global-admins-style-scope ::deep .global-admins__mutation-initiation {
         display: none;
     }
 
@@ -314,7 +315,7 @@
         grid-template-columns: 1fr;
     }
 
-    .global-admins__identity-value {
+    .global-admins__table-scroll ::deep .global-admins__identity-value {
         max-width: 16rem;
     }
 }
@@ -334,9 +335,9 @@
     .global-admins__remove-preview,
     .global-admins__remove-lifecycle,
     .global-admins__table-shell,
-    .global-admins__state-icon,
-    .global-admins__grant-state-symbol,
-    .global-admins__remove-state-symbol {
+    .global-admins-style-scope ::deep .global-admins__state-icon,
+    .global-admins-style-scope ::deep .global-admins__grant-state-symbol,
+    .global-admins-style-scope ::deep .global-admins__remove-state-symbol {
         border-color: CanvasText;
     }
 

@@ -1,0 +1,62 @@
+{
+  "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+  "configuration": "Debug with source project references",
+  "sourceBuild": {
+    "command": "dotnet build tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug -p:UseHexalithProjectReferences=true -warnaserror -m:1 -nr:false",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0,
+    "elapsed": "00:00:14.26",
+    "log": {
+      "archive": "dw-434-final-validation-logs.zip",
+      "entry": "dw-434-final-test-build.log"
+    }
+  },
+  "newFocusedTests": {
+    "command": "dotnet test --project tests/Hexalith.Tenants.UI.Tests/Hexalith.Tenants.UI.Tests.csproj -c Debug --no-build --no-restore --filter-method '*OwnAdmissionParentRender*' --filter-method '*RemovalSubmitDistinguishesOwnAdmissionRender*' --filter-method '*TenantDetailSurfaceTests.BusyManagement*' --filter-method '*TenantDetailSurfaceTests.RefusedSetAdoption*' --filter-method '*TenantDetailSurfaceTests.SetRetention*' --minimum-expected-tests 43 --no-ansi --no-progress --results-directory /tmp/dw-434-final-new-focused --report-xunit-trx --report-xunit-trx-filename focused.trx",
+    "exitCode": 0,
+    "passed": 43,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed": "1s 688ms",
+    "log": {
+      "archive": "dw-434-final-validation-logs.zip",
+      "entry": "dw-434-final-new-focused.log"
+    },
+    "trx": {
+      "archive": "dw-434-final-validation-logs.zip",
+      "entry": "dw-434-final-new-focused.trx"
+    }
+  },
+  "browser": {
+    "command": "python3 /tmp/tenants-dw-run-browser.py tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-detail-audit-return.mjs /tmp/dw-434-browser-final-2.json",
+    "wrapperScope": "Temporary private environment wrapper only; credentials and source-host environment values are not retained in repository artifacts. The tracked validator reads its documented TENANTS_BROWSER_* environment contract.",
+    "sourceBuildCommand": "dotnet build src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj -c Debug -m:1 -p:UseNuGetDeps=false",
+    "sourceBuildElapsed": "00:00:18.48",
+    "sourceBuildWarnings": 0,
+    "sourceBuildErrors": 0,
+    "exitCode": 0,
+    "passedCases": 7,
+    "acceptedForClosure": true,
+    "packet": "dw-434-browser-acceptance.json"
+  },
+  "artifacts": [
+    {
+      "sha256": "9b044ead3d6b7f035e7d072cfdcb9cc761460a440df28e774a48e2838761313f",
+      "archive": "dw-434-final-validation-logs.zip",
+      "entry": "dw-434-final-test-build.log"
+    },
+    {
+      "sha256": "382846e3e88bca2c32d6da6778cc0e309619b4f5940df02149d733ea91547c27",
+      "archive": "dw-434-final-validation-logs.zip",
+      "entry": "dw-434-final-new-focused.log"
+    },
+    {
+      "sha256": "84d71bf7494b2e9615cd18a68cac20caed8afbf94d5619cd4166ad01c9204dc5",
+      "archive": "dw-434-final-validation-logs.zip",
+      "entry": "dw-434-final-new-focused.trx"
+    }
+  ],
+  "priorFailures": "Parent batch evidence preserves initial nullable compilation errors, default-failure stub expectation and zero-selection filter failure separately. Browser rejected JSON packets are in dw-434-browser-rejected-attempts.zip with dw-434-browser-evidence-manifest.json; private UI/authentication logs are excluded.",
+  "finalValidationArchiveSha256": "fa11fd96047d00ad024bad3e8395fdbcbbf2d3965313a79161f9e506bddfbfe3"
+}

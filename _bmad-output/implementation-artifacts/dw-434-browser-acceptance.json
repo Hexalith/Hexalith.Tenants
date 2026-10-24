@@ -1,0 +1,509 @@
+{
+  "playwrightVersion": "1.64.0-alpha-1790635538000",
+  "startedUtc": "2026-10-24T04:21:46.812Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; isolated HTTP and SignalR fixture",
+  "fixtureScope": "Fake202 Accepted and held-POST RequestSent with unchanged authorized projections; a synthetic display-safe billing.mode grant permits fixture removal; no forwarding, event writes or backend command qualification",
+  "navigationSetup": "Capture production flow audit href during Accepted; reuse the same permitted context for RequestSent (whose audit launcher is deliberately absent); collapse the enclosing accordion; use Blazor.navigateTo and the real audit Back link",
+  "records": [
+    "DW-434"
+  ],
+  "cases": [
+    {
+      "name": "set: collapsed Accepted flow preserves exact logical attempt and restores governed focus",
+      "passed": true,
+      "focus": {
+        "element": "fluent-anchor-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-audit-entrypoint"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability-recovery-inspectaudit"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability-actions"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability"
+          },
+          {
+            "id": null,
+            "testId": "tenants-config-set-audit"
+          },
+          {
+            "id": "tenants-config-set-lifecycle",
+            "testId": "tenants-config-set-lifecycle"
+          },
+          {
+            "id": null,
+            "testId": "tenants-config-set-flow"
+          },
+          {
+            "id": null,
+            "testId": "tenants-config-management-section"
+          },
+          {
+            "id": "f166dc62",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-audit-origin"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f76ab08f",
+            "testId": null
+          },
+          {
+            "id": "f76ab08f-container",
+            "testId": null
+          }
+        ]
+      },
+      "isolatedCommandType": "SetTenantConfiguration",
+      "retainedState": "Accepted",
+      "preNavigationStateText": ">\nAccepted by EventStore; waiting for configuration processing.",
+      "sameMessageStatusReads": 2,
+      "transportRetries": 0,
+      "retryIdentityAndPayloadMatch": true,
+      "newLogicalCommands": 0,
+      "collapsedBeforeNavigation": true,
+      "expandedOnReturn": true,
+      "documentPreserved": true,
+      "stateText": ">\nAccepted by EventStore; waiting for configuration processing.",
+      "focusOutcome": "matching audit launcher"
+    },
+    {
+      "name": "set: collapsed RequestSent flow preserves exact logical attempt and restores governed focus",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-detail-identity",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-identity"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-audit-origin"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f1c3f0b0",
+            "testId": null
+          },
+          {
+            "id": "f1c3f0b0-container",
+            "testId": null
+          }
+        ]
+      },
+      "isolatedCommandType": "SetTenantConfiguration",
+      "retainedState": "RequestSent",
+      "preNavigationStateText": ">\nConfiguration change preview ready.",
+      "sameMessageStatusReads": 0,
+      "transportRetries": 0,
+      "retryIdentityAndPayloadMatch": true,
+      "newLogicalCommands": 0,
+      "collapsedBeforeNavigation": true,
+      "expandedOnReturn": true,
+      "documentPreserved": true,
+      "stateText": ">\nConfiguration change request sent.",
+      "focusOutcome": "Option A heading plus missing-origin notice"
+    },
+    {
+      "name": "remove: collapsed Accepted flow preserves exact logical attempt and restores governed focus",
+      "passed": true,
+      "focus": {
+        "element": "fluent-anchor-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-audit-entrypoint"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability-recovery-inspectaudit"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability-actions"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability"
+          },
+          {
+            "id": null,
+            "testId": "tenants-config-remove-audit"
+          },
+          {
+            "id": "tenants-config-remove-lifecycle",
+            "testId": "tenants-config-remove-lifecycle"
+          },
+          {
+            "id": null,
+            "testId": "tenants-config-remove-flow"
+          },
+          {
+            "id": null,
+            "testId": "tenants-config-management-section"
+          },
+          {
+            "id": "f69e036f",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-audit-origin"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f11944e4",
+            "testId": null
+          },
+          {
+            "id": "f11944e4-container",
+            "testId": null
+          }
+        ]
+      },
+      "isolatedCommandType": "RemoveTenantConfiguration",
+      "retainedState": "Accepted",
+      "preNavigationStateText": ">\nAccepted by EventStore; waiting for configuration removal processing.",
+      "sameMessageStatusReads": 2,
+      "transportRetries": 0,
+      "retryIdentityAndPayloadMatch": true,
+      "newLogicalCommands": 0,
+      "collapsedBeforeNavigation": true,
+      "expandedOnReturn": true,
+      "documentPreserved": true,
+      "stateText": ">\nAccepted by EventStore; waiting for configuration removal processing.",
+      "focusOutcome": "matching audit launcher"
+    },
+    {
+      "name": "remove: collapsed RequestSent flow preserves exact logical attempt and restores governed focus",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-detail-identity",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-identity"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-audit-origin"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f2076137",
+            "testId": null
+          },
+          {
+            "id": "f2076137-container",
+            "testId": null
+          }
+        ]
+      },
+      "isolatedCommandType": "RemoveTenantConfiguration",
+      "retainedState": "RequestSent",
+      "preNavigationStateText": ">\nConfiguration removal preview ready.",
+      "sameMessageStatusReads": 0,
+      "transportRetries": 0,
+      "retryIdentityAndPayloadMatch": true,
+      "newLogicalCommands": 0,
+      "collapsedBeforeNavigation": true,
+      "expandedOnReturn": true,
+      "documentPreserved": true,
+      "stateText": ">\nConfiguration removal request sent.",
+      "focusOutcome": "Option A heading plus missing-origin notice"
+    },
+    {
+      "name": "lifecycle: collapsed Accepted flow preserves exact logical attempt and restores governed focus",
+      "passed": true,
+      "focus": {
+        "element": "fluent-anchor-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": null,
+            "testId": "tenants-audit-entrypoint"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability-recovery-inspectaudit"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability-actions"
+          },
+          {
+            "id": null,
+            "testId": "tenants-audit-availability"
+          },
+          {
+            "id": null,
+            "testId": "tenants-lifecycle-audit"
+          },
+          {
+            "id": "tenants-lifecycle-lifecycle",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-lifecycle-command-flow"
+          },
+          {
+            "id": null,
+            "testId": "tenants-lifecycle-actions"
+          },
+          {
+            "id": "f6d74859",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-audit-origin"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f54d10ab",
+            "testId": null
+          },
+          {
+            "id": "f54d10ab-container",
+            "testId": null
+          }
+        ]
+      },
+      "isolatedCommandType": "DisableTenant",
+      "retainedState": "Accepted",
+      "preNavigationStateText": "> Lifecycle command accepted; waiting for projection evidence.",
+      "sameMessageStatusReads": 4,
+      "transportRetries": 0,
+      "retryIdentityAndPayloadMatch": true,
+      "newLogicalCommands": 0,
+      "collapsedBeforeNavigation": true,
+      "expandedOnReturn": true,
+      "documentPreserved": true,
+      "stateText": "> Lifecycle command accepted; waiting for projection evidence.",
+      "focusOutcome": "matching audit launcher"
+    },
+    {
+      "name": "lifecycle: collapsed RequestSent flow preserves exact logical attempt and restores governed focus",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-detail-identity",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-identity"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-audit-origin"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f20ecee0",
+            "testId": null
+          },
+          {
+            "id": "f20ecee0-container",
+            "testId": null
+          }
+        ]
+      },
+      "isolatedCommandType": "DisableTenant",
+      "retainedState": "RequestSent",
+      "preNavigationStateText": "> Preview ready; no lifecycle command has been submitted.",
+      "sameMessageStatusReads": 0,
+      "transportRetries": 1,
+      "retryIdentityAndPayloadMatch": true,
+      "newLogicalCommands": 0,
+      "collapsedBeforeNavigation": true,
+      "expandedOnReturn": true,
+      "documentPreserved": true,
+      "stateText": "> Lifecycle command request sent; projection still shows the last confirmed lifecycle.",
+      "focusOutcome": "Option A heading plus missing-origin notice"
+    },
+    {
+      "name": "Option A: absent terminal flow falls back to the real detail heading with notice",
+      "passed": true,
+      "focus": {
+        "element": "h1",
+        "shadowDepth": 0,
+        "ancestry": [
+          {
+            "id": "tenants-detail-identity",
+            "testId": null
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-identity"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail"
+          },
+          {
+            "id": null,
+            "testId": "tenants-detail-audit-origin"
+          },
+          {
+            "id": "fc-main-content",
+            "testId": null
+          },
+          {
+            "id": "f7e3def8",
+            "testId": null
+          },
+          {
+            "id": "f7e3def8-container",
+            "testId": null
+          }
+        ]
+      }
+    }
+  ],
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": true,
+    "reusedBuild": false,
+    "skippedForDevelopment": false
+  },
+  "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+  "sourceDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+  "buildInputsDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+  "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+  "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "sourceBeforeBuild": {
+    "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+    "sourceDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+    "buildInputsDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "sourceAfterBuild": {
+    "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+    "sourceDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+    "buildInputsDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "validatorSha256": "9abaabebb30e43db23b479ae0f6b623d0e34c5cee5bf74019c35bc4c77397c91",
+  "localUiAssemblySha256": "38200246a53ccd858971725313d988826c498e9f8ee7c371c690a1e03a5e46c0",
+  "localShellAssemblySha256": "12e5187ef359ca4e00f64e04e0642e8783729595280ff093f4e887a2a8c18056",
+  "browserVersion": "154.0.8037.57",
+  "sourceBeforeAcceptance": {
+    "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+    "sourceDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+    "buildInputsDiffSha256": "cecf54855a42e3666a28f74af9c8e546fba19758ae7e8419a65aef84ac061681",
+    "untrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+    "frontComposerDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "frontComposerUntrackedSourceSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "passed": true,
+  "fixture": {
+    "authorizedReads": 144,
+    "isolatedCommandAttempts": [
+      "SetTenantConfiguration",
+      "SetTenantConfiguration",
+      "RemoveTenantConfiguration",
+      "RemoveTenantConfiguration",
+      "DisableTenant",
+      "DisableTenant",
+      "DisableTenant"
+    ],
+    "fakeAcceptedResponses": 5,
+    "logicalCommandAttempts": 6,
+    "statusReads": 8,
+    "auditReads": 35,
+    "unexpectedWrites": 0,
+    "domainWrites": 0,
+    "commandForwarding": false,
+    "circuitErrors": 0
+  },
+  "finishedUtc": "2026-10-24T04:22:28.862Z",
+  "acceptedForClosure": true
+}

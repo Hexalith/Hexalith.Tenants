@@ -568,7 +568,9 @@ public sealed class CreateTenantFlowTests : FluentBunitContext
         entryPoint.TextContent.Trim().ShouldBe("Inspect audit");
         // The browser harness measures this inner control inside the recovery shell at 390px.
         entryPoint.ClassList.ShouldContain("tenants-audit-entrypoint");
-        entryPoint.ParentElement.ShouldNotBeNull().ClassList.ShouldContain("tenants-audit-availability__action-shell");
+        entryPoint.ParentElement.ShouldNotBeNull().ClassList.ShouldContain("tenants-audit-entrypoint-style-scope");
+        entryPoint.Closest(".tenants-audit-availability__action-shell").ShouldNotBeNull()
+            .ShouldBe(control.QuerySelector(".tenants-audit-availability__action-shell"));
         entryPoint.TextContent.ShouldNotContain("Audit pending");
         System.Text.RegularExpressions.Regex.Count(audit.TextContent, "Audit pending").ShouldBe(1);
     }

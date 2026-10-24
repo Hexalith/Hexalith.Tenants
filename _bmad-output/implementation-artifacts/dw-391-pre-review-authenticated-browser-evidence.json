@@ -1,0 +1,6565 @@
+{
+  "playwrightVersion": "1.64.0-alpha-1790635538000",
+  "startedUtc": "2026-10-24T03:59:14.799Z",
+  "hostMode": "Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream",
+  "fixtureScope": "Qualifies authenticated production grant/removal DOM and browser behavior using deterministic read responses; does not qualify backend authorization, stored domain data or command delivery",
+  "records": [
+    "DW-268",
+    "DW-391"
+  ],
+  "cases": [
+    {
+      "kind": "grant",
+      "scenario": "modal-keyboard-layout",
+      "viewport": {
+        "width": 1366,
+        "height": 1000
+      },
+      "measurements": {
+        "viewport": {
+          "width": 1366,
+          "height": 1000
+        },
+        "bounds": {
+          "left": 299,
+          "right": 1067,
+          "top": 169,
+          "bottom": 831,
+          "width": 768,
+          "height": 662
+        },
+        "clientWidth": 766,
+        "scrollWidth": 766,
+        "clientHeight": 660,
+        "scrollHeight": 660,
+        "overflowY": "auto",
+        "columns": "186.688px 551.312px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 256,
+        "targetOverflowWrap": "anywhere"
+      },
+      "hostStyles": {
+        "width": 1366,
+        "area": [
+          {
+            "tag": "div",
+            "role": null,
+            "display": "flex",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "20px normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "form": [
+          {
+            "tag": "form",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "none",
+            "gap": "8px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "labels": [
+          {
+            "tag": "label",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "576px",
+            "gap": "4px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "grid": [
+          {
+            "tag": "table",
+            "role": "grid",
+            "display": "grid",
+            "minWidth": "832px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "100px",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "identities": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "states": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "icon": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "grid",
+            "minWidth": "32px",
+            "minHeight": "32px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ]
+      },
+      "disabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        }
+      ],
+      "enabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 8,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 9,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 10,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 11,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 8,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 9,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 10,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 11,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        }
+      ],
+      "cancelReachable": true,
+      "inertBackground": true,
+      "escapeRestoresOrigin": true,
+      "restoredFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          "tenants-global-admin-grant-submit",
+          "tenants-global-admin-grant-form",
+          "tenants-global-admin-grant",
+          "tenants-global-admins-area"
+        ]
+      }
+    },
+    {
+      "kind": "remove",
+      "scenario": "modal-keyboard-layout",
+      "viewport": {
+        "width": 1366,
+        "height": 1000
+      },
+      "measurements": {
+        "viewport": {
+          "width": 1366,
+          "height": 1000
+        },
+        "bounds": {
+          "left": 299,
+          "right": 1067,
+          "top": 171,
+          "bottom": 829,
+          "width": 768,
+          "height": 658
+        },
+        "clientWidth": 766,
+        "scrollWidth": 766,
+        "clientHeight": 656,
+        "scrollHeight": 656,
+        "overflowY": "auto",
+        "columns": "164.922px 573.078px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 272,
+        "targetOverflowWrap": "anywhere"
+      },
+      "hostStyles": {
+        "width": 1366,
+        "area": [
+          {
+            "tag": "div",
+            "role": null,
+            "display": "flex",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "20px normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "form": [
+          {
+            "tag": "form",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "none",
+            "gap": "8px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "labels": [
+          {
+            "tag": "label",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "576px",
+            "gap": "4px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "grid": [
+          {
+            "tag": "table",
+            "role": "grid",
+            "display": "grid",
+            "minWidth": "832px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "100px",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "identities": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "states": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "icon": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "grid",
+            "minWidth": "32px",
+            "minHeight": "32px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ]
+      },
+      "disabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        }
+      ],
+      "enabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 8,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 9,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 10,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 11,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 8,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 9,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 10,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 11,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        }
+      ],
+      "cancelReachable": true,
+      "inertBackground": true,
+      "escapeRestoresOrigin": true,
+      "restoredFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          "tenants-global-admin-remove",
+          "tenants-global-admins-action-reasons",
+          "tenants-global-admins-list",
+          "tenants-global-admins-area"
+        ]
+      }
+    },
+    {
+      "kind": "grant",
+      "scenario": "modal-keyboard-layout",
+      "viewport": {
+        "width": 768,
+        "height": 1000
+      },
+      "measurements": {
+        "viewport": {
+          "width": 768,
+          "height": 1000
+        },
+        "bounds": {
+          "left": 16,
+          "right": 752,
+          "top": 169,
+          "bottom": 831,
+          "width": 736,
+          "height": 662
+        },
+        "clientWidth": 734,
+        "scrollWidth": 734,
+        "clientHeight": 660,
+        "scrollHeight": 660,
+        "overflowY": "auto",
+        "columns": "186.688px 519.312px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 723,
+            "width": 519.3125,
+            "clientWidth": 519,
+            "scrollWidth": 519,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 256,
+        "targetOverflowWrap": "anywhere"
+      },
+      "hostStyles": {
+        "width": 768,
+        "area": [
+          {
+            "tag": "div",
+            "role": null,
+            "display": "flex",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "20px normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "form": [
+          {
+            "tag": "form",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "none",
+            "gap": "8px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "labels": [
+          {
+            "tag": "label",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "576px",
+            "gap": "4px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "grid": [
+          {
+            "tag": "table",
+            "role": "grid",
+            "display": "grid",
+            "minWidth": "832px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "100px",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "identities": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "states": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "icon": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "grid",
+            "minWidth": "32px",
+            "minHeight": "32px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ]
+      },
+      "disabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        }
+      ],
+      "enabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 8,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 9,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 10,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 11,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 8,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 9,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 10,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 11,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        }
+      ],
+      "cancelReachable": true,
+      "inertBackground": true,
+      "escapeRestoresOrigin": true,
+      "restoredFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          "tenants-global-admin-grant-submit",
+          "tenants-global-admin-grant-form",
+          "tenants-global-admin-grant",
+          "tenants-global-admins-area"
+        ]
+      }
+    },
+    {
+      "kind": "remove",
+      "scenario": "modal-keyboard-layout",
+      "viewport": {
+        "width": 768,
+        "height": 1000
+      },
+      "measurements": {
+        "viewport": {
+          "width": 768,
+          "height": 1000
+        },
+        "bounds": {
+          "left": 16,
+          "right": 752,
+          "top": 171,
+          "bottom": 829,
+          "width": 736,
+          "height": 658
+        },
+        "clientWidth": 734,
+        "scrollWidth": 734,
+        "clientHeight": 656,
+        "scrollHeight": 656,
+        "overflowY": "auto",
+        "columns": "164.922px 541.078px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 723,
+            "width": 541.078125,
+            "clientWidth": 541,
+            "scrollWidth": 541,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 272,
+        "targetOverflowWrap": "anywhere"
+      },
+      "hostStyles": {
+        "width": 768,
+        "area": [
+          {
+            "tag": "div",
+            "role": null,
+            "display": "flex",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "20px normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "form": [
+          {
+            "tag": "form",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "none",
+            "gap": "8px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "labels": [
+          {
+            "tag": "label",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "576px",
+            "gap": "4px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "grid": [
+          {
+            "tag": "table",
+            "role": "grid",
+            "display": "grid",
+            "minWidth": "832px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "100px",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "identities": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "states": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "icon": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "grid",
+            "minWidth": "32px",
+            "minHeight": "32px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ]
+      },
+      "disabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        }
+      ],
+      "enabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 8,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 9,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 10,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 11,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 8,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 9,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 10,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 11,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        }
+      ],
+      "cancelReachable": true,
+      "inertBackground": true,
+      "escapeRestoresOrigin": true,
+      "restoredFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          "tenants-global-admin-remove",
+          "tenants-global-admins-action-reasons",
+          "tenants-global-admins-list",
+          "tenants-global-admins-area"
+        ]
+      }
+    },
+    {
+      "kind": "grant",
+      "scenario": "modal-keyboard-layout",
+      "viewport": {
+        "width": 1024,
+        "height": 400
+      },
+      "measurements": {
+        "viewport": {
+          "width": 1024,
+          "height": 400
+        },
+        "bounds": {
+          "left": 128,
+          "right": 896,
+          "top": 20,
+          "bottom": 380,
+          "width": 768,
+          "height": 360
+        },
+        "clientWidth": 766,
+        "scrollWidth": 766,
+        "clientHeight": 358,
+        "scrollHeight": 660,
+        "overflowY": "auto",
+        "columns": "186.688px 551.312px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 755,
+            "width": 551.3125,
+            "clientWidth": 551,
+            "scrollWidth": 551,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 256,
+        "targetOverflowWrap": "anywhere"
+      },
+      "hostStyles": {
+        "width": 1024,
+        "area": [
+          {
+            "tag": "div",
+            "role": null,
+            "display": "flex",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "20px normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "form": [
+          {
+            "tag": "form",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "none",
+            "gap": "8px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "labels": [
+          {
+            "tag": "label",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "576px",
+            "gap": "4px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "grid": [
+          {
+            "tag": "table",
+            "role": "grid",
+            "display": "grid",
+            "minWidth": "832px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "100px",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "identities": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "states": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "icon": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "grid",
+            "minWidth": "32px",
+            "minHeight": "32px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ]
+      },
+      "disabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        }
+      ],
+      "enabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 8,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 9,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 10,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 11,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 8,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 9,
+          "control": "tenants-global-admin-grant-preview-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 10,
+          "control": "tenants-global-admin-grant-confirm",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 11,
+          "control": "tenants-global-admin-grant-acknowledge",
+          "element": "fluent-checkbox",
+          "shadowDepth": 0
+        }
+      ],
+      "cancelReachable": true,
+      "inertBackground": true,
+      "escapeRestoresOrigin": true,
+      "restoredFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          "tenants-global-admin-grant-submit",
+          "tenants-global-admin-grant-form",
+          "tenants-global-admin-grant",
+          "tenants-global-admins-area"
+        ]
+      }
+    },
+    {
+      "kind": "remove",
+      "scenario": "modal-keyboard-layout",
+      "viewport": {
+        "width": 1024,
+        "height": 400
+      },
+      "measurements": {
+        "viewport": {
+          "width": 1024,
+          "height": 400
+        },
+        "bounds": {
+          "left": 128,
+          "right": 896,
+          "top": 20,
+          "bottom": 380,
+          "width": 768,
+          "height": 360
+        },
+        "clientWidth": 766,
+        "scrollWidth": 766,
+        "clientHeight": 358,
+        "scrollHeight": 656,
+        "overflowY": "auto",
+        "columns": "164.922px 573.078px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 755,
+            "width": 573.078125,
+            "clientWidth": 573,
+            "scrollWidth": 573,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 272,
+        "targetOverflowWrap": "anywhere"
+      },
+      "hostStyles": {
+        "width": 1024,
+        "area": [
+          {
+            "tag": "div",
+            "role": null,
+            "display": "flex",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "20px normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "form": [
+          {
+            "tag": "form",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "none",
+            "gap": "8px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "labels": [
+          {
+            "tag": "label",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "576px",
+            "gap": "4px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "grid": [
+          {
+            "tag": "table",
+            "role": "grid",
+            "display": "grid",
+            "minWidth": "832px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "100px",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "identities": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "384px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "states": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "icon": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "grid",
+            "minWidth": "32px",
+            "minHeight": "32px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ]
+      },
+      "disabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        }
+      ],
+      "enabledKeyboard": [
+        {
+          "key": "Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 8,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 9,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Tab",
+          "step": 10,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Tab",
+          "step": 11,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 0,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 1,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 2,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 3,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 4,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 5,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 6,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 7,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 8,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 9,
+          "control": "tenants-global-admin-remove-submit",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 10,
+          "control": "tenants-global-admin-remove-acknowledge",
+          "element": "input",
+          "shadowDepth": 1
+        },
+        {
+          "key": "Shift+Tab",
+          "step": 11,
+          "control": "tenants-global-admin-remove-cancel",
+          "element": "fluent-button",
+          "shadowDepth": 0
+        }
+      ],
+      "cancelReachable": true,
+      "inertBackground": true,
+      "escapeRestoresOrigin": true,
+      "restoredFocus": {
+        "element": "fluent-button",
+        "shadowDepth": 0,
+        "ancestry": [
+          "tenants-global-admin-remove",
+          "tenants-global-admins-action-reasons",
+          "tenants-global-admins-list",
+          "tenants-global-admins-area"
+        ]
+      }
+    },
+    {
+      "kind": "grant",
+      "scenario": "unsafe-viewport",
+      "thresholdMeasurements": {
+        "viewport": {
+          "width": 767,
+          "height": 400
+        },
+        "bounds": {
+          "left": 16,
+          "right": 751,
+          "top": 20,
+          "bottom": 380,
+          "width": 735,
+          "height": 360
+        },
+        "clientWidth": 733,
+        "scrollWidth": 733,
+        "clientHeight": 358,
+        "scrollHeight": 772,
+        "overflowY": "auto",
+        "columns": "186.688px 518.312px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 199.6875,
+            "width": 186.6875,
+            "clientWidth": 187,
+            "scrollWidth": 187,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 203.6875,
+            "right": 722,
+            "width": 518.3125,
+            "clientWidth": 518,
+            "scrollWidth": 518,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 256,
+        "targetOverflowWrap": "anywhere"
+      },
+      "phoneMeasurements": {
+        "viewport": {
+          "width": 390,
+          "height": 400
+        },
+        "bounds": {
+          "left": 16,
+          "right": 374,
+          "top": 20,
+          "bottom": 380,
+          "width": 358,
+          "height": 360
+        },
+        "clientWidth": 356,
+        "scrollWidth": 356,
+        "clientHeight": 358,
+        "scrollHeight": 1348,
+        "overflowY": "auto",
+        "columns": "332px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 256,
+        "targetOverflowWrap": "anywhere"
+      },
+      "hostStyles": {
+        "width": 390,
+        "area": [
+          {
+            "tag": "div",
+            "role": null,
+            "display": "flex",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "20px normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "form": [
+          {
+            "tag": "form",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "none",
+            "gap": "8px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "labels": [
+          {
+            "tag": "label",
+            "role": null,
+            "display": "grid",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "576px",
+            "gap": "4px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "grid": [
+          {
+            "tag": "table",
+            "role": "grid",
+            "display": "grid",
+            "minWidth": "832px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "100px",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "identities": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "256px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "256px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "states": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "icon": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "grid",
+            "minWidth": "32px",
+            "minHeight": "32px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ]
+      },
+      "confirmationDisabled": true,
+      "cancelReachable": true,
+      "launchersHidden": true,
+      "readonlyExplanationVisible": true
+    },
+    {
+      "kind": "remove",
+      "scenario": "unsafe-viewport",
+      "thresholdMeasurements": {
+        "viewport": {
+          "width": 767,
+          "height": 400
+        },
+        "bounds": {
+          "left": 16,
+          "right": 751,
+          "top": 20,
+          "bottom": 380,
+          "width": 735,
+          "height": 360
+        },
+        "clientWidth": 733,
+        "scrollWidth": 733,
+        "clientHeight": 358,
+        "scrollHeight": 768,
+        "overflowY": "auto",
+        "columns": "164.922px 540.078px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 177.921875,
+            "width": 164.921875,
+            "clientWidth": 165,
+            "scrollWidth": 165,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 181.921875,
+            "right": 722,
+            "width": 540.078125,
+            "clientWidth": 540,
+            "scrollWidth": 540,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 272,
+        "targetOverflowWrap": "anywhere"
+      },
+      "phoneMeasurements": {
+        "viewport": {
+          "width": 390,
+          "height": 400
+        },
+        "bounds": {
+          "left": 16,
+          "right": 374,
+          "top": 20,
+          "bottom": 380,
+          "width": 358,
+          "height": 360
+        },
+        "clientWidth": 356,
+        "scrollWidth": 356,
+        "clientHeight": 358,
+        "scrollHeight": 1384,
+        "overflowY": "auto",
+        "columns": "332px",
+        "facts": [
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          },
+          {
+            "left": 13,
+            "right": 345,
+            "width": 332,
+            "clientWidth": 332,
+            "scrollWidth": 332,
+            "textOverflow": "clip",
+            "overflowWrap": "anywhere",
+            "hasText": true
+          }
+        ],
+        "targetLength": 272,
+        "targetOverflowWrap": "anywhere"
+      },
+      "hostStyles": {
+        "width": 390,
+        "area": [
+          {
+            "tag": "div",
+            "role": null,
+            "display": "flex",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "20px normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "form": [
+          {
+            "tag": "form",
+            "role": null,
+            "display": "grid",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "none",
+            "gap": "8px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "labels": [
+          {
+            "tag": "label",
+            "role": null,
+            "display": "grid",
+            "minWidth": "0px",
+            "minHeight": "0px",
+            "maxWidth": "576px",
+            "gap": "4px",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "grid": [
+          {
+            "tag": "table",
+            "role": "grid",
+            "display": "grid",
+            "minWidth": "832px",
+            "minHeight": "0px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "100px",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "th",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "40px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "identities": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "256px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "block",
+            "minWidth": "auto",
+            "minHeight": "auto",
+            "maxWidth": "256px",
+            "gap": "normal",
+            "whiteSpace": "pre-wrap",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "states": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          },
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "inline-grid",
+            "minWidth": "28px",
+            "minHeight": "28px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ],
+        "icon": [
+          {
+            "tag": "fluent-text",
+            "role": null,
+            "display": "grid",
+            "minWidth": "32px",
+            "minHeight": "32px",
+            "maxWidth": "none",
+            "gap": "normal",
+            "whiteSpace": "normal",
+            "overflowWrap": "anywhere"
+          }
+        ]
+      },
+      "confirmationDisabled": true,
+      "cancelReachable": true,
+      "launchersHidden": true,
+      "readonlyExplanationVisible": true
+    }
+  ],
+  "build": {
+    "executable": "dotnet",
+    "arguments": [
+      "build",
+      "src/Hexalith.Tenants.UI/Hexalith.Tenants.UI.csproj",
+      "-c",
+      "Debug",
+      "-m:1",
+      "-p:UseNuGetDeps=false"
+    ],
+    "succeeded": true,
+    "skippedForDevelopment": false,
+    "reusedBuild": false
+  },
+  "sourceBaseRevision": "3808cd73f6560d035c417109d27d0a2b3365992b",
+  "sourceDiffSha256": "c6eb12e841f66fa94a7b27e300f67a8e54630c3a6892fbf49d062512f809a854",
+  "frontComposerBaseRevision": "adc0dbe2228d6291df8b1fe5ba1dc8fb0080f631",
+  "validatorSha256": "113c9f7ca8f40288885d49e9359578f046df9ee441384278f801c6a9513b2f46",
+  "localUiAssemblySha256": "2e0f90ba41434f4f5d1361a3f36d7312513689bf571cadbb99bf8b30ec2caba5",
+  "localShellAssemblySha256": "12e5187ef359ca4e00f64e04e0642e8783729595280ff093f4e887a2a8c18056",
+  "browserVersion": "154.0.8037.57",
+  "styleObservations": [
+    {
+      "width": 1366,
+      "area": [
+        {
+          "tag": "div",
+          "role": null,
+          "display": "flex",
+          "minWidth": "0px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "20px normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "form": [
+        {
+          "tag": "form",
+          "role": null,
+          "display": "grid",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "none",
+          "gap": "8px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "labels": [
+        {
+          "tag": "label",
+          "role": null,
+          "display": "grid",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "576px",
+          "gap": "4px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "grid": [
+        {
+          "tag": "table",
+          "role": "grid",
+          "display": "grid",
+          "minWidth": "832px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "100px",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "identities": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "384px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "384px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "states": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "icon": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "grid",
+          "minWidth": "32px",
+          "minHeight": "32px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ]
+    },
+    {
+      "width": 768,
+      "area": [
+        {
+          "tag": "div",
+          "role": null,
+          "display": "flex",
+          "minWidth": "0px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "20px normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "form": [
+        {
+          "tag": "form",
+          "role": null,
+          "display": "grid",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "none",
+          "gap": "8px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "labels": [
+        {
+          "tag": "label",
+          "role": null,
+          "display": "grid",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "576px",
+          "gap": "4px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "grid": [
+        {
+          "tag": "table",
+          "role": "grid",
+          "display": "grid",
+          "minWidth": "832px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "100px",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "identities": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "384px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "384px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "states": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "icon": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "grid",
+          "minWidth": "32px",
+          "minHeight": "32px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ]
+    },
+    {
+      "width": 1024,
+      "area": [
+        {
+          "tag": "div",
+          "role": null,
+          "display": "flex",
+          "minWidth": "0px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "20px normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "form": [
+        {
+          "tag": "form",
+          "role": null,
+          "display": "grid",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "none",
+          "gap": "8px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "labels": [
+        {
+          "tag": "label",
+          "role": null,
+          "display": "grid",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "576px",
+          "gap": "4px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "grid": [
+        {
+          "tag": "table",
+          "role": "grid",
+          "display": "grid",
+          "minWidth": "832px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "100px",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "identities": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "384px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "384px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "states": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "icon": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "grid",
+          "minWidth": "32px",
+          "minHeight": "32px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "area": [
+        {
+          "tag": "div",
+          "role": null,
+          "display": "flex",
+          "minWidth": "0px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "20px normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "form": [
+        {
+          "tag": "form",
+          "role": null,
+          "display": "grid",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "none",
+          "gap": "8px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "labels": [
+        {
+          "tag": "label",
+          "role": null,
+          "display": "grid",
+          "minWidth": "0px",
+          "minHeight": "0px",
+          "maxWidth": "576px",
+          "gap": "4px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "grid": [
+        {
+          "tag": "table",
+          "role": "grid",
+          "display": "grid",
+          "minWidth": "832px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "100px",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "identities": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "256px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "256px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "states": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "icon": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "grid",
+          "minWidth": "32px",
+          "minHeight": "32px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ]
+    },
+    {
+      "width": 390,
+      "area": [
+        {
+          "tag": "div",
+          "role": null,
+          "display": "flex",
+          "minWidth": "0px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "20px normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "form": [
+        {
+          "tag": "form",
+          "role": null,
+          "display": "grid",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "none",
+          "gap": "8px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "labels": [
+        {
+          "tag": "label",
+          "role": null,
+          "display": "grid",
+          "minWidth": "0px",
+          "minHeight": "0px",
+          "maxWidth": "576px",
+          "gap": "4px",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "grid": [
+        {
+          "tag": "table",
+          "role": "grid",
+          "display": "grid",
+          "minWidth": "832px",
+          "minHeight": "0px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "100px",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "th",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "40px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "identities": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "256px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "block",
+          "minWidth": "auto",
+          "minHeight": "auto",
+          "maxWidth": "256px",
+          "gap": "normal",
+          "whiteSpace": "pre-wrap",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "states": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        },
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "inline-grid",
+          "minWidth": "28px",
+          "minHeight": "28px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ],
+      "icon": [
+        {
+          "tag": "fluent-text",
+          "role": null,
+          "display": "grid",
+          "minWidth": "32px",
+          "minHeight": "32px",
+          "maxWidth": "none",
+          "gap": "normal",
+          "whiteSpace": "normal",
+          "overflowWrap": "anywhere"
+        }
+      ]
+    }
+  ],
+  "scopeNegativeControls": [
+    [
+      {
+        "owner": ".global-admins-style-scope",
+        "target": ".global-admins__grant-state-symbol",
+        "property": "minWidth",
+        "expected": "28px",
+        "scopeAttributeCount": 1,
+        "before": "28px",
+        "removed": "0px",
+        "restored": "28px"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant-form",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "block",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant label",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "flex",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__table-scroll",
+        "target": "table.global-admins__data-grid[role=\"grid\"]",
+        "property": "minWidth",
+        "expected": "832px",
+        "scopeAttributeCount": 1,
+        "before": "832px",
+        "removed": "0px",
+        "restored": "832px"
+      }
+    ],
+    [
+      {
+        "owner": ".global-admins-style-scope",
+        "target": ".global-admins__grant-state-symbol",
+        "property": "minWidth",
+        "expected": "28px",
+        "scopeAttributeCount": 1,
+        "before": "28px",
+        "removed": "0px",
+        "restored": "28px"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant-form",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "block",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant label",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "flex",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__table-scroll",
+        "target": "table.global-admins__data-grid[role=\"grid\"]",
+        "property": "minWidth",
+        "expected": "832px",
+        "scopeAttributeCount": 1,
+        "before": "832px",
+        "removed": "0px",
+        "restored": "832px"
+      }
+    ],
+    [
+      {
+        "owner": ".global-admins-style-scope",
+        "target": ".global-admins__grant-state-symbol",
+        "property": "minWidth",
+        "expected": "28px",
+        "scopeAttributeCount": 1,
+        "before": "28px",
+        "removed": "0px",
+        "restored": "28px"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant-form",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "block",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant label",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "flex",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__table-scroll",
+        "target": "table.global-admins__data-grid[role=\"grid\"]",
+        "property": "minWidth",
+        "expected": "832px",
+        "scopeAttributeCount": 1,
+        "before": "832px",
+        "removed": "0px",
+        "restored": "832px"
+      }
+    ],
+    [
+      {
+        "owner": ".global-admins-style-scope",
+        "target": ".global-admins__grant-state-symbol",
+        "property": "minWidth",
+        "expected": "28px",
+        "scopeAttributeCount": 1,
+        "before": "28px",
+        "removed": "0px",
+        "restored": "28px"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant-form",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "block",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant label",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "flex",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__table-scroll",
+        "target": "table.global-admins__data-grid[role=\"grid\"]",
+        "property": "minWidth",
+        "expected": "832px",
+        "scopeAttributeCount": 1,
+        "before": "832px",
+        "removed": "0px",
+        "restored": "832px"
+      }
+    ],
+    [
+      {
+        "owner": ".global-admins-style-scope",
+        "target": ".global-admins__grant-state-symbol",
+        "property": "minWidth",
+        "expected": "28px",
+        "scopeAttributeCount": 1,
+        "before": "28px",
+        "removed": "0px",
+        "restored": "28px"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant-form",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "block",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__grant",
+        "target": ".global-admins__grant label",
+        "property": "display",
+        "expected": "grid",
+        "scopeAttributeCount": 1,
+        "before": "grid",
+        "removed": "flex",
+        "restored": "grid"
+      },
+      {
+        "owner": ".global-admins__table-scroll",
+        "target": "table.global-admins__data-grid[role=\"grid\"]",
+        "property": "minWidth",
+        "expected": "832px",
+        "scopeAttributeCount": 1,
+        "before": "832px",
+        "removed": "0px",
+        "restored": "832px"
+      }
+    ]
+  ],
+  "passed": true,
+  "fixture": {
+    "authorizedReads": 9,
+    "administratorReads": 9,
+    "commandAttempts": 0,
+    "circuitErrors": 0
+  },
+  "acceptedForClosure": true,
+  "finishedUtc": "2026-10-24T03:59:34.476Z"
+}

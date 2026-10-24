@@ -1,0 +1,100 @@
+{
+  "scope": "Sanitized browser JSON packets only; no credentials, private UI logs or authentication protocol logs. Rejected packets retain their original failures.",
+  "archive": "dw-434-browser-rejected-attempts.zip",
+  "archiveSha256": "541b112e3762c05dec5d5b248668909972f0320ae6080000c385ebf925f2931a",
+  "entries": [
+    {
+      "file": "dw-434-browser-attempt-1.json",
+      "sha256": "90a17648df0d93ede98d47dd0d5b639675fbfb1d4c60d1745b3f0cb9344d0827",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "lifecycle-initial-detail"
+    },
+    {
+      "file": "dw-434-browser-attempt-10.json",
+      "sha256": "4df0567101aa8cf01cc0c6c7d605556da7cb6a4495be2814d005ad93ae259102",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "remove-Accepted-retained-attempt"
+    },
+    {
+      "file": "dw-434-browser-attempt-11.json",
+      "sha256": "b2f6d3e9cf3f8f3ee139d06e2d2d35981113f0e18725fbb4752ead93ddca3939",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "lifecycle-RequestSent-readopted-return"
+    },
+    {
+      "file": "dw-434-browser-attempt-12.json",
+      "sha256": "674d6f1e45617bad55533d08ca6490c80e06237bf8a7208521a3591265b7e84d",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "authenticate-original-aspire-host"
+    },
+    {
+      "file": "dw-434-browser-attempt-2.json",
+      "sha256": "329e498333e209263cc82ddf988d3a3a372e479c8a6b4e5986cfd274684fd65a",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "lifecycle-initial-detail"
+    },
+    {
+      "file": "dw-434-browser-attempt-3.json",
+      "sha256": "f87b5e6622053c64d187765d59d25335681ee8a8a6fa7df334a16e545b10a4ad",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "lifecycle-accepted-attempt"
+    },
+    {
+      "file": "dw-434-browser-attempt-4.json",
+      "sha256": "85caf42c62e01f635563d42256474914859248f6a6df7b2b75f3ec4805b473f5",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "set-readopted-return"
+    },
+    {
+      "file": "dw-434-browser-attempt-5.json",
+      "sha256": "6f411d7554757d01342554cf054eae1d3e04e6833d380164635b2919df5a7f35",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "lifecycle-accepted-attempt"
+    },
+    {
+      "file": "dw-434-browser-attempt-6.json",
+      "sha256": "8e97b9fbff33f4690d9629ddf2663fa98bb233001d1b7304aa405453f694d87b",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "lifecycle-initial-detail"
+    },
+    {
+      "file": "dw-434-browser-attempt-7.json",
+      "sha256": "fee1d938558d111bc115e3cda12efac55c5f4d12b47295df671a2efc20c84264",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "lifecycle-accepted-attempt"
+    },
+    {
+      "file": "dw-434-browser-attempt-8.json",
+      "sha256": "f0ad153ebd3949577b4d8a0d2bf36ca5336230a95f095c9f3b1d5963ef43e470",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "fixture-start"
+    },
+    {
+      "file": "dw-434-browser-attempt-9.json",
+      "sha256": "b2d3d06e333309d49283539ff828d6fc76fc741c2c141492c70be54bbf37cbfe",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "set-RequestSent-retained-attempt"
+    },
+    {
+      "file": "dw-434-browser-final.json",
+      "sha256": "adca02540a15088c823c5a4103f75715051d21310d220945e515541f70d22370",
+      "passed": false,
+      "acceptedForClosure": false,
+      "phase": "authenticate-original-aspire-host"
+    }
+  ],
+  "acceptedPacket": "dw-434-browser-acceptance.json",
+  "acceptedPacketSha256": "c935064a0275fab539227a12a4f62d4d30671a646ae84adcb5e89833f3ddbfd5"
+}

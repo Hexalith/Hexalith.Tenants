@@ -29,7 +29,7 @@ using Shouldly;
 
 namespace Hexalith.Tenants.UI.Tests.Components;
 
-public sealed class RemoveTenantConfigurationFlowTests : FluentBunitContext
+public sealed partial class RemoveTenantConfigurationFlowTests : FluentBunitContext
 {
     [Theory]
     [InlineData(false)]

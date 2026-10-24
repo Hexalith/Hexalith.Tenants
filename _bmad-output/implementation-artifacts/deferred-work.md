@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-268/DW-328/DW-391/DW-434/DW-489 closure (2026-10-24):** Scoped Fluent layout, authenticated administrator and composed correction evidence, identity-preserving retained audit returns and independent configuration-removal follow-up close exactly five records. All 657 IDs remain: 590 done/67 open across 62 maintenance rows. Original fields, unrelated records, dependency pointers and broader runtime/release holds remain preserved. See [validation evidence](dw-268-328-391-434-489-validation-evidence.md).
+
 **DW-225/DW-372/DW-382/DW-623/DW-642 closure (2026-10-24):** Exact causal audit proof tolerates independent BFF clock skew; only verified terminal correction proof failure releases fixed-aggregate admission. Existing member-removal behavior and the duplicate cold hosted source-build risks are requalified. Exactly five records close: all 657 IDs remain, 585 done/72 open across 67 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](dw-225-372-382-623-642-validation-evidence.md).
 
 **DW-524/DW-525/DW-529/DW-604/DW-627 closure (2026-10-24):** Persisted owner watermarks and guarded singleton selection prevent stale replay regression; authenticated legacy intake refuses unsupported evolution before store access. Clean-source performance provenance and a coordinated tenant schema runbook complete the evidence/operations gaps. Server1475/1475, replay24/24 and route30/30 pass in Debug/source; focused replay24/24 and route30/30 also pass in Release/package. Exactly five records close: all 657 IDs remain, 580 done/77 open across 71 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](dw-524-525-529-604-627-validation-evidence.md).
@@ -2499,17 +2501,24 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: UserMembershipLookupPanel.razor.css; TenantAuditPage.razor.css
 reason: The legacy ledger defers this issue: The scoped-CSS-on-a-Fluent-host trap predates this change in five other components. Original context is preserved in legacy-detail.
 legacy-detail: - summary: The scoped-CSS-on-a-Fluent-host trap predates this change in five other components. evidence: Plain scoped selectors are applied to classes placed on Fluent components in `UserMembershipLookupPanel.razor.css`, `TenantAuditPage.razor.css`, `GlobalAdministratorsPage.razor.css`, `AuditEvidenceReceipt.razor.css` and `AuditEvidenceEntryPoint.razor.css`. Per Microsoft's CSS-isolation contract, scoped CSS applies to HTML elements only, so these selectors cannot match. Only the four `TenantConfigurationView` wrappers are a regression introduced by this story.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor.css and Pages/TenantAuditPage.razor.css, GlobalAdministratorsPage.razor.css plus Tenants/Audit styles still contain plain scoped selectors for classes placed on child Fluent hosts. Some rules cannot match CSS-isolated child markup; each target needs inspection.
-verification-files: src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor.css; src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor.css; src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css
-evidence-kind: verified-defect
+pre-ui-qualification-status: open
+pre-ui-qualification-disposition: actionable
+pre-ui-qualification-verification-date: 2026-10-12
+pre-ui-qualification-verification: src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor.css and Pages/TenantAuditPage.razor.css, GlobalAdministratorsPage.razor.css plus Tenants/Audit styles still contain plain scoped selectors for classes placed on child Fluent hosts. Some rules cannot match CSS-isolated child markup; each target needs inspection.
+pre-ui-qualification-verification-files: src/Hexalith.Tenants.UI/Components/Users/UserMembershipLookupPanel.razor.css; src/Hexalith.Tenants.UI/Components/Pages/TenantAuditPage.razor.css; src/Hexalith.Tenants.UI/Components/Pages/GlobalAdministratorsPage.razor.css
+pre-ui-qualification-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: browser style evidence
-next-action: Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width.
+pre-ui-qualification-next-action: Audit each host selector, repair ownership/::deep where needed and confirm computed styles at every supported width.
 related: DW-317
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Native isolation owners and narrowly matched Fluent-host selectors now qualify all five original surfaces. The entrypoint owner has no layout box, both available and unavailable roots are measured, real containing width replaces shrink-wrap equality, and forced-color/reduced-motion controls qualify affected rules. See final command/results/review evidence and its qualified limits.
+verification-files: _bmad-output/implementation-artifacts/dw-268-328-391-434-489-validation-evidence.md
+evidence-kind: executed-browser-and-component
+next-action: None for this record; preserve separate unresolved runtime, product and release decisions.
 
 ### DW-269: Inserting `Available` mid-enum shifts `MissingSupport`'s numeric value
 
@@ -2995,17 +3004,24 @@ location: n/a
 source_spec: `spec-3-6-remove-configuration-key-with-complete-preview.md`
 severity: low
 reason: The follow-up-review damping cap (limits.max_followup_reviews = 1) was spent with the story finalized (status: done, verify green) while the review pass still recommended an independent follow-up. The work was committed by bmad-loop run 20260827-234608-260c; this entry preserves the lingering recommendation for a deliberate later review.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: _bmad-output/implementation-artifacts/spec-3-6-remove-configuration-key-with-complete-preview.md remains done, but the damping-cap record still calls for an independent follow-up; no artifact explicitly closes this review recommendation. This does not establish a product defect.
-verification-files: _bmad-output/implementation-artifacts/spec-3-6-remove-configuration-key-with-complete-preview.md
-evidence-kind: recommendation
+pre-ui-qualification-status: open
+pre-ui-qualification-disposition: actionable
+pre-ui-qualification-verification-date: 2026-10-12
+pre-ui-qualification-verification: _bmad-output/implementation-artifacts/spec-3-6-remove-configuration-key-with-complete-preview.md remains done, but the damping-cap record still calls for an independent follow-up; no artifact explicitly closes this review recommendation. This does not establish a product defect.
+pre-ui-qualification-verification-files: _bmad-output/implementation-artifacts/spec-3-6-remove-configuration-key-with-complete-preview.md
+pre-ui-qualification-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: independent review capacity
-next-action: Run a separately scoped independent follow-up on retained removal expiry and proof behavior.
+pre-ui-qualification-next-action: Run a separately scoped independent follow-up on retained removal expiry and proof behavior.
 related: DW-325, DW-326, DW-327
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: A fresh independent scoped review traces exact removal expiry, late results, sibling ownership and event-backed ordered absence proof. Current focused and full UI execution qualifies those assertion-bearing regressions; no further reachable removal expiry/proof defect was established. See final command/results/review evidence and its qualified limits.
+verification-files: _bmad-output/implementation-artifacts/dw-268-328-391-434-489-validation-evidence.md
+evidence-kind: executed-browser-and-component
+next-action: None for this record; preserve separate unresolved runtime, product and release decisions.
 
 ### DW-339: Builds `package-version-audit.json` still records EventStore `3.99.0` while the catalog pin is `3.100.0`.
 
@@ -3681,18 +3697,24 @@ location: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-brow
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-4-2-grant-global-administrator-with-projection-confirmation.md`\n  summary: Run authenticated browser evidence for modal focus, inert background, responsive layout, and long identity visibility.\n  evidence: bUnit mocks DOM focus and does not compute CSS; a browser trace must cover both Tab directions, Escape restoration, short/mobile viewports, removal preview columns, and unclipped long identities."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: Browser fixtures and story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md prove shipped JS focus on constructed Fluent controls. They do not host the authenticated grant/removal Blazor modal or exercise actual Tab input, inert background, computed short/mobile layout, preview column clipping, and long identity visibility together. Missing evidence is the complete authenticated page trace requested in the original finding.
-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
-evidence-kind: unverified-risk
+pre-ui-qualification-status: open
+pre-ui-qualification-disposition: uncertain
+pre-ui-qualification-verification-date: 2026-10-12
+pre-ui-qualification-verification: Browser fixtures and story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md prove shipped JS focus on constructed Fluent controls. They do not host the authenticated grant/removal Blazor modal or exercise actual Tab input, inert background, computed short/mobile layout, preview column clipping, and long identity visibility together. Missing evidence is the complete authenticated page trace requested in the original finding.
+pre-ui-qualification-verification-files: _bmad-output/implementation-artifacts/story-4-3-iteration-6-focus-browser-evidence-2026-09-22.md
+pre-ui-qualification-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: none
-next-action: Capture authenticated grant and removal page keyboard/viewport/long-identity evidence at desktop, mobile, and short heights.
+pre-ui-qualification-next-action: Capture authenticated grant and removal page keyboard/viewport/long-identity evidence at desktop, mobile, and short heights.
 related: DW-336, DW-345, DW-357, DW-359, DW-390
-
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: The authenticated production administrator page qualifies grant/removal native Tab and Shift+Tab, inert background, Escape restoration, supported 256-character identities, measured mobile/short viewports, complete preview facts and forced-color focus. Controlled upstream responses qualify UI behavior; no domain command is sent. See final command/results/review evidence and its qualified limits.
+verification-files: _bmad-output/implementation-artifacts/dw-268-328-391-434-489-validation-evidence.md
+evidence-kind: executed-browser-and-component
+next-action: None for this record; preserve separate unresolved runtime, product and release decisions.
 
 ### DW-392: Update the quickstart for generated local Keycloak credentials.
 
@@ -4071,18 +4093,24 @@ location: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; _bmad
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Restore in-flight detail command panels after an audit round trip by expanding their accordion item (Option C follow-up).\n  evidence: Decision 2026-09-26 (Option A) accepted heading focus plus notice for detail command-flow and cursor returns. `TenantLifecycleCommandFlow`, `SetTenantConfigurationFlow`, and `RemoveTenantConfigurationFlow` already re-adopt a `RetainsAttempt` (RequestSent/Accepted) snapshot from their circuit `*AttemptTracker` on re-init. Their `FluentAccordionItem` in `TenantDetailPage.razor` may be collapsed on return, so the launcher cannot take focus. Expand the matching item when `auditFocus` names that flow, as `CreateTenantFlow` does, then browser-verify. Circuit-local state for terminal results, the member and metadata flows, and the list cursor was rejected as over-engineering, and it conflicts with the paging no-silent-reactivation invariant."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: TenantDetailPage.razor lifecycle/configuration accordion items currently start Expanded=true, but are not specifically expanded/re-adopted from auditFocus for a previously collapsed flow. spec-5-2-reach-scoped-audit-evidence-from-context.md:712 preserves approved Option A heading-plus-notice and the optional Option C in-flight restoration follow-up; Option B circuit state/cursor persistence was rejected. Exact flow-accordion browser restoration remains unproved.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md
-evidence-kind: recommendation
+pre-ui-qualification-status: open
+pre-ui-qualification-disposition: actionable
+pre-ui-qualification-verification-date: 2026-10-12
+pre-ui-qualification-verification: TenantDetailPage.razor lifecycle/configuration accordion items currently start Expanded=true, but are not specifically expanded/re-adopted from auditFocus for a previously collapsed flow. spec-5-2-reach-scoped-audit-evidence-from-context.md:712 preserves approved Option A heading-plus-notice and the optional Option C in-flight restoration follow-up; Option B circuit state/cursor persistence was rejected. Exact flow-accordion browser restoration remains unproved.
+pre-ui-qualification-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; _bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md
+pre-ui-qualification-evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: Approved Option A fallback remains valid; preserve rejected Option B
-next-action: For the approved Option C follow-up, browser-check a collapsed in-flight lifecycle/configuration audit round trip and expand its matching item only if the launcher is unreachable.
+pre-ui-qualification-next-action: For the approved Option C follow-up, browser-check a collapsed in-flight lifecycle/configuration audit round trip and expand its matching item only if the launcher is unreachable.
 related: none
-
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: Matching retained configuration-set ownership can mount and re-adopt after an audit round trip. Clock-controlled expiry restores the surviving heading and re-arms replacement deadlines. Composed lifecycle/set/removal Accepted and RequestSent returns retain identity under the existing per-flow same-ID delivery policy; exact-own admission bookkeeping preserves only the confirmed context. See final command/results/review evidence and its qualified limits.
+verification-files: _bmad-output/implementation-artifacts/dw-268-328-391-434-489-validation-evidence.md
+evidence-kind: executed-browser-and-component
+next-action: None for this record; preserve separate unresolved runtime, product and release decisions.
 
 ### DW-435: Invalidate retained tenant audit rows and an open receipt when the caller changes in the same UI circuit.
 
@@ -4798,18 +4826,24 @@ location: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser
 source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md`\n  summary: Verify the composed audit grid, receipt, start, and preview at narrow widths in an authenticated browser run.\n  evidence: BH12; the isolated browser fixture cannot prove the composed layout. This is a medium-impact possibility without demonstrated overflow; a live authenticated browser run across measured widths would settle it when the existing query-gateway authentication limitation is resolved."
-status: open
-disposition: uncertain
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh validates isolated start/preview/global fixtures, not the authenticated composed audit grid+receipt+start+preview. story-5-6-reverification-2026-10-08.json expressly excludes authenticated live-command assertions. No measured composed overflow or current live narrow-width trace is available.
-verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh; _bmad-output/implementation-artifacts/story-5-6-reverification-2026-10-08.json
-evidence-kind: unverified-risk
+pre-ui-qualification-status: open
+pre-ui-qualification-disposition: uncertain
+pre-ui-qualification-verification-date: 2026-10-12
+pre-ui-qualification-verification: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh validates isolated start/preview/global fixtures, not the authenticated composed audit grid+receipt+start+preview. story-5-6-reverification-2026-10-08.json expressly excludes authenticated live-command assertions. No measured composed overflow or current live narrow-width trace is available.
+pre-ui-qualification-verification-files: tests/Hexalith.Tenants.UI.Tests/Browser/validate-tenants-focus-browser.sh; _bmad-output/implementation-artifacts/story-5-6-reverification-2026-10-08.json
+pre-ui-qualification-evidence-kind: unverified-risk
 priority: P2
 owner: unassigned
 dependencies: Authenticated live Aspire/browser environment
-next-action: Run the authenticated composed audit/correction surface at measured narrow widths and record whether required fields and focus remain usable.
+pre-ui-qualification-next-action: Run the authenticated composed audit/correction surface at measured narrow widths and record whether required fields and focus remain usable.
 related: none
-
+status: done 2026-10-24
+disposition: done
+verification-date: 2026-10-24
+verification: The authenticated composed audit grid, receipt, start and preview are measured at narrow and supported widths and short height. Exact fixture facts precede readability assertions, grid scrolling reaches the final column, and unsafe narrow correction remains read-only. This qualifies production UI against disclosed controlled upstream responses. See final command/results/review evidence and its qualified limits.
+verification-files: _bmad-output/implementation-artifacts/dw-268-328-391-434-489-validation-evidence.md
+evidence-kind: executed-browser-and-component
+next-action: None for this record; preserve separate unresolved runtime, product and release decisions.
 
 ## Deferred from: code review of spec-5-5-start-a-forward-tenant-correction-from-audit-evidence.md (2026-10-02)
 
@@ -7045,3 +7079,9 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-119-211-212-213-444-navigation-accessibility.md`
   summary: Pre-existing medium; synchronize the late-subscription cancellation test with actual asynchronous cleanup completion.
   evidence: `TenantReadRefreshSubscriptionTests.Cancellation_after_late_backend_setup_cleans_up_without_retaining_a_callback` immediately asserts `UnsubscribeAsync` after the caller's cancellation exception, while unchanged `TenantReadRefreshSubscription.cs` starts `CleanupFailedSetupAsync` without awaiting it before rethrowing. One full 7,504-case run observed no unsubscribe yet; the isolated 37-case class and subsequent full 7,504-case run passed. Use a deterministic unsubscribe-completion signal while preserving exactly-one-unsubscribe and no-retained-callback assertions; this records test timing rather than a proven production cleanup failure.
+
+## Deferred from: UI runtime qualification verification (2026-10-24)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-268-328-391-434-489-ui-runtime-qualification.md`
+  summary: Unverified medium; isolate one administrator-grant Escape focus timeout before changing production restoration behavior.
+  evidence: A frozen-source normal Chromium run detached the grant dialog but observed body focus instead of the enabled launcher for twenty seconds (`dw-391-final-grant-focus-unavailable.json`). A separate instrumented three-case run found enabled launcher focus calls connected, outside inert, and immediately active; the final standalone normal run passed all nine cases. The cause is unproven: no production focus defect or browser-concurrency cause is claimed. Reproduce with controlled foreground and held subscription/render ordering, then identify whether renderer ownership or the browser driver lost focus. The diagnostic source, trace and limits are retained in `dw-391-focus-diagnostic.json` and its archive. This unnumbered qualification follow-up does not change the five numbered closures or the existing runtime/release holds.

@@ -15,6 +15,8 @@
 @inject IServiceProvider Services
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    @* Native owner for isolated selectors crossing Fluent component roots; layout remains Fluent-owned. *@
+    <div class="tenant-audit-style-scope">
     <FluentStack Orientation="Orientation.Vertical"
                  VerticalGap="16px"
                  Class="tenant-audit"
@@ -292,6 +294,7 @@
                               OnClose="CloseReceiptAsync" />
     }
     </FluentStack>
+    </div>
 </FcPageLayout>
 
 @code {

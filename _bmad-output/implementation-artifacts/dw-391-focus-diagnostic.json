@@ -1,0 +1,21 @@
+{
+  "archive": "dw-391-focus-diagnostic.zip",
+  "archiveSha256": "8f7f9d7bca0bfd304d0c2ceac2196e0d01449547bf209352eb3d99323f2f558b",
+  "files": [
+    {
+      "name": "dw391-focus-diagnostic.mjs",
+      "sha256": "0747d816205ef49a4370c0586973cf339e8ad029c3489f9f91a76f13f838c486"
+    },
+    {
+      "name": "dw391-focus-diagnostic.json",
+      "sha256": "4e1d75a1e077dc85a97acf824a6b9977b889dd0ceae6cbe7ac640b66a15fa1d7"
+    }
+  ],
+  "command": "TENANTS_BROWSER_SKIP_BUILD=1 python3 /tmp/tenants-dw-run-browser.py /tmp/dw391-focus-diagnostic.mjs /tmp/dw391-focus-diagnostic.json",
+  "actualExitCode": 0,
+  "caseCount": 3,
+  "acceptedForClosure": false,
+  "scope": "Temporary absolute-path clone narrowed to grant and one desktop viewport; records no values and no credentials. It wraps HTMLElement.focus only to observe safe connected/disabled/inert/document-focus flags and static test IDs.",
+  "observations": "Enabled launcher focus calls were connected, outside inert, document-focused/visible and immediately became activeElement. Intentional unsafe-viewport disabled launcher focus calls were rejected; an intentional lifecycle inert positive control was rejected. No production restoration failure reproduced in this sole-browser diagnostic.",
+  "limit": "The earlier first-grant Escape restoration timeout is preserved in dw-391-final-grant-focus-unavailable.json. Its cause is unproven; no browser-concurrency cause or production fix is claimed."
+}

@@ -16,6 +16,8 @@
 @implements IAsyncDisposable
 
 <FcPageLayout Mode="FcPageLayoutMode.FullWidth">
+    @* Native owner for isolated selectors crossing Fluent component roots; layout remains Fluent-owned. *@
+    <div class="global-admins-style-scope">
     @if (!IsAuthorized)
     {
         @* The restricted surface keeps the page area and the live region the authorized surface
@@ -688,6 +690,7 @@
         </section>
     }
     }
+    </div>
 </FcPageLayout>
 
 @code {

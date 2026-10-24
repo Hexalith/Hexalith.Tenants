@@ -1131,6 +1131,131 @@ public sealed class TenantLifecycleActionAvailabilityTests : FluentBunitContext
         }
     }
 
+    /// <summary>Preserves only the confirmed lifecycle context across its own admission render.</summary>
+    /// <param name="enable">Whether the command enables the tenant.</param>
+    /// <param name="mutation">The parent evidence mutation to exercise.</param>
+    [Theory]
+    [InlineData(false, "own-admission")]
+    [InlineData(true, "own-admission")]
+    [InlineData(false, "authority")]
+    [InlineData(true, "authority")]
+    [InlineData(false, "version")]
+    [InlineData(true, "version")]
+    [InlineData(false, "tenant")]
+    [InlineData(true, "tenant")]
+    [InlineData(false, "support")]
+    [InlineData(true, "support")]
+    [InlineData(false, "detail")]
+    [InlineData(true, "detail")]
+    [InlineData(false, "viewport")]
+    [InlineData(true, "viewport")]
+    [InlineData(false, "surface-only")]
+    [InlineData(true, "surface-only")]
+    [InlineData(false, "busy-only")]
+    [InlineData(true, "busy-only")]
+    [InlineData(false, "transient-authority")]
+    [InlineData(true, "transient-authority")]
+    [InlineData(false, "refused")]
+    [InlineData(true, "refused")]
+    public async Task OwnAdmissionParentRenderPreservesOnlyTheExactConfirmedLifecycleContext(bool enable, string mutation)
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("ignored", "correlation-life"),
+            Status = new TenantCommandStatusResult(CommandStatus.Processing),
+        };
+        RegisterServices(gateway);
+        TenantStatus status = enable ? TenantStatus.Disabled : TenantStatus.Active;
+        TenantDetail detail = Detail("tenant.alpha", status);
+        TenantHighImpactActionEvidence original = HighImpactEvidence(enable
+            ? TenantHighImpactAction.EnableTenant : TenantHighImpactAction.DisableTenant) with { TenantStatus = status };
+        TenantHighImpactActionEvidence busy = original with { Admission = TenantHighImpactAdmissionEvidence.Busy };
+        List<bool> leaseCalls = [];
+        IRenderedComponent<TenantLifecycleCommandFlow>? cut = null;
+
+        async Task<bool> Acquire(bool active)
+        {
+            leaseCalls.Add(active);
+            if (!active)
+            {
+                return true;
+            }
+
+            IRenderedComponent<TenantLifecycleCommandFlow> current = cut.ShouldNotBeNull();
+            await current.InvokeAsync(() =>
+            {
+                if (mutation is "transient-authority")
+                {
+                    current.Render(parameters => parameters
+                        .Add(component => component.Availability, TenantLifecycleAvailability.FromEvidence(busy with
+                        {
+                            Authority = TenantHighImpactAuthorityEvidence.MissingPermission,
+                        }))
+                        .Add(component => component.IsCommandSurfaceAvailable, false));
+                }
+
+                TenantHighImpactActionEvidence incoming = mutation switch
+                {
+                    "authority" => busy with { Authority = TenantHighImpactAuthorityEvidence.MissingPermission },
+                    "version" => busy with { ProjectionVersion = "tenant-sequence:42" },
+                    "tenant" => busy with { TenantId = "tenant.beta" },
+                    "support" => busy with { Support = TenantHighImpactSupportEvidence.Unknown },
+                    "viewport" => busy with { Viewport = TenantHighImpactViewportState.Unsafe },
+                    "surface-only" => original,
+                    _ => busy,
+                };
+                current.Render(parameters => parameters
+                    .Add(component => component.Detail, mutation switch
+                    {
+                        "tenant" => detail with { TenantId = "tenant.beta" },
+                        "detail" => detail with { Name = "Changed during admission" },
+                        _ => detail,
+                    })
+                    .Add(component => component.Availability, TenantLifecycleAvailability.FromEvidence(incoming))
+                    .Add(component => component.ProjectionVersion, incoming.ProjectionVersion)
+                    .Add(component => component.IsCommandSurfaceAvailable, mutation is "busy-only"));
+            });
+            return mutation is not "refused";
+        }
+
+        cut = Render<TenantLifecycleCommandFlow>(parameters => parameters
+            .Add(component => component.Detail, detail)
+            .Add(component => component.Availability, TenantLifecycleAvailability.FromEvidence(original))
+            .Add(component => component.ProjectionVersion, original.ProjectionVersion)
+            .Add(component => component.IsCommandSurfaceAvailable, true)
+            .Add(component => component.CommandActivityLease, Acquire)
+            .Add(component => component.AuthorizationReflectionProvider,
+                _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(component => component.ProjectionEvidenceProvider,
+                (_, _) => Task.FromResult<TenantDetailSnapshot?>(Proof("tenant.alpha", status, "tenant-sequence:41"))));
+        cut.Find("[data-testid='tenants-lifecycle-confirmation']").Change("tenant.alpha");
+        await cut.Find("form").SubmitAsync();
+
+        bool shouldDispatch = mutation is "own-admission";
+        (gateway.EnableSubmissions + gateway.DisableSubmissions).ShouldBe(shouldDispatch ? 1 : 0);
+        leaseCalls.First().ShouldBeTrue();
+        TenantLifecycleAttemptTracker tracker = Services.GetRequiredService<TenantLifecycleAttemptTracker>();
+        if (shouldDispatch)
+        {
+            TenantLifecycleCommandSnapshot retained = tracker.Find("tenant.alpha").ShouldNotBeNull();
+            retained.RetainsAttempt.ShouldBeTrue();
+            retained.Intent.ShouldBe(new TenantLifecycleCommandRequest("tenant.alpha", enable
+                ? TenantLifecycleOperation.EnableTenant : TenantLifecycleOperation.DisableTenant));
+            leaseCalls.ShouldNotContain(false);
+        }
+        else
+        {
+            tracker.Find("tenant.alpha").ShouldBeNull();
+            tracker.FindDispatchIntent("tenant.alpha").ShouldBeNull();
+            gateway.LastDisableMessageId.ShouldBeNull();
+            gateway.LastEnableMessageId.ShouldBeNull();
+            if (mutation is not "refused")
+            {
+                leaseCalls.Last().ShouldBeFalse();
+            }
+        }
+    }
+
     [Fact]
     public void Blocked_preflight_ignores_edit_cancel_escape_and_duplicate_submit()
     {

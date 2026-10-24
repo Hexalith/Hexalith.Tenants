@@ -293,7 +293,7 @@
                     ? Localizer["Tenants.Configuration.Remove.Unavailable.Scope"].Value
                     : !HasPreviewCapability
                         ? Localizer["Tenants.Configuration.Remove.Unavailable.PreviewCapability"].Value
-                    : (!IsCommandSurfaceAvailable && !_snapshot.RetainsAttempt) || CommandGateway is null
+                    : (!IsCommandSurfaceAvailable && !_snapshot.RetainsAttempt && !HasOwnedSubmitAdmission) || CommandGateway is null
                         ? Localizer["Tenants.Configuration.Remove.Unavailable.CommandSurface"].Value
                     : string.IsNullOrWhiteSpace(TargetKey) || Context.FindRemovableRow(TargetKey) is null
                                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Target"].Value
@@ -317,7 +317,7 @@
                     ? Localizer["Tenants.Configuration.Remove.Unavailable.TenantLifecycle"].Value
                     : !HasPreviewCapability
                         ? Localizer["Tenants.Configuration.Remove.Unavailable.PreviewCapability"].Value
-                    : (!IsCommandSurfaceAvailable && !_snapshot.RetainsAttempt) || CommandGateway is null
+                    : (!IsCommandSurfaceAvailable && !_snapshot.RetainsAttempt && !HasOwnedSubmitAdmission) || CommandGateway is null
                         ? Localizer["Tenants.Configuration.Remove.Unavailable.CommandSurface"].Value
                     : string.IsNullOrWhiteSpace(Context.TenantId)
                                 ? Localizer["Tenants.Configuration.Remove.Unavailable.Identity"].Value
@@ -331,6 +331,27 @@
 
     private bool IsOwnedCommandInFlight => _snapshot.RetainsAttempt || _isSubmitting;
 
+    private PreviewInputScope? _ownAdmissionInputScope;
+
+    private bool HasOwnedSubmitAdmission
+        => _hasRaisedCommandActivity && IsOnlyOwnAdmissionTransition(CapturePreviewInputScope());
+
+    private TenantHighImpactActionEvidence? EffectiveSubmitEvidence
+        => HasOwnedSubmitAdmission && Evidence is not null
+            ? Evidence with { Admission = TenantHighImpactAdmissionEvidence.Available }
+            : Evidence;
+
+    private bool IsOnlyOwnAdmissionTransition(PreviewInputScope incoming)
+        => CommandActivityLease is not null && _isSubmitting
+            && _ownAdmissionInputScope is { IsCommandSurfaceAvailable: true, Evidence.Admission: TenantHighImpactAdmissionEvidence.Available } original
+            && !incoming.IsCommandSurfaceAvailable
+            && incoming.Evidence?.Admission is TenantHighImpactAdmissionEvidence.Busy
+            && Equals(incoming, original with
+            {
+                IsCommandSurfaceAvailable = false,
+                Evidence = original.Evidence with { Admission = TenantHighImpactAdmissionEvidence.Busy },
+            });
+
     private bool IsSubmitDisabled
         => IsOwnedCommandInFlight
         || !IsPreviewComplete
@@ -339,7 +360,7 @@
         || Evidence is not null && !ConfirmationAvailability(Context).IsEligible;
 
     private TenantHighImpactActionAvailability EntryAvailability
-        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(Evidence!);
+        => TenantHighImpactActionAvailabilityEvaluator.Evaluate(EffectiveSubmitEvidence!);
 
     private TenantHighImpactActionAvailability ConfirmationAvailability(
         TenantConfigurationManagementContext currentContext)
@@ -350,7 +371,7 @@
         bool authorized = hasAuthority && currentContext.IsKeyAuthorized(TargetKey);
         bool targetPresent = authorized && currentContext.FindRemovableRow(TargetKey) is not null;
         bool targetMissing = authorized && !targetPresent;
-        TenantHighImpactActionEvidence confirmation = Evidence! with
+        TenantHighImpactActionEvidence confirmation = EffectiveSubmitEvidence! with
         {
             Stage = TenantHighImpactEvaluationStage.Confirmation,
             Authority = hasAuthority
@@ -534,6 +555,12 @@
     {
         string tenantId = Context?.TenantId ?? string.Empty;
         PreviewInputScope inputScope = CapturePreviewInputScope();
+        if (IsOnlyOwnAdmissionTransition(inputScope))
+        {
+            // The lease callback can render the owning page before returning. Only its exact
+            // Available-to-Busy bookkeeping change preserves this already-authorized input scope.
+            inputScope = _ownAdmissionInputScope!;
+        }
         bool tenantChanged = !string.Equals(_contextTenantId, tenantId, StringComparison.Ordinal);
         bool previewScopeChanged = !Equals(_previewInputScope, inputScope);
         bool lifecycleChanged = _previewInputScope is { } previous
@@ -895,6 +922,7 @@
             }
 
             leaseRequested = true;
+            _ownAdmissionInputScope = CapturePreviewInputScope();
             if (!await AcquireCommandActivityAsync(submitToken).ConfigureAwait(false))
             {
                 SetSnapshot(TenantRemoveConfigurationCommandSnapshot.Blocked(
@@ -973,6 +1001,7 @@
         }
         finally
         {
+            _ownAdmissionInputScope = null;
             try
             {
                 if (!retainedOwnershipEstablished && tracker is not null && messageId is not null)
