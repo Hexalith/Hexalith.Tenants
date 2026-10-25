@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-104/DW-432/DW-436/DW-594 closure (2026-10-25):** Fresh hosted production REST/UI and command-seeded persisted-state checks, 25 physical browser cases, measured layouts at 390, 768 and 1440 pixels with forced colors off/on and contextual audit Back qualify exactly four records. DW-161 remains open: pinned EventStore returns 200 instead of 304 and requires an approved shared-module/dependency change. All 657 IDs remain: 609 done/48 open across 43 maintenance rows. Historical fields, all 652 unselected records, accepted limitations and dependency pointers remain preserved. Broader CI/release holds remain. See [validation evidence](dw-104-161-432-436-594-validation-evidence.md).
+
 **DW-194/DW-201/DW-221/DW-267/DW-609 closure (2026-10-25):** Native removal-modal containment, measured create/conflict recovery, optional configuration shape metadata, shared command activity/refresh plumbing and permission-bound retained reads close exactly five records after independent review and verification. All 657 IDs remain: 605 done/52 open across 47 maintenance rows. Original fields and all 652 other numbered records remain preserved; accepted limitations stay open. Two review follow-ups (unverified focus failure and an observed pinned-grid disposal fault) are appended separately and excluded from numbered totals. See [validation evidence](dw-194-201-221-267-609-validation-evidence.md).
 
 **DW-128/DW-272/DW-519/DW-560/DW-563 closure (2026-10-25):** Forbidden-only search paging, pending audit-probe recovery, legacy event-array budget proof, and credential-free release preparation close exactly five records. All 657 IDs remain: 600 done/57 open across 52 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-128-272-519-560-563-validation-evidence.md).
@@ -872,16 +874,23 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-2-tenant-l
 location: reasonCode
 reason: The legacy ledger defers this issue: Disclosed runtime-verification gaps. Original context is preserved in legacy-detail.
 legacy-detail: - **Disclosed runtime-verification gaps** — (1) the invalid-cursor page-one recovery wire-path (that the `list-tenants` query actually populates the `reasonCode` problem-details extension the gateway matches on, rather than only `detail`) rests on unit doubles; (2) AC8 per-width and forced-colors behavior is proven by grid-scoped CSS + bUnit/forced-colors conformance rather than full browser emulation, because the local Chrome lane exposes a fixed 1235px virtual viewport (window resize is a no-op). Both are disclosed in the story Debug Log and do not gate this read-only UI story per the Epic 1 convention. (`story evidence`)
-status: open
-disposition: blocked
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs covers real generated reads, but the original invalid-cursor reasonCode wire proof and authenticated per-width/forced-colors acceptance packet are not established by component/source assertions.
-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs
-evidence-kind: verified-gap
+pre-authenticated-routes-status: open
+status: done 2026-10-25
+pre-authenticated-routes-disposition: blocked
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs covers real generated reads, but the original invalid-cursor reasonCode wire proof and authenticated per-width/forced-colors acceptance packet are not established by component/source assertions.
+verification: Real malformed and issued incompatible protected cursors return reasonCode problem details and recover to cursorless page one. Chromium passes all12 measured list/audit width/forced-colors combinations, including actual scrolling, pinning, copy hit/focus and recovery controls. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-authenticated-routes-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: healthy authenticated browser/API fixture
-next-action: Capture the invalid-cursor problem-details response and browser width/forced-colors traces.
+pre-authenticated-routes-next-action: Capture the invalid-cursor problem-details response and browser width/forced-colors traces.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
 related: DW-116, DW-161
 
 ### DW-105: Degenerate/exotic tenant ids on the shared detail-nav path
@@ -1390,16 +1399,24 @@ origin: migrated from legacy ledger ("Deferred from: review repair loop 11 of sp
 location: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:421
 reason: The legacy ledger defers this issue: Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology. Original context is preserved in legacy-detail.
 legacy-detail: - Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology. Reason for deferral: recorded as an owned limitation under decision `spec:854`, option (b). The routes are proven in process against the real generated controllers — paths, query strings, metadata headers and the conditional `304` path — by `TenantsApiGeneratedControllerTests.Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers`. A live probe driving the production `TenantsRestQueryClient` against the `tenants-api` Aspire resource was written for loop 11 and every read times out at the client's 60 s bound in the local slim-mode topology, which also intermittently fails the pre-existing command-status wait in `AspireTopologyTests`. A lane that cannot separate "the routes are broken" from "the topology is unhealthy" is not evidence, so it was not shipped. Revisit if: a reliable Aspire topology lane exists (CI or local) that can serve as an oracle for `tenants-api`. [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:421]
+pre-authenticated-routes-status: open
 status: open
+pre-authenticated-routes-disposition: blocked
 disposition: blocked
-verification-date: 2026-10-12
-verification: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers proves six routes in process. AspireTopologyTests.cs does not supply the requested healthy live six-route production-client packet.
-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
-evidence-kind: verified-gap
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers proves six routes in process. AspireTopologyTests.cs does not supply the requested healthy live six-route production-client packet.
+verification: All six REST reads, persisted prefix/roles/audit events and cursor recovery pass. Conditional detail still returns200 rather than304: pinned EventStore Gateway3.127 recognizes internal SelfRoutingETag while the domain emits an opaque store ETag; its304 client path omits version/served-at metadata. Shared-module ownership and the approved dependency freeze prevent closing this remaining contract locally. The conditional test remains blocking and unskipped. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-authenticated-routes-evidence-kind: verified-gap
+evidence-kind: verified-partial-gap
 priority: P2
 owner: unassigned
-dependencies: healthy live topology and endpoint/auth evidence
-next-action: Capture all six production-client routes, conditional 304 and headers through a healthy authenticated deployed topology.
+pre-authenticated-routes-dependencies: healthy live topology and endpoint/auth evidence
+dependencies: Shared EventStore conditional-validator/304 metadata repair; approval to update the pinned dependency under this spec.
+pre-authenticated-routes-next-action: Capture all six production-client routes, conditional 304 and headers through a healthy authenticated deployed topology.
+next-action: Approve a shared EventStore conditional-validator/304-authority repair and updated packages, then pass the unchanged live conditional contract.
 related: DW-104, DW-144
 
 ### DW-162: `scripts/validate-story-gitlinks.py` keeps no automated test and no CI wiring
@@ -3662,17 +3679,23 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Run the hosted Story 5.2 route smoke once the Aspire EventStore fixture is healthy.\n  evidence: `TenantsUiRouteSmokeTests` audit-context assertions (`:110-111`) only compiled. In every review pass, fixture setup timed out on EventStore `/alive` before any assertion ran."
-status: open
-disposition: blocked
-verification-date: 2026-10-12
-verification: TenantsUiRouteSmokeTests now asserts anonymous FrontComposer fc-scope-blocked states and no protected page content; the old hosted audit-context assertions were replaced rather than demonstrated. No authenticated hosted route fixture currently proves the Story 5.2 contextual links/returns. A healthy anonymous startup alone cannot settle this originally requested protected-route evidence.
-evidence-kind: verified-gap
+pre-authenticated-routes-status: open
+status: done 2026-10-25
+pre-authenticated-routes-disposition: blocked
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: TenantsUiRouteSmokeTests now asserts anonymous FrontComposer fc-scope-blocked states and no protected page content; the old hosted audit-context assertions were replaced rather than demonstrated. No authenticated hosted route fixture currently proves the Story 5.2 contextual links/returns. A healthy anonymous startup alone cannot settle this originally requested protected-route evidence.
+verification: Live production pages qualify tenant-detail/member audit launch, ready target rows, complete safe return context, Back and restored launcher focus. Authenticated UI3/3 and physical browser25/25 pass, including unsafe external-return rejection. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: DW-436 authenticated caller/scope fixture and healthy Aspire topology
-next-action: Establish the authenticated route fixture from DW-436, then retain the hosted audit-context route assertions and results.
+pre-authenticated-routes-next-action: Establish the authenticated route fixture from DW-436, then retain the hosted audit-context route assertions and results.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
 related: DW-436
-
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
 
 ### DW-433: Verify focus restoration does not report a false missing origin when the page replaces its own URL mid-wait (unverified, would be medium).
 
@@ -3705,16 +3728,23 @@ location: tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-2-reach-scoped-audit-evidence-from-context.md`\n  summary: Replace the historical unauthenticated hosted route smoke with an authenticated FrontComposer route fixture.\n  evidence: With the repository development JWT issuer, audience, and key supplied temporarily, Aspire EventStore starts and all six `TenantsUiRouteSmokeTests` reach their assertions, but each fails because the unauthenticated shell prerenders `data-testid=\"fc-scope-blocked\"` instead of the expected page marker. Without those temporary settings, the fixture times out at EventStore `/alive` before assertions. The route tests need a valid caller and scope to inspect the pages."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: IntegrationTests/TenantsUiRouteSmokeTests.cs now explicitly documents and tests anonymous routes behind the FrontComposer scope boundary (six *BlocksAnonymousScope cases). This resolves the old incorrect anonymous expected-page markers, but no authenticated FrontComposer caller/scope route fixture is present, so the requested protected-page contextual route coverage remains absent.
-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs
-evidence-kind: verified-gap
+pre-authenticated-routes-status: open
+status: done 2026-10-25
+pre-authenticated-routes-disposition: actionable
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: IntegrationTests/TenantsUiRouteSmokeTests.cs now explicitly documents and tests anonymous routes behind the FrontComposer scope boundary (six *BlocksAnonymousScope cases). This resolves the old incorrect anonymous expected-page markers, but no authenticated FrontComposer caller/scope route fixture is present, so the requested protected-page contextual route coverage remains absent.
+verification: Genuine signed loopback OIDC discovery/code exchange through production callbacks supplies the real relayed backend token and validated caller/current-tenant scope. All six protected pages pass, with six anonymous denials and an ambiguous-scope negative maintained separately. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsUiRouteSmokeTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-authenticated-routes-evidence-kind: verified-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 dependencies: Validated caller/tenant scope and healthy Aspire topology
-next-action: Add an authenticated FrontComposer route fixture and preserve the useful anonymous fail-closed tests as a separate lane.
+pre-authenticated-routes-next-action: Add an authenticated FrontComposer route fixture and preserve the useful anonymous fail-closed tests as a separate lane.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
 related: DW-432
 
 
@@ -5475,16 +5505,23 @@ location: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; `Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority` has never passed in CI, because `tenants-api` `/alive` fails TLS on the runner, and no entry tracks that failure. Owner: Tenants integration-test fixture.\n  evidence: In CI runs 37966289093, 38034556707, 38035646675, 38039239192 and 38053398801 (aspire job 114217781085 at `01602592`), the test failed at `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:125` with \"tenants-api /alive did not return HTTP 200 within 00:04:00 … The SSL connection could not be established\". That is before any command is submitted, so its persisted-state and projection-version assertions never run. `WaitForTenantsApiAliveAsync` keeps only `ex.Message` (`:846-847`) and drops the inner exception that would name the certificate fault. The fixture's HTTPS `tenants-api` client is in `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs`. The pass-39 tiering entry above mentions the failure only in passing; making that lane blocking would still fail here. To close: surface the inner exception, fix the runner TLS trust or use the HTTP endpoint, and see the test pass in CI."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Current HEAD CI run 38269521776 job 114882247420 (2026-10-12) still fails Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority at AspireTopologyTests.cs:125: /alive TLS timeout before command/projection assertions. Existing CI log inspected; no local tests run.
-verification-files: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
-evidence-kind: verified-defect
+pre-authenticated-routes-status: open
+status: done 2026-10-25
+pre-authenticated-routes-disposition: actionable
+disposition: done
+pre-authenticated-routes-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-authenticated-routes-verification: Current HEAD CI run 38269521776 job 114882247420 (2026-10-12) still fails Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority at AspireTopologyTests.cs:125: /alive TLS timeout before command/projection assertions. Existing CI log inspected; no local tests run.
+verification: The exact Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority regression passes1/1 in fresh hosted CI after SDK certificate trust and safe bounded TLS diagnostics; actual persisted Redis state and committed producer authority assertions execute. Corrected local fixture run also passes1/1. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-authenticated-routes-evidence-kind: verified-defect
+evidence-kind: verified-resolution
 priority: P2
 owner: Tenants integration-test fixture
 dependencies: Runner TLS trust or selected HTTP endpoint
-next-action: Expose safe inner TLS cause, repair endpoint/trust, then require this exact live test to pass in CI.
+pre-authenticated-routes-next-action: Expose safe inner TLS cause, repair endpoint/trust, then require this exact live test to pass in CI.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
 related: DW-572,DW-577
 
 

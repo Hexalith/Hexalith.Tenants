@@ -53,7 +53,7 @@ Complete DW-104, DW-161, DW-432, DW-436 and DW-594: qualify authenticated UI con
 - [x] `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs` — add authenticated routes and contextual audit navigation.
 - [x] `tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-live-routes.mjs` — exercise Aspire endpoints, measured widths, forced colors and Back.
 - [x] `.github/workflows/ci.yml` — add focused Release/package qualification with certificate trust, minimum counts and skip rejection; preserve broad advisory tier.
-- [ ] `_bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md`, `_bmad-output/implementation-artifacts/deferred-work.md`, `docs/maintenance-backlog.md` — record reviewed evidence and conserved closure.
+- [x] `_bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md`, `_bmad-output/implementation-artifacts/deferred-work.md`, `docs/maintenance-backlog.md` — record reviewed evidence and conserved closure.
 
 **Acceptance Criteria:**
 
@@ -190,3 +190,10 @@ Cold-bootstrap review patches pass all72 focused controls, zero skips, with a wa
 | Hosted TLS1: dev server certificate imported as CA | medium: hosted physical browser fails first navigation with ERR_CERT_INVALID. Local passing browser uses P,, in the preferred existing legacy NSS store; CI overwrites both stores with C,,. Chromium specifies P,, for a self-signed server leaf. | patch the import trust kind only; retain TLS validation |
 
 Fresh hosted24fb584b qualifies cold-bootstrap sequence1, six ordinary REST reads/cursor recovery, all HTTP contracts, anonymous denial and the exact historical persisted-state regression with zero skips. Conditional detail still fails200vs304. The browser's first-route certificate failure prevents physical layout/Back acceptance, so no additional record closes yet.
+
+
+## Final partial acceptance
+
+Source c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 passes the fresh hosted authenticated UI3/3, all25 physical browser cases, exact historical persisted-state1/1, anonymous6/6 and the complete HTTP-contract lane, all without acceptance skips. All six ordinary REST reads and cursor recovery pass. Only conditional detail returns200 instead of304; the assertion remains blocking and unskipped. The hosted packet is retained as dw-104-161-432-436-594-live-browser-hosted.json with matching validator and clean source/dependency captures.
+
+DW-104, DW-432, DW-436 and DW-594 close. DW-161 remains open under the approved dependency freeze and required shared-module ownership. All657 IDs remain,609 done/48 open across43 rows, with all652 unselected record bodies byte-identical and every selected historical line preserved. The five-item acceptance is incomplete, so status remains in-review. Completing DW-161 requires approval to repair shared EventStore conditional/304 authority behavior and consume updated packages. The broader package-consumer range mismatch and previously recorded runtime/release holds remain independent failures.

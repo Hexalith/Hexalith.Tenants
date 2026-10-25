@@ -1,5 +1,9 @@
 # Authenticated route qualification — acceptance pending
 
+Four records close: **DW-104, DW-432, DW-436 and DW-594**. **DW-161 remains open** because the pinned EventStore conditional read returns 200 instead of 304. The approved dependency freeze prevents the required shared-module repair and package update. The five-item spec remains in-review.
+
+Fresh [hosted run40217896195](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40217896195) qualified source c3697ed23dc1aa896bef1f42d3fc1a0f79356d65, including all 25 physical browser cases and the exact historical persisted-state regression, with zero acceptance skips. The retained [hosted browser packet](dw-104-161-432-436-594-live-browser-hosted.json) preserves its measured evidence and narrowly stated source/binary binding. The broader CI gate remains red for the independent package-consumer range mismatch. Earlier failed attempts below remain failure evidence.
+
 Baseline: `8804c10b8a900860ea2394c81eff78d23bb3c0a4`.
 The user approved [the spec](spec-dw-104-161-432-436-594-authenticated-routes.md) on 2026-10-25.
 Each numbered record remains open until its own actual acceptance checks pass. The five-item batch is incomplete while the conditional-read incompatibility remains unresolved.
@@ -130,3 +134,28 @@ This local run can reuse the existing singleton and is not the cold-start accept
 Authenticated UI has2passes/1failure/0skips. Real HTTP protected-route/scope checks pass; the physical browser fails before its first protected route with the safe category browser-certificate-ERR_CERT_INVALID. No hosted browser/layout/Back acceptance is claimed. The broader package-consumer gate again reports the unchanged Contracts range mismatch, expected [5.10.1,), found [0.0.0-ci-test,).
 
 The browser discrepancy has a concrete trust-store explanation. The successful local environment's existing ~/.pki/nssdb trusts the SDK self-signed server certificate as P,,; its newer store has C,,. Chromium prefers the existing legacy store. The hosted setup overwrites both stores with C,,. [Chromium's certificate-management instructions](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/linux/cert_management.md) specify P,, for a self-signed server certificate and C,, for a root CA. The next correction changes only that NSS import trust kind, retaining the same public SDK certificate, both store locations and enabled TLS validation. A fresh hosted physical-browser result remains required.
+
+
+## Final hosted result and conserved closure
+
+The certificate-corrected hosted run passes the production authenticated UI suite3/3 and physical browser25/25. The browser completes all six pages, interactive audit recovery,12 measured list/audit width/forced-colors combinations, actual copy-control geometry/pointer/keyboard/outline checks, detail/member/list audit Back context and focus, and unsafe external-return rejection. Capture comparison completes before passed=true; the retained packet's validator hash matches the maintained script and its source/dependency diff captures are clean. This packet does not claim to bind running backend binaries or all dependency working sources; real backend/persistence proof comes from the integration results.
+
+| Hosted check | Result | Skips |
+| --- | --- | --- |
+| AppHost model |12/12 pass|0|
+| Bounded TLS diagnostics |5/5 pass|0|
+| Bootstrap lifecycle/authority guards |72/72 pass|0|
+| Real REST reads/cursor recovery plus conditional detail |3/4 pass; only304 expected/200 actual fails|0|
+| Private failure-evidence controls |3/3 pass|0|
+| Exact historical persisted-state regression |1/1 pass|0|
+| Anonymous UI denials |6/6 pass|0|
+| Authenticated UI |3/3 pass, including browser25/25|0|
+| Generated HTTP controllers |44/44 pass|0|
+| Command-status contracts |18/18 pass|0|
+| Protected project contracts |35/35 pass|0|
+| Projection replay integrity |31/31 pass|0|
+| Audit stream persistence |117/117 pass|0|
+
+The broader package-consumer gate still fails for Hexalith.Tenants.Client.0.0.0-ci-test.nupkg: Contracts dependency range expected [5.10.1,), found [0.0.0-ci-test,). Its dependent broader Aspire/performance jobs are skipped; these are not acceptance passes. The local full-UI7706/7706 result, full-server1504/1505 result and Contracts656/698 result retain their previously disclosed limits. Optional Memories compilation, default background-worker concurrency and the missing upstream operational validator remain unqualified.
+
+Exactly four selected records close. All 657 numbered IDs remain: 609 done/48 open across 43 maintenance rows. All 652 unselected record bodies remain byte-identical to the pre-work baseline, every selected historical line is retained, and the maintenance index covers each open ID exactly once. DW-161 now records the concrete remaining shared EventStore conditional-validator/304 metadata dependency. No dependency pointer, unrelated accepted limitation, archive or sprint record changes. The final follow-up changes only documentation and the retained safe packet; the qualified production source is unchanged.
