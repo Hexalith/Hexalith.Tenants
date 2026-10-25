@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-194/DW-201/DW-221/DW-267/DW-609 closure (2026-10-25):** Native removal-modal containment, measured create/conflict recovery, optional configuration shape metadata, shared command activity/refresh plumbing and permission-bound retained reads close exactly five records after independent review and verification. All 657 IDs remain: 605 done/52 open across 47 maintenance rows. Original fields and all 652 other numbered records remain preserved; accepted limitations stay open. Two review follow-ups (unverified focus failure and an observed pinned-grid disposal fault) are appended separately and excluded from numbered totals. See [validation evidence](../_bmad-output/implementation-artifacts/dw-194-201-221-267-609-validation-evidence.md).
+
 **DW-128/DW-272/DW-519/DW-560/DW-563 closure (2026-10-25):** Forbidden-only search paging, pending audit-probe recovery, legacy event-array budget proof, and credential-free release preparation close exactly five records. All 657 IDs remain: 600 done/57 open across 52 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-128-272-519-560-563-validation-evidence.md).
 
 **DW-121/DW-456/DW-508/DW-511/DW-522 closure (2026-10-25):** Explicit main-only release inputs, crash-resistant dual-mode evidence controls, and consistent status ambiguity metadata/runtime/catalog guidance close exactly five records. All 657 IDs remain: 595 done/62 open across 57 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-evidence.md).
@@ -228,14 +230,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 600 |
-| actionable | 14 |
+| done | 605 |
+| actionable | 9 |
 | blocked | 11 |
 | awaiting-decision | 21 |
 | accepted-limitation | 5 |
 | uncertain | 6 |
 
-**Remaining: 57 open records across 52 index rows.**
+**Remaining: 52 open records across 47 index rows.**
 
 **Unnumbered review follow-up:** navigation verification exposed a cancellation-test cleanup timing gap, retained in the deferred ledger. The numbered DW totals and rows exclude this new follow-up until ledger migration. Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
@@ -291,7 +293,6 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-579 | P2 | Gap / blocked | unassigned | Builds-maintainer historical provenance repair | Reconcile missing owning-repository origin revisions and regenerate/validate supported audit evidence. |
 | DW-593 | P2 | Gap / awaiting-decision | release recovery (recover-partial-release.yml) | Release-owner exact execution provenance decision | Define and enforce the approved publication/recovery Builds revision relationship. |
 | DW-599 | P2 | Gap / awaiting-decision | unassigned | Configuration read-policy scope decision | Decide whether FR-6 filtering protects API disclosure as well as UI display; specify the owning boundary. |
-| DW-609 | P2 | Gap / actionable | unassigned | Permission-change invalidation/reauthorization contract | Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts. |
 
 ## Unverified risks and recommendations
 
@@ -307,15 +308,11 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-568 | P2 | Unverified / uncertain | unassigned | Live store ETag behavior and index-version contract | Capture safe metadata for index and tenant-audit reads with absent store ETags before deciding remaining stamping work. |
 | DW-137 | P2 | Recommendation / actionable | future Tenants API route-contract work | Tenants API route-contract design | Specify the reversible route representation and slash/dot/traversal tests before changing client/controller behavior. |
 | DW-144 | P2 | Recommendation / actionable | unassigned | topology/security contract and DW-137 | Implement the already-selected topology in a dedicated owning change with deny-default GET policy, retry and ETag/route checks. |
-| DW-194 | P2 | Recommendation / actionable | unassigned | FrontComposer modal primitive and browser fixture | Adopt the recorded shared modal contract and obtain browser Tab/Escape/inert evidence. |
-| DW-201 | P2 | Recommendation / actionable | unassigned | create UX acceptance contract | Specify safe create viewport and open-existing navigation behavior, then cover the visible actions. |
-| DW-221 | P2 | Recommendation / actionable | unassigned | configuration schema compatibility | Define backward-compatible shape metadata and provider tests distinguishing empty arrays from scalar declarations. |
 | DW-408 | P2 | Recommendation / awaiting-decision | unassigned | Audit contract/versioning decision | Decide the unknown audit event compatibility contract, then update gateway behavior/tests and documentation to that single policy. |
 | DW-498 | P2 | Recommendation / awaiting-decision | unassigned | Product/authorization result-read policy | Choose and document an authorized post-self-demotion inspection/handoff policy; retain current redaction until that decision. |
 | DW-570 | P2 | Recommendation / actionable | release workflow owner | Approved release-provenance policy | Add the owning workflow closure gate or document an approved equivalent closure procedure. |
 | DW-584 | P2 | Recommendation / awaiting-decision | unassigned | Release-gate policy owner | Decide which separate exact-source workflow outcomes must block publication and document the gate. |
 | DW-600 | P2 | Recommendation / awaiting-decision | unassigned | Complete-evidence duplicate-page policy | Decide whether cross-page overlap must invalidate completeness; reconcile any new rule with the existing spec/test contract. |
-| DW-267 | P3 | Recommendation / actionable | unassigned | DW-245 and DW-300 | Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics. |
 | DW-438 | P3 | Recommendation / awaiting-decision | unassigned | Support-safety policy/opaque-reference contract decision | Decide whether opaque references need a shape-based exemption from substring rejection and define examples before changing the shared safety policy. |
 | DW-440 | P3 | Recommendation / awaiting-decision | unassigned | UX/support timestamp formatting decision | Choose culture-formatted absolute dates or the stable UTC pattern for both grid and receipt, then align the UX wording/tests. |
 | DW-450, DW-474 | P3 | Recommendation / awaiting-decision | unassigned | Repo-wide UX/design precedence decision; Existing Tint-versus-Filled badge decision | Decide the shared badge appearance/anatomy and align components with DESIGN.md. |

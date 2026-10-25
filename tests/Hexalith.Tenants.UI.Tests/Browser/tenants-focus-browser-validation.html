@@ -661,6 +661,24 @@
                 throw new Error("ordinary detail marker cleanup changed query or fragment");
             }
             observations.push("return-markers-consumed-once-with-ordinary-state-preserved");
+
+            window.history.replaceState({}, "", "/tenants/my?anchor=navigation-heading&auditPartialReturn=true&sort=name#detail");
+            const retiredLocation = window.location.href;
+            window.history.replaceState({}, "", "/tenants/my?anchor=navigation-heading&auditPartialReturn=true&sort=tenantId#detail");
+            const replacementLocation = window.location.href;
+            const retainedFocus = replacementRow.querySelector("fluent-anchor-button");
+            retainedFocus.focus();
+            assertActiveElement(retainedFocus, "expected-location-control");
+            if (focusElementById("navigation-heading", retiredLocation) !== false) {
+                throw new Error("retired location focused a replacement target with the same id");
+            }
+            assertActiveElement(retainedFocus, "retired-location-preserves-actual-focus");
+            if (consumeReturnMarkers("navigation-heading", null, true, retiredLocation) !== false
+                || window.location.href !== replacementLocation) {
+                throw new Error("retired location consumed replacement URL markers with the same anchor");
+            }
+            assertActiveElement(retainedFocus, "retired-location-cleanup-preserves-actual-focus");
+            observations.push("expected-location-rejects-same-target-and-anchor-replacement-without-focus-or-url-mutation");
             window.history.replaceState({}, "", fixtureUrl);
 
             missingOrigin.removeAttribute("data-audit-focus-terminal");

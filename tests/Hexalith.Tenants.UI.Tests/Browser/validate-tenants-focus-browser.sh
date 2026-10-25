@@ -132,9 +132,9 @@ from pathlib import Path
 import sys
 
 source = Path(sys.argv[1]).read_text(encoding="utf-8")
-signature = "export function focusElementById(elementId)"
-start = source.index(signature)
+start = source.index("export function focusElementById(")
 brace = source.index("{", start)
+signature = source[start:brace].rstrip()
 depth = 0
 end = None
 for index in range(brace, len(source)):
@@ -151,6 +151,152 @@ mutated = source[:start] + signature + " {\n  return true;\n}" + source[end:]
 Path(sys.argv[2]).write_text(mutated, encoding="utf-8")
 PY
 
+validation_port="$(python3 - <<'PY'
+import socket
+with socket.socket() as listener:
+    listener.bind(("127.0.0.1", 0))
+    print(listener.getsockname()[1])
+PY
+)"
+if [[ "${TENANTS_FOCUS_TEST_SERVER_START_FAILURE:-false}" == true ]]; then
+    python3 -c 'raise SystemExit("forced focus-validator server startup failure")' \
+        >"$validation_tmp/server.log" 2>&1 &
+else
+    python3 -m http.server "$validation_port" --bind 127.0.0.1 --directory "$validation_tmp" \
+        >"$validation_tmp/server.log" 2>&1 &
+fi
+server_pid="$!"
+
+validation_url="http://127.0.0.1:${validation_port}/index.html"
+server_ready=false
+for _ in $(seq 1 50); do
+    if python3 - "$validation_url" <<'PY' >/dev/null 2>&1
+import sys
+import urllib.request
+with urllib.request.urlopen(sys.argv[1], timeout=0.25) as response:
+    if response.status != 200:
+        raise SystemExit(1)
+PY
+    then
+        server_ready=true
+        break
+    fi
+    if ! kill -0 "$server_pid" >/dev/null 2>&1; then
+        break
+    fi
+    sleep 0.05
+done
+if [[ "$server_ready" != true ]]; then
+    echo "Focus validation server did not become ready at $validation_url." >&2
+    sed -n '1,120p' "$validation_tmp/server.log" >&2
+    exit 1
+fi
+
+# Bound real time as well as Chromium's virtual-time budget: a wedged browser must fail the lane.
+browser_timeout_seconds="${TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS:-30}"
+if [[ ! "$browser_timeout_seconds" =~ ^[1-9][0-9]*$ ]]; then
+    echo "TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS must be a positive whole number." >&2
+    exit 1
+fi
+# Hosted Chrome 153 never returns from --dump-dom. Capture through DevTools after
+# the page reports its validation status. The matching headless shell is used when
+# the workflow provides one; local Chrome remains the fallback.
+dump_browser_path="$browser_path"
+if [[ -n "${TENANTS_HEADLESS_SHELL:-}" ]]; then
+    if [[ ! -x "$TENANTS_HEADLESS_SHELL" ]]; then
+        echo "TENANTS_HEADLESS_SHELL is not executable: $TENANTS_HEADLESS_SHELL" >&2
+        exit 1
+    fi
+    dump_browser_path="$TENANTS_HEADLESS_SHELL"
+fi
+node_bin="$(command -v node || true)"
+if [[ -z "$node_bin" ]]; then
+    echo "Node is required to capture the validation DOM." >&2
+    exit 1
+fi
+chromium_executable="$browser_path"
+run_chromium() {
+    local scenario_name="$1"
+    local output_path="$2"
+    shift 2
+    local exit_status
+    if timeout --kill-after=5s "${browser_timeout_seconds}s" "$chromium_executable" "$@" \
+        >"$output_path" 2>"${output_path}.stderr"; then
+        return 0
+    else
+        exit_status="$?"
+        echo "Chromium scenario ${scenario_name} failed (exit ${exit_status}; bound ${browser_timeout_seconds}s)." >&2
+        sed -n '1,120p' "${output_path}.stderr" >&2
+        return "$exit_status"
+    fi
+}
+
+dump_dom() {
+    local scenario_name="$1"
+    local output_path="$2"
+    shift 2
+    local url="${*: -1}"
+    local chrome_args=()
+    local arg
+    for arg in "$@"; do
+        if [[ "$arg" == "$url" || "$arg" == "--dump-dom" || "$arg" == --virtual-time-budget=* || "$arg" == --timeout=* ]]; then
+            continue
+        fi
+        chrome_args+=("$arg")
+    done
+    chromium_executable="$node_bin"
+    run_chromium "$scenario_name" "$output_path" \
+        "$script_dir/dump-validation-dom.mjs" \
+        "$dump_browser_path" \
+        "$url" \
+        "${chrome_args[@]}"
+    chromium_executable="$browser_path"
+}
+
+run_browser() {
+    local module_name="$1"
+    local profile_name="$2"
+    local output_path="$3"
+    local css_name="${4:-global-admins.css}"
+    local window_width="${5:-390}"
+    local viewport="${6:-narrow}"
+    local availability_css_name="${7:-availability.css}"
+    local forced_colors="${8:-none}"
+    local forced_color_arguments=()
+    if [[ "$forced_colors" == active ]]; then
+        forced_color_arguments+=(--force-high-contrast)
+    fi
+    local window_size_argument="--window-size=${window_width},800"
+    if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
+        printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
+    fi
+    dump_dom "$profile_name" "$output_path" \
+        "${forced_color_arguments[@]}" \
+        "$window_size_argument" \
+        --user-data-dir="$validation_tmp/$profile_name" \
+        --virtual-time-budget=3000 \
+        --dump-dom \
+        "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}&availabilityCss=./${availability_css_name}&forcedColors=${forced_colors}"
+}
+
+# The dumped DOM also serializes the harness script, its error messages, and its element ids, so a check for
+# why a run passed or failed reads only the validation report.
+validation_report_contains() {
+    local report
+    report="$(grep -o '<output id="validation-report">[^<]*' "$1" || true)"
+    [[ "$report" == *"$2"* ]]
+}
+
+positive_output="$validation_tmp/shipped.html"
+run_browser "tenantsFocus.js" "profile-shipped" "$positive_output"
+if ! grep -q 'data-validation-status="passed"' "$positive_output"; then
+    echo "Shipped focus module failed real-Chromium validation:" >&2
+    grep -o '<output id="validation-report">[^<]*' "$positive_output" >&2 || true
+    sed -n '1,120p' "${positive_output}.stderr" >&2
+    exit 1
+fi
+
+# Export fixtures after the initial readiness/browser controls so their bounds exclude unrelated exports.
 # Export the real EN/FR component markup from the test executable built for $build_configuration
 # (Debug/source-reference locally; Story Guards sets TENANTS_BROWSER_BUILD_CONFIGURATION=Release).
 start_test_executable="$project_root/tests/Hexalith.Tenants.UI.Tests/bin/${build_configuration}/net10.0/Hexalith.Tenants.UI.Tests"
@@ -328,7 +474,7 @@ done
 cp -- "$script_dir/command-form-browser-validation.html" "$validation_tmp/command-form-browser-validation.html"
 
 # Resolve the asset actually selected by this UI build, in source or package mode.
-python3 - "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/staticwebassets.build.json" "$validation_tmp/fc-layout-breakpoints.js" "$validation_tmp/viewport-asset-provenance.json" "$build_configuration" <<'PY'
+python3 - "$project_root/src/Hexalith.Tenants.UI/obj/${build_configuration}/net10.0/staticwebassets.build.json" "$validation_tmp/fc-layout-breakpoints.js" "$validation_tmp/viewport-asset-provenance.json" "$build_configuration" "$validation_tmp/fc-focus.js" <<'PY'
 from pathlib import Path
 import hashlib
 import json
@@ -360,6 +506,17 @@ provenance = {
 }
 Path(sys.argv[3]).write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
 print("Breakpoint asset provenance: " + json.dumps(provenance, separators=(",", ":")))
+focus_assets = [asset for asset in manifest.get("Assets", [])
+                if asset.get("SourceId") == "Hexalith.FrontComposer.Shell"
+                and asset.get("AssetRole") == "Primary"
+                and str(asset.get("RelativePath", "")).startswith("js/fc-focus")]
+if len(focus_assets) != 1:
+    raise SystemExit("The selected UI build must contain exactly one primary FrontComposer focus asset.")
+focus_identity = Path(focus_assets[0]["Identity"])
+focus_content = focus_identity.read_bytes()
+Path(sys.argv[5]).write_bytes(focus_content)
+print("Focus asset provenance: " + json.dumps({"Identity": str(focus_identity),
+      "Sha256": hashlib.sha256(focus_content).hexdigest()}, separators=(",", ":")))
 PY
 python3 - "$validation_tmp/fc-layout-breakpoints.js" "$validation_tmp/fc-layout-breakpoints-stuck.js" <<'PY'
 from pathlib import Path
@@ -370,151 +527,6 @@ if source.count(callback) != 1:
     raise SystemExit("Could not isolate the shipped viewport change callback for mutation validation.")
 Path(sys.argv[2]).write_text(source.replace(callback, "// Mutation: suppress subsequent browser measurements."), encoding="utf-8")
 PY
-
-validation_port="$(python3 - <<'PY'
-import socket
-with socket.socket() as listener:
-    listener.bind(("127.0.0.1", 0))
-    print(listener.getsockname()[1])
-PY
-)"
-if [[ "${TENANTS_FOCUS_TEST_SERVER_START_FAILURE:-false}" == true ]]; then
-    python3 -c 'raise SystemExit("forced focus-validator server startup failure")' \
-        >"$validation_tmp/server.log" 2>&1 &
-else
-    python3 -m http.server "$validation_port" --bind 127.0.0.1 --directory "$validation_tmp" \
-        >"$validation_tmp/server.log" 2>&1 &
-fi
-server_pid="$!"
-
-validation_url="http://127.0.0.1:${validation_port}/index.html"
-server_ready=false
-for _ in $(seq 1 50); do
-    if python3 - "$validation_url" <<'PY' >/dev/null 2>&1
-import sys
-import urllib.request
-with urllib.request.urlopen(sys.argv[1], timeout=0.25) as response:
-    if response.status != 200:
-        raise SystemExit(1)
-PY
-    then
-        server_ready=true
-        break
-    fi
-    if ! kill -0 "$server_pid" >/dev/null 2>&1; then
-        break
-    fi
-    sleep 0.05
-done
-if [[ "$server_ready" != true ]]; then
-    echo "Focus validation server did not become ready at $validation_url." >&2
-    sed -n '1,120p' "$validation_tmp/server.log" >&2
-    exit 1
-fi
-
-# Bound real time as well as Chromium's virtual-time budget: a wedged browser must fail the lane.
-browser_timeout_seconds="${TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS:-30}"
-if [[ ! "$browser_timeout_seconds" =~ ^[1-9][0-9]*$ ]]; then
-    echo "TENANTS_FOCUS_BROWSER_TIMEOUT_SECONDS must be a positive whole number." >&2
-    exit 1
-fi
-# Hosted Chrome 153 never returns from --dump-dom. Capture through DevTools after
-# the page reports its validation status. The matching headless shell is used when
-# the workflow provides one; local Chrome remains the fallback.
-dump_browser_path="$browser_path"
-if [[ -n "${TENANTS_HEADLESS_SHELL:-}" ]]; then
-    if [[ ! -x "$TENANTS_HEADLESS_SHELL" ]]; then
-        echo "TENANTS_HEADLESS_SHELL is not executable: $TENANTS_HEADLESS_SHELL" >&2
-        exit 1
-    fi
-    dump_browser_path="$TENANTS_HEADLESS_SHELL"
-fi
-node_bin="$(command -v node || true)"
-if [[ -z "$node_bin" ]]; then
-    echo "Node is required to capture the validation DOM." >&2
-    exit 1
-fi
-chromium_executable="$browser_path"
-run_chromium() {
-    local scenario_name="$1"
-    local output_path="$2"
-    shift 2
-    local exit_status
-    if timeout --kill-after=5s "${browser_timeout_seconds}s" "$chromium_executable" "$@" \
-        >"$output_path" 2>"${output_path}.stderr"; then
-        return 0
-    else
-        exit_status="$?"
-        echo "Chromium scenario ${scenario_name} failed (exit ${exit_status}; bound ${browser_timeout_seconds}s)." >&2
-        sed -n '1,120p' "${output_path}.stderr" >&2
-        return "$exit_status"
-    fi
-}
-
-dump_dom() {
-    local scenario_name="$1"
-    local output_path="$2"
-    shift 2
-    local url="${*: -1}"
-    local chrome_args=()
-    local arg
-    for arg in "$@"; do
-        if [[ "$arg" == "$url" || "$arg" == "--dump-dom" || "$arg" == --virtual-time-budget=* || "$arg" == --timeout=* ]]; then
-            continue
-        fi
-        chrome_args+=("$arg")
-    done
-    chromium_executable="$node_bin"
-    run_chromium "$scenario_name" "$output_path" \
-        "$script_dir/dump-validation-dom.mjs" \
-        "$dump_browser_path" \
-        "$url" \
-        "${chrome_args[@]}"
-    chromium_executable="$browser_path"
-}
-
-run_browser() {
-    local module_name="$1"
-    local profile_name="$2"
-    local output_path="$3"
-    local css_name="${4:-global-admins.css}"
-    local window_width="${5:-390}"
-    local viewport="${6:-narrow}"
-    local availability_css_name="${7:-availability.css}"
-    local forced_colors="${8:-none}"
-    local forced_color_arguments=()
-    if [[ "$forced_colors" == active ]]; then
-        forced_color_arguments+=(--force-high-contrast)
-    fi
-    local window_size_argument="--window-size=${window_width},800"
-    if [[ -n "${TENANTS_FOCUS_BROWSER_INVOCATION_MARKER:-}" ]]; then
-        printf '%s\n' "invoked" >"$TENANTS_FOCUS_BROWSER_INVOCATION_MARKER"
-    fi
-    dump_dom "$profile_name" "$output_path" \
-        "${forced_color_arguments[@]}" \
-        "$window_size_argument" \
-        --user-data-dir="$validation_tmp/$profile_name" \
-        --virtual-time-budget=3000 \
-        --dump-dom \
-        "${validation_url}?module=./${module_name}&css=./${css_name}&viewport=${viewport}&availabilityCss=./${availability_css_name}&forcedColors=${forced_colors}"
-}
-
-# The dumped DOM also serializes the harness script, its error messages, and its element ids, so a check for
-# why a run passed or failed reads only the validation report.
-validation_report_contains() {
-    local report
-    report="$(grep -o '<output id="validation-report">[^<]*' "$1" || true)"
-    [[ "$report" == *"$2"* ]]
-}
-
-positive_output="$validation_tmp/shipped.html"
-run_browser "tenantsFocus.js" "profile-shipped" "$positive_output"
-if ! grep -q 'data-validation-status="passed"' "$positive_output"; then
-    echo "Shipped focus module failed real-Chromium validation:" >&2
-    grep -o '<output id="validation-report">[^<]*' "$positive_output" >&2 || true
-    sed -n '1,120p' "${positive_output}.stderr" >&2
-    exit 1
-fi
 
 for culture in en fr; do
     for width in 500 1024; do
@@ -755,7 +767,7 @@ for culture in en fr; do
         exit 1
     fi
 done
-for mutation in unscoped no-sentinel; do
+for mutation in unscoped no-modal; do
     form_output="$validation_tmp/command-forms-${mutation}.html"
     dump_dom "responsive command forms ${mutation} control" "$form_output" \
         --window-size=1366,1000 --user-data-dir="$validation_tmp/profile-command-forms-${mutation}" \
@@ -767,10 +779,10 @@ for mutation in unscoped no-sentinel; do
     if [[ "$mutation" == unscoped ]]; then
         validation_report_contains "$form_output" 'set form layout at 390' || exit 1
     else
-        validation_report_contains "$form_output" 'End sentinel focus at 767' || exit 1
+        validation_report_contains "$form_output" 'Native modal containment at 767' || exit 1
     fi
 done
-printf '%s\n' "Rendered command forms EN/FR: compiled form/label layout at 390/767/768/1024/1366, configuration warning visibility, actual member Cancel/sentinel targets, native Shift-Tab/Enter and launcher/heading focus passed; missing scope/sentinel controls rejected."
+printf '%s\n' "Rendered command forms EN/FR: compiled form/label layout at 390/767/768/1024/1366, configuration warning visibility, actual member Cancel/native modal, native Shift-Tab/Enter and launcher/heading focus passed; missing scope/native-modal controls rejected."
 
 run_chromium "browser version" "$validation_tmp/browser-version.txt" --version
 browser_version="$(head -n 1 "$validation_tmp/browser-version.txt")"

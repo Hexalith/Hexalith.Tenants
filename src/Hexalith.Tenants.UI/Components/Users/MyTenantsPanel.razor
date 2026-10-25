@@ -2,6 +2,8 @@
 @inject IStringLocalizer<TenantsResources> Localizer
 @inject ITenantQueryGateway QueryGateway
 @inject NavigationManager Navigation
+@inject IServiceProvider Services
+@implements IDisposable
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="20px" Class="my-tenants-page" data-testid="tenants-my-page"
              data-audit-focus-terminal="@(AuditReadResolved && _snapshot.Kind is not UserTenantMembershipSurfaceKind.Loading)"
@@ -109,15 +111,23 @@
     private long _loadVersion;
     private long? _pageTransitionVersion;
 
+    private AuthenticationStateProvider? _authenticationStateProvider;
+    private readonly object _authorityLock = new();
+    private CancellationTokenSource? _authorityCancellation;
+    private long _authorityVersion;
+    private bool _authorityPending;
+    private bool _disposed;
+
+
     private bool CanNextPage
-        => _pageTransitionVersion != _loadVersion
+        => !_disposed && !Volatile.Read(ref _authorityPending) && _pageTransitionVersion != _loadVersion
             && _snapshot is { Kind: UserTenantMembershipSurfaceKind.Ready
                 or UserTenantMembershipSurfaceKind.Stale or UserTenantMembershipSurfaceKind.Degraded,
                 HasMore: true }
             && !string.IsNullOrWhiteSpace(_snapshot.NextCursor);
 
     private bool CanPreviousPage
-        => _pageTransitionVersion != _loadVersion
+        => !_disposed && !Volatile.Read(ref _authorityPending) && _pageTransitionVersion != _loadVersion
             && _snapshot is { Kind: not UserTenantMembershipSurfaceKind.Loading }
             && _cursorHistory.Count > 0;
     private string? _currentCursor;
@@ -165,8 +175,92 @@
             ? Localizer["Tenants.MyTenants.Summary", _snapshot.Rows.Count].Value
             : null;
 
+    protected override void OnInitialized()
+    {
+        _authenticationStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+        if (_authenticationStateProvider is not null)
+        {
+            _authenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        }
+    }
+
+    private void OnAuthenticationStateChanged(Task<AuthenticationState> state)
+    {
+        if (_disposed) return;
+        long version = Interlocked.Increment(ref _authorityVersion);
+        Volatile.Write(ref _authorityPending, true);
+        // Retire held reads before cancellation can run an old continuation.
+        Interlocked.Increment(ref _loadVersion);
+        CancellationTokenSource source;
+        lock (_authorityLock)
+        {
+            _authorityCancellation?.Cancel();
+            source = new CancellationTokenSource();
+            _authorityCancellation = source;
+            if (_disposed) source.Cancel();
+        }
+        _ = ApplyAuthorityChangeAsync(state, version, source);
+    }
+
+    private async Task ApplyAuthorityChangeAsync(Task<AuthenticationState> state, long version, CancellationTokenSource source)
+    {
+        bool IsCurrent() => !_disposed && version == Volatile.Read(ref _authorityVersion);
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (!IsCurrent()) return;
+                _currentCursor = null;
+                _cursorHistory.Clear();
+                _snapshot = UserTenantMembershipSnapshot.Loading();
+                StateHasChanged();
+            });
+            await TenantUiOperationPolicy.FromServices(Services).RunAsync(_ => state, source.Token);
+            await InvokeAsync(async () =>
+            {
+                if (!IsCurrent()) return;
+                Volatile.Write(ref _authorityPending, false);
+                await LoadAsync(reuseETag: false);
+                if (IsCurrent()) StateHasChanged();
+            });
+        }
+        catch (Exception)
+        {
+            if (IsCurrent()) await InvokeAsync(() =>
+            {
+                if (!IsCurrent()) return;
+                Volatile.Write(ref _authorityPending, false);
+                _snapshot = UserTenantMembershipSnapshot.Unavailable();
+                StateHasChanged();
+            });
+        }
+        finally
+        {
+            lock (_authorityLock)
+            {
+                if (ReferenceEquals(_authorityCancellation, source)) _authorityCancellation = null;
+            }
+            source.Dispose();
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed = true;
+        Interlocked.Increment(ref _authorityVersion);
+        Interlocked.Increment(ref _loadVersion);
+        if (_authenticationStateProvider is not null)
+            _authenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
+        lock (_authorityLock)
+        {
+            _authorityCancellation?.Cancel();
+            _authorityCancellation = null;
+        }
+    }
+
     protected override async Task OnParametersSetAsync()
     {
+        if (_disposed) return;
         string? incomingCursor = TenantWorkspaceState.NormalizeCursor(InitialCursor);
         if (_parametersInitialized && string.Equals(incomingCursor, _currentCursor, StringComparison.Ordinal))
         {
@@ -189,6 +283,7 @@
 
     private async Task LoadAsync(bool reuseETag)
     {
+        if (_disposed || Volatile.Read(ref _authorityPending)) return;
         // Invalidate any in-flight load so a slower earlier response cannot overwrite a newer snapshot
         // (Refresh/paging call the gateway with no cancellation token).
         long loadVersion = System.Threading.Interlocked.Increment(ref _loadVersion);
@@ -207,7 +302,7 @@
 
         await InvokeAsync(() =>
         {
-            if (loadVersion == _loadVersion)
+            if (!_disposed && !Volatile.Read(ref _authorityPending) && loadVersion == Volatile.Read(ref _loadVersion))
             {
                 _snapshot = snapshot;
                 if (snapshot.PagingRecovered)
@@ -222,6 +317,7 @@
 
     private async Task RefreshAsync()
     {
+        if (_disposed) return;
         await InvokeAsync(() => OnAuditRefresh.InvokeAsync()).ConfigureAwait(false);
         await InvokeAsync(() => LoadAsync(reuseETag: true)).ConfigureAwait(false);
     }

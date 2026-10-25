@@ -10,6 +10,22 @@ namespace Hexalith.Tenants.UI.Tests.State;
 public sealed class TenantAggregateCommandAdmissionGateTests
 {
     [Fact]
+    public void Lease_admission_reports_only_its_exact_current_owner_after_replacement()
+    {
+        var gate = new TenantAggregateCommandAdmissionGate();
+        string key = TenantCommandAggregateLock.ForTenant("tenant.alpha");
+        object firstOwner = new();
+        gate.TryAcquireLease(key, firstOwner, out TenantAggregateCommandLease? first).ShouldBeTrue();
+        gate.IsOwnedBy(key, firstOwner).ShouldBeTrue();
+        gate.IsOwnedBy(key, new object()).ShouldBeFalse();
+        first!.TryAbandonBeforeDispatch(firstOwner).ShouldBeTrue();
+        object replacementOwner = new();
+        gate.TryAcquireLease(key, replacementOwner, out _).ShouldBeTrue();
+        gate.IsOwnedBy(key, firstOwner).ShouldBeFalse();
+        gate.IsOwnedBy(key, replacementOwner).ShouldBeTrue();
+    }
+
+    [Fact]
     public void LeaseRequiresDispatchAndExplicitTerminalEvidenceToRelease()
     {
         var gate = new TenantAggregateCommandAdmissionGate();

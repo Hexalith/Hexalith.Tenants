@@ -5,6 +5,9 @@ namespace Hexalith.Tenants.UI.Services.Configuration;
 /// </summary>
 internal sealed class TenantConfigurationReadPolicyOptions
 {
+    /// <summary>Gets or sets optional explicit collection intent; both collection names must declare "array".</summary>
+    public Dictionary<string, string>? CollectionShapes { get; set; }
+
     /// <summary>Gets or sets positive tenant/subject prefix grants.</summary>
     public List<TenantConfigurationPrefixGrantOptions> PrefixGrants { get; set; } = [];
 

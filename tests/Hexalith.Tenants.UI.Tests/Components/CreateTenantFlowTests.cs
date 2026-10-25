@@ -33,6 +33,186 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class CreateTenantFlowTests : FluentBunitContext
 {
+    public CreateTenantFlowTests()
+    {
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+        Services.AddSingleton(viewport);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Unknown_or_unsafe_viewport_blocks_create_and_resize_preserves_tracked_work(bool measurePhone)
+    {
+        var viewport = new TenantHighImpactViewportObservation();
+        if (measurePhone) viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone);
+        Services.AddSingleton(viewport);
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "correlation-123"),
+            Status = new(CommandStatus.Received, HasVerifiedCommandIdentity: true),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddLocalization();
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(p => p
+            .Add(x => x.IsAuthorized, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(x => x.IsFirstTenantBootstrap, true).Add(x => x.BaselineTenantAbsent, true));
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+        cut.Find("[data-testid='tenants-create-unavailable-reason']").TextContent.ShouldContain("wider view");
+        await cut.Find("form").SubmitAsync();
+        gateway.CreateTenantCallCount.ShouldBe(0);
+        await cut.InvokeAsync(() => viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Tablet));
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeFalse();
+        await cut.Find("form").SubmitAsync();
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.Accepted);
+        string? message = cut.Instance.Snapshot.MessageId;
+        await cut.InvokeAsync(() => viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone));
+        cut.Find("[data-testid='tenants-create-submit']").HasAttribute("disabled").ShouldBeTrue();
+        await cut.Find("[data-testid='tenants-create-refresh']").ClickAsync(new MouseEventArgs());
+        cut.Instance.Snapshot.MessageId.ShouldBe(message);
+        gateway.CreateTenantCallCount.ShouldBe(1);
+    }
+
+    [Theory]
+    [InlineData(TenantDetailSurfaceKind.Ready, true)]
+    [InlineData(TenantDetailSurfaceKind.Unauthorized, false)]
+    [InlineData(TenantDetailSurfaceKind.Unavailable, false)]
+    [InlineData(TenantDetailSurfaceKind.Unknown, false)]
+    public async Task Conflict_navigation_requires_fresh_read_authority_and_rechecks_before_opening(TenantDetailSurfaceKind kind, bool offered)
+    {
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Rejected("Already exists", "TenantAlreadyExists"),
+        };
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddLocalization();
+        ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
+        TenantDetailSnapshot readable = TenantDetailSnapshot.Ready(new TenantDetail("tenant.alpha", "Private name", null,
+            TenantStatus.Active, [], new Dictionary<string, string>(), DateTimeOffset.UtcNow), "etag",
+            Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current,
+            Hexalith.EventStore.Contracts.Queries.ProjectionLifecycleState.Current, "tenant-sequence:1");
+        TenantDetailSnapshot response = kind switch
+        {
+            TenantDetailSurfaceKind.Ready => readable,
+            TenantDetailSurfaceKind.Unauthorized => TenantDetailSnapshot.Unauthorized("tenant.alpha"),
+            TenantDetailSurfaceKind.Unknown => TenantDetailSnapshot.Unknown("Unknown"),
+            _ => TenantDetailSnapshot.Unavailable("Unavailable"),
+        };
+        queries.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(_ => Task.FromResult(response));
+        Services.AddSingleton(queries);
+        int opened = 0;
+        IRenderedComponent<CreateTenantFlow> cut = Render<CreateTenantFlow>(p => p
+            .Add(x => x.IsAuthorized, true).Add(x => x.BaselineTenantAbsent, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(x => x.OnOpenExistingTenantRequested, _ => opened++));
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        await cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-create-open-existing']").Count.ShouldBe(offered ? 1 : 0));
+        cut.Markup.ShouldNotContain("Private name");
+        if (offered)
+        {
+            cut.Find("[data-testid='tenants-create-open-existing']").HasAttribute("disabled").ShouldBeFalse();
+            response = TenantDetailSnapshot.Unauthorized("tenant.alpha");
+            await cut.Find("[data-testid='tenants-create-open-existing']").ClickAsync(new MouseEventArgs());
+            opened.ShouldBe(0);
+            cut.FindAll("[data-testid='tenants-create-open-existing']").ShouldBeEmpty();
+            LastFocusedReferenceId().ShouldBe(LifecycleReferenceId(cut));
+        }
+        queries.ReceivedCalls().ShouldAllBe(call => call.GetArguments()[1] == null);
+    }
+
+    [Fact]
+    public async Task Unsafe_resize_during_held_baseline_refuses_with_the_localized_viewport_reason()
+    {
+        var gateway = new StubTenantCommandGateway();
+        Services.AddSingleton<ITenantCommandGateway>(gateway);
+        Services.AddLocalization();
+        ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
+        var held = new TaskCompletionSource<TenantDetailSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
+        queries.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>()).Returns(held.Task);
+        Services.AddSingleton(queries);
+        var cut = Render<CreateTenantFlow>(p => p.Add(x => x.IsAuthorized, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized)));
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        Task submit = cut.Find("form").SubmitAsync();
+        try
+        {
+            cut.WaitForAssertion(() => queries.ReceivedCalls().Count().ShouldBe(1));
+            await cut.InvokeAsync(() => Services.GetRequiredService<TenantHighImpactViewportObservation>()
+                .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone));
+            held.SetResult(TenantDetailSnapshot.NotFound("tenant.alpha"));
+            await submit.WaitAsync(TimeSpan.FromSeconds(5));
+            cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.UnableToVerify);
+            cut.Instance.Snapshot.SafeMessage.ShouldBe(Services.GetRequiredService<IStringLocalizer<TenantsResources>>()
+                ["Tenants.Create.Unavailable.Viewport"].Value);
+            gateway.CreateTenantCallCount.ShouldBe(0);
+        }
+        finally
+        {
+            held.TrySetResult(TenantDetailSnapshot.NotFound("tenant.alpha"));
+            await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+    }
+
+    [Theory]
+    [InlineData("current", 1)]
+    [InlineData("admission", 0)]
+    [InlineData("attempt", 0)]
+    [InlineData("snapshot", 0)]
+    [InlineData("disposal", 0)]
+    public async Task Queued_existing_navigation_rechecks_its_exact_recovery_owner(string transition, int navigations)
+    {
+        Services.AddSingleton<ITenantCommandGateway>(new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Rejected("Already exists", "TenantAlreadyExists"),
+        });
+        Services.AddLocalization();
+        ITenantQueryGateway queries = Substitute.For<ITenantQueryGateway>();
+        queries.GetTenantAsync(Arg.Any<TenantDetailRequest>(), Arg.Any<TenantDetailSnapshot?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(TenantDetailSnapshot.Ready(new TenantDetail("tenant.alpha", "Alpha", null,
+                TenantStatus.Active, [], new Dictionary<string, string>(), DateTimeOffset.UtcNow), "etag",
+                Hexalith.EventStore.Client.Projections.ReadModelFreshnessState.Current)));
+        Services.AddSingleton(queries);
+        int opened = 0;
+        var cut = Render<CreateTenantFlow>(p => p.Add(x => x.IsAuthorized, true).Add(x => x.BaselineTenantAbsent, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(x => x.OnOpenExistingTenantRequested, _ => opened++));
+        cut.Find("[data-testid='tenants-create-tenant-id']").Change("tenant.alpha");
+        cut.Find("[data-testid='tenants-create-name']").Change("Alpha");
+        await cut.Find("form").SubmitAsync();
+        cut.WaitForElement("[data-testid='tenants-create-open-existing']");
+        const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+        object scope = typeof(CreateTenantFlow).GetProperty("ExistingTenantRecoveryScope", flags)!.GetValue(cut.Instance)!;
+        TenantCreateCommandSnapshot snapshot = cut.Instance.Snapshot;
+        await cut.InvokeAsync(() =>
+        {
+            switch (transition)
+            {
+                case "admission": typeof(CreateTenantFlow).GetMethod("InvalidateAdmission", flags)!.Invoke(cut.Instance, null); break;
+                case "attempt":
+                    var field = typeof(CreateTenantFlow).GetField("_attemptGeneration", flags)!;
+                    field.SetValue(cut.Instance, (int)field.GetValue(cut.Instance)! + 1); break;
+                case "snapshot": typeof(CreateTenantFlow).GetField("_snapshot", flags)!.SetValue(cut.Instance, snapshot with { SafeMessage = "Current recovery" }); break;
+                case "disposal": cut.Instance.Dispose(); break;
+            }
+        });
+        // Invoke the same renderer callback after its captured owner has retired; the current-owner control navigates.
+        await cut.InvokeAsync(() => (Task)typeof(CreateTenantFlow).GetMethod("NavigateToExistingTenantIfCurrentAsync", flags)!
+            .Invoke(cut.Instance, [scope, snapshot])!);
+        opened.ShouldBe(navigations);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]

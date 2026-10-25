@@ -39,12 +39,16 @@ public sealed class TenantDetailSnapshot
     /// <summary>Gets the opaque authenticated caller provenance retained inside BFF state.</summary>
     public string? CallerScope { get; }
 
+    /// <summary>Gets the observed authority revision qualifying retained rows and validators.</summary>
+    internal long AuthorizationRevision { get; init; }
+
     /// <summary>Copies an already sanitized snapshot with authenticated caller provenance.</summary>
     /// <param name="callerScope">The opaque authenticated caller scope.</param>
+    /// <param name="authorizationRevision">Optional newly observed retained-read authority revision.</param>
     /// <returns>The immutable caller-bound snapshot.</returns>
-    internal TenantDetailSnapshot WithCallerScope(string callerScope)
+    internal TenantDetailSnapshot WithCallerScope(string callerScope, long? authorizationRevision = null)
         => new(Kind, Detail, ETag, Freshness, Lifecycle, ProjectionVersion, ErrorMessage,
-            Configuration, ConfigurationManagement, callerScope);
+            Configuration, ConfigurationManagement, callerScope) { AuthorizationRevision = authorizationRevision ?? AuthorizationRevision };
 
     /// <summary>Gets the detail surface state.</summary>
     public TenantDetailSurfaceKind Kind { get; }

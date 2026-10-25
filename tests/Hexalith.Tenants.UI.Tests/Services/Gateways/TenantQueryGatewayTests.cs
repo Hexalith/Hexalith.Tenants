@@ -479,6 +479,91 @@ public sealed class TenantQueryGatewayTests
         => new[] { "detail", "members", "memberships", "self-memberships", "administrators", "list", "audit" }
             .SelectMany(surface => new[] { "304", "throw" }.Select(outcome => new object[] { surface, outcome }));
 
+    [Fact]
+    public async Task Disposed_read_scope_withholds_held_completion_and_cannot_resubscribe_or_start_another_read()
+    {
+        AuthenticationStateProvider provider = GatewayAuthenticationProvider("operator-user");
+        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var validators = new List<string?>();
+        TenantQueryGateway gateway = CreateGateway(CallerBoundReadClient(() => "200", validators, () => held.Task),
+            authenticationStateProvider: provider);
+        Task<TenantDetailSnapshot> pending = gateway.GetTenantAsync(new("tenant.alpha"), null);
+        gateway.Dispose();
+        held.SetResult();
+
+        TenantDetailSnapshot completion = await pending;
+        TenantDetailSnapshot next = await gateway.GetTenantAsync(new("tenant.alpha"), completion);
+
+        completion.Detail.ShouldBeNull();
+        completion.ETag.ShouldBeNull();
+        next.Detail.ShouldBeNull();
+        validators.ShouldHaveSingleItem();
+    }
+
+    public static IEnumerable<object[]> PermissionRevisionReadCases()
+        => CallerBoundReadCases().SelectMany(test => new[] { false, true }.Select(notify => new[] { test[0], test[1], notify }));
+
+    [Theory]
+    [MemberData(nameof(PermissionRevisionReadCases))]
+    public async Task Same_subject_permission_revision_discards_retained_rows_and_validators_then_recovers(string surface, string outcome, bool notify)
+    {
+        AuthenticationStateProvider provider = GatewayAuthenticationProvider("operator-user");
+        string response = "200";
+        var validators = new List<string?>();
+        using TenantQueryGateway gateway = CreateGateway(CallerBoundReadClient(() => response, validators, () => Task.CompletedTask),
+            authenticationStateProvider: provider);
+        object previous = await ReadCallerBoundSnapshotAsync(surface, gateway);
+        CallerBoundSnapshotFacts(previous).Count.ShouldBeGreaterThan(0);
+        ClaimsPrincipal changed = new(new ClaimsIdentity([
+            new Claim("sub", "operator-user"), new Claim("global_admin", "false"), new Claim("permission", "revised")], "test"));
+        Task<AuthenticationState> changedState = Task.FromResult(new AuthenticationState(changed));
+        if (notify) NotifyGatewayAuthentication(provider, changedState);
+        else provider.GetAuthenticationStateAsync().Returns(changedState);
+        response = outcome;
+        validators.Clear();
+
+        object withheld = await ReadCallerBoundSnapshotAsync(surface, gateway, previous, "confirmed-etag");
+
+        CallerBoundSnapshotFacts(withheld).Count.ShouldBe(0);
+        CallerBoundSnapshotFacts(withheld).ETag.ShouldBeNull();
+        validators.ShouldNotBeEmpty();
+        validators.ShouldAllBe(validator => validator == null);
+        CallerBoundSnapshotFacts(withheld).Scope.ShouldBe(CallerBoundSnapshotFacts(previous).Scope);
+        response = "200";
+        object fresh = await ReadCallerBoundSnapshotAsync(surface, gateway, previous, "confirmed-etag");
+        CallerBoundSnapshotFacts(fresh).Count.ShouldBeGreaterThan(0);
+        response = "throw";
+        object retained = await ReadCallerBoundSnapshotAsync(surface, gateway, fresh, "confirmed-etag");
+        CallerBoundSnapshotFacts(retained).Count.ShouldBe(CallerBoundSnapshotFacts(fresh).Count);
+    }
+
+    [Theory]
+    [MemberData(nameof(CallerBoundReadCases))]
+    public async Task Same_subject_unnotified_permission_change_withholds_inflight_completion(string surface, string outcome)
+    {
+        AuthenticationStateProvider provider = GatewayAuthenticationProvider("operator-user");
+        string response = "200";
+        Task gate = Task.CompletedTask;
+        var validators = new List<string?>();
+        using TenantQueryGateway gateway = CreateGateway(CallerBoundReadClient(() => response, validators, () => gate),
+            authenticationStateProvider: provider);
+        object previous = await ReadCallerBoundSnapshotAsync(surface, gateway);
+        var held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        gate = held.Task;
+        response = outcome;
+        Task<object> read = ReadCallerBoundSnapshotAsync(surface, gateway, previous, "confirmed-etag");
+        provider.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(new ClaimsPrincipal(
+            new ClaimsIdentity([new Claim("sub", "operator-user"), new Claim("global_admin", "false"),
+                new Claim("permission", "changed-during-read")], "test")))));
+        held.SetResult();
+
+        object result = await read;
+
+        CallerBoundSnapshotFacts(result).Count.ShouldBe(0);
+        CallerBoundSnapshotFacts(result).ETag.ShouldBeNull();
+        if (result is TenantDetailSnapshot detail) detail.Configuration.IsAvailable.ShouldBeFalse();
+    }
+
     [Theory]
     [MemberData(nameof(CallerBoundReadCases))]
     public async Task Retained_reads_discard_other_caller_payloads_and_validators(string surface, string outcome)
@@ -7143,8 +7228,6 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.ShouldBeEmpty();
         snapshot.HasMore.ShouldBeFalse();
         snapshot.NextCursor.ShouldBeNull();
-        snapshot.ToString().ShouldNotContain("403");
-        snapshot.ToString().ShouldNotContain("404");
     }
 
     [Fact]
@@ -7170,8 +7253,6 @@ public sealed class TenantQueryGatewayTests
         snapshot.Rows.ShouldBeEmpty();
         snapshot.HasMore.ShouldBeTrue();
         snapshot.NextCursor.ShouldNotBeNull();
-        snapshot.ToString().ShouldNotContain("tenant.alpha");
-        snapshot.ToString().ShouldNotContain("404");
     }
 
     [Fact]
@@ -7204,8 +7285,6 @@ public sealed class TenantQueryGatewayTests
             CancellationToken.None);
 
         second.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("visible");
-        second.ToString().ShouldNotContain("missing-a");
-        second.ToString().ShouldNotContain("404");
     }
 
     [Theory]

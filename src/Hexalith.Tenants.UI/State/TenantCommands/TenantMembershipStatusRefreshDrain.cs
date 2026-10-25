@@ -10,6 +10,18 @@ internal sealed class TenantMembershipStatusRefreshDrain
     private int _pending;
     private int _pendingGeneration;
 
+    /// <summary>Gets whether a refresh drain currently owns status work.</summary>
+    internal bool IsRunning
+    {
+        get
+        {
+            lock (_sync)
+            {
+                return _completion is not null;
+            }
+        }
+    }
+
     /// <summary>Enqueues status work and optionally waits until all explicitly queued recovery has drained.</summary>
     /// <param name="requestProjectionRefresh">Whether this request also requires a parent projection reload.</param>
     /// <param name="waitForRunningRefresh">Whether a joined caller waits for the owning drain.</param>

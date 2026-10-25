@@ -27,6 +27,9 @@ public sealed record TenantListSnapshot(
     public override string ToString()
         => $"{nameof(TenantListSnapshot)} {{ Kind = {Kind}, RowCount = {Rows.Count}, HasMore = {HasMore}, Freshness = {Freshness}, Lifecycle = {Lifecycle}, IsDegraded = {IsDegraded}, IsAuthorizationScopedEmpty = {IsAuthorizationScopedEmpty}, Reason = {Reason}, Notice = {Notice}, IsAuthoritativeSearch = {IsAuthoritativeSearch}, PagingRecovered = {PagingRecovered}, FallbackPagingRecovered = {FallbackPagingRecovered}, PagingNotice = {PagingNotice} }}";
 
+    /// <summary>Gets the observed authority revision qualifying retained rows and validators.</summary>
+    internal long AuthorizationRevision { get; init; }
+
     public static TenantListSnapshot Loading()
         => new(
             TenantListSurfaceKind.Loading,

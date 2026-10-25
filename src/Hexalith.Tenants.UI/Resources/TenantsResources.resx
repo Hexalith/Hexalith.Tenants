@@ -4565,4 +4565,10 @@
     <value>Sorting applies only to tenants on the current page, including search results. Changing the sort returns to the first page. Other pages may contain names or statuses that belong earlier in the order.</value>
   </data>
   <data name="Tenants.Create.StatusWait.Expired" xml:space="preserve"><value>The creation outcome is still unverified after the waiting period. Keep this attempt and refresh status later.</value></data>
+  <data name="Tenants.Create.Unavailable.Viewport" xml:space="preserve">
+    <value>Creating a tenant requires a measured wider view. Widen this window to continue; tracked command work remains available.</value>
+  </data>
+  <data name="Tenants.Create.Action.OpenExisting" xml:space="preserve">
+    <value>Open existing tenant</value>
+  </data>
 </root>

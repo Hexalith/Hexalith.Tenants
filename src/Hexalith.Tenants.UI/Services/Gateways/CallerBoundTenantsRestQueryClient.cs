@@ -14,7 +14,7 @@ internal sealed class CallerBoundTenantsRestQueryClient : ITenantsRestQueryClien
 
     /// <summary>Subscribes the immutable read guard to its authoritative authentication source.</summary>
     /// <param name="client">The existing REST transport.</param>
-    /// <param name="isCurrentCaller">The original authenticated subject check.</param>
+    /// <param name="isCurrentCaller">The captured authenticated subject and authorization revision check.</param>
     /// <param name="provider">The authoritative circuit provider, when available.</param>
     internal CallerBoundTenantsRestQueryClient(
         ITenantsRestQueryClient client, Func<bool> isCurrentCaller, AuthenticationStateProvider? provider = null)

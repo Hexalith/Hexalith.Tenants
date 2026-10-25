@@ -185,6 +185,7 @@
     private string? _validationMessage;
     private bool _isSubmitting;
     private bool _hasRaisedCommandActivity;
+    private readonly TenantCommandActivityCoordinator _commandActivity = new();
     private ElementReference _roleElement;
     private ElementReference _lifecycleElement;
     private bool _focusRolePending;
@@ -521,9 +522,8 @@
                 || TenantCommandAttemptTracker.IsTerminal(_snapshot));
 
     private string? DisplaySafeMessage
-        => !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
-            ? Localizer[_snapshot.SafeMessageKey].Value
-            : _snapshot.SafeMessage;
+        => TenantCommandFlowGuard.ResolveSafeMessage(Localizer, _snapshot.SafeMessageKey, _snapshot.SafeMessage,
+            "Tenants.ChangeRole.State.UnableToVerify");
 
     private bool OwnerRiskVisible
         => Member.Role is TenantRole.TenantOwner
@@ -689,68 +689,32 @@
                 LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
             };
 
-    private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
-    {
-        if (_disposed)
-        {
-            return !isActive;
-        }
-        if (isActive && _retainedAttempt is null)
-        {
-            _attemptMemberUserId = Member.UserId;
-        }
-        if (isActive && _retainedAttempt is null
-            && !Attempts.TryBegin(Detail.TenantId, this, _snapshot, out _retainedAttempt))
-        {
-            return false;
-        }
-        if (_hasRaisedCommandActivity == isActive)
-        {
-            return true;
-        }
-
-        int generation = _attemptGeneration;
-        TenantRetainedCommandAttempt? attempt = _retainedAttempt;
-        TenantCommandAttemptTracker tracker = Attempts;
-        bool accepted;
-        try
-        {
-            if (CommandActivityLease is { } lease)
+    private Task<bool> SetCommandActivityRaisedAsync(bool isActive)
+        => _commandActivity.SetAsync(isActive, () => _disposed, () => _attemptGeneration,
+            () => _retainedAttempt,
+            () =>
             {
-                accepted = await lease(isActive).ConfigureAwait(false);
-            }
-            else
+                _attemptMemberUserId = Member.UserId;
+                return Attempts.TryBegin(Detail.TenantId, this, _snapshot, out _retainedAttempt);
+            },
+            () => _hasRaisedCommandActivity, value => _hasRaisedCommandActivity = value,
+            attempt =>
             {
-                await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
-                accepted = true;
-            }
-        }
-        catch (Exception)
-        {
-            if (!isActive)
+                Attempts.Detach(attempt, this);
+                if (ReferenceEquals(_retainedAttempt, attempt))
+                {
+                    _retainedAttempt = null;
+                }
+            },
+            async active =>
             {
-                throw;
-            }
-            tracker.Detach(attempt, this);
-            if (!_disposed && generation == _attemptGeneration && ReferenceEquals(_retainedAttempt, attempt))
-            {
-                _retainedAttempt = null;
-            }
-            return false;
-        }
-        if (_disposed || generation != _attemptGeneration || !ReferenceEquals(_retainedAttempt, attempt))
-        {
-            return !isActive;
-        }
-        if (isActive && !accepted)
-        {
-            tracker.Detach(attempt, this);
-            _retainedAttempt = null;
-            return false;
-        }
-        _hasRaisedCommandActivity = isActive;
-        return true;
-    }
+                if (CommandActivityLease is { } lease)
+                {
+                    return await lease(active).ConfigureAwait(false);
+                }
+                await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(active)).ConfigureAwait(false);
+                return true;
+            });
 
     private async Task UpdateCommandActivityForSnapshotAsync()
         => _ = await SetCommandActivityRaisedAsync(IsOwnedCommandInFlight).ConfigureAwait(false);

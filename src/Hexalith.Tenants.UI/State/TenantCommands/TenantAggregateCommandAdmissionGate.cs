@@ -292,7 +292,8 @@ public sealed class TenantAggregateCommandAdmissionGate
         lock (_sync)
         {
             return _ownerByKey.TryGetValue(aggregateLockKey, out object? currentOwner)
-                && ReferenceEquals(currentOwner, owner);
+                && (ReferenceEquals(currentOwner, owner)
+                    || currentOwner is TenantAggregateCommandLease lease && IsOwnedActiveLeaseCore(lease, owner));
         }
     }
 

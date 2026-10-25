@@ -107,6 +107,13 @@
             <span aria-hidden="true">@StateSymbol</span>
             <span>@StateText</span>
         </p>
+        @if (CanOpenExistingTenant)
+        {
+            <FluentButton Appearance="ButtonAppearance.Outline" data-testid="tenants-create-open-existing"
+                          Disabled="@_checkingExistingTenant" OnClick="OpenExistingTenantAsync">
+                @Localizer["Tenants.Create.Action.OpenExisting"]
+            </FluentButton>
+        }
         <div data-testid="tenants-create-audit">
             @if (ShouldRenderAuditEntryPoint)
             {
@@ -179,6 +186,36 @@
     private bool _focusTenantIdPending;
     private bool _focusNamePending;
     private bool _focusLifecyclePending;
+    private TenantHighImpactViewportObservation? _viewportObservation;
+    private bool _existingTenantReadable;
+    private bool _checkingExistingTenant;
+    private object? _existingRecoveryScope;
+
+    private bool HasSafeMeasuredViewport
+        => _viewportObservation is { HasMeasurement: true, State: TenantHighImpactViewportState.Safe };
+
+    private void OnViewportStateChanged(object? sender, EventArgs args)
+    {
+        InvalidateAdmission();
+        _ = RenderViewportAsync();
+    }
+
+    private async Task RenderViewportAsync()
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (!_disposed)
+                {
+                    StateHasChanged();
+                }
+            }).ConfigureAwait(false);
+        }
+        catch (ObjectDisposedException)
+        {
+        }
+    }
 
     [Parameter]
     public bool ShowHeading { get; set; } = true;
@@ -223,6 +260,10 @@
     [Parameter]
     public Func<string, Task<TenantListSnapshot?>>? ProjectionEvidenceProvider { get; set; }
 
+    /// <summary>Gets or sets navigation through the workspace's existing safe return-state builder.</summary>
+    [Parameter]
+    public EventCallback<string> OnOpenExistingTenantRequested { get; set; }
+
 
     private long _admissionGeneration;
     private bool _authorityResolutionInProgress;
@@ -251,6 +292,8 @@
     private void InvalidateAdmission()
     {
         Interlocked.Increment(ref _admissionGeneration);
+        _existingTenantReadable = false;
+        _existingRecoveryScope = null;
         lock (_authorityCancellationLock)
         {
             _authorityCancellation?.Cancel();
@@ -309,7 +352,7 @@
             return false;
         }
         _submissionAuthority = authority;
-        return !_disposed && generation == _admissionGeneration && IsAuthorized && IsFresh && IsCommandSurfaceAvailable
+        return !_disposed && generation == _admissionGeneration && HasSafeMeasuredViewport && IsAuthorized && IsFresh && IsCommandSurfaceAvailable
             && AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized
             && authority is TenantLifecycleAuthorizationReflectionState.Authorized;
     }
@@ -364,6 +407,11 @@
 
     protected override void OnInitialized()
     {
+        _viewportObservation = Services.GetService<TenantHighImpactViewportObservation>();
+        if (_viewportObservation is not null)
+        {
+            _viewportObservation.StateChanged += OnViewportStateChanged;
+        }
         TenantCommandAttemptTracker? attempts = AttemptTracker?.Attempts;
         if (attempts is not null)
         {
@@ -435,6 +483,8 @@
         => !IsAuthorized || AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized
             || _submissionAuthority is TenantLifecycleAuthorizationReflectionState.MissingPermission or TenantLifecycleAuthorizationReflectionState.Indeterminate
             ? AuthorizationUnavailableReason
+            : !HasSafeMeasuredViewport
+                ? Localizer["Tenants.Create.Unavailable.Viewport"].Value
             : !IsFresh
                 ? Localizer["Tenants.Create.Availability.Stale"].Value
                 : !IsCommandSurfaceAvailable || CommandGateway is null || AttemptTracker is null
@@ -501,20 +551,7 @@
                                      IsAvailable="@AuditReadAvailable" />;
 
     private string? SafeMessageText
-    {
-        get
-        {
-            if (string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey))
-            {
-                return _snapshot.SafeMessage;
-            }
-
-            // A missing or renamed resource makes IStringLocalizer hand back the key itself, which
-            // would print an internal identifier onto a support-safe surface.
-            LocalizedString localized = Localizer[_snapshot.SafeMessageKey];
-            return localized.ResourceNotFound ? null : localized.Value;
-        }
-    }
+        => TenantCommandFlowGuard.ResolveSafeMessage(Localizer, _snapshot.SafeMessageKey, _snapshot.SafeMessage);
 
     // The shared control's Refresh can resolve the audit state to NotStarted, which unmounts the control and its
     // focused Refresh button; focus then moves to the lifecycle section instead of falling back to the document body.
@@ -581,7 +618,115 @@
 
         // Optional transport setup must never delay audit-return retention or required focus work.
         await InvokeAsync(EnsureReadRefreshAsync);
+        await EnsureExistingTenantRecoveryAsync().ConfigureAwait(false);
     }
+
+    private bool IsExistingTenantConflict
+        => _snapshot.State is TenantCommandLifecycleState.Rejected
+            && string.Equals(_snapshot.RejectionCode, "TenantAlreadyExists", StringComparison.Ordinal)
+            && TenantAuditNavigationSafety.IsSafeTenantId(_snapshot.Intent?.TenantId)
+            && IsAuthorized && AuthorizationReflection is TenantLifecycleAuthorizationReflectionState.Authorized;
+
+    private bool CanOpenExistingTenant
+        => IsExistingTenantConflict && _existingTenantReadable && OnOpenExistingTenantRequested.HasDelegate;
+
+    private async Task<bool> ReadExistingTenantAsync()
+    {
+        if (!IsExistingTenantConflict || _snapshot.Intent is not { } intent
+            || Services.GetService<ITenantQueryGateway>() is not { } query)
+        {
+            return false;
+        }
+        long admission = Volatile.Read(ref _admissionGeneration);
+        int generation = _attemptGeneration;
+        TenantCreateCommandSnapshot expected = _snapshot;
+        try
+        {
+            TenantDetailSnapshot detail = await TenantUiOperationPolicy.FromServices(Services).RunAsync(
+                token => query.GetTenantAsync(new(intent.TenantId), previous: null, token)).ConfigureAwait(false);
+            return !_disposed && admission == Volatile.Read(ref _admissionGeneration)
+                && generation == _attemptGeneration && IsExistingTenantConflict
+                && TenantCommandAttemptTracker.HasSameEvidence(expected, _snapshot)
+                && detail.Kind is TenantDetailSurfaceKind.Ready
+                && string.Equals(detail.Detail?.TenantId, intent.TenantId, StringComparison.Ordinal);
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    private object ExistingTenantRecoveryScope
+        => (_admissionGeneration, _attemptGeneration, _snapshot.Intent?.TenantId, _snapshot.RejectionCode, _snapshot.State);
+
+    private async Task EnsureExistingTenantRecoveryAsync()
+    {
+        object scope = ExistingTenantRecoveryScope;
+        if (_checkingExistingTenant || !IsExistingTenantConflict || Equals(scope, _existingRecoveryScope))
+        {
+            return;
+        }
+        _existingRecoveryScope = scope;
+        _checkingExistingTenant = true;
+        try
+        {
+            bool readable = await ReadExistingTenantAsync().ConfigureAwait(false);
+            if (_disposed)
+            {
+                return;
+            }
+            await InvokeAsync(() =>
+            {
+                if (!_disposed && Equals(scope, _existingRecoveryScope))
+                {
+                    _existingTenantReadable = readable;
+                }
+            }).ConfigureAwait(false);
+        }
+        finally
+        {
+            _checkingExistingTenant = false;
+            if (!_disposed)
+            {
+                await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+            }
+        }
+    }
+
+    private async Task OpenExistingTenantAsync()
+    {
+        if (!CanOpenExistingTenant || _checkingExistingTenant)
+        {
+            return;
+        }
+        object scope = ExistingTenantRecoveryScope;
+        TenantCreateCommandSnapshot expected = _snapshot;
+        _checkingExistingTenant = true;
+        try
+        {
+            bool readable = await ReadExistingTenantAsync().ConfigureAwait(false);
+            await InvokeAsync(async () =>
+            {
+                if (!IsExistingRecoveryCurrent(scope, expected)) return;
+                _existingTenantReadable = readable;
+                if (!readable) _focusLifecyclePending = true;
+                await NavigateToExistingTenantIfCurrentAsync(scope, expected);
+            }).ConfigureAwait(false);
+        }
+        finally
+        {
+            _checkingExistingTenant = false;
+            if (!_disposed) await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+        }
+    }
+
+    private bool IsExistingRecoveryCurrent(object scope, TenantCreateCommandSnapshot expected)
+        => !_disposed && Equals(scope, ExistingTenantRecoveryScope) && ReferenceEquals(expected, _snapshot)
+            && IsExistingTenantConflict;
+
+    private Task NavigateToExistingTenantIfCurrentAsync(object scope, TenantCreateCommandSnapshot expected)
+        => IsExistingRecoveryCurrent(scope, expected) && CanOpenExistingTenant && expected.Intent is { } intent
+            ? OnOpenExistingTenantRequested.InvokeAsync(intent.TenantId) : Task.CompletedTask;
 
     // Honours the lifecycle FocusTarget for fail-closed/non-success transitions: when the command
     // surface becomes blocked, rejected, failed, degraded, or unable-to-verify, the submit button
@@ -777,12 +922,13 @@
             {
                 return;
             }
-            if (admissionGeneration != _admissionGeneration || !IsAuthorized || !IsFresh || !IsCommandSurfaceAvailable || CommandGateway is null || AttemptTracker is null)
+            if (admissionGeneration != _admissionGeneration || !HasSafeMeasuredViewport || !IsAuthorized || !IsFresh || !IsCommandSurfaceAvailable || CommandGateway is null || AttemptTracker is null)
             {
                 Attempts.Detach(_retainedAttempt, this);
                 _retainedAttempt = null;
                 SetSnapshot(TenantCreateCommandSnapshot.Blocked(
                     !IsAuthorized ? AuthorizationUnavailableReason
+                        : !HasSafeMeasuredViewport ? Localizer["Tenants.Create.Unavailable.Viewport"].Value
                         : !IsFresh ? Localizer["Tenants.Create.Availability.Stale"].Value
                         : Localizer["Tenants.Create.Unavailable.CommandSurface"].Value,
                     TenantCommandFocusTarget.Submit));
@@ -1126,6 +1272,10 @@
     public void Dispose()
     {
         _disposed = true;
+        if (_viewportObservation is not null)
+        {
+            _viewportObservation.StateChanged -= OnViewportStateChanged;
+        }
         RetireReadRefresh();
         InvalidateAdmission();
         TenantCommandAttemptTracker? attempts = AttemptTracker?.Attempts;

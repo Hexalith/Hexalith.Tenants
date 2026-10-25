@@ -332,7 +332,7 @@ public sealed partial class TenantsWorkspaceTests
         await cut.InvokeAsync(static () => Task.CompletedTask);
         resolutions.ShouldBe(currentResolutions);
         PrivateField<long>(cut.Instance, "_authorizationVersion").ShouldBe(currentVersion);
-        _ = reads.Received(1).ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
+        _ = reads.Received(dispose ? 1 : 2).ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
         if (!dispose)
         {
             cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
@@ -398,7 +398,7 @@ public sealed partial class TenantsWorkspaceTests
             cut.FindAll("[data-testid='tenants-global-administrators-entry']").ShouldBeEmpty();
             cut.FindComponent<CreateTenantFlow>().Instance.IsAuthorized.ShouldBeFalse();
         }
-        _ = reads.Received(1).ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
+        _ = reads.Received(dispose ? 1 : 2).ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
         clock.GetUtcNow().ShouldBe(DateTimeOffset.UnixEpoch);
     }
 

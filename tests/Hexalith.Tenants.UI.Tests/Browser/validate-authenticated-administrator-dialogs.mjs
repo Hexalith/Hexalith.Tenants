@@ -1,6 +1,7 @@
 // Authenticate through the existing Aspire host, then exercise the rebuilt production
 // UI dialogs in a separate process with controlled, read-only loopback responses.
-// The fixture never changes domain state and rejects all command requests.
+// The fixture never forwards commands: two explicitly selected command simulations
+// exercise pending dismissal and conflict recovery entirely within this process.
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync, spawn } from 'node:child_process';
@@ -10,6 +11,7 @@ import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { startLocalOidcFixture } from './local-oidc-fixture.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const require = createRequire(new URL('../../performance/tenant-audit/package.json', import.meta.url));
@@ -17,12 +19,16 @@ const playwrightModule = process.env.TENANTS_BROWSER_PLAYWRIGHT_MODULE || 'playw
 const { chromium } = require(playwrightModule);
 const playwrightRoot = dirname(require.resolve(`${playwrightModule}/package.json`));
 const { wsServer: WebSocketServer } = require(resolve(playwrightRoot, '../playwright-core/lib/utilsBundle.js'));
-const base = new URL(process.env.TENANTS_BROWSER_BASE_URL);
+const standaloneOidc = process.env.TENANTS_BROWSER_STANDALONE_OIDC === '1';
+const safetyOnly = process.env.TENANTS_BROWSER_UI_SAFETY_ONLY === '1';
+const base = new URL(process.env.TENANTS_BROWSER_BASE_URL || (standaloneOidc ? 'https://localhost' : ''));
 assert.equal(base.hostname, 'localhost', 'Use the registered localhost Aspire endpoint so authentication cookies reach the fixture');
 const username = process.env.TENANTS_BROWSER_USERNAME;
 const password = process.env.TENANTS_BROWSER_PASSWORD;
-assert.ok(username && password, 'Supply the chosen local realm credentials through environment variables');
-assert.match(process.env.TENANTS_BROWSER_SOURCE_UI_PID || '', /^\d+$/, 'Supply the current Aspire UI process id');
+if (!standaloneOidc) {
+    assert.ok(username && password, 'Supply the chosen local realm credentials through environment variables');
+    assert.match(process.env.TENANTS_BROWSER_SOURCE_UI_PID || '', /^\d+$/, 'Supply the current Aspire UI process id');
+}
 const output = process.argv[2];
 assert.ok(output, 'Supply a safe result JSON path');
 const git = (...args) => execFileSync('git', args, { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -40,6 +46,7 @@ const captureSource = async () => {
     };
     return {
         validatorSha256: hash(await readFile(fileURLToPath(import.meta.url))),
+        oidcFixtureSha256: hash(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), "local-oidc-fixture.mjs"))),
         sourceBaseRevision: git('rev-parse', 'HEAD'),
         sourceDiffSha256: hash(git('diff', '--binary', 'HEAD', '--', 'src/Hexalith.Tenants.UI')),
         buildInputsDiffSha256: hash(git('diff', '--binary', 'HEAD', '--', 'src', 'Directory.Build.props', 'Directory.Build.targets', 'Directory.Packages.props', 'global.json')),
@@ -53,13 +60,19 @@ const evidence = {
     playwrightVersion: require(`${playwrightModule}/package.json`).version,
     startedUtc: new Date().toISOString(),
     hostMode: 'Production authentication and Razor components; separate UI process; controlled read-only HTTP and SignalR upstream',
-    fixtureScope: 'Qualifies authenticated production grant/removal DOM and browser behavior using deterministic read responses; does not qualify backend authorization, stored domain data or command delivery',
-    records: ['DW-268', 'DW-391'],
+    fixtureScope: 'Qualifies authenticated production dialog/create DOM and browser behavior using deterministic upstream responses; does not qualify backend authorization, stored domain data or command delivery',
+    authenticationFixture: standaloneOidc ? 'Test-only loopback OIDC issuer; production code validates signed tokens and authenticates its circuit' : 'Existing local realm',
+    records: safetyOnly ? ['DW-194', 'DW-201'] : ['DW-268', 'DW-391', 'DW-194', 'DW-201'],
+    diagnosticSelectedCasesOnly: safetyOnly,
     cases: [],
 };
 const longTarget = `dialog-remove-${'literal-identity-'.repeat(15)}tail`.slice(0, 256);
 const grantTarget = `dialog-grant-${'literal-identity-'.repeat(15)}tail`.slice(0, 256);
-const fixture = { authorizedReads: 0, adminReads: 0, commands: 0 };
+const fixture = { authorizedReads: 0, adminReads: 0, commands: 0, simulatedCommands: 0 };
+let commandScenario;
+let denyExistingRead = false;
+let trackedCommand;
+let releasePendingDelivery;
 let phase = 'startup';
 let browser;
 let context;
@@ -71,6 +84,7 @@ let uiExit;
 let upstream;
 let sockets;
 let uiLog;
+let oidcFixture;
 const circuitErrors = [];
 const check = (condition, label) => { if (!condition) throw Object.assign(new Error(), { safeLabel: label }); };
 const wait = async (condition, label, timeout = 20_000) => {
@@ -81,6 +95,7 @@ const wait = async (condition, label, timeout = 20_000) => {
 const testId = id => page.getByTestId(id);
 const selector = id => `[data-testid="${id}"]`;
 const focused = value => page.evaluate(value => {
+    if (!document.hasFocus()) return false;
     let active = document.activeElement;
     while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
     for (let node = active; node; node = node.parentElement || node.getRootNode()?.host) {
@@ -97,7 +112,7 @@ const observeFocus = () => page.evaluate(() => {
     for (let node = active; node; node = node.parentElement || node.getRootNode()?.host) {
         if (node.getAttribute?.('data-testid')) ancestry.push(node.getAttribute('data-testid'));
     }
-    return { element: active?.localName, shadowDepth, ancestry };
+    return { documentHasFocus: document.hasFocus(), element: active?.localName, shadowDepth, ancestry };
 });
 const freePort = async () => {
     const server = createServer();
@@ -175,11 +190,11 @@ try {
         localShellAssemblySha256: hash(await readFile(resolve(uiDirectory, 'bin/Debug/net10.0/Hexalith.FrontComposer.Shell.dll'))),
     });
     phase = 'fixture-start';
-    upstream = createServer((request, response) => {
+    upstream = createServer(async (request, response) => {
         const url = new URL(request.url, 'http://localhost');
         const send = (body, status = 200) => {
             response.writeHead(status, { 'Content-Type': 'application/json', ETag: '"administrator-dialog-fixture"',
-                'X-Hexalith-Query-Provenance': 'ProjectionBacked', 'X-Hexalith-Projection-Version': 'dialog-fixture-1',
+                'X-Hexalith-Query-Provenance': 'ProjectionBacked', 'X-Hexalith-Projection-Version': 'tenant-sequence:1',
                 'X-Hexalith-Projection-Lifecycle': 'Current', 'X-Hexalith-Is-Stale': 'false', 'X-Hexalith-Is-Degraded': 'false' });
             response.end(JSON.stringify(body));
         };
@@ -188,6 +203,20 @@ try {
             send({ negotiateVersion: 1, connectionId: id, connectionToken: id,
                 availableTransports: [{ transport: 'WebSockets', transferFormats: ['Text'] }] });
             return;
+        }
+        if (request.method === 'POST' && url.pathname === '/api/v1/commands' && commandScenario) {
+            let body = ''; for await (const chunk of request) body += chunk;
+            const command = JSON.parse(body);
+            if (commandScenario === 'remove-pending' && command.commandType === 'RemoveUserFromTenant') {
+                fixture.simulatedCommands++;
+                trackedCommand = { ...command, correlationId: 'browser-pending-removal' };
+                await new Promise(resolve => { releasePendingDelivery = resolve; });
+                send({ correlationId: trackedCommand.correlationId }, 202); return;
+            }
+            if (commandScenario === 'create-conflict' && command.commandType === 'CreateTenant') {
+                fixture.simulatedCommands++;
+                send({ status: 409, title: 'TenantAlreadyExists', detail: 'TenantAlreadyExists' }, 409); return;
+            }
         }
         if (request.method !== 'GET') { fixture.commands++; send({ reason: 'commands-prohibited' }, 405); return; }
         if (!request.headers.authorization?.startsWith('Bearer ')) { send({}, 401); return; }
@@ -200,6 +229,19 @@ try {
         if (url.pathname === '/api/global-administrators') {
             fixture.adminReads++;
             send({ items: [{ userId: claims.sub }, { userId: longTarget }], cursor: null, hasMore: false });
+        } else if (url.pathname === '/api/tenants/tenant.alpha') {
+            if (denyExistingRead) { send({}, 403); return; }
+            send({ tenantId: 'tenant.alpha', name: 'Browser fixture tenant', description: 'Production safety checks', status: 'Active',
+                members: [{ userId: claims.sub, role: 'TenantOwner' }, { userId: 'browser-reader', role: 'TenantReader' },
+                    { userId: 'browser-owner', role: 'TenantOwner' }], configuration: {}, createdAt: '2026-10-25T00:00:00Z' });
+        } else if (url.pathname === '/api/tenants/tenant.alpha/users') {
+            send({ items: [{ userId: claims.sub, role: 'TenantOwner' }, { userId: 'browser-reader', role: 'TenantReader' },
+                { userId: 'browser-owner', role: 'TenantOwner' }], cursor: null, hasMore: false });
+        } else if (url.pathname === '/api/tenants/tenant.alpha/audit') {
+            send({ items: [], cursor: null, hasMore: false });
+        } else if (url.pathname.startsWith('/api/v1/commands/status/') && trackedCommand) {
+            send({ messageId: trackedCommand.messageId, correlationId: trackedCommand.correlationId,
+                aggregateId: trackedCommand.aggregateId, tenantId: 'system', domain: 'tenants', status: 'Received' });
         } else if (url.pathname === '/api/tenants' || /^\/api\/users\/[^/]+\/tenants$/.test(url.pathname)) {
             send({ items: [], cursor: null, hasMore: false });
         } else { send({}, 404); }
@@ -220,10 +262,14 @@ try {
     const upstreamBase = `http://127.0.0.1:${upstream.address().port}`;
     const uiPort = await freePort();
     const fixtureBase = `https://localhost:${uiPort}`;
-    const originalEnvironment = Object.fromEntries((await readFile(`/proc/${process.env.TENANTS_BROWSER_SOURCE_UI_PID}/environ`, 'utf8'))
+    if (standaloneOidc) oidcFixture = await startLocalOidcFixture();
+    const originalEnvironment = standaloneOidc ? {} : Object.fromEntries((await readFile(`/proc/${process.env.TENANTS_BROWSER_SOURCE_UI_PID}/environ`, 'utf8'))
         .split('\0').filter(Boolean).map(entry => { const index = entry.indexOf('='); return [entry.slice(0, index), entry.slice(index + 1)]; }));
     const environment = { ...originalEnvironment, ...process.env, ASPNETCORE_URLS: fixtureBase, ASPNETCORE_HTTPS_PORT: String(uiPort),
         Tenants__BaseAddress: upstreamBase, EventStore__BaseAddress: upstreamBase, Memories__BaseAddress: upstreamBase };
+    if (standaloneOidc) Object.assign(environment, { ASPNETCORE_ENVIRONMENT: 'Development',
+        Authentication__OpenIdConnect__Authority: oidcFixture.authority,
+        Authentication__OpenIdConnect__ClientId: 'tenants-browser-fixture', Authentication__OpenIdConnect__ClientSecret: randomUUID() });
     for (const key of Object.keys(environment)) if (/^(OTEL_|ASPIRE_)/.test(key)) delete environment[key];
     uiLog = await open(resolve(privateDirectory, 'ui.log'), 'w', 0o600);
     ui = spawn('dotnet', [assembly, '--urls', fixtureBase], { cwd: uiDirectory, env: environment, stdio: ['ignore', uiLog.fd, uiLog.fd] });
@@ -245,7 +291,7 @@ try {
     page.on('console', message => {
         if (message.type() === 'error' && /applying batch|current circuit|circuit will be terminated/i.test(message.text())) circuitErrors.push('Blazor circuit failure');
     });
-    await context.route(url => url.origin === base.origin
+    if (!standaloneOidc) await context.route(url => url.origin === base.origin
         && ['/authentication/challenge', '/signin-oidc'].includes(url.pathname), async route => {
         const request = route.request();
         const original = new URL(request.url());
@@ -254,13 +300,15 @@ try {
         await route.fulfill({ response });
     });
     phase = 'authenticate-challenge';
-    await page.goto(new URL('/authentication/challenge?returnUrl=%2Ftenants', base).href);
+    await page.goto(new URL('/authentication/challenge?returnUrl=%2Ftenants', standaloneOidc ? fixtureBase : base).href);
     phase = 'authenticate-credential-form';
-    await page.locator('#username').fill(username);
-    await page.locator('#password').fill(password);
-    await page.locator('#kc-login').click();
+    if (!standaloneOidc) {
+        await page.locator('#username').fill(username);
+        await page.locator('#password').fill(password);
+        await page.locator('#kc-login').click();
+    }
     phase = 'authenticate-callback';
-    await page.waitForURL(url => url.origin === base.origin && !url.pathname.includes('signin-oidc'));
+    await page.waitForURL(url => url.origin === (standaloneOidc ? fixtureBase : base.origin) && !url.pathname.includes('signin-oidc'));
     await testId('tenants-workspace').waitFor();
     phase = 'administrator-route-readiness';
     await page.goto(`${fixtureBase}/global-administrators`);
@@ -377,6 +425,7 @@ try {
         await testId(controls(kind).acknowledge).focus();
         await waitFocus(selector(controls(kind).acknowledge));
     };
+    if (!safetyOnly) {
     for (const viewport of [{ width: 1366, height: 1000 }, { width: 768, height: 1000 },
         { width: 1024, height: 400 }]) {
         await page.setViewportSize(viewport);
@@ -485,8 +534,192 @@ try {
         focusMethod: 'Native Tab establishes keyboard modality; programmatic focus uses the non-tab-stop recovery region',
         reducedMotionScope: 'Preference is active and interactions remain usable; no animation-duration contract is claimed' });
     await page.emulateMedia({ forcedColors: 'none', reducedMotion: 'no-preference' });
+    }
+
+    phase = 'member-removal-native-modal';
+    console.log('UI safety case: member-native-modal-keyboard');
+    await page.setViewportSize({ width: 1366, height: 1000 });
+    await page.goto(`${fixtureBase}/tenants/tenant.alpha`);
+    const memberLauncher = page.getByRole('row', { includeHidden: true }).filter({ has: page.locator('#tenants-member-browser-reader') })
+        .getByTestId('tenants-remove-member-open');
+    phase = 'member-removal-launcher-ready';
+    await memberLauncher.waitFor();
+    phase = 'member-removal-open-native-modal';
+    await memberLauncher.click();
+    await testId('tenants-remove-member-modal').waitFor({ state: 'attached' });
+    await waitFocus(selector('tenants-remove-member-cancel'));
+    phase = 'member-removal-native-state';
+    check(await testId('tenants-remove-member-preview-item').count() === 10, 'Removal modal must preserve all ten consequence facts');
+    const nativeModal = async () => testId('tenants-remove-member-modal').evaluate(element => {
+        const find = root => {
+            for (const child of root.querySelectorAll('*')) {
+                if (child.matches(':modal')) return true;
+                if (child.shadowRoot && find(child.shadowRoot)) return true;
+            }
+            return false;
+        };
+        return element.matches(':modal') || find(element) || !!element.shadowRoot && find(element.shadowRoot);
+    });
+    await wait(nativeModal, 'Fluent removal must open a native modal surface');
+    const memberMeasurements = [];
+    for (const viewport of [{ width: 1366, height: 1000 }, { width: 768, height: 800 }, { width: 1024, height: 400 }]) {
+        await page.setViewportSize(viewport);
+        const measured = await testId('tenants-remove-member-modal').evaluate(element => {
+            const dialog = element.shadowRoot.querySelector('dialog');
+            const bounds = dialog.getBoundingClientRect();
+            return { viewport: { width: innerWidth, height: innerHeight },
+                bounds: { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom },
+                clientWidth: dialog.clientWidth, scrollWidth: dialog.scrollWidth,
+                clientHeight: dialog.clientHeight, scrollHeight: dialog.scrollHeight,
+                overflowY: getComputedStyle(dialog).overflowY,
+                completeFacts: element.querySelectorAll('[data-testid="tenants-remove-member-preview-item"]').length };
+        });
+        check(measured.bounds.left >= -1 && measured.bounds.right <= viewport.width + 1
+            && measured.bounds.top >= -1 && measured.bounds.bottom <= viewport.height + 1,
+            'Complete removal modal must fit measured tablet and short-height viewports');
+        check(measured.scrollWidth <= measured.clientWidth + 1 && measured.completeFacts === 10,
+            'Complete removal preview must avoid horizontal clipping');
+        if (measured.scrollHeight > measured.clientHeight + 1)
+            check(['auto', 'scroll'].includes(measured.overflowY), 'Short removal modal must permit vertical scrolling');
+        memberMeasurements.push(measured);
+    }
+    await page.setViewportSize({ width: 1366, height: 1000 });
+    phase = 'member-removal-background-inertness';
+    await memberLauncher.evaluate(element => element.focus());
+    check(!await memberLauncher.evaluate(element => element === document.activeElement
+        || element.shadowRoot?.contains(document.activeElement)),
+        'Native modal must reject background focus');
+    await waitFocus(selector('tenants-remove-member-modal'));
+    phase = 'member-removal-native-tab-traversal';
+    const memberKeyboard = [];
+    for (const key of ['Tab', 'Shift+Tab']) {
+        for (let step = 0; step < 12; step++) {
+            await page.keyboard.press(key);
+            await waitFocus(selector('tenants-remove-member-modal'));
+            memberKeyboard.push({ key, step, ...(await observeFocus()) });
+        }
+    }
+    phase = 'member-removal-safe-escape';
+    await page.keyboard.press('Escape');
+    await testId('tenants-remove-member-modal').waitFor({ state: 'detached' });
+    // Fluent also schedules its own 25ms origin return; observe the final owning destination.
+    await page.waitForTimeout(75);
+    check(await memberLauncher.evaluate(element => {
+        let active = document.activeElement;
+        while (active?.shadowRoot?.activeElement) active = active.shadowRoot.activeElement;
+        return active === element || element.contains(active) || element.shadowRoot?.contains(active);
+    }), 'Safe removal Escape must restore the exact launching row control');
+    evidence.cases.push({ scenario: 'member-native-modal-keyboard', allPreviewFacts: true,
+        nativeModal: true, backgroundInert: true, measurements: memberMeasurements,
+        keyboard: memberKeyboard, exactFocusReturn: true });
+
+    phase = 'member-pending-dismissal-and-resize';
+    console.log('UI safety case: member-pending-native-dismissal');
+    await memberLauncher.click();
+    await testId('tenants-remove-member-confirmation').locator('input').fill('browser-reader');
+    await page.keyboard.press('Tab');
+    await wait(() => testId('tenants-remove-member-confirm').evaluate(element => !element.hasAttribute('disabled')),
+        'Measured complete removal must enable its confirmation');
+    commandScenario = 'remove-pending';
+    await testId('tenants-remove-member-confirm').click();
+    await wait(() => testId('tenants-remove-member-cancel').evaluate(element => element.hasAttribute('disabled')),
+        'Pending removal must retain guarded dismissal');
+    phase = 'member-pending-before-keyboard';
+    check(await nativeModal(), 'Dispatched removal must retain its native modal before keyboard input');
+    for (const key of ['Escape', 'Tab', 'Shift+Tab', 'Escape']) {
+        phase = `member-pending-key-${key}`;
+        await page.keyboard.press(key);
+        check(await nativeModal(), 'Pending keyboard dismissal must leave the native modal open');
+        await waitFocus(selector('tenants-remove-member-modal'));
+    }
+    await page.mouse.click(1, 1);
+    check(await nativeModal(), 'Pending overlay click must leave the native modal open');
+    await page.setViewportSize({ width: 767, height: 500 });
+    await wait(() => testId('tenants-remove-member-confirm').evaluate(element => element.hasAttribute('disabled')),
+        'Measured narrow resize must refuse removal submission');
+    check(await nativeModal(), 'Narrow resize must preserve the pending modal');
+    for (const key of ['Tab', 'Shift+Tab', 'Escape']) {
+        await page.keyboard.press(key);
+        check(await nativeModal(), 'Held delivery on a narrow viewport must retain the modal');
+        await waitFocus(selector('tenants-remove-member-modal'));
+    }
+    releasePendingDelivery();
+    await wait(() => testId('tenants-remove-member-refresh').evaluate(element => !element.hasAttribute('disabled')),
+        'Accepted pending removal must retain status recovery');
+    await testId('tenants-remove-member-refresh').focus();
+    await waitFocus(selector('tenants-remove-member-refresh'));
+    check(fixture.simulatedCommands === 1 && fixture.commands === 0, 'Pending recovery must not dispatch another command');
+    evidence.cases.push({ scenario: 'member-pending-native-dismissal', escapeRetainsModal: true,
+        overlayRetainsModal: true, narrowResizeRetainsWork: true, recoveryReachable: true, simulatedCommands: 1 });
+    commandScenario = undefined;
+
+    phase = 'create-measured-resize-conflict-recovery';
+    console.log('UI safety case: create-measured-conflict-recovery');
+    await page.setViewportSize({ width: 1366, height: 1000 });
+    await page.goto(`${fixtureBase}/tenants?sort=name`);
+    await testId('tenants-create-accordion').getByRole('button').click();
+    await testId('tenants-create-tenant-id').locator('input').fill('tenant.alpha');
+    await testId('tenants-create-name').locator('input').fill('Attempted name');
+    await page.keyboard.press('Tab');
+    await wait(() => testId('tenants-create-submit').evaluate(element => !element.hasAttribute('disabled')),
+        'Measured safe first-tenant view must permit create');
+    await page.setViewportSize({ width: 767, height: 500 });
+    await wait(() => testId('tenants-create-submit').evaluate(element => element.hasAttribute('disabled')),
+        'Measured unsafe create viewport must disable submission');
+    check(await testId('tenants-create-unavailable-reason').isVisible(), 'Create must offer visible localized viewport recovery');
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await wait(() => testId('tenants-create-submit').evaluate(element => !element.hasAttribute('disabled')),
+        'Widening must restore create readiness');
+    check(await testId('tenants-create-tenant-id').locator('input').inputValue() === 'tenant.alpha', 'Resize must retain the entered tenant identity');
+    commandScenario = 'create-conflict';
+    await testId('tenants-create-submit').click();
+    await testId('tenants-create-open-existing').waitFor();
+    await wait(() => testId('tenants-create-open-existing').evaluate(element =>
+        !element.hasAttribute('disabled') && element.getAttribute('aria-disabled') !== 'true'),
+        'Open-existing must be enabled before native keyboard activation');
+    denyExistingRead = true;
+    phase = 'create-failed-click-open-existing';
+    await testId('tenants-create-open-existing').focus();
+    await page.keyboard.press('Enter');
+    await wait(() => testId('tenants-create-open-existing').count().then(count => count === 0),
+        'A failed click-time read must withdraw open-existing');
+    phase = 'create-failed-click-lifecycle-focus';
+    await waitFocus('#tenants-create-lifecycle');
+    evidence.failedClickFocus = await observeFocus();
+    check(['/tenants', '/tenants/tenants'].includes(new URL(page.url()).pathname),
+        'A failed click recheck must keep workspace context');
+    denyExistingRead = false;
+    // A new measured admission scope can re-evaluate the same retained rejection without another command.
+    await page.setViewportSize({ width: 767, height: 500 });
+    await wait(() => testId('tenants-create-unavailable-reason').textContent().then(text => text.includes('wider view')),
+        'A measured unsafe scope must be observed before recovery is re-evaluated');
+    await page.setViewportSize({ width: 1024, height: 800 });
+    await testId('tenants-create-open-existing').waitFor();
+    await wait(() => testId('tenants-create-open-existing').evaluate(element =>
+        !element.hasAttribute('disabled') && element.getAttribute('aria-disabled') !== 'true'),
+        'Open-existing must be enabled before native keyboard activation');
+    phase = 'create-authorized-open-existing-navigation';
+    await testId('tenants-create-open-existing').focus();
+    await page.keyboard.press('Enter');
+    await page.waitForURL(url => url.pathname === '/tenants/tenant.alpha');
+    const returnedContext = new URL(page.url()).searchParams.get('returnUrl');
+    check(returnedContext?.includes('sort=name') && returnedContext.includes('anchor=tenants-create-lifecycle'),
+        'Authorized conflict navigation must preserve workspace context and create focus return');
+    phase = 'create-detail-back-navigation';
+    await testId('tenants-detail-back').click();
+    await page.waitForURL(url => ['/tenants', '/tenants/tenants'].includes(url.pathname)
+        && url.searchParams.get('sort') === 'name');
+    await testId('tenants-create-lifecycle').waitFor();
+    phase = 'create-back-lifecycle-focus';
+    await waitFocus('#tenants-create-lifecycle');
+    evidence.backFocus = await observeFocus();
+    check(await testId('tenants-create-lifecycle').isVisible(), 'Conflict Back must expand the create accordion before restoring focus');
+    evidence.cases.push({ scenario: 'create-measured-conflict-recovery', unsafeSubmitDisabled: true,
+        safeResizeRecovers: true, enteredIdentityRetained: true, authorizedOpenExisting: true,
+        returnContextPreserved: true, backRestoresVisibleCreateLifecycle: true, failedOpenExistingRestoresLifecycleFocus: true });
+    commandScenario = undefined;
     check(fixture.adminReads > 0 && fixture.authorizedReads > 0, 'Real authenticated production gateway reads must reach the fixture');
-    check(fixture.commands === 0, 'Evidence must issue zero domain command attempts');
+    check(fixture.commands === 0 && fixture.simulatedCommands === 2, 'Only the two fixture-local command simulations may be attempted');
     check(circuitErrors.length === 0, 'The interactive circuit must remain healthy');
     evidence.sourceAfterBrowser = await captureSource();
     check(JSON.stringify(sourceBeforeBuild) === JSON.stringify(evidence.sourceAfterBrowser),
@@ -495,11 +728,30 @@ try {
 } catch (error) {
     evidence.passed = false;
     evidence.failure = { phase, label: error.safeLabel || 'Browser operation failed', focus: page ? await observeFocus().catch(() => null) : null };
+    evidence.failure.operation = typeof error.message === 'string' ? error.message.split(':', 1)[0] : undefined;
+    if (page && phase.startsWith('member-')) evidence.failure.memberDiagnostics = await page.evaluate(() => ({
+        launchers: document.querySelectorAll('[data-testid="tenants-remove-member-open"]').length,
+        targetPresent: !!document.getElementById('tenants-member-browser-reader'),
+        state: document.querySelector('[data-testid="tenants-remove-member-state"]')?.textContent.trim(),
+        safeMessage: document.querySelector('[data-testid="tenants-remove-member-safe-message"]')?.textContent.trim(),
+        reasons: [...document.querySelectorAll('[data-testid="tenants-member-unavailable-reason"], [data-testid="tenants-remove-member-unavailable-reason"]')]
+            .map(element => element.textContent.trim()),
+        modal: [...document.querySelectorAll('[data-testid="tenants-remove-member-modal"]')].map(element => ({
+            tag: element.localName, type: element.getAttribute('type'),
+            shadowTags: [...(element.shadowRoot?.querySelectorAll('*') || [])].map(child => child.localName),
+            nativeTag: element.dialog?.localName, nativeOpen: element.dialog?.open,
+            nativeModal: element.dialog?.matches?.(':modal'),
+            escapeHandlerInstalled: typeof element._escapeHandler === 'function',
+            formMethod: element.querySelector('form')?.getAttribute('method'),
+        })),
+    })).catch(() => null);
     process.exitCode = 1;
 } finally {
+    releasePendingDelivery?.();
     evidence.fixture = { authorizedReads: fixture.authorizedReads, administratorReads: fixture.adminReads,
-        commandAttempts: fixture.commands, circuitErrors: circuitErrors.length };
-    evidence.acceptedForClosure = evidence.passed === true && evidence.build?.succeeded === true && !evidence.build?.reusedBuild;
+        unexpectedCommandAttempts: fixture.commands, simulatedCommandAttempts: fixture.simulatedCommands, circuitErrors: circuitErrors.length };
+    evidence.acceptedForClosure = evidence.passed === true && evidence.build?.succeeded === true
+        && !evidence.build?.reusedBuild && !safetyOnly && evidence.cases.length === 12;
     evidence.finishedUtc = new Date().toISOString();
     let evidenceWriteFailed = false;
     try {
@@ -521,6 +773,7 @@ try {
             sockets?.close();
             upstream?.closeAllConnections();
             if (upstream) await new Promise(resolve => upstream.close(resolve));
+            await oidcFixture?.close();
         })()]);
     }
     console.log(`Authenticated administrator dialogs: ${evidence.passed && !evidenceWriteFailed ? 'passed' : 'failed'}; ${evidence.cases.length} cases; phase ${phase}`);

@@ -36,6 +36,8 @@
             fluent.beforeStart(document, 'web');
             await customElements.whenDefined('fluent-button');
             if (params.has('frame')) {
+                await customElements.whenDefined('fluent-dialog');
+                window.__validationContainDialogFocus = (await import('./fc-focus.js')).containDialogFocus;
                 document.documentElement.dataset.fixtureReady = 'true';
             } else {
                 const frame = document.createElement('iframe');
@@ -61,6 +63,7 @@
                 const load = async filename => {
                     const response = await fetch(`./${filename}.html`);
                     if (!response.ok) fail(`Missing rendered fixture ${filename}`);
+                    surface.querySelector('fluent-dialog')?.hide();
                     surface.innerHTML = await response.text();
                     if (params.get('mutation') === 'unscoped') {
                         for (const element of surface.querySelectorAll('*')) {
@@ -98,34 +101,36 @@
                         layouts++;
                     }
                 }
-                // C# component regressions verify the sentinel handlers target this actual Fluent button.
-                // This fixture qualifies the browser's focus/keyboard behavior and responsive visibility.
+                // Open the exported production dialog and use its shipped shared containment helper.
                 await load(`tenant-live-removal-safe-${culture}`);
+                await win.customElements.whenDefined('fluent-dialog');
+                const dialog = surface.querySelector('fluent-dialog');
+                if (!dialog) fail('Actual removal modal unavailable');
+                if (params.get('mutation') === 'no-modal') dialog.type = 'non-modal';
+                dialog.show();
+                let nativeDialog;
+                for (let attempt = 0; attempt < 40; attempt++) {
+                    nativeDialog = dialog.dialog || dialog.shadowRoot?.querySelector('dialog');
+                    if (nativeDialog?.open) break;
+                    await delay(20);
+                }
+                if (!nativeDialog?.open) fail('Actual removal dialog did not open');
+                if (!win.__validationContainDialogFocus('tenants-remove-member-flow')) fail('Shared removal focus containment unavailable');
                 const cancel = surface.querySelector('[data-testid="tenants-remove-member-cancel"]');
                 if (cancel?.localName !== 'fluent-button' || cancel.parentElement.localName === 'span') fail('Cancel remains a noninteractive wrapper target');
-                const start = surface.querySelector('[data-testid="tenants-remove-member-focus-start"]');
-                const end = surface.querySelector('[data-testid="tenants-remove-member-focus-end"]');
-                const focusCancel = () => cancel.focus();
-                if (params.get('mutation') !== 'no-sentinel') {
-                    start.addEventListener('focus', focusCancel);
-                    end.addEventListener('focus', focusCancel);
-                }
                 let clicks = 0;
                 cancel.addEventListener('click', () => clicks++);
                 for (const width of [767, 768]) {
                     await resize(width);
+                    if (!nativeDialog.open || !nativeDialog.matches(':modal')) fail(`Native modal containment at ${width}`);
                     cancel.focus();
-                    if (doc.activeElement !== cancel || !visible(cancel)) fail(`Cancel focus at ${width}`);
-                    end.focus();
-                    if (doc.activeElement !== cancel) fail(`End sentinel focus at ${width}`);
-                    start.focus();
-                    if (doc.activeElement !== cancel) fail(`Start sentinel focus at ${width}`);
+                    if (!doc.hasFocus() || doc.activeElement !== cancel || !visible(cancel)) fail(`Cancel focus at ${width}`);
                     for (const shift of [false, true]) {
                         cancel.focus();
                         let cycled = false;
                         for (let step = 0; step < 16; step++) {
                             await keyboard('Tab', shift);
-                            if (!surface.contains(doc.activeElement) || !visible(doc.activeElement)) fail(`Tab escaped visible controls at ${width}, reverse=${shift}`);
+                            if (!doc.hasFocus() || !surface.contains(doc.activeElement) || !visible(doc.activeElement)) fail(`Tab escaped visible controls at ${width}, reverse=${shift}`);
                             if (doc.activeElement === cancel) { cycled = true; break; }
                         }
                         if (!cycled) fail(`Tab did not cycle at ${width}, reverse=${shift}`);
@@ -144,7 +149,7 @@
                     if (doc.activeElement !== target) fail(`Actual launcher/heading focus failed: ${state}`);
                 }
                 document.documentElement.dataset.validationStatus = 'passed';
-                report.textContent = `localized forms/removal ${culture}; ${layouts} form layouts; 390/767/768/1024/1366; warnings; labels; actual Cancel/sentinels; native Tab/Shift-Tab cycles and Enter; English member launcher/heading targets`;
+                report.textContent = `localized forms/removal ${culture}; ${layouts} form layouts; 390/767/768/1024/1366; warnings; labels; actual Cancel/native modal; native Tab/Shift-Tab cycles and Enter; English member launcher/heading targets`;
             }
         } catch (error) {
             document.documentElement.dataset.validationStatus = 'failed';

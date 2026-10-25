@@ -10076,7 +10076,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
         gateway.ChangeRoleCallCount.ShouldBe(submitCommand && flow == "change-role" ? 1 : 0);
         gateway.RemoveMemberCallCount.ShouldBe(submitCommand && flow == "remove-member" ? 1 : 0);
 
-        cut.Find($"[data-testid='tenants-{flow}-cancel']").Click();
+        await cut.Find($"[data-testid='tenants-{flow}-cancel']").ClickAsync(new MouseEventArgs());
         cut.FindAll($"[data-testid='tenants-{flow}-flow']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-member-next']").HasAttribute("disabled").ShouldBeFalse();
         cut.Find("[data-testid='tenants-member-previous']").HasAttribute("disabled").ShouldBeFalse();

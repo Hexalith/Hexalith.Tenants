@@ -121,7 +121,8 @@ export function focusCorrectionLauncher(auditReference, origin = null) {
   return false;
 }
 
-export function focusElementById(elementId) {
+export function focusElementById(elementId, expectedLocation = null) {
+  if (expectedLocation !== null && new URL(expectedLocation, window.location.href).href !== window.location.href) return false;
   if (!elementId) {
     return false;
   }
@@ -350,8 +351,9 @@ export async function focusAuditLauncher(focusId, originTestId, headingId, expec
   return await restoreAuditFocus(focusId, originTestId, headingId, expectedUserId) === 'found';
 }
 
-export function consumeReturnMarkers(expectedFocus = null, expectedUserId = null, detail = false) {
+export function consumeReturnMarkers(expectedFocus = null, expectedUserId = null, detail = false, expectedLocation = null) {
   const url = new URL(window.location.href);
+  if (expectedLocation !== null && new URL(expectedLocation, url).href !== url.href) return false;
   const marker = detail ? 'anchor' : 'auditFocus';
   if (expectedFocus !== null && url.searchParams.get(marker) !== expectedFocus) return false;
   if (expectedUserId !== null && url.searchParams.get('userId') !== expectedUserId) return false;

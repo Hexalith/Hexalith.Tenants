@@ -200,7 +200,12 @@ public sealed partial class TenantsWorkspaceTests
     {
         var held = new TaskCompletionSource<TenantListSnapshot>(TaskCreationOptions.RunContinuationsAsynchronously);
         int calls = 0;
-        RegisterSoftRefreshServices(_ => ++calls == 1 ? Task.FromResult(SoftRefreshSnapshot(false)) : held.Task);
+        List<TenantListRequest> requests = [];
+        RegisterSoftRefreshServices(call =>
+        {
+            requests.Add(call.ArgAt<TenantListRequest>(0));
+            return ++calls == 1 ? Task.FromResult(SoftRefreshSnapshot(false)) : held.Task;
+        });
         var authentication = (MutableAuthenticationStateProvider)Services.GetRequiredService<AuthenticationStateProvider>();
         IRenderedComponent<TenantsWorkspace> cut = RenderWorkspace();
         cut.WaitForElement("[data-testid='tenants-list-grid']");
@@ -226,7 +231,7 @@ public sealed partial class TenantsWorkspaceTests
             cut.FindAll("[data-testid='tenants-list-next']").ShouldBeEmpty();
             cut.Find("[data-testid='tenants-list-loading']");
             cut.Markup.ShouldNotContain("tenant.alpha");
-            calls.ShouldBe(2);
+            calls.ShouldBe(unresolvedCaller ? 2 : 3);
         }
         finally
         {
@@ -235,7 +240,9 @@ public sealed partial class TenantsWorkspaceTests
         }
 
         await refresh.WaitAsync(TimeSpan.FromSeconds(5));
-        cut.Find("[data-testid='tenants-list-unauthorized']");
+        cut.WaitForElement("[data-testid='tenants-list-unauthorized']");
+        calls.ShouldBe(3, "Only a fresh read under the replacement authority may publish its refusal.");
+        requests[^1].ETag.ShouldBeNull();
     }
 
     [Theory]

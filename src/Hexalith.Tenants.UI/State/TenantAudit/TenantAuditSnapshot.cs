@@ -22,6 +22,9 @@ public sealed record TenantAuditSnapshot(
     int RequestPageSize = 50,
     string? CallerScope = null,
     string? Stream = null) {
+    /// <summary>Gets the observed authority revision qualifying retained rows and validators.</summary>
+    internal long AuthorizationRevision { get; init; }
+
     public static TenantAuditSnapshot Loading(string? tenantId = null)
         => new(
             TenantAuditSurfaceKind.Loading,

@@ -54,6 +54,9 @@ public sealed partial class TenantsWorkspaceTests : BunitContext
         Services.AddScoped<TenantAggregateCommandAdmissionGate>();
         Services.AddScoped<TenantCreateAttemptTracker>();
         Services.AddScoped(provider => provider.GetRequiredService<TenantCreateAttemptTracker>().Attempts);
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+        Services.AddSingleton(viewport);
         Services.AddLocalization();
         var caller = Substitute.For<Hexalith.FrontComposer.Contracts.Rendering.IUserContextAccessor>();
         caller.UserId.Returns("operator.alpha");

@@ -23,6 +23,124 @@ namespace Hexalith.Tenants.UI.Tests.Services.Configuration;
 
 public sealed class TenantConfigurationReadPolicyTests
 {
+    [Theory]
+    [InlineData(false, "PrefixGrants")]
+    [InlineData(false, "DisplaySafe")]
+    [InlineData(true, "PrefixGrants")]
+    [InlineData(true, "DisplaySafe")]
+    public void Nested_collection_shape_metadata_below_collection_items_refuses_legacy_and_explicit_policy(bool explicitRoot, string collection)
+    {
+        const string root = "Tenants:ConfigurationReadPolicy:";
+        var values = new Dictionary<string, string?>
+        {
+            [root + "PrefixGrants:0:TenantId"] = "tenant.alpha",
+            [root + "PrefixGrants:0:Subject"] = "operator.alpha",
+            [root + "PrefixGrants:0:Prefix"] = "billing",
+            [root + "DisplaySafe:0"] = "billing.mode",
+        };
+        if (explicitRoot)
+        {
+            values[root + "CollectionShapes:PrefixGrants"] = "array";
+            values[root + "CollectionShapes:DisplaySafe"] = "array";
+        }
+        IConfigurationRoot configuration = new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+        var provider = new TenantConfigurationReadPolicyProvider(configuration);
+        var principal = TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha");
+        provider.Resolve("tenant.alpha", principal).IsAvailable.ShouldBeTrue();
+
+        configuration[root + collection + ":0:CollectionShapes:PrefixGrants"] = "array";
+        configuration.Reload();
+
+        TenantConfigurationReadPolicyResolution resolution = provider.Resolve("tenant.alpha", principal);
+        resolution.IsAvailable.ShouldBeFalse();
+        resolution.AuthorizedPrefixes.ShouldBeEmpty();
+        resolution.DisplaySafeKeys.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Configuration_metadata_keys_are_case_insensitive_while_policy_data_remains_literal()
+    {
+        const string root = "TENANTS:CONFIGURATIONREADPOLICY:";
+        IConfigurationRoot configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [root + "COLLECTIONSHAPES:PREFIXGRANTS"] = "array",
+            [root + "COLLECTIONSHAPES:DISPLAYSAFE"] = "array",
+            [root + "PREFIXGRANTS:0:TENANTID"] = "Tenant.Alpha",
+            [root + "PREFIXGRANTS:0:SUBJECT"] = "Operator.Alpha",
+            [root + "PREFIXGRANTS:0:PREFIX"] = "Billing",
+            [root + "DISPLAYSAFE:0"] = "Billing.Mode",
+        }).Build();
+        var provider = new TenantConfigurationReadPolicyProvider(configuration);
+        TenantConfigurationReadPolicyResolution policy = provider.Resolve("Tenant.Alpha",
+            TenantConfigurationPrincipalEvidence.NonAdministrator("Operator.Alpha"));
+        policy.IsAvailable.ShouldBeTrue();
+        policy.AuthorizedPrefixes.ShouldBe(["Billing"]);
+        policy.DisplaySafeKeys.Contains("Billing.Mode").ShouldBeTrue();
+        policy.DisplaySafeKeys.Contains("billing.mode").ShouldBeFalse();
+        provider.Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("Operator.Alpha"))
+            .AuthorizedPrefixes.ShouldBeEmpty();
+        provider.Resolve("Tenant.Alpha", TenantConfigurationPrincipalEvidence.NonAdministrator("operator.alpha"))
+            .AuthorizedPrefixes.ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("array", "array", true)]
+    [InlineData("scalar", "array", false)]
+    [InlineData("array", "scalar", false)]
+    [InlineData("ARRAY", "array", false)]
+    [InlineData("array", "unknown", false)]
+    public void Explicit_collection_intent_distinguishes_empty_array_from_scalar_declaration(string grants, string safe, bool available)
+    {
+        IConfiguration configuration = Configuration($$"""
+            { "Tenants": { "ConfigurationReadPolicy": {
+                "CollectionShapes": { "PrefixGrants": "{{grants}}", "DisplaySafe": "{{safe}}" },
+                "PrefixGrants": [], "DisplaySafe": []
+            } } }
+            """);
+        new TenantConfigurationReadPolicyProvider(configuration).Resolve("tenant.alpha",
+            TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha")).IsAvailable.ShouldBe(available);
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("\"array\"")]
+    [InlineData("{\"PrefixGrants\":\"array\"}")]
+    [InlineData("{\"PrefixGrants\":{\"value\":\"array\"},\"DisplaySafe\":\"array\"}")]
+    [InlineData("{\"PrefixGrants\":\"array\",\"DisplaySafe\":\"array\",\"Other\":\"array\"}")]
+    public void Malformed_or_incomplete_collection_shape_metadata_fails_closed(string shape)
+    {
+        new TenantConfigurationReadPolicyProvider(Configuration($$"""
+            { "Tenants": { "ConfigurationReadPolicy": {
+                "CollectionShapes": {{shape}}, "PrefixGrants": [], "DisplaySafe": []
+            } } }
+            """)).Resolve("tenant.alpha", TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha"))
+            .IsAvailable.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void Explicit_shape_reload_rejects_scalar_element_conflicts_and_recovers_after_correction()
+    {
+        const string root = "Tenants:ConfigurationReadPolicy:";
+        IConfigurationRoot configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [root + "CollectionShapes:PrefixGrants"] = "array",
+            [root + "CollectionShapes:DisplaySafe"] = "array",
+            [root + "DisplaySafe:0"] = "billing.mode",
+        }).Build();
+        TenantConfigurationReadPolicyProvider provider = new(configuration);
+        TenantConfigurationPrincipalEvidence principal = TenantConfigurationPrincipalEvidence.GlobalAdministrator("operator.alpha");
+        provider.Resolve("tenant.alpha", principal).IsAvailable.ShouldBeTrue();
+        configuration[root + "DisplaySafe"] = "";
+        configuration.Reload();
+        provider.Resolve("tenant.alpha", principal).IsAvailable.ShouldBeFalse();
+        configuration[root + "DisplaySafe"] = null;
+        configuration.Reload();
+        provider.Resolve("tenant.alpha", principal).IsAvailable.ShouldBeTrue();
+        configuration[root + "CollectionShapes:DisplaySafe"] = "scalar";
+        configuration.Reload();
+        provider.Resolve("tenant.alpha", principal).IsAvailable.ShouldBeFalse();
+    }
+
     [Fact]
     public async Task Resolver_uses_one_authenticated_circuit_identity_for_subject_scope_and_administrator_evidence()
     {

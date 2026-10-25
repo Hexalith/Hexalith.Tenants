@@ -38,6 +38,91 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
 {
     [Theory]
+    [InlineData("authority")]
+    [InlineData("replacement")]
+    [InlineData("dismissal")]
+    [InlineData("disposal")]
+    public async Task Held_pre_submit_focus_cannot_admit_obsolete_or_dismissed_work(string transition)
+    {
+        var gateway = new StubTenantCommandGateway();
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        int closed = 0;
+        cut.Render(p => p.Add(x => x.OnCloseRequested, () => closed++));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        string lifecycle = ((ElementReference)typeof(RemoveTenantMemberFlow).GetField("_lifecycleElement",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(cut.Instance)!).Id;
+        var focus = JSInterop.SetupVoid("Blazor._internal.domWrapper.focus", invocation =>
+            invocation.Arguments[0] is ElementReference target && target.Id == lifecycle);
+        Task submit = cut.Find("form").SubmitAsync();
+        try
+        {
+            cut.WaitForAssertion(() => focus.Invocations.Count.ShouldBe(1));
+            cut.Find("[data-testid='tenants-remove-member-confirm']").HasAttribute("disabled").ShouldBeFalse();
+            await cut.Find("form").SubmitAsync();
+            focus.Invocations.Count.ShouldBe(1);
+            gateway.RemoveMemberCallCount.ShouldBe(0);
+            switch (transition)
+            {
+                case "authority":
+                    cut.Render(p => p.Add(x => x.IsAuthorized, false)
+                        .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.MissingPermission)
+                        .Add(x => x.AuthorizationVersion, 1));
+                    break;
+                case "replacement":
+                    cut.Render(p => p.Add(x => x.Detail, Detail("tenant.beta")));
+                    break;
+                case "dismissal":
+                    await cut.Find("[data-testid='tenants-remove-member-flow']").KeyUpAsync("Escape");
+                    closed.ShouldBe(1);
+                    break;
+                case "disposal":
+                    await cut.InvokeAsync(cut.Instance.Dispose);
+                    break;
+            }
+        }
+        finally
+        {
+            focus.SetVoidResult();
+        }
+        await submit.WaitAsync(TimeSpan.FromSeconds(5));
+        gateway.RemoveMemberCallCount.ShouldBe(0);
+        Services.GetRequiredService<TenantCommandAttemptTracker>().HasPendingOwnership("tenant.alpha").ShouldBeFalse();
+        if (transition == "replacement")
+        {
+            cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+            await cut.Find("form").SubmitAsync();
+            gateway.RemoveMemberCallCount.ShouldBe(1);
+            gateway.LastRemoveMemberRequest!.TenantId.ShouldBe("tenant.beta");
+        }
+    }
+
+    [Fact]
+    public async Task Held_delivery_on_narrow_viewport_retains_a_tab_stop_and_guarded_escape()
+    {
+        var delivery = new TaskCompletionSource<TenantCommandSubmissionResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var gateway = new StubTenantCommandGateway { RemoveMemberAsync = _ => delivery.Task };
+        RegisterServices(gateway);
+        IRenderedComponent<RemoveTenantMemberFlow> cut = RenderLeaseRecoveryFlow(_ => Task.FromResult(true));
+        cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("reader-user");
+        Task submit = cut.Find("form").SubmitAsync();
+        cut.WaitForAssertion(() => gateway.RemoveMemberCallCount.ShouldBe(1));
+        string message = cut.Instance.Snapshot.MessageId.ShouldNotBeNull();
+        await cut.InvokeAsync(() => Services.GetRequiredService<TenantHighImpactViewportObservation>()
+            .Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone));
+        cut.Find("[data-testid='tenants-remove-member-lifecycle']").GetAttribute("tabindex").ShouldBe("0");
+        await cut.Find("[data-testid='tenants-remove-member-flow']").KeyUpAsync("Escape");
+        cut.Instance.Snapshot.State.ShouldBe(TenantCommandLifecycleState.RequestSent);
+        cut.Instance.Snapshot.MessageId.ShouldBe(message);
+        cut.FindComponent<Microsoft.FluentUI.AspNetCore.Components.FluentDialog>().Instance.PreventDismissOnEscape.ShouldBeTrue();
+        delivery.SetResult(TenantCommandSubmissionResult.Accepted(message, "held-delivery"));
+        await submit;
+        cut.Find("[data-testid='tenants-remove-member-lifecycle']").GetAttribute("tabindex").ShouldBe("-1");
+        cut.Find("[data-testid='tenants-remove-member-refresh']").HasAttribute("disabled").ShouldBeFalse();
+        gateway.RemoveMemberCallCount.ShouldBe(1);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public async Task TerminalRemovalDrainsQueuedManualRecoveryAfterParentRefreshFailure(bool rejected)
@@ -191,10 +276,10 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             .Add(p => p.SurfaceKind, TenantDetailSurfaceKind.Ready)
             .Add(p => p.Freshness, ReadModelFreshnessState.Current));
 
-        cut.Find("[data-testid='tenants-remove-member-flow']").GetAttribute("role").ShouldBe("dialog");
-        cut.Find("[data-testid='tenants-remove-member-flow']").GetAttribute("aria-modal").ShouldBe("true");
-        cut.Find("[data-testid='tenants-remove-member-focus-start']");
-        cut.Find("[data-testid='tenants-remove-member-focus-end']");
+        Microsoft.FluentUI.AspNetCore.Components.FluentDialog dialog = cut.FindComponent<Microsoft.FluentUI.AspNetCore.Components.FluentDialog>().Instance;
+        dialog.Modal.ShouldBeTrue();
+        dialog.PreventDismissOnEscape.ShouldBeTrue();
+        cut.FindAll("[data-testid='tenants-remove-member-focus-start'], [data-testid='tenants-remove-member-focus-end']").ShouldBeEmpty();
         cut.Find("[data-testid='tenants-remove-member-preview']");
         cut.FindAll("[data-testid='tenants-remove-member-preview-item']").Count.ShouldBe(10);
         cut.Find("[data-testid='tenants-remove-member-target-user-id']").TextContent.ShouldContain("reader-user");
@@ -326,7 +411,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
     }
 
     [Fact]
-    public void Css_contains_focus_trap_and_narrow_layout_hooks()
+    public void Css_contains_modal_bounds_and_narrow_layout_hooks()
     {
         string styles = File.ReadAllText(Path.Combine(
             RepoRoot(),
@@ -337,7 +422,8 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
             "Members",
             "RemoveTenantMemberFlow.razor.css"));
 
-        styles.ShouldContain("tenants-remove-member-flow__focus-sentinel");
+        styles.ShouldContain("tenants-remove-member-modal");
+        styles.ShouldContain("max-block-size");
         styles.ShouldContain("tenants-remove-member-flow__narrow");
         int narrowMedia = styles.IndexOf("@media (max-width: 767px)", StringComparison.Ordinal);
         narrowMedia.ShouldBeGreaterThanOrEqualTo(0, "Expected a max-width: 767px media query for narrow fail-closed layout.");
@@ -4611,7 +4697,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         }
     }
 
-    /// <summary>Measured narrow/unknown views never focus the hidden confirmation; sentinels use the actual Cancel.</summary>
+    /// <summary>Measured narrow/unknown views never focus the hidden confirmation inside the Fluent modal.</summary>
     /// <param name="tier">The current measured viewport tier.</param>
     [Theory]
     [InlineData(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Phone)]
@@ -4634,11 +4720,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         Microsoft.FluentUI.AspNetCore.Components.FluentButton cancel = cut.FindComponents<Microsoft.FluentUI.AspNetCore.Components.FluentButton>()
             .Single(button => button.Instance.AdditionalAttributes?.GetValueOrDefault("data-testid")?.ToString() == "tenants-remove-member-cancel").Instance;
         cut.Find("[data-testid='tenants-remove-member-cancel']").ParentElement!.LocalName.ShouldNotBe("span");
-        foreach (string sentinel in new[] { "start", "end" })
-        {
-            await cut.Find($"[data-testid='tenants-remove-member-focus-{sentinel}']").TriggerEventAsync("onfocus", new Microsoft.AspNetCore.Components.Web.FocusEventArgs());
-            FocusCalls().Last().ShouldBe(cancel.Element.Id);
-        }
+        cut.FindComponent<Microsoft.FluentUI.AspNetCore.Components.FluentDialog>().Instance.Modal.ShouldBeTrue();
         typeof(RemoveTenantMemberFlow).GetField("_focusConfirmationPending", BindingFlags.Instance | BindingFlags.NonPublic)!
             .SetValue(cut.Instance, true);
         cut.Render();
@@ -4653,7 +4735,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         gateway.RemoveMemberCallCount.ShouldBe(0);
     }
 
-    /// <summary>Owned attempts keep sentinel and resize focus on lifecycle while ambiguous retries can correct visible confirmation.</summary>
+    /// <summary>Owned attempts keep resize focus on lifecycle while ambiguous retries can correct visible confirmation.</summary>
     /// <param name="ambiguous">Whether delivery remains eligible for same-identity retry.</param>
     [Theory]
     [InlineData(false)]
@@ -4677,11 +4759,7 @@ public sealed class RemoveTenantMemberFlowTests : FluentBunitContext
         cut.Find("[data-testid='tenants-remove-member-cancel']").HasAttribute("disabled").ShouldBeTrue();
         string lifecycle = ((ElementReference)typeof(RemoveTenantMemberFlow)
             .GetField("_lifecycleElement", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(cut.Instance)!).Id;
-        foreach (string sentinel in new[] { "start", "end" })
-        {
-            await cut.Find($"[data-testid='tenants-remove-member-focus-{sentinel}']").TriggerEventAsync("onfocus", new Microsoft.AspNetCore.Components.Web.FocusEventArgs());
-            FocusCalls().Last().ShouldBe(lifecycle);
-        }
+        cut.FindComponent<Microsoft.FluentUI.AspNetCore.Components.FluentDialog>().Instance.Modal.ShouldBeTrue();
         if (ambiguous)
         {
             cut.Find("[data-testid='tenants-remove-member-confirmation']").Change("wrong-user");

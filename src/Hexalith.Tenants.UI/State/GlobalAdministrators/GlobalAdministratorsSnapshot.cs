@@ -19,6 +19,9 @@ public sealed record GlobalAdministratorsSnapshot(
     string? RequestCursor = null,
     int RequestPageSize = 20,
     string? CallerScope = null) {
+    /// <summary>Gets the observed authority revision qualifying retained rows and validators.</summary>
+    internal long AuthorizationRevision { get; init; }
+
     public static GlobalAdministratorsSnapshot Loading()
         => new(
             GlobalAdministratorsSurfaceKind.Loading,

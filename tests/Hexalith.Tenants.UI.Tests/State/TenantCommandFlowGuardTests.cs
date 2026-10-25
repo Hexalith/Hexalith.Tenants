@@ -1,4 +1,9 @@
 using Hexalith.Tenants.UI.State.TenantCommands;
+using Hexalith.Tenants.UI.Resources;
+
+using Microsoft.Extensions.Localization;
+
+using NSubstitute;
 
 using Shouldly;
 
@@ -6,6 +11,20 @@ namespace Hexalith.Tenants.UI.Tests.State;
 
 public sealed class TenantCommandFlowGuardTests
 {
+    [Theory]
+    [InlineData(null, null)]
+    [InlineData("fallback", "Safe fallback")]
+    [InlineData("missing-fallback", null)]
+    public void Safe_message_lookup_preserves_per_flow_fallback_without_exposing_resource_identifiers(string? fallback, string? expected)
+    {
+        IStringLocalizer<TenantsResources> localizer = Substitute.For<IStringLocalizer<TenantsResources>>();
+        localizer["missing"].Returns(new LocalizedString("missing", "missing", resourceNotFound: true));
+        localizer["fallback"].Returns(new LocalizedString("fallback", "Safe fallback"));
+        localizer["missing-fallback"].Returns(new LocalizedString("missing-fallback", "missing-fallback", resourceNotFound: true));
+        TenantCommandFlowGuard.ResolveSafeMessage(localizer, "missing", "Literal", fallback).ShouldBe(expected);
+        TenantCommandFlowGuard.ResolveSafeMessage(localizer, null, "Literal", fallback).ShouldBe("Literal");
+    }
+
     [Theory]
     [InlineData(TenantCommandLifecycleState.Idle, false)]
     [InlineData(TenantCommandLifecycleState.Previewed, false)]

@@ -29,6 +29,46 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 
 public sealed class EditTenantMetadataFlowTests : FluentBunitContext
 {
+    [Fact]
+    public async Task Repeated_refresh_while_status_is_held_drains_one_followup_for_the_original_attempt()
+    {
+        var held = new TaskCompletionSource<TenantCommandStatusResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        int reads = 0;
+        var gateway = new StubTenantCommandGateway
+        {
+            Submission = TenantCommandSubmissionResult.Accepted("01ARZ3NDEKTSV4RRFFQ69G5FAV", "metadata-held"),
+            StatusAsync = _ => ++reads == 2 ? held.Task : Task.FromResult(new TenantCommandStatusResult(
+                CommandStatus.Received, HasVerifiedCommandIdentity: true)),
+        };
+        RegisterServices(gateway);
+        IRenderedComponent<EditTenantMetadataFlow> cut = RenderMetadata(p => p
+            .Add(x => x.IsAuthorized, true)
+            .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
+            .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
+            .Add(x => x.Detail, Detail("tenant.alpha", "Alpha", "Original"))
+            .Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current)
+            .Add(x => x.Lifecycle, ProjectionLifecycleState.Current).Add(x => x.ProjectionVersion, "tenant-sequence:1"));
+        cut.Find("[data-testid='tenants-edit-metadata-open']").Click();
+        cut.Find("[data-testid='tenants-edit-metadata-name']").Change("Updated");
+        await cut.Find("form").SubmitAsync();
+        TenantUpdateMetadataCommandSnapshot original = cut.Instance.Snapshot;
+        System.Reflection.MethodInfo refresh = typeof(EditTenantMetadataFlow).GetMethod("RefreshStatusAsync",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        Task Run() => cut.InvokeAsync(() => (Task)refresh.Invoke(cut.Instance, null)!);
+        Task owner = Run();
+        Task joinedOne = Run();
+        Task joinedTwo = Run();
+        reads.ShouldBe(2);
+        joinedOne.IsCompleted.ShouldBeFalse();
+        held.SetResult(new(CommandStatus.Received, HasVerifiedCommandIdentity: true));
+        await Task.WhenAll(owner, joinedOne, joinedTwo).WaitAsync(TimeSpan.FromSeconds(5));
+        reads.ShouldBe(3);
+        gateway.UpdateTenantCallCount.ShouldBe(1);
+        cut.Instance.Snapshot.MessageId.ShouldBe(original.MessageId);
+        cut.Instance.Snapshot.Intent.ShouldBe(original.Intent);
+        cut.Instance.Snapshot.BaselineProjectionVersion.ShouldBe(original.BaselineProjectionVersion);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(1)]

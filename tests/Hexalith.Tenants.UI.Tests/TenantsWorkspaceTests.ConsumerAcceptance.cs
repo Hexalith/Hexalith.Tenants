@@ -443,7 +443,7 @@ public sealed partial class TenantsWorkspaceTests
         resolutions.ShouldBe(currentResolutions);
         PrivateField<long>(cut.Instance, "_authorizationVersion").ShouldBe(currentVersion);
         commands.ReceivedCalls().ShouldBeEmpty();
-        _ = reads.Received(1).ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
+        _ = reads.Received(dispose ? 1 : 2).ListTenantsAsync(Arg.Any<TenantListRequest>(), Arg.Any<TenantListSnapshot?>(), Arg.Any<CancellationToken>());
         if (!dispose)
         {
             cut.Find("[data-testid='tenants-global-administrators-entry']");

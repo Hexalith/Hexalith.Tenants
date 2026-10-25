@@ -41,8 +41,19 @@ internal sealed class TenantQueryGateway(
     ILogger<TenantQueryGateway>? logger = null,
     TimeSpan? enrichmentDeadline = null,
     CircuitServicesAccessor? circuitServicesAccessor = null,
-    AuthenticationStateProvider? authenticationStateProvider = null) : ITenantQueryGateway {
+    AuthenticationStateProvider? authenticationStateProvider = null) : ITenantQueryGateway, IDisposable {
     private string? CapturedUserId { get; init; }
+
+    private string? CapturedCallerScope { get; init; }
+
+    private long CapturedAuthorizationRevision { get; init; }
+
+    private readonly object _authorizationGate = new();
+    private AuthenticationStateProvider? _observedAuthorizationProvider;
+    private bool _hasObservedAuthorizationProvider;
+    private string? _observedAuthorizationEvidence;
+    private long _authorizationRevision;
+    private bool _readGuardDisposed;
 
     private CallerBoundTenantsRestQueryClient? CallerGuard { get; init; }
 
@@ -192,6 +203,7 @@ internal sealed class TenantQueryGateway(
             (gateway, userId, scope) =>
             {
                 bool matches = previous is not null
+                    && previous.AuthorizationRevision == gateway.CapturedAuthorizationRevision
                     && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
                     && MatchesRetainedValidator(request.ETag, previous.ETag)
                     && (HasSameTenantDetail(previous, request.TenantId));
@@ -202,7 +214,7 @@ internal sealed class TenantQueryGateway(
             },
             () => TenantDetailSnapshot.Unauthorized(request.TenantId),
             () => TenantDetailSnapshot.Unavailable("Tenant detail caller could not be verified."),
-            (snapshot, scope) => snapshot.WithCallerScope(scope),
+            (snapshot, scope, revision) => snapshot.WithCallerScope(scope, revision),
             cancellationToken);
     }
 
@@ -414,7 +426,7 @@ internal sealed class TenantQueryGateway(
         ArgumentNullException.ThrowIfNull(intent);
         return ReadForAuthenticatedCallerAsync(
             (gateway, _, _) => gateway.GetSetConfigurationPreviewCoreAsync(intent, cancellationToken),
-            () => TenantSetConfigurationPreview.Unavailable(intent), () => TenantSetConfigurationPreview.Unavailable(intent), (proof, _) => proof, cancellationToken);
+            () => TenantSetConfigurationPreview.Unavailable(intent), () => TenantSetConfigurationPreview.Unavailable(intent), (proof, _, _) => proof, cancellationToken);
     }
 
     private async Task<TenantSetConfigurationPreview> GetSetConfigurationPreviewCoreAsync(
@@ -469,7 +481,7 @@ internal sealed class TenantQueryGateway(
         ArgumentNullException.ThrowIfNull(intent);
         return ReadForAuthenticatedCallerAsync(
             (gateway, _, _) => gateway.GetSetConfigurationProjectionProofCoreAsync(intent, cancellationToken),
-            () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), (proof, _) => proof, cancellationToken);
+            () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), (proof, _, _) => proof, cancellationToken);
     }
 
     private async Task<TenantConfigurationProjectionProof> GetSetConfigurationProjectionProofCoreAsync(
@@ -499,7 +511,7 @@ internal sealed class TenantQueryGateway(
         ArgumentNullException.ThrowIfNull(intent);
         return ReadForAuthenticatedCallerAsync(
             (gateway, _, _) => gateway.GetRemoveConfigurationPreviewCoreAsync(intent, cancellationToken),
-            () => TenantRemoveConfigurationPreview.Unavailable(intent), () => TenantRemoveConfigurationPreview.Unavailable(intent), (proof, _) => proof, cancellationToken);
+            () => TenantRemoveConfigurationPreview.Unavailable(intent), () => TenantRemoveConfigurationPreview.Unavailable(intent), (proof, _, _) => proof, cancellationToken);
     }
 
     private async Task<TenantRemoveConfigurationPreview> GetRemoveConfigurationPreviewCoreAsync(
@@ -554,7 +566,7 @@ internal sealed class TenantQueryGateway(
         ArgumentNullException.ThrowIfNull(intent);
         return ReadForAuthenticatedCallerAsync(
             (gateway, _, _) => gateway.GetRemoveConfigurationProjectionProofCoreAsync(intent, cancellationToken),
-            () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), (proof, _) => proof, cancellationToken);
+            () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), () => TenantConfigurationProjectionProof.Unavailable(intent.TenantId), (proof, _, _) => proof, cancellationToken);
     }
 
     private async Task<TenantConfigurationProjectionProof> GetRemoveConfigurationProjectionProofCoreAsync(
@@ -588,6 +600,7 @@ internal sealed class TenantQueryGateway(
             (gateway, userId, scope) =>
             {
                 bool matches = previous is not null
+                    && previous.AuthorizationRevision == gateway.CapturedAuthorizationRevision
                     && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
                     && MatchesRetainedValidator(request.ETag, previous.ETag)
                     && (HasMatchingTenantUsers(previous, request));
@@ -598,7 +611,7 @@ internal sealed class TenantQueryGateway(
             },
             () => TenantUsersSnapshot.Unauthorized(request.TenantId),
             () => TenantUsersSnapshot.Unavailable(request.TenantId),
-            (snapshot, scope) => snapshot with { CallerScope = scope },
+            (snapshot, scope, revision) => snapshot with { CallerScope = scope, AuthorizationRevision = revision },
             cancellationToken);
     }
 
@@ -779,6 +792,7 @@ internal sealed class TenantQueryGateway(
             (gateway, userId, scope) =>
             {
                 bool matches = previous is not null
+                    && previous.AuthorizationRevision == gateway.CapturedAuthorizationRevision
                     && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
                     && MatchesRetainedValidator(request.ETag, previous.ETag)
                     && (HasMatchingUserTenants(previous, request with { TargetUserId = userId }));
@@ -789,7 +803,7 @@ internal sealed class TenantQueryGateway(
             },
             () => UserTenantMembershipSnapshot.Unauthorized(UserTenantMembershipReason.MissingAuthenticatedUser),
             () => UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId),
-            (snapshot, scope) => snapshot with { CallerScope = scope },
+            (snapshot, scope, revision) => snapshot with { CallerScope = scope, AuthorizationRevision = revision },
             cancellationToken);
     }
 
@@ -822,6 +836,7 @@ internal sealed class TenantQueryGateway(
             (gateway, userId, scope) =>
             {
                 bool matches = previous is not null
+                    && previous.AuthorizationRevision == gateway.CapturedAuthorizationRevision
                     && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
                     && MatchesRetainedValidator(request.ETag, previous.ETag)
                     && (HasMatchingUserTenants(previous, request));
@@ -832,7 +847,7 @@ internal sealed class TenantQueryGateway(
             },
             () => UserTenantMembershipSnapshot.Unauthorized(UserTenantMembershipReason.MissingAuthenticatedUser, request.TargetUserId),
             () => UserTenantMembershipSnapshot.Unavailable(targetUserId: request.TargetUserId),
-            (snapshot, scope) => snapshot with { CallerScope = scope },
+            (snapshot, scope, revision) => snapshot with { CallerScope = scope, AuthorizationRevision = revision },
             cancellationToken);
     }
 
@@ -1023,6 +1038,7 @@ internal sealed class TenantQueryGateway(
             (gateway, userId, scope) =>
             {
                 bool matches = previous is not null
+                    && previous.AuthorizationRevision == gateway.CapturedAuthorizationRevision
                     && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
                     && MatchesRetainedValidator(request.ETag, previous.ETag)
                     && (previous is not null && MatchesPageScope(previous.RequestCursor, previous.RequestPageSize, request.Cursor, request.PageSize));
@@ -1033,7 +1049,7 @@ internal sealed class TenantQueryGateway(
             },
             () => GlobalAdministratorsSnapshot.Unauthorized(GlobalAdministratorsReason.MissingAuthenticatedUser),
             () => GlobalAdministratorsSnapshot.Unavailable(),
-            (snapshot, scope) => snapshot with { CallerScope = scope },
+            (snapshot, scope, revision) => snapshot with { CallerScope = scope, AuthorizationRevision = revision },
             cancellationToken);
     }
 
@@ -1285,7 +1301,8 @@ internal sealed class TenantQueryGateway(
         return ReadForAuthenticatedCallerAsync(
             (gateway, userId, scope) =>
             {
-                bool matches = previous is not null && previous.MatchesScope(request, scope)
+                bool matches = previous is not null && previous.AuthorizationRevision == gateway.CapturedAuthorizationRevision
+                    && previous.MatchesScope(request, scope)
                     && MatchesRetainedValidator(request.ETag, previous.ETag);
                 return gateway.GetTenantAuditRawCoreAsync(
                     request with { ETag = matches ? request.ETag : null },
@@ -1293,7 +1310,7 @@ internal sealed class TenantQueryGateway(
             },
             () => TenantAuditSnapshot.Unauthorized(request),
             () => TenantAuditSnapshot.Unavailable(request),
-            (snapshot, scope) => BindAuditCaller(snapshot, scope),
+            (snapshot, scope, revision) => BindAuditCaller(snapshot, scope) with { AuthorizationRevision = revision },
             cancellationToken);
     }
 
@@ -1312,7 +1329,7 @@ internal sealed class TenantQueryGateway(
             return TenantAuditSnapshot.Error(request, TenantAuditReason.MissingTenantId);
         }
 
-        string callerScope = AuditCallerScope(authenticatedUserId);
+        string callerScope = CapturedCallerScope ?? AuditCallerScope(authenticatedUserId);
         if (!IsValidAuditRequest(request)) {
             return BindAuditCaller(
                 TenantAuditSnapshot.Error(request, TenantAuditReason.InvalidFilters),
@@ -1554,6 +1571,7 @@ internal sealed class TenantQueryGateway(
             (gateway, userId, scope) =>
             {
                 bool matches = previous is not null
+                    && previous.AuthorizationRevision == gateway.CapturedAuthorizationRevision
                     && string.Equals(previous.CallerScope, scope, StringComparison.Ordinal)
                     && MatchesRetainedValidator(request.ETag, previous.ETag)
                     && (previous is not null && MatchesPageScope(previous.RequestCursor, previous.RequestPageSize, request.Cursor, request.PageSize));
@@ -1564,7 +1582,7 @@ internal sealed class TenantQueryGateway(
             },
             () => TenantListSnapshot.Unauthorized(),
             () => TenantListSnapshot.Error(),
-            (snapshot, scope) => snapshot with { CallerScope = scope },
+            (snapshot, scope, revision) => snapshot with { CallerScope = scope, AuthorizationRevision = revision },
             cancellationToken);
     }
 
@@ -2554,7 +2572,7 @@ internal sealed class TenantQueryGateway(
         => ReadForAuthenticatedCallerAsync(
             (gateway, _, _) => gateway.GetConfigurationProjectionProofCoreAsync(tenantId, key, expectedValue, isRemove, cancellationToken),
             () => TenantConfigurationProjectionProof.Unavailable(tenantId),
-            () => TenantConfigurationProjectionProof.Unavailable(tenantId), (proof, _) => proof, cancellationToken);
+            () => TenantConfigurationProjectionProof.Unavailable(tenantId), (proof, _, _) => proof, cancellationToken);
 
     private async Task<TenantConfigurationProjectionProof> GetConfigurationProjectionProofCoreAsync(
         string tenantId,
@@ -2990,23 +3008,29 @@ internal sealed class TenantQueryGateway(
         Func<TenantQueryGateway, string, string, Task<TSnapshot>> read,
         Func<TSnapshot> unauthorized,
         Func<TSnapshot> unavailable,
-        Func<TSnapshot, string, TSnapshot> bind,
+        Func<TSnapshot, string, long, TSnapshot> bind,
         CancellationToken cancellationToken)
     {
+        if (Volatile.Read(ref _readGuardDisposed))
+        {
+            return unauthorized();
+        }
         if (CallerGuard is not null)
         {
             TSnapshot nested = await CallerGuard.ReadAsync(
-                () => read(this, CapturedUserId!, AuditCallerScope(CapturedUserId!)), cancellationToken).ConfigureAwait(false);
-            return bind(nested, AuditCallerScope(CapturedUserId!));
+                () => read(this, CapturedUserId!, CapturedCallerScope!), cancellationToken).ConfigureAwait(false);
+            return bind(nested, CapturedCallerScope!, CapturedAuthorizationRevision);
         }
 
         if (!TryResolveAuthenticationProvider(out AuthenticationStateProvider? provider))
         {
             return unauthorized();
         }
+        long authorizationRevision = ObserveAuthorizationProvider(provider);
         string? userId = null;
         using var guardedClient = new CallerBoundTenantsRestQueryClient(
-            queryClient, () => userId is not null && IsCurrentCaller(userId, provider), provider);
+            queryClient, () => userId is not null && IsCurrentCaller(userId, provider)
+                && authorizationRevision == Volatile.Read(ref _authorizationRevision), provider);
         userId = AuthenticatedUserId();
         if (string.IsNullOrWhiteSpace(userId))
         {
@@ -3019,19 +3043,22 @@ internal sealed class TenantQueryGateway(
             logger, enrichmentDeadline, circuitServicesAccessor, authenticationStateProvider)
         {
             CapturedUserId = userId,
+            CapturedCallerScope = scope,
+            CapturedAuthorizationRevision = authorizationRevision,
             CallerGuard = guardedClient,
         };
         try
         {
             TSnapshot snapshot = await guardedClient.ReadAsync(
                 () => read(gateway, userId, scope), cancellationToken).ConfigureAwait(false);
-            return bind(snapshot, scope);
+            return bind(snapshot, scope, authorizationRevision);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception) when (!guardedClient.IsCallerVerified || !IsCurrentCaller(userId, provider))
+        catch (Exception) when (!guardedClient.IsCallerVerified || !IsCurrentCaller(userId, provider)
+            || authorizationRevision != Volatile.Read(ref _authorizationRevision))
         {
             // Authentication transitions and provider/accessor faults never retain old evidence.
         }
@@ -3039,7 +3066,93 @@ internal sealed class TenantQueryGateway(
         string? currentUserId = AuthenticatedUserId();
         return string.IsNullOrWhiteSpace(currentUserId)
             ? unauthorized()
-            : bind(unavailable(), AuditCallerScope(currentUserId));
+            : bind(unavailable(), AuditCallerScope(currentUserId), Volatile.Read(ref _authorizationRevision));
+    }
+
+    // Retention outlives a single request. Keep observing circuit authority between reads, including
+    // same-subject permission changes, so a subsequent 304 or outage cannot reuse older facts.
+    private long ObserveAuthorizationProvider(AuthenticationStateProvider? provider)
+    {
+        lock (_authorizationGate)
+        {
+            if (_readGuardDisposed)
+            {
+                return Volatile.Read(ref _authorizationRevision);
+            }
+            string? evidence = ReadAuthorizationEvidence(provider);
+            if (!_hasObservedAuthorizationProvider || !ReferenceEquals(provider, _observedAuthorizationProvider))
+            {
+                if (_hasObservedAuthorizationProvider)
+                {
+                    Interlocked.Increment(ref _authorizationRevision);
+                }
+                if (_observedAuthorizationProvider is not null)
+                {
+                    _observedAuthorizationProvider.AuthenticationStateChanged -= OnReadAuthorizationChanged;
+                }
+                _hasObservedAuthorizationProvider = true;
+                _observedAuthorizationProvider = provider;
+                _observedAuthorizationEvidence = evidence;
+                if (provider is not null)
+                {
+                    provider.AuthenticationStateChanged += OnReadAuthorizationChanged;
+                }
+            }
+            else if (!string.Equals(evidence, _observedAuthorizationEvidence, StringComparison.Ordinal))
+            {
+                _observedAuthorizationEvidence = evidence;
+                Interlocked.Increment(ref _authorizationRevision);
+            }
+            return Volatile.Read(ref _authorizationRevision);
+        }
+    }
+
+    private static string? ReadAuthorizationEvidence(AuthenticationStateProvider? provider)
+    {
+        if (provider is null)
+        {
+            return null;
+        }
+        try
+        {
+            Task<AuthenticationState> pending = provider.GetAuthenticationStateAsync();
+            if (!pending.IsCompletedSuccessfully)
+            {
+                return null;
+            }
+            // Compare the observed authority even when a provider updates its current task without
+            // raising a notification. Hashes and raw claims stay inside the server-side read guard.
+            string evidence = JsonSerializer.Serialize(pending.Result.User.Identities.Select(identity => new
+            {
+                identity.AuthenticationType,
+                Claims = identity.Claims.Select(claim => new { claim.Type, claim.Value, claim.Issuer, claim.ValueType })
+                    .OrderBy(claim => claim.Type, StringComparer.Ordinal).ThenBy(claim => claim.Value, StringComparer.Ordinal)
+                    .ThenBy(claim => claim.Issuer, StringComparer.Ordinal).ThenBy(claim => claim.ValueType, StringComparer.Ordinal),
+            }));
+            return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(evidence)));
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private void OnReadAuthorizationChanged(Task<AuthenticationState> state)
+        => Interlocked.Increment(ref _authorizationRevision);
+
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        lock (_authorizationGate)
+        {
+            _readGuardDisposed = true;
+            Interlocked.Increment(ref _authorizationRevision);
+            if (_observedAuthorizationProvider is not null)
+            {
+                _observedAuthorizationProvider.AuthenticationStateChanged -= OnReadAuthorizationChanged;
+                _observedAuthorizationProvider = null;
+            }
+        }
     }
 
     private bool TryResolveAuthenticationProvider(out AuthenticationStateProvider? provider)
@@ -3089,9 +3202,16 @@ internal sealed class TenantQueryGateway(
     }
 
     private bool IsCurrentCaller(string userId, AuthenticationStateProvider? provider)
-        => TryResolveAuthenticationProvider(out AuthenticationStateProvider? currentProvider)
+    {
+        if (Volatile.Read(ref _readGuardDisposed))
+        {
+            return false;
+        }
+        _ = ObserveAuthorizationProvider(provider);
+        return TryResolveAuthenticationProvider(out AuthenticationStateProvider? currentProvider)
             && ReferenceEquals(provider, currentProvider)
             && string.Equals(AuthenticatedUserId(), userId, StringComparison.Ordinal);
+    }
 
     internal static string AuditCallerScope(string userId)
         => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(userId)));

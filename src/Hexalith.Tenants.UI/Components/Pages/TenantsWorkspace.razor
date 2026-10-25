@@ -190,6 +190,7 @@
                                                   ShowHeading="false"
                                                   RestoreAuditReturn="@IsCreateAuditReturn"
                                                   OnProjectionRefreshRequested="RefreshAsync"
+                                                  OnOpenExistingTenantRequested="OpenExistingTenantAsync"
                                                   ProjectionEvidenceProvider="FindTenantProjectionEvidenceAsync" />
                                 </CascadingValue>
                                 </CascadingValue>
@@ -406,6 +407,9 @@
     private string? _pendingAuditFocus;
     private string? _handledAuditFocus;
     private string? _pendingDetailFocus;
+    private bool _pendingCreateDetailFocus;
+    private object? _createDetailFocusOperation;
+    private (long Workspace, long Load, long Authority, long Caller, TenantListSnapshot Snapshot)? _createDetailFocusScope;
     private string? _handledDetailFocus;
     private bool _auditReturnNotice;
     private bool _auditStalledNotice;
@@ -440,6 +444,7 @@
     private long _auditCallerVersion;
     private long _resolvedAuditCallerVersion;
     private long _pendingAuditCallerVersion;
+    private bool _listAuthorityPending;
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "auditFocus")]
@@ -728,7 +733,7 @@
         // When returning from a tenant detail surface the launching row may no longer be visible
         // after the list reloads, so move keyboard focus to the list heading and let the visible
         // return-context message explain that filters/sort/cursor/selection were restored.
-        _focusHeadingPending = _pendingAuditFocus is null && _pendingDetailFocus is null
+        _focusHeadingPending = _pendingAuditFocus is null && _pendingDetailFocus is null && !_pendingCreateDetailFocus
             && (QueryAuditReturnUnavailable || !string.IsNullOrWhiteSpace(_selectedTenantId));
 
         if (IsTenantListView)
@@ -886,19 +891,29 @@
     }
 
     private void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
+        => StartCallerResolution(authenticationStateTask, invalidateRetainedList: true);
+
+    private void StartCallerResolution(Task<AuthenticationState> authenticationStateTask, bool invalidateRetainedList)
     {
         if (_disposed)
         {
             return;
         }
 
+        bool reloadList = Volatile.Read(ref _listAuthorityPending) || (_initialized && invalidateRetainedList);
+        if (reloadList)
+        {
+            Volatile.Write(ref _listAuthorityPending, true);
+            Interlocked.Increment(ref _loadVersion);
+            CancelActiveLoad();
+        }
         long callerVersion = Interlocked.Increment(ref _auditCallerVersion);
         Interlocked.Exchange(ref _pendingAuditCallerVersion, callerVersion);
         long version = Interlocked.Increment(ref _authorizationVersion);
         CancelAuthorizationWait(ref _entryAuthorizationCancellation);
         CancelAuthorizationWait(ref _authenticationStateCancellation);
         CancelAuthorizationWait(ref _createAuthorizationCancellation);
-        Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version, callerVersion));
+        Task callback = InvokeAsync(() => ApplyAuthenticationStateChangedAsync(authenticationStateTask, version, callerVersion, reloadList));
         _ = ObserveAuthorizationCallbackAsync(callback);
     }
 
@@ -906,7 +921,7 @@
     {
         try
         {
-            OnAuthenticationStateChanged(_authenticationStateProvider!.GetAuthenticationStateAsync());
+            StartCallerResolution(_authenticationStateProvider!.GetAuthenticationStateAsync(), invalidateRetainedList: false);
         }
         catch
         {
@@ -919,6 +934,7 @@
             _canReviewGlobalAdministrators = false;
             _auditReadDenied = false;
             _auditAuthorityResolved = true;
+            Volatile.Write(ref _listAuthorityPending, false);
             _ = InvokeAsync(StateHasChanged);
         }
     }
@@ -926,7 +942,8 @@
     private async Task ApplyAuthenticationStateChangedAsync(
         Task<AuthenticationState> authenticationStateTask,
         long version,
-        long callerVersion)
+        long callerVersion,
+        bool reloadList)
     {
         if (_disposed || version != Volatile.Read(ref _authorizationVersion))
         {
@@ -936,12 +953,15 @@
         _canReviewGlobalAdministrators = false;
         _auditReadDenied = false;
         _auditAuthorityResolved = false;
-        // An authentication transition invalidates the authority scope of retained loading evidence,
-        // including while the replacement caller is still unresolved.
-        if (_snapshot.Kind is TenantListSurfaceKind.Loading && _snapshot.Rows.Count > 0)
+        // Every mounted fact and validator belongs to the old authority, including Ready/Degraded rows.
+        if (reloadList)
         {
             _snapshot = TenantListSnapshot.Loading();
+            _lastConfirmedSnapshot = null;
             _refreshingListKind = null;
+            _currentCursor = null;
+            _cursorHistory.Clear();
+            SearchPaging.Reset();
             ApplyVisibleRows();
         }
         StateHasChanged();
@@ -960,6 +980,12 @@
 
             Interlocked.CompareExchange(ref _pendingAuditCallerVersion, 0, callerVersion);
             _auditAuthorityResolved = true;
+            if (reloadList)
+            {
+                Volatile.Write(ref _listAuthorityPending, false);
+                _snapshot = TenantListSnapshot.Error();
+                ApplyVisibleRows();
+            }
             StateHasChanged();
             return;
         }
@@ -978,6 +1004,12 @@
         if (version == Volatile.Read(ref _authorizationVersion))
         {
             await ResolveGlobalAdministratorsEntryAsync(version);
+        }
+        if (reloadList && !_disposed && callerVersion == Volatile.Read(ref _auditCallerVersion))
+        {
+            Volatile.Write(ref _listAuthorityPending, false);
+            if (IsTenantListView) await LoadAsync(reuseETag: false);
+            if (!_disposed && callerVersion == Volatile.Read(ref _auditCallerVersion)) StateHasChanged();
         }
     }
 
@@ -1119,6 +1151,13 @@
             }
         }
 
+        if (_pendingCreateDetailFocus && IsTenantListView
+            && _snapshot.Kind is not TenantListSurfaceKind.Loading
+            && CreateAuthorization is not TenantLifecycleAuthorizationReflectionState.Indeterminate)
+        {
+            await RestoreCreateDetailFocusAsync().ConfigureAwait(false);
+        }
+
         if (_pendingDetailFocus is { } detailFocus)
         {
             _pendingDetailFocus = null;
@@ -1165,7 +1204,16 @@
 
     private void CaptureAuditReturn()
     {
-        if (QueryAnchor is { } detailFocus
+        if (string.Equals(QueryAnchor, "tenants-create-lifecycle", StringComparison.Ordinal)
+            && !string.Equals(_handledDetailFocus, QueryAnchor, StringComparison.Ordinal))
+        {
+            _handledDetailFocus = QueryAnchor;
+            _pendingDetailFocus = null;
+            _pendingCreateDetailFocus = true;
+            _createAccordionExpanded = true;
+            _focusHeadingPending = false;
+        }
+        else if (QueryAnchor is { } detailFocus
             && detailFocus.StartsWith("tenants-my-detail-", StringComparison.Ordinal)
             && TenantAuditNavigationSafety.IsSafeFocus(detailFocus)
             && !string.Equals(_handledDetailFocus, detailFocus, StringComparison.Ordinal))
@@ -1178,6 +1226,7 @@
         {
             _handledDetailFocus = null;
             _pendingDetailFocus = null;
+            _pendingCreateDetailFocus = false;
         }
 
         if (QueryAuditFocus is null || !TenantAuditNavigationSafety.IsSafeFocus(QueryAuditFocus))
@@ -1255,6 +1304,68 @@
         }
     }
 
+    private async Task RestoreCreateDetailFocusAsync()
+    {
+        const string focus = "tenants-create-lifecycle";
+        if (_disposed || !string.Equals(QueryAnchor, focus, StringComparison.Ordinal))
+        {
+            _pendingCreateDetailFocus = false;
+            return;
+        }
+        var scope = (Workspace: Volatile.Read(ref _workspaceVersion), Load: Volatile.Read(ref _loadVersion),
+            Authority: Volatile.Read(ref _authorizationVersion), Caller: Volatile.Read(ref _auditCallerVersion), Snapshot: _snapshot);
+        if (_createDetailFocusOperation is not null && _createDetailFocusScope is { } active
+            && active.Workspace == scope.Workspace && active.Load == scope.Load && active.Authority == scope.Authority
+            && active.Caller == scope.Caller && ReferenceEquals(active.Snapshot, scope.Snapshot))
+        {
+            return;
+        }
+        object operation = new();
+        _createDetailFocusOperation = operation;
+        _createDetailFocusScope = scope;
+        string location = Navigation.Uri;
+        string? caller = AuthenticatedUserId;
+        TenantLifecycleAuthorizationReflectionState authority = CreateAuthorization;
+        bool IsCurrent() => !_disposed && _pendingCreateDetailFocus && IsTenantListView
+            && ReferenceEquals(operation, _createDetailFocusOperation)
+            && string.Equals(QueryAnchor, focus, StringComparison.Ordinal)
+            && string.Equals(location, Navigation.Uri, StringComparison.Ordinal)
+            && string.Equals(caller, AuthenticatedUserId, StringComparison.Ordinal) && CreateAuthorization == authority
+            && scope.Workspace == Volatile.Read(ref _workspaceVersion) && scope.Load == Volatile.Read(ref _loadVersion)
+            && scope.Authority == Volatile.Read(ref _authorizationVersion) && scope.Caller == Volatile.Read(ref _auditCallerVersion)
+            && ReferenceEquals(scope.Snapshot, _snapshot);
+        try
+        {
+            await using IJSObjectReference module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tenantsFocus.js");
+            if (!IsCurrent())
+            {
+                return;
+            }
+            bool focused = await module.InvokeAsync<bool>("focusElementById", focus, location);
+            if (focused && IsCurrent())
+            {
+                bool consumed = await module.InvokeAsync<bool>("consumeReturnMarkers", focus, null, true, location);
+                if (consumed && IsCurrent())
+                {
+                    QueryAnchor = null;
+                    _pendingCreateDetailFocus = false;
+                }
+            }
+        }
+        catch (Exception exception) when (exception is JSException or OperationCanceledException or ObjectDisposedException)
+        {
+            // Retain the safe return marker so a later render can recover the visible create region.
+        }
+        finally
+        {
+            if (ReferenceEquals(operation, _createDetailFocusOperation))
+            {
+                _createDetailFocusOperation = null;
+                _createDetailFocusScope = null;
+            }
+        }
+    }
+
     private async Task RestoreAuditFocusAsync(string focus)
     {
         string origin = focus.StartsWith("tenants-user-row-", StringComparison.Ordinal)
@@ -1315,7 +1426,7 @@
         // A disposed component must never issue another load: it would keep consuming and mutating the
         // circuit-scoped paging state it no longer renders, so its outcome could retire a paging mode or
         // clear protected history behind a surface that no operator can see.
-        if (_disposed)
+        if (_disposed || Volatile.Read(ref _listAuthorityPending))
         {
             return;
         }
@@ -1535,8 +1646,10 @@
 
     private async Task RefreshAsync()
     {
+        long loadVersion = Volatile.Read(ref _loadVersion);
         StartGlobalAdministratorsEntryResolution();
-        await LoadAsync(reuseETag: true);
+        // A true caller transition owns its replacement read. Internal authority resolution keeps soft refresh.
+        if (loadVersion == Volatile.Read(ref _loadVersion)) await LoadAsync(reuseETag: true);
     }
 
     private Task RefreshAuditAuthorityAsync()
@@ -1851,6 +1964,20 @@
 
     private string CreateDetailHref(TenantListRow row)
         => CurrentNavigationContext().ToDetailUrl(row);
+
+    private Task OpenExistingTenantAsync(string tenantId)
+    {
+        if (!_disposed && IsTenantListView && HasCurrentCallerAuthority
+            && CreateAuthorization is TenantLifecycleAuthorizationReflectionState.Authorized)
+        {
+            string href = CurrentNavigationContext().ToDetailUrl(tenantId, "tenants-create-lifecycle");
+            if (!string.IsNullOrEmpty(href))
+            {
+                Navigation.NavigateTo(href);
+            }
+        }
+        return Task.CompletedTask;
+    }
 
     private string CreateAuditHref(TenantListRow row)
         => CurrentNavigationContext().ToAuditUrl(row);

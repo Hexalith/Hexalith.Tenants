@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-194/DW-201/DW-221/DW-267/DW-609 closure (2026-10-25):** Native removal-modal containment, measured create/conflict recovery, optional configuration shape metadata, shared command activity/refresh plumbing and permission-bound retained reads close exactly five records after independent review and verification. All 657 IDs remain: 605 done/52 open across 47 maintenance rows. Original fields and all 652 other numbered records remain preserved; accepted limitations stay open. Two review follow-ups (unverified focus failure and an observed pinned-grid disposal fault) are appended separately and excluded from numbered totals. See [validation evidence](dw-194-201-221-267-609-validation-evidence.md).
+
 **DW-128/DW-272/DW-519/DW-560/DW-563 closure (2026-10-25):** Forbidden-only search paging, pending audit-probe recovery, legacy event-array budget proof, and credential-free release preparation close exactly five records. All 657 IDs remain: 600 done/57 open across 52 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-128-272-519-560-563-validation-evidence.md).
 
 **DW-121/DW-456/DW-508/DW-511/DW-522 closure (2026-10-25):** Explicit main-only release inputs, crash-resistant dual-mode evidence controls, and consistent status ambiguity metadata/runtime/catalog guidance close exactly five records. All 657 IDs remain: 595 done/62 open across 57 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-121-456-508-511-522-validation-evidence.md).
@@ -1621,18 +1623,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md`
 reason: The legacy ledger defers this issue: Document-level Tab trapping / inert backdrop beyond sentinel pattern for remove-member dialog. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-2-4-remove-tenant-member-with-complete-preview-and-proof.md` summary: Document-level Tab trapping / inert backdrop beyond sentinel pattern for remove-member dialog. evidence: Spec Ask First prefers Tenants role=dialog + focus-sentinel pattern; full Fluent/FrontComposer modal primitive was not authorized in this slice.
-status: open
+pre-ui-safety-status: open
+status: done 2026-10-25
 decision: 2026-08-26 Adopt shared modal — Adopt or create a Fluent or FrontComposer modal with document-level trapping, inert backdrop, and browser tests.
 decision: 2026-08-25 Adopt shared modal — Adopt or create a Fluent or FrontComposer modal with document-level trapping, inert backdrop, and browser tests.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor still uses focus sentinels and role=dialog, without a shared document trap/inert backdrop. Existing 2026-08-25/26 decisions select a shared Fluent/FrontComposer modal.
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor still uses focus sentinels and role=dialog, without a shared document trap/inert backdrop. Existing 2026-08-25/26 decisions select a shared Fluent/FrontComposer modal.
+verification: The complete removal preview now uses Fluent native modal containment and shared focus helpers. Authenticated Chromium proves Tab/Shift+Tab, inert background, safe focus return and held-command Escape/overlay safeguards; focused lifetime tests preserve admission and ownership. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/RemoveTenantMemberFlow.razor
 evidence-kind: recommendation
 priority: P2
 owner: unassigned
 dependencies: FrontComposer modal primitive and browser fixture
-next-action: Adopt the recorded shared modal contract and obtain browser Tab/Escape/inert evidence.
+pre-ui-safety-next-action: Adopt the recorded shared modal contract and obtain browser Tab/Escape/inert evidence.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
 related: DW-227, DW-241, DW-242
 
 ### DW-195: JS/viewport submit-time narrow-layout guard beyond CSS fail-closed for remove-member
@@ -1702,16 +1709,21 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md`
 reason: The legacy ledger defers this issue: Create-tenant mobile/unsafe-viewport fail-closed and open-existing recovery CTA affordances beyond localized Rejected copy. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-3-1-create-tenant-with-projection-confirmation.md` summary: Create-tenant mobile/unsafe-viewport fail-closed and open-existing recovery CTA affordances beyond localized Rejected copy. evidence: Split from Story 3.1; confirmation/freshness/idempotency core does not require viewport gating or interactive open-existing navigation in the first slice.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor has no observed viewport safety gate or open-existing recovery CTA; rejected text remains the recovery affordance. These original split goals remain undelivered.
+pre-ui-safety-status: open
+status: done 2026-10-25
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor has no observed viewport safety gate or open-existing recovery CTA; rejected text remains the recovery affordance. These original split goals remain undelivered.
+verification: Create refuses unknown/unsafe measured viewports with localized recovery and retains work through resize. A matching conflict offers open-existing only after a fresh bounded authorized read and click-time recheck; navigation preserves workspace context and Back restores the visible create lifecycle. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor
 evidence-kind: recommendation
 priority: P2
 owner: unassigned
 dependencies: create UX acceptance contract
-next-action: Specify safe create viewport and open-existing navigation behavior, then cover the visible actions.
+pre-ui-safety-next-action: Specify safe create viewport and open-existing navigation behavior, then cover the visible actions.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
 related: none
 
 ### DW-202: Create confirmation cannot correlate projection evidence to this attempt's messageId; concurrent same-id creates or unrelated list ProjectionVersion churn can still satisfy absence-then-presence + version rules
@@ -1881,18 +1893,23 @@ location: n/a
 source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md`
 reason: The legacy ledger defers this issue: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-1-6-read-only-tenant-configuration-2.md` summary: Introduce a shape-preserving configuration schema or discriminator that distinguishes valid empty policy arrays from empty scalar declarations. evidence: Standard IConfiguration flattening makes JSON [] and scalar "" observationally identical, so the current provider safely withholds all approval but cannot render the scalar form as policy-unavailable without also rejecting the repository's valid-empty default.
-status: open
+pre-ui-safety-status: open
+status: done 2026-10-25
 decision: 2026-08-26 Add shape metadata — Add backward-compatible raw-shape or discriminator metadata alongside existing configuration keys.
 decision: 2026-08-25 Shape metadata — Add backward-compatible raw-shape or discriminator metadata alongside existing IConfiguration keys.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs IsCollectionScalar still documents IConfiguration ambiguity between [] and empty scalar; no raw-shape discriminator is present. Existing 2026-08-25/26 shape-metadata decision remains pending.
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs IsCollectionScalar still documents IConfiguration ambiguity between [] and empty scalar; no raw-shape discriminator is present. Existing 2026-08-25/26 shape-metadata decision remains pending.
+verification: Optional CollectionShapes declares array intent, rejects scalar/malformed/nested/contradictory declarations and revalidates reloads. Legacy declarations remain compatible with the documented flattened-provider ambiguity; shipped defaults are not migrated. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
 verification-files: src/Hexalith.Tenants.UI/Services/Configuration/TenantConfigurationReadPolicyProvider.cs
 evidence-kind: recommendation
 priority: P2
 owner: unassigned
 dependencies: configuration schema compatibility
-next-action: Define backward-compatible shape metadata and provider tests distinguishing empty arrays from scalar declarations.
+pre-ui-safety-next-action: Define backward-compatible shape metadata and provider tests distinguishing empty arrays from scalar declarations.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
 related: none
 
 ### DW-222: Bind remove-member audit receipts to the exact submitted command before presenting them as attempt-specific proof
@@ -2265,16 +2282,21 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: AddTenantMemberFlow.razor:397-416; ChangeTenantMemberRoleFlow.razor:452-471
 reason: The legacy ledger defers this issue: Coalescer, submit guard, lease plumbing and `SafeMessageText` are copy-pasted across flow components. Original context is preserved in legacy-detail.
 legacy-detail: - summary: Coalescer, submit guard, lease plumbing and `SafeMessageText` are copy-pasted across flow components. evidence: `AddTenantMemberFlow.razor:397-416` is byte-identical to `ChangeTenantMemberRoleFlow.razor:452-471` including its six-line comment; `SetCommandActivityRaisedAsync` duplicated at `:315-341`/`:374-400`; `SafeMessageText` duplicated at `CreateTenantFlow.razor:213-218` and `EditTenantMetadataFlow.razor:301-306`.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still duplicate coalescing/lease/safe-message plumbing; CreateTenantFlow.razor and Metadata/EditTenantMetadataFlow.razor retain related copies.
+pre-ui-safety-status: open
+status: done 2026-10-25
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor and ChangeTenantMemberRoleFlow.razor still duplicate coalescing/lease/safe-message plumbing; CreateTenantFlow.razor and Metadata/EditTenantMetadataFlow.razor retain related copies.
+verification: Member/metadata activity callbacks share exact-attempt/generation coordination; metadata refresh uses the existing iterative drain and safe message resolution preserves per-flow fallback. Held/repeated callbacks, route replacement, disposal and late completions preserve identity and exact ownership. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
 verification-files: src/Hexalith.Tenants.UI/Components/Tenants/Members/AddTenantMemberFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/ChangeTenantMemberRoleFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/CreateTenantFlow.razor; src/Hexalith.Tenants.UI/Components/Tenants/Metadata/EditTenantMetadataFlow.razor
 evidence-kind: recommendation
 priority: P3
 owner: unassigned
 dependencies: DW-245 and DW-300
-next-action: Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics.
+pre-ui-safety-next-action: Extract shared plumbing only after fixing/pinning the meaningful identity and refresh semantics.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
 related: DW-248, DW-266
 
 ### DW-268: The scoped-CSS-on-a-Fluent-host trap predates this change in five other components
@@ -5620,15 +5642,20 @@ location: n/a
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-gh-actions-28944933021-85877006572.md`\n  summary: Clear or reauthorize retained tenant, audit, and membership snapshots when permissions change within the same user and tenant scope.\n  evidence: FrontComposer remounts on tenant or user identity transitions only; audit, detail, workspace, and membership components can retain read snapshots after a same-scope permission change."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: FrontComposer ScopeBoundaryService.SameScope compares only tenant/user identity; TenantQueryGateway audit CallerScope is user-derived, and list/membership retention remains unbound. Same-user permission changes do not universally invalidate all retained reads.
+pre-ui-safety-status: open
+status: done 2026-10-25
+pre-ui-safety-disposition: actionable
+disposition: done
+pre-ui-safety-verification-date: 2026-10-12
+verification-date: 2026-10-25
+pre-ui-safety-verification: FrontComposer ScopeBoundaryService.SameScope compares only tenant/user identity; TenantQueryGateway audit CallerScope is user-derived, and list/membership retention remains unbound. Same-user permission changes do not universally invalidate all retained reads.
+verification: Gateway retention and in-flight publication now bind to observed permission revision plus caller scope. Mounted list/membership consumers clear old facts and validators on provider changes and requery under fresh authority; detail/audit and configuration reauthorization remain enforced. Platform revocation-lag decisions DW-562/DW-617 remain separate. Independent three-layer review and post-review checks are recorded in dw-194-201-221-267-609-validation-evidence.md and spec-dw-194-201-221-267-609-ui-safety.md.
 evidence-kind: verified-gap
 priority: P2
 owner: unassigned
 dependencies: Permission-change invalidation/reauthorization contract
-next-action: Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts.
+pre-ui-safety-next-action: Cover same-identity permission loss across detail/audit/list/membership and invalidate or reauthorize retained facts.
+next-action: None for this selected record; retain historical findings and the separately recorded review follow-up.
 related: DW-580,DW-574
 
 
@@ -6078,3 +6105,14 @@ archived: 2026-10-22
 - source_spec: `_bmad-output/implementation-artifacts/spec-dw-268-328-391-434-489-ui-runtime-qualification.md`
   summary: Unverified medium; isolate one administrator-grant Escape focus timeout before changing production restoration behavior.
   evidence: A frozen-source normal Chromium run detached the grant dialog but observed body focus instead of the enabled launcher for twenty seconds (`dw-391-final-grant-focus-unavailable.json`). A separate instrumented three-case run found enabled launcher focus calls connected, outside inert, and immediately active; the final standalone normal run passed all nine cases. The cause is unproven: no production focus defect or browser-concurrency cause is claimed. Reproduce with controlled foreground and held subscription/render ordering, then identify whether renderer ownership or the browser driver lost focus. The diagnostic source, trace and limits are retained in `dw-391-focus-diagnostic.json` and its archive. This unnumbered qualification follow-up does not change the five numbered closures or the existing runtime/release holds.
+
+
+## Deferred from: five UI safety items independent review (2026-10-25)
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
+  summary: Unverified medium — qualify removal-modal containment when pre-submit focus interop fails while the browser and command delivery remain connected.
+  evidence: PrepareSubmissionFocusAsync awaits FocusSafelyAsync, which catches interop failures before the exact lifetime/admission checks. The lifecycle target exists throughout normal connected rendering, and the final browser lane proves normal and pending native containment; no connected failure/bypass was reproduced. Settle with production-component browser fault injection that rejects the focus operation, continues held delivery and checks Escape/overlay containment plus retained ownership.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dw-194-201-221-267-609-ui-safety.md`
+  summary: Medium — route a pinned Fluent UI 5.0.1 grid continuation that uses a disposed JavaScript module during navigation to the component owner.
+  evidence: One full authenticated browser run failed during create recovery with ObjectDisposedException in FluentDataGrid.UpdateColumnInteractionsAsync/OnAfterRenderAsync and one circuit error; its packet, log and sanitized stack are preserved in the batch evidence diagnostics. The existing pinned grid awaits initialization before later module use without a disposal recheck. Later labelled checks did not reproduce the circuit fault, so the exact focus checkpoint remains unproven and no local workaround is claimed. Reproduce with controlled grid initialization/disposal across detail navigation and Back, then qualify the owning component fix; retain zero-circuit-error acceptance.

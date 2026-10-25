@@ -37,6 +37,13 @@ namespace Hexalith.Tenants.UI.Tests.Components;
 /// <summary>Observes support boundaries through their DOM, live regions, JSON and actual clipboard calls.</summary>
 public sealed class SupportSafetyBoundaryTests : FluentBunitContext
 {
+    public SupportSafetyBoundaryTests()
+    {
+        var viewport = new TenantHighImpactViewportObservation();
+        viewport.Observe(Hexalith.FrontComposer.Shell.State.Navigation.ViewportTier.Desktop);
+        Services.AddSingleton(viewport);
+    }
+
     private const string MessageId = "01ARZ3NDEKTSV4RRFFQ69G5FAV";
     private const string CorrelationId = "tracking-original";
 

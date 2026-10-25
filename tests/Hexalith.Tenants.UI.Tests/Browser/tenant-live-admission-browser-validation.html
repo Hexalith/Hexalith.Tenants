@@ -64,23 +64,37 @@
                 };
                 await awaitTier(2);
                 const surface = frame.contentDocument.getElementById('surface');
-                const render = markup => {
+                const render = async markup => {
+                    surface.querySelector('fluent-dialog')?.hide();
                     surface.innerHTML = markup;
+                    // Static exports have no Blazor ShowAsync lifecycle; open the installed Fluent modal.
+                    await frame.contentWindow.customElements.whenDefined('fluent-dialog');
+                    const dialog = surface.querySelector('fluent-dialog');
+                    if (!dialog) fail('Actual removal modal unavailable');
+                    dialog.show();
+                    // Fluent show() enqueues its native showModal call rather than returning a promise.
+                    let nativeDialog;
+                    for (let attempt = 0; attempt < 40; attempt++) {
+                        nativeDialog = dialog.dialog || dialog.shadowRoot?.querySelector('dialog');
+                        if (nativeDialog?.open && nativeDialog.matches(':modal')) break;
+                        await delay(20);
+                    }
+                    if (!nativeDialog?.open || !nativeDialog.matches(':modal')) fail('Actual removal dialog is not natively modal');
                     if (surface.textContent.includes('Tenants.RemoveMember.') || surface.textContent.includes('correlation-')) fail('Visible resource key or internal tracking leaked');
                     if (!surface.querySelector('[data-testid="tenants-remove-member-lifecycle"]') || !surface.querySelector('[data-testid="tenants-remove-member-audit"]')) fail('Lifecycle or audit evidence collapsed');
                 };
                 const confirmation = () => surface.querySelector('[data-testid="tenants-remove-member-confirm"]');
-                render(states.unknown);
+                await render(states.unknown);
                 if (!confirmation()?.hasAttribute('disabled')) fail('Unmeasured Unknown admitted removal');
                 const reason = surface.querySelector('[data-testid="tenants-remove-member-unavailable-reason"]');
                 if (!reason?.textContent.trim() || reason.getAttribute('role') !== 'alert') fail('Unmeasured refusal lacks an accessible localized reason');
-                render(states.safe);
+                await render(states.safe);
                 if (confirmation()?.hasAttribute('disabled') || !surface.querySelector('[data-testid="tenants-remove-member-preview"]')) fail('Measured safe complete preview unavailable');
                 frame.width = '767';
                 frame.getBoundingClientRect();
                 await new Promise(resolve => frame.contentWindow.requestAnimationFrame(resolve));
                 await awaitTier(0);
-                render(states.resized);
+                await render(states.resized);
                 if (!confirmation()?.hasAttribute('disabled')) fail('Resized Phone admitted removal');
                 const form = surface.querySelector('form');
                 if (frame.contentWindow.getComputedStyle(form).display !== 'none') fail('Phone confirmation form remained visible');
@@ -90,7 +104,7 @@
                 frame.getBoundingClientRect();
                 await new Promise(resolve => frame.contentWindow.requestAnimationFrame(resolve));
                 await awaitTier(1);
-                render(states.safe);
+                await render(states.safe);
                 if (confirmation()?.hasAttribute('disabled') || frame.contentWindow.getComputedStyle(surface.querySelector('form')).display === 'none') fail('Measured Tablet boundary did not restore complete preview');
                 const cancel = surface.querySelector('[data-testid="tenants-remove-member-cancel"]');
                 cancel.focus();

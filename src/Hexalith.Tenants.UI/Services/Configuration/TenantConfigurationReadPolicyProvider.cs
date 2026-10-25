@@ -102,13 +102,53 @@ internal sealed partial class TenantConfigurationReadPolicyProvider
         // (Value == "" with no element children), and the empty-array form is the valid-empty
         // repository default, so failing closed on it would take the shipped appsettings.json dark.
         //
-        // The residual is bounded, and deliberately accepted rather than traded for a redundant
-        // cardinality discriminator. An empty declaration can only withhold approval, never grant it,
-        // and an emptied environment override cannot shorten a declared list because the declaring
-        // provider's element children still win. The one override shape that does reach the bound
-        // list arrives as a blank element, which TryValidate rejects. All three are pinned by tests.
+        // This legacy ambiguity is retained for compatibility. Deployments can opt into explicit
+        // collection intent with CollectionShapes; that metadata still cannot prove raw JSON shape.
         return !string.IsNullOrEmpty(child.Value);
     }
+
+    private static bool HasValidCollectionShapes(IConfigurationSection section)
+    {
+        if (HasNestedDiscriminator(section.GetSection(nameof(TenantConfigurationReadPolicyOptions.PrefixGrants)))
+            || HasNestedDiscriminator(section.GetSection(nameof(TenantConfigurationReadPolicyOptions.DisplaySafe))))
+        {
+            return false;
+        }
+        IConfigurationSection? shapes = section.GetChildren().FirstOrDefault(child =>
+            string.Equals(child.Key, nameof(TenantConfigurationReadPolicyOptions.CollectionShapes), StringComparison.OrdinalIgnoreCase));
+        if (shapes is null)
+        {
+            return true;
+        }
+
+        IConfigurationSection[] declarations = shapes.GetChildren().ToArray();
+        string[] names = [nameof(TenantConfigurationReadPolicyOptions.PrefixGrants), nameof(TenantConfigurationReadPolicyOptions.DisplaySafe)];
+        if (shapes.Value is not null || declarations.Length != names.Length
+            || declarations.Any(declaration => !names.Contains(declaration.Key, StringComparer.OrdinalIgnoreCase)
+                || !string.Equals(declaration.Value, "array", StringComparison.Ordinal)
+                || declaration.GetChildren().Any()))
+        {
+            return false;
+        }
+
+        foreach (string name in names)
+        {
+            IConfigurationSection collection = section.GetSection(name);
+            IConfigurationSection[] elements = collection.GetChildren().ToArray();
+            if (collection.Value is not null && elements.Length != 0
+                || elements.Any(element => !int.TryParse(element.Key, System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out int index) || index < 0))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool HasNestedDiscriminator(IConfigurationSection section)
+        => section.GetChildren().Any(child =>
+            string.Equals(child.Key, nameof(TenantConfigurationReadPolicyOptions.CollectionShapes), StringComparison.OrdinalIgnoreCase)
+            || HasNestedDiscriminator(child));
 
     private static bool TryValidate(TenantConfigurationReadPolicyOptions options)
     {
@@ -192,6 +232,11 @@ internal sealed partial class TenantConfigurationReadPolicyProvider
             if (!section.Exists())
             {
                 return TenantConfigurationValidatedPolicy.Invalid(TenantConfigurationPolicyFailure.MissingSection);
+            }
+
+            if (!HasValidCollectionShapes(section))
+            {
+                return TenantConfigurationValidatedPolicy.Invalid(TenantConfigurationPolicyFailure.InvalidDeclaration);
             }
 
             if (HasScalarCollection(section, nameof(TenantConfigurationReadPolicyOptions.PrefixGrants))

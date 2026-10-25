@@ -15,20 +15,19 @@
 @inject IServiceProvider Services
 @implements IDisposable
 
+<section class="tenants-remove-member-dialog-host">
+<FluentDialog @ref="_dialog" Modal="true" PreventDismissOnEscape="true"
+              Class="tenants-remove-member-modal" data-testid="tenants-remove-member-modal"
+              aria-labelledby="tenants-remove-member-heading">
 <section class="tenants-remove-member-flow"
-         role="dialog"
-         aria-modal="true"
          data-testid="tenants-remove-member-flow"
          aria-labelledby="tenants-remove-member-heading"
-         @onkeydown="HandleKeyDownAsync">
-    <span class="tenants-remove-member-flow__focus-sentinel"
-          tabindex="0"
-          data-testid="tenants-remove-member-focus-start"
-          @onfocus="FocusCancelAsync"></span>
+         @onkeydown="HandleKeyDownAsync"
+         @onkeyup="HandleKeyDownAsync">
 
     <div class="tenants-remove-member-flow__heading">
         <h3 id="tenants-remove-member-heading">@Localizer["Tenants.RemoveMember.Title"]</h3>
-        <p>@Localizer["Tenants.RemoveMember.Description", Detail.TenantId, Member.UserId, RoleLabel(Member.Role)]</p>
+        <p id="tenants-remove-member-description">@Localizer["Tenants.RemoveMember.Description", Detail.TenantId, Member.UserId, RoleLabel(Member.Role)]</p>
     </div>
 
     <p class="tenants-remove-member-flow__narrow"
@@ -150,7 +149,7 @@
                 @Localizer["Tenants.RemoveMember.Action.ContinueReadOnly"]
             </FluentButton>
         }
-        <FluentButton @ref="_cancelElement" Appearance="ButtonAppearance.Outline"
+        <FluentButton @ref="_cancelElement" Appearance="ButtonAppearance.Outline" AutoFocus="@(!IsOwnedCommandInFlight)"
                       data-testid="tenants-remove-member-cancel"
                       Disabled="@IsOwnedCommandInFlight"
                       OnClick="CloseAsync">
@@ -160,7 +159,7 @@
 
     <section class="tenants-remove-member-flow__lifecycle"
              @ref="_lifecycleElement"
-             tabindex="-1"
+             tabindex="@(IsOwnedCommandInFlight && !HasSafeMeasuredViewport && !CanRefresh ? 0 : -1)"
              id="tenants-remove-member-lifecycle" data-testid="tenants-remove-member-lifecycle"
              aria-labelledby="tenants-remove-member-state-label">
         <h4 id="tenants-remove-member-state-label">@Localizer["Tenants.RemoveMember.Lifecycle.Title"]</h4>
@@ -208,10 +207,8 @@
         </p>
     </section>
 
-    <span class="tenants-remove-member-flow__focus-sentinel"
-          tabindex="0"
-          data-testid="tenants-remove-member-focus-end"
-          @onfocus="FocusEndSentinelAsync"></span>
+</section>
+</FluentDialog>
 </section>
 
 @code {
@@ -244,10 +241,14 @@
     private string? _confirmationText;
     private string? _validationMessage;
     private bool _isSubmitting;
+    private bool _isPreparingSubmitFocus;
     private bool _hasRaisedCommandActivity;
+    private readonly TenantCommandActivityCoordinator _commandActivity = new();
     private bool _hasUndispatchedSafetyRefusal;
     private (string TenantId, string UserId)? _previewIdentity;
     private bool _dismissed;
+    private FluentDialog _dialog = default!;
+    private bool _dialogShown;
     private FluentTextInput _confirmationElement = default!;
     private FluentButton _cancelElement = default!;
     private ElementReference _lifecycleElement;
@@ -703,9 +704,8 @@
             && _snapshot.State is TenantCommandLifecycleState.Idle or TenantCommandLifecycleState.Previewed
             && IsPreviewComplete && string.Equals(_confirmationText, Member.UserId, StringComparison.Ordinal)
                 ? null
-                : !string.IsNullOrWhiteSpace(_snapshot.SafeMessageKey)
-            ? Localizer[_snapshot.SafeMessageKey].Value
-            : _snapshot.SafeMessage;
+                : TenantCommandFlowGuard.ResolveSafeMessage(Localizer, _snapshot.SafeMessageKey, _snapshot.SafeMessage,
+            "Tenants.RemoveMember.State.UnableToVerify");
 
     private ITenantCommandGateway? CommandGateway
         => Services.GetService<ITenantCommandGateway>();
@@ -932,6 +932,13 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!_dialogShown && !_dismissed)
+        {
+            _dialogShown = true;
+            await _dialog.ShowAsync().ConfigureAwait(false);
+            await InitializeDialogFocusAsync().ConfigureAwait(false);
+            _focusCancelPending = true;
+        }
         if (_focusConfirmationPending)
         {
             _focusConfirmationPending = false;
@@ -961,6 +968,42 @@
 
     private Task FocusCancelOrLifecycleAsync()
         => FocusSafelyAsync(IsOwnedCommandInFlight ? _lifecycleElement : _cancelElement.Element);
+
+    private async Task InitializeDialogFocusAsync()
+    {
+        IJSObjectReference? module = null;
+        try
+        {
+            if (Services.GetService<IJSRuntime>() is not { } js)
+            {
+                return;
+            }
+            module = await js.InvokeAsync<IJSObjectReference>("import",
+                "./_content/Hexalith.FrontComposer.Shell/js/fc-focus.js").ConfigureAwait(false);
+            await module.InvokeVoidAsync("labelDialog", "tenants-remove-member-flow",
+                "tenants-remove-member-heading", "tenants-remove-member-description").ConfigureAwait(false);
+            // Native inertness does not prevent Tab from entering browser chrome. Reuse the shell's
+            // actual enabled-control containment rather than introducing domain-owned focus plumbing.
+            _ = await module.InvokeAsync<bool>("containDialogFocus", "tenants-remove-member-flow").ConfigureAwait(false);
+        }
+        catch (Exception exception) when (exception is JSException or InvalidOperationException or OperationCanceledException)
+        {
+            // Circuit teardown cannot alter retained command ownership.
+        }
+        finally
+        {
+            if (module is not null)
+            {
+                try
+                {
+                    await module.DisposeAsync().ConfigureAwait(false);
+                }
+                catch (Exception exception) when (exception is JSException or InvalidOperationException or OperationCanceledException)
+                {
+                }
+            }
+        }
+    }
 
     private static async Task FocusSafelyAsync(ElementReference element)
     {
@@ -1050,68 +1093,32 @@
             LiveRegionPoliteness = TenantCommandLiveRegionPoliteness.Assertive,
         };
 
-    private async Task<bool> SetCommandActivityRaisedAsync(bool isActive)
-    {
-        if (_disposed || isActive && _dismissed)
-        {
-            return !isActive;
-        }
-        if (isActive && _retainedAttempt is null)
-        {
-            _attemptMemberUserId = Member.UserId;
-        }
-        if (isActive && _retainedAttempt is null
-            && !Attempts.TryBegin(Detail.TenantId, this, _snapshot, out _retainedAttempt))
-        {
-            return false;
-        }
-        if (_hasRaisedCommandActivity == isActive)
-        {
-            return true;
-        }
-
-        int generation = _attemptGeneration;
-        TenantRetainedCommandAttempt? attempt = _retainedAttempt;
-        TenantCommandAttemptTracker tracker = Attempts;
-        bool accepted;
-        try
-        {
-            if (CommandActivityLease is { } lease)
+    private Task<bool> SetCommandActivityRaisedAsync(bool isActive)
+        => _commandActivity.SetAsync(isActive, () => _disposed || isActive && _dismissed, () => _attemptGeneration,
+            () => _retainedAttempt,
+            () =>
             {
-                accepted = await lease(isActive).ConfigureAwait(false);
-            }
-            else
+                _attemptMemberUserId = Member.UserId;
+                return Attempts.TryBegin(Detail.TenantId, this, _snapshot, out _retainedAttempt);
+            },
+            () => _hasRaisedCommandActivity, value => _hasRaisedCommandActivity = value,
+            attempt =>
             {
-                await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(isActive)).ConfigureAwait(false);
-                accepted = true;
-            }
-        }
-        catch (Exception)
-        {
-            if (!isActive)
+                Attempts.Detach(attempt, this);
+                if (ReferenceEquals(_retainedAttempt, attempt))
+                {
+                    _retainedAttempt = null;
+                }
+            },
+            async active =>
             {
-                throw;
-            }
-            tracker.Detach(attempt, this);
-            if (!_disposed && generation == _attemptGeneration && ReferenceEquals(_retainedAttempt, attempt))
-            {
-                _retainedAttempt = null;
-            }
-            return false;
-        }
-        if (_disposed || generation != _attemptGeneration || !ReferenceEquals(_retainedAttempt, attempt))
-        {
-            return !isActive;
-        }
-        if (isActive && !accepted)
-        {
-            tracker.Detach(attempt, this);
-            _retainedAttempt = null;
-            return false;
-        }
-        _hasRaisedCommandActivity = isActive;
-        return true;
-    }
+                if (CommandActivityLease is { } lease)
+                {
+                    return await lease(active).ConfigureAwait(false);
+                }
+                await InvokeAsync(() => OnCommandActivityChanged.InvokeAsync(active)).ConfigureAwait(false);
+                return true;
+            });
 
     private async Task UpdateCommandActivityForSnapshotAsync()
         => _ = await SetCommandActivityRaisedAsync(IsOwnedCommandInFlight).ConfigureAwait(false);
@@ -1150,7 +1157,7 @@
     private async Task SubmitAsync()
     {
         SynchronizeRetainedAttempt();
-        if (_disposed || _isSubmitting || _authorityResolutionInProgress)
+        if (_disposed || _isSubmitting || _authorityResolutionInProgress || _isPreparingSubmitFocus)
         {
             return;
         }
@@ -1158,6 +1165,10 @@
         TenantRetainedCommandAttempt? initialAttempt = _retainedAttempt;
         int initialAttemptGeneration = _attemptGeneration;
         long admissionGeneration = _admissionGeneration;
+        if (!await PrepareSubmissionFocusAsync(admissionGeneration).ConfigureAwait(true))
+        {
+            return;
+        }
         // Admission reads and refusal publication share the renderer with input and parameter updates.
         if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(true))
         {
@@ -1286,6 +1297,10 @@
             && Equals(_snapshot.Intent, request)
                 ? _snapshot.MessageId
                 : null;
+        if (!await PrepareSubmissionFocusAsync(admissionGeneration).ConfigureAwait(true))
+        {
+            return;
+        }
         TenantRemoveMemberCommandSnapshot retriedAttempt = _snapshot;
         Attempts.Detach(_retainedAttempt, this);
         _retainedAttempt = null;
@@ -1302,6 +1317,7 @@
 
         int submitGeneration = _attemptGeneration;
         _isSubmitting = true;
+        _focusLifecyclePending = true;
         bool admitted = await SetCommandActivityRaisedAsync(true).ConfigureAwait(true);
         if (_disposed || submitGeneration != _attemptGeneration)
         {
@@ -1438,6 +1454,10 @@
         TenantRetainedCommandAttempt? attempt = _retainedAttempt;
         int generation = _attemptGeneration;
         long admissionGeneration = _admissionGeneration;
+        if (!await PrepareSubmissionFocusAsync(admissionGeneration).ConfigureAwait(true))
+        {
+            return;
+        }
         // Consume retry authority on the renderer, where safety changes invalidate its generation.
         if (!await ReauthorizeInitialAdmissionAsync(admissionGeneration).ConfigureAwait(true))
         {
@@ -1445,6 +1465,10 @@
             {
                 RefuseAuthorityAdmission();
             }
+            return;
+        }
+        if (!await PrepareSubmissionFocusAsync(admissionGeneration).ConfigureAwait(true))
+        {
             return;
         }
         ITenantCommandGateway? gateway = CommandGateway;
@@ -1459,6 +1483,7 @@
             return;
         }
         _isSubmitting = true;
+        _focusLifecyclePending = true;
         try
         {
             TenantCommandSubmissionResult result;
@@ -1498,6 +1523,28 @@
                 await UpdateCommandActivityForSnapshotAsync().ConfigureAwait(false);
             }
         }
+    }
+
+    private async Task<bool> PrepareSubmissionFocusAsync(long admissionGeneration)
+    {
+        int generation = _attemptGeneration;
+        TenantRetainedCommandAttempt? attempt = _retainedAttempt;
+        TenantRemoveMemberCommandSnapshot expected = _snapshot;
+        _isPreparingSubmitFocus = true;
+        try
+        {
+            // Move before disabling the active Confirm. Otherwise Escape can target document.body
+            // during the focus gap and bypass Fluent's host-scoped native cancellation guard.
+            await FocusSafelyAsync(_lifecycleElement).ConfigureAwait(true);
+        }
+        finally
+        {
+            _isPreparingSubmitFocus = false;
+        }
+        return !_disposed && !_dismissed && generation == _attemptGeneration
+            && admissionGeneration == Volatile.Read(ref _admissionGeneration)
+            && ReferenceEquals(attempt, _retainedAttempt)
+            && TenantCommandAttemptTracker.HasSameEvidence(expected, _snapshot);
     }
 
     private Task RefreshStatusAsync()
@@ -1884,6 +1931,7 @@
         _dismissed = true;
         SetSnapshot(TenantRemoveMemberCommandSnapshot.Idle());
         _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+        await _dialog.HideAsync().ConfigureAwait(false);
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
 
@@ -1913,6 +1961,8 @@
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args)
     {
+        // Fluent suppresses native Escape on keydown before Blazor receives it. Keyup reaches the
+        // slotted content and routes dismissal through the same exact retained-command safeguard.
         if (string.Equals(args.Key, "Escape", StringComparison.Ordinal))
         {
             await CloseAsync().ConfigureAwait(false);
@@ -1941,21 +1991,9 @@
         InvalidateAdmission();
         _dismissed = true;
         _ = await SetCommandActivityRaisedAsync(false).ConfigureAwait(false);
+        await _dialog.HideAsync().ConfigureAwait(false);
         await InvokeAsync(() => OnCloseRequested.InvokeAsync()).ConfigureAwait(false);
     }
-
-    private async Task FocusEndSentinelAsync(FocusEventArgs args)
-    {
-        // Cancel is rendered outside the form and is therefore focusable at every width. The confirm
-        // control sits inside .tenants-remove-member-flow__form, which the narrow rule sets to
-        // display:none -- focusing it there is a silent no-op that lets focus escape an aria-modal
-        // dialog. Width is not observable server-side, so the trap always lands on the control that is
-        // guaranteed to exist.
-        await FocusCancelOrLifecycleAsync().ConfigureAwait(false);
-    }
-
-    private async Task FocusCancelAsync(FocusEventArgs args)
-        => await FocusCancelOrLifecycleAsync().ConfigureAwait(false);
 
     public void Dispose()
     {

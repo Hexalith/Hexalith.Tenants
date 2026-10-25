@@ -19,6 +19,9 @@ public sealed record UserTenantMembershipSnapshot(
     int RequestPageSize = 20,
     bool PagingRecovered = false,
     string? CallerScope = null) {
+    /// <summary>Gets the observed authority revision qualifying retained rows and validators.</summary>
+    internal long AuthorizationRevision { get; init; }
+
     public static UserTenantMembershipSnapshot Loading()
         => new(
             UserTenantMembershipSurfaceKind.Loading,

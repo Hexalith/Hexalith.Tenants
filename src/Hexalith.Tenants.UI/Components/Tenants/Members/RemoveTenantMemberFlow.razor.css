@@ -1,21 +1,20 @@
+/* fc-css-exception: viewport bounds for the complete high-impact preview inside Fluent's native
+   modal surface; the standard dialog sizes do not account for this long consequence list. */
+.tenants-remove-member-dialog-host ::deep .tenants-remove-member-modal::part(dialog) {
+    max-inline-size: calc(100vw - 2rem);
+    max-block-size: calc(100dvh - 2rem);
+    overflow: auto;
+}
+
 /* fc-css-exception: bordered command-flow dialog card; border + container padding and block margin define
    the card chrome, and Fluent v5 has no equivalent bordered card primitive in use here. */
 .tenants-remove-member-flow {
     border: 1px solid var(--colorNeutralStroke1, CanvasText);
     display: grid;
     gap: 1rem;
-    margin-block: 1rem;
+    margin: 0;
+    min-inline-size: 0;
     padding: 1rem;
-}
-
-/* fc-css-exception: visually-hidden focus sentinels for the aria-modal trap; no Fluent primitive wraps
-   this off-screen tab-cycle technique. */
-.tenants-remove-member-flow__focus-sentinel {
-    block-size: 1px;
-    inline-size: 1px;
-    margin: -1px;
-    overflow: hidden;
-    position: absolute;
 }
 
 /* fc-css-exception: spacing reset on semantic heading elements; no Fluent typography primitive

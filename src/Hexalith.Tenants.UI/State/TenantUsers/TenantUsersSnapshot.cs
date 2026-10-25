@@ -25,6 +25,9 @@ public sealed record TenantUsersSnapshot(
     bool PagingRecovered = false,
     string? CallerScope = null)
 {
+    /// <summary>Gets the observed authority revision qualifying retained rows and validators.</summary>
+    internal long AuthorizationRevision { get; init; }
+
     /// <summary>Creates a first-load state without discarding a separate prior snapshot.</summary>
     public static TenantUsersSnapshot Loading(string? tenantId = null)
         => EmptyState(TenantUsersSurfaceKind.Loading, tenantId, TenantUsersReason.None);

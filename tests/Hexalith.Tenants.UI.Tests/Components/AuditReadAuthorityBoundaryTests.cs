@@ -38,10 +38,20 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
             .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
 
-        _ = authentication.NotifyPending();
-
-        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
-            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
+        TaskCompletionSource<AuthenticationState> pending = authentication.NotifyPending();
+        try
+        {
+            cut.WaitForAssertion(() =>
+            {
+                cut.FindAll("[data-testid='tenants-my-audit-entrypoint']").ShouldBeEmpty();
+                cut.FindAll("[data-testid='tenants-my-tenant-id']").ShouldBeEmpty();
+                cut.Find("[data-testid='tenants-my-loading']");
+            });
+        }
+        finally
+        {
+            pending.TrySetResult(new AuthenticationState(new ClaimsPrincipal()));
+        }
     }
 
     [Fact]
@@ -59,12 +69,12 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
             .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
 
         TaskCompletionSource<AuthenticationState> pending = authentication.NotifyPending();
-        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
-            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
-        cut.Find("[data-testid='tenants-audit-entrypoint-refresh']").Click();
+        cut.WaitForAssertion(() => cut.FindAll("[data-testid='tenants-my-audit-entrypoint']").ShouldBeEmpty());
+        cut.Find("[data-testid='tenants-my-refresh']").Click();
 
-        cut.Find("[data-testid='tenants-my-audit-entrypoint']")
-            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull();
+        cut.FindAll("[data-testid='tenants-my-audit-entrypoint']").ShouldBeEmpty();
+        cut.FindAll("[data-testid='tenants-my-tenant-id']").ShouldBeEmpty();
+        cut.Find("[data-testid='tenants-my-loading']");
         _ = bff.Received(1).ResolveGlobalAdministratorsAuthorizationAsync(Arg.Any<CancellationToken>());
 
         pending.SetResult(new AuthenticationState(new ClaimsPrincipal()));
@@ -89,9 +99,13 @@ public sealed class AuditReadAuthorityBoundaryTests : BunitContext
 
         TaskCompletionSource<AuthenticationState> pending = authentication.NotifyPending();
         pending.SetException(new InvalidOperationException("Authentication failed."));
-        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
-            .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldBeNull());
-        cut.Find("[data-testid='tenants-audit-entrypoint-refresh']").Click();
+        cut.WaitForAssertion(() =>
+        {
+            cut.FindAll("[data-testid='tenants-my-audit-entrypoint']").ShouldBeEmpty();
+            cut.FindAll("[data-testid='tenants-my-tenant-id']").ShouldBeEmpty();
+            cut.Find("[data-testid='tenants-my-error']");
+        });
+        cut.Find("[data-testid='tenants-my-refresh']").Click();
 
         cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-my-audit-entrypoint']")
             .ParentElement.ShouldNotBeNull().GetAttribute("href").ShouldNotBeNull());
