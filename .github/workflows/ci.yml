@@ -98,8 +98,18 @@ jobs:
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AspireTopologyTlsDiagnosticsTests
           --minimum-expected-tests 5 --fail-skips on
-      - name: Verify persisted REST authority, six reads, conditional responses and cursor recovery
+      - name: Verify bootstrap lifecycle and authority guards
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          --filter-class Hexalith.Tenants.IntegrationTests.AspireTopologyBootstrapTests
+          --minimum-expected-tests 72 --fail-skips on
+      - name: Verify cold bootstrap, six REST reads, conditional responses and cursor recovery
+        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        env:
+          # This is the first live fixture on a fresh runner: require a newly committed bootstrap.
+          TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP: 'true'
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build

@@ -101,3 +101,23 @@ dotnet test tests/Hexalith.Tenants.Server.Tests/Hexalith.Tenants.Server.Tests.cs
 ## Outstanding acceptance
 
 Run corrected hosted Release/package checks and conserve ledger/index closure for individually qualified records. DW-161 remains open until the actual conditional authority contract passes. This checkpoint does not claim the completed five-item batch, a green broader release pipeline, healthy optional Memories/search topology or repaired projection background workers.
+
+
+## Hosted cold-start failure and fixture correction
+
+[Hosted main run40212793459](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40212793459) tested source60f9dfd28e7b134785cb00a30bb8acb8889e4b2e. It did not qualify acceptance. The live build, model12/12, TLS5/5, private-artifact3/3 and anonymous6/6 passed. Three authenticated REST cases, the historical persisted-state case and both positive UI cases failed during CreateTenant seeding with422, before route/browser qualification. The retained safe wrapper packets report command-seed failure; no successful hosted browser matrix is claimed.
+
+Startup logs showed the application's automatic bootstrap committing before the named projection routes were registered. A later already-bootstrapped conflict did not establish projected administrator membership; CreateTenant then correctly rejected the caller without persisted administrator authority. The shared test fixture now owns a post-startup authenticated bootstrap, disables only automatic bootstrap during its own process startup, and shortens the existing projection-catalog refresh interval for that test profile. Both inherited environment settings restore in finally. Real uncached production administrator reads must prove the actual caller's current producer authority before any dependent tests run. Normal application defaults, TLS/authentication, dependency pins and Dapr identity/policy are unchanged.
+
+The same hosted run's HTTP lane reported43/44 because its previous absent-audit-version assertion was stale after the producer repair. The assertion now requires the actual persisted audit version, matching response header and production UI snapshot while retaining the independent store ETag. The corrected generated-controller suite passes44/44 locally with zero skips. The broader package-consumer dependency-range failure remains independent and is not bypassed.
+
+Three focused independent review layers inspected the bootstrap correction. Their eight findings and all verdicts are preserved in the spec. Corrections are being verified before a new hosted run; no ledger entries close on this failed checkpoint.
+
+
+The corrected fixture's focused Debug/package build passes with zero warnings/errors; all72 bootstrap controls pass with zero failures/skips. Controls exercise streamed oversize responses, opaque pagination, retry identity, terminal identity/outcome, committed-prefix binding, fresh sequence1 enforcement, cancellation, cleanup and complete exception redaction. The exact live historical persisted-state regression passes1/1 locally with zero skips after this correction:
+
+```sh
+EventStore__Projections__WorkersEnabled=false SSL_CERT_DIR="$HOME/.aspnet/dev-certs/trust:/usr/lib/ssl/certs" dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj -c Debug --no-build --filter-method Hexalith.Tenants.IntegrationTests.AspireTopologyTests.Generated_tenants_api_get_tenant_reads_verified_redis_state_with_projection_authority --minimum-expected-tests 1 --fail-skips on
+```
+
+This local run can reuse the existing singleton and is not the cold-start acceptance oracle. The first live REST step on the fresh hosted runner explicitly sets TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP=true; it must observe a newly Completed bootstrap with one committed event at sequence1 and matching current projected caller authority. Later hosted suites must still prove actual membership after a known already-bootstrapped result. All selected gates retain minimum counts and skip rejection. Actionlint, approved-intent equality, story gitlinks and657-record conservation pass; no records close before the new hosted result.

@@ -383,6 +383,7 @@ public sealed class TenantsApiGeneratedControllerTests
         tenant.Members.ShouldNotContainKey("reader");
         tenant.ProjectionVersion.ShouldBe("tenant-sequence:3");
         TenantAuditReadModel audit = persisted["audit:" + tenantId].ShouldBeOfType<TenantAuditReadModel>();
+        audit.ProjectionVersion.ShouldBe("tenant-sequence:3");
         TenantAuditEntry storedRemoval = audit.Entries.Single(row => row.EventType == nameof(UserRemovedFromTenant));
         storedRemoval.EventId.ShouldBe("evt-removal-3");
         storedRemoval.CommandCorrelationId.ShouldBe(correlation);
@@ -399,8 +400,8 @@ public sealed class TenantsApiGeneratedControllerTests
         using HttpResponseMessage response = await serviceClient.GetAsync("/api/tenants/" + tenantId + "/audit", TestContext.Current.CancellationToken);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         response.Headers.GetValues("X-Hexalith-Projection-Lifecycle").ShouldHaveSingleItem().ShouldBe("Current");
-        // Tenant audit versions may use store ETags; exact row sequence is independent of that opaque version.
-        response.Headers.Contains("X-Hexalith-Projection-Version").ShouldBeFalse();
+        // The complete persisted replay certifies producer authority independently of the store ETag.
+        response.Headers.GetValues("X-Hexalith-Projection-Version").ShouldHaveSingleItem().ShouldBe(audit.ProjectionVersion);
         response.Headers.ETag.ShouldBe(new EntityTagHeaderValue("\"stored-validator\""));
         using var replayClient = new HttpClient(new ReplayHandler(response)) { BaseAddress = new Uri("https://tenants.invalid") };
         var memoriesClient = new MemoriesClient(new HttpClient { BaseAddress = new Uri("https://memories.invalid") },
@@ -411,7 +412,7 @@ public sealed class TenantsApiGeneratedControllerTests
         TenantAuditSnapshot snapshot = await uiGateway.GetTenantAuditAsync(new TenantAuditRequest(tenantId), null, TestContext.Current.CancellationToken);
         snapshot.Freshness.ShouldBe(ReadModelFreshnessState.Current);
         snapshot.Lifecycle.ShouldBe(ProjectionLifecycleState.Current);
-        snapshot.ProjectionVersion.ShouldBeNull();
+        snapshot.ProjectionVersion.ShouldBe(audit.ProjectionVersion);
         snapshot.ETag.ShouldBe("stored-validator");
         TenantAuditRow row = snapshot.Rows.Single(entry => entry.EventType == nameof(UserRemovedFromTenant));
         row.CommandCorrelationId.ShouldBe(correlation);

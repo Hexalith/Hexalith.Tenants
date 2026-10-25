@@ -609,7 +609,8 @@ public class AspireTopologyTests : IDisposable {
         }
     }
 
-    private static async Task<CommandStatusResponse> WaitForTerminalStatusAsync(
+    /// <summary>Reads the real gateway status route until a command reaches its terminal outcome.</summary>
+    internal static async Task<CommandStatusResponse> WaitForTerminalStatusAsync(
         HttpClient client,
         string correlationId,
         string token,

@@ -163,3 +163,21 @@ Live progression after producer/copy corrections now passes all12 measured layou
 All review corrections are verified. The malformed lifecycle-status probe now returns null authority; complete valid controls and unsupported-role controls pass. The real Chromium focus harness passes phone/desktop/forced-colors and rejects the broken first-candidate mutation. Live authenticated UI3/3 passes with zero skips and all25 browser cases pass, including actual copy containment/hit/Tab/outline, all12 measured layouts, detail/member/list Back and visible responsive launcher focus. The support-safe packet is [live-browser-local.json](dw-104-161-432-436-594-live-browser-local.json); its source diff digest still matched the final source at handoff. Full UI7706/7706 passes, zero skips.
 
 Final real REST4 has3passes/1failure/0skips. All six reads, distinct roles, exact audit events and actual audit producer version matching the persisted committed prefix pass; cursor recovery and anonymous denial pass. Only conditional detail still returns200 instead of304. Full server1505 has1504passes/1unchanged missing-upstream-validator failure/0skips. Corrected hosted Release/package execution and ledger closure are the remaining authorized steps; DW-161 stays open under the explicit dependency freeze. Spec stays in-review while the five-item intent remains incomplete.
+
+
+### Cold-bootstrap independent recheck triage
+
+| Finding | Verdict / evidence | Route |
+| --- | --- | --- |
+| Cold Blind1: diagnostic response buffered before bound | medium: default SendAsync buffers the complete response before LoadIntoBufferAsync applies its limit; existing buffered content also bypasses that limit. | patch streaming bounded read and full transport control |
+| Cold Blind2: caller outside first administrator page | medium: a valid singleton may have more than100 members preceding the caller, while polling repeats the first page only. | patch follow protected cursors |
+| Cold Blind3: liveness does not ensure bootstrap dependencies ready | medium: platform base promises process liveness, and a transient initial transport/503 failure currently aborts the fixture immediately. The hosted early bootstrap already exposed the readiness race. | patch bounded transient retry preserving one command identity |
+| Cold Blind4: accepted command terminal outcome discarded | medium:202 alone cannot distinguish a committed bootstrap from later rejection/failure and otherwise degrades into an authority timeout. | patch consume actual terminal status and committed sequence |
+| Cold Blind5: cold gate can reuse existing singleton | medium: synthetic controls and a live path that accepts already-bootstrapped state do not explicitly require a fresh bootstrap in clean CI. | patch require a newly completed sequence1 bootstrap in the first hosted live step |
+| Cold Edge1: later administrator page | medium: same first-page-only defect as Cold Blind2. | patch same root |
+| Cold Edge2: response buffered before size guard | medium: same default HTTP buffering defect as Cold Blind1. | patch same root |
+| Cold Verification1: initialization exception boundary untested | medium: preverified gap; helper-only redaction tests do not detect preserving a credential-bearing inner exception at the outer initialization boundary. | patch fault injection through the actual boundary and cleanup |
+
+All three cold-bootstrap review layers completed before triage. No finding is omitted. These corrections retain real production transport, authenticated commands and producer metadata; they add no application contract, dependency update or direct state mutation.
+
+Cold-bootstrap review patches pass all72 focused controls, zero skips, with a warning-free build. The exact live historical persisted-state regression also passes locally1/1, zero skips. Hosted first-use sequence1 proof remains required before the four otherwise qualified records can close; the conditional DW-161 limitation stays blocking and unskipped.
