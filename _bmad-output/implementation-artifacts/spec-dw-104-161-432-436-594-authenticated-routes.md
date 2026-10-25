@@ -181,3 +181,12 @@ Final real REST4 has3passes/1failure/0skips. All six reads, distinct roles, exac
 All three cold-bootstrap review layers completed before triage. No finding is omitted. These corrections retain real production transport, authenticated commands and producer metadata; they add no application contract, dependency update or direct state mutation.
 
 Cold-bootstrap review patches pass all72 focused controls, zero skips, with a warning-free build. The exact live historical persisted-state regression also passes locally1/1, zero skips. Hosted first-use sequence1 proof remains required before the four otherwise qualified records can close; the conditional DW-161 limitation stays blocking and unskipped.
+
+
+### Hosted certificate recheck triage
+
+| Finding | Verdict / evidence | Route |
+| --- | --- | --- |
+| Hosted TLS1: dev server certificate imported as CA | medium: hosted physical browser fails first navigation with ERR_CERT_INVALID. Local passing browser uses P,, in the preferred existing legacy NSS store; CI overwrites both stores with C,,. Chromium specifies P,, for a self-signed server leaf. | patch the import trust kind only; retain TLS validation |
+
+Fresh hosted24fb584b qualifies cold-bootstrap sequence1, six ordinary REST reads/cursor recovery, all HTTP contracts, anonymous denial and the exact historical persisted-state regression with zero skips. Conditional detail still fails200vs304. The browser's first-route certificate failure prevents physical layout/Back acceptance, so no additional record closes yet.

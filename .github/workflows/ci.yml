@@ -53,7 +53,8 @@ jobs:
             live_cert_index=0
             for live_certificate in "$HOME"/.aspnet/dev-certs/trust/*.pem; do
               [ -f "$live_certificate" ] || continue
-              certutil -A -d "sql:$live_nss_directory" -n "tenants-live-dev-cert-$live_cert_index" -t 'C,,' -i "$live_certificate"
+              # Trust the SDK development server certificate as a peer.
+              certutil -A -d "sql:$live_nss_directory" -n "tenants-live-dev-cert-$live_cert_index" -t 'P,,' -i "$live_certificate"
               live_cert_index=$((live_cert_index + 1))
             done
           done

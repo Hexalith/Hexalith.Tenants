@@ -121,3 +121,12 @@ EventStore__Projections__WorkersEnabled=false SSL_CERT_DIR="$HOME/.aspnet/dev-ce
 ```
 
 This local run can reuse the existing singleton and is not the cold-start acceptance oracle. The first live REST step on the fresh hosted runner explicitly sets TENANTS_LIVE_REQUIRE_COLD_BOOTSTRAP=true; it must observe a newly Completed bootstrap with one committed event at sequence1 and matching current projected caller authority. Later hosted suites must still prove actual membership after a known already-bootstrapped result. All selected gates retain minimum counts and skip rejection. Actionlint, approved-intent equality, story gitlinks and657-record conservation pass; no records close before the new hosted result.
+
+
+## Fresh hosted qualification on24fb584b
+
+[Run40217010208](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40217010208) passes the complete blocking HTTP lane. The live lane passes model12/12, TLS5/5, bootstrap guards72/72, private-artifact3/3, the exact historical persisted-state regression1/1 and anonymous6/6, all with zero skips. The cold-required REST suite has3passes/1failure/0skips: all six reads and cursor recovery pass after a newly completed first-sequence bootstrap; only the existing conditional detail assertion expects304 and receives200.
+
+Authenticated UI has2passes/1failure/0skips. Real HTTP protected-route/scope checks pass; the physical browser fails before its first protected route with the safe category browser-certificate-ERR_CERT_INVALID. No hosted browser/layout/Back acceptance is claimed. The broader package-consumer gate again reports the unchanged Contracts range mismatch, expected [5.10.1,), found [0.0.0-ci-test,).
+
+The browser discrepancy has a concrete trust-store explanation. The successful local environment's existing ~/.pki/nssdb trusts the SDK self-signed server certificate as P,,; its newer store has C,,. Chromium prefers the existing legacy store. The hosted setup overwrites both stores with C,,. [Chromium's certificate-management instructions](https://chromium.googlesource.com/chromium/src/+/HEAD/docs/linux/cert_management.md) specify P,, for a self-signed server certificate and C,, for a root CA. The next correction changes only that NSS import trust kind, retaining the same public SDK certificate, both store locations and enabled TLS validation. A fresh hosted physical-browser result remains required.
