@@ -2033,10 +2033,12 @@ internal sealed class TenantQueryGateway(
                 false);
         }
 
-        // The only drop that may end paging: the caller is not permitted to see this candidate, or it no
-        // longer exists. Both are silent and indistinguishable from absence by contract.
+        // Both outcomes omit the row, so the external page cannot tell forbidden from missing. Only a
+        // forbidden candidate may end paging. A missing candidate is not permission: an all-404 stale
+        // window must keep advancing or a later authorized match becomes unreachable.
         catch (EventStoreGatewayException ex) when (ex.StatusCode is (int)HttpStatusCode.Forbidden or (int)HttpStatusCode.NotFound) {
-            return (candidate.Ordinal, null, false, false, true);
+            bool forbidden = ex.StatusCode == (int)HttpStatusCode.Forbidden;
+            return (candidate.Ordinal, null, false, false, forbidden);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;

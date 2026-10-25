@@ -1858,6 +1858,9 @@
   <data name="Tenants.Members.UnavailableReason.MissingAuditProof" xml:space="preserve">
     <value>missing audit proof</value>
   </data>
+  <data name="Tenants.Members.UnavailableReason.AuditProofPending" xml:space="preserve">
+    <value>audit proof pending</value>
+  </data>
   <data name="Tenants.Members.UnavailableReason.MissingConsequencePreview" xml:space="preserve">
     <value>missing consequence preview</value>
   </data>

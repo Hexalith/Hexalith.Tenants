@@ -647,6 +647,8 @@
                     ? Localizer["Tenants.RemoveMember.Unavailable.TenantLifecycle"].Value
                     : (!IsCommandSurfaceAvailable && !IsOwnAggregateAdmissionUnavailable) || CommandGateway is null || Services.GetService<TenantAggregateCommandAdmissionGate>() is null || Services.GetService<TenantCommandAttemptTracker>() is null
                         ? CommandSurfaceUnavailableReason ?? Localizer["Tenants.RemoveMember.Unavailable.CommandSurface"].Value
+                        : AuditReadPending && !IsOwnedCommandInFlight
+                            ? Localizer["Tenants.Members.UnavailableReason.AuditProofPending"].Value
                         : (!AuditProofCapabilityAvailable || !HasAuditProofGateway) && !IsOwnedCommandInFlight
                             ? Localizer["Tenants.Members.UnavailableReason.MissingAuditProof"].Value
                             : string.IsNullOrWhiteSpace(Detail.TenantId) || string.IsNullOrWhiteSpace(Member.UserId)

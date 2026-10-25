@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-128/DW-272/DW-519/DW-560/DW-563 closure (2026-10-25):** Forbidden-only search paging, pending audit-probe recovery, legacy event-array budget proof, and credential-free release preparation close exactly five records. All 657 IDs remain: 600 done/57 open across 52 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-128-272-519-560-563-validation-evidence.md).
+
 **DW-121/DW-456/DW-508/DW-511/DW-522 closure (2026-10-25):** Explicit main-only release inputs, crash-resistant dual-mode evidence controls, and consistent status ambiguity metadata/runtime/catalog guidance close exactly five records. All 657 IDs remain: 595 done/62 open across 57 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-121-456-508-511-522-validation-evidence.md).
 
 **DW-268/DW-328/DW-391/DW-434/DW-489 closure (2026-10-24):** Scoped Fluent layout, authenticated administrator and composed correction evidence, identity-preserving retained audit returns and independent configuration-removal follow-up close exactly five records. All 657 IDs remain: 590 done/67 open across 62 maintenance rows. Original fields, unrelated records, dependency pointers and broader runtime/release holds remain preserved. See [validation evidence](dw-268-328-391-434-489-validation-evidence.md).
@@ -1149,19 +1151,27 @@ origin: migrated from legacy ledger ("Deferred from: code review of 1-6-read-onl
 location: TenantQueryGateway.cs:1013
 reason: The legacy ledger defers this issue: Search hydration conflates forbidden and missing candidates when deciding whether to end paging. Original context is preserved in legacy-detail.
 legacy-detail: - **Search hydration conflates forbidden and missing candidates when deciding whether to end paging.** `TenantQueryGateway.cs:1013` classifies both 403 and 404 as `HiddenOrAbsent`; an all-404 stale-index window can therefore collapse paging and make later authorized matches unreachable. This is pre-existing relative to Story 1.6 and should be resolved with the Story 1.9 paging contract so anti-enumeration behavior remains coherent.
-status: open
+pre-closure-status: open
 decision: 2026-08-26 Distinct internal results — Keep external responses identical but let only forbidden candidates terminate hidden-window paging.
 decision: 2026-08-25 Distinct internal results — Keep external responses identical but let only forbidden candidates terminate hidden-window paging.
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs HydrateSearchCandidateAsync still merges Forbidden and NotFound into HiddenOrAbsent, so an all-404 stale window terminates paging. Existing 2026-08-25/26 decisions require distinct internal results without external enumeration.
-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
-evidence-kind: verified-defect
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-12
+pre-closure-verification: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs HydrateSearchCandidateAsync still merges Forbidden and NotFound into HiddenOrAbsent, so an all-404 stale window terminates paging. Existing 2026-08-25/26 decisions require distinct internal results without external enumeration.
+pre-closure-verification-files: src/Hexalith.Tenants.UI/Services/Gateways/TenantQueryGateway.cs
+pre-closure-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: coordinate DW-127 privacy contract
-next-action: Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches.
+pre-closure-next-action: Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches.
 related: DW-127, DW-618
+
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: Only a fully forbidden search window ends paging. NotFound stays externally omitted and no longer collapses a stale window, so a later authorized match remains reachable. Focused gateway cases pass.
+verification-files: _bmad-output/implementation-artifacts/dw-128-272-519-560-563-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated records and release holds preserved.
 
 ### DW-129: The release tag floor guard probes NuGet only; the container tag in registry.hexalith.com is never checked
 
@@ -2339,17 +2349,25 @@ origin: migrated from legacy ledger ("Deferred from: code review of spec-2-4-rem
 location: TenantDetailPage.razor:823; MemberAccessReview.razor:611-613
 reason: The legacy ledger defers this issue: The audit-capability probe has no reconnect subscription, and every read refresh briefly blocks removal. Original context is preserved in legacy-detail.
 legacy-detail: - summary: The audit-capability probe has no reconnect subscription, and every read refresh briefly blocks removal. evidence: `TenantDetailPage.razor:823` clears `_auditProofCapabilityAvailable` before restarting the probe, and `MemberAccessReview.razor:611-613` turns that into `UnavailableReason.MissingAuditProof`, so every refresh (including SignalR-nudged ones) flips Remove to unavailable with a misleading reason until the extra round trip lands. A `BffComposition` reconnect never re-probes.
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor clears _auditProofCapabilityAvailable at every detail/combined refresh before probing; Members/MemberAccessReview.razor maps false to MissingAuditProof. No composition reconnect event triggers an immediate re-probe.
-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
-evidence-kind: verified-defect
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-12
+pre-closure-verification: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor clears _auditProofCapabilityAvailable at every detail/combined refresh before probing; Members/MemberAccessReview.razor maps false to MissingAuditProof. No composition reconnect event triggers an immediate re-probe.
+pre-closure-verification-files: src/Hexalith.Tenants.UI/Components/Pages/TenantDetailPage.razor; src/Hexalith.Tenants.UI/Components/Tenants/Members/MemberAccessReview.razor
+pre-closure-evidence-kind: verified-defect
 priority: P2
 owner: unassigned
 dependencies: BFF connectivity signal
-next-action: Distinguish pending probe from missing support and refresh capability on a governed reconnect signal.
+pre-closure-next-action: Distinguish pending probe from missing support and refresh capability on a governed reconnect signal.
 related: none
+
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: Unresolved audit probes, including a disconnected read surface, report audit proof pending instead of missing support and probe again when the read surface is connected. Member and detail regressions pass.
+verification-files: _bmad-output/implementation-artifacts/dw-128-272-519-560-563-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated records and release holds preserved.
 
 ### DW-273: `messageId` remains absent from six `ITenantCommandGateway` methods
 
@@ -4731,17 +4749,24 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/A
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Add real AggregateActor.GetEventsAsync count and cumulative-payload budget boundary tests.\n  evidence: Pass-12 VG1: pre-verified gap in independent EventStore evolution commit 974a7fa33d70fdfb9dabb32c7d2416e4f0095853. AggregateActorGetEventsTests uses small arrays, projection tests mock the actor, and the only LegacyArrayLimit assertion calls EventStreamReader.RehydrateAsync. Invoke the real actor for excessive count and cumulative 64-MiB payload cases and require LegacyArrayLimit, so deleting arrayBudget.Add is detected."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:2072 applies arrayBudget.Add; AggregateActorGetEventsTests tests metadata failures and small arrays (32/33-event batch boundary cases) but no excessive-count or cumulative-64-MiB actor-boundary case. Legacy reader boundary coverage does not exercise this actor loop.
-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
-evidence-kind: verified-gap
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-12
+pre-closure-verification: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs:2072 applies arrayBudget.Add; AggregateActorGetEventsTests tests metadata failures and small arrays (32/33-event batch boundary cases) but no excessive-count or cumulative-64-MiB actor-boundary case. Legacy reader boundary coverage does not exercise this actor loop.
+pre-closure-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore.Server/Actors/AggregateActor.cs
+pre-closure-evidence-kind: verified-gap
 priority: P2
 owner: Hexalith.EventStore
 dependencies: EventStore actor test fixtures
-next-action: Invoke real AggregateActor.GetEventsAsync at count/payload boundaries and assert LegacyArrayLimit, including an arrayBudget.Add removal control.
+pre-closure-next-action: Invoke real AggregateActor.GetEventsAsync at count/payload boundaries and assert LegacyArrayLimit, including an arrayBudget.Add removal control.
 related: none
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: Real AggregateActor.GetEventsAsync cases fail with LegacyArrayLimit above the retained count and payload budgets. The over-limit payload is rejected inside Add, so deleting that call returns the event and fails the test. Both new cases pass.
+verification-files: _bmad-output/implementation-artifacts/dw-128-272-519-560-563-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated records and release holds preserved.
 
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 13 (2026-10-05)
@@ -5186,18 +5211,26 @@ location: .github/workflows/release.yml
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; the release publish job grants OIDC issuance while dependency and build code runs before credential exchange.\n  evidence: `release.yml` grants `id-token: write` at job scope (`:285`). Before `NuGet/login` (`:425`), the same job runs `npm ci` (`:369`), `dotnet restore` and `dotnet build` (`:372-375`, which execute restored packages' MSBuild targets), and the container-publisher preparation (`:381`). All of that code therefore executes with OIDC token-request permission. Separate dependency installation and build from publication authority in release-governance work."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: release.yml release job still grants id-token: write before npm ci, restore/build and container preparation. This verifies the authority boundary, not execution of malicious dependency code.
-verification-files: .github/workflows/release.yml
-evidence-kind: recommendation
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-12
+pre-closure-verification: release.yml release job still grants id-token: write before npm ci, restore/build and container preparation. This verifies the authority boundary, not execution of malicious dependency code.
+pre-closure-verification-files: .github/workflows/release.yml
+pre-closure-evidence-kind: recommendation
 priority: P2
 owner: unassigned
 dependencies: Release workflow ownership
-next-action: Separate build/dependency execution from the job allowed to request publication OIDC tokens.
+pre-closure-next-action: Separate build/dependency execution from the job allowed to request publication OIDC tokens.
 related: DW-563
 
+
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: npm ci, restore, the solution build, and container-publisher preparation run in prepare-release, which has no id-token permission. The production job publishes the prepared packages; its container publisher script still performs the registry publication.
+verification-files: _bmad-output/implementation-artifacts/dw-128-272-519-560-563-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated records and release holds preserved.
 
 ### DW-561: medium; release jobs execute movable action tags beyond the previously recorded NuGet login action.
 
@@ -5242,18 +5275,26 @@ location: .github/workflows/release.yml; scripts/publish-partial-release.sh
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: medium; release builds after `NuGet/login` run restored package code with the live NuGet key in their environment.\n  evidence: `release.yml` mints `NUGET_API_KEY` at `:425` and passes it to the Semantic Release step (`:431`), whose `prepareCmd` (`.releaserc.json:11`) runs `dotnet build Hexalith.Tenants.slnx` with implicit restore. Restored packages' MSBuild targets therefore execute with the key, contrary to the workflow comment that the key is \"minted only after the build\" (`release.yml:421-422`). `recover-partial-release.yml` logs in at `:72`, then `scripts/publish-partial-release.sh:14` builds with `NUGET_API_KEY`, `HEXALITH_ZOT_API_KEY` and `GH_TOKEN` in the environment (`recover-partial-release.yml:77-83`). The pass-22 OIDC entry covers pre-login code and `:3788` covers key expiry. In release-governance work, build and pack before credential exchange, and give the publish step only prebuilt artifacts."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: release.yml supplies NUGET_API_KEY to Semantic Release while .releaserc.json prepareCmd rebuilds/restores; recovery logs in before publish-partial-release.sh builds. Package targets execute in the credential-bearing environment; malicious execution is unverified.
-verification-files: .github/workflows/release.yml; scripts/publish-partial-release.sh
-evidence-kind: recommendation
+pre-closure-status: open
+pre-closure-disposition: actionable
+pre-closure-verification-date: 2026-10-12
+pre-closure-verification: release.yml supplies NUGET_API_KEY to Semantic Release while .releaserc.json prepareCmd rebuilds/restores; recovery logs in before publish-partial-release.sh builds. Package targets execute in the credential-bearing environment; malicious execution is unverified.
+pre-closure-verification-files: .github/workflows/release.yml; scripts/publish-partial-release.sh
+pre-closure-evidence-kind: recommendation
 priority: P2
 owner: unassigned
 dependencies: Release build/publication separation
-next-action: Build and validate immutable packages before credential exchange; limit credential-bearing work to publication.
+pre-closure-next-action: Build and validate immutable packages before credential exchange; limit credential-bearing work to publication.
 related: DW-560
 
+
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: Versioned NuGet packing happens before NuGet login, and semantic-release prepare no longer restores or builds. Recovery package preparation was already before login. The container image is still published by the credentialed SDK push so the multi-arch registry publication stays intact.
+verification-files: _bmad-output/implementation-artifacts/dw-128-272-519-560-563-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated records and release holds preserved.
 
 ### DW-564: low; Tenants production authentication guidance documents global-administrator grants but omits revocation lag.
 

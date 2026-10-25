@@ -2131,6 +2131,39 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Disconnected_read_surface_defers_audit_probe_until_connection_returns()
+    {
+        AuthenticationStateProvider caller = Substitute.For<AuthenticationStateProvider>();
+        caller.GetAuthenticationStateAsync().Returns(Task.FromResult(new AuthenticationState(AdministratorPrincipal())));
+        Services.AddSingleton(caller);
+        StubTenantsBffComposition composition = new(
+            TenantLifecycleAuthorizationReflectionState.Authorized,
+            readSurfaceConnected: false);
+        RegisterServices(
+            _ => Task.FromResult(ReadyWithSafeConfiguration(
+                Detail("tenant.alpha"),
+                ProjectionLifecycleState.Current,
+                "tenant-sequence:41")),
+            composition);
+        ITenantQueryGateway gateway = Services.GetRequiredService<ITenantQueryGateway>();
+
+        IRenderedComponent<TenantDetailPage> cut = Render<TenantDetailPage>(parameters => parameters
+            .Add(page => page.TenantId, "tenant.alpha"));
+        cut.WaitForAssertion(() => cut.Find("[data-testid='tenants-member-row']").ShouldNotBeNull());
+        _ = gateway.DidNotReceive().GetTenantAuditAsync(
+            Arg.Any<TenantAuditRequest>(),
+            Arg.Any<TenantAuditSnapshot?>(),
+            Arg.Any<CancellationToken>());
+
+        composition.IsReadSurfaceConnected = true;
+        cut.Render();
+        cut.WaitForAssertion(() => gateway.Received(1).GetTenantAuditAsync(
+            Arg.Is<TenantAuditRequest>(request => request.PageSize == 1),
+            Arg.Any<TenantAuditSnapshot?>(),
+            Arg.Any<CancellationToken>()));
+    }
+
+    [Fact]
     public void Detail_audit_refresh_after_failed_caller_reacquires_caller_and_capability()
     {
         var authentication = new MutableAuthenticationStateProvider();
@@ -9085,7 +9118,7 @@ public sealed partial class TenantDetailSurfaceTests : BunitContext
     {
         private TenantLifecycleAuthorizationReflectionState _reflection = lifecycleReflection;
 
-        public bool IsReadSurfaceConnected => readSurfaceConnected;
+        public bool IsReadSurfaceConnected { get; set; } = readSurfaceConnected;
 
         public bool IsCommandSurfaceConnected => commandSurfaceConnected;
 

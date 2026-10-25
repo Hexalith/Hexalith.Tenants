@@ -327,6 +327,7 @@
         UnavailableReason.MissingLifecycleSupport,
         UnavailableReason.MissingConsequencePreview,
         UnavailableReason.MissingAuditProof,
+        UnavailableReason.AuditProofPending,
         UnavailableReason.HighImpactFlowNotReady,
         UnavailableReason.AggregateLocked,
     ];
@@ -681,7 +682,9 @@
             ? UnavailableReason.MissingPermission : UnavailableReason.AuthorityIndeterminate;
         IReadOnlyList<UnavailableReason> removeReasons = (!IsRemoveMemberAuthorized || AuthorizationReflection is not TenantLifecycleAuthorizationReflectionState.Authorized)
             ? [authorityReason]
-            : AuditProofCapabilityAvailable ? [] : [UnavailableReason.MissingAuditProof];
+            : AuditReadPending
+                ? [UnavailableReason.AuditProofPending]
+                : AuditProofCapabilityAvailable ? [] : [UnavailableReason.MissingAuditProof];
 
         return
         [
@@ -1121,6 +1124,7 @@
             UnavailableReason.MissingLifecycleSupport => "missing-lifecycle-support",
             UnavailableReason.MissingConsequencePreview => "missing-consequence-preview",
             UnavailableReason.MissingAuditProof => "missing-audit-proof",
+            UnavailableReason.AuditProofPending => "audit-proof-pending",
             UnavailableReason.HighImpactFlowNotReady => "high-impact-flow-not-ready",
             UnavailableReason.AggregateLocked => "aggregate-locked",
             _ => "unknown",
@@ -1134,6 +1138,7 @@
             UnavailableReason.MissingLifecycleSupport => "!",
             UnavailableReason.MissingConsequencePreview => "?",
             UnavailableReason.MissingAuditProof => "?",
+            UnavailableReason.AuditProofPending => "?",
             UnavailableReason.HighImpactFlowNotReady => "!",
             UnavailableReason.AggregateLocked => "!",
             _ => "?",
@@ -1162,6 +1167,7 @@
         MissingLifecycleSupport,
         MissingConsequencePreview,
         MissingAuditProof,
+        AuditProofPending,
         HighImpactFlowNotReady,
         AggregateLocked,
     }

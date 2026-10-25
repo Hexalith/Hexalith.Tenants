@@ -989,8 +989,17 @@ public class PackageGovernanceTests {
         verifySourceJob.ShouldContain("git/ref/heads/main");
         verifySourceJob.ShouldContain("actions/workflows/ci.yml/runs");
         verifySourceJob.ShouldContain("no longer the live main tip");
+        string prepareJob = GetYamlJobBlock(workflow, "prepare-release");
         string releaseJob = GetYamlJobBlock(workflow, "release");
-        releaseJob.ShouldContain("needs: verify-source");
+        prepareJob.ShouldContain("needs: verify-source");
+        prepareJob.ShouldNotContain("id-token");
+        prepareJob.ShouldContain("npm ci");
+        prepareJob.ShouldContain("dotnet restore Hexalith.Tenants.slnx");
+        prepareJob.ShouldContain("bash scripts/build-release-candidate.sh");
+        releaseJob.ShouldContain("needs: [verify-source, prepare-release]");
+        releaseJob.ShouldNotContain("npm ci");
+        releaseJob.ShouldNotContain("dotnet restore");
+        releaseJob.ShouldNotContain("dotnet build");
         releaseJob.ShouldContain("environment: production");
         releaseJob.ShouldContain("HEXALITH_RELEASE_ENVIRONMENT: production");
         releaseJob.ShouldContain("HEXALITH_RELEASE_EXPECTED_PACKAGE_COUNT: '" + ExpectedPackageIds.Length.ToString(CultureInfo.InvariantCulture) + "'");
@@ -1002,25 +1011,32 @@ public class PackageGovernanceTests {
         releaseJob.ShouldNotContain("HEXALITH_RELEASE_AUTHORITY_ISSUE_URL:");
         releaseJob.ShouldNotContain("HEXALITH_RELEASE_AUTHORITY_OWNER:");
         workflow.ShouldContain("cancel-in-progress: false");
-        releaseJob.ShouldContain("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror");
+        string candidateScript = File.ReadAllText(Path.Combine(repoRoot, "scripts/build-release-candidate.sh"));
+        candidateScript.ShouldContain("NUGET_API_KEY");
+        candidateScript.ShouldContain("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror");
+        candidateScript.IndexOf("dotnet build Hexalith.Tenants.slnx --no-restore --configuration Release -warnaserror", StringComparison.Ordinal)
+            .ShouldBeLessThan(candidateScript.IndexOf("python3 scripts/pack-release-packages.py", StringComparison.Ordinal));
+        candidateScript.IndexOf("python3 scripts/pack-release-packages.py", StringComparison.Ordinal)
+            .ShouldBeLessThan(candidateScript.IndexOf("python3 scripts/validate-nuget-packages.py", StringComparison.Ordinal));
 
         // The release job is owned here so NuGet Trusted Publishing can name this workflow file, but
         // the Builds composites it runs still load from one exact 40-hex Builds commit, checked out
         // and verified locally. That commit is independent of the references/Hexalith.Builds gitlink.
-        Match buildsExecutionShaMatch = Regex.Match(releaseJob, @"(?m)^\s*HEXALITH_BUILDS_EXECUTION_SHA:\s*(?<sha>\S+)\s*$");
-        buildsExecutionShaMatch.Success.ShouldBeTrue("The release job must declare HEXALITH_BUILDS_EXECUTION_SHA.");
+        Match buildsExecutionShaMatch = Regex.Match(prepareJob, @"(?m)^\s*HEXALITH_BUILDS_EXECUTION_SHA:\s*(?<sha>\S+)\s*$");
+        buildsExecutionShaMatch.Success.ShouldBeTrue("The prepare-release job must declare HEXALITH_BUILDS_EXECUTION_SHA.");
         string buildsExecutionSha = buildsExecutionShaMatch.Groups["sha"].Value;
         IsFullCommitSha(buildsExecutionSha)
             .ShouldBeTrue($"The release workflow must pin an exact 40-hex Hexalith.Builds commit, not '{buildsExecutionSha}'.");
-        releaseJob.ShouldContain("repository: Hexalith/Hexalith.Builds");
-        releaseJob.ShouldContain("ref: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}");
-        releaseJob.ShouldContain("path: .hexalith/builds-execution");
-        releaseJob.ShouldContain("git -C .hexalith/builds-execution rev-parse HEAD");
-        releaseJob.ShouldContain("uses: ./.hexalith/builds-execution/Github/initialize-build");
-        releaseJob.ShouldContain("uses: ./.hexalith/builds-execution/Github/publish-containers");
-        releaseJob.ShouldContain("builds-execution-sha: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}");
-        releaseJob.ShouldContain("container-projects: ${{ env.HEXALITH_CONTAINER_PROJECTS }}");
-        string[][] containerMappings = GetYamlLiteralBlockLines(releaseJob, "HEXALITH_CONTAINER_PROJECTS")
+        prepareJob.ShouldContain("repository: Hexalith/Hexalith.Builds");
+        prepareJob.ShouldContain("ref: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}");
+        prepareJob.ShouldContain("path: .hexalith/builds-execution");
+        prepareJob.ShouldContain("git -C .hexalith/builds-execution rev-parse HEAD");
+        prepareJob.ShouldContain("uses: ./.hexalith/builds-execution/Github/initialize-build");
+        prepareJob.ShouldContain("uses: ./.hexalith/builds-execution/Github/publish-containers");
+        releaseJob.ShouldNotContain("repository: Hexalith/Hexalith.Builds");
+        prepareJob.ShouldContain("builds-execution-sha: ${{ env.HEXALITH_BUILDS_EXECUTION_SHA }}");
+        prepareJob.ShouldContain("container-projects: ${{ env.HEXALITH_CONTAINER_PROJECTS }}");
+        string[][] containerMappings = GetYamlLiteralBlockLines(prepareJob, "HEXALITH_CONTAINER_PROJECTS")
             .Select(mapping => mapping.Split('|', StringSplitOptions.TrimEntries))
             .ToArray();
         containerMappings.ShouldNotBeEmpty();
@@ -1043,12 +1059,15 @@ public class PackageGovernanceTests {
         workflow.ShouldNotContain("recursive");
 
         releaseConfig.ShouldContain("@semantic-release/exec");
-        releaseConfig.ShouldContain("dotnet build Hexalith.Tenants.slnx --configuration Release");
+        releaseConfig.ShouldNotContain("dotnet build");
+        releaseConfig.ShouldNotContain("dotnet restore");
+        releaseConfig.ShouldContain("bash scripts/require-prepared-release-packages.sh ${nextRelease.version}");
         releaseConfig.ShouldContain("HEXALITH_REQUIRE_CONTAINER_PUBLISHER=true");
         releaseConfig.ShouldContain("bash scripts/validate-release-secrets.sh");
-        releaseConfig.ShouldContain("python3 scripts/pack-release-packages.py ./nupkgs ${nextRelease.version}");
-        releaseConfig.ShouldContain("python3 scripts/validate-nuget-packages.py ./nupkgs");
-        releaseConfig.ShouldContain("python3 scripts/validate-consumer-package-references.py ./nupkgs");
+        candidateScript.ShouldContain("python3 scripts/pack-release-packages.py ./nupkgs \"$version\"");
+        string preparedPackages = File.ReadAllText(Path.Combine(repoRoot, "scripts/require-prepared-release-packages.sh"));
+        preparedPackages.ShouldContain("python3 scripts/validate-nuget-packages.py ./nupkgs");
+        preparedPackages.ShouldContain("python3 scripts/validate-consumer-package-references.py ./nupkgs");
         releaseConfig.ShouldContain("dotnet nuget push ./nupkgs/*.nupkg");
         releaseConfig.ShouldContain("./.hexalith/release/publish-containers.sh ${nextRelease.version}");
 
@@ -1083,12 +1102,8 @@ public class PackageGovernanceTests {
         releaseConfig.ShouldNotContain(".snupkg");
         releaseConfig.ShouldNotContain("**/*.nupkg");
         releaseConfig.ShouldNotContain("--verbosity");
-        releaseConfig.IndexOf("dotnet build Hexalith.Tenants.slnx", StringComparison.Ordinal)
-            .ShouldBeLessThan(releaseConfig.IndexOf("python3 scripts/pack-release-packages.py", StringComparison.Ordinal));
-        releaseConfig.IndexOf("python3 scripts/pack-release-packages.py", StringComparison.Ordinal)
-            .ShouldBeLessThan(releaseConfig.IndexOf("python3 scripts/validate-nuget-packages.py", StringComparison.Ordinal));
-        releaseConfig.IndexOf("python3 scripts/validate-nuget-packages.py", StringComparison.Ordinal)
-            .ShouldBeLessThan(releaseConfig.IndexOf("python3 scripts/validate-consumer-package-references.py", StringComparison.Ordinal));
+        preparedPackages.IndexOf("python3 scripts/validate-nuget-packages.py", StringComparison.Ordinal)
+            .ShouldBeLessThan(preparedPackages.IndexOf("python3 scripts/validate-consumer-package-references.py", StringComparison.Ordinal));
         releaseConfig.IndexOf("bash scripts/validate-release-secrets.sh", StringComparison.Ordinal)
             .ShouldBeLessThan(releaseConfig.IndexOf("dotnet nuget push ./nupkgs/*.nupkg", StringComparison.Ordinal));
         releaseConfig.IndexOf("bash scripts/validate-release-secrets.sh", StringComparison.Ordinal)
@@ -1392,7 +1407,7 @@ public class PackageGovernanceTests {
         verifySourceJob.ShouldContain("separately reviewed release-lineage recovery procedure");
         verifySourceJob.ShouldContain("never create or move a tag merely to clear this guard");
         verifySourceJob.ShouldNotContain("tag at or above the highest published version");
-        GetYamlJobBlock(workflow, "release").ShouldContain("needs: verify-source");
+        GetYamlJobBlock(workflow, "release").ShouldContain("needs: [verify-source, prepare-release]");
 
         // The behavioural harness supplies its own environment, so the step's declared env: is
         // only verified here. A missing name is an unbound variable under set -u at dispatch.

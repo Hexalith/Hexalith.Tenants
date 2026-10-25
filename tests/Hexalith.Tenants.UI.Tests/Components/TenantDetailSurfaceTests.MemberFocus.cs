@@ -79,12 +79,17 @@ public sealed partial class TenantDetailSurfaceTests
         cut.WaitForAssertion(() => FocusedElementIds().Last().ShouldBe(CapturedElementReferenceId(cut.Instance, "_headingElement")));
     }
 
-    private IRenderedComponent<MemberAccessReview> RenderMemberFocusReview(TenantDetail detail)
+    private IRenderedComponent<MemberAccessReview> RenderMemberFocusReview(
+        TenantDetail detail,
+        bool auditPending = false,
+        bool auditAvailable = true)
         => Render<MemberAccessReview>(p => p
             .Add(x => x.IsRemoveMemberAuthorized, true).Add(x => x.IsChangeRoleAuthorized, true)
             .Add(x => x.AuthorizationReflection, TenantLifecycleAuthorizationReflectionState.Authorized)
             .Add(x => x.AuthorizationReflectionProvider, _ => Task.FromResult(TenantLifecycleAuthorizationReflectionState.Authorized))
-            .Add(x => x.AuditProofCapabilityAvailable, true).Add(x => x.Detail, detail)
+            .Add(x => x.AuditProofCapabilityAvailable, auditAvailable)
+            .Add(x => x.AuditReadPending, auditPending)
+            .Add(x => x.Detail, detail)
             .Add(x => x.SurfaceKind, TenantDetailSurfaceKind.Ready).Add(x => x.Freshness, ReadModelFreshnessState.Current)
             .Add(x => x.Lifecycle, ProjectionLifecycleState.Current).Add(x => x.ProjectionVersion, "tenant-sequence:1")
             .Add(x => x.Members, MemberSnapshot(detail)));

@@ -7127,6 +7127,37 @@ public sealed class TenantQueryGatewayTests
             Hit("tenant:tenant.beta")));
         ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
         EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
+
+        TenantListSnapshot snapshot = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 10),
+            previous: null,
+            CancellationToken.None);
+
+        // Every candidate was forbidden. TotalCount = 30 is pre-authorization knowledge. Advertising a
+        // further page would disclose tenants this operator is not permitted to see. A missing candidate
+        // does not end paging; that case is covered separately.
+        ReadCalls(client).Count.ShouldBe(2);
+        snapshot.Kind.ShouldBe(TenantListSurfaceKind.SearchPageEmpty);
+        snapshot.Rows.ShouldBeEmpty();
+        snapshot.HasMore.ShouldBeFalse();
+        snapshot.NextCursor.ShouldBeNull();
+        snapshot.ToString().ShouldNotContain("403");
+        snapshot.ToString().ShouldNotContain("404");
+    }
+
+    [Fact]
+    public async Task List_search_keeps_paging_when_a_window_is_only_missing()
+    {
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult(
+            "needle",
+            totalCount: 30,
+            Hit("tenant:tenant.alpha"),
+            Hit("tenant:tenant.beta")));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.NotFound, (int)HttpStatusCode.NotFound);
         EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.NotFound, (int)HttpStatusCode.NotFound);
         TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories);
 
@@ -7135,14 +7166,46 @@ public sealed class TenantQueryGatewayTests
             previous: null,
             CancellationToken.None);
 
-        // Both candidates were hydrated and both were hidden or absent, so TotalCount = 30 is entirely
-        // pre-authorization knowledge. Advertising a further page would disclose the existence and a
-        // page-granular count of tenants this operator is not permitted to see.
         ReadCalls(client).Count.ShouldBe(2);
-        snapshot.Kind.ShouldBe(TenantListSurfaceKind.SearchPageEmpty);
         snapshot.Rows.ShouldBeEmpty();
-        snapshot.HasMore.ShouldBeFalse();
-        snapshot.NextCursor.ShouldBeNull();
+        snapshot.HasMore.ShouldBeTrue();
+        snapshot.NextCursor.ShouldNotBeNull();
+        snapshot.ToString().ShouldNotContain("tenant.alpha");
+        snapshot.ToString().ShouldNotContain("404");
+    }
+
+    [Fact]
+    public async Task List_search_reaches_an_authorized_match_after_an_all_missing_window()
+    {
+        var codec = new TenantSearchCursorCodec(new EphemeralDataProtectionProvider());
+        StubMemoriesClient memories = new();
+        memories.Enqueue(SearchResult(
+            "needle",
+            totalCount: 4,
+            Hit("tenant:missing-a"),
+            Hit("tenant:missing-b")));
+        memories.Enqueue(SearchResult("needle", totalCount: 4, Hit("tenant:visible")));
+        ITenantsRestQueryClient client = CreateReadClient(out Queue<object> clientResponses);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.NotFound, (int)HttpStatusCode.NotFound);
+        EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.NotFound, (int)HttpStatusCode.NotFound);
+        EnqueueQueryResult(clientResponses, Detail("visible"));
+        TenantQueryGateway gateway = CreateGateway(client, memoriesClient: memories, searchCursorCodec: codec);
+
+        TenantListSnapshot first = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 2),
+            previous: null,
+            CancellationToken.None);
+        first.Rows.ShouldBeEmpty();
+        first.HasMore.ShouldBeTrue();
+
+        TenantListSnapshot second = await gateway.ListTenantsAsync(
+            new TenantListRequest(Search: "needle", PageSize: 2, SearchCursor: first.NextCursor),
+            previous: null,
+            CancellationToken.None);
+
+        second.Rows.ShouldHaveSingleItem().TenantId.ShouldBe("visible");
+        second.ToString().ShouldNotContain("missing-a");
+        second.ToString().ShouldNotContain("404");
     }
 
     [Theory]
@@ -7326,7 +7389,7 @@ public sealed class TenantQueryGatewayTests
             if (withHiddenCandidates)
             {
                 EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
-                EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.NotFound, (int)HttpStatusCode.NotFound);
+                EnqueueFailure(clientResponses, TenantsRestQueryFailureKind.Forbidden, (int)HttpStatusCode.Forbidden);
             }
 
             return await CreateGateway(

@@ -335,6 +335,7 @@
     private bool _auditProofCapabilityAvailable;
     private long _auditRefreshVersion;
     private bool _auditCapabilityResolved;
+    private bool _auditProbeAwaitingConnection;
     private bool _auditReadDenied;
     private string? _pendingAuditFocus;
     private string? _handledAuditFocus;
@@ -1221,6 +1222,12 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (_auditProbeAwaitingConnection && !_disposed && BffComposition.IsReadSurfaceConnected)
+        {
+            _auditProbeAwaitingConnection = false;
+            StartAuditCapabilityProbe(TenantId, Volatile.Read(ref _loadGeneration), force: true);
+        }
+
         StartMutationAuthorizationResolution();
         // Stay on the renderer dispatcher: replay can yield before the remaining render work.
         await ApplyPendingMembershipNudgeAsync();
@@ -2379,6 +2386,30 @@
         long callerVersion,
         CancellationTokenSource source)
     {
+        if (!BffComposition.IsReadSurfaceConnected)
+        {
+            CompleteAuditCapabilityCancellation(source);
+            try
+            {
+                await InvokeAsync(() =>
+                {
+                    if (CanApply(generation, tenantId)
+                        && callerVersion == Volatile.Read(ref _auditCallerVersion))
+                    {
+                        _auditProbeAwaitingConnection = true;
+                        StateHasChanged();
+                    }
+                }).ConfigureAwait(false);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Disposed between the connection check and renderer dispatch.
+            }
+
+            return;
+        }
+
+        _auditProbeAwaitingConnection = false;
         bool available = false;
         bool denied = false;
         try

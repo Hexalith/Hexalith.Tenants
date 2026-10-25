@@ -352,6 +352,8 @@ public class PartialReleaseRecoveryWorkflowTests
         MappingValue(preparation, "env", "GITHUB_SHA").ShouldBe("${{ inputs.source_sha }}");
         MappingValue(preparation, "env", "GH_TOKEN").ShouldBe("${{ github.token }}");
         MappingValue(preparation, "env", "NUGET_API_KEY").ShouldBeEmpty();
+        MappingValue(preparation, "env", "HEXALITH_ZOT_API_KEY").ShouldBeEmpty();
+        MappingValue(preparation, "env", "HEXALITH_ZOT_USERNAME").ShouldBeEmpty();
     }
 
     private static async Task AssertUnavailableLoginOutputStopsClientsAsync(
