@@ -3,13 +3,13 @@
 import { generateKeyPairSync, randomUUID, sign } from 'node:crypto';
 import { createServer } from 'node:http';
 
-export async function startLocalOidcFixture() {
+export async function startLocalOidcFixture(options = {}) {
     const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
     const keyId = randomUUID();
     const codes = new Map();
     let authority;
     const claims = { sub: 'browser-ui-safety-operator', global_admin: 'true',
-        'eventstore:tenant': ['system', 'tenant.alpha'], 'eventstore:current-tenant': 'system' };
+        'eventstore:tenant': ['system', 'tenant.alpha'], 'eventstore:current-tenant': 'system', ...options.claims };
     const jwt = payload => {
         const encoded = value => Buffer.from(JSON.stringify(value)).toString('base64url');
         const input = `${encoded({ alg: 'RS256', typ: 'JWT', kid: keyId })}.${encoded(payload)}`;
@@ -47,7 +47,8 @@ export async function startLocalOidcFixture() {
             const nonce = codes.get(form.get('code')); codes.delete(form.get('code'));
             const now = Math.floor(Date.now() / 1000);
             const payload = { ...claims, iss: authority, aud: 'tenants-browser-fixture', iat: now, exp: now + 3600 };
-            send({ token_type: 'Bearer', expires_in: 3600, access_token: jwt(payload), id_token: jwt({ ...payload, nonce }) });
+            send({ token_type: 'Bearer', expires_in: 3600,
+                access_token: options.accessToken ? options.accessToken() : jwt(payload), id_token: jwt({ ...payload, nonce }) });
         } else send({}, 404);
     });
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));

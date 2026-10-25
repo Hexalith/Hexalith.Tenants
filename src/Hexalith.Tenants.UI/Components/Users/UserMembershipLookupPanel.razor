@@ -677,7 +677,12 @@
                 ? Localizer["Tenants.UserLookup.Announcement.PageRecovered", validTargetUserId]
                 : AnnouncementFor(snapshot, validTargetUserId);
             _focusStatusPending = !TenantAuditNavigationSafety.IsSafeFocus(AuditFocus);
-            Navigation.NavigateTo(UserLookupNavigationUrl, replace: true);
+            // A canonical initial GET already has this address. Redirecting to it during
+            // prerender restarts the same request forever instead of rendering the lookup.
+            if (!string.Equals(Navigation.Uri, Navigation.ToAbsoluteUri(UserLookupNavigationUrl).AbsoluteUri, StringComparison.Ordinal))
+            {
+                Navigation.NavigateTo(UserLookupNavigationUrl, replace: true);
+            }
             applied = true;
         });
 

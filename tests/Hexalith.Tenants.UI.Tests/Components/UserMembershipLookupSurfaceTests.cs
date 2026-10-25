@@ -452,6 +452,23 @@ public sealed class UserMembershipLookupSurfaceTests : BunitContext
     }
 
     [Fact]
+    public void Canonical_lookup_renders_results_without_redirecting_to_itself()
+    {
+        RegisterServices(ReadySnapshot(
+            [Row("tenant.alpha", "Alpha", TenantStatus.Active, TenantRole.TenantReader, ReadModelFreshnessState.Current)],
+            targetUserId: "target.user"));
+        var navigation = (Bunit.TestDoubles.BunitNavigationManager)Services.GetRequiredService<NavigationManager>();
+        navigation.NavigateTo("/tenants/users?tab=users&userId=target.user");
+        int navigationCount = navigation.History.Count;
+
+        IRenderedComponent<UserMembershipLookupPage> cut = Render<UserMembershipLookupPage>();
+
+        cut.WaitForElement("[data-testid='tenants-user-lookup-results']");
+        cut.Find("[data-testid='tenants-user-tenant-id']").TextContent.ShouldBe("tenant.alpha");
+        navigation.History.Count.ShouldBe(navigationCount);
+    }
+
+    [Fact]
     public void User_lookup_manual_submit_sends_literal_target_without_identifier_parsing()
     {
         List<UserTenantMembershipRequest> requests = [];

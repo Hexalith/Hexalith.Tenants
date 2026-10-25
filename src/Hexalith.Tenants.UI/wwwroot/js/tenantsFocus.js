@@ -313,11 +313,15 @@ export function restoreAuditFocus(focusId, originTestId, headingId, expectedUser
         const row = anchor.closest('fluent-data-grid-row, [role="row"], tr');
         const header = anchor.closest('[data-testid="tenants-detail-identity"]');
         const container = row || header || anchor;
-        const launcher = container.querySelector('[data-testid="tenants-audit-entrypoint"]');
-        if (launcher?.tagName.toLowerCase() === 'fluent-anchor-button'
-            && launcher.getAttribute('href')) {
+        // Responsive copies share the source row/header. Try its visible enabled launcher
+        // instead of stopping at the first (possibly CSS-hidden) copy.
+        for (const launcher of container.querySelectorAll('[data-testid="tenants-audit-entrypoint"]')) {
+          if (launcher.tagName.toLowerCase() !== 'fluent-anchor-button' || !launcher.getAttribute('href')
+              || launcher.matches(':disabled, [disabled], [aria-disabled="true"]')
+              || launcher.closest('[hidden], [aria-hidden="true"], [inert]')
+              || !launcher.getClientRects().length || getComputedStyle(launcher).visibility !== 'visible') continue;
           launcher.focus({ preventScroll: false });
-          if (document.activeElement === launcher) {
+          if (ownsActiveElement(launcher)) {
             finish('found');
             return;
           }

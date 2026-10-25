@@ -76,6 +76,9 @@ HexalithEventStoreResources eventStoreResources = builder.AddHexalithEventStore(
 
 // The pinned platform helper owns EventStore's run-mode app-channel token and shares it with
 // its sidecar. Registering it here again creates a duplicate resource before the topology starts.
+if (builder.ExecutionContext.IsPublishMode) {
+    _ = eventStore.WithGeneratedEventStoreAppChannelToken();
+}
 
 // Add the Tenants domain service runtime via the Tenants platform Aspire helper. Gateway-side tenants /
 // global-administrators routing remains explicit AppHost composition above; the helper adds the server project

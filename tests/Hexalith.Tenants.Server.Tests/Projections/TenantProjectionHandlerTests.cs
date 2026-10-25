@@ -5,6 +5,7 @@ using Hexalith.EventStore.Contracts.Events;
 using Hexalith.EventStore.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
+using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Contracts.Projections;
 using Hexalith.Tenants.Contracts.Queries;
 using Hexalith.Tenants.Projections;
@@ -822,6 +823,239 @@ public class TenantProjectionHandlerTests {
         stateStore.TrySaveAttempts.ShouldNotContain(a => a.Key == TenantAuditProjectionKey);
         stateStore.TrySaveAttempts.ShouldNotContain(a => a.Key == TenantIndexKey);
     }
+
+    [Fact]
+    public async Task ProjectAsync_CompleteAuditReplayCertifiesItsOwnPrefixWithoutBorrowingNewerDetailAuthorityAsync()
+    {
+        ProjectionEventDto[] history = CanonicalAuditHistory();
+        ProjectionEventDto rejection = CreateEvent(new RoleEscalationRejection("tenant-1", "user-1", (TenantRole)99),
+            "evt-rejection", ProjectionTime.AddMinutes(4), sequenceNumber: 4);
+        var store = AuditAuthorityStore();
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1",
+            [history[2], rejection, history[0], history[1], history[1] with { Payload = [.. history[1].Payload] }]));
+
+        TenantAuditReadModel audit = SavedAudit(store);
+        audit.ProjectionVersion.ShouldBe("tenant-sequence:4");
+        audit.Entries.Select(row => row.EventId).ShouldBe(["evt-created", "evt-owner", "evt-reader"]);
+        audit.Entries.Single(row => row.EventId == "evt-reader").NarrativePayload["role"].ShouldBe("TenantReader");
+        ((TenantReadModel)store.TrySaveAttempts.Single(attempt => attempt.Key == TenantProjectionKey).Value)
+            .ProjectionVersion.ShouldBe("tenant-sequence:11");
+        ((TenantIndexReadModel)store.TrySaveAttempts.Single(attempt => attempt.Key == TenantIndexKey).Value)
+            .ProjectionVersion.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("null")]
+    [InlineData("gap")]
+    [InlineData("unknown")]
+    [InlineData("malformed-success")]
+    [InlineData("malformed-rejection")]
+    [InlineData("missing-property")]
+    [InlineData("ambiguous-property")]
+    [InlineData("foreign-rejection")]
+    [InlineData("conflicting-sequence")]
+    [InlineData("reused-id")]
+    [InlineData("unknown-role")]
+    [InlineData("delta")]
+    public async Task ProjectAsync_UncertifiableAuditHistoryDoesNotManufactureAuthorityAsync(string shape)
+    {
+        ProjectionEventDto[] history = CanonicalAuditHistory();
+        ProjectionEventDto[] events = shape switch
+        {
+            "null" => [history[0], null!, history[1]],
+            "gap" => [history[0], history[2]],
+            "unknown" => [history[0], history[1] with { EventTypeName = "UnknownEvent" }],
+            "malformed-success" => [history[0], history[1] with { Payload = "{invalid"u8.ToArray() }],
+            "malformed-rejection" => [history[0], history[1] with
+                { EventTypeName = typeof(TenantDisabledRejection).FullName!, Payload = "{invalid"u8.ToArray() }],
+            "missing-property" => [history[0], history[1] with { Payload = "{\"TenantId\":\"tenant-1\",\"UserId\":\"user-1\"}"u8.ToArray() }],
+            "ambiguous-property" => [history[0], history[1] with { Payload = "{\"TenantId\":\"tenant-1\",\"UserId\":\"user-1\",\"Role\":\"TenantOwner\",\"role\":\"TenantOwner\"}"u8.ToArray() }],
+            "foreign-rejection" => [history[0], CreateEvent(new TenantDisabledRejection("foreign"), "evt-rejection", ProjectionTime, sequenceNumber: 2)],
+            "conflicting-sequence" => [history[0], history[1], history[2] with { SequenceNumber = 2 }],
+            "reused-id" => [history[0], history[1], history[1] with { SequenceNumber = 3 }],
+            "unknown-role" => [history[0], history[1] with { Payload = "{\"TenantId\":\"tenant-1\",\"UserId\":\"user-1\",\"Role\":\"Unknown\"}"u8.ToArray() }],
+            "delta" => [history[2]],
+            _ => throw new ArgumentOutOfRangeException(nameof(shape)),
+        };
+        var store = AuditAuthorityStore();
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", events));
+
+        TenantAuditReadModel audit = SavedAudit(store);
+        audit.ProjectionVersion.ShouldBeNull();
+        audit.Entries.Count.ShouldBeGreaterThan(0);
+        audit.Entries.Select(row => row.EventId).ShouldContain(shape == "delta" ? "evt-reader" : "evt-created");
+    }
+
+    [Theory]
+    [InlineData("{\"bogus\":true}", "\"Disabled\"")]
+    [InlineData("\"Active\"", "null")]
+    [InlineData("1", "\"Disabled\"")]
+    [InlineData("\"Bogus\"", "\"Disabled\"")]
+    [InlineData("\"Active\"", "\"disabled\"")]
+    [InlineData("\"1\"", "\"Disabled\"")]
+    public async Task ProjectAsync_MalformedLifecycleRejectionStatusesDoNotCertifyAuditAuthorityAsync(string currentStatus, string requestedStatus)
+    {
+        ProjectionEventDto creation = CanonicalAuditHistory()[0];
+        ProjectionEventDto rejection = CreateEvent(new TenantLifecycleStateAlreadySetRejection("tenant-1", TenantStatus.Active,
+            TenantStatus.Disabled, "DisableTenant"), "evt-rejection", ProjectionTime.AddMinutes(1), sequenceNumber: 2) with
+        {
+            Payload = System.Text.Encoding.UTF8.GetBytes("{\"TenantId\":\"tenant-1\",\"CurrentStatus\":" + currentStatus
+                + ",\"RequestedStatus\":" + requestedStatus + ",\"CommandName\":\"DisableTenant\"}"),
+        };
+        var store = AuditAuthorityStore();
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", [creation, rejection]));
+
+        SavedAudit(store).ProjectionVersion.ShouldBeNull();
+        SavedAudit(store).Entries.Single().EventId.ShouldBe("evt-created");
+    }
+
+    [Theory]
+    [InlineData(TenantStatus.Active, TenantStatus.Disabled)]
+    [InlineData(TenantStatus.Unknown, TenantStatus.Unknown)]
+    public async Task ProjectAsync_CanonicalLifecycleRejectionStatusesCertifyTheirActualPrefixAsync(TenantStatus currentStatus, TenantStatus requestedStatus)
+    {
+        ProjectionEventDto rejection = CreateEvent(new TenantLifecycleStateAlreadySetRejection("tenant-1", currentStatus,
+            requestedStatus, "DisableTenant"), "evt-rejection", ProjectionTime.AddMinutes(1), sequenceNumber: 2);
+        var store = AuditAuthorityStore();
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", [CanonicalAuditHistory()[0], rejection]));
+
+        SavedAudit(store).ProjectionVersion.ShouldBe("tenant-sequence:2");
+        SavedAudit(store).Entries.Single().EventId.ShouldBe("evt-created");
+    }
+
+    [Theory]
+    [InlineData((TenantRole)99, null)]
+    [InlineData(TenantRole.TenantContributor, "tenant-sequence:3")]
+    public async Task ProjectAsync_RoleChangeAuthorityRequiresSupportedNewRoleWhilePreservingEvidenceAsync(TenantRole newRole, string? expectedVersion)
+    {
+        ProjectionEventDto[] history = CanonicalAuditHistory();
+        history[2] = CreateEvent(new UserRoleChanged("tenant-1", "owner", TenantRole.TenantOwner, newRole),
+            "evt-role", ProjectionTime.AddMinutes(2), sequenceNumber: 3);
+        var store = AuditAuthorityStore();
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", history));
+
+        TenantAuditReadModel audit = SavedAudit(store);
+        audit.ProjectionVersion.ShouldBe(expectedVersion);
+        audit.Entries.Select(row => row.EventId).ShouldBe(["evt-created", "evt-owner", "evt-role"]);
+        TenantAuditEntry change = audit.Entries.Single(row => row.EventId == "evt-role");
+        change.NarrativePayload["userId"].ShouldBe("owner");
+        change.NarrativePayload["oldRole"].ShouldBe("TenantOwner");
+        change.NarrativePayload["newRole"].ShouldBe(newRole.ToString());
+    }
+
+    [Theory]
+    [InlineData("conflict")]
+    [InlineData("extra")]
+    [InlineData("duplicate")]
+    [InlineData("foreign")]
+    public async Task ProjectAsync_UncertifiableLegacyAuditEvidenceIsPreservedWithoutAuthorityAsync(string shape)
+    {
+        ProjectionEventDto[] history = CanonicalAuditHistory();
+        TenantAuditReadModel legacy = TenantAuditProjection.ProjectAuditEvents(history);
+        if (shape == "conflict")
+        {
+            legacy.Entries[0] = legacy.Entries[0] with { NarrativePayload = new Dictionary<string, string> { ["name"] = "Legacy name" } };
+        }
+        else
+        {
+            TenantAuditEntry extra = legacy.Entries[0] with { EventId = "legacy-extra" };
+            legacy.Entries.Add(shape == "duplicate" ? legacy.Entries[0] : shape == "foreign" ? extra with { TenantId = "foreign" } : extra);
+        }
+        var store = AuditAuthorityStore(legacy);
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", history));
+
+        TenantAuditReadModel audit = SavedAudit(store);
+        audit.ProjectionVersion.ShouldBeNull();
+        audit.Entries.Count.ShouldBe(legacy.Entries.Count);
+        if (shape == "conflict") audit.Entries.Single(row => row.EventId == "evt-created").NarrativePayload["name"].ShouldBe("Legacy name");
+        else audit.Entries.ShouldContain(legacy.Entries[^1]);
+        legacy.ProjectionVersion.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task ProjectAsync_AuditAuthorityIsRecheckedAfterConflictReloadAsync()
+    {
+        ProjectionEventDto[] history = CanonicalAuditHistory();
+        TenantAuditReadModel concurrent = TenantAuditProjection.ProjectAuditEvents(history);
+        concurrent.Entries.Add(concurrent.Entries[0] with { EventId = "legacy-extra" });
+        var store = AuditAuthorityStore(reload: concurrent);
+
+        _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", history));
+
+        TenantAuditReadModel[] attempts = store.TrySaveAttempts.Where(attempt => attempt.Key == TenantAuditProjectionKey)
+            .Select(attempt => (TenantAuditReadModel)attempt.Value).ToArray();
+        attempts.Length.ShouldBe(2);
+        attempts[0].ProjectionVersion.ShouldBe("tenant-sequence:3");
+        attempts[1].ProjectionVersion.ShouldBeNull();
+        attempts[1].Entries.ShouldContain(row => row.EventId == "legacy-extra");
+    }
+
+    [Fact]
+    public async Task ProjectAsync_ValidOlderAndRepeatedAuditReplayRetainsCertifiedNewerAuthorityAsync()
+    {
+        ProjectionEventDto[] history = CanonicalAuditHistory();
+        var first = AuditAuthorityStore();
+        _ = await CreateHandler(first).ProjectAsync(new("tenant-1", "tenants", "tenant-1", history));
+        TenantAuditReadModel persisted = SavedAudit(first);
+        foreach (ProjectionEventDto[] replay in new[] { history[..2], history })
+        {
+            var store = AuditAuthorityStore(persisted);
+            _ = await CreateHandler(store).ProjectAsync(new("tenant-1", "tenants", "tenant-1", replay));
+            TenantAuditReadModel audit = SavedAudit(store);
+            audit.ProjectionVersion.ShouldBe("tenant-sequence:3");
+            audit.Entries.Select(row => row.EventId).ShouldBe(["evt-created", "evt-owner", "evt-reader"]);
+        }
+    }
+
+    [Fact]
+    public async Task ProjectAsync_NewAuditDeltaClearsAuthorityUntilCompleteReplayCertifiesItAsync()
+    {
+        ProjectionEventDto[] history = CanonicalAuditHistory();
+        var first = AuditAuthorityStore();
+        _ = await CreateHandler(first).ProjectAsync(new("tenant-1", "tenants", "tenant-1", history[..2]));
+        TenantAuditReadModel persisted = SavedAudit(first);
+        persisted.ProjectionVersion.ShouldBe("tenant-sequence:2");
+        var delta = AuditAuthorityStore(persisted);
+        _ = await CreateHandler(delta).ProjectAsync(new("tenant-1", "tenants", "tenant-1", [history[2]]));
+        SavedAudit(delta).ProjectionVersion.ShouldBeNull();
+        SavedAudit(delta).Entries.Count.ShouldBe(3);
+        var complete = AuditAuthorityStore(SavedAudit(delta));
+        _ = await CreateHandler(complete).ProjectAsync(new("tenant-1", "tenants", "tenant-1", history));
+        SavedAudit(complete).ProjectionVersion.ShouldBe("tenant-sequence:3");
+    }
+
+    private static ProjectionEventDto[] CanonicalAuditHistory() =>
+    [
+        CreateEvent(new TenantCreated("tenant-1", "Acme", null, ProjectionTime), "evt-created", ProjectionTime, sequenceNumber: 1),
+        CreateEvent(new UserAddedToTenant("tenant-1", "owner", TenantRole.TenantOwner), "evt-owner", ProjectionTime.AddMinutes(1), sequenceNumber: 2),
+        CreateEvent(new UserAddedToTenant("tenant-1", "reader", TenantRole.TenantReader), "evt-reader", ProjectionTime.AddMinutes(2), sequenceNumber: 3),
+    ];
+
+    private static ScriptedTenantProjectionStateStore AuditAuthorityStore(TenantAuditReadModel? persisted = null, TenantAuditReadModel? reload = null)
+    {
+        var store = new ScriptedTenantProjectionStateStore();
+        store.EnqueueRead(TenantProjectionKey, new TenantReadModel { TenantId = "tenant-1", ProjectionVersion = "tenant-sequence:11" }, "detail-etag");
+        store.EnqueueTrySave(TenantProjectionKey, true);
+        store.EnqueueRead(TenantAuditProjectionKey, persisted, "audit-etag");
+        store.EnqueueTrySave(TenantAuditProjectionKey, reload is null);
+        if (reload is not null)
+        {
+            store.EnqueueRead(TenantAuditProjectionKey, reload, "audit-reloaded-etag");
+            store.EnqueueTrySave(TenantAuditProjectionKey, true);
+        }
+        store.EnqueueRead(TenantIndexKey, CreateInitializedIndex(11), "index-etag");
+        store.EnqueueTrySave(TenantIndexKey, true);
+        return store;
+    }
+
+    private static TenantAuditReadModel SavedAudit(ScriptedTenantProjectionStateStore store)
+        => (TenantAuditReadModel)store.TrySaveAttempts.Last(attempt => attempt.Key == TenantAuditProjectionKey).Value;
 
     private static TenantProjectionHandler CreateHandler(ScriptedTenantProjectionStateStore stateStore) =>
         new(stateStore, NullLogger<TenantProjectionHandler>.Instance);

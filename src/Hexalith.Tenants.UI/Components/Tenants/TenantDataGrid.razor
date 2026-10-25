@@ -7,13 +7,14 @@
                     @key="GridSortStateKey"
                     ResizableColumns="true"
                     ReorderableColumns="false"
+                    MultiLine="true"
                     GenerateHeader="DataGridGeneratedHeaderType.Sticky"
                     ItemKey="@(row => row.TenantId)"
                     OnSortChanged="@SortChanged">
         <TemplateColumn Title="@Localizer["Tenants.List.CurrentPageSort.Tenant"]"
                         ColumnId="tenant-id"
                         Class="tenants-critical tenants-critical--identity"
-                        Width="220px"
+                        Width="var(--tenants-grid-identity-width)"
                         Sortable="true"
                         SortBy="@TenantSort"
                         IsDefaultSortColumn="@(!PreserveRowOrder && IsTenantNameSort)"
@@ -48,13 +49,19 @@
                                                TestId="tenants-list-copy-reference" />
                     </div>
                     <span>@context.Name</span>
+                    @if (!AuditReadDenied)
+                    {
+                        <FluentStack Class="tenant-data-grid__mobile-audit" Width="100%">
+                            @AuditEntryPoint(context, compact: true)
+                        </FluentStack>
+                    }
                 </div>
             </ChildContent>
         </TemplateColumn>
         <TemplateColumn Title="@Localizer["Tenants.List.CurrentPageSort.Status"]"
                         ColumnId="tenant-status"
                         Class="tenants-critical tenants-critical--status"
-                        Width="130px"
+                        Width="var(--tenants-grid-status-width)"
                         Sortable="true"
                         SortBy="@StatusSort"
                         IsDefaultSortColumn="@(!PreserveRowOrder && IsStatusSort)"
@@ -77,7 +84,7 @@
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Freshness"]"
                         ColumnId="tenant-freshness"
                         Class="tenants-critical tenants-critical--freshness"
-                        Width="160px"
+                        Width="var(--tenants-grid-freshness-width)"
                         Pin="DataGridColumnPin.Start">
             <TruthStateBadge Freshness="@context.Freshness" />
         </TemplateColumn>
@@ -108,18 +115,9 @@
         @if (!AuditReadDenied)
         {
         <TemplateColumn Title="@Localizer["Tenants.List.Column.Audit"]" ColumnId="tenant-audit" Width="175px">
-            <AuditEvidenceEntryPoint TenantId="@context.TenantId"
-                                     SourceKind="tenant-list"
-                                     SourceTestId="tenants-list-audit-entrypoint"
-                                     Label="@Localizer["Tenants.Audit.EntryPoint.Label"]"
-                                     AccessibleName="@Localizer["Tenants.List.AuditAccessibleLabel", context.TenantId]"
-                                     ReturnUrl="@ListReturnUrl(context)"
-                                     ReturnFocus="@TenantDomIdentity.ElementId("tenant-row-", context.TenantId)"
-                                     PartialReturn="@(TenantAuditNavigationSafety.IsSafeTenantId(context.TenantId) && AuditHref(context).Contains("auditPartialReturn=true", StringComparison.Ordinal))"
-                                     IsAvailable="@(AuditReadAvailable && context.Freshness is ReadModelFreshnessState.Current && context.Lifecycle is ProjectionLifecycleState.Current)"
-                                     AuthorityPending="@AuditReadPending"
-                                     UnavailableReason="@AuditUnavailableReason"
-                                     OnRefresh="@OnAuditRefresh" />
+            <FluentStack Class="tenant-data-grid__desktop-audit">
+                @AuditEntryPoint(context, compact: false)
+            </FluentStack>
         </TemplateColumn>
         }
     </FluentDataGrid>
@@ -188,6 +186,20 @@
 
     private string GridSortStateKey
         => $"{SortColumn}:{SortDescending}:{PreserveRowOrder}";
+
+    private RenderFragment AuditEntryPoint(TenantListRow row, bool compact)
+        => @<AuditEvidenceEntryPoint TenantId="@row.TenantId"
+                                     SourceKind="tenant-list"
+                                     SourceTestId="@(compact ? "tenants-list-mobile-audit-entrypoint" : "tenants-list-audit-entrypoint")"
+                                     Label="@Localizer[compact ? "Tenants.List.Column.Audit" : "Tenants.Audit.EntryPoint.Label"]"
+                                     AccessibleName="@Localizer["Tenants.List.AuditAccessibleLabel", row.TenantId]"
+                                     ReturnUrl="@ListReturnUrl(row)"
+                                     ReturnFocus="@TenantDomIdentity.ElementId("tenant-row-", row.TenantId)"
+                                     PartialReturn="@(TenantAuditNavigationSafety.IsSafeTenantId(row.TenantId) && AuditHref(row).Contains("auditPartialReturn=true", StringComparison.Ordinal))"
+                                     IsAvailable="@(AuditReadAvailable && row.Freshness is ReadModelFreshnessState.Current && row.Lifecycle is ProjectionLifecycleState.Current)"
+                                     AuthorityPending="@AuditReadPending"
+                                     UnavailableReason="@AuditUnavailableReason"
+                                     OnRefresh="@OnAuditRefresh" />;
 
     private string? ListReturnUrl(TenantListRow row)
     {

@@ -1,10 +1,16 @@
 .tenant-data-grid {
     overflow-x: auto;
     width: 100%;
+    --tenants-grid-identity-width: 220px;
+    --tenants-grid-status-width: 130px;
+    --tenants-grid-freshness-width: 160px;
 }
 
-.tenant-data-grid fluent-data-grid {
+/* Fluent v5 renders a table. Its box must contain all tracks so sticky cells
+   remain constrained by the full grid rather than the narrow scroll viewport. */
+.tenant-data-grid ::deep .fluent-data-grid {
     min-width: 58rem;
+    width: max-content;
 }
 
 /* fc-css-exception: identity cell stack inside a FluentDataGrid TemplateColumn; the min-width:0 overflow
@@ -59,20 +65,51 @@
     min-width: 7rem;
 }
 
+/* fc-css-exception: responsive placement of the same audit action keeps it accessible
+   within the pinned identity column when the safety columns fill the phone viewport. */
+.tenant-data-grid ::deep .tenant-data-grid__mobile-audit {
+    display: none;
+}
+
 @media (max-width: 767px) {
-    .tenant-data-grid fluent-data-grid {
+    .tenant-data-grid {
+        --tenants-grid-identity-width: 130px;
+        --tenants-grid-status-width: 100px;
+        --tenants-grid-freshness-width: 110px;
+    }
+
+    .tenant-data-grid ::deep .fluent-data-grid {
         min-width: 52rem;
+    }
+
+    /* fc-css-exception: restore the FluentStack layout only at the phone breakpoint
+       where the audit action moves into the pinned identity cell. */
+    .tenant-data-grid ::deep .tenant-data-grid__mobile-audit {
+        display: flex;
+        max-inline-size: 100%;
+        min-inline-size: 0;
+    }
+
+    .tenant-data-grid ::deep .tenant-data-grid__mobile-audit .tenants-audit-entrypoint {
+        box-sizing: border-box;
+        inline-size: 100%;
+        max-inline-size: 100%;
+        min-inline-size: 0;
+    }
+
+    .tenant-data-grid ::deep .tenant-data-grid__desktop-audit {
+        display: none;
     }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
-    .tenant-data-grid fluent-data-grid {
+    .tenant-data-grid ::deep .fluent-data-grid {
         min-width: 56rem;
     }
 }
 
 @media (min-width: 1440px) {
-    .tenant-data-grid fluent-data-grid {
+    .tenant-data-grid ::deep .fluent-data-grid {
         min-width: 64rem;
     }
 }

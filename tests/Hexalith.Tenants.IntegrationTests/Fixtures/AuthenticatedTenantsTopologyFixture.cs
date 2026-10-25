@@ -1,4 +1,7 @@
+using System.Diagnostics;
+using System.Net;
 using System.Security.Claims;
+using System.Text.Json;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -11,7 +14,11 @@ namespace Hexalith.Tenants.IntegrationTests.Fixtures;
 public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture, IAsyncLifetime
 {
     private const string Scheme = "Hexalith.FrontComposer.Cookie";
+    private Process? _identityProvider;
+    private Task<string>? _providerErrors;
+    private Uri? _issuer;
 
+    /// <summary>Gets the checkout containing the maintained identity-provider and browser fixtures.</summary>
     internal static string RepositoryRoot
     {
         get
@@ -27,15 +34,39 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
     }
 
     /// <inheritdoc/>
+    protected override IReadOnlyList<AspireResource> Resources
+        => base.Resources.Select(static resource => resource.Name == "tenants-ui"
+            ? resource with { EndpointName = "https" }
+            : resource).ToArray();
+
+    /// <inheritdoc/>
     public new async ValueTask InitializeAsync()
     {
-        // Aspire children inherit these standard host configuration values. No production auth or
-        // gateway service is replaced. A cookie is supplied directly, so discovery is never invoked.
+        var start = new ProcessStartInfo("node")
+        {
+            WorkingDirectory = RepositoryRoot,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+        };
+        start.ArgumentList.Add("tests/Hexalith.Tenants.UI.Tests/Browser/live-route-oidc-provider.mjs");
+        _identityProvider = Process.Start(start) ?? throw new InvalidOperationException("The loopback identity provider could not start.");
+        _providerErrors = _identityProvider.StandardError.ReadToEndAsync();
+        string? authority = await _identityProvider.StandardOutput.ReadLineAsync().WaitAsync(TimeSpan.FromSeconds(15));
+        if (!Uri.TryCreate(authority, UriKind.Absolute, out Uri? issuer) || !issuer.IsLoopback || issuer.Scheme != "http")
+        {
+            await StopIdentityProviderAsync();
+            throw new InvalidOperationException("The loopback identity provider did not publish its local authority.");
+        }
+        _issuer = issuer;
+
+        // The host keeps its production OIDC validation and token-relay callbacks. The provider
+        // signs ID tokens and relays a separately signed token validated by the real backend.
         Dictionary<string, string> settings = new(StringComparer.Ordinal)
         {
-            ["Authentication__OpenIdConnect__Authority"] = "https://live-cookie-fixture.invalid/realms/hexalith",
-            ["Authentication__OpenIdConnect__ClientId"] = "tenants-live-cookie-fixture",
-            ["Authentication__OpenIdConnect__ClientSecret"] = "fixture-only-no-provider-request",
+            ["Authentication__OpenIdConnect__Authority"] = issuer.AbsoluteUri,
+            ["Authentication__OpenIdConnect__ClientId"] = "tenants-browser-fixture",
+            ["Authentication__OpenIdConnect__ClientSecret"] = "loopback-test-provider-only",
         };
         Dictionary<string, string?> previous = settings.Keys.ToDictionary(static key => key, Environment.GetEnvironmentVariable);
         try
@@ -47,6 +78,11 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
 
             await base.InitializeAsync();
         }
+        catch
+        {
+            await StopIdentityProviderAsync();
+            throw;
+        }
         finally
         {
             foreach (var setting in previous)
@@ -54,6 +90,115 @@ public sealed class AuthenticatedTenantsTopologyFixture : AspireTopologyFixture,
                 Environment.SetEnvironmentVariable(setting.Key, setting.Value);
             }
         }
+    }
+
+    /// <summary>Signs in through the production code exchange and retains only the encrypted cookie header.</summary>
+    internal async Task<string> SignInAsync(CancellationToken cancellationToken)
+    {
+        Process provider = _identityProvider ?? throw new InvalidOperationException("The identity provider is not running.");
+        await provider.StandardInput.WriteLineAsync(JsonSerializer.Serialize(AspireTopologyTests.CreateDemoJwt()).AsMemory(), cancellationToken);
+        string? ready = await provider.StandardOutput.ReadLineAsync(cancellationToken);
+        if (ready != "ready")
+        {
+            throw new InvalidOperationException("The loopback identity provider did not accept its backend token.");
+        }
+
+        var cookies = new CookieContainer();
+        using var handler = new HttpClientHandler { CookieContainer = cookies, AllowAutoRedirect = false };
+        using var client = new HttpClient(handler) { BaseAddress = TenantsUiClient.BaseAddress, Timeout = TimeSpan.FromSeconds(30) };
+        Uri destination = new(client.BaseAddress!, "/authentication/challenge?returnUrl=%2Ftenants");
+        bool signedIn = false;
+        for (int hop = 0; hop < 8; hop++)
+        {
+            using HttpResponseMessage response = await client.GetAsync(destination, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.OK && destination.Authority == client.BaseAddress!.Authority
+                && hop >= 2)
+            {
+                signedIn = true;
+                break;
+            }
+
+            if ((int)response.StatusCode is < 300 or >= 400 || response.Headers.Location is not { } location)
+            {
+                string endpoint = destination.AbsolutePath == "/signin-oidc" ? "callback"
+                    : destination.AbsolutePath == "/authentication/challenge" ? "challenge"
+                    : destination.Authority == _issuer!.Authority ? "provider"
+                    : "return";
+                throw new InvalidOperationException($"The production OIDC sign-in failed at {endpoint}, hop {hop}, HTTP {(int)response.StatusCode}.");
+            }
+
+            Uri next = location.IsAbsoluteUri ? location : new Uri(destination, location);
+            // HttpClient deliberately does not auto-follow HTTPS-to-HTTP redirects. The only
+            // HTTP destination allowed here is our already-declared loopback test provider.
+            bool ui = next.Scheme == "https" && next.Authority == client.BaseAddress!.Authority;
+            bool identity = next.Scheme == "http" && next.IsLoopback && next.Authority == _issuer!.Authority;
+            if (!ui && !identity)
+            {
+                throw new InvalidOperationException("The OIDC fixture attempted to leave its declared local endpoints.");
+            }
+
+            destination = next;
+        }
+
+        if (!signedIn)
+        {
+            throw new InvalidOperationException("The production OIDC sign-in exceeded its redirect bound.");
+        }
+
+        string header = string.Join("; ", cookies.GetCookies(client.BaseAddress!)
+            .Cast<Cookie>()
+            .Where(static cookie => cookie.Name.StartsWith(".AspNetCore." + Scheme, StringComparison.Ordinal))
+            .Select(static cookie => cookie.Name + "=" + cookie.Value));
+        if (string.IsNullOrWhiteSpace(header))
+        {
+            throw new InvalidOperationException("The production OIDC handler did not issue its authentication cookie.");
+        }
+
+        return header;
+    }
+
+    /// <inheritdoc/>
+    public new async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await base.DisposeAsync();
+        }
+        finally
+        {
+            await StopIdentityProviderAsync();
+        }
+    }
+
+    private async Task StopIdentityProviderAsync()
+    {
+        if (_identityProvider is not { } provider)
+        {
+            return;
+        }
+
+        if (!provider.HasExited)
+        {
+            provider.StandardInput.Close();
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try
+            {
+                await provider.WaitForExitAsync(timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                provider.Kill(entireProcessTree: true);
+                await provider.WaitForExitAsync();
+            }
+        }
+
+        if (_providerErrors is not null)
+        {
+            await _providerErrors;
+        }
+
+        provider.Dispose();
+        _identityProvider = null;
     }
 
     /// <summary>Protects a real cookie ticket for the current host, including its signed relayed token.</summary>

@@ -162,12 +162,13 @@ public sealed class TenantListSurfaceTests : BunitContext
         columns.Single(column => column.ColumnId == "tenant-id").Pin.ShouldBe(DataGridColumnPin.Start);
         columns.Single(column => column.ColumnId == "tenant-status").Pin.ShouldBe(DataGridColumnPin.Start);
         columns.Single(column => column.ColumnId == "tenant-freshness").Pin.ShouldBe(DataGridColumnPin.Start);
-        columns.Single(column => column.ColumnId == "tenant-id").Width.ShouldBe("220px");
-        columns.Single(column => column.ColumnId == "tenant-status").Width.ShouldBe("130px");
-        columns.Single(column => column.ColumnId == "tenant-freshness").Width.ShouldBe("160px");
+        columns.Single(column => column.ColumnId == "tenant-id").Width.ShouldBe("var(--tenants-grid-identity-width)");
+        columns.Single(column => column.ColumnId == "tenant-status").Width.ShouldBe("var(--tenants-grid-status-width)");
+        columns.Single(column => column.ColumnId == "tenant-freshness").Width.ShouldBe("var(--tenants-grid-freshness-width)");
         columns.Single(column => column.ColumnId == "tenant-audit").Width.ShouldBe("175px");
 
         FluentDataGrid<TenantListRow> grid = cut.FindComponent<FluentDataGrid<TenantListRow>>().Instance;
+        grid.MultiLine.ShouldBeTrue();
         TenantListRow row = Row("customer/West EU:01", "West", TenantStatus.Active, ReadModelFreshnessState.Unknown, TenantPendingState.None);
         grid.ItemKey.ShouldNotBeNull()(row).ShouldBe("customer/West EU:01");
 

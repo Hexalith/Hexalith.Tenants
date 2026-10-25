@@ -9,7 +9,7 @@
     min-inline-size: 2.25rem;
 }
 
-.support-safe-copy__button {
+.support-safe-copy ::deep .support-safe-copy__button {
     inline-size: 2.35rem;
     min-block-size: 2rem;
     min-inline-size: 2.35rem;
@@ -33,17 +33,17 @@
     overflow-wrap: anywhere;
 }
 
-.support-safe-copy__button:focus-visible {
+.support-safe-copy ::deep .support-safe-copy__button:focus-visible {
     outline: 2px solid Highlight;
     outline-offset: 3px;
 }
 
 @media (forced-colors: active) {
-    .support-safe-copy__button {
+    .support-safe-copy ::deep .support-safe-copy__button {
         forced-color-adjust: auto;
     }
 
-    .support-safe-copy__button:focus-visible {
+    .support-safe-copy ::deep .support-safe-copy__button:focus-visible {
         outline-color: Highlight;
     }
 }

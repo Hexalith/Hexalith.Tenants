@@ -116,7 +116,18 @@ public sealed class TenantDomIdentityRenderingTests : BunitContext
         string[] identities = ["tenant.alpha", "tenant-alpha", "Tenant.Alpha", new('a', 256)];
         using var cut = RenderGrid(surface, identities);
         IElement[] links = cut.FindAll("fluent-anchor-button[data-testid='tenants-audit-entrypoint']").ToArray();
-        links.Length.ShouldBe(identities.Length);
+        string[] markers = AuditEntryPointMarkers(surface);
+        links.Length.ShouldBe(identities.Length * markers.Length);
+        foreach (string identity in identities)
+        {
+            IElement[] originLinks = links.Where(link => Uri.UnescapeDataString(link.GetAttribute("href")!.Split('?')[0].Split('/')[2]) == identity).ToArray();
+            originLinks.Length.ShouldBe(markers.Length);
+            foreach (string marker in markers)
+            {
+                originLinks.Count(link => link.QuerySelector($"[data-testid='{marker}']") is not null).ShouldBe(1);
+            }
+            originLinks.Select(link => link.GetAttribute("href")).Distinct(StringComparer.Ordinal).Count().ShouldBe(1);
+        }
         foreach (IElement link in links)
         {
             string href = link.GetAttribute("href").ShouldNotBeNull();
@@ -125,6 +136,7 @@ public sealed class TenantDomIdentityRenderingTests : BunitContext
             string identity = Uri.UnescapeDataString(href.Split('?')[0].Split('/')[2]);
             identities.ShouldContain(identity);
             IElement anchor = cut.Find("#" + focus);
+            cut.FindAll("#" + focus).Count.ShouldBe(1);
             anchor.QuerySelector("strong").ShouldNotBeNull().TextContent.ShouldBe(identity);
             anchor.Closest("[role='row']").ShouldNotBeNull().Contains(link).ShouldBeTrue();
             TenantAuditNavigationSafety.SafeReturnUrlForTenant(returnUrl, identity, out _).ShouldBe(returnUrl);
@@ -216,15 +228,25 @@ public sealed class TenantDomIdentityRenderingTests : BunitContext
     }
 
     [Theory]
-    [InlineData("all")]
-    [InlineData("mine")]
-    public void Workspace_audit_return_passes_the_rendered_anchor_to_focus_interop(string scope)
+    [InlineData("all", "tenants-list-audit-entrypoint")]
+    [InlineData("all", "tenants-list-mobile-audit-entrypoint")]
+    [InlineData("mine", "tenants-my-audit-entrypoint")]
+    public void Workspace_audit_return_passes_the_rendered_anchor_to_focus_interop(string scope, string entryPointMarker)
     {
         RegisterGateway(["tenant.alpha", "tenant-alpha"]);
         using var grid = RenderGrid(scope == "all" ? "tenant" : "tenants-my", ["tenant.alpha", "tenant-alpha"]);
-        string href = grid.FindAll("fluent-anchor-button[data-testid='tenants-audit-entrypoint']")[1].GetAttribute("href")!;
+        string rowSelector = scope == "all" ? "[data-testid='tenants-list-tenant-id']" : "[data-testid='tenants-my-row']";
+        IElement originRow = grid.FindAll(rowSelector).Single(row => row.QuerySelector("strong")!.TextContent == "tenant-alpha");
+        IElement launcher = originRow.Closest("[role='row']").ShouldNotBeNull()
+            .QuerySelector($"[data-testid='{entryPointMarker}']").ShouldNotBeNull().ParentElement.ShouldNotBeNull();
+        string href = launcher.GetAttribute("href").ShouldNotBeNull();
+        href.ShouldStartWith("/tenants/tenant-alpha/audit?");
+        Query(href, "source").ShouldBe(scope == "all" ? "tenant-list" : "my-tenants");
         string focus = Query(href, "returnFocus")!;
         string returnUrl = Query(href, "returnUrl")!;
+        focus.ShouldBe(originRow.Id);
+        TenantAuditNavigationSafety.SafeReturnUrlForTenant(returnUrl, "tenant-alpha", out _).ShouldBe(returnUrl);
+        TenantAuditNavigationSafety.IsFocusForReturnUrl(returnUrl, focus).ShouldBeTrue();
         Services.GetRequiredService<NavigationManager>().NavigateTo(returnUrl + (returnUrl.Contains('?') ? "&" : "?") + "auditFocus=" + focus);
         BunitJSModuleInterop module = JSInterop.SetupModule("./js/tenantsFocus.js");
         string origin = scope == "all" ? "tenants-workspace-tenants-panel-content" : "tenants-my-page";
@@ -232,6 +254,7 @@ public sealed class TenantDomIdentityRenderingTests : BunitContext
         var restoration = module.Setup<string>("restoreAuditFocus", focus, origin, heading, null).SetResult("found");
         IRenderedComponent<TenantsWorkspace> cut = Render<TenantsWorkspace>();
         cut.WaitForAssertion(() => restoration.Invocations.Count.ShouldBe(1));
+        cut.FindAll("#" + focus).Count.ShouldBe(1);
         cut.Find("#" + focus).QuerySelector("strong").ShouldNotBeNull().TextContent.ShouldBe("tenant-alpha");
     }
 
@@ -242,8 +265,36 @@ public sealed class TenantDomIdentityRenderingTests : BunitContext
         IElement invalid = cut.FindAll(selector).Single(row => row.QuerySelector("strong")!.TextContent != "tenant.alpha");
         invalid.HasAttribute("id").ShouldBeFalse();
         invalid.QuerySelector("a[href]").ShouldBeNull();
-        cut.FindAll("fluent-anchor-button[data-testid='tenants-audit-entrypoint']").Count.ShouldBe(1);
+        IElement invalidRow = invalid.Closest("[role='row']").ShouldNotBeNull();
+        invalidRow.QuerySelectorAll("a[href], fluent-anchor-button[href]").ShouldBeEmpty();
+        string[] markers = AuditEntryPointMarkers(surface);
+        foreach (string marker in markers)
+        {
+            IElement unavailable = invalidRow.QuerySelector($"[data-testid='{marker}']").ShouldNotBeNull().ParentElement.ShouldNotBeNull();
+            unavailable.HasAttribute("disabled").ShouldBeTrue();
+            unavailable.GetAttribute("href").ShouldBeNull();
+            string reasonId = unavailable.GetAttribute("aria-describedby").ShouldNotBeNull();
+            cut.FindAll("#" + reasonId).Count.ShouldBe(1);
+        }
+        IElement[] links = cut.FindAll("fluent-anchor-button[data-testid='tenants-audit-entrypoint']").ToArray();
+        links.Length.ShouldBe(markers.Length);
+        foreach (IElement link in links)
+        {
+            string href = link.GetAttribute("href").ShouldNotBeNull();
+            href.ShouldStartWith("/tenants/tenant.alpha/audit?");
+            string focus = Query(href, "returnFocus").ShouldNotBeNull();
+            string returnUrl = Query(href, "returnUrl").ShouldNotBeNull();
+            cut.FindAll("#" + focus).Count.ShouldBe(1);
+            cut.Find("#" + focus).QuerySelector("strong").ShouldNotBeNull().TextContent.ShouldBe("tenant.alpha");
+            TenantAuditNavigationSafety.SafeReturnUrlForTenant(returnUrl, "tenant.alpha", out _).ShouldBe(returnUrl);
+            TenantAuditNavigationSafety.IsFocusForReturnUrl(returnUrl, focus).ShouldBeTrue();
+        }
     }
+
+    private static string[] AuditEntryPointMarkers(string surface)
+        => surface == "tenant"
+            ? ["tenants-list-audit-entrypoint", "tenants-list-mobile-audit-entrypoint"]
+            : [$"{surface}-audit-entrypoint"];
 
     private IRenderedComponent<IComponent> RenderGrid(string surface, string[] identities)
     {

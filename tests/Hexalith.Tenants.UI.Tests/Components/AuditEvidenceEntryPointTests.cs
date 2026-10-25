@@ -172,6 +172,11 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
             .Add(p => p.AuditHref, _ => "/tenants/tenant.alpha/audit?returnUrl=%2Ftenants"));
 
         EntryPointFromMarker(cut, "tenants-list-audit-entrypoint").GetAttribute("href").ShouldBeNull();
+        EntryPointFromMarker(cut, "tenants-list-mobile-audit-entrypoint").GetAttribute("href").ShouldBeNull();
+        string[] reasonIds = cut.FindAll("[data-testid='tenants-audit-entrypoint']")
+            .Select(entry => RequiredAttribute(entry, "aria-describedby"))
+            .ToArray();
+        reasonIds.Distinct(StringComparer.Ordinal).Count().ShouldBe(reasonIds.Length);
     }
 
     [Fact]
@@ -229,6 +234,15 @@ public sealed class AuditEvidenceEntryPointTests : BunitContext
         auditHref.ShouldContain("returnUrl=");
         Uri.UnescapeDataString(auditHref).ShouldContain("selected=tenant.alpha");
         auditHref.ShouldContain("source=tenant-list");
+        AngleSharp.Dom.IElement mobileEntryPoint = EntryPointFromMarker(cut, "tenants-list-mobile-audit-entrypoint");
+        RequiredAttribute(mobileEntryPoint, "href").ShouldBe(auditHref);
+        RequiredAttribute(mobileEntryPoint, "aria-label")
+            .ShouldBe(RequiredAttribute(EntryPointFromMarker(cut, "tenants-list-audit-entrypoint"), "aria-label"));
+        mobileEntryPoint.TextContent.Trim().ShouldBe("Audit");
+        mobileEntryPoint.Closest("[data-testid='tenants-list-tenant-id']").ShouldNotBeNull();
+
+        cut.Render(parameters => parameters.Add(component => component.AuditReadDenied, true));
+        cut.FindAll("[data-audit-source='tenant-list']").ShouldBeEmpty();
     }
 
     [Fact]

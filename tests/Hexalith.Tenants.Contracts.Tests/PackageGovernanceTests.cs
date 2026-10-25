@@ -963,9 +963,18 @@ public class PackageGovernanceTests {
             workflow.ShouldNotContain(forbiddenFragment);
         }
 
+        string[] ownedHttpActions =
+        [
+            "actions/checkout",
+            "actions/setup-dotnet",
+            "actions/setup-node",
+            "actions/upload-artifact",
+            "Hexalith/Hexalith.Builds/Github/dapr-init",
+        ];
         GetWorkflowActionReferences(workflow).ShouldAllBe(
-            action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && action.Reference == "main",
-            "The local workflow delegates to the shared Hexalith.Builds workflow; action pinning is enforced there.");
+            action => action.Action.StartsWith("Hexalith/Hexalith.Builds/.github/workflows/", StringComparison.Ordinal) && action.Reference == "main"
+                || ownedHttpActions.Contains(action.Action, StringComparer.Ordinal) && IsFullCommitSha(action.Reference),
+            "Shared CI stays delegated to Builds; the owning HTTP qualification jobs use approved actions at immutable commits.");
     }
 
     [Fact]

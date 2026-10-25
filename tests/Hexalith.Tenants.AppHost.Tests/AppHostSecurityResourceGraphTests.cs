@@ -14,6 +14,19 @@ public sealed class AppHostSecurityResourceGraphTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public async Task PublishModeRetainsOneSharedAppChannelTokenPerService(bool enableKeycloak)
+    {
+        await using IDistributedApplicationTestingBuilder builder = await DistributedApplicationTestingBuilder
+            .CreateAsync<Projects.Hexalith_Tenants_AppHost>(
+                ["--publisher", "manifest", "--output-path", Path.Combine(Path.GetTempPath(), $"tenants-model-{Guid.NewGuid():N}.json"),
+                    $"--EnableKeycloak={enableKeycloak}", "--Authentication:JwtBearer:SigningKey=RunModelSigningKey-AtLeast32Chars!"]);
+        builder.ExecutionContext.IsPublishMode.ShouldBeTrue();
+        await AssertAppChannelTokensAsync(builder);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public async Task MemoriesIsIncludedByDefaultAndCanBeExplicitlyExcluded(bool includeMemories)
     {
         string[] args = includeMemories ? ["--EnableKeycloak=true"] : ["--EnableKeycloak=true", "--EnableMemories=false"];

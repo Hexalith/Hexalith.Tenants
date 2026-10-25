@@ -526,6 +526,28 @@
             }
             assertActiveElement(workspaceOrigin.querySelector("fluent-anchor-button"), "workspace-row-audit-launcher");
 
+            const responsiveRow = workspaceOrigin.querySelector('[role="row"]');
+            const visibleLauncher = responsiveRow.querySelector('fluent-anchor-button');
+            const hiddenLauncher = visibleLauncher.cloneNode(true);
+            hiddenLauncher.style.display = 'none';
+            responsiveRow.insertBefore(hiddenLauncher, visibleLauncher);
+            if (!await focusAuditLauncher("tenants-row-tenant.beta", "tenants-workspace-tenants-panel-content", "tenants-list-heading")) {
+                throw new Error("CSS-hidden responsive copy suppressed the visible audit launcher");
+            }
+            assertActiveElement(visibleLauncher, "hidden-first-responsive-audit-copy");
+            hiddenLauncher.style.display = '';
+            hiddenLauncher.setAttribute('aria-disabled', 'true');
+            if (!await focusAuditLauncher("tenants-row-tenant.beta", "tenants-workspace-tenants-panel-content", "tenants-list-heading")) {
+                throw new Error("disabled responsive copy suppressed the enabled audit launcher");
+            }
+            assertActiveElement(visibleLauncher, "disabled-first-responsive-audit-copy");
+            hiddenLauncher.removeAttribute('aria-disabled');
+            visibleLauncher.style.display = 'none';
+            if (!await focusAuditLauncher("tenants-row-tenant.beta", "tenants-workspace-tenants-panel-content", "tenants-list-heading")) {
+                throw new Error("phone audit launcher was not focused after responsive visibility reversed");
+            }
+            assertActiveElement(hiddenLauncher, "visible-first-phone-audit-copy");
+
             const detailOrigin = document.createElement("section");
             detailOrigin.dataset.testid = "tenants-detail-audit-origin";
             detailOrigin.dataset.auditFocusTerminal = "true";

@@ -3,6 +3,7 @@ using System.Text.Json;
 
 using Hexalith.EventStore.Client.Projections;
 using Hexalith.EventStore.Contracts.Projections;
+using Hexalith.Tenants.Contracts.Enums;
 using Hexalith.Tenants.Contracts.Events;
 using Hexalith.Tenants.Contracts.Events.Rejections;
 using Hexalith.Tenants.Contracts.Projections;
@@ -37,6 +38,17 @@ public sealed class TenantProjectionHandler {
     private static readonly JsonSerializerOptions s_options = new() {
         PropertyNameCaseInsensitive = true,
     };
+
+    private static readonly Type[] s_tenantAuditContracts =
+    [
+        typeof(TenantCreated), typeof(TenantUpdated), typeof(TenantDisabled), typeof(TenantEnabled),
+        typeof(UserAddedToTenant), typeof(UserRemovedFromTenant), typeof(UserRoleChanged),
+        typeof(TenantConfigurationSet), typeof(TenantConfigurationRemoved),
+        typeof(TenantAlreadyExistsRejection), typeof(TenantNotFoundRejection), typeof(TenantDisabledRejection),
+        typeof(TenantLifecycleStateAlreadySetRejection), typeof(InsufficientPermissionsRejection),
+        typeof(RoleEscalationRejection), typeof(UserAlreadyInTenantRejection), typeof(UserNotInTenantRejection),
+        typeof(ConfigurationLimitExceededRejection), typeof(ConfigurationKeyNotFoundRejection),
+    ];
 
     private readonly ILogger<TenantProjectionHandler> _logger;
     private readonly IReadModelStore _store;
@@ -79,6 +91,7 @@ public sealed class TenantProjectionHandler {
         // AC12 to the tenant read-model and singleton-index writes too.
         TenantAuditReadModel incomingAuditModel = TenantAuditProjection.ProjectAuditEvents(events.OfType<ProjectionEventDto>());
         TenantAuditStreams.ValidateIncoming(incomingAuditModel, request.AggregateId, TenantAuditStreams.Tenant);
+        incomingAuditModel.ProjectionVersion = CompleteAuditReplayVersion(events, incomingAuditModel, request.AggregateId);
         // Refuse unsafe initialization before the first detail/audit write. The shared-key
         // transform repeats this check after every reload in case a competing writer changed it.
         ReadModelEntry<TenantIndexReadModel> initialIndex = await _store.GetAsync<TenantIndexReadModel>(
@@ -151,8 +164,7 @@ public sealed class TenantProjectionHandler {
                 TenantAuditStreams.GetTenantKey(request.AggregateId),
                 incomingAuditModel,
                 static () => new TenantAuditReadModel(),
-                (persisted, incoming) => TenantAuditStreams.Merge(persisted, incoming,
-                    rejectConflicts: request.AggregateId == "system"),
+                (persisted, incoming) => MergeAuditWithReplayAuthority(persisted, incoming, request.AggregateId),
                 // MergeAsync does not auto-enrich the context (unlike ApplyEventsAsync), so derive the
                 // correlation id from the batch here for parity in conflict/exhaustion diagnostics.
                 new ReadModelWriteContext(TenantAuditKeyCategory, nameof(TenantAuditReadModel)).WithEventDiagnostics(events),
@@ -271,6 +283,172 @@ public sealed class TenantProjectionHandler {
         }
 
         return true;
+    }
+
+    /// <summary>Certifies an actual complete producer prefix, including events omitted from audit rows.</summary>
+    private static string? CompleteAuditReplayVersion(IReadOnlyCollection<ProjectionEventDto?> events,
+        TenantAuditReadModel audit, string aggregateId)
+    {
+        var bySequence = new Dictionary<long, ProjectionEventDto>();
+        var byId = new Dictionary<string, long>(StringComparer.Ordinal);
+        var successIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (ProjectionEventDto? evt in events)
+        {
+            if (evt is null || evt.SequenceNumber <= 0 || string.IsNullOrWhiteSpace(evt.MessageId)
+                || string.IsNullOrWhiteSpace(evt.UserId) || evt.SerializationFormat != "json")
+            {
+                return null;
+            }
+
+            Type? contract = s_tenantAuditContracts.FirstOrDefault(type => evt.EventTypeName == type.Name || evt.EventTypeName == type.FullName);
+            if (contract is null || !IsCompleteAuditPayload(evt, contract, aggregateId))
+            {
+                return null;
+            }
+
+            if (bySequence.TryGetValue(evt.SequenceNumber, out ProjectionEventDto? previous)
+                && !JsonSerializer.SerializeToUtf8Bytes(previous).AsSpan().SequenceEqual(JsonSerializer.SerializeToUtf8Bytes(evt))
+                || byId.TryGetValue(evt.MessageId, out long previousSequence) && previousSequence != evt.SequenceNumber)
+            {
+                return null;
+            }
+
+            bySequence[evt.SequenceNumber] = evt;
+            byId[evt.MessageId] = evt.SequenceNumber;
+            if (contract.Namespace == typeof(TenantCreated).Namespace)
+            {
+                successIds.Add(evt.MessageId);
+            }
+        }
+
+        if (!HasCompleteTenantHistory(events, aggregateId)
+            || !successIds.SetEquals(audit.Entries.Select(row => row.EventId)))
+        {
+            return null;
+        }
+
+        // Contiguity and identity were proved above; this is the supplied prefix's exact length,
+        // never a watermark borrowed from the independently merged tenant detail state.
+        return TenantProjectionVersionPrefix + bySequence.Count.ToString(CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>Rejects skipped, malformed, incomplete, or foreign contract payloads without changing projection contents.</summary>
+    private static bool IsCompleteAuditPayload(ProjectionEventDto evt, Type contract, string aggregateId)
+    {
+        try
+        {
+            using JsonDocument document = JsonDocument.Parse(evt.Payload);
+            JsonElement root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || root.EnumerateObject().GroupBy(property => property.Name, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1)
+                || !AuditPayloadProperty(root, "TenantId", out JsonElement tenantId)
+                || tenantId.ValueKind != JsonValueKind.String || tenantId.GetString() != aggregateId
+                || JsonSerializer.Deserialize(evt.Payload, contract, s_options) is not object payload
+                || payload is UserAddedToTenant added && added.Role is not (TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader)
+                || payload is UserRoleChanged changed && (changed.NewRole is not (TenantRole.TenantOwner or TenantRole.TenantContributor or TenantRole.TenantReader)
+                    || !Enum.IsDefined(changed.OldRole)))
+            {
+                return false;
+            }
+
+            foreach (System.Reflection.PropertyInfo property in contract.GetProperties())
+            {
+                bool present = AuditPayloadProperty(root, property.Name, out JsonElement value);
+                if (property.Name == nameof(TenantCreated.Description))
+                {
+                    if (present && value.ValueKind is not (JsonValueKind.String or JsonValueKind.Null)) return false;
+                    continue;
+                }
+
+                if (!present && Nullable.GetUnderlyingType(property.PropertyType) is not null) continue;
+                if (!present || property.PropertyType == typeof(string)
+                    && (value.ValueKind != JsonValueKind.String
+                        || property.Name != nameof(TenantConfigurationSet.Value) && string.IsNullOrWhiteSpace(value.GetString())))
+                {
+                    return false;
+                }
+
+                // The lifecycle converter deliberately maps malformed input to Unknown for reads.
+                // Producer certification must distinguish that fallback from a literal canonical sentinel.
+                if (property.PropertyType == typeof(TenantStatus)
+                    && (value.ValueKind != JsonValueKind.String
+                        || !Enum.TryParse(value.GetString(), ignoreCase: false, out TenantStatus status)
+                        || Enum.GetName(status) != value.GetString()))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Finds a single case-insensitive contract property, refusing ambiguous duplicate names.</summary>
+    private static bool AuditPayloadProperty(JsonElement root, string name, out JsonElement value)
+    {
+        value = default;
+        bool found = false;
+        foreach (JsonProperty property in root.EnumerateObject())
+        {
+            if (!string.Equals(property.Name, name, StringComparison.OrdinalIgnoreCase)) continue;
+            if (found) return false;
+            value = property.Value;
+            found = true;
+        }
+
+        return found;
+    }
+
+    /// <summary>Certifies the actual retried merge while preserving existing evidence and valid newer replay authority.</summary>
+    private static TenantAuditReadModel MergeAuditWithReplayAuthority(TenantAuditReadModel persisted,
+        TenantAuditReadModel incoming, string aggregateId)
+    {
+        TenantAuditReadModel merged = TenantAuditStreams.Merge(persisted, incoming, rejectConflicts: aggregateId == "system");
+        bool complete = TenantAuditStreams.TryGetSequence(incoming.ProjectionVersion, out long incomingSequence);
+        bool exactReplay = complete && AuditEvidenceMatches(merged, incoming, aggregateId);
+        bool olderReplay = complete
+            && TenantAuditStreams.TryGetSequence(persisted.ProjectionVersion, out long persistedSequence)
+            && persistedSequence > incomingSequence
+            && AuditEvidenceMatches(merged, persisted, aggregateId)
+            && AuditEvidenceMatches(incoming, persisted, aggregateId, allowSubset: true);
+        if (!exactReplay && !olderReplay)
+        {
+            merged.ProjectionVersion = null;
+        }
+
+        return merged;
+    }
+
+    /// <summary>Checks complete evidence identity without discarding legacy rows or accepting conflicting duplicates.</summary>
+    private static bool AuditEvidenceMatches(TenantAuditReadModel actual, TenantAuditReadModel canonical,
+        string aggregateId, bool allowSubset = false)
+    {
+        var expected = new Dictionary<string, TenantAuditEntry>(StringComparer.Ordinal);
+        foreach (TenantAuditEntry? row in canonical.Entries ?? [])
+        {
+            if (TenantAuditOwnership.GetOwner(row, aggregateId) != TenantAuditStreams.Tenant
+                || !expected.TryAdd(row!.EventId, row) && !TenantAuditStreams.SameEvidence(expected[row.EventId], row))
+            {
+                return false;
+            }
+        }
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (TenantAuditEntry? row in actual.Entries ?? [])
+        {
+            if (TenantAuditOwnership.GetOwner(row, aggregateId) != TenantAuditStreams.Tenant
+                || !seen.Add(row!.EventId) || !expected.TryGetValue(row.EventId, out TenantAuditEntry? known)
+                || !TenantAuditStreams.SameEvidence(row, known))
+            {
+                return false;
+            }
+        }
+
+        return allowSubset || seen.Count == expected.Count;
     }
 
     private static bool IsPreCreationRejection(ProjectionEventDto evt, string aggregateId)

@@ -22,6 +22,8 @@ jobs:
     timeout-minutes: 35
     env:
       SSL_CERT_DIR: /home/runner/.aspnet/dev-certs/trust:/usr/lib/ssl/certs
+      # Qualify request-path projection delivery independently of the pinned background-worker race.
+      EventStore__Projections__WorkersEnabled: 'false'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -37,7 +39,24 @@ jobs:
         with:
           node-version: '24'
       - name: Trust HTTPS development certificates for live sockets
-        run: dotnet dev-certs https --trust
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3-tools
+          for live_nss_directory in "$HOME/.pki/nssdb" "$HOME/.local/share/pki/nssdb"; do
+            mkdir -p "$live_nss_directory"
+            if [ ! -f "$live_nss_directory/cert9.db" ]; then
+              certutil -N -d "sql:$live_nss_directory" --empty-password
+            fi
+          done
+          dotnet dev-certs https --trust
+          for live_nss_directory in "$HOME/.pki/nssdb" "$HOME/.local/share/pki/nssdb"; do
+            live_cert_index=0
+            for live_certificate in "$HOME"/.aspnet/dev-certs/trust/*.pem; do
+              [ -f "$live_certificate" ] || continue
+              certutil -A -d "sql:$live_nss_directory" -n "tenants-live-dev-cert-$live_cert_index" -t 'C,,' -i "$live_certificate"
+              live_cert_index=$((live_cert_index + 1))
+            done
+          done
       - name: Install and initialize Dapr
         uses: Hexalith/Hexalith.Builds/Github/dapr-init@fff4a212180d8cd1c5c0759655a9bc4fb6963c45
         with:
@@ -71,13 +90,27 @@ jobs:
           dotnet test tests/Hexalith.Tenants.AppHost.Tests/Hexalith.Tenants.AppHost.Tests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.AppHost.Tests.AppHostSecurityResourceGraphTests
-          --minimum-expected-tests 10 --fail-skips on
+          --minimum-expected-tests 12 --fail-skips on
+      - name: Verify bounded TLS failure diagnostics
+        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          --filter-class Hexalith.Tenants.IntegrationTests.AspireTopologyTlsDiagnosticsTests
+          --minimum-expected-tests 5 --fail-skips on
       - name: Verify persisted REST authority, six reads, conditional responses and cursor recovery
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
         run: >
           dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
           --configuration Release --no-build
           --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedTenantsRouteTests
+          --minimum-expected-tests 4 --fail-skips on
+      - name: Verify private failure evidence
+        if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}
+        run: >
+          dotnet test tests/Hexalith.Tenants.IntegrationTests/Hexalith.Tenants.IntegrationTests.csproj
+          --configuration Release --no-build
+          --filter-class Hexalith.Tenants.IntegrationTests.AuthenticatedRouteEvidenceTests
           --minimum-expected-tests 3 --fail-skips on
       - name: Verify the hosted persisted-state regression without skips
         if: ${{ !cancelled() && steps.live-build.outcome == 'success' }}

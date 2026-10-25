@@ -47,12 +47,12 @@ Complete DW-104, DW-161, DW-432, DW-436 and DW-594: qualify authenticated UI con
 
 **Execution:**
 
-- [ ] `src/Hexalith.Tenants.AppHost/Program.cs`, `tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs` — remove redundant token registration; assert unique ownership.
-- [ ] `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs`, `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs` — configure trusted certificates and safe bounded TLS diagnostics.
+- [x] `src/Hexalith.Tenants.AppHost/Program.cs`, `tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs` — remove redundant token registration; assert unique ownership.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs`, `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs` — configure trusted certificates and safe bounded TLS diagnostics.
 - [ ] `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs` — add live six-route, metadata, 304 and invalid-cursor proof.
-- [ ] `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs` — add authenticated routes and contextual audit navigation.
-- [ ] `tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-live-routes.mjs` — exercise Aspire endpoints, measured widths, forced colors and Back.
-- [ ] `.github/workflows/ci.yml` — add focused Release/package qualification with certificate trust, minimum counts and skip rejection; preserve broad advisory tier.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs` — add authenticated routes and contextual audit navigation.
+- [x] `tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-live-routes.mjs` — exercise Aspire endpoints, measured widths, forced colors and Back.
+- [x] `.github/workflows/ci.yml` — add focused Release/package qualification with certificate trust, minimum counts and skip rejection; preserve broad advisory tier.
 - [ ] `_bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md`, `_bmad-output/implementation-artifacts/deferred-work.md`, `docs/maintenance-backlog.md` — record reviewed evidence and conserved closure.
 
 **Acceptance Criteria:**
@@ -104,3 +104,62 @@ All three independent layers completed against the original 65,076-byte diff. Ac
 - Run browser validator against `aspire describe` endpoint; retain safe source/binary-bound results.
 - Require hosted Release/package persisted-state evidence before DW-594 closure.
 - Run story-gitlink validation against this spec, ledger/index conservation, `git diff --check` and pinned commitlint. Preserve exact commands/results. Fetch and inspect divergence before push.
+
+## Continued live qualification (2026-10-25)
+
+The first candidate is main commit `3b60914ace5201a711fb51c1036d3679e0512ec8`; PR55 was merged externally while its validation was running. Hosted run [40200821264](https://github.com/Hexalith/Hexalith.Tenants/actions/runs/40200821264) passed the exact historical persisted-state regression with zero skips, as well as the model and anonymous suites. Conditional detail returned HTTP200 instead of304; UI/browser failures exposed fixture defects.
+
+Positive UI qualification now performs genuine signed loopback OIDC discovery/code exchange through production callbacks, populating the framework token store. Only the ambiguous-scope negative case uses a protected test ticket. Chromium receives the public development certificate in its active NSS store; no certificate validation is bypassed. The live request-path profile disables only existing projection background workers (`EventStore__Projections__WorkersEnabled=false`), because clean hosted execution reproduced a completed-command/persisted-sequence stall with workers enabled. This isolates request-path delivery; it does not qualify or repair worker concurrency. Default application configuration and dependency pins remain unchanged.
+
+Real runtime tracing exposed the canonical user-lookup SSR self-redirect. The panel now leaves an already-canonical URL in place; a focused component regression and the actual HTTP route protect it. Administrator authority intentionally remains restricted in HTTP prerender under the existing circuit-only resolver policy. HTTP coverage asserts that restriction; the browser still requires real authorized administrator rows. Local real-browser execution has reached all six authorized surfaces. Responsive/interaction/Back acceptance is still being completed.
+
+DW-161 cannot close with the approved dependency freeze: pinned EventStore Gateway3.127 only recognizes SelfRoutingETag conditional validators, while the Tenants detail handler emits the opaque store ETag; its production304 client path also drops version/served-at metadata. The live conditional assertion remains blocking and unchanged in meaning. Six ordinary REST reads and conditional detail are separate cases so the upstream failure does not suppress other evidence.
+
+### Continued review triage
+
+| Finding | Verdict / evidence | Route |
+| --- | --- | --- |
+| Final Edge1: publish-mode token lost | high: AddHexalithEventStore only owns run-mode registration; removing the unconditional caller also removed the prior publish token. Restore that same wiring only in publish mode, preserving prior policy. | patch |
+| Final Edge2: member roles unchecked | medium: identifier comparisons accept incorrect per-user roles. | patch with Final Blind2 |
+| Final Blind1: fixed caller memberships exceed first page | medium: repeated seeds exceed My Tenants page size20; its URL needs the cursor containing this seed. | patch |
+| Final Blind2: identical seed roles and unchecked roles | medium: both owners plus ID-only assertions miss role corruption; use distinct roles and compare each persisted value. | patch |
+| Final Blind3: audit count alone | medium: three duplicated/wrong events can satisfy count and tenant checks. Require actual seeded types/targets and unique identities. | patch |
+| Final Blind4: malformed cursor only | medium: malformed decoding is proven but an actually issued incompatible-scope cursor is not covered. Add that concrete negative without decoding or changing contracts. | patch |
+| Final Blind5: pinned coordinates without scroll | medium: the wrong wrapper can leave scrollLeft zero and pass stable-position checks. Require measured scroll movement when overflow exists. | patch |
+| Final Blind6: bounds do not prove exposed content/action | medium: stable pinned positions can still be clipped or occluded on phone widths. Add actual viewport/hit checks and expose failures honestly. | patch |
+| Final Blind7: contextual Back accepts unavailable audit | medium: preserved URLs alone do not prove usable contextual evidence. Require ready rows and rendered context before Back. | patch |
+| Final Blind8: evidence binding omits backend/dependency contents | medium: dirty relevant dependency implementations can change while gitlink pointers remain stable. Capture the relevant source and backend binaries or explicitly narrow each claim. | patch |
+| Final Blind9: TLS diagnostics not in focused gate | medium: only broader lanes run the five redaction checks. Add a blocking minimum-count selection. | patch |
+| Final Blind10: early failures lack safe artifact | medium: failures before Node or outer cancellation leave no retained packet. Create an initial private destination and fixed wrapper failure outcome. | patch |
+
+The second verification-gap layer reported no gaps. All three layers completed before this triage; no finding was dropped. The original13 rows remain preserved.
+
+The final feasibility audit found a technically possible MVC filter workaround, but no existing platform callback. It would duplicate shared conditional-response/authority policy locally. The required Hexalith baseline explicitly requires adding shared boilerplate to its technical module first, then consuming it (`references/Hexalith.AI.Tools/hexalith-llm-instructions.md:59`). Thus DW-161 is constrained by platform ownership plus the approved dependency freeze, not claimed to be technically impossible.
+
+The live phone matrix exposed an actual Fluent5 migration defect: old CSS selected the removed `fluent-data-grid` element, leaving the native table narrower than its tracks, so sticky columns scrolled out. The component now uses the vendor's documented CSS-width parameters with inherited responsive variables, and isolated styling targets the real `.fluent-data-grid` table with `width:max-content`. Measured390px evidence confirms all three critical cells stay pinned and visible through750px horizontal movement. The next action-occlusion failure remains under repair; no responsive closure is claimed yet.
+
+## Owning prerequisite corrections
+
+Runtime proved that tenant-detail/member audit launchers correctly refuse a null audit producer version, even with a Current projection-backed payload and store ETag. The owning tenant projection now certifies its existing audit ProjectionVersion only from a complete canonical tenant event prefix and the actual evidence after each retried merge. This applies the already established singleton-audit complete-replay authority principle to the tenant-owned stream. It does not borrow detail authority, infer an index validator, expand wire fields, update dependencies or manually mutate persisted state. Unknown/malformed/skipped/gapped/conflicting/unmatched evidence remains unversioned; compatible older replay preserves a certified newer prefix. DW-568 stays open and its record is untouched. Focused producer54 and downstream22 tests pass without skips; full server/live proof and independent recheck remain required.
+
+The phone list also needs actual multiline rows and its existing 2.35rem copy-control footprint. Fluent-owned copy-root selectors now cross CSS isolation with ::deep, retaining all size/focus values. Mobile audit action construction is shared with desktop and uses distinct selectors. After updating the existing identity tests to check both copies, full UI7,706 passes with zero failures/skips. A subsequent copy-selector correction is undergoing its focused/full UI recheck and the real physical browser matrix.
+
+### Producer/phone independent recheck triage
+
+| Finding | Verdict / evidence | Route |
+| --- | --- | --- |
+| Recheck Blind1: hidden mobile launcher wins Back focus | medium: tenantsFocus.js selects the first audit launcher without visibility filtering; the new hidden mobile copy precedes desktop. An isolated Node control reproduces fallback heading focus. | patch visible enabled selection and real list Back control |
+| Recheck Edge1: malformed lifecycle statuses certify | high: the existing status converter maps object/null to Unknown, and the new guard checks only non-string property presence. A complete creation plus malformed rejection probe certifies tenant-sequence:2. Require the converter's canonical recognized string shape before certifying. | patch |
+| Recheck Edge2: hidden launcher wins focus | medium: same verified querySelector root cause as Recheck Blind1. | patch same root |
+| Recheck Verification1: copy control physical proof missing | medium: preverified gap; identity-container hit testing cannot establish the actual Fluent copy button's containment, pointer access or focus outline. | patch live checks |
+| Recheck Verification2: role-change negative certificate absent | medium: preverified gap; the added-role negative does not cover the separate changed.NewRole validation. | patch numeric invalid and valid role-change controls |
+
+All three focused independent rechecks completed before triage. Full server ran1495 with1494passes/1failure/0skips: the sole failure is unchanged DeploymentReadinessDocumentationTests opening missing pinned upstream scripts/validate-operational-evidence.py. No source/dependency change is made for that separate documentation gate. Full UI after the copy-selector correction passes7706/7706 with zero skips.
+
+Live progression after producer/copy corrections now passes all12 measured layout/forced-colors combinations and detail audit Back/focus, totaling20 completed cases before the member-context assertion times out. The latter assertion incorrectly searched empty audit row-marker spans for target text; it must inspect the actual rendered target cell, preserving the real ready-data requirement.
+
+## Final local qualification checkpoint
+
+All review corrections are verified. The malformed lifecycle-status probe now returns null authority; complete valid controls and unsupported-role controls pass. The real Chromium focus harness passes phone/desktop/forced-colors and rejects the broken first-candidate mutation. Live authenticated UI3/3 passes with zero skips and all25 browser cases pass, including actual copy containment/hit/Tab/outline, all12 measured layouts, detail/member/list Back and visible responsive launcher focus. The support-safe packet is [live-browser-local.json](dw-104-161-432-436-594-live-browser-local.json); its source diff digest still matched the final source at handoff. Full UI7706/7706 passes, zero skips.
+
+Final real REST4 has3passes/1failure/0skips. All six reads, distinct roles, exact audit events and actual audit producer version matching the persisted committed prefix pass; cursor recovery and anonymous denial pass. Only conditional detail still returns200 instead of304. Full server1505 has1504passes/1unchanged missing-upstream-validator failure/0skips. Corrected hosted Release/package execution and ledger closure are the remaining authorized steps; DW-161 stays open under the explicit dependency freeze. Spec stays in-review while the five-item intent remains incomplete.
