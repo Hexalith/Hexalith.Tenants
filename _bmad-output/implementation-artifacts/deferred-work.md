@@ -1,5 +1,7 @@
 # Deferred Work
 
+**DW-121/DW-456/DW-508/DW-511/DW-522 closure (2026-10-25):** Explicit main-only release inputs, crash-resistant dual-mode evidence controls, and consistent status ambiguity metadata/runtime/catalog guidance close exactly five records. All 657 IDs remain: 595 done/62 open across 57 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](dw-121-456-508-511-522-validation-evidence.md).
+
 **DW-268/DW-328/DW-391/DW-434/DW-489 closure (2026-10-24):** Scoped Fluent layout, authenticated administrator and composed correction evidence, identity-preserving retained audit returns and independent configuration-removal follow-up close exactly five records. All 657 IDs remain: 590 done/67 open across 62 maintenance rows. Original fields, unrelated records, dependency pointers and broader runtime/release holds remain preserved. See [validation evidence](dw-268-328-391-434-489-validation-evidence.md).
 
 **DW-225/DW-372/DW-382/DW-623/DW-642 closure (2026-10-24):** Exact causal audit proof tolerates independent BFF clock skew; only verified terminal correction proof failure releases fixed-aggregate admission. Existing member-removal behavior and the duplicate cold hosted source-build risks are requalified. Exactly five records close: all 657 IDs remain, 585 done/72 open across 67 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](dw-225-372-382-623-642-validation-evidence.md).
@@ -1052,19 +1054,27 @@ location: domain-release.yml
 source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-30240946791-89897853390.md`
 reason: The legacy ledger defers this issue: The shared release workflow documents `source-branch` as configurable even though the established publication policy accepts only `main`. Original context is preserved in legacy-detail.
 legacy-detail: - source_spec: `_bmad-output/implementation-artifacts/spec-gh-actions-30240946791-89897853390.md` summary: The shared release workflow documents `source-branch` as configurable even though the established publication policy accepts only `main`. evidence: `domain-release.yml` and the pre-existing publication preflight reject every source branch except `main`, while the reusable-workflow input description says only that it is an exact protected source branch; resolving that public contract is broader than the stale-release race fix.
-status: open
+pre-diagnostics-status: open
 decision: 2026-08-26 Main-only contract — Remove configurable-branch ambiguity and enforce and document main across the workflow and callers.
 decision: 2026-08-25 Main-only contract — Remove configurable-branch ambiguity and enforce and document main across shared workflow and callers.
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.Builds/.github/workflows/domain-release.yml source-branch description remains configurable while publication boundaries reject anything except main. Existing 2026-08-25/26 main-only decisions remain settled.
-verification-files: references/Hexalith.Builds/.github/workflows/domain-release.yml
-evidence-kind: verified-defect
+pre-diagnostics-disposition: actionable
+pre-diagnostics-verification-date: 2026-10-12
+pre-diagnostics-verification: references/Hexalith.Builds/.github/workflows/domain-release.yml source-branch description remains configurable while publication boundaries reject anything except main. Existing 2026-08-25/26 main-only decisions remain settled.
+pre-diagnostics-verification-files: references/Hexalith.Builds/.github/workflows/domain-release.yml
+pre-diagnostics-evidence-kind: verified-defect
 priority: P2
 owner: Hexalith.Builds
 dependencies: Hexalith.Builds owning workflow change
-next-action: Align the input description/contract and callers with the recorded main-only policy.
+pre-diagnostics-next-action: Align the input description/contract and callers with the recorded main-only policy.
 related: none
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: The shared workflow and preparation action input descriptions and documentation now explicitly support only main, retaining compatibility inputs and existing enforcement. Preparation regressions 9/9 and actionlint pass.
+verification-files: references/Hexalith.Builds/.github/workflows/domain-release.yml; references/Hexalith.Builds/.github/workflows/domain-release.md; references/Hexalith.Builds/Github/prepare-domain-release/action.yml; references/Hexalith.Builds/Github/prepare-domain-release/README.md; _bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated policy/runtime/release holds preserved.
+
 
 ### DW-122: Per-page candidate dedup lets one tenant render on two consecutive authoritative search pages
 origin: migrated from legacy ledger ("Deferred from: code review of spec-1-9-authoritative-memories-search-with-protected-paging (2026-07-27, pass 3)"), 2026-08-25
@@ -3964,17 +3974,24 @@ location: references/Hexalith.Builds/Tools/test-runtime-toolchain-evidence-valid
 source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `/home/administrator/projects/hexalith/tenants/_bmad-output/implementation-artifacts/spec-5-4-understand-audit-availability-and-recovery.md`\n  summary: Hand off to Hexalith.Builds. Strengthen the G-6 self-test mode checks.\n  evidence: `test-runtime-toolchain-evidence-validator.py:289-291` asserts only `returncode == 1`, so an uncaught-exception mutant passes. The checks are bare `assert` statements, which `python -O` strips, and `:382` prints a literal \"22 scenarios\". No tampering scenario runs with `candidate=True`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: Builds/Tools/test-runtime-toolchain-evidence-validator.py now derives result counts and has expanded authority/current-v2 mutation controls, closing stale literal-count coverage. However :471-473 still asserts only returncode == 1 for cross-mode negatives, and the suite still uses bare assert statements without an optimization guard; Python -O strips those checks. Legacy packet mutation negatives still use the default accepted-mode helper.
-verification-files: references/Hexalith.Builds/Tools/test-runtime-toolchain-evidence-validator.py
-evidence-kind: verified-gap
+pre-diagnostics-status: open
+pre-diagnostics-disposition: actionable
+pre-diagnostics-verification-date: 2026-10-12
+pre-diagnostics-verification: Builds/Tools/test-runtime-toolchain-evidence-validator.py now derives result counts and has expanded authority/current-v2 mutation controls, closing stale literal-count coverage. However :471-473 still asserts only returncode == 1 for cross-mode negatives, and the suite still uses bare assert statements without an optimization guard; Python -O strips those checks. Legacy packet mutation negatives still use the default accepted-mode helper.
+pre-diagnostics-verification-files: references/Hexalith.Builds/Tools/test-runtime-toolchain-evidence-validator.py
+pre-diagnostics-evidence-kind: verified-gap
 priority: P2
 owner: Hexalith.Builds
 dependencies: Hexalith.Builds-owned test harness change
-next-action: Require expected validation diagnostics for mode negatives and reject optimized execution or replace bare asserts; run applicable packet tampering in both candidate and accepted modes.
+pre-diagnostics-next-action: Require expected validation diagnostics for mode negatives and reject optimized execution or replace bare asserts; run applicable packet tampering in both candidate and accepted modes.
 related: DW-452, DW-455
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: Evidence self-tests refuse optimized Python, require exact intentional cross-mode diagnostics, and exercise applicable legacy/current packet tampering in both accepted and candidate modes without changing logical scenario or historical packet contracts. Independent review corrections and mutation controls are recorded in the linked evidence.
+verification-files: references/Hexalith.Builds/Tools/test-runtime-toolchain-evidence-validator.py; references/Hexalith.Builds/Tools/test_runtime_toolchain_v2.py; _bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated policy/runtime/release holds preserved.
 
 
 ### DW-457: Hand off to Hexalith.Builds. Record a disposition for the Aspire SDK split in the 2026-09-27 baseline.
@@ -4556,17 +4573,24 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/Com
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Declare the command-status endpoint's 409 in its OpenAPI metadata.\n  evidence: `CommandStatusController.cs:58-64` declares 200/400/401/403/404/429 but not 409, although `CreateAmbiguityProblemDetails` returns 409 (`:133`, `:152-153`). `CommandDocumentationTransformer` does not add it either, so the generated OpenAPI disagrees with `command-api.md:389`."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs:58-66 declares 200/400/401/403/404/429 response metadata but no 409. GetStatus returns CreateAmbiguityProblemDetails on tenant/correlation ambiguity and runtime returns 409.
-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
-evidence-kind: verified-gap
+pre-diagnostics-status: open
+pre-diagnostics-disposition: actionable
+pre-diagnostics-verification-date: 2026-10-12
+pre-diagnostics-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs:58-66 declares 200/400/401/403/404/429 response metadata but no 409. GetStatus returns CreateAmbiguityProblemDetails on tenant/correlation ambiguity and runtime returns 409.
+pre-diagnostics-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
+pre-diagnostics-evidence-kind: verified-gap
 priority: P2
 owner: Hexalith.EventStore
 dependencies: EventStore API metadata owner
-next-action: Declare and verify the status endpoint’s 409 ProblemDetails response in generated OpenAPI.
+pre-diagnostics-next-action: Declare and verify the status endpoint’s 409 ProblemDetails response in generated OpenAPI.
 related: none
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: The status endpoint declares 409 application/problem+json with ProblemDetails; its runtime OpenAPI transformer restores the scope-aware response description, verified against generated JSON.
+verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs; references/Hexalith.EventStore/src/Hexalith.EventStore/OpenApi/CommandDocumentationTransformer.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/OpenApi/OpenApiSpecTests.cs; _bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated policy/runtime/release holds preserved.
 
 
 ### DW-509: Move the remaining EventStore docs from `/status/{correlationId}` to the messageId route.
@@ -4596,17 +4620,24 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/Com
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Make the command-status 409 ProblemDetails detail match every ambiguity it reports.\n  evidence: `CommandStatusController.CreateAmbiguityProblemDetails` (`:209`) always says \"The correlation identifier maps to multiple commands. Query again using the command MessageId.\" It also serves the case where one messageId matches records in several authorized tenants or several legacy records (`:152-153`), where a messageId retry cannot help. Pass-12 BH9 additionally traces a direct message match in one tenant colliding with another tenant's correlation index; pass 13 folds that duplicate entry into this work item. The updated `command-api.md` 409 row already gives the general remediation; the runtime copy is pre-existing and EventStore-owned."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs:241-248 always tells users to retry with MessageId although GetStatus also invokes it for cross-tenant direct-message collisions. Retrying the same MessageId cannot resolve every ambiguity.
-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
-evidence-kind: verified-defect
+pre-diagnostics-status: open
+pre-diagnostics-disposition: actionable
+pre-diagnostics-verification-date: 2026-10-12
+pre-diagnostics-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs:241-248 always tells users to retry with MessageId although GetStatus also invokes it for cross-tenant direct-message collisions. Retrying the same MessageId cannot resolve every ambiguity.
+pre-diagnostics-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs
+pre-diagnostics-evidence-kind: verified-defect
 priority: P2
 owner: Hexalith.EventStore
 dependencies: EventStore ambiguity contract
-next-action: Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions.
+pre-diagnostics-next-action: Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions.
 related: DW-521,DW-522
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: The existing ambiguity result retains its public type/title and lookup semantics while giving general MessageId/authorized-scope guidance. Direct/direct, direct/indexed and legacy/legacy cross-tenant regressions prove support-safe details without disclosing matched records.
+verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/Controllers/CommandStatusController.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/Commands/CommandStatusControllerTests.cs; _bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated policy/runtime/release holds preserved.
 
 
 ## Deferred from: code review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md, pass 7 (2026-10-05)
@@ -4752,17 +4783,24 @@ location: references/Hexalith.EventStore/src/Hexalith.EventStore/OpenApi/ErrorRe
 source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`
 reason: Original finding and any prior resolutions are preserved losslessly in legacy-detail; current disposition is recorded in verification.
 legacy-detail: "- source_spec: `_bmad-output/implementation-artifacts/spec-5-6-preview-confirm-and-link-a-tenant-correction.md`\n  summary: Extends the pass-6 entry \"Make the command-status 409 ProblemDetails detail match every ambiguity it reports\": the served error catalog has the same wrong copy.\n  evidence: `src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs:94-97` describes `command-correlation-ambiguous` as \"The tenant-scoped correlation identifier maps to multiple live commands\" and remediates with \"Use the MessageId returned by command submission\". Neither covers a cross-tenant `messageId` collision. `docs/reference/problems/` has no page for this type. Pre-existing. EventStore-owned."
-status: open
-disposition: actionable
-verification-date: 2026-10-12
-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs:94-97 still describes tenant-scoped correlation collisions only and says use MessageId. The shared 409 also covers direct MessageId collisions across authorized tenants; no specific docs/reference/problems page was found.
-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs
-evidence-kind: verified-defect
+pre-diagnostics-status: open
+pre-diagnostics-disposition: actionable
+pre-diagnostics-verification-date: 2026-10-12
+pre-diagnostics-verification: references/Hexalith.EventStore/src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs:94-97 still describes tenant-scoped correlation collisions only and says use MessageId. The shared 409 also covers direct MessageId collisions across authorized tenants; no specific docs/reference/problems page was found.
+pre-diagnostics-verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs
+pre-diagnostics-evidence-kind: verified-defect
 priority: P2
 owner: Hexalith.EventStore
 dependencies: DW-511 general ambiguity wording
-next-action: Align the served ambiguity catalog and problem reference with the general scope-aware runtime remediation.
+pre-diagnostics-next-action: Align the served ambiguity catalog and problem reference with the general scope-aware runtime remediation.
 related: DW-511,DW-521
+status: done 2026-10-25
+disposition: done
+verification-date: 2026-10-25
+verification: The served problem catalog and new linked Markdown reference describe correlation and cross-tenant MessageId ambiguity, operator escalation, request diagnostic correlation, and the no-success/no-resubmission boundary; actual rendered problem-page regressions verify the guidance.
+verification-files: references/Hexalith.EventStore/src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs; references/Hexalith.EventStore/tests/Hexalith.EventStore.Server.Tests/OpenApi/ErrorReferenceEndpointTests.cs; references/Hexalith.EventStore/docs/reference/problems/command-correlation-ambiguous.md; references/Hexalith.EventStore/docs/reference/problems/index.md; _bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-evidence.md
+evidence-kind: verified-fix
+next-action: none; scoped correction complete, unrelated policy/runtime/release holds preserved.
 
 
 ## Deferred from: pass 14 workflow review of spec-5-6-preview-confirm-and-link-a-tenant-correction.md (2026-10-05)

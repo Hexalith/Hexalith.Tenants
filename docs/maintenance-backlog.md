@@ -1,5 +1,7 @@
 # Maintenance backlog
 
+**DW-121/DW-456/DW-508/DW-511/DW-522 closure (2026-10-25):** Explicit main-only release inputs, crash-resistant dual-mode evidence controls, and consistent status ambiguity metadata/runtime/catalog guidance close exactly five records. All 657 IDs remain: 595 done/62 open across 57 maintenance rows. Original fields, unrelated records and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-121-456-508-511-522-validation-evidence.md).
+
 **DW-268/DW-328/DW-391/DW-434/DW-489 closure (2026-10-24):** Scoped Fluent layout, authenticated administrator and composed correction evidence, identity-preserving retained audit returns and independent configuration-removal follow-up close exactly five records. All 657 IDs remain: 590 done/67 open across 62 maintenance rows. Original fields, unrelated records, dependency pointers and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-268-328-391-434-489-validation-evidence.md).
 
 **DW-225/DW-372/DW-382/DW-623/DW-642 closure (2026-10-24):** Exact causal audit proof tolerates independent BFF clock skew; only verified terminal correction proof failure releases fixed-aggregate admission. Existing member-removal behavior and the duplicate cold hosted source-build risks are requalified. Exactly five records close: all 657 IDs remain, 585 done/72 open across 67 maintenance rows. Original fields, unrelated decisions, dependencies and broader runtime/release holds remain preserved. See [validation evidence](../_bmad-output/implementation-artifacts/dw-225-372-382-623-642-validation-evidence.md).
@@ -224,14 +226,14 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 
 | Disposition | Records |
 | --- | ---: |
-| done | 590 |
-| actionable | 24 |
+| done | 595 |
+| actionable | 19 |
 | blocked | 11 |
 | awaiting-decision | 21 |
 | accepted-limitation | 5 |
 | uncertain | 6 |
 
-**Remaining: 67 open records across 62 index rows.**
+**Remaining: 62 open records across 57 index rows.**
 
 **Unnumbered review follow-up:** navigation verification exposed a cancellation-test cleanup timing gap, retained in the deferred ledger. The numbered DW totals and rows exclude this new follow-up until ledger migration. Disposition counts now cover all 657 ledger records, including duplicate restatements and the earlier closed records. P1 means correctness, confidentiality or command-ownership work to prioritize; P2 means functional/reliability or acceptance gaps; P3 means maintenance and polish. Priorities are triage recommendations. `unassigned` preserves the absence of an established owner.
 
@@ -264,13 +266,10 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW references | Priority | Evidence / disposition | Owner | Dependencies | Next concrete action |
 | --- | --- | --- | --- | --- | --- |
 | DW-562, DW-617 | P1 | Gap / awaiting-decision | global-administrator authority owner; other records unassigned | Platform authorization and revocation contract; DW-562 revocation contract decision | Define the authoritative/version-bounded revocation guarantee and responsible authority before changing command/query gates. |
-| DW-121 | P2 | Defect / actionable | Hexalith.Builds | Hexalith.Builds owning workflow change | Align the input description/contract and callers with the recorded main-only policy. |
 | DW-128 | P2 | Defect / actionable | unassigned | coordinate DW-127 privacy contract | Separate internal absent/forbidden outcomes and test all-404 windows followed by authorized matches. |
 | DW-272 | P2 | Defect / actionable | unassigned | BFF connectivity signal | Distinguish pending probe from missing support and refresh capability on a governed reconnect signal. |
 | DW-387 | P2 | Defect / actionable | unassigned | Same-id idempotency/recovery contract | Specify and test same-id removal recovery when the post-dispatch target is absent, preserving original ownership and complete last-administrator safeguards. |
-| DW-511 | P2 | Defect / actionable | Hexalith.EventStore | EventStore ambiguity contract | Replace runtime remediation with scope-aware general guidance and cover direct/direct and direct/correlation cross-tenant collisions. |
 | DW-521 | P2 | Defect / actionable | Hexalith.EventStore | EventStore lookup compatibility decision | Choose explicit message-primary versus compatibility lookup semantics across authorized tenants and test caller-chosen cross-tenant collisions. |
-| DW-522 | P2 | Defect / actionable | Hexalith.EventStore | DW-511 general ambiguity wording | Align the served ambiguity catalog and problem reference with the general scope-aware runtime remediation. |
 | DW-523 | P2 | Defect / actionable | Hexalith.EventStore | EventStore publication recovery status contract | Define recoverable versus exhausted PublishFailed polling semantics and align runtime Retry-After plus all lifecycle/replay documentation. |
 | DW-594 | P2 | Defect / actionable | Tenants integration-test fixture | Runner TLS trust or selected HTTP endpoint | Expose safe inner TLS cause, repair endpoint/trust, then require this exact live test to pass in CI. |
 | DW-595 | P2 | Defect / blocked | EventStore (Story 6.1-P1R evidence, contracts packaging) | EventStore-maintainer fixes at adopted source revision | Route current failing upstream tests to EventStore and capture a green exact-pin CI result. |
@@ -284,11 +283,9 @@ All 439 requested records were reconciled: 152 marked-open DW entries plus 287 p
 | DW-334, DW-358 | P2 | Gap / blocked | operator | operator-owned live Aspire/secret-provider evidence; Operator environment and intended secret-provider configuration | Capture deployed model, provider binding and healthy startup in the intended package mode. |
 | DW-432 | P2 | Gap / blocked | unassigned | DW-436 authenticated caller/scope fixture and healthy Aspire topology | Establish the authenticated route fixture from DW-436, then retain the hosted audit-context route assertions and results. |
 | DW-436 | P2 | Gap / actionable | unassigned | Validated caller/tenant scope and healthy Aspire topology | Add an authenticated FrontComposer route fixture and preserve the useful anonymous fail-closed tests as a separate lane. |
-| DW-456 | P2 | Gap / actionable | Hexalith.Builds | Hexalith.Builds-owned test harness change | Require expected validation diagnostics for mode negatives and reject optimized execution or replace bare asserts; run applicable packet tampering in both candidate and accepted modes. |
 | DW-457 | P2 | Gap / awaiting-decision | Hexalith.Builds | Builds toolchain qualification decision | Builds owners must annotate the historical Aspire split disposition and disambiguate the two Dapr meanings. |
 | DW-460 | P2 | Gap / awaiting-decision | unassigned | Public receipt API decision | Choose an authoritative-metadata overload or deprecate the misleading FromEntry factory, preserving provenance checks. |
 | DW-461, DW-467, DW-478 | P2 | Gap / awaiting-decision | unassigned | Historical artifact validation policy | Choose a resolvable audited range for the legacy artifact or explicitly retire its executable guard role. |
-| DW-508 | P2 | Gap / actionable | Hexalith.EventStore | EventStore API metadata owner | Declare and verify the status endpoint’s 409 ProblemDetails response in generated OpenAPI. |
 | DW-519 | P2 | Gap / actionable | Hexalith.EventStore | EventStore actor test fixtures | Invoke real AggregateActor.GetEventsAsync at count/payload boundaries and assert LegacyArrayLimit, including an arrayBudget.Add removal control. |
 | DW-540 | P2 | Gap / awaiting-decision | Hexalith.Builds | Maintainer CI gating decision | Record whether the existing Aspire lane must become blocking, and define the exact prerequisites/skip behavior before changing the workflow. |
 | DW-554 | P2 | Gap / awaiting-decision | unassigned | Published package dependency-layer decision | Approve allowed published layers for each technical ServiceDefaults dependency, then enforce that policy with isolated package fixtures. |

@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-25",
+  "scope": [
+    121,
+    456,
+    508,
+    511,
+    522
+  ],
+  "owner_revisions": {
+    "Hexalith.Builds": {
+      "revision": "1783c0a377615063f3222c1d28f3ab513af4e72f",
+      "files": {
+        ".github/workflows/domain-release.yml": "57599c9d1cd2b56217a144ede8ba55b4a2b343ab",
+        ".github/workflows/domain-release.md": "7c80aad35e1264411c6becaf1a5b02fa8955f2e3",
+        "Github/prepare-domain-release/action.yml": "0f242851b36664336bb7726e8cd79ddec140de80",
+        "Github/prepare-domain-release/README.md": "e71f1a1c23779b5b0e97f26145bc6d4b545a6f2a",
+        "Tools/test-runtime-toolchain-evidence-validator.py": "a50ceaba4525692007c717a7720233f4810b80f6",
+        "Tools/test_runtime_toolchain_v2.py": "1d7e9c8001cd63f85e293326c54875054375677f"
+      }
+    },
+    "Hexalith.EventStore": {
+      "revision": "38393a15659eeb8a979764a97d185e868c2b33e6",
+      "files": {
+        "src/Hexalith.EventStore/Controllers/CommandStatusController.cs": "d308b2932df7bf42c34b714f15ab8538518be823",
+        "src/Hexalith.EventStore/OpenApi/CommandDocumentationTransformer.cs": "70842c88587a6e7457095d01a1891d388f4a981b",
+        "src/Hexalith.EventStore/OpenApi/ErrorReferenceEndpoints.cs": "c12516f9169f263619307c87d2f706adedd750cf",
+        "tests/Hexalith.EventStore.Server.Tests/Commands/CommandStatusControllerTests.cs": "3deff2d2261f0d40bf7235e1675e2e8c7e28a5f8",
+        "tests/Hexalith.EventStore.Server.Tests/OpenApi/OpenApiSpecTests.cs": "a6035edad4733d7daf0efd9145f1a297438f2d3a",
+        "tests/Hexalith.EventStore.Server.Tests/OpenApi/ErrorReferenceEndpointTests.cs": "5a10904144f7f1da6d82270102987e93c8f0b26c",
+        "docs/reference/problems/index.md": "8de9af536b235338bf545e35a78715e319957eeb",
+        "docs/reference/problems/command-correlation-ambiguous.md": "64415f9da6f9def7645a4ace15918b61e4438531"
+      }
+    }
+  },
+  "eventstore": {
+    "command": "dotnet tests/Hexalith.EventStore.Server.Tests/bin/Debug/net10.0/Hexalith.EventStore.Server.Tests.dll -class Hexalith.EventStore.Server.Tests.Commands.CommandStatusControllerTests -class Hexalith.EventStore.Server.Tests.OpenApi.OpenApiSpecTests -class Hexalith.EventStore.Server.Tests.OpenApi.ErrorReferenceEndpointTests -xml /tmp/tenants-dw-eventstore-tests-reviewed.xml",
+    "build_command": "dotnet build tests/Hexalith.EventStore.Server.Tests/Hexalith.EventStore.Server.Tests.csproj -c Debug -p:UseNuGetDeps=false -m:1",
+    "build_warnings": 0,
+    "build_errors": 0,
+    "classes": {
+      "Hexalith.EventStore.Server.Tests.OpenApi.ErrorReferenceEndpointTests": {
+        "passed": 25,
+        "failed": 0,
+        "skipped": 0
+      },
+      "Hexalith.EventStore.Server.Tests.OpenApi.OpenApiSpecTests": {
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0
+      },
+      "Hexalith.EventStore.Server.Tests.Commands.CommandStatusControllerTests": {
+        "passed": 30,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "total": 61,
+    "passed": 61,
+    "failed": 0,
+    "skipped": 0,
+    "errors": 0,
+    "not-run": 0
+  },
+  "builds": {
+    "legacy_packet_scenarios_per_baseline": 30,
+    "legacy_baselines": 3,
+    "legacy_baseline_drift_controls": 48,
+    "legacy_authority_controls": 165,
+    "historical_baseline_sha256_pins": 2,
+    "current_logical_controls": 103,
+    "sdk_import_controls": 3,
+    "evaluated_catalog_controls": 47,
+    "preparation_tests": 9,
+    "publisher_tests": 150,
+    "optimized_execution": "explicitly rejected in both test entrypoints",
+    "mode_diagnostic_positive_controls": 2,
+    "mode_diagnostic_negative_controls": 8,
+    "targeted_bypass_mutations_rejected": [
+      "legacy candidate stale artifact hash",
+      "current accepted integer technical validity"
+    ]
+  },
+  "independent_review": {
+    "findings": 4,
+    "patched": 4,
+    "unresolved": 0,
+    "deferred": 0
+  },
+  "runtime_limit": "Aspire AppHost built with zero warnings/errors but failed startup on duplicate eventstore-app-api-token resource (exit 2). No healthy deployed-topology claim.",
+  "commitlint_versions": {
+    "Hexalith.Builds": "21.2.4",
+    "Hexalith.EventStore": "21.1.0",
+    "Hexalith.Tenants": "21.2.3"
+  },
+  "logs_sha256": "056a40618c88fb9e80ad14c0edb7a0d2c726ba1a288502246e3a9b77f2be57c3"
+}
