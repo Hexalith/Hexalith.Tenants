@@ -2,7 +2,7 @@
 title: 'Qualify authenticated Tenants routes and recovery through the live topology'
 type: 'bugfix'
 created: '2026-10-25'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 baseline_commit: '8804c10b8a900860ea2394c81eff78d23bb3c0a4'
@@ -49,7 +49,7 @@ Complete DW-104, DW-161, DW-432, DW-436 and DW-594: qualify authenticated UI con
 
 - [x] `src/Hexalith.Tenants.AppHost/Program.cs`, `tests/Hexalith.Tenants.AppHost.Tests/AppHostSecurityResourceGraphTests.cs` — remove redundant token registration; assert unique ownership.
 - [x] `tests/Hexalith.Tenants.IntegrationTests/Fixtures/AspireTopologyFixture.cs`, `tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs` — configure trusted certificates and safe bounded TLS diagnostics.
-- [ ] `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs` — add live six-route, metadata, 304 and invalid-cursor proof.
+- [x] `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs` — add live six-route, metadata, 304 and invalid-cursor proof.
 - [x] `tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs` — add authenticated routes and contextual audit navigation.
 - [x] `tests/Hexalith.Tenants.UI.Tests/Browser/validate-authenticated-live-routes.mjs` — exercise Aspire endpoints, measured widths, forced colors and Back.
 - [x] `.github/workflows/ci.yml` — add focused Release/package qualification with certificate trust, minimum counts and skip rejection; preserve broad advisory tier.
@@ -194,7 +194,7 @@ Cold-bootstrap review patches pass all72 focused controls, zero skips, with a wa
 Fresh hosted24fb584b qualifies cold-bootstrap sequence1, six ordinary REST reads/cursor recovery, all HTTP contracts, anonymous denial and the exact historical persisted-state regression with zero skips. Conditional detail still fails200vs304. The browser's first-route certificate failure prevents physical layout/Back acceptance, so no additional record closes yet.
 
 
-## Final partial acceptance
+## Historical four-record acceptance (2026-10-25)
 
 Source c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 passes the fresh hosted authenticated UI3/3, all25 physical browser cases, exact historical persisted-state1/1, anonymous6/6 and the complete HTTP-contract lane, all without acceptance skips. All six ordinary REST reads and cursor recovery pass. Only conditional detail returns200 instead of304; the assertion remains blocking and unskipped. The hosted packet is retained as dw-104-161-432-436-594-live-browser-hosted.json with matching validator and clean source/dependency captures.
 
@@ -220,8 +220,12 @@ DW-104, DW-432, DW-436 and DW-594 close. DW-161 remains open under the approved 
 - `_bmad-output/implementation-artifacts/dw-161-published-package-comparison.json`
 - `_bmad-output/implementation-artifacts/dw-161-live-browser-local.json`
 - `_bmad-output/implementation-artifacts/dw-161-live-browser-hosted.json`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `docs/maintenance-backlog.md`
 
 ## Completion Notes List
+
+Earlier checkpoints below are historical; the final acceptance section records the current state.
 
 Historical initial repair checkpoint: the approved shared fix is `656f2771761f48060657bb7485cd5f369f6b7b81`, based on current main `a5f1aaa08cf466f26a06cf8719138043f22cfde7` after a clean rebase over five upstream documentation/dependency commits. All six reviewed source/test file byte hashes remained identical. The source push was accepted through the authenticated main-push override; publication still requires exact-source CI/commitlint and the existing protected production review. Consumer package integration and live closure remain pending.
 
@@ -236,3 +240,10 @@ Current publication: EventStore3.128.2, tag/source935c21ac5ebc5e50738ae6ee79dc66
 Final local consumer verification on actual3.128.2 passes seven Debug/package builds with zero warnings/errors; REST4/4, UI3/3 with browser25/25, historical1/1, anonymous6/6, HTTP44/44, audit117/117, fixture guards80/80, full AppHost13/13 and full UI7705/7705, all zero skips. Safe packet, resolved-package/output receipt, all14 registry-versus-release package comparisons and canonical reproduction commands are retained in the continuation evidence. Mandatory source-reference Memories compilation remains a separately tracked baseline/current failure. All consumer review patches are verified; final hosted normal-NuGet Release/package qualification remains required before DW-161 closes.
 
 Current hosted runtime acceptance: consumera569b48531d1567a12baab4d423f5426ce5c9c25 passes normal-NuGet Release/package live106/106 and HTTP245/245, zero skips, including fresh cold-bootstrap REST4/4, unchanged conditional304 authority, historical1/1, anonymous6/6 and authenticated UI3/3 with browser25/25. The clean hosted packet is retained. Only the original responsive HTML fixture's hosted Chrome153 follow-up remains; production/configuration/dependencies are unchanged from this qualified consumer. DW-161 stays open until that final guard is verified.
+
+
+## Final acceptance (2026-10-26)
+
+All five requested records are done: DW-104, DW-161, DW-432, DW-436 and DW-594. EventStore3.128.2/source935c21ac5ebc5e50738ae6ee79dc661acd2fd5a8 passed exact-source CI/commitlint, protected publication and separate live-sidecar integration. Consumer a569b48531d1567a12baab4d423f5426ce5c9c25 passed clean normal-NuGet hosted live106/106 and HTTP245/245, zero skips, including cold-bootstrap REST4/4, unchanged conditional304 authority, historical1/1, anonymous6/6 and authenticated UI3/3 with browser25/25. Local full UI7705/7705 and shared333 focused checks passed. Test-only follow-up ec3fd76d7dc15a77414008b66a5bab5b7c2380f5 passes the hosted Chrome153 fixture job; production/configuration/dependencies are identical to the runtime-qualified consumer. All review and observed batch regressions are repaired; no new work is deferred.
+
+The retained continuation evidence distinguishes historical failures/checkpoints from this final acceptance. All657 IDs remain,610 done/47 open across42 maintenance rows. All656 other record bodies and every prior DW-161 line are preserved. The approved EventStore pointer/package update is the only dependency change. Existing Memories source-reference failure, broad package-range mismatch, release-fixture/provenance guard failures, optional Memories host, operational-validator and background-worker holds remain unqualified; no broader green pipeline is claimed.

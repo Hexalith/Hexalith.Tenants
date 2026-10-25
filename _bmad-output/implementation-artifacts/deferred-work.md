@@ -1400,23 +1400,31 @@ location: tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:421
 reason: The legacy ledger defers this issue: Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology. Original context is preserved in legacy-detail.
 legacy-detail: - Live socket-level proof that all six direct Tenants REST routes answer through the deployed topology. Reason for deferral: recorded as an owned limitation under decision `spec:854`, option (b). The routes are proven in process against the real generated controllers — paths, query strings, metadata headers and the conditional `304` path — by `TenantsApiGeneratedControllerTests.Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers`. A live probe driving the production `TenantsRestQueryClient` against the `tenants-api` Aspire resource was written for loop 11 and every read times out at the client's 60 s bound in the local slim-mode topology, which also intermittently fails the pre-existing command-status wait in `AspireTopologyTests`. A lane that cannot separate "the routes are broken" from "the topology is unhealthy" is not evidence, so it was not shipped. Revisit if: a reliable Aspire topology lane exists (CI or local) that can serve as an oracle for `tenants-api`. [tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs:421]
 pre-authenticated-routes-status: open
-status: open
+pre-shared-conditional-status: open
+status: done 2026-10-26
 pre-authenticated-routes-disposition: blocked
-disposition: blocked
+pre-shared-conditional-disposition: blocked
+disposition: done
 pre-authenticated-routes-verification-date: 2026-10-12
-verification-date: 2026-10-25
+pre-shared-conditional-verification-date: 2026-10-25
+verification-date: 2026-10-26
 pre-authenticated-routes-verification: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs Direct_rest_client_routes_match_the_generated_controllers_and_parse_their_real_headers proves six routes in process. AspireTopologyTests.cs does not supply the requested healthy live six-route production-client packet.
-verification: All six REST reads, persisted prefix/roles/audit events and cursor recovery pass. Conditional detail still returns200 rather than304: pinned EventStore Gateway3.127 recognizes internal SelfRoutingETag while the domain emits an opaque store ETag; its304 client path omits version/served-at metadata. Shared-module ownership and the approved dependency freeze prevent closing this remaining contract locally. The conditional test remains blocking and unskipped. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+pre-shared-conditional-verification: All six REST reads, persisted prefix/roles/audit events and cursor recovery pass. Conditional detail still returns200 rather than304: pinned EventStore Gateway3.127 recognizes internal SelfRoutingETag while the domain emits an opaque store ETag; its304 client path omits version/served-at metadata. Shared-module ownership and the approved dependency freeze prevent closing this remaining contract locally. The conditional test remains blocking and unskipped. Fresh hosted Release/package run40217896195 at c3697ed23dc1aa896bef1f42d3fc1a0f79356d65 has zero acceptance skips. See dw-104-161-432-436-594-validation-evidence.md and live-browser-hosted.json.
+verification: Published EventStore3.128.2/source935c21ac5ebc5e50738ae6ee79dc661acd2fd5a8 repairs producer opaque-validator matching and lossless304 metadata. Clean hosted Release/package consumer a569b48531d1567a12baab4d423f5426ce5c9c25 passes fresh cold-bootstrap REST4/4 including all six production-client routes, unchanged conditional304 with independent persisted version/time/lifecycle, and cursor recovery; historical persisted state1/1, anonymous6/6 and authenticated UI3/3 with browser25/25 pass. HTTP245/245 and live106/106 have zero skips. Responsive identity fixture correction ec3fd76d7dc15a77414008b66a5bab5b7c2380f5 passes hosted Chrome153; production/configuration/dependencies are unchanged from the qualified consumer. See dw-161-shared-conditional-authority-validation-evidence.md and dw-161-live-browser-hosted.json. Broader baseline CI/runtime/release holds remain.
 pre-authenticated-routes-verification-files: tests/Hexalith.Tenants.IntegrationTests/TenantsApiGeneratedControllerTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
-verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+pre-shared-conditional-verification-files: _bmad-output/implementation-artifacts/dw-104-161-432-436-594-validation-evidence.md; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
+verification-files: _bmad-output/implementation-artifacts/dw-161-shared-conditional-authority-validation-evidence.md; _bmad-output/implementation-artifacts/dw-161-live-browser-hosted.json; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AuthenticatedTenantsUiRouteTests.cs; tests/Hexalith.Tenants.IntegrationTests/AspireTopologyTests.cs
 pre-authenticated-routes-evidence-kind: verified-gap
-evidence-kind: verified-partial-gap
+pre-shared-conditional-evidence-kind: verified-partial-gap
+evidence-kind: verified-resolution
 priority: P2
 owner: unassigned
 pre-authenticated-routes-dependencies: healthy live topology and endpoint/auth evidence
-dependencies: Shared EventStore conditional-validator/304 metadata repair; approval to update the pinned dependency under this spec.
+pre-shared-conditional-dependencies: Shared EventStore conditional-validator/304 metadata repair; approval to update the pinned dependency under this spec.
+dependencies: None for this selected contract; the approved shared EventStore repair is published and consumed. Preserve all unrelated dependencies and broader runtime/release holds.
 pre-authenticated-routes-next-action: Capture all six production-client routes, conditional 304 and headers through a healthy authenticated deployed topology.
-next-action: Approve a shared EventStore conditional-validator/304-authority repair and updated packages, then pass the unchanged live conditional contract.
+pre-shared-conditional-next-action: Approve a shared EventStore conditional-validator/304-authority repair and updated packages, then pass the unchanged live conditional contract.
+next-action: None for this selected record; retain historical evidence and broader runtime/release holds.
 related: DW-104, DW-144
 
 ### DW-162: `scripts/validate-story-gitlinks.py` keeps no automated test and no CI wiring
